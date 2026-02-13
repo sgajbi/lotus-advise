@@ -64,26 +64,133 @@
     }
   },
   "expected_outputs": {
+    "rebalance_run_id": "rr_f701b2ec",
+    "correlation_id": "c_placeholder",
     "status": "READY",
+    "before": {
+      "total_value": {
+        "amount": "100000.00",
+        "currency": "SGD"
+      },
+      "allocation": [],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "100000.0",
+          "settled": null,
+          "pending": null
+        }
+      ]
+    },
+    "universe": {
+      "universe_id": "uni_rr_f701b2ec",
+      "eligible_for_buy": [
+        "ETF_A",
+        "ETF_B"
+      ],
+      "eligible_for_sell": [
+        "ETF_A",
+        "ETF_B"
+      ],
+      "excluded": [],
+      "coverage": {
+        "price_coverage_pct": "1.0",
+        "fx_coverage_pct": "1.0"
+      }
+    },
+    "target": {
+      "target_id": "tgt_rr_f701b2ec",
+      "strategy": {},
+      "targets": []
+    },
     "intents": [
       {
-        "action": "BUY",
+        "intent_id": "oi_1",
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
         "instrument_id": "ETF_A",
-        "quantity": 500,
-        "est_notional": {
-          "amount": 50000.0,
+        "quantity": "500",
+        "notional": {
+          "amount": "50000.0",
           "currency": "SGD"
+        },
+        "pair": null,
+        "buy_currency": null,
+        "buy_amount": null,
+        "sell_currency": null,
+        "estimated_sell_amount": null,
+        "dependencies": [],
+        "rationale": {
+          "code": "DRIFT_REBALANCE",
+          "message": "Align to model target"
         }
       },
       {
-        "action": "BUY",
+        "intent_id": "oi_2",
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
         "instrument_id": "ETF_B",
-        "quantity": 500,
-        "est_notional": {
-          "amount": 50000.0,
+        "quantity": "500",
+        "notional": {
+          "amount": "50000.0",
           "currency": "SGD"
+        },
+        "pair": null,
+        "buy_currency": null,
+        "buy_amount": null,
+        "sell_currency": null,
+        "estimated_sell_amount": null,
+        "dependencies": [],
+        "rationale": {
+          "code": "DRIFT_REBALANCE",
+          "message": "Align to model target"
         }
       }
-    ]
+    ],
+    "after_simulated": {
+      "total_value": {
+        "amount": "100000.000",
+        "currency": "SGD"
+      },
+      "allocation": [],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "0.0",
+          "settled": null,
+          "pending": null
+        }
+      ]
+    },
+    "rule_results": [
+      {
+        "rule_id": "CASH_BAND",
+        "severity": "SOFT",
+        "status": "PASS",
+        "measured": "0E+1",
+        "threshold": {
+          "max": "0.05"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
+      }
+    ],
+    "explanation": {
+      "summary": "Completed with status READY."
+    },
+    "diagnostics": {
+      "warnings": [],
+      "suppressed_intents": [],
+      "data_quality": {
+        "price_missing": [],
+        "price_stale": [],
+        "fx_missing": []
+      }
+    },
+    "lineage": {
+      "portfolio_snapshot_id": "pf_001",
+      "market_data_snapshot_id": "md",
+      "request_hash": "sha256:dummy"
+    }
   }
 }

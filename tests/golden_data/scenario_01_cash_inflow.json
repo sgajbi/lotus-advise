@@ -46,17 +46,110 @@
     }
   },
   "expected_outputs": {
+    "rebalance_run_id": "rr_d760a0e0",
+    "correlation_id": "c_placeholder",
     "status": "READY",
+    "before": {
+      "total_value": {
+        "amount": "100000.00",
+        "currency": "SGD"
+      },
+      "allocation": [],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "100000.0",
+          "settled": null,
+          "pending": null
+        }
+      ]
+    },
+    "universe": {
+      "universe_id": "uni_rr_d760a0e0",
+      "eligible_for_buy": [
+        "SG_EQ_ETF"
+      ],
+      "eligible_for_sell": [
+        "SG_EQ_ETF"
+      ],
+      "excluded": [],
+      "coverage": {
+        "price_coverage_pct": "1.0",
+        "fx_coverage_pct": "1.0"
+      }
+    },
+    "target": {
+      "target_id": "tgt_rr_d760a0e0",
+      "strategy": {},
+      "targets": []
+    },
     "intents": [
       {
-        "action": "BUY",
+        "intent_id": "oi_1",
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
         "instrument_id": "SG_EQ_ETF",
-        "quantity": 1000,
-        "est_notional": {
-          "amount": 100000.0,
+        "quantity": "1000",
+        "notional": {
+          "amount": "100000.0",
           "currency": "SGD"
+        },
+        "pair": null,
+        "buy_currency": null,
+        "buy_amount": null,
+        "sell_currency": null,
+        "estimated_sell_amount": null,
+        "dependencies": [],
+        "rationale": {
+          "code": "DRIFT_REBALANCE",
+          "message": "Align to model target"
         }
       }
-    ]
+    ],
+    "after_simulated": {
+      "total_value": {
+        "amount": "100000.000",
+        "currency": "SGD"
+      },
+      "allocation": [],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "0.0",
+          "settled": null,
+          "pending": null
+        }
+      ]
+    },
+    "rule_results": [
+      {
+        "rule_id": "CASH_BAND",
+        "severity": "SOFT",
+        "status": "PASS",
+        "measured": "0E+1",
+        "threshold": {
+          "max": "0.05"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
+      }
+    ],
+    "explanation": {
+      "summary": "Completed with status READY."
+    },
+    "diagnostics": {
+      "warnings": [],
+      "suppressed_intents": [],
+      "data_quality": {
+        "price_missing": [],
+        "price_stale": [],
+        "fx_missing": []
+      }
+    },
+    "lineage": {
+      "portfolio_snapshot_id": "pf_001",
+      "market_data_snapshot_id": "md",
+      "request_hash": "sha256:dummy"
+    }
   }
 }

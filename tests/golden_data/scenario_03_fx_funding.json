@@ -51,31 +51,136 @@
     }
   },
   "expected_outputs": {
-    "status": "READY",
+    "rebalance_run_id": "rr_5fd5defe",
+    "correlation_id": "c_placeholder",
+    "status": "PENDING_REVIEW",
+    "before": {
+      "total_value": {
+        "amount": "150000.00",
+        "currency": "SGD"
+      },
+      "allocation": [],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "150000.0",
+          "settled": null,
+          "pending": null
+        }
+      ]
+    },
+    "universe": {
+      "universe_id": "uni_rr_5fd5defe",
+      "eligible_for_buy": [
+        "US_EQ_ETF"
+      ],
+      "eligible_for_sell": [
+        "US_EQ_ETF"
+      ],
+      "excluded": [],
+      "coverage": {
+        "price_coverage_pct": "1.0",
+        "fx_coverage_pct": "1.0"
+      }
+    },
+    "target": {
+      "target_id": "tgt_rr_5fd5defe",
+      "strategy": {},
+      "targets": []
+    },
     "intents": [
       {
-        "intent_type": "FX",
-        "action": "FX_BUY",
-        "currency_pair": "USD/SGD",
-        "buy_amount": {
-          "amount": 101000.0,
-          "currency": "USD"
-        },
-        "sell_amount": {
-          "amount": 136350.0,
-          "currency": "SGD"
+        "intent_id": "oi_fx_2",
+        "intent_type": "FX_SPOT",
+        "side": "BUY_BASE_SELL_QUOTE",
+        "instrument_id": null,
+        "quantity": null,
+        "notional": null,
+        "pair": "USD/SGD",
+        "buy_currency": "USD",
+        "buy_amount": "101000.000",
+        "sell_currency": "SGD",
+        "estimated_sell_amount": "136350.00000",
+        "dependencies": [],
+        "rationale": {
+          "code": "FUNDING",
+          "message": "Fund foreign security purchases"
         }
       },
       {
-        "intent_type": "SECURITY",
-        "action": "BUY",
+        "intent_id": "oi_1",
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
         "instrument_id": "US_EQ_ETF",
-        "quantity": 1000,
-        "est_notional": {
-          "amount": 100000.0,
+        "quantity": "1000",
+        "notional": {
+          "amount": "100000.0",
           "currency": "USD"
+        },
+        "pair": null,
+        "buy_currency": null,
+        "buy_amount": null,
+        "sell_currency": null,
+        "estimated_sell_amount": null,
+        "dependencies": [
+          "oi_fx_2"
+        ],
+        "rationale": {
+          "code": "DRIFT_REBALANCE",
+          "message": "Align to model target"
         }
       }
-    ]
+    ],
+    "after_simulated": {
+      "total_value": {
+        "amount": "150000.000000",
+        "currency": "SGD"
+      },
+      "allocation": [],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "13650.00000",
+          "settled": null,
+          "pending": null
+        },
+        {
+          "currency": "USD",
+          "amount": "1000.000",
+          "settled": null,
+          "pending": null
+        }
+      ]
+    },
+    "rule_results": [
+      {
+        "rule_id": "CASH_BAND",
+        "severity": "SOFT",
+        "status": "FAIL",
+        "measured": "0.1",
+        "threshold": {
+          "max": "0.05"
+        },
+        "reason_code": "THRESHOLD_BREACH",
+        "remediation_hint": "Manual review required: Excess cash drag."
+      }
+    ],
+    "explanation": {
+      "summary": "Completed with status PENDING_REVIEW."
+    },
+    "diagnostics": {
+      "warnings": [],
+      "suppressed_intents": [],
+      "data_quality": {
+        "price_missing": [],
+        "price_stale": [],
+        "fx_missing": []
+      }
+    },
+    "lineage": {
+      "portfolio_snapshot_id": "pf_001",
+      "market_data_snapshot_id": "md",
+      "request_hash": "sha256:dummy"
+    }
   }
 }
