@@ -41,3 +41,16 @@ uvicorn src.api.main:app --reload --port 8000
 
 Once running, access the interactive API documentation at: **[http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs)**
 
+
+## Docker Deployment (Local & Dev)
+To run the application in a production-like containerized environment:
+```bash
+# Build and start the container
+docker-compose up --build
+
+# Run in detached mode (background)
+docker-compose up -d --build
+
+# Stop the container
+docker-compose down
+Once the container is running, the API is accessible at: http://localhost:8000/docs
