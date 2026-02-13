@@ -1,4 +1,4 @@
-# Enterprise Rebalance Simulation Engine (DPM)
+# Rebalance Simulation Engine (DPM)
 
 ## Overview
 The Rebalance Simulation Service is a deterministic engine for Discretionary Portfolio Management (DPM). Given a portfolio snapshot and mandate context, it produces an auditable, explainable trade plan (Order Intents) and a simulated after-state. 
@@ -18,4 +18,26 @@ This service operates strictly as a **simulation engine** with zero execution si
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-pytest tests/
+
+```
+
+## Running the Tests
+
+We maintain a suite of unit tests for edge cases and deterministic "Golden Scenarios" for regression testing.
+
+```bash
+pytest tests/ -v
+
+```
+
+## Running the API Server
+
+Start the local ASGI server:
+
+```bash
+uvicorn src.api.main:app --reload --port 8000
+
+```
+
+Once running, access the interactive API documentation at: **[http://localhost:8000/docs](https://www.google.com/search?q=http://localhost:8000/docs)**
+
