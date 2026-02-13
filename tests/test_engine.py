@@ -135,7 +135,8 @@ def test_existing_position_valuation(base_options):
         ],
         cash_balances=[],
     )
-    # Model wants 100% in EQ_1. Since we already have 10,000 SGD of EQ_1 (which is 100% of the portfolio),
+    # Model wants 100% in EQ_1. Since we already have 10,000 SGD of EQ_1
+    # (which is 100% of the portfolio),
     # the delta should be 0, resulting in NO trades.
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
