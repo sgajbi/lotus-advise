@@ -185,3 +185,64 @@ def test_sell_intent_generation(base_options):
     assert len(result.intents) == 2
     assert result.intents[0].action == "SELL" # RFC Sorting Rule dictates SELL goes first
     assert result.intents[1].action == "BUY"
+
+def test_sell_dust_trade_suppression(base_options):
+    """RFC Rule: SELL intents below min_notional are suppressed."""
+    from src.core.models import Position, Money
+    
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_sell_dust",
+        base_currency="SGD",
+        positions=[
+            # We hold 10,000 SGD of EQ_1
+            Position(
+                instrument_id="EQ_1", quantity=Decimal("100"), 
+                market_value=Money(amount=Decimal("10000.0"), currency="SGD")
+            )
+        ],
+        cash_balances=[]
+    )
+    # Model wants 99% in EQ_1. Target = 9,900. Delta = -100.
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("0.99"))])
+    # Min notional is 500. The sell of 100 should be suppressed.
+    shelf = [ShelfEntry(
+        instrument_id="EQ_1", status="APPROVED", 
+        min_notional={"amount": Decimal("500.0"), "currency": "SGD"}
+    )]
+    market_data = MarketDataSnapshot(prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")])
+    
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+    
+    assert result.status == "READY"
+    assert len(result.intents) == 0  # The sell was suppressed
+
+
+def test_existing_foreign_cash_used_for_fx_deficit(base_options):
+    """RFC Rule: Engine must use existing foreign cash before generating FX intents."""
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_foreign_cash",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[
+            CashBalance(currency="SGD", amount=Decimal("1000.0")),
+            CashBalance(currency="USD", amount=Decimal("50.0")) # <--- This hits line 131
+        ]
+    )
+    # Total portfolio value = 1000 SGD + (50 USD * 1.0 FX) = 1050 SGD
+    # Model wants 50% in US_EQ = 525 SGD target -> which is 525 USD
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="US_EQ", weight=Decimal("0.5"))])
+    shelf = [ShelfEntry(instrument_id="US_EQ", status="APPROVED")]
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="US_EQ", price=Decimal("1.0"), currency="USD")],
+        fx_rates=[FxRate(pair="USD/SGD", rate=Decimal("1.0"))]
+    )
+    
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+    
+    assert result.status == "READY"
+    fx_intents = [i for i in result.intents if i.intent_type == "FX"]
+    assert len(fx_intents) == 1
+    
+    # We needed 525 USD. We had 50 USD. Deficit = 475 USD.
+    # Buy amount with 1% buffer = 475 * 1.01 = 479.75 USD
+    assert float(fx_intents[0].buy_amount.amount) == 479.75
