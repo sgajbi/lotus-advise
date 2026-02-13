@@ -91,3 +91,30 @@ def test_zero_cash_zero_positions(base_options):
     
     assert result.status == "READY"
     assert len(result.intents) == 0
+
+def test_existing_position_valuation(base_options):
+    """RFC Rule: Engine must correctly value existing positions and calculate delta for trades."""
+    from src.core.models import Position, Money
+    
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_pos", 
+        base_currency="SGD",
+        positions=[
+            Position(
+                instrument_id="EQ_1", 
+                quantity=Decimal("100"), 
+                market_value=Money(amount=Decimal("10000.0"), currency="SGD")
+            )
+        ],
+        cash_balances=[]
+    )
+    # Model wants 100% in EQ_1. Since we already have 10,000 SGD of EQ_1 (which is 100% of the portfolio),
+    # the delta should be 0, resulting in NO trades.
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
+    shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
+    market_data = MarketDataSnapshot(prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")])
+    
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+    
+    assert result.status == "READY"
+    assert len(result.intents) == 0  # No trades needed, already at target
