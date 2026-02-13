@@ -97,10 +97,10 @@ def test_simulate_rfc7807_generic_domain_error_mapping():
     payload = get_valid_payload()
     # Trigger a "Missing shelf entry" ValueError to hit the generic fallback block
     payload["shelf_entries"] = []
-    
+
     headers = {"Idempotency-Key": "test-key-generic-err"}
     response = client.post("/rebalance/simulate", json=payload, headers=headers)
-    
+
     assert response.status_code == 422
     assert response.json()["error_code"] == "UNPROCESSABLE_DOMAIN_ERROR"
 

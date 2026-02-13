@@ -211,8 +211,6 @@ def test_existing_foreign_cash_used_for_fx_deficit(base_options):
     fx_intents = [i for i in result.intents if i.intent_type == "FX_SPOT"]
     assert float(fx_intents[0].buy_amount) == 479.75
 
-
-
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_bad_pos",
         base_currency="SGD",
@@ -398,8 +396,6 @@ def test_all_assets_sell_only_blocks_run(base_portfolio, base_options):
 
     with pytest.raises(ValueError, match="All assets are SELL_ONLY or excluded"):
         run_simulation(base_portfolio, market_data, model, shelf, base_options)
-
-
 
     """Hits line 34: Ensure ValueError is raised when both price and MV are missing."""
     portfolio = PortfolioSnapshot(

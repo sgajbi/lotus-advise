@@ -89,9 +89,9 @@ async def simulate_rebalance(
                 "status": 409,
                 "error_code": "IDEMPOTENCY_CONFLICT",
                 "detail": (
-                "The provided Idempotency-Key was previously "
-                "used with a different request payload."
-            ),
+                    "The provided Idempotency-Key was previously "
+                    "used with a different request payload."
+                ),
                 "correlation_id": correlation_id,
             }
             return JSONResponse(status_code=409, content=problem)
