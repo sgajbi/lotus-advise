@@ -118,3 +118,70 @@ def test_existing_position_valuation(base_options):
     
     assert result.status == "READY"
     assert len(result.intents) == 0  # No trades needed, already at target
+
+def test_infeasible_constraint_no_recipients(base_portfolio):
+    """RFC Rule: If all assets breach cap and none can absorb excess, run is BLOCKED."""
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
+    shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
+    market_data = MarketDataSnapshot(prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")])
+    opts = EngineOptions(single_position_max_weight=Decimal("0.5"))
+    
+    result = run_simulation(base_portfolio, market_data, model, shelf, opts)
+    assert result.status == "BLOCKED"
+
+def test_infeasible_constraint_recursive_breach(base_portfolio):
+    """RFC Rule: If redistribution causes another asset to breach cap, run is BLOCKED."""
+    model = ModelPortfolio(targets=[
+        ModelTarget(instrument_id="EQ_1", weight=Decimal("0.6")),
+        ModelTarget(instrument_id="EQ_2", weight=Decimal("0.4"))
+    ])
+    shelf = [
+        ShelfEntry(instrument_id="EQ_1", status="APPROVED"),
+        ShelfEntry(instrument_id="EQ_2", status="APPROVED")
+    ]
+    market_data = MarketDataSnapshot(prices=[
+        Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD"),
+        Price(instrument_id="EQ_2", price=Decimal("100.0"), currency="SGD")
+    ])
+    opts = EngineOptions(single_position_max_weight=Decimal("0.45"))
+    
+    result = run_simulation(base_portfolio, market_data, model, shelf, opts)
+    assert result.status == "BLOCKED"
+
+def test_sell_intent_generation(base_options):
+    """RFC Rule: SELL intents are generated when target is below current, and sorted first."""
+    from src.core.models import Position, Money
+    
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_sell",
+        base_currency="SGD",
+        positions=[
+            Position(
+                instrument_id="EQ_1", 
+                quantity=Decimal("100"), 
+                market_value=Money(amount=Decimal("10000.0"), currency="SGD")
+            )
+        ],
+        cash_balances=[]
+    )
+    # Target wants 50% in EQ_1, 50% in EQ_2. 
+    # Current is 100% in EQ_1. Engine should SELL EQ_1, and BUY EQ_2.
+    model = ModelPortfolio(targets=[
+        ModelTarget(instrument_id="EQ_1", weight=Decimal("0.5")),
+        ModelTarget(instrument_id="EQ_2", weight=Decimal("0.5"))
+    ])
+    shelf = [
+        ShelfEntry(instrument_id="EQ_1", status="APPROVED"),
+        ShelfEntry(instrument_id="EQ_2", status="APPROVED")
+    ]
+    market_data = MarketDataSnapshot(prices=[
+        Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD"),
+        Price(instrument_id="EQ_2", price=Decimal("100.0"), currency="SGD")
+    ])
+    
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+    
+    assert result.status == "READY"
+    assert len(result.intents) == 2
+    assert result.intents[0].action == "SELL" # RFC Sorting Rule dictates SELL goes first
+    assert result.intents[1].action == "BUY"

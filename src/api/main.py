@@ -14,12 +14,16 @@ app = FastAPI(
     version="MVP-1"
 )
 
+# Request Model bridging the API to our Core Engine
 class SimulateRequest(BaseModel):
     portfolio_snapshot: PortfolioSnapshot
     market_data_snapshot: MarketDataSnapshot
     model_portfolio: ModelPortfolio
     shelf_entries: List[ShelfEntry]
     options: EngineOptions
+    
+    # Silence the Pydantic V2 warning for the 'model_' prefix
+    model_config = {"protected_namespaces": ()}
 
 @app.post("/rebalance/simulate", response_model=RebalanceResult)
 def simulate_rebalance(
@@ -37,7 +41,6 @@ def simulate_rebalance(
             shelf=request.shelf_entries,
             options=request.options
         )
-                
         return result
         
     except Exception as e:

@@ -6,7 +6,6 @@ from src.core.models import (
 )
 
 def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> Decimal:
-    """Helper to resolve FX rates. Assumes direct pairs like USD/SGD in MVP."""
     if from_ccy == to_ccy:
         return Decimal("1.0")
     
@@ -82,8 +81,6 @@ def run_simulation(
             return RebalanceResult(status="BLOCKED", intents=[])
             
         target_value_base = total_value * target_weight
-        
-        # Convert Target Value to Instrument Currency
         rate_to_base = get_fx_rate(market_data, price_entry.currency, portfolio.base_currency)
         target_value_instr = target_value_base / rate_to_base
         
@@ -94,7 +91,7 @@ def run_simulation(
                 
         delta_value = target_value_instr - current_value_instr
         
-        if delta_value > Decimal("0.0"):
+        if delta_value > Decimal("0.0"):  # BUY logic
             qty = int(delta_value // price_entry.price)
             notional = Decimal(qty) * price_entry.price
             
@@ -104,16 +101,26 @@ def run_simulation(
                     
             if qty > 0:
                 intents.append(OrderIntent(
-                    intent_type="SECURITY",
-                    action="BUY",
-                    instrument_id=instr_id,
-                    quantity=Decimal(qty),
-                    est_notional=Money(amount=notional, currency=price_entry.currency)
+                    intent_type="SECURITY", action="BUY", instrument_id=instr_id,
+                    quantity=Decimal(qty), est_notional=Money(amount=notional, currency=price_entry.currency)
                 ))
-                # Track required cash for FX generation
                 required_cash_by_currency[price_entry.currency] = required_cash_by_currency.get(price_entry.currency, Decimal("0.0")) + notional
+                
+        elif delta_value < Decimal("0.0"):  # SELL logic
+            qty = int(abs(delta_value) // price_entry.price)
+            notional = Decimal(qty) * price_entry.price
+            
+            if options.suppress_dust_trades and shelf_entry and shelf_entry.min_notional:
+                if notional < shelf_entry.min_notional.amount:
+                    continue
+                    
+            if qty > 0:
+                intents.append(OrderIntent(
+                    intent_type="SECURITY", action="SELL", instrument_id=instr_id,
+                    quantity=Decimal(qty), est_notional=Money(amount=notional, currency=price_entry.currency)
+                ))
 
-    # 5. Generate FX Intents (Hub-and-Spoke)
+    # 5. Generate FX Intents
     for ccy, required_amt in required_cash_by_currency.items():
         if ccy == portfolio.base_currency:
             continue
@@ -130,23 +137,18 @@ def run_simulation(
             sell_amt = buy_amt * rate
             
             intents.append(OrderIntent(
-                intent_type="FX",
-                action="FX_BUY",
-                currency_pair=f"{ccy}/{portfolio.base_currency}",
-                buy_amount=Money(amount=buy_amt, currency=ccy),
-                sell_amount=Money(amount=sell_amt, currency=portfolio.base_currency)
+                intent_type="FX", action="FX_BUY", currency_pair=f"{ccy}/{portfolio.base_currency}",
+                buy_amount=Money(amount=buy_amt, currency=ccy), sell_amount=Money(amount=sell_amt, currency=portfolio.base_currency)
             ))
                 
-
-# 6. Sort intents for determinism (RFC Rule: SELL -> FX -> BUY)
+    # 6. Sort intents deterministically
     def sort_key(intent: OrderIntent):
         if intent.action == "SELL":
             priority = 0
         elif intent.intent_type == "FX":
             priority = 1
-        else: # BUY
+        else:
             priority = 2
-            
         sec_id = intent.currency_pair if intent.intent_type == "FX" else intent.instrument_id
         return f"{priority}_{sec_id}"
         
