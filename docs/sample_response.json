@@ -1,0 +1,58 @@
+{
+"rebalance_run_id": "rr_a1b2c3d4",
+"correlation_id": "corr-uuid-1234",
+"status": "PENDING_REVIEW",
+"before": {
+"total_value": {"amount": "110000.00", "currency": "SGD"},
+"cash_balances": [{"currency": "SGD", "amount": "100000.00"}]
+},
+"universe": {
+"universe_id": "uni_rr_a1b2c3d4",
+"eligible_for_buy": ["US_EQ_ETF"],
+"eligible_for_sell": ["US_EQ_ETF", "LEGACY_BOND"],
+"excluded": [
+{"instrument_id": "LEGACY_BOND", "reason_code": "SHELF_STATUS_SELL_ONLY_BUY_BLOCKED"}
+]
+},
+"intents": [
+{
+"intent_id": "oi_fx_1",
+"intent_type": "FX_SPOT",
+"side": "BUY_BASE_SELL_QUOTE",
+"pair": "USD/SGD",
+"buy_currency": "USD",
+"buy_amount": "69259.25",
+"sell_currency": "SGD",
+"estimated_sell_amount": "93500.00",
+"dependencies": []
+},
+{
+"intent_id": "oi_2",
+"intent_type": "SECURITY_TRADE",
+"side": "BUY",
+"instrument_id": "US_EQ_ETF",
+"quantity": "461",
+"notional": {"amount": "69150.00", "currency": "USD"},
+"dependencies": ["oi_fx_1"]
+}
+],
+"after_simulated": {
+"total_value": {"amount": "110000.00", "currency": "SGD"},
+"cash_balances": [
+{"currency": "SGD", "amount": "6500.00"},
+{"currency": "USD", "amount": "109.25"}
+]
+},
+"rule_results": [
+{
+"rule_id": "CASH_BAND",
+"severity": "SOFT",
+"status": "FAIL",
+"measured": "0.06",
+"threshold": {"max": "0.05"},
+"reason_code": "THRESHOLD_BREACH",
+"remediation_hint": "Manual review required: Excess cash drag."
+}
+]
+}
+
