@@ -41,6 +41,13 @@ def test_golden_scenario(filename, scenario):
     
     for act_intent, exp_intent in zip(result.intents, expected["intents"]):
         assert act_intent.action == exp_intent["action"]
-        assert act_intent.instrument_id == exp_intent["instrument_id"]
-        assert float(act_intent.quantity) == float(exp_intent["quantity"])
-        assert float(act_intent.est_notional.amount) == float(exp_intent["est_notional"]["amount"])
+        assert act_intent.intent_type == exp_intent.get("intent_type", "SECURITY")
+        
+        if act_intent.intent_type == "SECURITY":
+            assert act_intent.instrument_id == exp_intent["instrument_id"]
+            assert float(act_intent.quantity) == float(exp_intent["quantity"])
+            assert float(act_intent.est_notional.amount) == float(exp_intent["est_notional"]["amount"])
+        elif act_intent.intent_type == "FX":
+            assert act_intent.currency_pair == exp_intent["currency_pair"]
+            assert float(act_intent.buy_amount.amount) == float(exp_intent["buy_amount"]["amount"])
+            assert float(act_intent.sell_amount.amount) == float(exp_intent["sell_amount"]["amount"])

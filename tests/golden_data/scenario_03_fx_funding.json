@@ -1,0 +1,81 @@
+{
+  "scenario_name": "FX Funding Generation",
+  "inputs": {
+    "portfolio_snapshot": {
+      "portfolio_id": "pf_001",
+      "base_currency": "SGD",
+      "positions": [],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": 150000.0
+        }
+      ]
+    },
+    "market_data_snapshot": {
+      "prices": [
+        {
+          "instrument_id": "US_EQ_ETF",
+          "price": 100.0,
+          "currency": "USD"
+        }
+      ],
+      "fx_rates": [
+        {
+          "pair": "USD/SGD",
+          "rate": 1.35
+        }
+      ]
+    },
+    "model_portfolio": {
+      "targets": [
+        {
+          "instrument_id": "US_EQ_ETF",
+          "weight": 0.9
+        }
+      ]
+    },
+    "shelf_entries": [
+      {
+        "instrument_id": "US_EQ_ETF",
+        "status": "APPROVED",
+        "min_notional": {
+          "amount": 1000,
+          "currency": "USD"
+        }
+      }
+    ],
+    "options": {
+      "suppress_dust_trades": true,
+      "fx_buffer_pct": 0.01
+    }
+  },
+  "expected_outputs": {
+    "status": "READY",
+    "intents": [
+      {
+        "intent_type": "FX",
+        "action": "FX_BUY",
+        "currency_pair": "USD/SGD",
+        "buy_amount": {
+          "amount": 101000.0,
+          "currency": "USD"
+        },
+        "sell_amount": {
+          "amount": 136350.0,
+          "currency": "SGD"
+        }
+      },
+      {
+        "intent_type": "SECURITY",
+        "action": "BUY",
+        "instrument_id": "US_EQ_ETF",
+        "quantity": 1000,
+        "est_notional": {
+          "amount": 100000.0,
+          "currency": "USD"
+        }
+      }
+    ]
+  }
+}

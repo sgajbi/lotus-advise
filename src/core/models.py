@@ -26,9 +26,13 @@ class Price(BaseModel):
     price: Decimal
     currency: str
 
+class FxRate(BaseModel):
+    pair: str  # e.g. "USD/SGD" (Base/Quote)
+    rate: Decimal
+
 class MarketDataSnapshot(BaseModel):
     prices: List[Price] = Field(default_factory=list)
-    fx_rates: list = Field(default_factory=list)
+    fx_rates: List[FxRate] = Field(default_factory=list)
 
 class ModelTarget(BaseModel):
     instrument_id: str
@@ -45,13 +49,21 @@ class ShelfEntry(BaseModel):
 class EngineOptions(BaseModel):
     suppress_dust_trades: bool = True
     fx_buffer_pct: Decimal = Decimal("0.01")
-    single_position_max_weight: Optional[Decimal] = None  # Added for constraint capping
+    single_position_max_weight: Optional[Decimal] = None
 
 class OrderIntent(BaseModel):
+    intent_type: Literal["SECURITY", "FX"] = "SECURITY"
     action: Literal["BUY", "SELL", "FX_BUY", "FX_SELL"]
+    
+    # For SECURITY intents
     instrument_id: Optional[str] = None
     quantity: Optional[Decimal] = None
-    est_notional: Money
+    est_notional: Optional[Money] = None
+    
+    # For FX intents
+    currency_pair: Optional[str] = None
+    buy_amount: Optional[Money] = None
+    sell_amount: Optional[Money] = None
 
 class RebalanceResult(BaseModel):
     status: Literal["READY", "BLOCKED", "PENDING_REVIEW"]
