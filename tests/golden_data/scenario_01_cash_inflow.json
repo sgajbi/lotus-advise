@@ -6,22 +6,39 @@
       "base_currency": "SGD",
       "positions": [],
       "cash_balances": [
-        { "currency": "SGD", "amount": 100000.00 }
+        {
+          "currency": "SGD",
+          "amount": 100000.0
+        }
       ]
     },
     "market_data_snapshot": {
       "prices": [
-        { "instrument_id": "SG_EQ_ETF", "price": 100.00, "currency": "SGD" }
+        {
+          "instrument_id": "SG_EQ_ETF",
+          "price": 100.0,
+          "currency": "SGD"
+        }
       ],
       "fx_rates": []
     },
     "model_portfolio": {
       "targets": [
-        { "instrument_id": "SG_EQ_ETF", "weight": 1.00 }
+        {
+          "instrument_id": "SG_EQ_ETF",
+          "weight": 1.0
+        }
       ]
     },
     "shelf_entries": [
-      { "instrument_id": "SG_EQ_ETF", "status": "APPROVED", "min_notional": { "amount": 1000, "currency": "SGD" } }
+      {
+        "instrument_id": "SG_EQ_ETF",
+        "status": "APPROVED",
+        "min_notional": {
+          "amount": 1000,
+          "currency": "SGD"
+        }
+      }
     ],
     "options": {
       "suppress_dust_trades": true,
@@ -35,7 +52,10 @@
         "action": "BUY",
         "instrument_id": "SG_EQ_ETF",
         "quantity": 1000,
-        "est_notional": { "amount": 100000.00, "currency": "SGD" }
+        "est_notional": {
+          "amount": 100000.0,
+          "currency": "SGD"
+        }
       }
     ]
   }
