@@ -45,6 +45,7 @@ class ShelfEntry(BaseModel):
 class EngineOptions(BaseModel):
     suppress_dust_trades: bool = True
     fx_buffer_pct: Decimal = Decimal("0.01")
+    single_position_max_weight: Optional[Decimal] = None  # Added for constraint capping
 
 class OrderIntent(BaseModel):
     action: Literal["BUY", "SELL", "FX_BUY", "FX_SELL"]

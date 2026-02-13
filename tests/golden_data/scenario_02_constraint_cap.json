@@ -1,0 +1,89 @@
+{
+  "scenario_name": "Constraint Capping and Redistribution",
+  "inputs": {
+    "portfolio_snapshot": {
+      "portfolio_id": "pf_001",
+      "base_currency": "SGD",
+      "positions": [],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": 100000.0
+        }
+      ]
+    },
+    "market_data_snapshot": {
+      "prices": [
+        {
+          "instrument_id": "ETF_A",
+          "price": 100.0,
+          "currency": "SGD"
+        },
+        {
+          "instrument_id": "ETF_B",
+          "price": 100.0,
+          "currency": "SGD"
+        }
+      ],
+      "fx_rates": []
+    },
+    "model_portfolio": {
+      "targets": [
+        {
+          "instrument_id": "ETF_A",
+          "weight": 0.8
+        },
+        {
+          "instrument_id": "ETF_B",
+          "weight": 0.2
+        }
+      ]
+    },
+    "shelf_entries": [
+      {
+        "instrument_id": "ETF_A",
+        "status": "APPROVED",
+        "min_notional": {
+          "amount": 1000,
+          "currency": "SGD"
+        }
+      },
+      {
+        "instrument_id": "ETF_B",
+        "status": "APPROVED",
+        "min_notional": {
+          "amount": 1000,
+          "currency": "SGD"
+        }
+      }
+    ],
+    "options": {
+      "suppress_dust_trades": true,
+      "fx_buffer_pct": 0.01,
+      "single_position_max_weight": 0.5
+    }
+  },
+  "expected_outputs": {
+    "status": "READY",
+    "intents": [
+      {
+        "action": "BUY",
+        "instrument_id": "ETF_A",
+        "quantity": 500,
+        "est_notional": {
+          "amount": 50000.0,
+          "currency": "SGD"
+        }
+      },
+      {
+        "action": "BUY",
+        "instrument_id": "ETF_B",
+        "quantity": 500,
+        "est_notional": {
+          "amount": 50000.0,
+          "currency": "SGD"
+        }
+      }
+    ]
+  }
+}
