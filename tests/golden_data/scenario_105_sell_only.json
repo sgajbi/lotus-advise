@@ -51,13 +51,13 @@
       {
         "instrument_id": "BAD_ASSET",
         "status": "SELL_ONLY",
-        "asset_class": "EQUITY",
+        "asset_class": "UNKNOWN",
         "min_notional": null
       },
       {
         "instrument_id": "GOOD_ASSET",
         "status": "APPROVED",
-        "asset_class": "EQUITY",
+        "asset_class": "UNKNOWN",
         "min_notional": null
       }
     ],
@@ -118,7 +118,7 @@
           }
         },
         {
-          "key": "EQUITY",
+          "key": "UNKNOWN",
           "weight": "0.1",
           "value": {
             "amount": "1000.00",
@@ -146,7 +146,7 @@
           }
         },
         {
-          "key": "EQUITY",
+          "key": "UNKNOWN",
           "weight": "0.1",
           "value": {
             "amount": "1000.00",
@@ -295,7 +295,7 @@
           }
         },
         {
-          "key": "EQUITY",
+          "key": "UNKNOWN",
           "weight": "1",
           "value": {
             "amount": "10000.00",
@@ -323,7 +323,7 @@
           }
         },
         {
-          "key": "EQUITY",
+          "key": "UNKNOWN",
           "weight": "1",
           "value": {
             "amount": "10000.00",

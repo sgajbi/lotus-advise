@@ -41,7 +41,7 @@
       {
         "instrument_id": "US_ETF",
         "status": "APPROVED",
-        "asset_class": "EQUITY",
+        "asset_class": "UNKNOWN",
         "min_notional": null
       }
     ],
@@ -217,7 +217,7 @@
           }
         },
         {
-          "key": "EQUITY",
+          "key": "UNKNOWN",
           "weight": "0.999",
           "value": {
             "amount": "19980.000",
@@ -245,7 +245,7 @@
           }
         },
         {
-          "key": "EQUITY",
+          "key": "UNKNOWN",
           "weight": "0.999",
           "value": {
             "amount": "19980.000",

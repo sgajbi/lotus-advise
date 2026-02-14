@@ -191,10 +191,12 @@ def _build_universe(
     shelf: List[ShelfEntry],
     options: EngineOptions,
     dq_log: Dict,
+    current_valuation: SimulatedState,
 ) -> Tuple[Dict[str, Decimal], List[ExcludedInstrument], List[str], List[str], Decimal]:
     """
     Stage 2: Determine eligible assets and targets.
     Includes both Model Targets AND Implicit Sell-to-Zero for unlisted holdings.
+    Handles 'Regulatory Locking' for Suspended assets.
     """
     eligible_targets: Dict[str, Decimal] = {}
     excluded: List[ExcludedInstrument] = []
@@ -244,9 +246,51 @@ def _build_universe(
     # 2. Process Implicit Sells (Assets held but not in Model)
     for pos in portfolio.positions:
         if pos.quantity > 0 and pos.instrument_id not in eligible_targets:
-            # It's a holding not in the model. Target = 0%.
-            eligible_targets[pos.instrument_id] = Decimal("0.0")
-            eligible_for_sell.append(pos.instrument_id)
+            # Check Shelf Status BEFORE liquidating
+            shelf_ent = next((s for s in shelf if s.instrument_id == pos.instrument_id), None)
+
+            if not shelf_ent:
+                # Missing shelf for holding. Safer to lock than sell blindly?
+                # For this implementation, we lock it to avoid unintended liquidation.
+                curr_pos = next(
+                    (
+                        p
+                        for p in current_valuation.positions
+                        if p.instrument_id == pos.instrument_id
+                    ),
+                    None,
+                )
+                if curr_pos:
+                    eligible_targets[pos.instrument_id] = curr_pos.weight
+                    excluded.append(
+                        ExcludedInstrument(
+                            instrument_id=pos.instrument_id,
+                            reason_code="LOCKED_DUE_TO_MISSING_SHELF",
+                        )
+                    )
+            elif shelf_ent.status in ["SUSPENDED", "BANNED", "RESTRICTED"]:
+                # Regulatory Locking: Cannot trade. Must hold at current weight.
+                curr_pos = next(
+                    (
+                        p
+                        for p in current_valuation.positions
+                        if p.instrument_id == pos.instrument_id
+                    ),
+                    None,
+                )
+                if curr_pos:
+                    eligible_targets[pos.instrument_id] = curr_pos.weight
+                    excluded.append(
+                        ExcludedInstrument(
+                            instrument_id=pos.instrument_id,
+                            reason_code=f"LOCKED_DUE_TO_{shelf_ent.status}",
+                            details="Position held but trading blocked. Weight locked.",
+                        )
+                    )
+            else:
+                # It is tradeable (APPROVED or SELL_ONLY), so we can sell to zero.
+                eligible_targets[pos.instrument_id] = Decimal("0.0")
+                eligible_for_sell.append(pos.instrument_id)
 
     return eligible_targets, excluded, eligible_for_buy, eligible_for_sell, sell_only_excess
 
@@ -263,16 +307,11 @@ def _generate_targets(
     """Stage 3: Apply mathematical constraints (Capping, Redistribution) and generate trace."""
     status = "READY"
 
-    # Sell-Only Redistribution (Simple Pro-Rata)
+    # Sell-Only Redistribution
     if sell_only_excess > Decimal("0.0"):
         recs = {k: v for k, v in eligible_targets.items() if k in eligible_for_buy}
         total_rec = sum(recs.values())
-        if total_rec == Decimal("0.0"):
-            status = "BLOCKED"  # Nowhere to put the sell proceeds? Wait, this is weight allocation.
-            # If no eligible buys, excess stays unallocated (Cash).
-            # Changing logic to be Best Effort:
-            pass
-        else:
+        if total_rec > Decimal("0.0"):
             for i_id, w in recs.items():
                 eligible_targets[i_id] = w + (sell_only_excess * (w / total_rec))
 
@@ -287,50 +326,41 @@ def _generate_targets(
                 excess += w - max_w
                 eligible_targets[i_id] = max_w
 
-        # 2. Redistribute Excess (Iteratively or Simple?)
-        # Simple redistribution might breach caps again.
-        # Strict logic implies we should check again.
-        # Best Effort: Distribute to those BELOW cap. If everyone at cap, dump to cash.
-
+        # 2. Redistribute Excess
         if excess > Decimal("0.0"):
-            # Find candidates who have room
             candidates = {
                 k: v for k, v in eligible_targets.items() if k in eligible_for_buy and v < max_w
             }
-
             total_candidate_weight = sum(candidates.values())
 
             if total_candidate_weight > Decimal("0.0"):
-                # Distribute proportional to weight? Or equal? Proportional is standard.
-                # Note: This single pass might overflow them again.
-                # For MVP Institution-Grade, we do one pass. If they hit cap, we clamp and give up.
-
                 remaining_excess = excess
                 for i_id, w in candidates.items():
-                    # How much room?
                     room = max_w - w
-                    # Share of excess
                     share = excess * (w / total_candidate_weight)
-
-                    to_add = min(share, room)  # Clamp to room
+                    to_add = min(share, room)
                     eligible_targets[i_id] += to_add
                     remaining_excess -= to_add
 
-                # If we still have excess, it becomes Unallocated Cash.
-                if remaining_excess > Decimal("0.001"):  # Tolerance
-                    status = "PENDING_REVIEW"  # Soft Fail: Could not invest 100%
+                if remaining_excess > Decimal("0.001"):
+                    status = "PENDING_REVIEW"
             else:
-                # No candidates have room. Excess -> Cash.
                 status = "PENDING_REVIEW"
 
     # Cash Buffer Scaling
     if options.min_cash_buffer_pct > Decimal("0.0"):
-        total_invested_weight = sum(eligible_targets.values())
-        max_allowed_weight = Decimal("1.0") - options.min_cash_buffer_pct
-        if total_invested_weight > max_allowed_weight:
-            scale_factor = max_allowed_weight / total_invested_weight
+        tradeable_weight = sum(v for k, v in eligible_targets.items() if k in eligible_for_buy)
+        locked_weight = sum(v for k, v in eligible_targets.items() if k not in eligible_for_buy)
+
+        max_allowed_tradeable = Decimal("1.0") - options.min_cash_buffer_pct - locked_weight
+
+        if max_allowed_tradeable < Decimal("0.0"):
+            status = "PENDING_REVIEW"
+        elif tradeable_weight > max_allowed_tradeable:
+            scale_factor = max_allowed_tradeable / tradeable_weight
             for i_id in eligible_targets:
-                eligible_targets[i_id] *= scale_factor
+                if i_id in eligible_for_buy:
+                    eligible_targets[i_id] *= scale_factor
 
     target_trace = []
     # Trace Model Targets
@@ -352,17 +382,22 @@ def _generate_targets(
             )
         )
 
-    # Trace Implicit Sells
-    for i_id in eligible_targets:
+    # Trace Implicit Sells / Locked
+    for i_id, final_w in eligible_targets.items():
         is_in_model = any(t.instrument_id == i_id for t in model.targets)
         if not is_in_model:
+            tag = (
+                "IMPLICIT_SELL_TO_ZERO"
+                if i_id in eligible_for_buy or final_w == 0
+                else "LOCKED_POSITION"
+            )
             target_trace.append(
                 TargetInstrument(
                     instrument_id=i_id,
                     model_weight=Decimal("0.0"),
-                    final_weight=Decimal("0.0"),
-                    final_value=Money(amount=Decimal("0.0"), currency=base_currency),
-                    tags=["IMPLICIT_SELL_TO_ZERO"],
+                    final_weight=final_w,
+                    final_value=Money(amount=total_value_base * final_w, currency=base_currency),
+                    tags=[tag],
                 )
             )
 
@@ -609,19 +644,11 @@ def _generate_fx_and_simulate(
             reason_code="THRESHOLD_BREACH" if cash_weight > 0.05 else "OK",
         )
     ]
-
-    # Final Status: If targets were partial (Stage 3 returned PENDING_REVIEW) OR rules failed.
-    # Note: We rely on the stage3 status passed down?
-    # Current design: run_simulation passes stage3_status into this func? No.
-    # We need to respect the "upstream" status.
-    # Refactor: We need _generate_fx_and_simulate to accept an `initial_status`.
-
-    # Hack for Slice 6: Calculate local status and if Rule Fail -> PENDING_REVIEW.
-    final_status = "READY"
+    status = "READY"
     if any(r.status == "FAIL" for r in rule_results):
-        final_status = "PENDING_REVIEW"
+        status = "PENDING_REVIEW"
 
-    return intents, after_state, rule_results, final_status
+    return intents, after_state, rule_results, status
 
 
 def run_simulation(
@@ -642,9 +669,9 @@ def run_simulation(
         portfolio, market_data, shelf, dq_log, diagnostics_warnings
     )
 
-    # Stage 2: Universe
+    # Stage 2: Universe (Now includes Implicit Sells)
     targets, excluded, buy_list, sell_list, excess = _build_universe(
-        model, portfolio, shelf, options, dq_log
+        model, portfolio, shelf, options, dq_log, before_state
     )
 
     # Stage 3: Targets
@@ -672,7 +699,9 @@ def run_simulation(
             after_simulated=before_state,
             explanation={"summary": "Run blocked. Check diagnostics."},
             diagnostics=DiagnosticsData(
-                data_quality=dq_log, suppressed_intents=suppressed, warnings=diagnostics_warnings
+                data_quality=dq_log,
+                suppressed_intents=suppressed,
+                warnings=diagnostics_warnings,
             ),
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
@@ -706,7 +735,9 @@ def run_simulation(
             after_simulated=before_state,
             explanation={"summary": "Run blocked during trade generation."},
             diagnostics=DiagnosticsData(
-                data_quality=dq_log, suppressed_intents=suppressed, warnings=diagnostics_warnings
+                data_quality=dq_log,
+                suppressed_intents=suppressed,
+                warnings=diagnostics_warnings,
             ),
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
@@ -720,7 +751,7 @@ def run_simulation(
         portfolio, market_data, shelf, intents, options, total_val
     )
 
-    # If Stage 3 was PENDING_REVIEW (Partial alloc), propagate it unless blocked.
+    # Propagate partial fill status
     if stage3_status == "PENDING_REVIEW" and final_status == "READY":
         final_status = "PENDING_REVIEW"
 
@@ -744,7 +775,9 @@ def run_simulation(
         rule_results=rule_results,
         explanation={"summary": f"Status: {final_status}"},
         diagnostics=DiagnosticsData(
-            data_quality=dq_log, suppressed_intents=suppressed, warnings=diagnostics_warnings
+            data_quality=dq_log,
+            suppressed_intents=suppressed,
+            warnings=diagnostics_warnings,
         ),
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,

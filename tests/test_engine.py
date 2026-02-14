@@ -523,31 +523,68 @@ def test_soft_constraint_breach_within_cash_limits(base_portfolio, base_options)
     """
     Ensures that if Stage 3 (Constraints) returns PENDING_REVIEW, and Stage 5 (Rules)
     returns READY, the final status is PENDING_REVIEW (propagated).
-
-    Setup:
-    - Target 100% Equity.
-    - Constraint Max 99%.
-    - Result: 99% Equity, 1% Cash.
-    - Rule: Cash < 5% is OK (READY).
-    - Expected Final: PENDING_REVIEW (due to partial fill).
     """
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
     market_data = MarketDataSnapshot(
         prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")]
     )
-    # 1. Force partial fill
     opts = EngineOptions(single_position_max_weight=Decimal("0.99"))
 
     result = run_simulation(base_portfolio, market_data, model, shelf, opts)
 
-    # 2. Check Allocation: 99% Eq, 1% Cash
     eq_alloc = next(a for a in result.after_simulated.allocation_by_instrument if a.key == "EQ_1")
     assert eq_alloc.weight == Decimal("0.99")
 
-    # 3. Check Rule Result: Cash is 1%, limit is 5% -> PASS
     cash_rule = next(r for r in result.rule_results if r.rule_id == "CASH_BAND")
     assert cash_rule.status == "PASS"
 
-    # 4. Check Final Status: Must be PENDING_REVIEW (propagated from Stage 3)
     assert result.status == "PENDING_REVIEW"
+
+
+def test_suspended_asset_is_locked(base_options):
+    """
+    Scenario 114 Logic Check:
+    Held asset is SUSPENDED -> Must NOT be sold.
+    Should effectively act as if Model Target = Current Weight.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_frozen",
+        base_currency="SGD",
+        positions=[Position(instrument_id="RUSSIA_ETF", quantity=Decimal("100"))],  # 10k
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("10000.00"))],  # 10k
+    )
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="US_BOND", weight=Decimal("1.0"))])
+
+    shelf = [
+        ShelfEntry(instrument_id="RUSSIA_ETF", status="SUSPENDED"),
+        ShelfEntry(instrument_id="US_BOND", status="APPROVED"),
+    ]
+
+    market_data = MarketDataSnapshot(
+        prices=[
+            Price(instrument_id="RUSSIA_ETF", price=Decimal("100.0"), currency="SGD"),
+            Price(instrument_id="US_BOND", price=Decimal("100.0"), currency="SGD"),
+        ]
+    )
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # 1. Verify NO Sell intent for Russia
+    sells = [i for i in result.intents if i.instrument_id == "RUSSIA_ETF"]
+    assert len(sells) == 0
+
+    # 2. Verify Buy intent for US Bond is limited to available cash
+    buys = [i for i in result.intents if i.instrument_id == "US_BOND"]
+    assert len(buys) == 1
+    assert buys[0].quantity == Decimal("100")
+
+    # 3. Verify Trace tag
+    trace = next(t for t in result.target.targets if t.instrument_id == "RUSSIA_ETF")
+    assert "LOCKED_POSITION" in trace.tags
+    assert trace.final_weight == Decimal("0.5")
+
+    # 4. Verify Exclusion
+    excl = next((e for e in result.universe.excluded if e.instrument_id == "RUSSIA_ETF"), None)
+    assert excl is not None
+    assert "LOCKED_DUE_TO_SUSPENDED" in excl.reason_code

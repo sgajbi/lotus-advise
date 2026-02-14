@@ -1,12 +1,12 @@
 {
-  "scenario_name": "scenario_111_fee_buffer",
+  "scenario_name": "scenario_112_cross_currency_switch",
   "inputs": {
     "portfolio_snapshot": {
-      "portfolio_id": "pf_111",
+      "portfolio_id": "pf_112",
       "base_currency": "SGD",
       "positions": [
         {
-          "instrument_id": "EQ_SGD_1",
+          "instrument_id": "US_TECH",
           "quantity": "100",
           "market_value": null
         }
@@ -14,7 +14,19 @@
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "1000.0",
+          "amount": "0.0",
+          "settled": null,
+          "pending": null
+        },
+        {
+          "currency": "USD",
+          "amount": "0.0",
+          "settled": null,
+          "pending": null
+        },
+        {
+          "currency": "EUR",
+          "amount": "0.0",
           "settled": null,
           "pending": null
         }
@@ -23,39 +35,44 @@
     "market_data_snapshot": {
       "prices": [
         {
-          "instrument_id": "EQ_SGD_1",
+          "instrument_id": "US_TECH",
           "price": "100.0",
-          "currency": "SGD"
+          "currency": "USD"
         },
         {
-          "instrument_id": "EQ_SGD_2",
-          "price": "50.0",
-          "currency": "SGD"
+          "instrument_id": "EU_BOND",
+          "price": "100.0",
+          "currency": "EUR"
         }
       ],
-      "fx_rates": []
+      "fx_rates": [
+        {
+          "pair": "USD/SGD",
+          "rate": "1.5"
+        },
+        {
+          "pair": "EUR/SGD",
+          "rate": "1.6"
+        }
+      ]
     },
     "model_portfolio": {
       "targets": [
         {
-          "instrument_id": "EQ_SGD_1",
-          "weight": "0.5"
-        },
-        {
-          "instrument_id": "EQ_SGD_2",
-          "weight": "0.5"
+          "instrument_id": "EU_BOND",
+          "weight": "1.0"
         }
       ]
     },
     "shelf_entries": [
       {
-        "instrument_id": "EQ_SGD_1",
+        "instrument_id": "US_TECH",
         "status": "APPROVED",
         "asset_class": "UNKNOWN",
         "min_notional": null
       },
       {
-        "instrument_id": "EQ_SGD_2",
+        "instrument_id": "EU_BOND",
         "status": "APPROVED",
         "asset_class": "UNKNOWN",
         "min_notional": null
@@ -68,7 +85,7 @@
       "fx_buffer_pct": "0.01",
       "single_position_max_weight": null,
       "block_on_missing_prices": true,
-      "min_cash_buffer_pct": "0.005"
+      "min_cash_buffer_pct": "0.0"
     }
   },
   "expected_outputs": {
@@ -77,61 +94,73 @@
     "status": "READY",
     "before": {
       "total_value": {
-        "amount": "11000.00",
+        "amount": "15000.00",
         "currency": "SGD"
       },
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "1000.0",
+          "amount": "0.0",
+          "settled": null,
+          "pending": null
+        },
+        {
+          "currency": "USD",
+          "amount": "0.0",
+          "settled": null,
+          "pending": null
+        },
+        {
+          "currency": "EUR",
+          "amount": "0.0",
           "settled": null,
           "pending": null
         }
       ],
       "positions": [
         {
-          "instrument_id": "EQ_SGD_1",
+          "instrument_id": "US_TECH",
           "quantity": "100",
-          "instrument_currency": "SGD",
+          "instrument_currency": "USD",
           "price": {
             "amount": "100.0",
-            "currency": "SGD"
+            "currency": "USD"
           },
           "value_in_instrument_ccy": {
             "amount": "10000.0",
-            "currency": "SGD"
+            "currency": "USD"
           },
           "value_in_base_ccy": {
-            "amount": "10000.00",
+            "amount": "15000.00",
             "currency": "SGD"
           },
-          "weight": "0.9090909090909090909090909091"
+          "weight": "1"
         }
       ],
       "allocation_by_asset_class": [
         {
           "key": "CASH",
-          "weight": "0.09090909090909090909090909091",
+          "weight": "0",
           "value": {
-            "amount": "1000.00",
+            "amount": "0.00",
             "currency": "SGD"
           }
         },
         {
           "key": "UNKNOWN",
-          "weight": "0.9090909090909090909090909091",
+          "weight": "1",
           "value": {
-            "amount": "10000.00",
+            "amount": "15000.00",
             "currency": "SGD"
           }
         }
       ],
       "allocation_by_instrument": [
         {
-          "key": "EQ_SGD_1",
-          "weight": "0.9090909090909090909090909091",
+          "key": "US_TECH",
+          "weight": "1",
           "value": {
-            "amount": "10000.00",
+            "amount": "15000.00",
             "currency": "SGD"
           }
         }
@@ -139,17 +168,17 @@
       "allocation": [
         {
           "key": "CASH",
-          "weight": "0.09090909090909090909090909091",
+          "weight": "0",
           "value": {
-            "amount": "1000.00",
+            "amount": "0.00",
             "currency": "SGD"
           }
         },
         {
           "key": "UNKNOWN",
-          "weight": "0.9090909090909090909090909091",
+          "weight": "1",
           "value": {
-            "amount": "10000.00",
+            "amount": "15000.00",
             "currency": "SGD"
           }
         }
@@ -158,12 +187,11 @@
     "universe": {
       "universe_id": "uni_golden",
       "eligible_for_buy": [
-        "EQ_SGD_1",
-        "EQ_SGD_2"
+        "EU_BOND"
       ],
       "eligible_for_sell": [
-        "EQ_SGD_1",
-        "EQ_SGD_2"
+        "EU_BOND",
+        "US_TECH"
       ],
       "excluded": [],
       "coverage": {
@@ -176,41 +204,39 @@
       "strategy": {},
       "targets": [
         {
-          "instrument_id": "EQ_SGD_1",
-          "model_weight": "0.5",
-          "final_weight": "0.4975",
+          "instrument_id": "EU_BOND",
+          "model_weight": "1.0",
+          "final_weight": "1.0",
           "final_value": {
-            "amount": "5472.500000",
+            "amount": "15000.000",
             "currency": "SGD"
           },
-          "tags": [
-            "CAPPED_BY_MAX_WEIGHT"
-          ]
+          "tags": []
         },
         {
-          "instrument_id": "EQ_SGD_2",
-          "model_weight": "0.5",
-          "final_weight": "0.4975",
+          "instrument_id": "US_TECH",
+          "model_weight": "0.0",
+          "final_weight": "0.0",
           "final_value": {
-            "amount": "5472.500000",
+            "amount": "0.000",
             "currency": "SGD"
           },
           "tags": [
-            "CAPPED_BY_MAX_WEIGHT"
+            "IMPLICIT_SELL_TO_ZERO"
           ]
         }
       ]
     },
     "intents": [
       {
-        "intent_id": "oi_1",
+        "intent_id": "oi_2",
         "intent_type": "SECURITY_TRADE",
         "side": "SELL",
-        "instrument_id": "EQ_SGD_1",
-        "quantity": "45",
+        "instrument_id": "US_TECH",
+        "quantity": "100",
         "notional": {
-          "amount": "4500.0",
-          "currency": "SGD"
+          "amount": "10000.0",
+          "currency": "USD"
         },
         "pair": null,
         "buy_currency": null,
@@ -224,14 +250,50 @@
         }
       },
       {
-        "intent_id": "oi_2",
+        "intent_id": "oi_fx_3",
+        "intent_type": "FX_SPOT",
+        "side": "SELL_BASE_BUY_QUOTE",
+        "instrument_id": null,
+        "quantity": null,
+        "notional": null,
+        "pair": "USD/SGD",
+        "buy_currency": "SGD",
+        "buy_amount": "15000.00",
+        "sell_currency": "USD",
+        "estimated_sell_amount": "10000.0",
+        "dependencies": [],
+        "rationale": {
+          "code": "REPATRIATION",
+          "message": "Sweep excess cash to base"
+        }
+      },
+      {
+        "intent_id": "oi_fx_4",
+        "intent_type": "FX_SPOT",
+        "side": "BUY_BASE_SELL_QUOTE",
+        "instrument_id": null,
+        "quantity": null,
+        "notional": null,
+        "pair": "EUR/SGD",
+        "buy_currency": "EUR",
+        "buy_amount": "9393.000",
+        "sell_currency": "SGD",
+        "estimated_sell_amount": "15028.8000",
+        "dependencies": [],
+        "rationale": {
+          "code": "FUNDING",
+          "message": "Fund foreign buys"
+        }
+      },
+      {
+        "intent_id": "oi_1",
         "intent_type": "SECURITY_TRADE",
         "side": "BUY",
-        "instrument_id": "EQ_SGD_2",
-        "quantity": "109",
+        "instrument_id": "EU_BOND",
+        "quantity": "93",
         "notional": {
-          "amount": "5450.0",
-          "currency": "SGD"
+          "amount": "9300.0",
+          "currency": "EUR"
         },
         "pair": null,
         "buy_currency": null,
@@ -239,7 +301,7 @@
         "sell_currency": null,
         "estimated_sell_amount": null,
         "dependencies": [
-          "oi_1"
+          "oi_fx_4"
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
@@ -249,87 +311,73 @@
     ],
     "after_simulated": {
       "total_value": {
-        "amount": "11000.00",
+        "amount": "15000.00000",
         "currency": "SGD"
       },
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "50.0",
+          "amount": "-28.8000",
+          "settled": null,
+          "pending": null
+        },
+        {
+          "currency": "USD",
+          "amount": "0.0",
+          "settled": null,
+          "pending": null
+        },
+        {
+          "currency": "EUR",
+          "amount": "93.000",
           "settled": null,
           "pending": null
         }
       ],
       "positions": [
         {
-          "instrument_id": "EQ_SGD_1",
-          "quantity": "55",
-          "instrument_currency": "SGD",
+          "instrument_id": "EU_BOND",
+          "quantity": "93",
+          "instrument_currency": "EUR",
           "price": {
             "amount": "100.0",
-            "currency": "SGD"
+            "currency": "EUR"
           },
           "value_in_instrument_ccy": {
-            "amount": "5500.0",
-            "currency": "SGD"
+            "amount": "9300.0",
+            "currency": "EUR"
           },
           "value_in_base_ccy": {
-            "amount": "5500.00",
+            "amount": "14880.00",
             "currency": "SGD"
           },
-          "weight": "0.5"
-        },
-        {
-          "instrument_id": "EQ_SGD_2",
-          "quantity": "109",
-          "instrument_currency": "SGD",
-          "price": {
-            "amount": "50.0",
-            "currency": "SGD"
-          },
-          "value_in_instrument_ccy": {
-            "amount": "5450.0",
-            "currency": "SGD"
-          },
-          "value_in_base_ccy": {
-            "amount": "5450.00",
-            "currency": "SGD"
-          },
-          "weight": "0.4954545454545454545454545455"
+          "weight": "0.992"
         }
       ],
       "allocation_by_asset_class": [
         {
           "key": "CASH",
-          "weight": "0.004545454545454545454545454545",
+          "weight": "0.008",
           "value": {
-            "amount": "50.00",
+            "amount": "120.00000",
             "currency": "SGD"
           }
         },
         {
           "key": "UNKNOWN",
-          "weight": "0.9954545454545454545454545455",
+          "weight": "0.992",
           "value": {
-            "amount": "10950.00",
+            "amount": "14880.00",
             "currency": "SGD"
           }
         }
       ],
       "allocation_by_instrument": [
         {
-          "key": "EQ_SGD_1",
-          "weight": "0.5",
+          "key": "EU_BOND",
+          "weight": "0.992",
           "value": {
-            "amount": "5500.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "EQ_SGD_2",
-          "weight": "0.4954545454545454545454545455",
-          "value": {
-            "amount": "5450.00",
+            "amount": "14880.00",
             "currency": "SGD"
           }
         }
@@ -337,17 +385,17 @@
       "allocation": [
         {
           "key": "CASH",
-          "weight": "0.004545454545454545454545454545",
+          "weight": "0.008",
           "value": {
-            "amount": "50.00",
+            "amount": "120.00000",
             "currency": "SGD"
           }
         },
         {
           "key": "UNKNOWN",
-          "weight": "0.9954545454545454545454545455",
+          "weight": "0.992",
           "value": {
-            "amount": "10950.00",
+            "amount": "14880.00",
             "currency": "SGD"
           }
         }
@@ -358,7 +406,7 @@
         "rule_id": "CASH_BAND",
         "severity": "SOFT",
         "status": "PASS",
-        "measured": "0.004545454545454545454545454545",
+        "measured": "0.008",
         "threshold": {
           "max": "0.05"
         },
@@ -379,7 +427,7 @@
       }
     },
     "lineage": {
-      "portfolio_snapshot_id": "pf_111",
+      "portfolio_snapshot_id": "pf_112",
       "market_data_snapshot_id": "md",
       "request_hash": "hash_golden"
     }

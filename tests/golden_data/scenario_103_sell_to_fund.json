@@ -51,13 +51,13 @@
       {
         "instrument_id": "BOND_SGD",
         "status": "APPROVED",
-        "asset_class": "FIXED_INCOME",
+        "asset_class": "UNKNOWN",
         "min_notional": null
       },
       {
         "instrument_id": "EQ_SGD",
         "status": "APPROVED",
-        "asset_class": "EQUITY",
+        "asset_class": "UNKNOWN",
         "min_notional": null
       }
     ],
@@ -118,7 +118,7 @@
           }
         },
         {
-          "key": "FIXED_INCOME",
+          "key": "UNKNOWN",
           "weight": "0.9990009990009990009990009990",
           "value": {
             "amount": "100000.00",
@@ -146,7 +146,7 @@
           }
         },
         {
-          "key": "FIXED_INCOME",
+          "key": "UNKNOWN",
           "weight": "0.9990009990009990009990009990",
           "value": {
             "amount": "100000.00",
@@ -304,18 +304,10 @@
           }
         },
         {
-          "key": "FIXED_INCOME",
-          "weight": "0.5004995004995004995004995005",
+          "key": "UNKNOWN",
+          "weight": "1.000499500499500499500499500",
           "value": {
-            "amount": "50100.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "EQUITY",
-          "weight": "0.5",
-          "value": {
-            "amount": "50050.00",
+            "amount": "100150.00",
             "currency": "SGD"
           }
         }
@@ -348,18 +340,10 @@
           }
         },
         {
-          "key": "FIXED_INCOME",
-          "weight": "0.5004995004995004995004995005",
+          "key": "UNKNOWN",
+          "weight": "1.000499500499500499500499500",
           "value": {
-            "amount": "50100.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "EQUITY",
-          "weight": "0.5",
-          "value": {
-            "amount": "50050.00",
+            "amount": "100150.00",
             "currency": "SGD"
           }
         }
