@@ -188,8 +188,8 @@ def test_valuation_mismatch_warning(base_options):
 
     result = run_simulation(portfolio, market_data, model, shelf, base_options)
 
-    # It shouldn't block, but should have a warning
-    assert result.status == "READY"
+    # Note: Implicit Sell logic sells this position -> 100% Cash -> PENDING_REVIEW
+    assert result.status == "PENDING_REVIEW"
     assert len(result.diagnostics.warnings) == 1
     assert "POSITION_VALUE_MISMATCH" in result.diagnostics.warnings[0]
     # Check that allocation was populated
@@ -224,7 +224,8 @@ def test_valuation_market_value_non_base(base_options):
 
     result = run_simulation(portfolio, market_data, model, shelf, base_options)
 
-    assert result.status == "READY"
+    # Note: Implicit Sell logic sells this position -> 100% Cash -> PENDING_REVIEW
+    assert result.status == "PENDING_REVIEW"
     # Verify calculated value is used (135 SGD)
     assert result.before.total_value.amount == Decimal("135.0")
     assert result.before.positions[0].value_in_base_ccy.amount == Decimal("135.0")

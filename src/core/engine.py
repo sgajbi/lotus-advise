@@ -242,15 +242,9 @@ def _build_universe(
         eligible_for_sell.append(target.instrument_id)
 
     # 2. Process Implicit Sells (Assets held but not in Model)
-    # We assume if you hold it, you can sell it (unless BANNED/SUSPENDED logic is strict,
-    # but usually liquidation is allowed. For safety, we check shelf existence).
     for pos in portfolio.positions:
         if pos.quantity > 0 and pos.instrument_id not in eligible_targets:
             # It's a holding not in the model. Target = 0%.
-            # Check shelf to ensure we can actually generate a Sell order?
-            # RFC-0004 doesn't specify blocking liquidation on missing shelf,
-            # but usually we need shelf for Asset Class info.
-            # For now, we allow liquidation if it's held.
             eligible_targets[pos.instrument_id] = Decimal("0.0")
             eligible_for_sell.append(pos.instrument_id)
 
@@ -334,7 +328,6 @@ def _generate_targets(
         )
 
     # Trace Implicit Sells (Holdings not in Model)
-    # We add them to trace for auditability
     for i_id in eligible_targets:
         is_in_model = any(t.instrument_id == i_id for t in model.targets)
         if not is_in_model:
@@ -488,7 +481,6 @@ def _generate_fx_and_simulate(
                 projected_balances[ccy] = current + intent.notional.amount
 
     # 2. Generate FX Intents (Hub-and-Spoke)
-    # Strategy: Convert ALL non-base deficits (funding) AND surpluses (sweeping) to/from Base.
     fx_map = {}
 
     for ccy, balance in projected_balances.items():
@@ -502,13 +494,13 @@ def _generate_fx_and_simulate(
             sell_amt = buy_amt * get_fx_rate(market_data, ccy, portfolio.base_currency)
 
             fx_id = f"oi_fx_{len(intents) + 1}"
-            fx_map[ccy] = fx_id  # Map for dependencies
+            fx_map[ccy] = fx_id
 
             intents.append(
                 OrderIntent(
                     intent_id=fx_id,
                     intent_type="FX_SPOT",
-                    side="BUY_BASE_SELL_QUOTE",  # Assuming Quote=Base in naming, but let's be explicit in fields
+                    side="BUY_BASE_SELL_QUOTE",
                     pair=f"{ccy}/{portfolio.base_currency}",
                     buy_currency=ccy,
                     buy_amount=buy_amt,
@@ -519,16 +511,9 @@ def _generate_fx_and_simulate(
             )
 
         # Repatriation Surplus (SELL CCY / BUY BASE)
-        # Note: We might want a threshold to avoid sweeping dust, but for now strict sweep.
         elif balance > 0:
             sell_amt = balance
             buy_amt = sell_amt * get_fx_rate(market_data, ccy, portfolio.base_currency)
-            # Note: get_fx_rate returns 1 unit of CCY in Base.
-            # Wait, rate is CCY->Base.
-            # If USD/SGD is 1.5. Sell 100 USD. Buy 150 SGD.
-            # Rate Logic: rate = price of 1 unit of from_ccy in to_ccy.
-            # get_fx_rate(USD, SGD) -> 1.5.
-            # Buy SGD Amount = 100 * 1.5 = 150. Correct.
 
             fx_id = f"oi_fx_{len(intents) + 1}"
 
@@ -536,7 +521,7 @@ def _generate_fx_and_simulate(
                 OrderIntent(
                     intent_id=fx_id,
                     intent_type="FX_SPOT",
-                    side="SELL_BASE_BUY_QUOTE",  # Naming is messy, rely on fields
+                    side="SELL_BASE_BUY_QUOTE",
                     pair=f"{ccy}/{portfolio.base_currency}",
                     buy_currency=portfolio.base_currency,
                     buy_amount=buy_amt,
@@ -579,10 +564,8 @@ def _generate_fx_and_simulate(
     intents.sort(key=lambda x: 0 if x.side == "SELL" else (1 if x.intent_type == "FX_SPOT" else 2))
 
     # --- Simulation (Rich After-State) ---
-    # 1. Apply intents to create "After Portfolio Snapshot"
     after_portfolio = _apply_intents(portfolio, intents)
 
-    # 2. Evaluate "After Portfolio"
     _, after_state = _evaluate_portfolio_state(
         after_portfolio, market_data, shelf, dq_log={}, diagnostics_warnings=[]
     )
@@ -635,7 +618,6 @@ def run_simulation(
     )
 
     if any(dq_log.values()) or stage3_status == "BLOCKED":
-        # ... (Block logic same as before) ...
         return RebalanceResult(
             rebalance_run_id=run_id,
             correlation_id="c_placeholder",
@@ -664,13 +646,12 @@ def run_simulation(
             ),
         )
 
-    # Stage 4: Intents (Returns simple list of security intents)
+    # Stage 4: Intents
     intents = _generate_intents(
         portfolio, market_data, targets, shelf, options, total_val, dq_log, suppressed
     )
 
     if any(dq_log.values()):
-        # ... (DQ Block logic) ...
         return RebalanceResult(
             rebalance_run_id=run_id,
             correlation_id="c_placeholder",
@@ -699,7 +680,7 @@ def run_simulation(
             ),
         )
 
-    # Stage 5: Simulation & Rules (Now manages FX Sweeping)
+    # Stage 5: Simulation & Rules
     intents, after_state, rule_results, final_status = _generate_fx_and_simulate(
         portfolio, market_data, shelf, intents, options, total_val
     )
