@@ -1,4 +1,4 @@
-/* FILE: docs/sample_response.json */
+
 {
   "rebalance_run_id": "rr_sample_123",
   "correlation_id": "c_demo_001",
