@@ -357,29 +357,27 @@ def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, t
             g_cash(after, i.sell_currency).amount -= i.estimated_sell_amount
             g_cash(after, i.buy_currency).amount += i.buy_amount
 
-    # 6. Safety Guard: Negative Holdings Check
+    # 6. Generate State & Valuation
+    # Evaluated early so we can return 'state' (SimulatedState) even if blocked.
+    tv_after, state = evaluate_portfolio_state(after, market_data, shelf, {}, [])
+
+    # 7. Safety Guard: Negative Holdings Check
     for p in after.positions:
         if p.quantity < Decimal("0"):
-            # Construct a BLOCKED result immediately
-            return intents, after, [], "BLOCKED"
+            return intents, state, [], "BLOCKED"
 
-    # 7. Evaluate Rules & Reconciliation
-    tv_after, state = evaluate_portfolio_state(after, market_data, shelf, {}, [])
+    # 8. Rules
     rules = RuleEngine.evaluate(state, options)
 
-    # 8. Safety Guard: Reconciliation Check
-    # Tolerance: 0.1% of total value or 1.0 base unit, whichever is larger,
-    # but strictly small enough to catch logic errors.
-    # RFC-0005 suggests hard block on "vanishing money".
+    # 9. Safety Guard: Reconciliation Check
+    # Tolerance: 0.5 base units + 0.05% FX friction
     recon_diff = abs(tv_after - total_val_before)
-    # Using a fixed tolerance of 0.50 units + 0.05% for FX friction
     tolerance = Decimal("0.5") + (total_val_before * Decimal("0.0005"))
 
     if recon_diff > tolerance:
-        # We can add a diagnostic rule for this, but the engine status must be BLOCKED
         return intents, state, rules, "BLOCKED"
 
-    # 9. Determine Final Status based on Rule Results
+    # 10. Determine Final Status
     final_status = "READY"
     if any(r.severity == "HARD" and r.status == "FAIL" for r in rules):
         final_status = "BLOCKED"
