@@ -22,6 +22,8 @@ from src.core.models import (
     ShelfEntry,
 )
 
+# ... [Existing fixtures and tests preserved] ...
+
 
 @pytest.fixture
 def base_portfolio():
@@ -40,6 +42,10 @@ def base_options():
         suppress_dust_trades=True,
         block_on_missing_prices=True,
     )
+
+
+# ... [Previous tests from lines 40-798 preserved] ...
+# (I am appending new tests to the end of the file)
 
 
 def test_missing_price_blocks_run(base_portfolio, base_options):
@@ -738,7 +744,6 @@ def test_locked_assets_exceed_total(base_options):
     """
     Explicitly tests branch where locked assets > 1.0 (100% of portfolio).
     """
-    # Removed unused variables portfolio, market_data, model, shelf
     from src.core.engine import _generate_targets
 
     eligible = {"A": Decimal("0.6"), "B": Decimal("0.5")}  # Sum 1.1
@@ -788,7 +793,7 @@ def test_buy_depends_on_sell_explicit(base_options):
         OrderIntent(
             intent_id="oi_sell",
             side="SELL",
-            instrument_id="DUMMY_USD_SELL",  # ADDED: Mandatory field
+            instrument_id="DUMMY_USD_SELL",  # Mandatory field
             quantity=Decimal("10"),
             notional=Money(amount=Decimal("100"), currency="USD"),
             rationale=IntentRationale(code="TEST", message="Test"),
@@ -796,7 +801,7 @@ def test_buy_depends_on_sell_explicit(base_options):
         OrderIntent(
             intent_id="oi_buy",
             side="BUY",
-            instrument_id="DUMMY_USD_BUY",  # ADDED: Mandatory field
+            instrument_id="DUMMY_USD_BUY",  # Mandatory field
             quantity=Decimal("5"),
             notional=Money(amount=Decimal("50"), currency="USD"),
             rationale=IntentRationale(code="TEST", message="Test"),
@@ -841,3 +846,146 @@ def test_simulation_crash_on_missing_fx(base_options):
         _generate_fx_and_simulate(
             portfolio, market_data, [], intents, base_options, Decimal("1000")
         )
+
+
+# --- New Tests for Slice 2 ---
+
+
+def test_negative_holding_guard(base_options):
+    """
+    Slice 2: Verifies that if simulation results in negative holdings (overselling),
+    the status is forced to BLOCKED.
+    """
+    from src.core.engine import _generate_fx_and_simulate
+    from src.core.models import IntentRationale
+
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_neg",
+        base_currency="SGD",
+        positions=[Position(instrument_id="EQ_1", quantity=Decimal("10"))],
+        cash_balances=[],
+    )
+    market_data = MarketDataSnapshot(prices=[], fx_rates=[])
+
+    # Intent to sell 20 units (Holding is 10)
+    intents = [
+        OrderIntent(
+            intent_id="oi_oversell",
+            side="SELL",
+            instrument_id="EQ_1",
+            quantity=Decimal("20"),
+            notional=Money(amount=Decimal("2000"), currency="SGD"),
+            rationale=IntentRationale(code="TEST", message="Oversell"),
+        )
+    ]
+
+    intents, after, rules, status = _generate_fx_and_simulate(
+        portfolio, market_data, [], intents, base_options, Decimal("1000")
+    )
+
+    assert status == "BLOCKED"
+    assert (
+        "SIMULATION_SAFETY_CHECK_FAILED" not in result.diagnostics.warnings
+    )  # Testing internal func
+
+
+def test_reconciliation_mismatch_guard(base_options):
+    """
+    Slice 2: Verifies that if After Value differs from Before Value > Tolerance,
+    the status is forced to BLOCKED.
+    """
+    from src.core.engine import _generate_fx_and_simulate
+    from src.core.models import IntentRationale
+
+    # Portfolio Value = 1000 SGD
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_recon",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("1000.0"))],
+    )
+
+    # Market Data
+    market_data = MarketDataSnapshot(prices=[], fx_rates=[])
+
+    # Malicious Intent: Burn 500 SGD (Sell w/o Buy or just reduce cash manually?)
+    # Since we can't easily injection "malicious" math into the simulator without mocks,
+    # we can try a trade that effectively destroys value if logic was broken.
+    # But here, let's use a "Magic" trade that implies value destruction?
+    # Actually, the easiest way to trigger this is to have an FX intent with bad math
+    # or simulated slippage if we supported it.
+
+    # To test the Guard specifically, we can mock the inputs to _generate_fx_and_simulate
+    # such that the resulting state has less money.
+    # However, since we are testing the Engine code itself, we rely on the Engine's math being correct.
+    # To FORCE a failure, we might need to supply a 'market_data' that changes
+    # BETWEEN the 'intents' generation and the 'valuation' check?
+    # No, market_data is constant.
+
+    # Valid way to fail recon:
+    # Have an asset priced at 100. Sell 1 unit. Receive 0 cash (Logic bug?).
+    # Since we trust the logic, we can only verify the guard by checking the code path
+    # with a mocked internal call or by introducing a deliberate bug (not allowed).
+
+    # Alternative: Use a weird FX rate that causes massive rounding loss?
+    # Or just verify that the check exists by asserting on the code structure?
+    # No, we need runtime verification.
+
+    # Let's try to simulate a case where we Sell 1000 SGD but buy 0 USD?
+    # Intent: Sell 1000 SGD, Buy 0 USD.
+    intents = [
+        OrderIntent(
+            intent_id="oi_bad_fx",
+            intent_type="FX_SPOT",
+            side="SELL_BASE_BUY_QUOTE",
+            pair="USD/SGD",
+            buy_currency="USD",
+            buy_amount=Decimal("0.0"),  # Destroy value
+            sell_currency="SGD",
+            estimated_sell_amount=Decimal("500.0"),
+            rationale=IntentRationale(code="TEST", message="Burn Money"),
+        )
+    ]
+
+    # Before Value = 1000. After Value = 500 + 0 = 500. Diff = 500.
+    intents, after, rules, status = _generate_fx_and_simulate(
+        portfolio, market_data, [], intents, base_options, Decimal("1000.0")
+    )
+
+    assert status == "BLOCKED"
+
+
+def test_simulation_creates_new_cash_currency(base_options):
+    """
+    Coverage fix for lazy cash creation (g_cash missing branch).
+    Scenario: Portfolio has SGD. We buy a USD asset.
+    Result: Engine creates 'USD' entry in cash_balances with 0 amount + trade effect.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_lazy_cash",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("10000.0"))],
+    )
+    # Target 100% USD Asset
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="US_STOCK", weight=Decimal("1.0"))])
+    shelf = [ShelfEntry(instrument_id="US_STOCK", status="APPROVED")]
+
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="US_STOCK", price=Decimal("100.0"), currency="USD")],
+        fx_rates=[FxRate(pair="USD/SGD", rate=Decimal("1.5"))],
+    )
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    assert result.status == "READY"
+
+    # Verify USD cash entry exists in after_simulated
+    usd_cash = next((c for c in result.after_simulated.cash_balances if c.currency == "USD"), None)
+    assert usd_cash is not None
+    # We bought 66 units * 100 USD = 6600 USD cost.
+    # We sold SGD to buy USD.
+    # FX: Buy ~6600 USD.
+    # Trade: Cost 6600 USD.
+    # Net USD should be approx 0 (or small dust).
+    assert abs(usd_cash.amount) < Decimal("100.0")  # Loose check for existence
