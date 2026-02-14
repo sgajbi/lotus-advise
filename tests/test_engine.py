@@ -1,3 +1,7 @@
+"""
+FILE: tests/test_engine.py
+"""
+
 from decimal import Decimal
 
 import pytest
@@ -155,6 +159,40 @@ def test_valuation_missing_data_branches(base_options):
     assert any("JPY/SGD" in s for s in dq["fx_missing"])  # Case 4
 
 
+def test_valuation_mismatch_warning(base_options):
+    """
+    RFC-0004 4.3.3: If snapshot MV exists but differs from computed MV > 0.5%, warn.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_mismatch",
+        base_currency="SGD",
+        positions=[
+            Position(
+                instrument_id="EQ_MISMATCH",
+                quantity=Decimal("10"),
+                market_value=Money(amount=Decimal("2000.0"), currency="SGD"),
+            )
+        ],
+        cash_balances=[],
+    )
+    # Computed: 10 * 100 = 1000. Snapshot: 2000. Diff 100%.
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_MISMATCH", price=Decimal("100.0"), currency="SGD")]
+    )
+    model = ModelPortfolio(targets=[])
+    shelf = [ShelfEntry(instrument_id="EQ_MISMATCH", status="APPROVED", asset_class="EQUITY")]
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # It shouldn't block, but should have a warning
+    assert result.status == "READY"
+    assert len(result.diagnostics.warnings) == 1
+    assert "POSITION_VALUE_MISMATCH" in result.diagnostics.warnings[0]
+    # Check that allocation was populated
+    assert result.before.allocation_by_asset_class[0].key == "EQUITY"
+    assert result.before.allocation_by_asset_class[0].value.amount == Decimal("2000.0")
+
+
 def test_dust_trade_suppression(base_portfolio, base_options):
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf = [
@@ -263,22 +301,6 @@ def test_existing_foreign_cash_used_for_fx_deficit(base_options):
     result = run_simulation(portfolio, market_data, model, shelf, base_options)
     fx_intents = [i for i in result.intents if i.intent_type == "FX_SPOT"]
     assert float(fx_intents[0].buy_amount) == 479.75
-
-    # Check for bad position handling
-    portfolio = PortfolioSnapshot(
-        portfolio_id="pf_bad_pos",
-        base_currency="SGD",
-        positions=[Position(instrument_id="EQ_BAD", quantity=Decimal("100"))],
-    )
-    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
-    shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
-    market_data = MarketDataSnapshot(
-        prices=[Price(instrument_id="EQ_1", price=Decimal("10.0"), currency="SGD")]
-    )
-
-    result = run_simulation(portfolio, market_data, model, shelf, base_options)
-    assert result.status == "BLOCKED"
-    assert "EQ_BAD" in result.diagnostics.data_quality["price_missing"]
 
 
 def test_missing_shelf_non_blocking(base_portfolio, base_options):

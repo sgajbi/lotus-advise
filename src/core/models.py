@@ -1,3 +1,7 @@
+"""
+FILE: src/core/models.py
+"""
+
 from decimal import Decimal
 from typing import Any, Dict, List, Literal, Optional
 
@@ -59,6 +63,7 @@ class ModelPortfolio(BaseModel):
 class ShelfEntry(BaseModel):
     instrument_id: str
     status: Literal["APPROVED", "RESTRICTED", "BANNED", "SUSPENDED", "SELL_ONLY"]
+    asset_class: str = "UNKNOWN"
     min_notional: Optional[Money] = None
 
 
@@ -72,15 +77,34 @@ class EngineOptions(BaseModel):
 
 
 # --- Expanded Outputs (RFC-0003 Audit Bundle) ---
-class AllocationBucket(BaseModel):
-    bucket: str
+class AllocationMetric(BaseModel):
+    """Generic allocation bucket (Asset Class or Instrument)."""
+
+    key: str
+    weight: Decimal
+    value: Money
+
+
+class PositionSummary(BaseModel):
+    """Enriched position data with valuation in base currency."""
+
+    instrument_id: str
+    quantity: Decimal
+    instrument_currency: str
+    price: Optional[Money] = None
+    value_in_instrument_ccy: Money
+    value_in_base_ccy: Money
     weight: Decimal
 
 
 class SimulatedState(BaseModel):
     total_value: Money
-    allocation: List[AllocationBucket] = Field(default_factory=list)
     cash_balances: List[CashBalance] = Field(default_factory=list)
+    positions: List[PositionSummary] = Field(default_factory=list)
+    allocation_by_asset_class: List[AllocationMetric] = Field(default_factory=list)
+    allocation_by_instrument: List[AllocationMetric] = Field(default_factory=list)
+    # Legacy field for backward compatibility (mapped to asset class)
+    allocation: List[AllocationMetric] = Field(default_factory=list)
 
 
 class ExcludedInstrument(BaseModel):

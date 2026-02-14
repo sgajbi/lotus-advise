@@ -1,8 +1,13 @@
+"""
+FILE: src/core/engine.py
+"""
+
 import uuid
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
 from src.core.models import (
+    AllocationMetric,
     CashBalance,
     DiagnosticsData,
     EngineOptions,
@@ -14,6 +19,7 @@ from src.core.models import (
     Money,
     OrderIntent,
     PortfolioSnapshot,
+    PositionSummary,
     RebalanceResult,
     RuleResult,
     ShelfEntry,
@@ -37,49 +43,138 @@ def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> 
 def _calculate_valuation(
     portfolio: PortfolioSnapshot,
     market_data: MarketDataSnapshot,
+    shelf: List[ShelfEntry],
     dq_log: Dict[str, List[str]],
+    diagnostics_warnings: List[str],
 ) -> Tuple[Decimal, SimulatedState]:
-    """Stage 1: Calculate total portfolio value in base currency."""
+    """
+    Stage 1: Institution-Grade Valuation.
+    Computes total value in base currency, position summaries, and allocations.
+    """
     total_value_base = Decimal("0.0")
+    positions_summary: List[PositionSummary] = []
+    allocation_by_asset: Dict[str, Decimal] = {}
+    allocation_by_instr: Dict[str, Decimal] = {}
 
-    # Cash Valuation
+    # --- 1. Cash Valuation ---
     for cash in portfolio.cash_balances:
         rate = get_fx_rate(market_data, cash.currency, portfolio.base_currency)
         if rate is None:
             dq_log["fx_missing"].append(f"{cash.currency}/{portfolio.base_currency}")
         else:
-            total_value_base += cash.amount * rate
+            val_base = cash.amount * rate
+            total_value_base += val_base
+            # Cash Bucket
+            allocation_by_asset["CASH"] = allocation_by_asset.get("CASH", Decimal("0")) + val_base
 
-    # Position Valuation
+    # --- 2. Position Valuation ---
     for pos in portfolio.positions:
-        if pos.market_value:
-            rate = get_fx_rate(market_data, pos.market_value.currency, portfolio.base_currency)
-            if rate is None:
-                dq_log["fx_missing"].append(
-                    f"{pos.market_value.currency}/{portfolio.base_currency}"
-                )
-                continue
-            total_value_base += pos.market_value.amount * rate
-            continue
-
+        # Find Price
         price_ent = next(
             (p for p in market_data.prices if p.instrument_id == pos.instrument_id), None
         )
         if not price_ent:
             dq_log["price_missing"].append(pos.instrument_id)
+            # Cannot proceed with valuation for this pos, skip or partial?
+            # MVP: Skip implies value 0, but we log DQ. Block happens later.
             continue
 
+        # Find FX
         rate = get_fx_rate(market_data, price_ent.currency, portfolio.base_currency)
         if rate is None:
             dq_log["fx_missing"].append(f"{price_ent.currency}/{portfolio.base_currency}")
             continue
 
-        total_value_base += pos.quantity * price_ent.price * rate
+        # Computed Value
+        computed_val_instr = pos.quantity * price_ent.price
+        computed_val_base = computed_val_instr * rate
+
+        # Snapshot Value Logic (Truth vs Computed)
+        final_val_base = computed_val_base
+        if pos.market_value:
+            # If snapshot has MV in Base, use it? Or check consistency?
+            # RFC says: if snapshot MV in base, use as truth.
+            if pos.market_value.currency == portfolio.base_currency:
+                snapshot_val_base = pos.market_value.amount
+                # Mismatch Check (0.5% tolerance)
+                if computed_val_base != 0:
+                    diff_pct = abs(snapshot_val_base - computed_val_base) / computed_val_base
+                    if diff_pct > Decimal("0.005"):
+                        diagnostics_warnings.append(
+                            f"POSITION_VALUE_MISMATCH: {pos.instrument_id} "
+                            f"Snapshot={snapshot_val_base} Computed={computed_val_base}"
+                        )
+                final_val_base = snapshot_val_base
+            else:
+                # Snapshot is in instr currency, verify?
+                # For now, rely on computed path if base MV not provided
+                pass
+
+        total_value_base += final_val_base
+
+        # --- Metadata & Grouping ---
+        shelf_ent = next((s for s in shelf if s.instrument_id == pos.instrument_id), None)
+        asset_class = shelf_ent.asset_class if shelf_ent else "UNKNOWN"
+
+        allocation_by_asset[asset_class] = (
+            allocation_by_asset.get(asset_class, Decimal("0")) + final_val_base
+        )
+        allocation_by_instr[pos.instrument_id] = (
+            allocation_by_instr.get(pos.instrument_id, Decimal("0")) + final_val_base
+        )
+
+        positions_summary.append(
+            PositionSummary(
+                instrument_id=pos.instrument_id,
+                quantity=pos.quantity,
+                instrument_currency=price_ent.currency,
+                price=Money(amount=price_ent.price, currency=price_ent.currency),
+                value_in_instrument_ccy=Money(
+                    amount=computed_val_instr, currency=price_ent.currency
+                ),
+                value_in_base_ccy=Money(amount=final_val_base, currency=portfolio.base_currency),
+                weight=Decimal("0"),  # Fill in pass 2
+            )
+        )
+
+    # --- 3. Weight Calculation & Object Construction ---
+    # Avoid div by zero
+    tv_divisor = total_value_base if total_value_base != 0 else Decimal("1")
+
+    # Update Position Weights
+    for p in positions_summary:
+        p.weight = p.value_in_base_ccy.amount / tv_divisor
+
+    # Build Allocations
+    alloc_asset_objs = []
+    for k, v in allocation_by_asset.items():
+        alloc_asset_objs.append(
+            AllocationMetric(
+                key=k,
+                weight=v / tv_divisor,
+                value=Money(amount=v, currency=portfolio.base_currency),
+            )
+        )
+
+    alloc_instr_objs = []
+    for k, v in allocation_by_instr.items():
+        alloc_instr_objs.append(
+            AllocationMetric(
+                key=k,
+                weight=v / tv_divisor,
+                value=Money(amount=v, currency=portfolio.base_currency),
+            )
+        )
 
     before_state = SimulatedState(
         total_value=Money(amount=total_value_base, currency=portfolio.base_currency),
         cash_balances=portfolio.cash_balances,
+        positions=positions_summary,
+        allocation_by_asset_class=alloc_asset_objs,
+        allocation_by_instrument=alloc_instr_objs,
+        allocation=alloc_asset_objs,  # Legacy
     )
+
     return total_value_base, before_state
 
 
@@ -370,10 +465,13 @@ def run_simulation(
 ) -> RebalanceResult:
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
     dq_log = {"price_missing": [], "fx_missing": [], "shelf_missing": []}
+    diagnostics_warnings = []
     suppressed = []
 
     # Stage 1: Valuation
-    total_val, before_state = _calculate_valuation(portfolio, market_data, dq_log)
+    total_val, before_state = _calculate_valuation(
+        portfolio, market_data, shelf, dq_log, diagnostics_warnings
+    )
 
     # Stage 2: Universe
     targets, excluded, buy_list, sell_list, excess = _build_universe(model, shelf, options, dq_log)
@@ -403,7 +501,11 @@ def run_simulation(
             intents=[],
             after_simulated=before_state,
             explanation={"summary": "Run blocked. Check diagnostics."},
-            diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
+            diagnostics=DiagnosticsData(
+                data_quality=dq_log,
+                suppressed_intents=suppressed,
+                warnings=diagnostics_warnings,
+            ),
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
                 market_data_snapshot_id="md",
@@ -436,7 +538,11 @@ def run_simulation(
             intents=[],
             after_simulated=before_state,
             explanation={"summary": "Run blocked during trade generation."},
-            diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
+            diagnostics=DiagnosticsData(
+                data_quality=dq_log,
+                suppressed_intents=suppressed,
+                warnings=diagnostics_warnings,
+            ),
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
                 market_data_snapshot_id="md",
@@ -468,7 +574,11 @@ def run_simulation(
         after_simulated=after_state,
         rule_results=rule_results,
         explanation={"summary": f"Status: {final_status}"},
-        diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
+        diagnostics=DiagnosticsData(
+            data_quality=dq_log,
+            suppressed_intents=suppressed,
+            warnings=diagnostics_warnings,
+        ),
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,
             market_data_snapshot_id="md",
