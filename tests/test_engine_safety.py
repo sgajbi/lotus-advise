@@ -24,10 +24,10 @@ from src.core.models import (
 )
 
 
-def test_negative_holding_guard(base_options):
+def test_negative_holding_guard_internal(base_options):
     """
-    Slice 2: Verifies that if simulation results in negative holdings (overselling),
-    the status is forced to BLOCKED.
+    Unit test for internal function: Verifies that if simulation results in
+    negative holdings (overselling), the status is forced to BLOCKED.
     """
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_neg",
@@ -54,6 +54,51 @@ def test_negative_holding_guard(base_options):
     )
 
     assert status == "BLOCKED"
+
+
+def test_negative_holding_guard_e2e_warning(base_options):
+    """
+    E2E test: Verifies that the 'BLOCKED' status from the internal engine
+    correctly bubbles up to the final result and appends the safety warning.
+    This ensures line coverage for the warning append in run_simulation.
+    """
+    # We construct a scenario that naturally leads to overselling to trigger the guard.
+    # However, standard logic prevents overselling (calculates delta based on holding).
+    # To trigger the guard E2E, we need a 'Valuation Mismatch' scenario where
+    # the Snapshot says we have Value $2000, but Quantity logic implies we sell more
+    # units than we physically have if the Price is low.
+
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_mismatch_e2e",
+        base_currency="SGD",
+        positions=[
+            Position(
+                instrument_id="EQ_1",
+                quantity=Decimal("10"),
+                market_value=Money(amount=Decimal("2000.0"), currency="SGD"),  # Phantom value
+            )
+        ],
+        cash_balances=[],
+    )
+    # Price is 100. Real Value is 10 * 100 = 1000.
+    # Snapshot says 2000.
+    # Target is 0%.
+    # Engine sees Current Value 2000. Target 0.
+    # Delta = -2000.
+    # Sell Qty = 2000 / 100 = 20 units.
+    # Actual Holding = 10 units.
+    # Result: 10 - 20 = -10. BLOCKED.
+
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")]
+    )
+    model = ModelPortfolio(targets=[])  # Sell all
+    shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    assert result.status == "BLOCKED"
+    assert "SIMULATION_SAFETY_CHECK_FAILED" in result.diagnostics.warnings
 
 
 def test_reconciliation_mismatch_guard(base_options):

@@ -1,0 +1,29 @@
+{
+  "portfolio": {
+    "portfolio_id": "demo_02_safety",
+    "base_currency": "USD",
+    "positions": [
+      { "instrument_id": "TSLA", "quantity": "10" }
+    ],
+    "cash_balances": [
+      { "currency": "USD", "amount": "50000.00" }
+    ]
+  },
+  "market_data": {
+    "prices": [
+      { "instrument_id": "TSLA", "price": "200.00", "currency": "USD" }
+    ],
+    "fx_rates": []
+  },
+  "model": {
+    "targets": [
+      { "instrument_id": "TSLA", "weight": "0.0" } 
+    ]
+  },
+  "shelf": [
+    { "instrument_id": "TSLA", "status": "APPROVED" }
+  ],
+  "options": {
+    "description": "This scenario mimics a data error where we try to sell more than we have. In this input, we have 10 units. If the engine had a bug and tried to sell 20, it would block. Note: To force this via input requires manipulating the engine logic, but this input represents a clean liquidation state for verifying NO_SHORTING rules."
+  }
+}

@@ -1,7 +1,6 @@
 # RFC-0005: Institutional Tightening (Post-trade Rules, Reconciliation, Demo Pack)
 
-**Status:** APPROVED
-**Owner:** Rumi
+**Status:** IMPLEMENTED
 **Created:** 2026-02-14
 **Depends On:** RFC-0004 (Holdings Awareness)
 **Doc Location:** `docs/rfcs/RFC-0005-institutional-tightening.md`

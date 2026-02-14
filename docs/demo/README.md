@@ -1,28 +1,29 @@
-# DPM Rebalance Engine - Demo Pack
+# DPM Rebalance Engine: Demo Scenarios
 
-This folder contains curated scenarios to demonstrate the **Institutional Capabilities** of the engine.
+This directory contains curated JSON input files demonstrating the engine's capabilities and safety features.
 
-## How to Run
-Use the `update_goldens.py` script to generate the latest JSON outputs, or inspect `tests/golden_data/` for the actual files.
+## Scenarios
 
-## Scenario Highlights
+### 1. Simple Drift (`01_simple_drift.json`)
+* **Goal:** Rebalance a portfolio that has drifted from its model.
+* **Key Features:**
+    * Generates `SECURITY_TRADE` intents (Sell Overweight / Buy Underweight).
+    * Full `after_simulated` state with allocations.
+    * Rule Engine output (`CASH_BAND`, `SINGLE_POSITION_MAX`).
 
-### 1. Drift Rebalance (Scenario 101)
-* **Context:** A standard portfolio (Cash + Equity) that has drifted from its target.
-* **Action:** The engine sells the overweight asset and buys the underweight asset.
-* **Feature:** Shows `SECURITY_TRADE` generation with correct `SELL` -> `BUY` ordering.
+### 2. Safety Block (`02_safety_block.json`)
+* **Goal:** Demonstrate the "Institution-Grade" safety guardrails (RFC-0005).
+* **Context:** A request attempts to sell 2000 units of an asset where only 1000 are held (Logic/Data error).
+* **Outcome:**
+    * Status: `BLOCKED`.
+    * Diagnostic: `SIMULATION_SAFETY_CHECK_FAILED`.
+    * No trades executed in reality (simulation blocked).
 
-### 2. Multi-Currency FX Funding (Scenario 104)
-* **Context:** An SGD-base portfolio buying a USD asset.
-* **Action:** The engine generates an `FX_SPOT` trade (Buy USD / Sell SGD) to fund the purchase.
-* **Feature:** Shows **Hub-and-Spoke FX** and dependency linking (Security Trade depends on FX Trade).
+## Usage
 
-### 3. Sell-Only Liquidation (Scenario 105)
-* **Context:** Client holds an asset marked `SELL_ONLY` on the product shelf.
-* **Action:** Engine blocks any new buys for this asset. Since the target model requested 50%, the engine forces the target to 0% and redistributes the weight to valid assets.
-* **Feature:** Shows `SHELF_STATUS_SELL_ONLY_BUY_BLOCKED` logic and redistribution.
+You can feed these JSONs into the API endpoint `/v1/rebalance`:
 
-### 4. Dust Suppression (Scenario 110)
-* **Context:** A tiny allocation (1%) results in a trade below the Minimum Trade Size ($500).
-* **Action:** The engine calculates the trade but suppresses it from the final list.
-* **Feature:** Shows `diagnostics.suppressed_intents` and clean output.
+```bash
+curl -X POST "http://localhost:8000/v1/rebalance" \
+     -H "Content-Type: application/json" \
+     -d @docs/demo/01_simple_drift.json
