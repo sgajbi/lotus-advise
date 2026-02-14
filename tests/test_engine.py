@@ -6,15 +6,15 @@ from src.core.engine import run_simulation
 from src.core.models import (
     CashBalance,
     EngineOptions,
-    FxRate,
     MarketDataSnapshot,
     ModelPortfolio,
     ModelTarget,
-    Money,
     PortfolioSnapshot,
     Position,
     Price,
     ShelfEntry,
+    Money,
+    FxRate,
 )
 
 
@@ -88,6 +88,73 @@ def test_banned_assets_excluded(base_portfolio, base_options):
     assert result.universe.excluded[0].reason_code == "SHELF_STATUS_BANNED"
 
 
+def test_restricted_assets_excluded(base_portfolio, base_options):
+    """Hits the 'RESTRICTED' branch in _build_universe."""
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_RESTRICTED", weight=Decimal("1.0"))])
+    shelf = [ShelfEntry(instrument_id="EQ_RESTRICTED", status="RESTRICTED")]
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_RESTRICTED", price=Decimal("10.0"), currency="SGD")]
+    )
+    # options.allow_restricted is False by default
+    result = run_simulation(base_portfolio, market_data, model, shelf, base_options)
+    
+    assert result.status == "PENDING_REVIEW" # 100% Cash
+    assert len(result.universe.excluded) == 1
+    assert result.universe.excluded[0].reason_code == "SHELF_STATUS_RESTRICTED"
+
+
+def test_valuation_missing_data_branches(base_options):
+    """
+    Specifically targets lines in _calculate_valuation where:
+    1. Cash FX is missing
+    2. Position MarketValue FX is missing
+    3. Position Price is missing
+    4. Position Price FX is missing
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_val_test",
+        base_currency="SGD",
+        positions=[
+            # Case 2: Market Value provided, but FX missing (EUR->SGD)
+            Position(
+                instrument_id="EQ_MV_NO_FX", 
+                quantity=Decimal("10"), 
+                market_value=Money(amount=Decimal("100.0"), currency="EUR")
+            ),
+            # Case 3: No Market Value, No Price found
+            Position(instrument_id="EQ_NO_PRICE", quantity=Decimal("10")),
+            # Case 4: Price found, but FX missing (JPY->SGD)
+            Position(instrument_id="EQ_PRICE_NO_FX", quantity=Decimal("10"))
+        ],
+        cash_balances=[
+            # Case 1: Cash FX missing (GBP->SGD)
+            CashBalance(currency="GBP", amount=Decimal("100.0")),
+            CashBalance(currency="SGD", amount=Decimal("1000.0"))
+        ]
+    )
+    
+    market_data = MarketDataSnapshot(
+        prices=[
+            Price(instrument_id="EQ_PRICE_NO_FX", price=Decimal("100.0"), currency="JPY")
+        ],
+        fx_rates=[] # No FX rates provided
+    )
+    
+    model = ModelPortfolio(targets=[])
+    shelf = []
+    
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+    
+    assert result.status == "BLOCKED"
+    dq = result.diagnostics.data_quality
+    
+    # Assert all branches were hit
+    assert any("GBP/SGD" in s for s in dq["fx_missing"])      # Case 1
+    assert any("EUR/SGD" in s for s in dq["fx_missing"])      # Case 2
+    assert "EQ_NO_PRICE" in dq["price_missing"]               # Case 3
+    assert any("JPY/SGD" in s for s in dq["fx_missing"])      # Case 4
+
+
 def test_dust_trade_suppression(base_portfolio, base_options):
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf = [
@@ -113,7 +180,7 @@ def test_infeasible_constraint_no_recipients(base_portfolio):
         prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")]
     )
     opts = EngineOptions(single_position_max_weight=Decimal("0.5"))
-
+    
     result = run_simulation(base_portfolio, market_data, model, shelf, opts)
     assert result.status == "BLOCKED"
 
@@ -136,7 +203,7 @@ def test_infeasible_constraint_secondary_breach(base_portfolio):
         ]
     )
     opts = EngineOptions(single_position_max_weight=Decimal("0.45"))
-
+    
     result = run_simulation(base_portfolio, market_data, model, shelf, opts)
     assert result.status == "BLOCKED"
 
@@ -197,7 +264,7 @@ def test_existing_foreign_cash_used_for_fx_deficit(base_options):
     fx_intents = [i for i in result.intents if i.intent_type == "FX_SPOT"]
     assert float(fx_intents[0].buy_amount) == 479.75
 
-    # Check for bad position handling
+    # Check for bad position handling (re-covered by specialized test, but good for regression)
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_bad_pos",
         base_currency="SGD",
@@ -208,7 +275,7 @@ def test_existing_foreign_cash_used_for_fx_deficit(base_options):
     market_data = MarketDataSnapshot(
         prices=[Price(instrument_id="EQ_1", price=Decimal("10.0"), currency="SGD")]
     )
-
+    
     result = run_simulation(portfolio, market_data, model, shelf, base_options)
     assert result.status == "BLOCKED"
     assert "EQ_BAD" in result.diagnostics.data_quality["price_missing"]
