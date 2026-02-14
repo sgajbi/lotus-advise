@@ -1,45 +1,45 @@
 
+
 {
-"portfolio_snapshot": {
-"portfolio_id": "pf_001",
-"base_currency": "SGD",
-"positions": [
-{
-"instrument_id": "LEGACY_BOND",
-"quantity": "100.00"
+  "portfolio_snapshot": {
+    "portfolio_id": "pf_001",
+    "base_currency": "SGD",
+    "positions": [],
+    "cash_balances": [
+      {
+        "currency": "SGD",
+        "amount": "10000.00"
+      }
+    ]
+  },
+  "market_data_snapshot": {
+    "prices": [
+      {
+        "instrument_id": "EQ_1",
+        "price": "100.00",
+        "currency": "SGD"
+      }
+    ],
+    "fx_rates": []
+  },
+  "model_portfolio": {
+    "targets": [
+      {
+        "instrument_id": "EQ_1",
+        "weight": "1.0"
+      }
+    ]
+  },
+  "shelf_entries": [
+    {
+      "instrument_id": "EQ_1",
+      "status": "APPROVED"
+    }
+  ],
+  "options": {
+    "allow_restricted": false,
+    "suppress_dust_trades": true,
+    "block_on_missing_prices": true
+  }
 }
-],
-"cash_balances": [
-{
-"currency": "SGD",
-"amount": "100000.00"
-}
-]
-},
-"market_data_snapshot": {
-"prices": [
-{"instrument_id": "US_EQ_ETF", "price": "150.00", "currency": "USD"},
-{"instrument_id": "LEGACY_BOND", "price": "100.00", "currency": "SGD"}
-],
-"fx_rates": [
-{"pair": "USD/SGD", "rate": "1.35"}
-]
-},
-"model_portfolio": {
-"targets": [
-{"instrument_id": "US_EQ_ETF", "weight": "0.90"},
-{"instrument_id": "LEGACY_BOND", "weight": "0.10"}
-]
-},
-"shelf_entries": [
-{"instrument_id": "US_EQ_ETF", "status": "APPROVED", "min_notional": {"amount": "1000", "currency": "USD"}},
-{"instrument_id": "LEGACY_BOND", "status": "SELL_ONLY"}
-],
-"options": {
-"allow_restricted": false,
-"suppress_dust_trades": true,
-"fx_buffer_pct": "0.01",
-"single_position_max_weight": "0.85",
-"block_on_missing_prices": true
-}
-}
+

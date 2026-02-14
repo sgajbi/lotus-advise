@@ -1,6 +1,6 @@
 import uuid
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from src.core.models import (
     CashBalance,
@@ -34,44 +34,15 @@ def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> 
     return rate_entry.rate if rate_entry else None
 
 
-def calculate_position_value_base(
-    pos, market_data: MarketDataSnapshot, base_ccy: str, dq_log: Dict[str, List[str]]
-) -> Optional[Decimal]:
-    if pos.market_value:
-        rate = get_fx_rate(market_data, pos.market_value.currency, base_ccy)
-        if rate is None:
-            dq_log["fx_missing"].append(f"{pos.market_value.currency}/{base_ccy}")
-            return None
-        return pos.market_value.amount * rate
-
-    price_ent = next((p for p in market_data.prices if p.instrument_id == pos.instrument_id), None)
-    if not price_ent:
-        dq_log["price_missing"].append(pos.instrument_id)
-        return None
-
-    rate = get_fx_rate(market_data, price_ent.currency, base_ccy)
-    if rate is None:
-        dq_log["fx_missing"].append(f"{price_ent.currency}/{base_ccy}")
-        return None
-
-    return pos.quantity * price_ent.price * rate
-
-
-def run_simulation(
+def _calculate_valuation(
     portfolio: PortfolioSnapshot,
     market_data: MarketDataSnapshot,
-    model: ModelPortfolio,
-    shelf: List[ShelfEntry],
-    options: EngineOptions,
-    request_hash: str = "sha256:dummy",
-) -> RebalanceResult:
-    run_id = f"rr_{uuid.uuid4().hex[:8]}"
-    final_status = "READY"
-    dq_log = {"price_missing": [], "fx_missing": [], "shelf_missing": []}
-    suppressed = []
-
-    # 1. VALUATION & CONTEXT
+    dq_log: Dict[str, List[str]],
+) -> Tuple[Decimal, SimulatedState]:
+    """Stage 1: Calculate total portfolio value in base currency."""
     total_value_base = Decimal("0.0")
+
+    # Cash Valuation
     for cash in portfolio.cash_balances:
         rate = get_fx_rate(market_data, cash.currency, portfolio.base_currency)
         if rate is None:
@@ -79,17 +50,43 @@ def run_simulation(
         else:
             total_value_base += cash.amount * rate
 
+    # Position Valuation
     for pos in portfolio.positions:
-        val = calculate_position_value_base(pos, market_data, portfolio.base_currency, dq_log)
-        if val is not None:
-            total_value_base += val
+        if pos.market_value:
+            rate = get_fx_rate(market_data, pos.market_value.currency, portfolio.base_currency)
+            if rate is None:
+                dq_log["fx_missing"].append(
+                    f"{pos.market_value.currency}/{portfolio.base_currency}"
+                )
+                continue
+            total_value_base += pos.market_value.amount * rate
+            continue
+
+        price_ent = next(
+            (p for p in market_data.prices if p.instrument_id == pos.instrument_id), None
+        )
+        if not price_ent:
+            dq_log["price_missing"].append(pos.instrument_id)
+            continue
+
+        rate = get_fx_rate(market_data, price_ent.currency, portfolio.base_currency)
+        if rate is None:
+            dq_log["fx_missing"].append(f"{price_ent.currency}/{portfolio.base_currency}")
+            continue
+
+        total_value_base += pos.quantity * price_ent.price * rate
 
     before_state = SimulatedState(
         total_value=Money(amount=total_value_base, currency=portfolio.base_currency),
         cash_balances=portfolio.cash_balances,
     )
+    return total_value_base, before_state
 
-    # 2. UNIVERSE CONSTRUCTION
+
+def _build_universe(
+    model: ModelPortfolio, shelf: List[ShelfEntry], options: EngineOptions, dq_log: Dict
+) -> Tuple[Dict[str, Decimal], List[ExcludedInstrument], List[str], List[str], Decimal]:
+    """Stage 2: Filter shelf and determine eligible assets."""
     eligible_targets: Dict[str, Decimal] = {}
     excluded: List[ExcludedInstrument] = []
     eligible_for_buy, eligible_for_sell = [], []
@@ -134,80 +131,90 @@ def run_simulation(
         eligible_for_buy.append(target.instrument_id)
         eligible_for_sell.append(target.instrument_id)
 
-    # 3. TARGET GENERATION & WHY TRACE
-    target_trace = []
-    if not any(dq_log.values()):
-        if sell_only_excess > Decimal("0.0"):
-            recs = {k: v for k, v in eligible_targets.items() if k in eligible_for_buy}
-            total_rec = sum(recs.values())
-            if total_rec == Decimal("0.0"):
-                final_status = "BLOCKED"
+    return eligible_targets, excluded, eligible_for_buy, eligible_for_sell, sell_only_excess
+
+
+def _generate_targets(
+    model: ModelPortfolio,
+    eligible_targets: Dict[str, Decimal],
+    eligible_for_buy: List[str],
+    sell_only_excess: Decimal,
+    options: EngineOptions,
+    total_value_base: Decimal,
+    base_currency: str,
+) -> Tuple[List[TargetInstrument], str]:
+    """Stage 3: Apply mathematical constraints (Capping, Redistribution) and generate trace."""
+    status = "READY"
+
+    # Sell-Only Redistribution
+    if sell_only_excess > Decimal("0.0"):
+        recs = {k: v for k, v in eligible_targets.items() if k in eligible_for_buy}
+        total_rec = sum(recs.values())
+        if total_rec == Decimal("0.0"):
+            status = "BLOCKED"
+        else:
+            for i_id, w in recs.items():
+                eligible_targets[i_id] = w + (sell_only_excess * (w / total_rec))
+
+    # Single Position Max Constraint
+    if options.single_position_max_weight is not None:
+        max_w = options.single_position_max_weight
+        excess, capped = Decimal("0.0"), set()
+        for i_id, w in eligible_targets.items():
+            if w > max_w:
+                excess += w - max_w
+                eligible_targets[i_id] = max_w
+                capped.add(i_id)
+        if excess > Decimal("0.0"):
+            recs = {
+                k: v
+                for k, v in eligible_targets.items()
+                if k not in capped and k in eligible_for_buy
+            }
+            total_recs = sum(recs.values())
+            if total_recs == Decimal("0.0"):
+                status = "BLOCKED"
             else:
                 for i_id, w in recs.items():
-                    eligible_targets[i_id] = w + (sell_only_excess * (w / total_rec))
+                    new_w = w + (excess * (w / total_recs))
+                    if new_w > max_w:
+                        status = "BLOCKED"
+                    eligible_targets[i_id] = new_w
 
-        if options.single_position_max_weight is not None:
-            max_w = options.single_position_max_weight
-            excess, capped = Decimal("0.0"), set()
-            for i_id, w in eligible_targets.items():
-                if w > max_w:
-                    excess += w - max_w
-                    eligible_targets[i_id] = max_w
-                    capped.add(i_id)
-            if excess > Decimal("0.0"):
-                recs = {
-                    k: v
-                    for k, v in eligible_targets.items()
-                    if k not in capped and k in eligible_for_buy
-                }
-                total_recs = sum(recs.values())
-                if total_recs == Decimal("0.0"):
-                    final_status = "BLOCKED"
-                else:
-                    for i_id, w in recs.items():
-                        new_w = w + (excess * (w / total_recs))
-                        if new_w > max_w:
-                            final_status = "BLOCKED"
-                        eligible_targets[i_id] = new_w
-
-        for t in model.targets:
-            final_w = eligible_targets.get(t.instrument_id, Decimal("0.0"))
-            tags = []
-            if t.instrument_id in eligible_targets:
-                if t.weight > final_w:
-                    tags.append("CAPPED_BY_MAX_WEIGHT")
-                if final_w > t.weight:
-                    tags.append("REDISTRIBUTED_RECIPIENT")
-            target_trace.append(
-                TargetInstrument(
-                    instrument_id=t.instrument_id,
-                    model_weight=t.weight,
-                    final_weight=final_w,
-                    final_value=Money(
-                        amount=total_value_base * final_w, currency=portfolio.base_currency
-                    ),
-                    tags=tags,
-                )
+    target_trace = []
+    for t in model.targets:
+        final_w = eligible_targets.get(t.instrument_id, Decimal("0.0"))
+        tags = []
+        if t.instrument_id in eligible_targets:
+            if t.weight > final_w:
+                tags.append("CAPPED_BY_MAX_WEIGHT")
+            if final_w > t.weight:
+                tags.append("REDISTRIBUTED_RECIPIENT")
+        target_trace.append(
+            TargetInstrument(
+                instrument_id=t.instrument_id,
+                model_weight=t.weight,
+                final_weight=final_w,
+                final_value=Money(amount=total_value_base * final_w, currency=base_currency),
+                tags=tags,
             )
-
-    # Early exit if Stage 1-3 failed
-    if any(dq_log.values()) or final_status == "BLOCKED":
-        return _build_blocked_result(
-            run_id,
-            request_hash,
-            portfolio,
-            before_state,
-            eligible_for_buy,
-            eligible_for_sell,
-            excluded,
-            dq_log,
-            suppressed,
-            target_trace,
         )
+    return target_trace, status
 
-    # 4. TRADE GENERATION
-    intents: List[OrderIntent] = []
-    cash_reqs: Dict[str, Decimal] = {}
+
+def _generate_intents(
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    eligible_targets: Dict[str, Decimal],
+    shelf: List[ShelfEntry],
+    options: EngineOptions,
+    total_value_base: Decimal,
+    dq_log: Dict,
+    suppressed: List[SuppressedIntent],
+) -> Tuple[List[OrderIntent], Dict[str, Decimal]]:
+    """Stage 4: Convert Target Weights to Order Intents."""
+    intents = []
+    cash_reqs = {}
 
     for instr_id, target_weight in eligible_targets.items():
         price_ent = next((p for p in market_data.prices if p.instrument_id == instr_id), None)
@@ -215,13 +222,12 @@ def run_simulation(
             dq_log["price_missing"].append(instr_id)
             continue
 
-        target_val_base = total_value_base * target_weight
         rate = get_fx_rate(market_data, price_ent.currency, portfolio.base_currency)
-
         if rate is None:
             dq_log["fx_missing"].append(f"{price_ent.currency}/{portfolio.base_currency}")
             continue
 
+        target_val_base = total_value_base * target_weight
         target_val_instr = target_val_base / rate
 
         cur_val_instr = Decimal("0.0")
@@ -236,6 +242,7 @@ def run_simulation(
         qty = int(abs(delta) // price_ent.price)
         notional = Decimal(qty) * price_ent.price
 
+        # Dust Suppression
         shelf_ent = next((s for s in shelf if s.instrument_id == instr_id), None)
         if options.suppress_dust_trades and shelf_ent and shelf_ent.min_notional:
             if notional < shelf_ent.min_notional.amount:
@@ -267,22 +274,19 @@ def run_simulation(
                     cash_reqs.get(price_ent.currency, Decimal("0.0")) + notional
                 )
 
-    # Late Check for Stage 4 Data Quality
-    if any(dq_log.values()):
-        return _build_blocked_result(
-            run_id,
-            request_hash,
-            portfolio,
-            before_state,
-            eligible_for_buy,
-            eligible_for_sell,
-            excluded,
-            dq_log,
-            suppressed,
-            target_trace,
-        )
+    return intents, cash_reqs
 
-    # 5. FX & SIMULATION
+
+def _generate_fx_and_simulate(
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    intents: List[OrderIntent],
+    cash_reqs: Dict[str, Decimal],
+    options: EngineOptions,
+    total_value_base: Decimal,
+) -> Tuple[List[OrderIntent], SimulatedState, List[RuleResult], str]:
+    """Stage 5: FX Hub-and-Spoke, Sorting, and After-State Validation."""
+    # FX Generation
     fx_map = {}
     for ccy, req in cash_reqs.items():
         if ccy == portfolio.base_currency:
@@ -310,13 +314,15 @@ def run_simulation(
                 )
             )
 
+    # Link Dependencies
     for i in intents:
         if i.intent_type == "SECURITY_TRADE" and i.side == "BUY" and i.notional.currency in fx_map:
             i.dependencies.append(fx_map[i.notional.currency])
 
-    # Intent Sorting: SELLs first, then FX, then BUYs
+    # Sort: SELL -> FX -> BUY
     intents.sort(key=lambda x: 0 if x.side == "SELL" else (1 if x.intent_type == "FX_SPOT" else 2))
 
+    # Simulation
     after_cash = {c.currency: c.amount for c in portfolio.cash_balances}
     for i in intents:
         if i.intent_type == "SECURITY_TRADE":
@@ -329,7 +335,7 @@ def run_simulation(
                 after_cash.get(i.buy_currency, Decimal("0.0")) + i.buy_amount
             )
 
-    # Simplified after-state valuation
+    # Rule Engine
     after_val_base = sum(
         v * get_fx_rate(market_data, k, portfolio.base_currency) for k, v in after_cash.items()
     )
@@ -345,8 +351,103 @@ def run_simulation(
             reason_code="THRESHOLD_BREACH" if cash_weight > 0.05 else "OK",
         )
     ]
-    if any(r.status == "FAIL" for r in rule_results):
-        final_status = "PENDING_REVIEW"
+    status = "PENDING_REVIEW" if any(r.status == "FAIL" for r in rule_results) else "READY"
+
+    after_state = SimulatedState(
+        total_value=Money(amount=total_value_base, currency=portfolio.base_currency),
+        cash_balances=[CashBalance(currency=k, amount=v) for k, v in after_cash.items()],
+    )
+    return intents, after_state, rule_results, status
+
+
+def run_simulation(
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    model: ModelPortfolio,
+    shelf: List[ShelfEntry],
+    options: EngineOptions,
+    request_hash: str = "sha256:dummy",
+) -> RebalanceResult:
+    run_id = f"rr_{uuid.uuid4().hex[:8]}"
+    dq_log = {"price_missing": [], "fx_missing": [], "shelf_missing": []}
+    suppressed = []
+
+    # Stage 1: Valuation
+    total_val, before_state = _calculate_valuation(portfolio, market_data, dq_log)
+
+    # Stage 2: Universe
+    targets, excluded, buy_list, sell_list, excess = _build_universe(model, shelf, options, dq_log)
+
+    # Stage 3: Targets (Logic Branching)
+    target_trace, stage3_status = _generate_targets(
+        model, targets, buy_list, excess, options, total_val, portfolio.base_currency
+    )
+
+    # Exit if Stage 1-3 Failed
+    if any(dq_log.values()) or stage3_status == "BLOCKED":
+        return RebalanceResult(
+            rebalance_run_id=run_id,
+            correlation_id="c_placeholder",
+            status="BLOCKED",
+            before=before_state,
+            universe=UniverseData(
+                universe_id=f"uni_{run_id}",
+                eligible_for_buy=buy_list,
+                eligible_for_sell=sell_list,
+                excluded=excluded,
+                coverage=UniverseCoverage(
+                    price_coverage_pct=Decimal("0"), fx_coverage_pct=Decimal("0")
+                ),
+            ),
+            target=TargetData(target_id=f"tgt_{run_id}", strategy={}, targets=target_trace),
+            intents=[],
+            after_simulated=before_state,
+            explanation={"summary": "Run blocked. Check diagnostics."},
+            diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
+            lineage=LineageData(
+                portfolio_snapshot_id=portfolio.portfolio_id,
+                market_data_snapshot_id="md",
+                request_hash=request_hash,
+            ),
+        )
+
+    # Stage 4: Intents
+    intents, cash_reqs = _generate_intents(
+        portfolio, market_data, targets, shelf, options, total_val, dq_log, suppressed
+    )
+
+    # Exit if Stage 4 Data Quality Failed
+    if any(dq_log.values()):
+        return RebalanceResult(
+            rebalance_run_id=run_id,
+            correlation_id="c_placeholder",
+            status="BLOCKED",
+            before=before_state,
+            universe=UniverseData(
+                universe_id=f"uni_{run_id}",
+                eligible_for_buy=buy_list,
+                eligible_for_sell=sell_list,
+                excluded=excluded,
+                coverage=UniverseCoverage(
+                    price_coverage_pct=Decimal("0"), fx_coverage_pct=Decimal("0")
+                ),
+            ),
+            target=TargetData(target_id=f"tgt_{run_id}", strategy={}, targets=target_trace),
+            intents=[],
+            after_simulated=before_state,
+            explanation={"summary": "Run blocked during trade generation."},
+            diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
+            lineage=LineageData(
+                portfolio_snapshot_id=portfolio.portfolio_id,
+                market_data_snapshot_id="md",
+                request_hash=request_hash,
+            ),
+        )
+
+    # Stage 5: Simulation & Rules
+    intents, after_state, rule_results, final_status = _generate_fx_and_simulate(
+        portfolio, market_data, intents, cash_reqs, options, total_val
+    )
 
     return RebalanceResult(
         rebalance_run_id=run_id,
@@ -355,60 +456,18 @@ def run_simulation(
         before=before_state,
         universe=UniverseData(
             universe_id=f"uni_{run_id}",
-            eligible_for_buy=eligible_for_buy,
-            eligible_for_sell=eligible_for_sell,
+            eligible_for_buy=buy_list,
+            eligible_for_sell=sell_list,
             excluded=excluded,
             coverage=UniverseCoverage(
-                price_coverage_pct=Decimal("1.0"), fx_coverage_pct=Decimal("1.0")
+                price_coverage_pct=Decimal("1"), fx_coverage_pct=Decimal("1")
             ),
         ),
         target=TargetData(target_id=f"tgt_{run_id}", strategy={}, targets=target_trace),
         intents=intents,
-        after_simulated=SimulatedState(
-            total_value=Money(amount=total_value_base, currency=portfolio.base_currency),
-            cash_balances=[CashBalance(currency=k, amount=v) for k, v in after_cash.items()],
-        ),
+        after_simulated=after_state,
         rule_results=rule_results,
         explanation={"summary": f"Status: {final_status}"},
-        diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
-        lineage=LineageData(
-            portfolio_snapshot_id=portfolio.portfolio_id,
-            market_data_snapshot_id="md",
-            request_hash=request_hash,
-        ),
-    )
-
-
-def _build_blocked_result(
-    run_id,
-    request_hash,
-    portfolio,
-    before_state,
-    eligible_buy,
-    eligible_sell,
-    excluded,
-    dq_log,
-    suppressed,
-    trace,
-):
-    return RebalanceResult(
-        rebalance_run_id=run_id,
-        correlation_id="c_placeholder",
-        status="BLOCKED",
-        before=before_state,
-        universe=UniverseData(
-            universe_id=f"uni_{run_id}",
-            eligible_for_buy=eligible_buy,
-            eligible_for_sell=eligible_sell,
-            excluded=excluded,
-            coverage=UniverseCoverage(
-                price_coverage_pct=Decimal("0.0"), fx_coverage_pct=Decimal("0.0")
-            ),
-        ),
-        target=TargetData(target_id=f"tgt_{run_id}", strategy={}, targets=trace),
-        intents=[],
-        after_simulated=before_state,
-        explanation={"summary": "Run blocked. Check diagnostics."},
         diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,

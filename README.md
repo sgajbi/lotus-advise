@@ -1,33 +1,57 @@
+
 # Enterprise Rebalance Simulation Engine (DPM)
 
-![Version](https://img.shields.io/badge/Version-1.1.0--RFC0002-blue.svg)
-![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)
-![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
-![Code Style](https://img.shields.io/badge/Code%20Style-Ruff-black.svg)
+An audit-compliant, deterministic portfolio rebalancing engine for Private Banking.
 
-## Overview
-The Rebalance Simulation Service is a deterministic, highly-available engine for Discretionary Portfolio Management (DPM). It provides a mathematically sound service that translates target models into executable order intents while strictly enforcing compliance rules, product shelf semantics, and cross-currency valuations.
+## Core Features
 
-## Key Enterprise Features (v1.1.0)
-* **Idempotency:** Safe API retries backed by SHA-256 payload hashing to prevent duplicate runs.
-* **Currency Truth Model:** Absolute mathematical precision resolving all asset valuations to the Portfolio Base Currency.
-* **Rule Engine & Compliance:** Evaluates the simulated post-trade state against Hard constraints (e.g., `SINGLE_POSITION_MAX`) and Soft constraints (e.g., `CASH_BAND`).
-* **RFC-7807 Error Handling:** Machine-readable domain errors mapped to HTTP 422 and 409.
+* **Deterministic Simulation:** 100% reproducible results given the same inputs.
+* **"No-Throw" Architecture:** All domain failures (data quality, infeasible constraints) return **HTTP 200** with a structured `BLOCKED` status and diagnostic traces.
+* **Audit Bundle:** Every response includes the `before` state, `target` lineage (Model vs. Final weight), `after` simulated state, and `rule_results`.
+* **FX Hub-and-Spoke:** Auto-generates FX spot trades to fund security purchases in non-base currencies.
+* **Idempotency:** SHA-256 content hashing prevents duplicate runs.
 
-## Documentation Links
-* **Sample Request:** [docs/sample_request.json](docs/sample_request.json)
-* **Sample Golden Response:** [docs/sample_response.json](docs/sample_response.json)
- 
+## API Usage (RFC-0003)
 
-## Development & Deployment
+### Endpoint: `POST /rebalance/simulate`
+
+**Headers:**
+* `Idempotency-Key`: Unique request ID.
+* `X-Correlation-Id`: Distributed tracing ID.
+
+**Response Status Codes:**
+* `READY`: Simulation successful, trades generated.
+* `PENDING_REVIEW`: Simulation successful, but soft rules (e.g., Cash Band) breached.
+* `BLOCKED`: Simulation failed due to Data Quality or Hard Constraints. Check `diagnostics`.
+
+## Developer Guide
+
+### Prerequisites
+* Python 3.11+
+* Docker (optional)
+
+### Setup & Testing
 ```bash
-# Testing & Linting
-ruff check .
-ruff format .
-pytest tests/ --cov=src
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-# Local Server
-uvicorn src.api.main:app --reload --port 8000
+# Run full test suite with coverage
+pytest --cov=src --cov-report=term-missing --cov-fail-under=100
 
-# Docker Deployment
-docker-compose up -d --build
+# Regenerate Golden Scenarios
+python update_goldens.py
+
+```
+
+### Architecture (Modular Pipeline)
+
+The engine (`src/core/engine.py`) processes requests in 5 strict stages:
+
+1. **Valuation:** Calculates total portfolio value (Base Currency).
+2. **Universe:** Filters Shelf (Banned/Restricted checks).
+3. **Targets:** Applies Constraints (Max Weight) and Redistribution Logic.
+4. **Intents:** Translates weights to trades, suppressing dust.
+5. **Simulation:** Generates FX trades and validates the After-State.
+
+```
