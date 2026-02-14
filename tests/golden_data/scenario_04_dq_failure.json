@@ -1,5 +1,5 @@
 {
-  "scenario_name": "scenario_01_cash_inflow",
+  "scenario_name": "scenario_04_dq_failure",
   "inputs": {
     "portfolio_snapshot": {
       "portfolio_id": "pf_001",
@@ -15,13 +15,7 @@
       ]
     },
     "market_data_snapshot": {
-      "prices": [
-        {
-          "instrument_id": "EQ_1",
-          "price": "100.0",
-          "currency": "SGD"
-        }
-      ],
+      "prices": [],
       "fx_rates": []
     },
     "model_portfolio": {
@@ -51,7 +45,7 @@
   "expected_outputs": {
     "rebalance_run_id": "rr_golden",
     "correlation_id": "c_placeholder",
-    "status": "READY",
+    "status": "BLOCKED",
     "before": {
       "total_value": {
         "amount": "10000.000",
@@ -77,8 +71,8 @@
       ],
       "excluded": [],
       "coverage": {
-        "price_coverage_pct": "1.0",
-        "fx_coverage_pct": "1.0"
+        "price_coverage_pct": "0.0",
+        "fx_coverage_pct": "0.0"
       }
     },
     "target": {
@@ -97,29 +91,7 @@
         }
       ]
     },
-    "intents": [
-      {
-        "intent_id": "oi_1",
-        "intent_type": "SECURITY_TRADE",
-        "side": "BUY",
-        "instrument_id": "EQ_1",
-        "quantity": "100",
-        "notional": {
-          "amount": "10000.0",
-          "currency": "SGD"
-        },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
-        "dependencies": [],
-        "rationale": {
-          "code": "DRIFT_REBALANCE",
-          "message": "Align to model target"
-        }
-      }
-    ],
+    "intents": [],
     "after_simulated": {
       "total_value": {
         "amount": "10000.000",
@@ -129,33 +101,23 @@
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "0.00",
+          "amount": "10000.00",
           "settled": null,
           "pending": null
         }
       ]
     },
-    "rule_results": [
-      {
-        "rule_id": "CASH_BAND",
-        "severity": "SOFT",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "max": "0.05"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      }
-    ],
+    "rule_results": [],
     "explanation": {
-      "summary": "Status: READY"
+      "summary": "Run blocked. Check diagnostics."
     },
     "diagnostics": {
       "warnings": [],
       "suppressed_intents": [],
       "data_quality": {
-        "price_missing": [],
+        "price_missing": [
+          "EQ_1"
+        ],
         "fx_missing": [],
         "shelf_missing": []
       }

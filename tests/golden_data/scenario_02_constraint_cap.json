@@ -1,5 +1,5 @@
 {
-  "scenario_name": "Constraint Capping and Redistribution",
+  "scenario_name": "scenario_02_constraint_cap",
   "inputs": {
     "portfolio_snapshot": {
       "portfolio_id": "pf_001",
@@ -8,20 +8,22 @@
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": 100000.0
+          "amount": "10000.00",
+          "settled": null,
+          "pending": null
         }
       ]
     },
     "market_data_snapshot": {
       "prices": [
         {
-          "instrument_id": "ETF_A",
-          "price": 100.0,
+          "instrument_id": "EQ_1",
+          "price": "100.0",
           "currency": "SGD"
         },
         {
-          "instrument_id": "ETF_B",
-          "price": 100.0,
+          "instrument_id": "EQ_2",
+          "price": "50.0",
           "currency": "SGD"
         }
       ],
@@ -30,67 +32,64 @@
     "model_portfolio": {
       "targets": [
         {
-          "instrument_id": "ETF_A",
-          "weight": 0.8
+          "instrument_id": "EQ_1",
+          "weight": "0.6"
         },
         {
-          "instrument_id": "ETF_B",
-          "weight": 0.2
+          "instrument_id": "EQ_2",
+          "weight": "0.4"
         }
       ]
     },
     "shelf_entries": [
       {
-        "instrument_id": "ETF_A",
+        "instrument_id": "EQ_1",
         "status": "APPROVED",
-        "min_notional": {
-          "amount": 1000,
-          "currency": "SGD"
-        }
+        "min_notional": null
       },
       {
-        "instrument_id": "ETF_B",
+        "instrument_id": "EQ_2",
         "status": "APPROVED",
-        "min_notional": {
-          "amount": 1000,
-          "currency": "SGD"
-        }
+        "min_notional": null
       }
     ],
     "options": {
+      "allow_restricted": false,
       "suppress_dust_trades": true,
-      "fx_buffer_pct": 0.01,
-      "single_position_max_weight": 0.5
+      "dust_trade_threshold": null,
+      "fx_buffer_pct": "0.01",
+      "single_position_max_weight": "0.5",
+      "block_on_missing_prices": true
     }
   },
   "expected_outputs": {
-    "rebalance_run_id": "rr_f701b2ec",
+    "rebalance_run_id": "rr_golden",
     "correlation_id": "c_placeholder",
     "status": "READY",
     "before": {
       "total_value": {
-        "amount": "100000.00",
+        "amount": "10000.000",
         "currency": "SGD"
       },
       "allocation": [],
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "100000.0",
+          "amount": "10000.00",
           "settled": null,
           "pending": null
         }
       ]
     },
     "universe": {
-      "universe_id": "uni_rr_f701b2ec",
+      "universe_id": "uni_golden",
       "eligible_for_buy": [
-        "ETF_A",
-        "ETF_B"
+        "EQ_1",
+        "EQ_2"
       ],
       "eligible_for_sell": [
-        "ETF_A",
-        "ETF_B"
+        "EQ_1",
+        "EQ_2"
       ],
       "excluded": [],
       "coverage": {
@@ -99,19 +98,44 @@
       }
     },
     "target": {
-      "target_id": "tgt_rr_f701b2ec",
+      "target_id": "tgt_golden",
       "strategy": {},
-      "targets": []
+      "targets": [
+        {
+          "instrument_id": "EQ_1",
+          "model_weight": "0.6",
+          "final_weight": "0.5",
+          "final_value": {
+            "amount": "5000.0000",
+            "currency": "SGD"
+          },
+          "tags": [
+            "CAPPED_BY_MAX_WEIGHT"
+          ]
+        },
+        {
+          "instrument_id": "EQ_2",
+          "model_weight": "0.4",
+          "final_weight": "0.5",
+          "final_value": {
+            "amount": "5000.0000",
+            "currency": "SGD"
+          },
+          "tags": [
+            "REDISTRIBUTED_RECIPIENT"
+          ]
+        }
+      ]
     },
     "intents": [
       {
         "intent_id": "oi_1",
         "intent_type": "SECURITY_TRADE",
         "side": "BUY",
-        "instrument_id": "ETF_A",
-        "quantity": "500",
+        "instrument_id": "EQ_1",
+        "quantity": "50",
         "notional": {
-          "amount": "50000.0",
+          "amount": "5000.0",
           "currency": "SGD"
         },
         "pair": null,
@@ -129,10 +153,10 @@
         "intent_id": "oi_2",
         "intent_type": "SECURITY_TRADE",
         "side": "BUY",
-        "instrument_id": "ETF_B",
-        "quantity": "500",
+        "instrument_id": "EQ_2",
+        "quantity": "100",
         "notional": {
-          "amount": "50000.0",
+          "amount": "5000.0",
           "currency": "SGD"
         },
         "pair": null,
@@ -149,14 +173,14 @@
     ],
     "after_simulated": {
       "total_value": {
-        "amount": "100000.000",
+        "amount": "10000.000",
         "currency": "SGD"
       },
       "allocation": [],
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "0.0",
+          "amount": "0.00",
           "settled": null,
           "pending": null
         }
@@ -167,7 +191,7 @@
         "rule_id": "CASH_BAND",
         "severity": "SOFT",
         "status": "PASS",
-        "measured": "0E+1",
+        "measured": "0",
         "threshold": {
           "max": "0.05"
         },
@@ -176,21 +200,21 @@
       }
     ],
     "explanation": {
-      "summary": "Completed with status READY."
+      "summary": "Status: READY"
     },
     "diagnostics": {
       "warnings": [],
       "suppressed_intents": [],
       "data_quality": {
         "price_missing": [],
-        "price_stale": [],
-        "fx_missing": []
+        "fx_missing": [],
+        "shelf_missing": []
       }
     },
     "lineage": {
       "portfolio_snapshot_id": "pf_001",
       "market_data_snapshot_id": "md",
-      "request_hash": "sha256:dummy"
+      "request_hash": "hash_golden"
     }
   }
 }
