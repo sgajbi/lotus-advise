@@ -103,19 +103,18 @@ class UniverseData(BaseModel):
 
 
 class TargetInstrument(BaseModel):
-    """Tracks the transition from model-requested weight to final calculated weight[cite: 333]."""
+    """Tracks the transition from model-requested weight to final calculated weight."""
 
+    model_config = {"protected_namespaces": ()}
     instrument_id: str
-    model_weight: Decimal  # Requested weight from the Strategy [cite: 333]
-    final_weight: Decimal  # Actual weight after Shelf/Constraint checks [cite: 333]
-    final_value: Money  # Monetary value of the final weight [cite: 333]
-    tags: List[str] = Field(
-        default_factory=list
-    )  # e.g., "CAPPED_SINGLE_POS", "SELL_ONLY_ZEROED" [cite: 333]
+    model_weight: Decimal  # Requested weight from the Strategy
+    final_weight: Decimal  # Actual weight after Shelf/Constraint checks
+    final_value: Money  # Monetary value of the final weight
+    tags: List[str] = Field(default_factory=list)
 
 
 class TargetData(BaseModel):
-    """Captures the outcome of target generation with full lineage[cite: 333]."""
+    """Captures the outcome of target generation with full lineage."""
 
     target_id: str
     strategy: Dict[str, Any]  # Strategy metadata
@@ -160,22 +159,20 @@ class RuleResult(BaseModel):
 
 
 class SuppressedIntent(BaseModel):
-    """Captured trades dropped due to min_notional or dust thresholds[cite: 334]."""
+    """Captured trades dropped due to min_notional or dust thresholds."""
 
     instrument_id: str
-    reason: str  # e.g., "BELOW_MIN_NOTIONAL" [cite: 334]
+    reason: str  # e.g., "BELOW_MIN_NOTIONAL"
     intended_notional: Money
     threshold: Money
 
 
 class DiagnosticsData(BaseModel):
-    """Granular reporting of data quality and processing outcomes[cite: 334]."""
+    """Granular reporting of data quality and processing outcomes."""
 
     warnings: List[str] = Field(default_factory=list)
     suppressed_intents: List[SuppressedIntent] = Field(default_factory=list)
-    data_quality: Dict[
-        str, List[str]
-    ]  # Keys: "price_missing", "fx_missing", "shelf_missing" [cite: 334]
+    data_quality: Dict[str, List[str]]
 
 
 class LineageData(BaseModel):
@@ -185,7 +182,7 @@ class LineageData(BaseModel):
 
 
 class RebalanceResult(BaseModel):
-    """The complete, auditable result of a rebalance simulation[cite: 312]."""
+    """The complete, auditable result of a rebalance simulation."""
 
     rebalance_run_id: str
     correlation_id: str
