@@ -10,6 +10,7 @@ import pytest
 from src.core.engine import _generate_fx_and_simulate, run_simulation
 from src.core.models import (
     CashBalance,
+    DiagnosticsData,
     FxRate,
     IntentRationale,
     MarketDataSnapshot,
@@ -49,25 +50,24 @@ def test_negative_holding_guard_internal(base_options):
         )
     ]
 
+    # Needs diagnostics object
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
     intents, after, rules, status = _generate_fx_and_simulate(
-        portfolio, market_data, [], intents, base_options, Decimal("1000")
+        portfolio, market_data, [], intents, base_options, Decimal("1000"), diag
     )
 
     assert status == "BLOCKED"
+    # Verify Rule Result is present
+    no_short = next((r for r in rules if r.rule_id == "NO_SHORTING"), None)
+    assert no_short is not None
+    assert no_short.status == "FAIL"
 
 
 def test_negative_holding_guard_e2e_warning(base_options):
     """
     E2E test: Verifies that the 'BLOCKED' status from the internal engine
     correctly bubbles up to the final result and appends the safety warning.
-    This ensures line coverage for the warning append in run_simulation.
     """
-    # We construct a scenario that naturally leads to overselling to trigger the guard.
-    # However, standard logic prevents overselling (calculates delta based on holding).
-    # To trigger the guard E2E, we need a 'Valuation Mismatch' scenario where
-    # the Snapshot says we have Value $2000, but Quantity logic implies we sell more
-    # units than we physically have if the Price is low.
-
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_mismatch_e2e",
         base_currency="SGD",
@@ -75,20 +75,11 @@ def test_negative_holding_guard_e2e_warning(base_options):
             Position(
                 instrument_id="EQ_1",
                 quantity=Decimal("10"),
-                market_value=Money(amount=Decimal("2000.0"), currency="SGD"),  # Phantom value
+                market_value=Money(amount=Decimal("2000.0"), currency="SGD"),
             )
         ],
         cash_balances=[],
     )
-    # Price is 100. Real Value is 10 * 100 = 1000.
-    # Snapshot says 2000.
-    # Target is 0%.
-    # Engine sees Current Value 2000. Target 0.
-    # Delta = -2000.
-    # Sell Qty = 2000 / 100 = 20 units.
-    # Actual Holding = 10 units.
-    # Result: 10 - 20 = -10. BLOCKED.
-
     market_data = MarketDataSnapshot(
         prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")]
     )
@@ -99,6 +90,8 @@ def test_negative_holding_guard_e2e_warning(base_options):
 
     assert result.status == "BLOCKED"
     assert "SIMULATION_SAFETY_CHECK_FAILED" in result.diagnostics.warnings
+    # Verify NO_SHORTING rule rule presence
+    assert any(r.rule_id == "NO_SHORTING" for r in result.rule_results)
 
 
 def test_reconciliation_mismatch_guard(base_options):
@@ -129,19 +122,22 @@ def test_reconciliation_mismatch_guard(base_options):
         )
     ]
 
-    # Before Value = 1000. After Value = 500 + 0 = 500. Diff = 500.
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
     intents, after, rules, status = _generate_fx_and_simulate(
-        portfolio, market_data, [], intents, base_options, Decimal("1000.0")
+        portfolio, market_data, [], intents, base_options, Decimal("1000.0"), diag
     )
 
     assert status == "BLOCKED"
+    # Verify RECONCILIATION rule result
+    recon = next((r for r in rules if r.rule_id == "RECONCILIATION"), None)
+    assert recon is not None
+    assert recon.status == "FAIL"
 
 
 def test_simulation_crash_on_missing_fx(base_options):
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_crash", base_currency="SGD", positions=[], cash_balances=[]
     )
-    # Missing FX rate for USD/SGD
     market_data = MarketDataSnapshot(prices=[], fx_rates=[])
 
     intents = [
@@ -154,19 +150,15 @@ def test_simulation_crash_on_missing_fx(base_options):
             rationale=IntentRationale(code="TEST", message="Test"),
         )
     ]
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
 
     with pytest.raises(ValueError, match="Missing FX rate for USD/SGD"):
         _generate_fx_and_simulate(
-            portfolio, market_data, [], intents, base_options, Decimal("1000")
+            portfolio, market_data, [], intents, base_options, Decimal("1000"), diag
         )
 
 
 def test_simulation_creates_new_cash_currency(base_options):
-    """
-    Coverage fix for lazy cash creation.
-    Scenario: Portfolio has SGD. We buy a USD asset.
-    Result: Engine creates 'USD' entry in cash_balances.
-    """
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_lazy_cash",
         base_currency="SGD",

@@ -157,7 +157,41 @@
         }
       ]
     },
-    "rule_results": [],
+    "rule_results": [
+      {
+        "rule_id": "CASH_BAND",
+        "severity": "SOFT",
+        "status": "FAIL",
+        "measured": "1",
+        "threshold": {
+          "max": "0.05"
+        },
+        "reason_code": "THRESHOLD_BREACH",
+        "remediation_hint": "Portfolio has excess cash. Consider investing or verifying exclusions."
+      },
+      {
+        "rule_id": "DATA_QUALITY",
+        "severity": "HARD",
+        "status": "FAIL",
+        "measured": "1",
+        "threshold": {
+          "max": "0"
+        },
+        "reason_code": "MISSING_DATA",
+        "remediation_hint": "Check diagnostics.data_quality for missing prices/FX."
+      },
+      {
+        "rule_id": "MIN_TRADE_SIZE",
+        "severity": "SOFT",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "min": "0"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
+      }
+    ],
     "explanation": {
       "summary": "Blocked"
     },

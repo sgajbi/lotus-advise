@@ -343,6 +343,28 @@
         },
         "reason_code": "OK",
         "remediation_hint": null
+      },
+      {
+        "rule_id": "DATA_QUALITY",
+        "severity": "HARD",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "max": "0"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
+      },
+      {
+        "rule_id": "MIN_TRADE_SIZE",
+        "severity": "SOFT",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "min": "0"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
       }
     ],
     "explanation": {

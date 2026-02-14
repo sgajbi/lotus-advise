@@ -17,6 +17,7 @@ from src.core.models import (
     OrderIntent,
     Position,
     RebalanceResult,
+    RuleResult,
     SuppressedIntent,
     TargetData,
     TargetInstrument,
@@ -258,7 +259,9 @@ def _generate_intents(
     return intents
 
 
-def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, total_val_before):
+def _generate_fx_and_simulate(
+    portfolio, market_data, shelf, intents, options, total_val_before, diagnostics
+):
     """
     Applies intents to the portfolio to create the after_simulated state.
     Includes Safety Guardrails: Negative Holdings and Reconciliation.
@@ -358,16 +361,34 @@ def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, t
             g_cash(after, i.buy_currency).amount += i.buy_amount
 
     # 6. Generate State & Valuation
-    # Evaluated early so we can return 'state' (SimulatedState) even if blocked.
     tv_after, state = evaluate_portfolio_state(after, market_data, shelf, {}, [])
 
     # 7. Safety Guard: Negative Holdings Check
+    shorting_breach = False
     for p in after.positions:
         if p.quantity < Decimal("0"):
-            return intents, state, [], "BLOCKED"
+            shorting_breach = True
+            break
 
-    # 8. Rules
-    rules = RuleEngine.evaluate(state, options)
+    if shorting_breach:
+        # Construct NO_SHORTING rule result manually
+        rules = [
+            RuleResult(
+                rule_id="NO_SHORTING",
+                severity="HARD",
+                status="FAIL",
+                measured=Decimal("-1"),  # Indicator
+                threshold={"min": Decimal("0")},
+                reason_code="SELL_EXCEEDS_HOLDINGS",
+                remediation_hint="Ensure sell quantity does not exceed holdings.",
+            )
+        ]
+        # Append other standard rules (DQ, MinTrade)
+        rules.extend(RuleEngine.evaluate(state, options, diagnostics))
+        return intents, state, rules, "BLOCKED"
+
+    # 8. Rules (Standard)
+    rules = RuleEngine.evaluate(state, options, diagnostics)
 
     # 9. Safety Guard: Reconciliation Check
     # Tolerance: 0.5 base units + 0.05% FX friction
@@ -375,6 +396,18 @@ def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, t
     tolerance = Decimal("0.5") + (total_val_before * Decimal("0.0005"))
 
     if recon_diff > tolerance:
+        # Add RECONCILIATION rule result
+        rules.append(
+            RuleResult(
+                rule_id="RECONCILIATION",
+                severity="HARD",
+                status="FAIL",
+                measured=recon_diff,
+                threshold={"max": tolerance},
+                reason_code="VALUE_MISMATCH",
+                remediation_hint="Portfolio value changed unexpectedly during simulation.",
+            )
+        )
         return intents, state, rules, "BLOCKED"
 
     # 10. Determine Final Status
@@ -406,6 +439,11 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
 
     # Short-circuit if Blocked
     if any(dq.values()) or s3_stat == "BLOCKED":
+        # Generate partial diagnostics to feed RuleEngine
+        diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
+        # We need a dummy state for RuleEngine
+        rules = RuleEngine.evaluate(before, options, diag_data)
+
         return RebalanceResult(
             rebalance_run_id=run_id,
             correlation_id="c_none",
@@ -421,9 +459,8 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
             intents=[],
             after_simulated=before,
-            diagnostics=DiagnosticsData(
-                data_quality=dq, suppressed_intents=suppressed, warnings=warns
-            ),
+            rule_results=rules,
+            diagnostics=diag_data,
             explanation={"summary": "Blocked"},
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
@@ -435,6 +472,9 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
     # 4. Intents
     intents = _generate_intents(portfolio, market_data, trace, shelf, options, tv, dq, suppressed)
     if any(dq.values()):
+        # Late DQ failure (e.g. FX missing during intent generation)
+        diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
+        rules = RuleEngine.evaluate(before, options, diag_data)
         return RebalanceResult(
             rebalance_run_id=run_id,
             correlation_id="c_none",
@@ -450,9 +490,8 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
             intents=[],
             after_simulated=before,
-            diagnostics=DiagnosticsData(
-                data_quality=dq, suppressed_intents=suppressed, warnings=warns
-            ),
+            rule_results=rules,
+            diagnostics=diag_data,
             explanation={"summary": "Blocked"},
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
@@ -462,18 +501,16 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
         )
 
     # 5. Simulation & Rules
+    diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
     intents, after, rules, f_stat = _generate_fx_and_simulate(
-        portfolio, market_data, shelf, intents, options, tv
+        portfolio, market_data, shelf, intents, options, tv, diag_data
     )
 
     # Propagate PENDING_REVIEW if Target stage was soft-failed
     if s3_stat == "PENDING_REVIEW" and f_stat == "READY":
         f_stat = "PENDING_REVIEW"
 
-    # Check if Simulation Safety Blocks occurred (Negative Holdings or Recon Mismatch)
-    # The return status from _generate_fx_and_simulate takes precedence if BLOCKED
     if f_stat == "BLOCKED":
-        # Add a diagnostic warning for clarity
         warns.append("SIMULATION_SAFETY_CHECK_FAILED")
 
     return RebalanceResult(
@@ -492,7 +529,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
         intents=intents,
         after_simulated=after,
         rule_results=rules,
-        diagnostics=DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns),
+        diagnostics=diag_data,
         explanation={"summary": f_stat},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,
