@@ -788,12 +788,16 @@ def test_buy_depends_on_sell_explicit(base_options):
         OrderIntent(
             intent_id="oi_sell",
             side="SELL",
+            instrument_id="DUMMY_USD_SELL",  # ADDED: Mandatory field
+            quantity=Decimal("10"),
             notional=Money(amount=Decimal("100"), currency="USD"),
             rationale=IntentRationale(code="TEST", message="Test"),
         ),
         OrderIntent(
             intent_id="oi_buy",
             side="BUY",
+            instrument_id="DUMMY_USD_BUY",  # ADDED: Mandatory field
+            quantity=Decimal("5"),
             notional=Money(amount=Decimal("50"), currency="USD"),
             rationale=IntentRationale(code="TEST", message="Test"),
             dependencies=[],  # Empty, needs linking
@@ -826,6 +830,8 @@ def test_simulation_crash_on_missing_fx(base_options):
         OrderIntent(
             intent_id="oi_1",
             side="SELL",
+            instrument_id="DUMMY_CRASH",
+            quantity=Decimal("10"),
             notional=Money(amount=Decimal("100"), currency="USD"),
             rationale=IntentRationale(code="TEST", message="Test"),
         )
