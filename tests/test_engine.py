@@ -140,7 +140,11 @@ def test_valuation_missing_data_branches(base_options):
     )
 
     market_data = MarketDataSnapshot(
-        prices=[Price(instrument_id="EQ_PRICE_NO_FX", price=Decimal("100.0"), currency="JPY")],
+        prices=[
+            # Added Price for EQ_MV_NO_FX to allow logic to proceed to FX check
+            Price(instrument_id="EQ_MV_NO_FX", price=Decimal("10.0"), currency="EUR"),
+            Price(instrument_id="EQ_PRICE_NO_FX", price=Decimal("100.0"), currency="JPY"),
+        ],
         fx_rates=[],  # No FX rates provided
     )
 
