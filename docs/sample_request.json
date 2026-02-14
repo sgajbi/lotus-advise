@@ -1,45 +1,61 @@
-
-
 {
   "portfolio_snapshot": {
-    "portfolio_id": "pf_001",
+    "portfolio_id": "pf_112",
     "base_currency": "SGD",
-    "positions": [],
+    "positions": [
+      {
+        "instrument_id": "US_TECH",
+        "quantity": "100",
+        "market_value": null
+      }
+    ],
     "cash_balances": [
       {
         "currency": "SGD",
-        "amount": "10000.00"
+        "amount": "0.00"
+      },
+      {
+        "currency": "USD",
+        "amount": "0.00"
+      },
+      {
+        "currency": "EUR",
+        "amount": "0.00"
       }
     ]
   },
   "market_data_snapshot": {
     "prices": [
       {
-        "instrument_id": "EQ_1",
+        "instrument_id": "US_TECH",
         "price": "100.00",
-        "currency": "SGD"
+        "currency": "USD"
+      },
+      {
+        "instrument_id": "EU_BOND",
+        "price": "100.00",
+        "currency": "EUR"
       }
     ],
-    "fx_rates": []
+    "fx_rates": [
+      { "pair": "USD/SGD", "rate": "1.50" },
+      { "pair": "EUR/SGD", "rate": "1.60" }
+    ]
   },
   "model_portfolio": {
     "targets": [
       {
-        "instrument_id": "EQ_1",
+        "instrument_id": "EU_BOND",
         "weight": "1.0"
       }
     ]
   },
   "shelf_entries": [
-    {
-      "instrument_id": "EQ_1",
-      "status": "APPROVED"
-    }
+    { "instrument_id": "US_TECH", "status": "APPROVED" },
+    { "instrument_id": "EU_BOND", "status": "APPROVED" }
   ],
   "options": {
-    "allow_restricted": false,
-    "suppress_dust_trades": true,
-    "block_on_missing_prices": true
+    "fx_buffer_pct": "0.00",
+    "suppress_dust_trades": false
   }
 }
-

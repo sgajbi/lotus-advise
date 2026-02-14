@@ -186,14 +186,22 @@ def _calculate_valuation(
 
 
 def _build_universe(
-    model: ModelPortfolio, shelf: List[ShelfEntry], options: EngineOptions, dq_log: Dict
+    model: ModelPortfolio,
+    portfolio: PortfolioSnapshot,
+    shelf: List[ShelfEntry],
+    options: EngineOptions,
+    dq_log: Dict,
 ) -> Tuple[Dict[str, Decimal], List[ExcludedInstrument], List[str], List[str], Decimal]:
-    """Stage 2: Filter shelf and determine eligible assets."""
+    """
+    Stage 2: Determine eligible assets and targets.
+    Includes both Model Targets AND Implicit Sell-to-Zero for unlisted holdings.
+    """
     eligible_targets: Dict[str, Decimal] = {}
     excluded: List[ExcludedInstrument] = []
     eligible_for_buy, eligible_for_sell = [], []
     sell_only_excess = Decimal("0.0")
 
+    # 1. Process Model Targets
     for target in model.targets:
         shelf_ent = next((s for s in shelf if s.instrument_id == target.instrument_id), None)
         if not shelf_ent:
@@ -232,6 +240,19 @@ def _build_universe(
         eligible_targets[target.instrument_id] = target.weight
         eligible_for_buy.append(target.instrument_id)
         eligible_for_sell.append(target.instrument_id)
+
+    # 2. Process Implicit Sells (Assets held but not in Model)
+    # We assume if you hold it, you can sell it (unless BANNED/SUSPENDED logic is strict,
+    # but usually liquidation is allowed. For safety, we check shelf existence).
+    for pos in portfolio.positions:
+        if pos.quantity > 0 and pos.instrument_id not in eligible_targets:
+            # It's a holding not in the model. Target = 0%.
+            # Check shelf to ensure we can actually generate a Sell order?
+            # RFC-0004 doesn't specify blocking liquidation on missing shelf,
+            # but usually we need shelf for Asset Class info.
+            # For now, we allow liquidation if it's held.
+            eligible_targets[pos.instrument_id] = Decimal("0.0")
+            eligible_for_sell.append(pos.instrument_id)
 
     return eligible_targets, excluded, eligible_for_buy, eligible_for_sell, sell_only_excess
 
@@ -283,8 +304,7 @@ def _generate_targets(
                         status = "BLOCKED"
                     eligible_targets[i_id] = new_w
 
-    # Cash Buffer Scaling (Safeguard)
-    # If the model requests 100% investment, but we need 1% buffer, scale targets down.
+    # Cash Buffer Scaling
     if options.min_cash_buffer_pct > Decimal("0.0"):
         total_invested_weight = sum(eligible_targets.values())
         max_allowed_weight = Decimal("1.0") - options.min_cash_buffer_pct
@@ -294,6 +314,7 @@ def _generate_targets(
                 eligible_targets[i_id] *= scale_factor
 
     target_trace = []
+    # Trace Model Targets
     for t in model.targets:
         final_w = eligible_targets.get(t.instrument_id, Decimal("0.0"))
         tags = []
@@ -311,6 +332,22 @@ def _generate_targets(
                 tags=tags,
             )
         )
+
+    # Trace Implicit Sells (Holdings not in Model)
+    # We add them to trace for auditability
+    for i_id in eligible_targets:
+        is_in_model = any(t.instrument_id == i_id for t in model.targets)
+        if not is_in_model:
+            target_trace.append(
+                TargetInstrument(
+                    instrument_id=i_id,
+                    model_weight=Decimal("0.0"),
+                    final_weight=Decimal("0.0"),
+                    final_value=Money(amount=Decimal("0.0"), currency=base_currency),
+                    tags=["IMPLICIT_SELL_TO_ZERO"],
+                )
+            )
+
     return target_trace, status
 
 
@@ -323,10 +360,9 @@ def _generate_intents(
     total_value_base: Decimal,
     dq_log: Dict,
     suppressed: List[SuppressedIntent],
-) -> Tuple[List[OrderIntent], Dict[str, Decimal]]:
+) -> List[OrderIntent]:
     """Stage 4: Convert Target Weights to Order Intents."""
     intents = []
-    cash_reqs = {}
 
     for instr_id, target_weight in eligible_targets.items():
         price_ent = next((p for p in market_data.prices if p.instrument_id == instr_id), None)
@@ -381,22 +417,16 @@ def _generate_intents(
                     ),
                 )
             )
-            if side == "BUY":
-                cash_reqs[price_ent.currency] = (
-                    cash_reqs.get(price_ent.currency, Decimal("0.0")) + notional
-                )
 
-    return intents, cash_reqs
+    return intents
 
 
 def _apply_intents(portfolio: PortfolioSnapshot, intents: List[OrderIntent]) -> PortfolioSnapshot:
     """
     Applies trades to a copy of the portfolio to generate the 'Simulated Snapshot'.
-    Handles Quantity changes and Cash movements.
     """
     new_pf = deepcopy(portfolio)
 
-    # Helper to get/create position
     def get_pos(i_id):
         p = next((x for x in new_pf.positions if x.instrument_id == i_id), None)
         if not p:
@@ -404,7 +434,6 @@ def _apply_intents(portfolio: PortfolioSnapshot, intents: List[OrderIntent]) -> 
             new_pf.positions.append(p)
         return p
 
-    # Helper to get/create cash
     def get_cash(ccy):
         c = next((x for x in new_pf.cash_balances if x.currency == ccy), None)
         if not c:
@@ -415,13 +444,11 @@ def _apply_intents(portfolio: PortfolioSnapshot, intents: List[OrderIntent]) -> 
     for intent in intents:
         if intent.intent_type == "SECURITY_TRADE":
             pos = get_pos(intent.instrument_id)
-            # Update Quantity
             if intent.side == "BUY":
                 pos.quantity += intent.quantity
             else:
                 pos.quantity -= intent.quantity
 
-            # Update Cash (Immediate Settlement)
             cash_bal = get_cash(intent.notional.currency)
             if intent.side == "SELL":
                 cash_bal.amount += intent.notional.amount
@@ -429,7 +456,6 @@ def _apply_intents(portfolio: PortfolioSnapshot, intents: List[OrderIntent]) -> 
                 cash_bal.amount -= intent.notional.amount
 
         elif intent.intent_type == "FX_SPOT":
-            # FX: Decrease Sell Ccy, Increase Buy Ccy
             sell_bal = get_cash(intent.sell_currency)
             sell_bal.amount -= intent.estimated_sell_amount
 
@@ -444,30 +470,45 @@ def _generate_fx_and_simulate(
     market_data: MarketDataSnapshot,
     shelf: List[ShelfEntry],
     intents: List[OrderIntent],
-    cash_reqs: Dict[str, Decimal],
     options: EngineOptions,
     total_value_base: Decimal,
 ) -> Tuple[List[OrderIntent], SimulatedState, List[RuleResult], str]:
-    """Stage 5: FX Hub-and-Spoke, Sorting, and After-State Validation."""
-    # FX Generation
+    """Stage 5: FX Hub-and-Spoke (Deficit & Surplus), Sorting, and After-State."""
+
+    # 1. Calculate Projected Balances based on Security Trades
+    projected_balances = {c.currency: c.amount for c in portfolio.cash_balances}
+
+    for intent in intents:
+        if intent.intent_type == "SECURITY_TRADE":
+            ccy = intent.notional.currency
+            current = projected_balances.get(ccy, Decimal("0.0"))
+            if intent.side == "BUY":
+                projected_balances[ccy] = current - intent.notional.amount
+            else:
+                projected_balances[ccy] = current + intent.notional.amount
+
+    # 2. Generate FX Intents (Hub-and-Spoke)
+    # Strategy: Convert ALL non-base deficits (funding) AND surpluses (sweeping) to/from Base.
     fx_map = {}
-    for ccy, req in cash_reqs.items():
+
+    for ccy, balance in projected_balances.items():
         if ccy == portfolio.base_currency:
             continue
-        cur_cash = sum(
-            (c.amount for c in portfolio.cash_balances if c.currency == ccy), Decimal("0.0")
-        )
-        deficit = req - cur_cash
-        if deficit > 0:
-            buy_amt = deficit * (Decimal("1.0") + options.fx_buffer_pct)
+
+        # Funding Deficit (BUY CCY / SELL BASE)
+        if balance < 0:
+            req_amount = abs(balance)
+            buy_amt = req_amount * (Decimal("1.0") + options.fx_buffer_pct)
             sell_amt = buy_amt * get_fx_rate(market_data, ccy, portfolio.base_currency)
+
             fx_id = f"oi_fx_{len(intents) + 1}"
-            fx_map[ccy] = fx_id
+            fx_map[ccy] = fx_id  # Map for dependencies
+
             intents.append(
                 OrderIntent(
                     intent_id=fx_id,
                     intent_type="FX_SPOT",
-                    side="BUY_BASE_SELL_QUOTE",
+                    side="BUY_BASE_SELL_QUOTE",  # Assuming Quote=Base in naming, but let's be explicit in fields
                     pair=f"{ccy}/{portfolio.base_currency}",
                     buy_currency=ccy,
                     buy_amount=buy_amt,
@@ -477,17 +518,46 @@ def _generate_fx_and_simulate(
                 )
             )
 
+        # Repatriation Surplus (SELL CCY / BUY BASE)
+        # Note: We might want a threshold to avoid sweeping dust, but for now strict sweep.
+        elif balance > 0:
+            sell_amt = balance
+            buy_amt = sell_amt * get_fx_rate(market_data, ccy, portfolio.base_currency)
+            # Note: get_fx_rate returns 1 unit of CCY in Base.
+            # Wait, rate is CCY->Base.
+            # If USD/SGD is 1.5. Sell 100 USD. Buy 150 SGD.
+            # Rate Logic: rate = price of 1 unit of from_ccy in to_ccy.
+            # get_fx_rate(USD, SGD) -> 1.5.
+            # Buy SGD Amount = 100 * 1.5 = 150. Correct.
+
+            fx_id = f"oi_fx_{len(intents) + 1}"
+
+            intents.append(
+                OrderIntent(
+                    intent_id=fx_id,
+                    intent_type="FX_SPOT",
+                    side="SELL_BASE_BUY_QUOTE",  # Naming is messy, rely on fields
+                    pair=f"{ccy}/{portfolio.base_currency}",
+                    buy_currency=portfolio.base_currency,
+                    buy_amount=buy_amt,
+                    sell_currency=ccy,
+                    estimated_sell_amount=sell_amt,
+                    rationale=IntentRationale(
+                        code="REPATRIATION", message="Sweep excess cash to base"
+                    ),
+                )
+            )
+
     # Link Dependencies (FX Funding)
     for i in intents:
         if i.intent_type == "SECURITY_TRADE" and i.side == "BUY" and i.notional.currency in fx_map:
-            i.dependencies.append(fx_map[i.notional.currency])
+            if fx_map[i.notional.currency] not in i.dependencies:
+                i.dependencies.append(fx_map[i.notional.currency])
 
     # Link Dependencies (Sell-to-Fund in Same Currency)
-    # If Buy Notional > Starting Cash, link to Sells in same currency
     buys = [i for i in intents if i.intent_type == "SECURITY_TRADE" and i.side == "BUY"]
     sells = [i for i in intents if i.intent_type == "SECURITY_TRADE" and i.side == "SELL"]
 
-    # Map currency -> list of Sell intent IDs
     sell_map = {}
     for s in sells:
         ccy = s.notional.currency
@@ -495,13 +565,11 @@ def _generate_fx_and_simulate(
             sell_map[ccy] = []
         sell_map[ccy].append(s.intent_id)
 
-    # Evaluate Buys
     start_cash = {c.currency: c.amount for c in portfolio.cash_balances}
     for b in buys:
         ccy = b.notional.currency
         current_bal = start_cash.get(ccy, Decimal("0.0"))
         if current_bal < b.notional.amount:
-            # We need funding from Sells
             if ccy in sell_map:
                 for s_id in sell_map[ccy]:
                     if s_id not in b.dependencies:
@@ -514,7 +582,7 @@ def _generate_fx_and_simulate(
     # 1. Apply intents to create "After Portfolio Snapshot"
     after_portfolio = _apply_intents(portfolio, intents)
 
-    # 2. Evaluate "After Portfolio" using the standard valuation engine
+    # 2. Evaluate "After Portfolio"
     _, after_state = _evaluate_portfolio_state(
         after_portfolio, market_data, shelf, dq_log={}, diagnostics_warnings=[]
     )
@@ -556,16 +624,18 @@ def run_simulation(
         portfolio, market_data, shelf, dq_log, diagnostics_warnings
     )
 
-    # Stage 2: Universe
-    targets, excluded, buy_list, sell_list, excess = _build_universe(model, shelf, options, dq_log)
+    # Stage 2: Universe (Now includes Implicit Sells)
+    targets, excluded, buy_list, sell_list, excess = _build_universe(
+        model, portfolio, shelf, options, dq_log
+    )
 
-    # Stage 3: Targets (Logic Branching)
+    # Stage 3: Targets
     target_trace, stage3_status = _generate_targets(
         model, targets, buy_list, excess, options, total_val, portfolio.base_currency
     )
 
-    # Exit if Stage 1-3 Failed
     if any(dq_log.values()) or stage3_status == "BLOCKED":
+        # ... (Block logic same as before) ...
         return RebalanceResult(
             rebalance_run_id=run_id,
             correlation_id="c_placeholder",
@@ -585,9 +655,7 @@ def run_simulation(
             after_simulated=before_state,
             explanation={"summary": "Run blocked. Check diagnostics."},
             diagnostics=DiagnosticsData(
-                data_quality=dq_log,
-                suppressed_intents=suppressed,
-                warnings=diagnostics_warnings,
+                data_quality=dq_log, suppressed_intents=suppressed, warnings=diagnostics_warnings
             ),
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
@@ -596,13 +664,13 @@ def run_simulation(
             ),
         )
 
-    # Stage 4: Intents
-    intents, cash_reqs = _generate_intents(
+    # Stage 4: Intents (Returns simple list of security intents)
+    intents = _generate_intents(
         portfolio, market_data, targets, shelf, options, total_val, dq_log, suppressed
     )
 
-    # Exit if Stage 4 Data Quality Failed
     if any(dq_log.values()):
+        # ... (DQ Block logic) ...
         return RebalanceResult(
             rebalance_run_id=run_id,
             correlation_id="c_placeholder",
@@ -622,9 +690,7 @@ def run_simulation(
             after_simulated=before_state,
             explanation={"summary": "Run blocked during trade generation."},
             diagnostics=DiagnosticsData(
-                data_quality=dq_log,
-                suppressed_intents=suppressed,
-                warnings=diagnostics_warnings,
+                data_quality=dq_log, suppressed_intents=suppressed, warnings=diagnostics_warnings
             ),
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
@@ -633,9 +699,9 @@ def run_simulation(
             ),
         )
 
-    # Stage 5: Simulation & Rules
+    # Stage 5: Simulation & Rules (Now manages FX Sweeping)
     intents, after_state, rule_results, final_status = _generate_fx_and_simulate(
-        portfolio, market_data, shelf, intents, cash_reqs, options, total_val
+        portfolio, market_data, shelf, intents, options, total_val
     )
 
     return RebalanceResult(
@@ -658,9 +724,7 @@ def run_simulation(
         rule_results=rule_results,
         explanation={"summary": f"Status: {final_status}"},
         diagnostics=DiagnosticsData(
-            data_quality=dq_log,
-            suppressed_intents=suppressed,
-            warnings=diagnostics_warnings,
+            data_quality=dq_log, suppressed_intents=suppressed, warnings=diagnostics_warnings
         ),
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,

@@ -483,3 +483,39 @@ def test_dependency_sell_to_fund(base_options):
     buy_intent = next(i for i in result.intents if i.side == "BUY")
 
     assert sell_intent.intent_id in buy_intent.dependencies
+
+
+def test_implicit_sell_to_zero(base_options):
+    """
+    Scenario 112 Logic Check:
+    Held asset not in model -> Implicit Target 0% -> SELL Intent.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_implicit",
+        base_currency="SGD",
+        positions=[Position(instrument_id="OLD_ASSET", quantity=Decimal("100"))],  # 1000 SGD
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("0.0"))],
+    )
+    # Model doesn't mention OLD_ASSET. Only NEW_ASSET.
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="NEW_ASSET", weight=Decimal("1.0"))])
+    shelf = [
+        ShelfEntry(instrument_id="OLD_ASSET", status="APPROVED"),
+        ShelfEntry(instrument_id="NEW_ASSET", status="APPROVED"),
+    ]
+    market_data = MarketDataSnapshot(
+        prices=[
+            Price(instrument_id="OLD_ASSET", price=Decimal("10.0"), currency="SGD"),
+            Price(instrument_id="NEW_ASSET", price=Decimal("10.0"), currency="SGD"),
+        ]
+    )
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # Check for SELL intent
+    sells = [i for i in result.intents if i.instrument_id == "OLD_ASSET" and i.side == "SELL"]
+    assert len(sells) == 1
+    assert sells[0].quantity == Decimal("100")
+
+    # Check Target Trace for implicit entry
+    trace = next(t for t in result.target.targets if t.instrument_id == "OLD_ASSET")
+    assert "IMPLICIT_SELL_TO_ZERO" in trace.tags
