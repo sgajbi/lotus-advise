@@ -1,3 +1,4 @@
+
 # Private Banking Rebalance Engine (DPM)
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
@@ -24,38 +25,13 @@ Unlike traditional engines that crash (HTTP 500) or reject (HTTP 400) on complex
 
 ## 🏗 Architecture: The 5-Stage Pipeline
 
-The core engine (`src/core/engine.py`) processes every request through a strictly ordered, functional pipeline.
+The core engine (`src/core/engine.py`) processes every request through a strictly ordered, functional pipeline:
 
-### Stage 1: Valuation & Context
-* **Input:** Raw positions and cash.
-* **Action:** Normalizes everything to Base Currency using provided FX rates.
-* **Audit:** Captures the "Before State" snapshot.
-
-### Stage 2: Universe Construction
-* **Input:** Model targets and Shelf (Approved List).
-* **Action:** Filters assets based on `BANNED`, `RESTRICTED`, or `SELL_ONLY` status.
-* **Output:** A clean list of `eligible_targets` and a list of `excluded` assets with reason codes.
-
-### Stage 3: Target Generation (The "Why" Trace)
-* **Input:** Eligible targets and constraints (e.g., `single_position_max_weight`).
-* **Action:**
-    1.  Maps Model Weights to Targets.
-    2.  Applies **Capping** (Hard Constraints).
-    3.  Performs **Redistribution** (reallocating capped weight to other eligible assets).
-* **Output:** A `TargetInstrument` list showing the lineage from `model_weight` -> `final_weight`.
-
-### Stage 4: Intent Translation
-* **Input:** Final Weights vs. Current Valuation.
-* **Action:**
-    1.  Calculates the delta (buy/sell).
-    2.  Applies **Dust Suppression** (`min_notional`).
-    3.  Generates `OrderIntent` objects.
-
-### Stage 5: Simulation & Final Compliance
-* **Action:**
-    1.  **FX Hub-and-Spoke:** Auto-generates FX Spot trades to fund foreign security purchases.
-    2.  **Simulation:** Applies all intents to create a theoretical `AfterState`.
-    3.  **Rule Engine:** Checks soft limits (e.g., Cash Band > 5%) on the *simulated* state.
+1.  **Valuation:** Normalizes all positions to Base Currency (Currency Truth Model).
+2.  **Universe:** Filters Shelf (Banned/Restricted checks).
+3.  **Targets:** Applies Constraints (Max Weight) and Redistribution Logic (The "Why" Trace).
+4.  **Intents:** Translates weights to trades, suppressing dust (`min_notional`).
+5.  **Simulation:** Generates FX trades (Hub-and-Spoke) and validates the After-State.
 
 ---
 
@@ -64,14 +40,11 @@ The core engine (`src/core/engine.py`) processes every request through a strictl
 ### Prerequisites
 * Python 3.11+
 * `pip`
+* Docker (Optional)
 
-### Installation
+### Local Setup
 
 ```bash
-# Clone the repository
-git clone [https://github.com/org/dpm-rebalance-engine.git](https://github.com/org/dpm-rebalance-engine.git)
-cd dpm-rebalance-engine
-
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
@@ -83,12 +56,51 @@ pip install -r requirements.txt
 
 ### Running the API
 
+Use `uvicorn` to start the server locally:
+
 ```bash
-fastapi dev src/api/main.py
+uvicorn src.api.main:app --reload --port 8000
 
 ```
 
-The documentation will be available at `http://127.0.0.1:8000/docs`.
+* **API Docs:** `http://127.0.0.1:8000/docs`
+* **Health Check:** `http://127.0.0.1:8000/health`
+
+### Testing
+
+```bash
+# Run full test suite with coverage
+pytest --cov=src --cov-report=term-missing --cov-fail-under=100
+
+# Linting & Formatting
+ruff check .
+ruff format .
+
+```
+
+---
+
+## 🐳 Docker Deployment (Ephemeral)
+
+The current version runs as a stateless container. Data (Idempotency keys and Rebalance Runs) is stored in-memory and will be lost if the container restarts.
+
+### Build and Run
+
+```bash
+# Build and start the service in detached mode
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f
+
+```
+
+### Accessing the Container
+
+* **API Root:** `http://localhost:8000`
+* **API Docs:** `http://localhost:8000/docs`
+
+> **Note:** This Docker setup generates a production-optimized image (excluding tests and docs). To persist data, a PostgreSQL service will be introduced in **RFC-0004**.
 
 ---
 
@@ -121,19 +133,7 @@ Performs a full rebalance simulation.
 
 ---
 
-## 🧪 Testing & Quality Assurance
-
-This project enforces **100% Code Coverage** and uses **Golden Regression Testing**.
-
-### Running Unit Tests
-
-```bash
-# Run tests with coverage report
-pytest --cov=src --cov-report=term-missing --cov-fail-under=100
-
-```
-
-### Golden Scenarios (Regression)
+## 🧪 Regression Testing (Golden Scenarios)
 
 We maintain a set of "Gold Standard" inputs and outputs in `tests/golden_data/`. These ensure that complex math (e.g., redistribution logic) never changes unexpectedly.
 
