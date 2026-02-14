@@ -190,43 +190,38 @@ def run_simulation(
                 )
             )
 
+    # Early exit if Stage 1-3 failed
     if any(dq_log.values()) or final_status == "BLOCKED":
-        return RebalanceResult(
-            rebalance_run_id=run_id,
-            correlation_id="c_placeholder",
-            status="BLOCKED",
-            before=before_state,
-            universe=UniverseData(
-                universe_id=f"uni_{run_id}",
-                eligible_for_buy=eligible_for_buy,
-                eligible_for_sell=eligible_for_sell,
-                excluded=excluded,
-                coverage=UniverseCoverage(
-                    price_coverage_pct=Decimal("0.0"), fx_coverage_pct=Decimal("0.0")
-                ),
-            ),
-            target=TargetData(target_id=f"tgt_{run_id}", strategy={}, targets=target_trace),
-            intents=[],
-            after_simulated=before_state,
-            explanation={"summary": "Run blocked. Check diagnostics."},
-            diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
-            lineage=LineageData(
-                portfolio_snapshot_id=portfolio.portfolio_id,
-                market_data_snapshot_id="md",
-                request_hash=request_hash,
-            ),
+        return _build_blocked_result(
+            run_id,
+            request_hash,
+            portfolio,
+            before_state,
+            eligible_for_buy,
+            eligible_for_sell,
+            excluded,
+            dq_log,
+            suppressed,
+            target_trace,
         )
 
     # 4. TRADE GENERATION
     intents: List[OrderIntent] = []
     cash_reqs: Dict[str, Decimal] = {}
+
     for instr_id, target_weight in eligible_targets.items():
         price_ent = next((p for p in market_data.prices if p.instrument_id == instr_id), None)
         if not price_ent:
+            dq_log["price_missing"].append(instr_id)
             continue
 
         target_val_base = total_value_base * target_weight
         rate = get_fx_rate(market_data, price_ent.currency, portfolio.base_currency)
+
+        if rate is None:
+            dq_log["fx_missing"].append(f"{price_ent.currency}/{portfolio.base_currency}")
+            continue
+
         target_val_instr = target_val_base / rate
 
         cur_val_instr = Decimal("0.0")
@@ -272,6 +267,21 @@ def run_simulation(
                     cash_reqs.get(price_ent.currency, Decimal("0.0")) + notional
                 )
 
+    # Late Check for Stage 4 Data Quality
+    if any(dq_log.values()):
+        return _build_blocked_result(
+            run_id,
+            request_hash,
+            portfolio,
+            before_state,
+            eligible_for_buy,
+            eligible_for_sell,
+            excluded,
+            dq_log,
+            suppressed,
+            target_trace,
+        )
+
     # 5. FX & SIMULATION
     fx_map = {}
     for ccy, req in cash_reqs.items():
@@ -315,7 +325,6 @@ def run_simulation(
             after_cash[ccy] = after_cash.get(ccy, Decimal("0.0")) + delta_val
         elif i.intent_type == "FX_SPOT":
             after_cash[i.sell_currency] -= i.estimated_sell_amount
-            # KEY FIX: Ensure target currency exists in map
             after_cash[i.buy_currency] = (
                 after_cash.get(i.buy_currency, Decimal("0.0")) + i.buy_amount
             )
@@ -361,6 +370,45 @@ def run_simulation(
         ),
         rule_results=rule_results,
         explanation={"summary": f"Status: {final_status}"},
+        diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
+        lineage=LineageData(
+            portfolio_snapshot_id=portfolio.portfolio_id,
+            market_data_snapshot_id="md",
+            request_hash=request_hash,
+        ),
+    )
+
+
+def _build_blocked_result(
+    run_id,
+    request_hash,
+    portfolio,
+    before_state,
+    eligible_buy,
+    eligible_sell,
+    excluded,
+    dq_log,
+    suppressed,
+    trace,
+):
+    return RebalanceResult(
+        rebalance_run_id=run_id,
+        correlation_id="c_placeholder",
+        status="BLOCKED",
+        before=before_state,
+        universe=UniverseData(
+            universe_id=f"uni_{run_id}",
+            eligible_for_buy=eligible_buy,
+            eligible_for_sell=eligible_sell,
+            excluded=excluded,
+            coverage=UniverseCoverage(
+                price_coverage_pct=Decimal("0.0"), fx_coverage_pct=Decimal("0.0")
+            ),
+        ),
+        target=TargetData(target_id=f"tgt_{run_id}", strategy={}, targets=trace),
+        intents=[],
+        after_simulated=before_state,
+        explanation={"summary": "Run blocked. Check diagnostics."},
         diagnostics=DiagnosticsData(data_quality=dq_log, suppressed_intents=suppressed),
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,

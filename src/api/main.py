@@ -1,6 +1,6 @@
 import hashlib
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from fastapi import FastAPI, Header
 from fastapi.responses import JSONResponse
@@ -19,7 +19,8 @@ from src.core.models import (
 app = FastAPI(title="DPM Rebalance Simulation API (RFC-0003)")
 
 MOCK_DB_RUNS: Dict[str, dict] = {}
-MOCK_DB_IDEMPOTENCY: Dict[str, str] = {}
+# Maps Idempotency-Key -> (RequestHash, RebalanceRunID)
+MOCK_DB_IDEMPOTENCY: Dict[str, Tuple[str, str]] = {}
 
 
 class RebalanceRequest(BaseModel):
@@ -47,7 +48,8 @@ async def simulate_rebalance(
     correlation_id = x_correlation_id or "c_generated_uuid"
 
     if idempotency_key in MOCK_DB_IDEMPOTENCY:
-        if MOCK_DB_IDEMPOTENCY[idempotency_key] != request_hash:
+        stored_hash, stored_run_id = MOCK_DB_IDEMPOTENCY[idempotency_key]
+        if stored_hash != request_hash:
             return JSONResponse(
                 status_code=409,
                 content={
@@ -59,9 +61,9 @@ async def simulate_rebalance(
                     "correlation_id": correlation_id,
                 },
             )
-        for run_data in MOCK_DB_RUNS.values():
-            if run_data["lineage"]["request_hash"] == request_hash:
-                return run_data
+        # Return cached result
+        if stored_run_id in MOCK_DB_RUNS:
+            return MOCK_DB_RUNS[stored_run_id]
 
     result = run_simulation(
         portfolio=payload.portfolio_snapshot,
@@ -73,7 +75,8 @@ async def simulate_rebalance(
     )
     result.correlation_id = correlation_id
     result_dict = json.loads(result.model_dump_json())
+
     MOCK_DB_RUNS[result.rebalance_run_id] = result_dict
-    MOCK_DB_IDEMPOTENCY[idempotency_key] = request_hash
+    MOCK_DB_IDEMPOTENCY[idempotency_key] = (request_hash, result.rebalance_run_id)
 
     return result
