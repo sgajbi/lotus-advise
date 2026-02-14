@@ -55,9 +55,7 @@ def generate_scenarios():
     # 01. Cash Inflow (Simple Buy)
     # ---------------------------------------------------------
     print("Generating Scenario 01...")
-    model_01 = ModelPortfolio(
-        targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))]
-    )
+    model_01 = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf_01 = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
     md_01 = MarketDataSnapshot(
         prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")]
@@ -121,9 +119,7 @@ def generate_scenarios():
         positions=[],
         cash_balances=[CashBalance(currency="SGD", amount=Decimal("10000.00"))],
     )
-    model_03 = ModelPortfolio(
-        targets=[ModelTarget(instrument_id="US_EQ", weight=Decimal("0.5"))]
-    )
+    model_03 = ModelPortfolio(targets=[ModelTarget(instrument_id="US_EQ", weight=Decimal("0.5"))])
     shelf_03 = [ShelfEntry(instrument_id="US_EQ", status="APPROVED")]
     md_03 = MarketDataSnapshot(
         prices=[Price(instrument_id="US_EQ", price=Decimal("100.0"), currency="USD")],
@@ -148,9 +144,7 @@ def generate_scenarios():
     # ---------------------------------------------------------
     print("Generating Scenario 04 (DQ Failure)...")
     # Missing Price for EQ_1
-    model_04 = ModelPortfolio(
-        targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))]
-    )
+    model_04 = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf_04 = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
     md_04 = MarketDataSnapshot(prices=[])
     opts_04 = EngineOptions(block_on_missing_prices=True)
@@ -172,9 +166,7 @@ def generate_scenarios():
     # ---------------------------------------------------------
     print("Generating Scenario 05 (Constraint Fail)...")
     # Cap 40%, Target 100% -> Excess 60% has nowhere to go
-    model_05 = ModelPortfolio(
-        targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))]
-    )
+    model_05 = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf_05 = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
     md_05 = MarketDataSnapshot(
         prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")]
@@ -197,9 +189,7 @@ def generate_scenarios():
     # 06. Suppression (Dust Trades)
     # ---------------------------------------------------------
     print("Generating Scenario 06 (Suppression)...")
-    model_06 = ModelPortfolio(
-        targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))]
-    )
+    model_06 = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     # Min notional 50k, but we only have 10k cash
     shelf_06 = [
         ShelfEntry(
