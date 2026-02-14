@@ -250,7 +250,10 @@ def test_after_state_simulation_fidelity(base_options):
 
     result = run_simulation(portfolio, market_data, model, shelf, base_options)
 
-    assert result.status == "READY"
+    # 50% Cash (5000/10000) > 5% Threshold -> PENDING_REVIEW
+    assert result.status == "PENDING_REVIEW"
+    assert result.rule_results[0].rule_id == "CASH_BAND"
+    assert result.rule_results[0].status == "FAIL"
 
     # Check Before State (Empty Alloc)
     assert len(result.before.positions) == 0
