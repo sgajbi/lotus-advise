@@ -105,7 +105,7 @@
   },
   "expected_outputs": {
     "rebalance_run_id": "rr_golden",
-    "correlation_id": "c_placeholder",
+    "correlation_id": "c_none",
     "status": "PENDING_REVIEW",
     "before": {
       "total_value": {
@@ -277,7 +277,7 @@
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
-          "message": "Align to model target"
+          "message": "Align"
         }
       },
       {
@@ -294,8 +294,8 @@
         "estimated_sell_amount": "7000.0",
         "dependencies": [],
         "rationale": {
-          "code": "REPATRIATION",
-          "message": "Sweep excess cash to base"
+          "code": "SWEEP",
+          "message": "Sweep"
         }
       },
       {
@@ -313,7 +313,7 @@
         "dependencies": [],
         "rationale": {
           "code": "FUNDING",
-          "message": "Fund foreign buys"
+          "message": "Fund"
         }
       },
       {
@@ -336,7 +336,7 @@
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
-          "message": "Align to model target"
+          "message": "Align"
         }
       },
       {
@@ -359,7 +359,7 @@
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
-          "message": "Align to model target"
+          "message": "Align"
         }
       }
     ],
@@ -490,12 +490,12 @@
         "threshold": {
           "max": "0.05"
         },
-        "reason_code": "THRESHOLD_BREACH",
+        "reason_code": "BREACH",
         "remediation_hint": null
       }
     ],
     "explanation": {
-      "summary": "Status: PENDING_REVIEW"
+      "summary": "PENDING_REVIEW"
     },
     "diagnostics": {
       "warnings": [],

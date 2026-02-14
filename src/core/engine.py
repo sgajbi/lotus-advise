@@ -11,12 +11,10 @@ from src.core.models import (
     AllocationMetric,
     CashBalance,
     DiagnosticsData,
-    EngineOptions,
     ExcludedInstrument,
     IntentRationale,
     LineageData,
     MarketDataSnapshot,
-    ModelPortfolio,
     Money,
     OrderIntent,
     PortfolioSnapshot,
@@ -49,21 +47,28 @@ def _evaluate_portfolio_state(
     dq_log: Dict[str, List[str]],
     diagnostics_warnings: List[str],
 ) -> Tuple[Decimal, SimulatedState]:
+    """
+    Computes total value and enriched state for before/after snapshots.
+    """
     total_value_base = Decimal("0.0")
     positions_summary: List[PositionSummary] = []
     allocation_by_asset: Dict[str, Decimal] = {}
     allocation_by_instr: Dict[str, Decimal] = {}
 
+    # 1. Cash Valuation
     for cash in portfolio.cash_balances:
         rate = get_fx_rate(market_data, cash.currency, portfolio.base_currency)
         if rate is None:
             if cash.amount != 0:
-                dq_log["fx_missing"].append(f"{cash.currency}/{portfolio.base_currency}")
+                dq_log.setdefault("fx_missing", []).append(
+                    f"{cash.currency}/{portfolio.base_currency}"
+                )
         else:
             val_base = cash.amount * rate
             total_value_base += val_base
             allocation_by_asset["CASH"] = allocation_by_asset.get("CASH", Decimal("0")) + val_base
 
+    # 2. Position Valuation
     for pos in portfolio.positions:
         if pos.quantity == 0:
             continue
@@ -72,32 +77,28 @@ def _evaluate_portfolio_state(
             (p for p in market_data.prices if p.instrument_id == pos.instrument_id), None
         )
         if not price_ent:
-            dq_log["price_missing"].append(pos.instrument_id)
+            dq_log.setdefault("price_missing", []).append(pos.instrument_id)
             continue
 
         rate = get_fx_rate(market_data, price_ent.currency, portfolio.base_currency)
         if rate is None:
-            dq_log["fx_missing"].append(f"{price_ent.currency}/{portfolio.base_currency}")
+            dq_log.setdefault("fx_missing", []).append(
+                f"{price_ent.currency}/{portfolio.base_currency}"
+            )
             continue
 
-        computed_val_instr = pos.quantity * price_ent.price
-        computed_val_base = computed_val_instr * rate
+        comp_instr = pos.quantity * price_ent.price
+        comp_base = comp_instr * rate
+        final_val_base = comp_base
 
-        final_val_base = computed_val_base
-        if pos.market_value:
-            if pos.market_value.currency == portfolio.base_currency:
-                snapshot_val_base = pos.market_value.amount
-                if computed_val_base != 0:
-                    diff_pct = abs(snapshot_val_base - computed_val_base) / computed_val_base
-                    if diff_pct > Decimal("0.005"):
-                        diagnostics_warnings.append(
-                            f"POSITION_VALUE_MISMATCH: {pos.instrument_id} "
-                            f"Snapshot={snapshot_val_base} Computed={computed_val_base}"
-                        )
-                final_val_base = snapshot_val_base
+        if pos.market_value and pos.market_value.currency == portfolio.base_currency:
+            if comp_base != 0 and (abs(pos.market_value.amount - comp_base) / comp_base) > Decimal(
+                "0.005"
+            ):
+                diagnostics_warnings.append(f"POSITION_VALUE_MISMATCH: {pos.instrument_id}")
+            final_val_base = pos.market_value.amount
 
         total_value_base += final_val_base
-
         shelf_ent = next((s for s in shelf if s.instrument_id == pos.instrument_id), None)
         asset_class = shelf_ent.asset_class if shelf_ent else "UNKNOWN"
 
@@ -114,80 +115,65 @@ def _evaluate_portfolio_state(
                 quantity=pos.quantity,
                 instrument_currency=price_ent.currency,
                 price=Money(amount=price_ent.price, currency=price_ent.currency),
-                value_in_instrument_ccy=Money(
-                    amount=computed_val_instr, currency=price_ent.currency
-                ),
+                value_in_instrument_ccy=Money(amount=comp_instr, currency=price_ent.currency),
                 value_in_base_ccy=Money(amount=final_val_base, currency=portfolio.base_currency),
                 weight=Decimal("0"),
             )
         )
 
+    # 3. Final Weights
     tv_divisor = total_value_base if total_value_base != 0 else Decimal("1")
-
     for p in positions_summary:
         p.weight = p.value_in_base_ccy.amount / tv_divisor
-
-    alloc_asset_objs = []
-    for k, v in allocation_by_asset.items():
-        alloc_asset_objs.append(
-            AllocationMetric(
-                key=k,
-                weight=v / tv_divisor,
-                value=Money(amount=v, currency=portfolio.base_currency),
-            )
-        )
-
-    alloc_instr_objs = []
-    for k, v in allocation_by_instr.items():
-        alloc_instr_objs.append(
-            AllocationMetric(
-                key=k,
-                weight=v / tv_divisor,
-                value=Money(amount=v, currency=portfolio.base_currency),
-            )
-        )
 
     sim_state = SimulatedState(
         total_value=Money(amount=total_value_base, currency=portfolio.base_currency),
         cash_balances=portfolio.cash_balances,
         positions=positions_summary,
-        allocation_by_asset_class=alloc_asset_objs,
-        allocation_by_instrument=alloc_instr_objs,
-        allocation=alloc_asset_objs,
+        allocation_by_asset_class=[
+            AllocationMetric(
+                key=k,
+                weight=v / tv_divisor,
+                value=Money(amount=v, currency=portfolio.base_currency),
+            )
+            for k, v in allocation_by_asset.items()
+        ],
+        allocation_by_instrument=[
+            AllocationMetric(
+                key=k,
+                weight=v / tv_divisor,
+                value=Money(amount=v, currency=portfolio.base_currency),
+            )
+            for k, v in allocation_by_instr.items()
+        ],
+        allocation=[
+            AllocationMetric(
+                key=k,
+                weight=v / tv_divisor,
+                value=Money(amount=v, currency=portfolio.base_currency),
+            )
+            for k, v in allocation_by_asset.items()
+        ],
     )
-
     return total_value_base, sim_state
 
 
-def _calculate_valuation(
-    portfolio: PortfolioSnapshot,
-    market_data: MarketDataSnapshot,
-    shelf: List[ShelfEntry],
-    dq_log: Dict[str, List[str]],
-    diagnostics_warnings: List[str],
-) -> Tuple[Decimal, SimulatedState]:
-    return _evaluate_portfolio_state(portfolio, market_data, shelf, dq_log, diagnostics_warnings)
+def _calculate_valuation(portfolio, market_data, shelf, dq_log, warns):
+    return _evaluate_portfolio_state(portfolio, market_data, shelf, dq_log, warns)
 
 
-def _build_universe(
-    model: ModelPortfolio,
-    portfolio: PortfolioSnapshot,
-    shelf: List[ShelfEntry],
-    options: EngineOptions,
-    dq_log: Dict,
-    current_valuation: SimulatedState,
-) -> Tuple[Dict[str, Decimal], List[ExcludedInstrument], List[str], List[str], Decimal]:
-    eligible_targets: Dict[str, Decimal] = {}
-    excluded: List[ExcludedInstrument] = []
-    eligible_for_buy, eligible_for_sell = [], []
+def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
+    """Stage 2: Filter targets and handle implicit locking/sells."""
+    eligible_targets, excluded = {}, []
+    buy_list, sell_list = [], []
     sell_only_excess = Decimal("0.0")
 
+    # 1. Model Targets
     for target in model.targets:
         shelf_ent = next((s for s in shelf if s.instrument_id == target.instrument_id), None)
         if not shelf_ent:
             dq_log["shelf_missing"].append(target.instrument_id)
             continue
-
         if shelf_ent.status in ["BANNED", "SUSPENDED"]:
             excluded.append(
                 ExcludedInstrument(
@@ -196,7 +182,6 @@ def _build_universe(
                 )
             )
             continue
-
         if shelf_ent.status == "RESTRICTED" and not options.allow_restricted:
             excluded.append(
                 ExcludedInstrument(
@@ -204,39 +189,30 @@ def _build_universe(
                 )
             )
             continue
-
         if shelf_ent.status == "SELL_ONLY":
             sell_only_excess += target.weight
             eligible_targets[target.instrument_id] = Decimal("0.0")
-            eligible_for_sell.append(target.instrument_id)
+            sell_list.append(target.instrument_id)
             excluded.append(
                 ExcludedInstrument(
-                    instrument_id=target.instrument_id,
-                    reason_code="SHELF_STATUS_SELL_ONLY_BUY_BLOCKED",
+                    instrument_id=target.instrument_id, reason_code="SHELF_STATUS_SELL_ONLY"
                 )
             )
             continue
-
         eligible_targets[target.instrument_id] = target.weight
-        eligible_for_buy.append(target.instrument_id)
-        eligible_for_sell.append(target.instrument_id)
+        buy_list.append(target.instrument_id)
+        sell_list.append(target.instrument_id)
 
+    # 2. Holding Overrides (Locking)
     for pos in portfolio.positions:
         if pos.quantity > 0 and pos.instrument_id not in eligible_targets:
             shelf_ent = next((s for s in shelf if s.instrument_id == pos.instrument_id), None)
-
+            curr = next(
+                (p for p in current_val.positions if p.instrument_id == pos.instrument_id), None
+            )
             if not shelf_ent:
-                # Coverage hit: Missing shelf logic
-                curr_pos = next(
-                    (
-                        p
-                        for p in current_valuation.positions
-                        if p.instrument_id == pos.instrument_id
-                    ),
-                    None,
-                )
-                if curr_pos:
-                    eligible_targets[pos.instrument_id] = curr_pos.weight
+                if curr:
+                    eligible_targets[pos.instrument_id] = curr.weight
                     excluded.append(
                         ExcludedInstrument(
                             instrument_id=pos.instrument_id,
@@ -244,307 +220,197 @@ def _build_universe(
                         )
                     )
             elif shelf_ent.status in ["SUSPENDED", "BANNED", "RESTRICTED"]:
-                curr_pos = next(
-                    (
-                        p
-                        for p in current_valuation.positions
-                        if p.instrument_id == pos.instrument_id
-                    ),
-                    None,
-                )
-                if curr_pos:
-                    eligible_targets[pos.instrument_id] = curr_pos.weight
+                if curr:
+                    eligible_targets[pos.instrument_id] = curr.weight
                     excluded.append(
                         ExcludedInstrument(
                             instrument_id=pos.instrument_id,
                             reason_code=f"LOCKED_DUE_TO_{shelf_ent.status}",
-                            details="Position held but trading blocked. Weight locked.",
                         )
                     )
             else:
                 eligible_targets[pos.instrument_id] = Decimal("0.0")
-                eligible_for_sell.append(pos.instrument_id)
+                sell_list.append(pos.instrument_id)
 
-    return eligible_targets, excluded, eligible_for_buy, eligible_for_sell, sell_only_excess
+    return eligible_targets, excluded, buy_list, sell_list, sell_only_excess
 
 
 def _generate_targets(
-    model: ModelPortfolio,
-    eligible_targets: Dict[str, Decimal],
-    eligible_for_buy: List[str],
-    sell_only_excess: Decimal,
-    options: EngineOptions,
-    total_value_base: Decimal,
-    base_currency: str,
-) -> Tuple[List[TargetInstrument], str]:
+    model, eligible_targets, buy_list, sell_only_excess, options, total_val, base_ccy
+):
+    """Stage 3: Normalization and Constraints."""
     status = "READY"
 
-    # Sell-Only Redistribution
+    # 1. Sell-Only Redistribution
     if sell_only_excess > Decimal("0.0"):
-        recs = {k: v for k, v in eligible_targets.items() if k in eligible_for_buy}
+        recs = {k: v for k, v in eligible_targets.items() if k in buy_list}
         total_rec = sum(recs.values())
         if total_rec > Decimal("0.0"):
             for i_id, w in recs.items():
                 eligible_targets[i_id] = w + (sell_only_excess * (w / total_rec))
         else:
-            # Coverage hit: No recipients for sell-only excess
-            # Implicitly: Excess remains unallocated (effectively Cash).
-            # We flag this as a Review condition.
             status = "PENDING_REVIEW"
 
-    # Total Weight Normalization (New logic for Locked Assets)
-    # If Locked + Model > 1.0, we must scale down the Tradeable Model targets.
+    # 2. Normalization (Locked Assets)
     total_w = sum(eligible_targets.values())
     if total_w > Decimal("1.0001"):
-        # Identify Locked vs Tradeable
-        tradeable_keys = [k for k in eligible_targets if k in eligible_for_buy]
-        # Calculate Locked Weight (Everything NOT tradeable)
-        locked_w = sum(v for k, v in eligible_targets.items() if k not in eligible_for_buy)
-        tradeable_w = sum(eligible_targets[k] for k in tradeable_keys)
-
-        # Determine available space for tradeables
-        available_space = Decimal("1.0") - locked_w
-
-        if available_space < Decimal("0.0"):
-            # Locked assets > 100% (e.g. market moves). Nothing we can do but hold.
-            available_space = Decimal("0.0")
+        tradeable_keys = [k for k in eligible_targets if k in buy_list]
+        locked_w = sum(v for k, v in eligible_targets.items() if k not in buy_list)
+        available_space = max(Decimal("0.0"), Decimal("1.0") - locked_w)
+        if locked_w > Decimal("1.0"):
             status = "PENDING_REVIEW"
-
+        tradeable_w = sum(eligible_targets[k] for k in tradeable_keys)
         if tradeable_w > available_space:
-            # Scale down
             if tradeable_w > Decimal("0.0"):
                 scale = available_space / tradeable_w
                 for k in tradeable_keys:
                     eligible_targets[k] *= scale
-                status = "PENDING_REVIEW"
+            status = "PENDING_REVIEW"
 
-    # Single Position Max Constraint
+    # 3. Max Weight Cap
     if options.single_position_max_weight is not None:
         max_w = options.single_position_max_weight
-        excess = Decimal("0.0")
-
-        for i_id, w in eligible_targets.items():
-            if w > max_w:
-                excess += w - max_w
-                eligible_targets[i_id] = max_w
-
+        excess = sum(max(Decimal("0.0"), w - max_w) for w in eligible_targets.values())
+        for i_id in eligible_targets:
+            eligible_targets[i_id] = min(eligible_targets[i_id], max_w)
         if excess > Decimal("0.0"):
-            candidates = {
-                k: v for k, v in eligible_targets.items() if k in eligible_for_buy and v < max_w
-            }
-            total_candidate_weight = sum(candidates.values())
-
-            if total_candidate_weight > Decimal("0.0"):
-                remaining_excess = excess
-                for i_id, w in candidates.items():
-                    room = max_w - w
-                    share = excess * (w / total_candidate_weight)
-                    to_add = min(share, room)
-                    eligible_targets[i_id] += to_add
-                    remaining_excess -= to_add
-
-                if remaining_excess > Decimal("0.001"):
+            cands = {k: v for k, v in eligible_targets.items() if k in buy_list and v < max_w}
+            total_cand = sum(cands.values())
+            if total_cand > Decimal("0.0"):
+                rem = excess
+                for i_id, w in cands.items():
+                    share = min(rem * (w / total_cand), max_w - w)
+                    eligible_targets[i_id] += share
+                    rem -= share
+                if rem > Decimal("0.001"):
                     status = "PENDING_REVIEW"
             else:
                 status = "PENDING_REVIEW"
 
-    # Cash Buffer Scaling
+    # 4. Buffer Scaling
     if options.min_cash_buffer_pct > Decimal("0.0"):
-        tradeable_weight = sum(v for k, v in eligible_targets.items() if k in eligible_for_buy)
-        locked_weight = sum(v for k, v in eligible_targets.items() if k not in eligible_for_buy)
-
-        max_allowed_tradeable = Decimal("1.0") - options.min_cash_buffer_pct - locked_weight
-
-        if max_allowed_tradeable < Decimal("0.0"):
+        tw = sum(v for k, v in eligible_targets.items() if k in buy_list)
+        lw = sum(v for k, v in eligible_targets.items() if k not in buy_list)
+        allowed = max(Decimal("0.0"), Decimal("1.0") - options.min_cash_buffer_pct - lw)
+        if tw > allowed:
+            if tw > Decimal("0.0"):
+                scale = allowed / tw
+                for k in eligible_targets:
+                    if k in buy_list:
+                        eligible_targets[k] *= scale
             status = "PENDING_REVIEW"
-        elif tradeable_weight > max_allowed_tradeable:
-            scale_factor = max_allowed_tradeable / tradeable_weight
-            for i_id in eligible_targets:
-                if i_id in eligible_for_buy:
-                    eligible_targets[i_id] *= scale_factor
 
-    target_trace = []
+    # Trace construction
+    trace = []
     for t in model.targets:
         final_w = eligible_targets.get(t.instrument_id, Decimal("0.0"))
-        tags = []
-        if t.instrument_id in eligible_targets:
-            if t.weight > final_w:
-                tags.append("CAPPED_BY_MAX_WEIGHT")
-            if final_w > t.weight:
-                tags.append("REDISTRIBUTED_RECIPIENT")
-        target_trace.append(
+        tags = ["CAPPED_BY_MAX_WEIGHT"] if t.weight > final_w else []
+        if final_w > t.weight:
+            tags.append("REDISTRIBUTED_RECIPIENT")
+        trace.append(
             TargetInstrument(
                 instrument_id=t.instrument_id,
                 model_weight=t.weight,
                 final_weight=final_w,
-                final_value=Money(amount=total_value_base * final_w, currency=base_currency),
+                final_value=Money(amount=total_val * final_w, currency=base_ccy),
                 tags=tags,
             )
         )
 
     for i_id, final_w in eligible_targets.items():
-        is_in_model = any(t.instrument_id == i_id for t in model.targets)
-        if not is_in_model:
+        if not any(t.instrument_id == i_id for t in model.targets):
             tag = (
-                "IMPLICIT_SELL_TO_ZERO"
-                if i_id in eligible_for_buy or final_w == 0
-                else "LOCKED_POSITION"
+                "IMPLICIT_SELL_TO_ZERO" if (i_id in buy_list or final_w == 0) else "LOCKED_POSITION"
             )
-            target_trace.append(
+            trace.append(
                 TargetInstrument(
                     instrument_id=i_id,
                     model_weight=Decimal("0.0"),
                     final_weight=final_w,
-                    final_value=Money(amount=total_value_base * final_w, currency=base_currency),
+                    final_value=Money(amount=total_val * final_w, currency=base_ccy),
                     tags=[tag],
                 )
             )
 
-    return target_trace, status
+    return trace, status
 
 
 def _generate_intents(
-    portfolio: PortfolioSnapshot,
-    market_data: MarketDataSnapshot,
-    eligible_targets: Dict[str, Decimal],
-    shelf: List[ShelfEntry],
-    options: EngineOptions,
-    total_value_base: Decimal,
-    dq_log: Dict,
-    suppressed: List[SuppressedIntent],
-) -> List[OrderIntent]:
+    portfolio, market_data, targets, shelf, options, total_val, dq_log, suppressed
+):
     intents = []
-
-    for instr_id, target_weight in eligible_targets.items():
-        price_ent = next((p for p in market_data.prices if p.instrument_id == instr_id), None)
+    target_dict = {t.instrument_id: t.final_weight for t in targets}
+    for i_id, target_w in target_dict.items():
+        price_ent = next((p for p in market_data.prices if p.instrument_id == i_id), None)
         if not price_ent:
-            dq_log["price_missing"].append(instr_id)
+            dq_log["price_missing"].append(i_id)
             continue
-
         rate = get_fx_rate(market_data, price_ent.currency, portfolio.base_currency)
-        if rate is None:
+        if not rate:
             dq_log["fx_missing"].append(f"{price_ent.currency}/{portfolio.base_currency}")
             continue
 
-        target_val_base = total_value_base * target_weight
-        target_val_instr = target_val_base / rate
+        target_instr_val = (total_val * target_w) / rate
+        curr = next((p for p in portfolio.positions if p.instrument_id == i_id), None)
+        curr_instr_val = (
+            curr.market_value.amount
+            if curr and curr.market_value
+            else (curr.quantity * price_ent.price if curr else Decimal("0"))
+        )
 
-        cur_val_instr = Decimal("0.0")
-        for pos in portfolio.positions:
-            if pos.instrument_id == instr_id:
-                cur_val_instr = (
-                    pos.market_value.amount if pos.market_value else pos.quantity * price_ent.price
-                )
-
-        delta = target_val_instr - cur_val_instr
+        delta = target_instr_val - curr_instr_val
         side = "BUY" if delta > 0 else "SELL"
         qty = int(abs(delta) // price_ent.price)
         notional = Decimal(qty) * price_ent.price
 
-        shelf_ent = next((s for s in shelf if s.instrument_id == instr_id), None)
-        if options.suppress_dust_trades and shelf_ent and shelf_ent.min_notional:
-            if notional < shelf_ent.min_notional.amount:
-                suppressed.append(
-                    SuppressedIntent(
-                        instrument_id=instr_id,
-                        reason="BELOW_MIN_NOTIONAL",
-                        intended_notional=Money(amount=notional, currency=price_ent.currency),
-                        threshold=shelf_ent.min_notional,
-                    )
+        shelf_ent = next((s for s in shelf if s.instrument_id == i_id), None)
+        if (
+            options.suppress_dust_trades
+            and shelf_ent
+            and shelf_ent.min_notional
+            and notional < shelf_ent.min_notional.amount
+        ):
+            suppressed.append(
+                SuppressedIntent(
+                    instrument_id=i_id,
+                    reason="BELOW_MIN_NOTIONAL",
+                    intended_notional=Money(amount=notional, currency=price_ent.currency),
+                    threshold=shelf_ent.min_notional,
                 )
-                continue
+            )
+            continue
 
         if qty > 0:
             intents.append(
                 OrderIntent(
                     intent_id=f"oi_{len(intents) + 1}",
                     side=side,
-                    instrument_id=instr_id,
+                    instrument_id=i_id,
                     quantity=Decimal(qty),
                     notional=Money(amount=notional, currency=price_ent.currency),
-                    rationale=IntentRationale(
-                        code="DRIFT_REBALANCE", message="Align to model target"
-                    ),
+                    rationale=IntentRationale(code="DRIFT_REBALANCE", message="Align"),
                 )
             )
-
     return intents
 
 
-def _apply_intents(portfolio: PortfolioSnapshot, intents: List[OrderIntent]) -> PortfolioSnapshot:
-    new_pf = deepcopy(portfolio)
-
-    def get_pos(i_id):
-        p = next((x for x in new_pf.positions if x.instrument_id == i_id), None)
-        if not p:
-            p = Position(instrument_id=i_id, quantity=Decimal("0"))
-            new_pf.positions.append(p)
-        return p
-
-    def get_cash(ccy):
-        c = next((x for x in new_pf.cash_balances if x.currency == ccy), None)
-        if not c:
-            c = CashBalance(currency=ccy, amount=Decimal("0"))
-            new_pf.cash_balances.append(c)
-        return c
-
-    for intent in intents:
-        if intent.intent_type == "SECURITY_TRADE":
-            pos = get_pos(intent.instrument_id)
-            if intent.side == "BUY":
-                pos.quantity += intent.quantity
-            else:
-                pos.quantity -= intent.quantity
-
-            cash_bal = get_cash(intent.notional.currency)
-            if intent.side == "SELL":
-                cash_bal.amount += intent.notional.amount
-            else:
-                cash_bal.amount -= intent.notional.amount
-
-        elif intent.intent_type == "FX_SPOT":
-            sell_bal = get_cash(intent.sell_currency)
-            sell_bal.amount -= intent.estimated_sell_amount
-
-            buy_bal = get_cash(intent.buy_currency)
-            buy_bal.amount += intent.buy_amount
-
-    return new_pf
-
-
-def _generate_fx_and_simulate(
-    portfolio: PortfolioSnapshot,
-    market_data: MarketDataSnapshot,
-    shelf: List[ShelfEntry],
-    intents: List[OrderIntent],
-    options: EngineOptions,
-    total_value_base: Decimal,
-) -> Tuple[List[OrderIntent], SimulatedState, List[RuleResult], str]:
-    projected_balances = {c.currency: c.amount for c in portfolio.cash_balances}
-
-    for intent in intents:
-        if intent.intent_type == "SECURITY_TRADE":
-            ccy = intent.notional.currency
-            current = projected_balances.get(ccy, Decimal("0.0"))
-            if intent.side == "BUY":
-                projected_balances[ccy] = current - intent.notional.amount
-            else:
-                projected_balances[ccy] = current + intent.notional.amount
+def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, total_val):
+    proj = {c.currency: c.amount for c in portfolio.cash_balances}
+    for i in intents:
+        if i.intent_type == "SECURITY_TRADE":
+            proj[i.notional.currency] = proj.get(i.notional.currency, Decimal("0")) + (
+                i.notional.amount if i.side == "SELL" else -i.notional.amount
+            )
 
     fx_map = {}
-
-    for ccy, balance in projected_balances.items():
+    for ccy, bal in proj.items():
         if ccy == portfolio.base_currency:
             continue
-
-        if balance < 0:
-            req_amount = abs(balance)
-            buy_amt = req_amount * (Decimal("1.0") + options.fx_buffer_pct)
+        if bal < 0:
+            buy_amt = abs(bal) * (Decimal("1.0") + options.fx_buffer_pct)
             sell_amt = buy_amt * get_fx_rate(market_data, ccy, portfolio.base_currency)
-
             fx_id = f"oi_fx_{len(intents) + 1}"
             fx_map[ccy] = fx_id
-
             intents.append(
                 OrderIntent(
                     intent_id=fx_id,
@@ -555,16 +421,12 @@ def _generate_fx_and_simulate(
                     buy_amount=buy_amt,
                     sell_currency=portfolio.base_currency,
                     estimated_sell_amount=sell_amt,
-                    rationale=IntentRationale(code="FUNDING", message="Fund foreign buys"),
+                    rationale=IntentRationale(code="FUNDING", message="Fund"),
                 )
             )
-
-        elif balance > 0:
-            sell_amt = balance
-            buy_amt = sell_amt * get_fx_rate(market_data, ccy, portfolio.base_currency)
-
+        elif bal > 0:
+            buy_amt = bal * get_fx_rate(market_data, ccy, portfolio.base_currency)
             fx_id = f"oi_fx_{len(intents) + 1}"
-
             intents.append(
                 OrderIntent(
                     intent_id=fx_id,
@@ -574,115 +436,101 @@ def _generate_fx_and_simulate(
                     buy_currency=portfolio.base_currency,
                     buy_amount=buy_amt,
                     sell_currency=ccy,
-                    estimated_sell_amount=sell_amt,
-                    rationale=IntentRationale(
-                        code="REPATRIATION", message="Sweep excess cash to base"
-                    ),
+                    estimated_sell_amount=bal,
+                    rationale=IntentRationale(code="SWEEP", message="Sweep"),
                 )
             )
 
+    # Deps
     for i in intents:
         if i.intent_type == "SECURITY_TRADE" and i.side == "BUY" and i.notional.currency in fx_map:
-            if fx_map[i.notional.currency] not in i.dependencies:
-                i.dependencies.append(fx_map[i.notional.currency])
-
-    buys = [i for i in intents if i.intent_type == "SECURITY_TRADE" and i.side == "BUY"]
-    sells = [i for i in intents if i.intent_type == "SECURITY_TRADE" and i.side == "SELL"]
-
-    sell_map = {}
-    for s in sells:
-        ccy = s.notional.currency
-        if ccy not in sell_map:
-            sell_map[ccy] = []
-        sell_map[ccy].append(s.intent_id)
-
-    start_cash = {c.currency: c.amount for c in portfolio.cash_balances}
-    for b in buys:
-        ccy = b.notional.currency
-        current_bal = start_cash.get(ccy, Decimal("0.0"))
-        if current_bal < b.notional.amount:
-            if ccy in sell_map:
-                for s_id in sell_map[ccy]:
-                    if s_id not in b.dependencies:
-                        b.dependencies.append(s_id)
+            i.dependencies.append(fx_map[i.notional.currency])
+    sell_ids = {i.notional.currency: i.intent_id for i in intents if i.side == "SELL"}
+    for i in intents:
+        if i.side == "BUY" and i.notional.currency in sell_ids:
+            if sell_ids[i.notional.currency] not in i.dependencies:
+                i.dependencies.append(sell_ids[i.notional.currency])
 
     intents.sort(key=lambda x: 0 if x.side == "SELL" else (1 if x.intent_type == "FX_SPOT" else 2))
 
-    after_portfolio = _apply_intents(portfolio, intents)
+    # Simulation
+    after = deepcopy(portfolio)
 
-    _, after_state = _evaluate_portfolio_state(
-        after_portfolio, market_data, shelf, dq_log={}, diagnostics_warnings=[]
-    )
+    def g_pos(after_pf, i_id):
+        p = next((x for x in after_pf.positions if x.instrument_id == i_id), None)
+        if not p:
+            p = Position(instrument_id=i_id, quantity=Decimal("0"))
+            after_pf.positions.append(p)
+        return p
 
-    cash_metric = next((a for a in after_state.allocation_by_asset_class if a.key == "CASH"), None)
-    cash_weight = cash_metric.weight if cash_metric else Decimal("0.0")
+    def g_cash(after_pf, ccy):
+        c = next((x for x in after_pf.cash_balances if x.currency == ccy), None)
+        if not c:
+            c = CashBalance(currency=ccy, amount=Decimal("0"))
+            after_pf.cash_balances.append(c)
+        return c
 
-    rule_results = [
+    for i in intents:
+        if i.intent_type == "SECURITY_TRADE":
+            g_pos(after, i.instrument_id).quantity += i.quantity if i.side == "BUY" else -i.quantity
+            g_cash(after, i.notional.currency).amount += (
+                i.notional.amount if i.side == "SELL" else -i.notional.amount
+            )
+        else:
+            g_cash(after, i.sell_currency).amount -= i.estimated_sell_amount
+            g_cash(after, i.buy_currency).amount += i.buy_amount
+
+    _, state = _evaluate_portfolio_state(after, market_data, shelf, {}, [])
+    cw = next((a.weight for a in state.allocation_by_asset_class if a.key == "CASH"), Decimal("0"))
+    rules = [
         RuleResult(
             rule_id="CASH_BAND",
             severity="SOFT",
-            status="FAIL" if cash_weight > 0.05 else "PASS",
-            measured=cash_weight,
-            threshold={"max": Decimal("0.05")},
-            reason_code="THRESHOLD_BREACH" if cash_weight > 0.05 else "OK",
+            status="FAIL" if cw > 0.05 else "PASS",
+            measured=cw,
+            threshold={"max": 0.05},
+            reason_code="BREACH" if cw > 0.05 else "OK",
         )
     ]
-    status = "READY"
-    if any(r.status == "FAIL" for r in rule_results):
-        status = "PENDING_REVIEW"
+    return (
+        intents,
+        state,
+        rules,
+        ("PENDING_REVIEW" if any(r.status == "FAIL" for r in rules) else "READY"),
+    )
 
-    return intents, after_state, rule_results, status
 
-
-def run_simulation(
-    portfolio: PortfolioSnapshot,
-    market_data: MarketDataSnapshot,
-    model: ModelPortfolio,
-    shelf: List[ShelfEntry],
-    options: EngineOptions,
-    request_hash: str = "sha256:dummy",
-) -> RebalanceResult:
+def run_simulation(portfolio, market_data, model, shelf, options, request_hash="no_hash"):
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
-    dq_log = {"price_missing": [], "fx_missing": [], "shelf_missing": []}
-    diagnostics_warnings = []
-    suppressed = []
-
-    total_val, before_state = _calculate_valuation(
-        portfolio, market_data, shelf, dq_log, diagnostics_warnings
+    dq, warns, suppressed = {"price_missing": [], "fx_missing": [], "shelf_missing": []}, [], []
+    tv, before = _calculate_valuation(portfolio, market_data, shelf, dq, warns)
+    eligible, excl, buy_l, sell_l, s_exc = _build_universe(
+        model, portfolio, shelf, options, dq, before
+    )
+    trace, s3_stat = _generate_targets(
+        model, eligible, buy_l, s_exc, options, tv, portfolio.base_currency
     )
 
-    targets, excluded, buy_list, sell_list, excess = _build_universe(
-        model, portfolio, shelf, options, dq_log, before_state
-    )
-
-    target_trace, stage3_status = _generate_targets(
-        model, targets, buy_list, excess, options, total_val, portfolio.base_currency
-    )
-
-    if any(dq_log.values()) or stage3_status == "BLOCKED":
+    if any(dq.values()) or s3_stat == "BLOCKED":
         return RebalanceResult(
             rebalance_run_id=run_id,
-            correlation_id="c_placeholder",
+            correlation_id="c_none",
             status="BLOCKED",
-            before=before_state,
+            before=before,
             universe=UniverseData(
-                universe_id=f"uni_{run_id}",
-                eligible_for_buy=buy_list,
-                eligible_for_sell=sell_list,
-                excluded=excluded,
-                coverage=UniverseCoverage(
-                    price_coverage_pct=Decimal("0"), fx_coverage_pct=Decimal("0")
-                ),
+                universe_id=f"u_{run_id}",
+                eligible_for_buy=buy_l,
+                eligible_for_sell=sell_l,
+                excluded=excl,
+                coverage=UniverseCoverage(price_coverage_pct=0, fx_coverage_pct=0),
             ),
-            target=TargetData(target_id=f"tgt_{run_id}", strategy={}, targets=target_trace),
+            target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
             intents=[],
-            after_simulated=before_state,
-            explanation={"summary": "Run blocked. Check diagnostics."},
+            after_simulated=before,
             diagnostics=DiagnosticsData(
-                data_quality=dq_log,
-                suppressed_intents=suppressed,
-                warnings=diagnostics_warnings,
+                data_quality=dq, suppressed_intents=suppressed, warnings=warns
             ),
+            explanation={"summary": "Blocked"},
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
                 market_data_snapshot_id="md",
@@ -690,34 +538,27 @@ def run_simulation(
             ),
         )
 
-    intents = _generate_intents(
-        portfolio, market_data, targets, shelf, options, total_val, dq_log, suppressed
-    )
-
-    if any(dq_log.values()):
+    intents = _generate_intents(portfolio, market_data, trace, shelf, options, tv, dq, suppressed)
+    if any(dq.values()):
         return RebalanceResult(
             rebalance_run_id=run_id,
-            correlation_id="c_placeholder",
+            correlation_id="c_none",
             status="BLOCKED",
-            before=before_state,
+            before=before,
             universe=UniverseData(
-                universe_id=f"uni_{run_id}",
-                eligible_for_buy=buy_list,
-                eligible_for_sell=sell_list,
-                excluded=excluded,
-                coverage=UniverseCoverage(
-                    price_coverage_pct=Decimal("0"), fx_coverage_pct=Decimal("0")
-                ),
+                universe_id=f"u_{run_id}",
+                eligible_for_buy=buy_l,
+                eligible_for_sell=sell_l,
+                excluded=excl,
+                coverage=UniverseCoverage(price_coverage_pct=0, fx_coverage_pct=0),
             ),
-            target=TargetData(target_id=f"tgt_{run_id}", strategy={}, targets=target_trace),
+            target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
             intents=[],
-            after_simulated=before_state,
-            explanation={"summary": "Run blocked during trade generation."},
+            after_simulated=before,
             diagnostics=DiagnosticsData(
-                data_quality=dq_log,
-                suppressed_intents=suppressed,
-                warnings=diagnostics_warnings,
+                data_quality=dq, suppressed_intents=suppressed, warnings=warns
             ),
+            explanation={"summary": "Blocked"},
             lineage=LineageData(
                 portfolio_snapshot_id=portfolio.portfolio_id,
                 market_data_snapshot_id="md",
@@ -725,37 +566,30 @@ def run_simulation(
             ),
         )
 
-    intents, after_state, rule_results, final_status = _generate_fx_and_simulate(
-        portfolio, market_data, shelf, intents, options, total_val
+    intents, after, rules, f_stat = _generate_fx_and_simulate(
+        portfolio, market_data, shelf, intents, options, tv
     )
-
-    if stage3_status == "PENDING_REVIEW" and final_status == "READY":
-        final_status = "PENDING_REVIEW"
+    if s3_stat == "PENDING_REVIEW" and f_stat == "READY":
+        f_stat = "PENDING_REVIEW"
 
     return RebalanceResult(
         rebalance_run_id=run_id,
-        correlation_id="c_placeholder",
-        status=final_status,
-        before=before_state,
+        correlation_id="c_none",
+        status=f_stat,
+        before=before,
         universe=UniverseData(
-            universe_id=f"uni_{run_id}",
-            eligible_for_buy=buy_list,
-            eligible_for_sell=sell_list,
-            excluded=excluded,
-            coverage=UniverseCoverage(
-                price_coverage_pct=Decimal("1"), fx_coverage_pct=Decimal("1")
-            ),
+            universe_id=f"u_{run_id}",
+            eligible_for_buy=buy_l,
+            eligible_for_sell=sell_l,
+            excluded=excl,
+            coverage=UniverseCoverage(price_coverage_pct=1, fx_coverage_pct=1),
         ),
-        target=TargetData(target_id=f"tgt_{run_id}", strategy={}, targets=target_trace),
+        target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
         intents=intents,
-        after_simulated=after_state,
-        rule_results=rule_results,
-        explanation={"summary": f"Status: {final_status}"},
-        diagnostics=DiagnosticsData(
-            data_quality=dq_log,
-            suppressed_intents=suppressed,
-            warnings=diagnostics_warnings,
-        ),
+        after_simulated=after,
+        rule_results=rules,
+        diagnostics=DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns),
+        explanation={"summary": f_stat},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,
             market_data_snapshot_id="md",

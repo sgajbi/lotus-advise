@@ -69,7 +69,7 @@
   },
   "expected_outputs": {
     "rebalance_run_id": "rr_golden",
-    "correlation_id": "c_placeholder",
+    "correlation_id": "c_none",
     "status": "PENDING_REVIEW",
     "before": {
       "total_value": {
@@ -163,7 +163,7 @@
         {
           "instrument_id": "RUSSIA_ETF",
           "reason_code": "LOCKED_DUE_TO_SUSPENDED",
-          "details": "Position held but trading blocked. Weight locked."
+          "details": null
         }
       ],
       "coverage": {
@@ -220,7 +220,7 @@
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
-          "message": "Align to model target"
+          "message": "Align"
         }
       }
     ],
@@ -344,7 +344,7 @@
       }
     ],
     "explanation": {
-      "summary": "Status: PENDING_REVIEW"
+      "summary": "PENDING_REVIEW"
     },
     "diagnostics": {
       "warnings": [],

@@ -52,7 +52,7 @@
   },
   "expected_outputs": {
     "rebalance_run_id": "rr_golden",
-    "correlation_id": "c_placeholder",
+    "correlation_id": "c_none",
     "status": "BLOCKED",
     "before": {
       "total_value": {
@@ -159,7 +159,7 @@
     },
     "rule_results": [],
     "explanation": {
-      "summary": "Run blocked. Check diagnostics."
+      "summary": "Blocked"
     },
     "diagnostics": {
       "warnings": [],

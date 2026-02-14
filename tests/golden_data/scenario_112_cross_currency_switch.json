@@ -90,7 +90,7 @@
   },
   "expected_outputs": {
     "rebalance_run_id": "rr_golden",
-    "correlation_id": "c_placeholder",
+    "correlation_id": "c_none",
     "status": "READY",
     "before": {
       "total_value": {
@@ -246,7 +246,7 @@
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
-          "message": "Align to model target"
+          "message": "Align"
         }
       },
       {
@@ -263,8 +263,8 @@
         "estimated_sell_amount": "10000.0",
         "dependencies": [],
         "rationale": {
-          "code": "REPATRIATION",
-          "message": "Sweep excess cash to base"
+          "code": "SWEEP",
+          "message": "Sweep"
         }
       },
       {
@@ -282,7 +282,7 @@
         "dependencies": [],
         "rationale": {
           "code": "FUNDING",
-          "message": "Fund foreign buys"
+          "message": "Fund"
         }
       },
       {
@@ -305,7 +305,7 @@
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
-          "message": "Align to model target"
+          "message": "Align"
         }
       }
     ],
@@ -415,7 +415,7 @@
       }
     ],
     "explanation": {
-      "summary": "Status: READY"
+      "summary": "READY"
     },
     "diagnostics": {
       "warnings": [],

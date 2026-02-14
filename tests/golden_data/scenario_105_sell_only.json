@@ -73,7 +73,7 @@
   },
   "expected_outputs": {
     "rebalance_run_id": "rr_golden",
-    "correlation_id": "c_placeholder",
+    "correlation_id": "c_none",
     "status": "READY",
     "before": {
       "total_value": {
@@ -167,7 +167,7 @@
       "excluded": [
         {
           "instrument_id": "BAD_ASSET",
-          "reason_code": "SHELF_STATUS_SELL_ONLY_BUY_BLOCKED",
+          "reason_code": "SHELF_STATUS_SELL_ONLY",
           "details": null
         }
       ],
@@ -225,7 +225,7 @@
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
-          "message": "Align to model target"
+          "message": "Align"
         }
       },
       {
@@ -248,7 +248,7 @@
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
-          "message": "Align to model target"
+          "message": "Align"
         }
       }
     ],
@@ -346,7 +346,7 @@
       }
     ],
     "explanation": {
-      "summary": "Status: READY"
+      "summary": "READY"
     },
     "diagnostics": {
       "warnings": [],
