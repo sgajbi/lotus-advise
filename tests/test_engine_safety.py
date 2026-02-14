@@ -178,3 +178,55 @@ def test_simulation_creates_new_cash_currency(base_options):
     assert result.status == "READY"
     usd_cash = next((c for c in result.after_simulated.cash_balances if c.currency == "USD"), None)
     assert usd_cash is not None
+
+
+def test_phantom_value_oversell_protection(base_options):
+    """
+    Integration Test: Simulates the 'Phantom Value' scenario where bad upstream data
+    (High Market Value, Low Price) tricks the engine into generating a massive Sell order.
+    The Safety Guard MUST catch this and Block.
+    """
+    # 1. Setup: 10 units. Price $10. Real Value $100.
+    #    BUT: We tell the engine it's worth $2000.
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_phantom",
+        base_currency="USD",
+        positions=[
+            Position(
+                instrument_id="EQ_PHANTOM",
+                quantity=Decimal("10"),
+                # Phantom value: Implies price is $200/unit
+                market_value=Money(amount=Decimal("2000.00"), currency="USD"),
+            )
+        ],
+        cash_balances=[CashBalance(currency="USD", amount=Decimal("0.00"))],
+    )
+
+    # 2. Market Data: Real price is $10.
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_PHANTOM", price=Decimal("10.00"), currency="USD")],
+        fx_rates=[],
+    )
+
+    # 3. Model: Sell Everything (0%)
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_PHANTOM", weight=Decimal("0.0"))])
+    shelf = [ShelfEntry(instrument_id="EQ_PHANTOM", status="APPROVED")]
+
+    # 4. Execution
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # 5. Assertions
+    # The engine sees $2000 to sell. Price $10. It tries to sell 200 units.
+    # We have 10. Result -190.
+    assert result.status == "BLOCKED"
+
+    # Check for Root Cause Warning
+    assert "POSITION_VALUE_MISMATCH: EQ_PHANTOM" in result.diagnostics.warnings
+
+    # Check for Safety Guard Warning
+    assert "SIMULATION_SAFETY_CHECK_FAILED" in result.diagnostics.warnings
+
+    # Check for Rule Failure
+    rule = next(r for r in result.rule_results if r.rule_id == "NO_SHORTING")
+    assert rule.status == "FAIL"
+    assert rule.reason_code == "SELL_EXCEEDS_HOLDINGS"
