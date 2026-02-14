@@ -501,7 +501,9 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
         )
 
     # 5. Simulation & Rules
+    # Fix: Create DiagnosticsData container to pass around
     diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
+
     intents, after, rules, f_stat = _generate_fx_and_simulate(
         portfolio, market_data, shelf, intents, options, tv, diag_data
     )
@@ -511,7 +513,8 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
         f_stat = "PENDING_REVIEW"
 
     if f_stat == "BLOCKED":
-        warns.append("SIMULATION_SAFETY_CHECK_FAILED")
+        # Fix: Append to the DiagnosticsData object directly so it appears in the final result
+        diag_data.warnings.append("SIMULATION_SAFETY_CHECK_FAILED")
 
     return RebalanceResult(
         rebalance_run_id=run_id,

@@ -13,6 +13,7 @@ from src.core.engine import (
 )
 from src.core.models import (
     CashBalance,
+    DiagnosticsData,
     EngineOptions,
     FxRate,
     IntentRationale,
@@ -493,8 +494,10 @@ def test_buy_depends_on_sell_explicit(base_options):
         ),
     ]
 
+    # Fix: Provide dummy diagnostics
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
     intents, _, _, _ = _generate_fx_and_simulate(
-        portfolio, market_data, shelf, intents, base_options, total_val
+        portfolio, market_data, shelf, intents, base_options, total_val, diag
     )
 
     buy_intent = next(i for i in intents if i.side == "BUY")

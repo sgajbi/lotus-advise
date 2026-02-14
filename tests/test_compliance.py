@@ -8,6 +8,7 @@ from decimal import Decimal
 from src.core.compliance import RuleEngine
 from src.core.models import (
     AllocationMetric,
+    DiagnosticsData,
     EngineOptions,
     Money,
     SimulatedState,
@@ -25,7 +26,9 @@ def test_cash_band_pass():
             )
         ],
     )
-    results = RuleEngine.evaluate(state, EngineOptions())
+    # Fix: Provide dummy diagnostics
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
+    results = RuleEngine.evaluate(state, EngineOptions(), diag)
     cash_rule = next(r for r in results if r.rule_id == "CASH_BAND")
     assert cash_rule.status == "PASS"
 
@@ -41,7 +44,8 @@ def test_cash_band_fail():
             )
         ],
     )
-    results = RuleEngine.evaluate(state, EngineOptions())
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
+    results = RuleEngine.evaluate(state, EngineOptions(), diag)
     cash_rule = next(r for r in results if r.rule_id == "CASH_BAND")
     assert cash_rule.status == "FAIL"
     assert cash_rule.severity == "SOFT"
@@ -60,7 +64,8 @@ def test_single_position_max_fail():
         ],
     )
     options = EngineOptions(single_position_max_weight=Decimal("0.50"))
-    results = RuleEngine.evaluate(state, options)
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
+    results = RuleEngine.evaluate(state, options, diag)
 
     pos_rule = next(r for r in results if r.rule_id == "SINGLE_POSITION_MAX")
     assert pos_rule.status == "FAIL"
