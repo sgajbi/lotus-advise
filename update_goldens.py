@@ -1,6 +1,7 @@
 """
 FILE: update_goldens.py
 """
+
 import json
 import os
 from decimal import Decimal
@@ -117,9 +118,11 @@ def generate_scenarios():
     )
     # Total ~20k. Target 100% Equity. Should Buy 15k more.
     md_102 = MarketDataSnapshot(prices=[price("EQ_SGD_1", 100.0, "SGD")])
-    model_102 = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_SGD_1", weight=Decimal("1.0"))])
+    model_102 = ModelPortfolio(
+        targets=[ModelTarget(instrument_id="EQ_SGD_1", weight=Decimal("1.0"))]
+    )
     shelf_102 = [ShelfEntry(instrument_id="EQ_SGD_1", status="APPROVED", asset_class="EQUITY")]
-    
+
     res_102 = run_simulation(pf_102, md_102, model_102, shelf_102, EngineOptions())
     save_golden(
         "scenario_102_cash_inflow",
@@ -140,9 +143,9 @@ def generate_scenarios():
         portfolio_id="pf_103",
         base_currency="SGD",
         positions=[
-            Position(instrument_id="BOND_SGD", quantity=Decimal("1000")), # Val 100k
+            Position(instrument_id="BOND_SGD", quantity=Decimal("1000")),  # Val 100k
         ],
-        cash_balances=[CashBalance(currency="SGD", amount=Decimal("100.0"))], # No cash
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("100.0"))],  # No cash
     )
     # Target: 50/50 Bond/Equity. Must Sell 50k Bond -> Buy 50k Equity.
     md_103 = MarketDataSnapshot(
@@ -187,12 +190,11 @@ def generate_scenarios():
     # Buy USD Asset. 1 USD = 1.35 SGD.
     # Target 100% US_ETF.
     md_104 = MarketDataSnapshot(
-        prices=[price("US_ETF", 100.0, "USD")],
-        fx_rates=[fx("USD/SGD", 1.35)]
+        prices=[price("US_ETF", 100.0, "USD")], fx_rates=[fx("USD/SGD", 1.35)]
     )
     model_104 = ModelPortfolio(targets=[ModelTarget(instrument_id="US_ETF", weight=Decimal("1.0"))])
     shelf_104 = [ShelfEntry(instrument_id="US_ETF", status="APPROVED", asset_class="EQUITY")]
-    opts_104 = EngineOptions(fx_buffer_pct=Decimal("0.01")) # 1% buffer
+    opts_104 = EngineOptions(fx_buffer_pct=Decimal("0.01"))  # 1% buffer
 
     res_104 = run_simulation(pf_104, md_104, model_104, shelf_104, opts_104)
     save_golden(
@@ -213,7 +215,7 @@ def generate_scenarios():
     pf_105 = PortfolioSnapshot(
         portfolio_id="pf_105",
         base_currency="SGD",
-        positions=[Position(instrument_id="BAD_ASSET", quantity=Decimal("100"))], # Val 1000
+        positions=[Position(instrument_id="BAD_ASSET", quantity=Decimal("100"))],  # Val 1000
         cash_balances=[CashBalance(currency="SGD", amount=Decimal("9000.0"))],
     )
     # Total 10k. Target 50% Good, 50% Bad (Request).
@@ -259,8 +261,10 @@ def generate_scenarios():
         positions=[Position(instrument_id="UNKNOWN_ASSET", quantity=Decimal("10"))],
         cash_balances=[CashBalance(currency="SGD", amount=Decimal("100.0"))],
     )
-    md_107 = MarketDataSnapshot(prices=[]) # Empty
-    model_107 = ModelPortfolio(targets=[ModelTarget(instrument_id="UNKNOWN_ASSET", weight=Decimal("1.0"))])
+    md_107 = MarketDataSnapshot(prices=[])  # Empty
+    model_107 = ModelPortfolio(
+        targets=[ModelTarget(instrument_id="UNKNOWN_ASSET", weight=Decimal("1.0"))]
+    )
     shelf_107 = [ShelfEntry(instrument_id="UNKNOWN_ASSET", status="APPROVED")]
 
     res_107 = run_simulation(pf_107, md_107, model_107, shelf_107, EngineOptions())
@@ -318,6 +322,7 @@ def generate_scenarios():
     )
 
     print("Golden scenarios generated successfully.")
+
 
 if __name__ == "__main__":
     generate_scenarios()
