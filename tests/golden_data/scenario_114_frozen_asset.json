@@ -70,7 +70,7 @@
   "expected_outputs": {
     "rebalance_run_id": "rr_golden",
     "correlation_id": "c_placeholder",
-    "status": "READY",
+    "status": "PENDING_REVIEW",
     "before": {
       "total_value": {
         "amount": "20000.000",
@@ -178,12 +178,14 @@
         {
           "instrument_id": "US_BOND",
           "model_weight": "1.0",
-          "final_weight": "1.0",
+          "final_weight": "0.50",
           "final_value": {
-            "amount": "20000.0000",
+            "amount": "10000.00000",
             "currency": "SGD"
           },
-          "tags": []
+          "tags": [
+            "CAPPED_BY_MAX_WEIGHT"
+          ]
         },
         {
           "instrument_id": "RUSSIA_ETF",
@@ -205,9 +207,9 @@
         "intent_type": "SECURITY_TRADE",
         "side": "BUY",
         "instrument_id": "US_BOND",
-        "quantity": "200",
+        "quantity": "100",
         "notional": {
-          "amount": "20000.0",
+          "amount": "10000.0",
           "currency": "SGD"
         },
         "pair": null,
@@ -230,7 +232,7 @@
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "-10000.00",
+          "amount": "0.00",
           "settled": null,
           "pending": null
         }
@@ -256,37 +258,37 @@
         },
         {
           "instrument_id": "US_BOND",
-          "quantity": "200",
+          "quantity": "100",
           "instrument_currency": "SGD",
           "price": {
             "amount": "100.0",
             "currency": "SGD"
           },
           "value_in_instrument_ccy": {
-            "amount": "20000.0",
+            "amount": "10000.0",
             "currency": "SGD"
           },
           "value_in_base_ccy": {
-            "amount": "20000.00",
+            "amount": "10000.00",
             "currency": "SGD"
           },
-          "weight": "1"
+          "weight": "0.5"
         }
       ],
       "allocation_by_asset_class": [
         {
           "key": "CASH",
-          "weight": "-0.5",
+          "weight": "0",
           "value": {
-            "amount": "-10000.000",
+            "amount": "0.000",
             "currency": "SGD"
           }
         },
         {
           "key": "UNKNOWN",
-          "weight": "1.5",
+          "weight": "1",
           "value": {
-            "amount": "30000.00",
+            "amount": "20000.00",
             "currency": "SGD"
           }
         }
@@ -302,9 +304,9 @@
         },
         {
           "key": "US_BOND",
-          "weight": "1",
+          "weight": "0.5",
           "value": {
-            "amount": "20000.00",
+            "amount": "10000.00",
             "currency": "SGD"
           }
         }
@@ -312,17 +314,17 @@
       "allocation": [
         {
           "key": "CASH",
-          "weight": "-0.5",
+          "weight": "0",
           "value": {
-            "amount": "-10000.000",
+            "amount": "0.000",
             "currency": "SGD"
           }
         },
         {
           "key": "UNKNOWN",
-          "weight": "1.5",
+          "weight": "1",
           "value": {
-            "amount": "30000.00",
+            "amount": "20000.00",
             "currency": "SGD"
           }
         }
@@ -333,7 +335,7 @@
         "rule_id": "CASH_BAND",
         "severity": "SOFT",
         "status": "PASS",
-        "measured": "-0.5",
+        "measured": "0",
         "threshold": {
           "max": "0.05"
         },
@@ -342,7 +344,7 @@
       }
     ],
     "explanation": {
-      "summary": "Status: READY"
+      "summary": "Status: PENDING_REVIEW"
     },
     "diagnostics": {
       "warnings": [],

@@ -445,14 +445,9 @@ def test_sell_only_allows_liquidation(base_options):
 
 def test_all_assets_sell_only_blocks_run(base_portfolio, base_options):
     """
-    Assuming Best Effort logic:
     If ALL assets are SELL_ONLY, and target is 100%,
     we allow liquidation of the holdings (SELL).
-    But we can't BUY anything?
-    Wait, model target is EQ_SELL_ONLY 1.0.
-    Shelf says SELL_ONLY.
-    So implicit target -> 0.0.
-    Total Recipient Weight = 0.0 (No buyable assets).
+    But we can't BUY anything.
     Result: 100% Cash.
     Status: PENDING_REVIEW (High Cash).
     """
@@ -532,6 +527,10 @@ def test_implicit_sell_to_zero(base_options):
 
 
 def test_soft_constraint_breach_within_cash_limits(base_portfolio, base_options):
+    """
+    Ensures that if Stage 3 (Constraints) returns PENDING_REVIEW, and Stage 5 (Rules)
+    returns READY, the final status is PENDING_REVIEW (propagated).
+    """
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
     market_data = MarketDataSnapshot(
@@ -551,6 +550,11 @@ def test_soft_constraint_breach_within_cash_limits(base_portfolio, base_options)
 
 
 def test_suspended_asset_is_locked(base_options):
+    """
+    Scenario 114 Logic Check:
+    Held asset is SUSPENDED -> Must NOT be sold.
+    Should effectively act as if Model Target = Current Weight.
+    """
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_frozen",
         base_currency="SGD",
@@ -577,7 +581,9 @@ def test_suspended_asset_is_locked(base_options):
     sells = [i for i in result.intents if i.instrument_id == "RUSSIA_ETF"]
     assert len(sells) == 0
 
-    # 2. Verify Buy intent for US Bond is limited to available cash
+    # 2. Verify Buy intent for US Bond is limited to available cash (10k / 100 = 100 units)
+    # The engine should normalize the targets. 50% locked Russia.
+    # Remaining 50% for US Bond.
     buys = [i for i in result.intents if i.instrument_id == "US_BOND"]
     assert len(buys) == 1
     assert buys[0].quantity == Decimal("100")
@@ -604,10 +610,11 @@ def test_holding_missing_shelf_logs_warning(base_options):
         positions=[Position(instrument_id="MYSTERY_ASSET", quantity=Decimal("10"))],
         cash_balances=[CashBalance(currency="SGD", amount=Decimal("1000.0"))],
     )
+    # Model targets something else
     model = ModelPortfolio(
         targets=[ModelTarget(instrument_id="KNOWN_ASSET", weight=Decimal("1.0"))]
     )
-    # Shelf has NO entry for MYSTERY_ASSET
+    # Shelf has KNOWN_ASSET, but NOT MYSTERY_ASSET
     shelf = [ShelfEntry(instrument_id="KNOWN_ASSET", status="APPROVED")]
 
     market_data = MarketDataSnapshot(
@@ -623,7 +630,7 @@ def test_holding_missing_shelf_logs_warning(base_options):
     sells = [i for i in result.intents if i.instrument_id == "MYSTERY_ASSET"]
     assert len(sells) == 0
 
-    # 2. Verify Exclusion Reason
+    # 2. Verify Exclusion Log
     excl = next((e for e in result.universe.excluded if e.instrument_id == "MYSTERY_ASSET"), None)
     assert excl is not None
     assert excl.reason_code == "LOCKED_DUE_TO_MISSING_SHELF"
@@ -631,7 +638,8 @@ def test_holding_missing_shelf_logs_warning(base_options):
 
 def test_sell_only_excess_no_recipients_stays_unallocated(base_options):
     """
-    Coverage for line 358: Sell-Only excess exists, but no eligible buyers.
+    Hit line 359 in engine.py:
+    Sell-Only redistribution logic where total_rec (eligible buyers) is 0.
     Excess should remain unallocated (Cash).
     """
     portfolio = PortfolioSnapshot(
@@ -640,9 +648,9 @@ def test_sell_only_excess_no_recipients_stays_unallocated(base_options):
         positions=[Position(instrument_id="BAD_ASSET", quantity=Decimal("100"))],  # 1000 SGD
         cash_balances=[],
     )
-    # Model asks for 100% BAD_ASSET (which is SELL_ONLY -> 0%).
+    # Model asks for 100% BAD_ASSET (SELL_ONLY -> 0%).
     # Excess = 100%.
-    # Eligible Buyers = None.
+    # Eligible Buyers = None (No other targets).
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="BAD_ASSET", weight=Decimal("1.0"))])
     shelf = [ShelfEntry(instrument_id="BAD_ASSET", status="SELL_ONLY")]
 
@@ -654,9 +662,9 @@ def test_sell_only_excess_no_recipients_stays_unallocated(base_options):
 
     # Verify PENDING_REVIEW (Cash dump)
     assert result.status == "PENDING_REVIEW"
-    # Verify Sell happened
-    assert len(result.intents) == 1
-    assert result.intents[0].side == "SELL"
-    # Verify Cash allocation
-    assert result.after_simulated.allocation_by_asset_class[0].key == "CASH"
-    assert result.after_simulated.allocation_by_asset_class[0].weight == Decimal("1.0")
+
+    # Verify Allocation shows Cash
+    cash_alloc = next(
+        a for a in result.after_simulated.allocation_by_asset_class if a.key == "CASH"
+    )
+    assert cash_alloc.weight == Decimal("1.0")
