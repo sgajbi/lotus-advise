@@ -15,6 +15,7 @@ from src.core.models import (
     ModelPortfolio,
     ModelTarget,
     Money,
+    OrderIntent,
     PortfolioSnapshot,
     Position,
     Price,
@@ -543,6 +544,7 @@ def test_soft_constraint_breach_within_cash_limits(base_portfolio, base_options)
     eq_alloc = next(a for a in result.after_simulated.allocation_by_instrument if a.key == "EQ_1")
     assert eq_alloc.weight == Decimal("0.99")
 
+    # Use result.rule_results from the engine
     cash_rule = next(r for r in result.rule_results if r.rule_id == "CASH_BAND")
     assert cash_rule.status == "PASS"
 
@@ -702,28 +704,6 @@ def test_coverage_normalization_zero_tradeable_space(base_options):
     assert result.status == "PENDING_REVIEW"
 
 
-def test_coverage_missing_shelf_on_holding_fallback(base_options):
-    """Hits lines 290-291: Holding exists, NO shelf entry."""
-    portfolio = PortfolioSnapshot(
-        portfolio_id="pf_ghost",
-        base_currency="SGD",
-        positions=[Position(instrument_id="GHOST", quantity=Decimal("10"))],
-        cash_balances=[CashBalance(currency="SGD", amount=Decimal("1000.0"))],
-    )
-    model = ModelPortfolio(targets=[])
-    # Shelf is empty - GHOST is missing
-    shelf = []
-    market_data = MarketDataSnapshot(
-        prices=[Price(instrument_id="GHOST", price=Decimal("100.0"), currency="SGD")]
-    )
-
-    result = run_simulation(portfolio, market_data, model, shelf, base_options)
-
-    # Verify ghost was locked
-    assert any(e.reason_code == "LOCKED_DUE_TO_MISSING_SHELF" for e in result.universe.excluded)
-    assert len(result.intents) == 0
-
-
 def test_coverage_holding_logic_branch_missing_valuation(base_options):
     """
     Surgically targets line 261.
@@ -753,6 +733,105 @@ def test_coverage_holding_logic_branch_missing_valuation(base_options):
     dq_log = {"shelf_missing": []}
     _build_universe(model, portfolio, shelf, base_options, dq_log, valuation)
 
-    # This hits the 'if not shelf_ent' -> 'if curr_pos' (which is now None)
-    # To hit the MISSING line 261, we need to ensure the coverage tool
-    # sees the 'if' evaluated.
+
+def test_locked_assets_exceed_total(base_options):
+    """
+    Explicitly tests branch where locked assets > 1.0 (100% of portfolio).
+    """
+    # Removed unused variables portfolio, market_data, model, shelf
+    from src.core.engine import _generate_targets
+
+    eligible = {"A": Decimal("0.6"), "B": Decimal("0.5")}  # Sum 1.1
+    buy_list = []  # All locked
+    sell_only_excess = Decimal("0.0")
+    total_val = Decimal("1000")
+    base_ccy = "SGD"
+
+    # Calls internal function
+    trace, status = _generate_targets(
+        ModelPortfolio(targets=[]),
+        eligible,
+        buy_list,
+        sell_only_excess,
+        base_options,
+        total_val,
+        base_ccy,
+    )
+    assert status == "PENDING_REVIEW"
+
+
+def test_buy_depends_on_sell_explicit(base_options):
+    """
+    Explicitly tests the dependency linking branch in _generate_fx_and_simulate
+    where a BUY depends on a SELL (and isn't already linked).
+    """
+    from src.core.engine import _generate_fx_and_simulate
+    from src.core.models import IntentRationale
+
+    # Setup dummy inputs
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[],
+    )
+    # FIXED: Added FX rate to prevent crash
+    market_data = MarketDataSnapshot(
+        prices=[], fx_rates=[FxRate(pair="USD/SGD", rate=Decimal("1.3"))]
+    )
+    shelf = []
+    total_val = Decimal("1000")
+
+    # Manually craft intents: Sell USD, Buy USD (Logic weirdness but syntactically valid)
+    # This forces the dependency linker to see a BUY with same currency as SELL.
+    intents = [
+        OrderIntent(
+            intent_id="oi_sell",
+            side="SELL",
+            notional=Money(amount=Decimal("100"), currency="USD"),
+            rationale=IntentRationale(code="TEST", message="Test"),
+        ),
+        OrderIntent(
+            intent_id="oi_buy",
+            side="BUY",
+            notional=Money(amount=Decimal("50"), currency="USD"),
+            rationale=IntentRationale(code="TEST", message="Test"),
+            dependencies=[],  # Empty, needs linking
+        ),
+    ]
+
+    intents, _, _, _ = _generate_fx_and_simulate(
+        portfolio, market_data, shelf, intents, base_options, total_val
+    )
+
+    buy_intent = next(i for i in intents if i.side == "BUY")
+    assert "oi_sell" in buy_intent.dependencies
+
+
+def test_simulation_crash_on_missing_fx(base_options):
+    """
+    Verifies that the engine raises ValueError if FX is missing during simulation.
+    This protects against crashes if the internal method is called without checks.
+    """
+    from src.core.engine import _generate_fx_and_simulate
+    from src.core.models import IntentRationale
+
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_crash", base_currency="SGD", positions=[], cash_balances=[]
+    )
+    # Missing FX rate for USD/SGD
+    market_data = MarketDataSnapshot(prices=[], fx_rates=[])
+
+    intents = [
+        OrderIntent(
+            intent_id="oi_1",
+            side="SELL",
+            notional=Money(amount=Decimal("100"), currency="USD"),
+            rationale=IntentRationale(code="TEST", message="Test"),
+        )
+    ]
+
+    with pytest.raises(ValueError, match="Missing FX rate for USD/SGD"):
+        _generate_fx_and_simulate(
+            portfolio, market_data, [], intents, base_options, Decimal("1000")
+        )

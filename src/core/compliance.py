@@ -35,7 +35,9 @@ class RuleEngine:
                     measured=cash_weight,
                     threshold={"max": cash_max},
                     reason_code="THRESHOLD_BREACH",
-                    remediation_hint="Portfolio has excess cash. Consider investing or verifying exclusions.",
+                    remediation_hint=(
+                        "Portfolio has excess cash. Consider investing or verifying exclusions."
+                    ),
                 )
             )
         else:

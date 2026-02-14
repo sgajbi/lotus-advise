@@ -272,9 +272,17 @@ def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, t
     for ccy, bal in proj.items():
         if ccy == portfolio.base_currency:
             continue
+
+        # Defensive Check: Ensure we have an FX rate before attempting conversion
+        rate = get_fx_rate(market_data, ccy, portfolio.base_currency)
+        if rate is None:
+            # This should generally be caught by upstream checks, but provides
+            # safety against crashes if internal methods are called directly.
+            raise ValueError(f"Missing FX rate for {ccy}/{portfolio.base_currency}")
+
         if bal < 0:
             buy_amt = abs(bal) * (Decimal("1.0") + options.fx_buffer_pct)
-            sell_amt = buy_amt * get_fx_rate(market_data, ccy, portfolio.base_currency)
+            sell_amt = buy_amt * rate
             fx_id = f"oi_fx_{len(intents) + 1}"
             fx_map[ccy] = fx_id
             intents.append(
@@ -291,7 +299,7 @@ def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, t
                 )
             )
         elif bal > 0:
-            buy_amt = bal * get_fx_rate(market_data, ccy, portfolio.base_currency)
+            buy_amt = bal * rate
             fx_id = f"oi_fx_{len(intents) + 1}"
             intents.append(
                 OrderIntent(
