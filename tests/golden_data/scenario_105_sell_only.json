@@ -1,0 +1,363 @@
+{
+  "scenario_name": "scenario_105_sell_only",
+  "inputs": {
+    "portfolio_snapshot": {
+      "portfolio_id": "pf_105",
+      "base_currency": "SGD",
+      "positions": [
+        {
+          "instrument_id": "BAD_ASSET",
+          "quantity": "100",
+          "market_value": null
+        }
+      ],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "9000.0",
+          "settled": null,
+          "pending": null
+        }
+      ]
+    },
+    "market_data_snapshot": {
+      "prices": [
+        {
+          "instrument_id": "BAD_ASSET",
+          "price": "10.0",
+          "currency": "SGD"
+        },
+        {
+          "instrument_id": "GOOD_ASSET",
+          "price": "10.0",
+          "currency": "SGD"
+        }
+      ],
+      "fx_rates": []
+    },
+    "model_portfolio": {
+      "targets": [
+        {
+          "instrument_id": "BAD_ASSET",
+          "weight": "0.5"
+        },
+        {
+          "instrument_id": "GOOD_ASSET",
+          "weight": "0.5"
+        }
+      ]
+    },
+    "shelf_entries": [
+      {
+        "instrument_id": "BAD_ASSET",
+        "status": "SELL_ONLY",
+        "asset_class": "EQUITY",
+        "min_notional": null
+      },
+      {
+        "instrument_id": "GOOD_ASSET",
+        "status": "APPROVED",
+        "asset_class": "EQUITY",
+        "min_notional": null
+      }
+    ],
+    "options": {
+      "allow_restricted": false,
+      "suppress_dust_trades": true,
+      "dust_trade_threshold": null,
+      "fx_buffer_pct": "0.01",
+      "single_position_max_weight": null,
+      "block_on_missing_prices": true
+    }
+  },
+  "expected_outputs": {
+    "rebalance_run_id": "rr_golden",
+    "correlation_id": "c_placeholder",
+    "status": "READY",
+    "before": {
+      "total_value": {
+        "amount": "10000.00",
+        "currency": "SGD"
+      },
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "9000.0",
+          "settled": null,
+          "pending": null
+        }
+      ],
+      "positions": [
+        {
+          "instrument_id": "BAD_ASSET",
+          "quantity": "100",
+          "instrument_currency": "SGD",
+          "price": {
+            "amount": "10.0",
+            "currency": "SGD"
+          },
+          "value_in_instrument_ccy": {
+            "amount": "1000.0",
+            "currency": "SGD"
+          },
+          "value_in_base_ccy": {
+            "amount": "1000.00",
+            "currency": "SGD"
+          },
+          "weight": "0.1"
+        }
+      ],
+      "allocation_by_asset_class": [
+        {
+          "key": "CASH",
+          "weight": "0.9",
+          "value": {
+            "amount": "9000.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EQUITY",
+          "weight": "0.1",
+          "value": {
+            "amount": "1000.00",
+            "currency": "SGD"
+          }
+        }
+      ],
+      "allocation_by_instrument": [
+        {
+          "key": "BAD_ASSET",
+          "weight": "0.1",
+          "value": {
+            "amount": "1000.00",
+            "currency": "SGD"
+          }
+        }
+      ],
+      "allocation": [
+        {
+          "key": "CASH",
+          "weight": "0.9",
+          "value": {
+            "amount": "9000.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EQUITY",
+          "weight": "0.1",
+          "value": {
+            "amount": "1000.00",
+            "currency": "SGD"
+          }
+        }
+      ]
+    },
+    "universe": {
+      "universe_id": "uni_golden",
+      "eligible_for_buy": [
+        "GOOD_ASSET"
+      ],
+      "eligible_for_sell": [
+        "BAD_ASSET",
+        "GOOD_ASSET"
+      ],
+      "excluded": [
+        {
+          "instrument_id": "BAD_ASSET",
+          "reason_code": "SHELF_STATUS_SELL_ONLY_BUY_BLOCKED",
+          "details": null
+        }
+      ],
+      "coverage": {
+        "price_coverage_pct": "1",
+        "fx_coverage_pct": "1"
+      }
+    },
+    "target": {
+      "target_id": "tgt_golden",
+      "strategy": {},
+      "targets": [
+        {
+          "instrument_id": "BAD_ASSET",
+          "model_weight": "0.5",
+          "final_weight": "0.0",
+          "final_value": {
+            "amount": "0.000",
+            "currency": "SGD"
+          },
+          "tags": [
+            "CAPPED_BY_MAX_WEIGHT"
+          ]
+        },
+        {
+          "instrument_id": "GOOD_ASSET",
+          "model_weight": "0.5",
+          "final_weight": "1.0",
+          "final_value": {
+            "amount": "10000.000",
+            "currency": "SGD"
+          },
+          "tags": [
+            "REDISTRIBUTED_RECIPIENT"
+          ]
+        }
+      ]
+    },
+    "intents": [
+      {
+        "intent_id": "oi_1",
+        "intent_type": "SECURITY_TRADE",
+        "side": "SELL",
+        "instrument_id": "BAD_ASSET",
+        "quantity": "100",
+        "notional": {
+          "amount": "1000.0",
+          "currency": "SGD"
+        },
+        "pair": null,
+        "buy_currency": null,
+        "buy_amount": null,
+        "sell_currency": null,
+        "estimated_sell_amount": null,
+        "dependencies": [],
+        "rationale": {
+          "code": "DRIFT_REBALANCE",
+          "message": "Align to model target"
+        }
+      },
+      {
+        "intent_id": "oi_2",
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
+        "instrument_id": "GOOD_ASSET",
+        "quantity": "1000",
+        "notional": {
+          "amount": "10000.0",
+          "currency": "SGD"
+        },
+        "pair": null,
+        "buy_currency": null,
+        "buy_amount": null,
+        "sell_currency": null,
+        "estimated_sell_amount": null,
+        "dependencies": [],
+        "rationale": {
+          "code": "DRIFT_REBALANCE",
+          "message": "Align to model target"
+        }
+      }
+    ],
+    "after_simulated": {
+      "total_value": {
+        "amount": "10000.00",
+        "currency": "SGD"
+      },
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "0.0",
+          "settled": null,
+          "pending": null
+        }
+      ],
+      "positions": [
+        {
+          "instrument_id": "GOOD_ASSET",
+          "quantity": "1000",
+          "instrument_currency": "SGD",
+          "price": {
+            "amount": "10.0",
+            "currency": "SGD"
+          },
+          "value_in_instrument_ccy": {
+            "amount": "10000.0",
+            "currency": "SGD"
+          },
+          "value_in_base_ccy": {
+            "amount": "10000.00",
+            "currency": "SGD"
+          },
+          "weight": "1"
+        }
+      ],
+      "allocation_by_asset_class": [
+        {
+          "key": "CASH",
+          "weight": "0",
+          "value": {
+            "amount": "0.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EQUITY",
+          "weight": "1",
+          "value": {
+            "amount": "10000.00",
+            "currency": "SGD"
+          }
+        }
+      ],
+      "allocation_by_instrument": [
+        {
+          "key": "GOOD_ASSET",
+          "weight": "1",
+          "value": {
+            "amount": "10000.00",
+            "currency": "SGD"
+          }
+        }
+      ],
+      "allocation": [
+        {
+          "key": "CASH",
+          "weight": "0",
+          "value": {
+            "amount": "0.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EQUITY",
+          "weight": "1",
+          "value": {
+            "amount": "10000.00",
+            "currency": "SGD"
+          }
+        }
+      ]
+    },
+    "rule_results": [
+      {
+        "rule_id": "CASH_BAND",
+        "severity": "SOFT",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "max": "0.05"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
+      }
+    ],
+    "explanation": {
+      "summary": "Status: READY"
+    },
+    "diagnostics": {
+      "warnings": [],
+      "suppressed_intents": [],
+      "data_quality": {
+        "price_missing": [],
+        "fx_missing": [],
+        "shelf_missing": []
+      }
+    },
+    "lineage": {
+      "portfolio_snapshot_id": "pf_105",
+      "market_data_snapshot_id": "md",
+      "request_hash": "hash_golden"
+    }
+  }
+}

@@ -1,0 +1,380 @@
+{
+  "scenario_name": "scenario_101_drift_rebalance",
+  "inputs": {
+    "portfolio_snapshot": {
+      "portfolio_id": "pf_101",
+      "base_currency": "SGD",
+      "positions": [
+        {
+          "instrument_id": "EQ_SGD_1",
+          "quantity": "100",
+          "market_value": null
+        }
+      ],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "1000.0",
+          "settled": null,
+          "pending": null
+        }
+      ]
+    },
+    "market_data_snapshot": {
+      "prices": [
+        {
+          "instrument_id": "EQ_SGD_1",
+          "price": "100.0",
+          "currency": "SGD"
+        },
+        {
+          "instrument_id": "EQ_SGD_2",
+          "price": "50.0",
+          "currency": "SGD"
+        }
+      ],
+      "fx_rates": []
+    },
+    "model_portfolio": {
+      "targets": [
+        {
+          "instrument_id": "EQ_SGD_1",
+          "weight": "0.5"
+        },
+        {
+          "instrument_id": "EQ_SGD_2",
+          "weight": "0.5"
+        }
+      ]
+    },
+    "shelf_entries": [
+      {
+        "instrument_id": "EQ_SGD_1",
+        "status": "APPROVED",
+        "asset_class": "EQUITY",
+        "min_notional": null
+      },
+      {
+        "instrument_id": "EQ_SGD_2",
+        "status": "APPROVED",
+        "asset_class": "EQUITY",
+        "min_notional": null
+      }
+    ],
+    "options": {
+      "allow_restricted": false,
+      "suppress_dust_trades": true,
+      "dust_trade_threshold": null,
+      "fx_buffer_pct": "0.01",
+      "single_position_max_weight": null,
+      "block_on_missing_prices": true
+    }
+  },
+  "expected_outputs": {
+    "rebalance_run_id": "rr_golden",
+    "correlation_id": "c_placeholder",
+    "status": "READY",
+    "before": {
+      "total_value": {
+        "amount": "11000.00",
+        "currency": "SGD"
+      },
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "1000.0",
+          "settled": null,
+          "pending": null
+        }
+      ],
+      "positions": [
+        {
+          "instrument_id": "EQ_SGD_1",
+          "quantity": "100",
+          "instrument_currency": "SGD",
+          "price": {
+            "amount": "100.0",
+            "currency": "SGD"
+          },
+          "value_in_instrument_ccy": {
+            "amount": "10000.0",
+            "currency": "SGD"
+          },
+          "value_in_base_ccy": {
+            "amount": "10000.00",
+            "currency": "SGD"
+          },
+          "weight": "0.9090909090909090909090909091"
+        }
+      ],
+      "allocation_by_asset_class": [
+        {
+          "key": "CASH",
+          "weight": "0.09090909090909090909090909091",
+          "value": {
+            "amount": "1000.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EQUITY",
+          "weight": "0.9090909090909090909090909091",
+          "value": {
+            "amount": "10000.00",
+            "currency": "SGD"
+          }
+        }
+      ],
+      "allocation_by_instrument": [
+        {
+          "key": "EQ_SGD_1",
+          "weight": "0.9090909090909090909090909091",
+          "value": {
+            "amount": "10000.00",
+            "currency": "SGD"
+          }
+        }
+      ],
+      "allocation": [
+        {
+          "key": "CASH",
+          "weight": "0.09090909090909090909090909091",
+          "value": {
+            "amount": "1000.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EQUITY",
+          "weight": "0.9090909090909090909090909091",
+          "value": {
+            "amount": "10000.00",
+            "currency": "SGD"
+          }
+        }
+      ]
+    },
+    "universe": {
+      "universe_id": "uni_golden",
+      "eligible_for_buy": [
+        "EQ_SGD_1",
+        "EQ_SGD_2"
+      ],
+      "eligible_for_sell": [
+        "EQ_SGD_1",
+        "EQ_SGD_2"
+      ],
+      "excluded": [],
+      "coverage": {
+        "price_coverage_pct": "1",
+        "fx_coverage_pct": "1"
+      }
+    },
+    "target": {
+      "target_id": "tgt_golden",
+      "strategy": {},
+      "targets": [
+        {
+          "instrument_id": "EQ_SGD_1",
+          "model_weight": "0.5",
+          "final_weight": "0.5",
+          "final_value": {
+            "amount": "5500.000",
+            "currency": "SGD"
+          },
+          "tags": []
+        },
+        {
+          "instrument_id": "EQ_SGD_2",
+          "model_weight": "0.5",
+          "final_weight": "0.5",
+          "final_value": {
+            "amount": "5500.000",
+            "currency": "SGD"
+          },
+          "tags": []
+        }
+      ]
+    },
+    "intents": [
+      {
+        "intent_id": "oi_1",
+        "intent_type": "SECURITY_TRADE",
+        "side": "SELL",
+        "instrument_id": "EQ_SGD_1",
+        "quantity": "45",
+        "notional": {
+          "amount": "4500.0",
+          "currency": "SGD"
+        },
+        "pair": null,
+        "buy_currency": null,
+        "buy_amount": null,
+        "sell_currency": null,
+        "estimated_sell_amount": null,
+        "dependencies": [],
+        "rationale": {
+          "code": "DRIFT_REBALANCE",
+          "message": "Align to model target"
+        }
+      },
+      {
+        "intent_id": "oi_2",
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
+        "instrument_id": "EQ_SGD_2",
+        "quantity": "110",
+        "notional": {
+          "amount": "5500.0",
+          "currency": "SGD"
+        },
+        "pair": null,
+        "buy_currency": null,
+        "buy_amount": null,
+        "sell_currency": null,
+        "estimated_sell_amount": null,
+        "dependencies": [],
+        "rationale": {
+          "code": "DRIFT_REBALANCE",
+          "message": "Align to model target"
+        }
+      }
+    ],
+    "after_simulated": {
+      "total_value": {
+        "amount": "11000.00",
+        "currency": "SGD"
+      },
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "0.0",
+          "settled": null,
+          "pending": null
+        }
+      ],
+      "positions": [
+        {
+          "instrument_id": "EQ_SGD_1",
+          "quantity": "55",
+          "instrument_currency": "SGD",
+          "price": {
+            "amount": "100.0",
+            "currency": "SGD"
+          },
+          "value_in_instrument_ccy": {
+            "amount": "5500.0",
+            "currency": "SGD"
+          },
+          "value_in_base_ccy": {
+            "amount": "5500.00",
+            "currency": "SGD"
+          },
+          "weight": "0.5"
+        },
+        {
+          "instrument_id": "EQ_SGD_2",
+          "quantity": "110",
+          "instrument_currency": "SGD",
+          "price": {
+            "amount": "50.0",
+            "currency": "SGD"
+          },
+          "value_in_instrument_ccy": {
+            "amount": "5500.0",
+            "currency": "SGD"
+          },
+          "value_in_base_ccy": {
+            "amount": "5500.00",
+            "currency": "SGD"
+          },
+          "weight": "0.5"
+        }
+      ],
+      "allocation_by_asset_class": [
+        {
+          "key": "CASH",
+          "weight": "0",
+          "value": {
+            "amount": "0.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EQUITY",
+          "weight": "1",
+          "value": {
+            "amount": "11000.00",
+            "currency": "SGD"
+          }
+        }
+      ],
+      "allocation_by_instrument": [
+        {
+          "key": "EQ_SGD_1",
+          "weight": "0.5",
+          "value": {
+            "amount": "5500.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EQ_SGD_2",
+          "weight": "0.5",
+          "value": {
+            "amount": "5500.00",
+            "currency": "SGD"
+          }
+        }
+      ],
+      "allocation": [
+        {
+          "key": "CASH",
+          "weight": "0",
+          "value": {
+            "amount": "0.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EQUITY",
+          "weight": "1",
+          "value": {
+            "amount": "11000.00",
+            "currency": "SGD"
+          }
+        }
+      ]
+    },
+    "rule_results": [
+      {
+        "rule_id": "CASH_BAND",
+        "severity": "SOFT",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "max": "0.05"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
+      }
+    ],
+    "explanation": {
+      "summary": "Status: READY"
+    },
+    "diagnostics": {
+      "warnings": [],
+      "suppressed_intents": [],
+      "data_quality": {
+        "price_missing": [],
+        "fx_missing": [],
+        "shelf_missing": []
+      }
+    },
+    "lineage": {
+      "portfolio_snapshot_id": "pf_101",
+      "market_data_snapshot_id": "md",
+      "request_hash": "hash_golden"
+    }
+  }
+}
