@@ -71,7 +71,7 @@ class EngineOptions(BaseModel):
     block_on_missing_prices: bool = True
 
 
-# --- Expanded Outputs (RFC-0002) ---
+# --- Expanded Outputs (RFC-0003 Audit Bundle) ---
 class AllocationBucket(BaseModel):
     bucket: str
     weight: Decimal
@@ -102,10 +102,24 @@ class UniverseData(BaseModel):
     coverage: UniverseCoverage
 
 
+class TargetInstrument(BaseModel):
+    """Tracks the transition from model-requested weight to final calculated weight[cite: 333]."""
+
+    instrument_id: str
+    model_weight: Decimal  # Requested weight from the Strategy [cite: 333]
+    final_weight: Decimal  # Actual weight after Shelf/Constraint checks [cite: 333]
+    final_value: Money  # Monetary value of the final weight [cite: 333]
+    tags: List[str] = Field(
+        default_factory=list
+    )  # e.g., "CAPPED_SINGLE_POS", "SELL_ONLY_ZEROED" [cite: 333]
+
+
 class TargetData(BaseModel):
+    """Captures the outcome of target generation with full lineage[cite: 333]."""
+
     target_id: str
-    strategy: Dict[str, Any]
-    targets: List[Dict[str, Any]]
+    strategy: Dict[str, Any]  # Strategy metadata
+    targets: List[TargetInstrument]
 
 
 class IntentRationale(BaseModel):
@@ -145,10 +159,23 @@ class RuleResult(BaseModel):
     remediation_hint: Optional[str] = None
 
 
+class SuppressedIntent(BaseModel):
+    """Captured trades dropped due to min_notional or dust thresholds[cite: 334]."""
+
+    instrument_id: str
+    reason: str  # e.g., "BELOW_MIN_NOTIONAL" [cite: 334]
+    intended_notional: Money
+    threshold: Money
+
+
 class DiagnosticsData(BaseModel):
+    """Granular reporting of data quality and processing outcomes[cite: 334]."""
+
     warnings: List[str] = Field(default_factory=list)
-    suppressed_intents: List[Dict[str, Any]] = Field(default_factory=list)
-    data_quality: Dict[str, List[str]]
+    suppressed_intents: List[SuppressedIntent] = Field(default_factory=list)
+    data_quality: Dict[
+        str, List[str]
+    ]  # Keys: "price_missing", "fx_missing", "shelf_missing" [cite: 334]
 
 
 class LineageData(BaseModel):
@@ -157,8 +184,9 @@ class LineageData(BaseModel):
     request_hash: str
 
 
-# --- The Golden Contract ---
 class RebalanceResult(BaseModel):
+    """The complete, auditable result of a rebalance simulation[cite: 312]."""
+
     rebalance_run_id: str
     correlation_id: str
     status: Literal["READY", "BLOCKED", "PENDING_REVIEW"]
