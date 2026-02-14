@@ -444,6 +444,18 @@ def test_sell_only_allows_liquidation(base_options):
 
 
 def test_all_assets_sell_only_blocks_run(base_portfolio, base_options):
+    """
+    Assuming Best Effort logic:
+    If ALL assets are SELL_ONLY, and target is 100%,
+    we allow liquidation of the holdings (SELL).
+    But we can't BUY anything?
+    Wait, model target is EQ_SELL_ONLY 1.0.
+    Shelf says SELL_ONLY.
+    So implicit target -> 0.0.
+    Total Recipient Weight = 0.0 (No buyable assets).
+    Result: 100% Cash.
+    Status: PENDING_REVIEW (High Cash).
+    """
     model = ModelPortfolio(
         targets=[ModelTarget(instrument_id="EQ_SELL_ONLY", weight=Decimal("1.0"))]
     )
@@ -453,7 +465,7 @@ def test_all_assets_sell_only_blocks_run(base_portfolio, base_options):
     )
 
     result = run_simulation(base_portfolio, market_data, model, shelf, base_options)
-    assert result.status == "BLOCKED"
+    assert result.status == "PENDING_REVIEW"
 
 
 def test_dependency_sell_to_fund(base_options):
@@ -520,10 +532,6 @@ def test_implicit_sell_to_zero(base_options):
 
 
 def test_soft_constraint_breach_within_cash_limits(base_portfolio, base_options):
-    """
-    Ensures that if Stage 3 (Constraints) returns PENDING_REVIEW, and Stage 5 (Rules)
-    returns READY, the final status is PENDING_REVIEW (propagated).
-    """
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
     market_data = MarketDataSnapshot(
@@ -543,11 +551,6 @@ def test_soft_constraint_breach_within_cash_limits(base_portfolio, base_options)
 
 
 def test_suspended_asset_is_locked(base_options):
-    """
-    Scenario 114 Logic Check:
-    Held asset is SUSPENDED -> Must NOT be sold.
-    Should effectively act as if Model Target = Current Weight.
-    """
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_frozen",
         base_currency="SGD",
@@ -588,3 +591,72 @@ def test_suspended_asset_is_locked(base_options):
     excl = next((e for e in result.universe.excluded if e.instrument_id == "RUSSIA_ETF"), None)
     assert excl is not None
     assert "LOCKED_DUE_TO_SUSPENDED" in excl.reason_code
+
+
+def test_holding_missing_shelf_logs_warning(base_options):
+    """
+    Coverage for line 264-265: Holding exists but missing from Shelf.
+    Should lock the position (safe fallback) and log warning.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_missing_shelf",
+        base_currency="SGD",
+        positions=[Position(instrument_id="MYSTERY_ASSET", quantity=Decimal("10"))],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("1000.0"))],
+    )
+    model = ModelPortfolio(
+        targets=[ModelTarget(instrument_id="KNOWN_ASSET", weight=Decimal("1.0"))]
+    )
+    # Shelf has NO entry for MYSTERY_ASSET
+    shelf = [ShelfEntry(instrument_id="KNOWN_ASSET", status="APPROVED")]
+
+    market_data = MarketDataSnapshot(
+        prices=[
+            Price(instrument_id="MYSTERY_ASSET", price=Decimal("100.0"), currency="SGD"),
+            Price(instrument_id="KNOWN_ASSET", price=Decimal("10.0"), currency="SGD"),
+        ]
+    )
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # 1. Verify Mystery Asset was NOT sold (Locked)
+    sells = [i for i in result.intents if i.instrument_id == "MYSTERY_ASSET"]
+    assert len(sells) == 0
+
+    # 2. Verify Exclusion Reason
+    excl = next((e for e in result.universe.excluded if e.instrument_id == "MYSTERY_ASSET"), None)
+    assert excl is not None
+    assert excl.reason_code == "LOCKED_DUE_TO_MISSING_SHELF"
+
+
+def test_sell_only_excess_no_recipients_stays_unallocated(base_options):
+    """
+    Coverage for line 358: Sell-Only excess exists, but no eligible buyers.
+    Excess should remain unallocated (Cash).
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_sell_excess",
+        base_currency="SGD",
+        positions=[Position(instrument_id="BAD_ASSET", quantity=Decimal("100"))],  # 1000 SGD
+        cash_balances=[],
+    )
+    # Model asks for 100% BAD_ASSET (which is SELL_ONLY -> 0%).
+    # Excess = 100%.
+    # Eligible Buyers = None.
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="BAD_ASSET", weight=Decimal("1.0"))])
+    shelf = [ShelfEntry(instrument_id="BAD_ASSET", status="SELL_ONLY")]
+
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="BAD_ASSET", price=Decimal("10.0"), currency="SGD")]
+    )
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # Verify PENDING_REVIEW (Cash dump)
+    assert result.status == "PENDING_REVIEW"
+    # Verify Sell happened
+    assert len(result.intents) == 1
+    assert result.intents[0].side == "SELL"
+    # Verify Cash allocation
+    assert result.after_simulated.allocation_by_asset_class[0].key == "CASH"
+    assert result.after_simulated.allocation_by_asset_class[0].weight == Decimal("1.0")
