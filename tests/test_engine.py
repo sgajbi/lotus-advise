@@ -441,3 +441,45 @@ def test_all_assets_sell_only_blocks_run(base_portfolio, base_options):
 
     result = run_simulation(base_portfolio, market_data, model, shelf, base_options)
     assert result.status == "BLOCKED"
+
+
+def test_dependency_sell_to_fund(base_options):
+    """
+    Verify that if StartCash < BuyNotional, the Buy intent links to the Sell intent
+    in the same currency.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_dep",
+        base_currency="SGD",
+        positions=[
+            Position(instrument_id="EQ_SELL", quantity=Decimal("100")),  # 10k
+        ],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("1000.0"))],
+    )
+    # Total ~11k. Target 50/50.
+    # Sell EQ_SELL (4500). Buy EQ_BUY (5500).
+    # Buy (5500) > StartCash (1000) -> Need Sell proceeds.
+    model = ModelPortfolio(
+        targets=[
+            ModelTarget(instrument_id="EQ_SELL", weight=Decimal("0.5")),
+            ModelTarget(instrument_id="EQ_BUY", weight=Decimal("0.5")),
+        ]
+    )
+    shelf = [
+        ShelfEntry(instrument_id="EQ_SELL", status="APPROVED"),
+        ShelfEntry(instrument_id="EQ_BUY", status="APPROVED"),
+    ]
+    market_data = MarketDataSnapshot(
+        prices=[
+            Price(instrument_id="EQ_SELL", price=Decimal("100.0"), currency="SGD"),
+            Price(instrument_id="EQ_BUY", price=Decimal("100.0"), currency="SGD"),
+        ]
+    )
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # Expect: SELL, BUY
+    sell_intent = next(i for i in result.intents if i.side == "SELL")
+    buy_intent = next(i for i in result.intents if i.side == "BUY")
+
+    assert sell_intent.intent_id in buy_intent.dependencies

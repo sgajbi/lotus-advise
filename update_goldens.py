@@ -321,6 +321,52 @@ def generate_scenarios():
         res_110,
     )
 
+    # 111: Fee Buffer Safety
+    # ----------------------------------------------------------------
+    print("Generating 111: Fee Buffer Safety...")
+    # Setup similar to 101, but with buffer.
+    # Start: 1k Cash, 10k Stock A. Total 11k.
+    # Target: 50% A, 50% B.
+    # Buffer: 0.5% (Leave 55 SGD cash).
+    # Expected: Sell A to 5.5k. Buy B ~5.445k.
+    pf_111 = PortfolioSnapshot(
+        portfolio_id="pf_111",
+        base_currency="SGD",
+        positions=[Position(instrument_id="EQ_SGD_1", quantity=Decimal("100"))],  # 10k
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("1000.0"))],
+    )
+    md_111 = MarketDataSnapshot(
+        prices=[
+            price("EQ_SGD_1", 100.0, "SGD"),
+            price("EQ_SGD_2", 50.0, "SGD"),
+        ]
+    )
+    model_111 = ModelPortfolio(
+        targets=[
+            ModelTarget(instrument_id="EQ_SGD_1", weight=Decimal("0.5")),
+            ModelTarget(instrument_id="EQ_SGD_2", weight=Decimal("0.5")),
+        ]
+    )
+    shelf_111 = [
+        ShelfEntry(instrument_id="EQ_SGD_1", status="APPROVED", asset_class="EQUITY"),
+        ShelfEntry(instrument_id="EQ_SGD_2", status="APPROVED", asset_class="EQUITY"),
+    ]
+    # Require 0.5% cash buffer (0.005)
+    opts_111 = EngineOptions(min_cash_buffer_pct=Decimal("0.005"))
+
+    res_111 = run_simulation(pf_111, md_111, model_111, shelf_111, opts_111)
+    save_golden(
+        "scenario_111_fee_buffer",
+        {
+            "portfolio_snapshot": pf_111.model_dump(),
+            "market_data_snapshot": md_111.model_dump(),
+            "model_portfolio": model_111.model_dump(),
+            "shelf_entries": [s.model_dump() for s in shelf_111],
+            "options": opts_111.model_dump(),
+        },
+        res_111,
+    )
+
     print("Golden scenarios generated successfully.")
 
 

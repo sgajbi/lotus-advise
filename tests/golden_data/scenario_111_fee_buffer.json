@@ -1,8 +1,8 @@
 {
-  "scenario_name": "scenario_101_drift_rebalance",
+  "scenario_name": "scenario_111_fee_buffer",
   "inputs": {
     "portfolio_snapshot": {
-      "portfolio_id": "pf_101",
+      "portfolio_id": "pf_111",
       "base_currency": "SGD",
       "positions": [
         {
@@ -68,7 +68,7 @@
       "fx_buffer_pct": "0.01",
       "single_position_max_weight": null,
       "block_on_missing_prices": true,
-      "min_cash_buffer_pct": "0.0"
+      "min_cash_buffer_pct": "0.005"
     }
   },
   "expected_outputs": {
@@ -178,22 +178,26 @@
         {
           "instrument_id": "EQ_SGD_1",
           "model_weight": "0.5",
-          "final_weight": "0.5",
+          "final_weight": "0.4975",
           "final_value": {
-            "amount": "5500.000",
+            "amount": "5472.500000",
             "currency": "SGD"
           },
-          "tags": []
+          "tags": [
+            "CAPPED_BY_MAX_WEIGHT"
+          ]
         },
         {
           "instrument_id": "EQ_SGD_2",
           "model_weight": "0.5",
-          "final_weight": "0.5",
+          "final_weight": "0.4975",
           "final_value": {
-            "amount": "5500.000",
+            "amount": "5472.500000",
             "currency": "SGD"
           },
-          "tags": []
+          "tags": [
+            "CAPPED_BY_MAX_WEIGHT"
+          ]
         }
       ]
     },
@@ -224,9 +228,9 @@
         "intent_type": "SECURITY_TRADE",
         "side": "BUY",
         "instrument_id": "EQ_SGD_2",
-        "quantity": "110",
+        "quantity": "109",
         "notional": {
-          "amount": "5500.0",
+          "amount": "5450.0",
           "currency": "SGD"
         },
         "pair": null,
@@ -251,7 +255,7 @@
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "0.0",
+          "amount": "50.0",
           "settled": null,
           "pending": null
         }
@@ -277,37 +281,37 @@
         },
         {
           "instrument_id": "EQ_SGD_2",
-          "quantity": "110",
+          "quantity": "109",
           "instrument_currency": "SGD",
           "price": {
             "amount": "50.0",
             "currency": "SGD"
           },
           "value_in_instrument_ccy": {
-            "amount": "5500.0",
+            "amount": "5450.0",
             "currency": "SGD"
           },
           "value_in_base_ccy": {
-            "amount": "5500.00",
+            "amount": "5450.00",
             "currency": "SGD"
           },
-          "weight": "0.5"
+          "weight": "0.4954545454545454545454545455"
         }
       ],
       "allocation_by_asset_class": [
         {
           "key": "CASH",
-          "weight": "0",
+          "weight": "0.004545454545454545454545454545",
           "value": {
-            "amount": "0.00",
+            "amount": "50.00",
             "currency": "SGD"
           }
         },
         {
           "key": "EQUITY",
-          "weight": "1",
+          "weight": "0.9954545454545454545454545455",
           "value": {
-            "amount": "11000.00",
+            "amount": "10950.00",
             "currency": "SGD"
           }
         }
@@ -323,9 +327,9 @@
         },
         {
           "key": "EQ_SGD_2",
-          "weight": "0.5",
+          "weight": "0.4954545454545454545454545455",
           "value": {
-            "amount": "5500.00",
+            "amount": "5450.00",
             "currency": "SGD"
           }
         }
@@ -333,17 +337,17 @@
       "allocation": [
         {
           "key": "CASH",
-          "weight": "0",
+          "weight": "0.004545454545454545454545454545",
           "value": {
-            "amount": "0.00",
+            "amount": "50.00",
             "currency": "SGD"
           }
         },
         {
           "key": "EQUITY",
-          "weight": "1",
+          "weight": "0.9954545454545454545454545455",
           "value": {
-            "amount": "11000.00",
+            "amount": "10950.00",
             "currency": "SGD"
           }
         }
@@ -354,7 +358,7 @@
         "rule_id": "CASH_BAND",
         "severity": "SOFT",
         "status": "PASS",
-        "measured": "0",
+        "measured": "0.004545454545454545454545454545",
         "threshold": {
           "max": "0.05"
         },
@@ -375,7 +379,7 @@
       }
     },
     "lineage": {
-      "portfolio_snapshot_id": "pf_101",
+      "portfolio_snapshot_id": "pf_111",
       "market_data_snapshot_id": "md",
       "request_hash": "hash_golden"
     }

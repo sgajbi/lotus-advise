@@ -74,6 +74,8 @@ class EngineOptions(BaseModel):
     fx_buffer_pct: Decimal = Decimal("0.01")
     single_position_max_weight: Optional[Decimal] = None
     block_on_missing_prices: bool = True
+    # New: Safety buffer to ensure we don't spend 100% of cash (leaving room for fees/slippage)
+    min_cash_buffer_pct: Decimal = Decimal("0.0")
 
 
 # --- Expanded Outputs (RFC-0003 Audit Bundle) ---

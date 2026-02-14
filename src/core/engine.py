@@ -62,10 +62,6 @@ def _evaluate_portfolio_state(
     for cash in portfolio.cash_balances:
         rate = get_fx_rate(market_data, cash.currency, portfolio.base_currency)
         if rate is None:
-            # Only log missing FX if amount is non-zero, to avoid noise?
-            # RFC implies strictness, but for 'after' state, we might have created cash?
-            # We assume 'dq_log' populating implies "Block/Warn".
-            # For After-State, we reuse same MD, so if Before passed, After should pass.
             if cash.amount != 0:
                 dq_log["fx_missing"].append(f"{cash.currency}/{portfolio.base_currency}")
         else:
@@ -76,7 +72,6 @@ def _evaluate_portfolio_state(
 
     # --- 2. Position Valuation ---
     for pos in portfolio.positions:
-        # If quantity is 0 (e.g. fully sold), we skip valuation but logic handles 0 fine.
         if pos.quantity == 0:
             continue
 
@@ -98,12 +93,11 @@ def _evaluate_portfolio_state(
         computed_val_instr = pos.quantity * price_ent.price
         computed_val_base = computed_val_instr * rate
 
-        # Snapshot Value Logic (Truth vs Computed) - Only relevant if market_value provided
+        # Snapshot Value Logic (Truth vs Computed)
         final_val_base = computed_val_base
         if pos.market_value:
             if pos.market_value.currency == portfolio.base_currency:
                 snapshot_val_base = pos.market_value.amount
-                # Mismatch Check (0.5% tolerance)
                 if computed_val_base != 0:
                     diff_pct = abs(snapshot_val_base - computed_val_base) / computed_val_base
                     if diff_pct > Decimal("0.005"):
@@ -112,10 +106,6 @@ def _evaluate_portfolio_state(
                             f"Snapshot={snapshot_val_base} Computed={computed_val_base}"
                         )
                 final_val_base = snapshot_val_base
-            else:
-                # Snapshot is in instr currency.
-                # Currently we don't use it for base valuation truth, rely on computed.
-                pass
 
         total_value_base += final_val_base
 
@@ -293,6 +283,16 @@ def _generate_targets(
                         status = "BLOCKED"
                     eligible_targets[i_id] = new_w
 
+    # Cash Buffer Scaling (Safeguard)
+    # If the model requests 100% investment, but we need 1% buffer, scale targets down.
+    if options.min_cash_buffer_pct > Decimal("0.0"):
+        total_invested_weight = sum(eligible_targets.values())
+        max_allowed_weight = Decimal("1.0") - options.min_cash_buffer_pct
+        if total_invested_weight > max_allowed_weight:
+            scale_factor = max_allowed_weight / total_invested_weight
+            for i_id in eligible_targets:
+                eligible_targets[i_id] *= scale_factor
+
     target_trace = []
     for t in model.targets:
         final_w = eligible_targets.get(t.instrument_id, Decimal("0.0"))
@@ -422,9 +422,6 @@ def _apply_intents(portfolio: PortfolioSnapshot, intents: List[OrderIntent]) -> 
                 pos.quantity -= intent.quantity
 
             # Update Cash (Immediate Settlement)
-            # For SELL: Cash increases by notional
-            # For BUY: Cash decreases by notional
-            # Note: intent.notional is in instrument currency
             cash_bal = get_cash(intent.notional.currency)
             if intent.side == "SELL":
                 cash_bal.amount += intent.notional.amount
@@ -480,10 +477,35 @@ def _generate_fx_and_simulate(
                 )
             )
 
-    # Link Dependencies
+    # Link Dependencies (FX Funding)
     for i in intents:
         if i.intent_type == "SECURITY_TRADE" and i.side == "BUY" and i.notional.currency in fx_map:
             i.dependencies.append(fx_map[i.notional.currency])
+
+    # Link Dependencies (Sell-to-Fund in Same Currency)
+    # If Buy Notional > Starting Cash, link to Sells in same currency
+    buys = [i for i in intents if i.intent_type == "SECURITY_TRADE" and i.side == "BUY"]
+    sells = [i for i in intents if i.intent_type == "SECURITY_TRADE" and i.side == "SELL"]
+
+    # Map currency -> list of Sell intent IDs
+    sell_map = {}
+    for s in sells:
+        ccy = s.notional.currency
+        if ccy not in sell_map:
+            sell_map[ccy] = []
+        sell_map[ccy].append(s.intent_id)
+
+    # Evaluate Buys
+    start_cash = {c.currency: c.amount for c in portfolio.cash_balances}
+    for b in buys:
+        ccy = b.notional.currency
+        current_bal = start_cash.get(ccy, Decimal("0.0"))
+        if current_bal < b.notional.amount:
+            # We need funding from Sells
+            if ccy in sell_map:
+                for s_id in sell_map[ccy]:
+                    if s_id not in b.dependencies:
+                        b.dependencies.append(s_id)
 
     # Sort: SELL -> FX -> BUY
     intents.sort(key=lambda x: 0 if x.side == "SELL" else (1 if x.intent_type == "FX_SPOT" else 2))
@@ -493,14 +515,11 @@ def _generate_fx_and_simulate(
     after_portfolio = _apply_intents(portfolio, intents)
 
     # 2. Evaluate "After Portfolio" using the standard valuation engine
-    # Note: We pass empty dq_log/warnings because we only care about the state.
-    # Data quality issues would have been caught in Before-State.
     _, after_state = _evaluate_portfolio_state(
         after_portfolio, market_data, shelf, dq_log={}, diagnostics_warnings=[]
     )
 
     # --- Rule Engine ---
-    # Use after_state.allocation for robust checks
     cash_metric = next((a for a in after_state.allocation_by_asset_class if a.key == "CASH"), None)
     cash_weight = cash_metric.weight if cash_metric else Decimal("0.0")
 

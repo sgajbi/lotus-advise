@@ -51,7 +51,8 @@
       "dust_trade_threshold": null,
       "fx_buffer_pct": "0.01",
       "single_position_max_weight": null,
-      "block_on_missing_prices": true
+      "block_on_missing_prices": true,
+      "min_cash_buffer_pct": "0.0"
     }
   },
   "expected_outputs": {

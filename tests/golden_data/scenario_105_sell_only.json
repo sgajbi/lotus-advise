@@ -67,7 +67,8 @@
       "dust_trade_threshold": null,
       "fx_buffer_pct": "0.01",
       "single_position_max_weight": null,
-      "block_on_missing_prices": true
+      "block_on_missing_prices": true,
+      "min_cash_buffer_pct": "0.0"
     }
   },
   "expected_outputs": {
@@ -242,7 +243,9 @@
         "buy_amount": null,
         "sell_currency": null,
         "estimated_sell_amount": null,
-        "dependencies": [],
+        "dependencies": [
+          "oi_1"
+        ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align to model target"
