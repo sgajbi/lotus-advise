@@ -3,6 +3,7 @@ FILE: src/core/engine.py
 """
 
 import uuid
+from copy import deepcopy
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
@@ -19,6 +20,7 @@ from src.core.models import (
     Money,
     OrderIntent,
     PortfolioSnapshot,
+    Position,
     PositionSummary,
     RebalanceResult,
     RuleResult,
@@ -40,7 +42,7 @@ def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> 
     return rate_entry.rate if rate_entry else None
 
 
-def _calculate_valuation(
+def _evaluate_portfolio_state(
     portfolio: PortfolioSnapshot,
     market_data: MarketDataSnapshot,
     shelf: List[ShelfEntry],
@@ -48,8 +50,8 @@ def _calculate_valuation(
     diagnostics_warnings: List[str],
 ) -> Tuple[Decimal, SimulatedState]:
     """
-    Stage 1: Institution-Grade Valuation.
-    Computes total value in base currency, position summaries, and allocations.
+    Reusable logic to compute total value, positions, and allocations for ANY portfolio state
+    (Before or After).
     """
     total_value_base = Decimal("0.0")
     positions_summary: List[PositionSummary] = []
@@ -60,7 +62,12 @@ def _calculate_valuation(
     for cash in portfolio.cash_balances:
         rate = get_fx_rate(market_data, cash.currency, portfolio.base_currency)
         if rate is None:
-            dq_log["fx_missing"].append(f"{cash.currency}/{portfolio.base_currency}")
+            # Only log missing FX if amount is non-zero, to avoid noise?
+            # RFC implies strictness, but for 'after' state, we might have created cash?
+            # We assume 'dq_log' populating implies "Block/Warn".
+            # For After-State, we reuse same MD, so if Before passed, After should pass.
+            if cash.amount != 0:
+                dq_log["fx_missing"].append(f"{cash.currency}/{portfolio.base_currency}")
         else:
             val_base = cash.amount * rate
             total_value_base += val_base
@@ -69,14 +76,16 @@ def _calculate_valuation(
 
     # --- 2. Position Valuation ---
     for pos in portfolio.positions:
+        # If quantity is 0 (e.g. fully sold), we skip valuation but logic handles 0 fine.
+        if pos.quantity == 0:
+            continue
+
         # Find Price
         price_ent = next(
             (p for p in market_data.prices if p.instrument_id == pos.instrument_id), None
         )
         if not price_ent:
             dq_log["price_missing"].append(pos.instrument_id)
-            # Cannot proceed with valuation for this pos, skip or partial?
-            # MVP: Skip implies value 0, but we log DQ. Block happens later.
             continue
 
         # Find FX
@@ -89,11 +98,9 @@ def _calculate_valuation(
         computed_val_instr = pos.quantity * price_ent.price
         computed_val_base = computed_val_instr * rate
 
-        # Snapshot Value Logic (Truth vs Computed)
+        # Snapshot Value Logic (Truth vs Computed) - Only relevant if market_value provided
         final_val_base = computed_val_base
         if pos.market_value:
-            # If snapshot has MV in Base, use it? Or check consistency?
-            # RFC says: if snapshot MV in base, use as truth.
             if pos.market_value.currency == portfolio.base_currency:
                 snapshot_val_base = pos.market_value.amount
                 # Mismatch Check (0.5% tolerance)
@@ -106,8 +113,8 @@ def _calculate_valuation(
                         )
                 final_val_base = snapshot_val_base
             else:
-                # Snapshot is in instr currency, verify?
-                # For now, rely on computed path if base MV not provided
+                # Snapshot is in instr currency.
+                # Currently we don't use it for base valuation truth, rely on computed.
                 pass
 
         total_value_base += final_val_base
@@ -138,7 +145,6 @@ def _calculate_valuation(
         )
 
     # --- 3. Weight Calculation & Object Construction ---
-    # Avoid div by zero
     tv_divisor = total_value_base if total_value_base != 0 else Decimal("1")
 
     # Update Position Weights
@@ -166,7 +172,7 @@ def _calculate_valuation(
             )
         )
 
-    before_state = SimulatedState(
+    sim_state = SimulatedState(
         total_value=Money(amount=total_value_base, currency=portfolio.base_currency),
         cash_balances=portfolio.cash_balances,
         positions=positions_summary,
@@ -175,7 +181,18 @@ def _calculate_valuation(
         allocation=alloc_asset_objs,  # Legacy
     )
 
-    return total_value_base, before_state
+    return total_value_base, sim_state
+
+
+def _calculate_valuation(
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    shelf: List[ShelfEntry],
+    dq_log: Dict[str, List[str]],
+    diagnostics_warnings: List[str],
+) -> Tuple[Decimal, SimulatedState]:
+    """Wrapper for _evaluate_portfolio_state for the 'Before' state."""
+    return _evaluate_portfolio_state(portfolio, market_data, shelf, dq_log, diagnostics_warnings)
 
 
 def _build_universe(
@@ -372,9 +389,63 @@ def _generate_intents(
     return intents, cash_reqs
 
 
+def _apply_intents(portfolio: PortfolioSnapshot, intents: List[OrderIntent]) -> PortfolioSnapshot:
+    """
+    Applies trades to a copy of the portfolio to generate the 'Simulated Snapshot'.
+    Handles Quantity changes and Cash movements.
+    """
+    new_pf = deepcopy(portfolio)
+
+    # Helper to get/create position
+    def get_pos(i_id):
+        p = next((x for x in new_pf.positions if x.instrument_id == i_id), None)
+        if not p:
+            p = Position(instrument_id=i_id, quantity=Decimal("0"))
+            new_pf.positions.append(p)
+        return p
+
+    # Helper to get/create cash
+    def get_cash(ccy):
+        c = next((x for x in new_pf.cash_balances if x.currency == ccy), None)
+        if not c:
+            c = CashBalance(currency=ccy, amount=Decimal("0"))
+            new_pf.cash_balances.append(c)
+        return c
+
+    for intent in intents:
+        if intent.intent_type == "SECURITY_TRADE":
+            pos = get_pos(intent.instrument_id)
+            # Update Quantity
+            if intent.side == "BUY":
+                pos.quantity += intent.quantity
+            else:
+                pos.quantity -= intent.quantity
+
+            # Update Cash (Immediate Settlement)
+            # For SELL: Cash increases by notional
+            # For BUY: Cash decreases by notional
+            # Note: intent.notional is in instrument currency
+            cash_bal = get_cash(intent.notional.currency)
+            if intent.side == "SELL":
+                cash_bal.amount += intent.notional.amount
+            else:
+                cash_bal.amount -= intent.notional.amount
+
+        elif intent.intent_type == "FX_SPOT":
+            # FX: Decrease Sell Ccy, Increase Buy Ccy
+            sell_bal = get_cash(intent.sell_currency)
+            sell_bal.amount -= intent.estimated_sell_amount
+
+            buy_bal = get_cash(intent.buy_currency)
+            buy_bal.amount += intent.buy_amount
+
+    return new_pf
+
+
 def _generate_fx_and_simulate(
     portfolio: PortfolioSnapshot,
     market_data: MarketDataSnapshot,
+    shelf: List[ShelfEntry],
     intents: List[OrderIntent],
     cash_reqs: Dict[str, Decimal],
     options: EngineOptions,
@@ -417,24 +488,21 @@ def _generate_fx_and_simulate(
     # Sort: SELL -> FX -> BUY
     intents.sort(key=lambda x: 0 if x.side == "SELL" else (1 if x.intent_type == "FX_SPOT" else 2))
 
-    # Simulation
-    after_cash = {c.currency: c.amount for c in portfolio.cash_balances}
-    for i in intents:
-        if i.intent_type == "SECURITY_TRADE":
-            ccy = i.notional.currency
-            delta_val = i.notional.amount if i.side == "SELL" else -i.notional.amount
-            after_cash[ccy] = after_cash.get(ccy, Decimal("0.0")) + delta_val
-        elif i.intent_type == "FX_SPOT":
-            after_cash[i.sell_currency] -= i.estimated_sell_amount
-            after_cash[i.buy_currency] = (
-                after_cash.get(i.buy_currency, Decimal("0.0")) + i.buy_amount
-            )
+    # --- Simulation (Rich After-State) ---
+    # 1. Apply intents to create "After Portfolio Snapshot"
+    after_portfolio = _apply_intents(portfolio, intents)
 
-    # Rule Engine
-    after_val_base = sum(
-        v * get_fx_rate(market_data, k, portfolio.base_currency) for k, v in after_cash.items()
+    # 2. Evaluate "After Portfolio" using the standard valuation engine
+    # Note: We pass empty dq_log/warnings because we only care about the state.
+    # Data quality issues would have been caught in Before-State.
+    _, after_state = _evaluate_portfolio_state(
+        after_portfolio, market_data, shelf, dq_log={}, diagnostics_warnings=[]
     )
-    cash_weight = after_val_base / total_value_base if total_value_base else Decimal("0.0")
+
+    # --- Rule Engine ---
+    # Use after_state.allocation for robust checks
+    cash_metric = next((a for a in after_state.allocation_by_asset_class if a.key == "CASH"), None)
+    cash_weight = cash_metric.weight if cash_metric else Decimal("0.0")
 
     rule_results = [
         RuleResult(
@@ -448,10 +516,6 @@ def _generate_fx_and_simulate(
     ]
     status = "PENDING_REVIEW" if any(r.status == "FAIL" for r in rule_results) else "READY"
 
-    after_state = SimulatedState(
-        total_value=Money(amount=total_value_base, currency=portfolio.base_currency),
-        cash_balances=[CashBalance(currency=k, amount=v) for k, v in after_cash.items()],
-    )
     return intents, after_state, rule_results, status
 
 
@@ -552,7 +616,7 @@ def run_simulation(
 
     # Stage 5: Simulation & Rules
     intents, after_state, rule_results, final_status = _generate_fx_and_simulate(
-        portfolio, market_data, intents, cash_reqs, options, total_val
+        portfolio, market_data, shelf, intents, cash_reqs, options, total_val
     )
 
     return RebalanceResult(

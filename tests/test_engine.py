@@ -197,6 +197,83 @@ def test_valuation_mismatch_warning(base_options):
     assert result.before.allocation_by_asset_class[0].value.amount == Decimal("2000.0")
 
 
+def test_valuation_market_value_non_base(base_options):
+    """
+    Coverage fix for _evaluate_portfolio_state:
+    Hit the 'else' branch where market_value.currency != base_currency.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_non_base_mv",
+        base_currency="SGD",
+        positions=[
+            Position(
+                instrument_id="EQ_USD_MV",
+                quantity=Decimal("10"),
+                market_value=Money(amount=Decimal("100.0"), currency="USD"),
+            )
+        ],
+        cash_balances=[],
+    )
+    # Price: 10 USD. Qty 10. Computed = 100 USD. FX = 1.35. Total = 135 SGD.
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_USD_MV", price=Decimal("10.0"), currency="USD")],
+        fx_rates=[FxRate(pair="USD/SGD", rate=Decimal("1.35"))],
+    )
+    model = ModelPortfolio(targets=[])
+    shelf = [ShelfEntry(instrument_id="EQ_USD_MV", status="APPROVED", asset_class="EQUITY")]
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    assert result.status == "READY"
+    # Verify calculated value is used (135 SGD)
+    assert result.before.total_value.amount == Decimal("135.0")
+    assert result.before.positions[0].value_in_base_ccy.amount == Decimal("135.0")
+
+
+def test_after_state_simulation_fidelity(base_options):
+    """
+    Verifies that 'after_simulated' contains the same rich structure as 'before'
+    and correctly reflects the trades.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_fid",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("10000.00"))],
+    )
+    # Target: 50% Equity.
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("0.5"))])
+    shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED", asset_class="EQUITY")]
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")]
+    )
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    assert result.status == "READY"
+
+    # Check Before State (Empty Alloc)
+    assert len(result.before.positions) == 0
+
+    # Check After State (Populated Alloc)
+    assert len(result.after_simulated.positions) == 1
+    pos = result.after_simulated.positions[0]
+    assert pos.instrument_id == "EQ_1"
+    assert pos.quantity == Decimal("50")  # 5000 SGD / 100
+    assert pos.weight == Decimal("0.5")
+
+    # Check Cash
+    # 10000 - 5000 = 5000
+    assert result.after_simulated.cash_balances[0].amount == Decimal("5000.00")
+
+    # Check Allocation Objects
+    equity_alloc = next(
+        a for a in result.after_simulated.allocation_by_asset_class if a.key == "EQUITY"
+    )
+    assert equity_alloc.weight == Decimal("0.5")
+    assert equity_alloc.value.amount == Decimal("5000.0")
+
+
 def test_dust_trade_suppression(base_portfolio, base_options):
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf = [
