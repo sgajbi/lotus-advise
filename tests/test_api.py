@@ -2,6 +2,9 @@
 FILE: tests/test_api.py
 """
 
+from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app, get_db_session
@@ -54,13 +57,10 @@ def test_simulate_validation_error_422():
 
 
 def test_simulate_rfc7807_domain_error_mapping():
-    # Force a domain outcome where constraints prevent full allocation.
-    # Previously this returned BLOCKED, now it returns PENDING_REVIEW (Best Effort).
+    # Force a domain outcome where constraints prevent full allocation (Soft Fail).
+    # Returns PENDING_REVIEW.
     payload = get_valid_payload()
     payload["options"]["single_position_max_weight"] = "0.50"
-
-    # Target 1.0 > Max 0.5. Engine will cap at 0.5 and leave 0.5 as Cash.
-    # Result: PENDING_REVIEW.
 
     payload["model_portfolio"]["targets"] = [{"instrument_id": "EQ_1", "weight": "1.0"}]
     payload["shelf_entries"] = [{"instrument_id": "EQ_1", "status": "APPROVED"}]
@@ -71,3 +71,30 @@ def test_simulate_rfc7807_domain_error_mapping():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "PENDING_REVIEW"
+
+
+@pytest.mark.asyncio
+async def test_get_db_session_dependency():
+    """Trivial coverage for the DB stub."""
+    gen = get_db_session()
+    val = await anext(gen)
+    assert val is None
+
+
+def test_simulate_blocked_logs_warning():
+    """
+    Force a 'BLOCKED' status (e.g. missing price) to verify the API logging branch.
+    """
+    payload = get_valid_payload()
+    # Missing price for EQ_1 -> DQ Failure -> BLOCKED
+    payload["market_data_snapshot"]["prices"] = []
+
+    with patch("src.api.main.logger") as mock_logger:
+        response = client.post("/rebalance/simulate", json=payload)
+        assert response.status_code == 200
+        assert response.json()["status"] == "BLOCKED"
+
+        # Verify the warning log was called
+        mock_logger.warning.assert_called()
+        args, _ = mock_logger.warning.call_args
+        assert "Run blocked" in args[0]
