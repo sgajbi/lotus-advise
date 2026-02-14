@@ -490,8 +490,8 @@
         "threshold": {
           "max": "0.05"
         },
-        "reason_code": "BREACH",
-        "remediation_hint": null
+        "reason_code": "THRESHOLD_BREACH",
+        "remediation_hint": "Portfolio has excess cash. Consider investing or verifying exclusions."
       }
     ],
     "explanation": {

@@ -1,0 +1,74 @@
+# RFC-0005: Institutional Tightening (Post-trade Rules, Reconciliation, Demo Pack)
+
+**Status:** APPROVED
+**Owner:** Rumi
+**Created:** 2026-02-14
+**Depends On:** RFC-0004 (Holdings Awareness)
+**Doc Location:** `docs/rfcs/RFC-0005-institutional-tightening.md`
+
+---
+
+## 0. Executive Summary
+
+RFC-0005 upgrades the rebalance engine from a functional calculator to an **institution-grade simulator**. It strictly enforces domain correctness, auditability, and safety without introducing database persistence.
+
+**Key Deliverables:**
+1.  **Complete State Model:** Every run returns a fully reconciled `before` and `after` state (Allocations, Cash, Positions).
+2.  **Post-Trade Rule Engine:** A dedicated module verifying `SINGLE_POSITION_MAX` (Hard), `CASH_BAND` (Soft), and `MIN_TRADE_SIZE` (Info) on the *simulated* after-state.
+3.  **Reconciliation Invariants:** Mathematical proof that `Before Value ≈ After Value` (within tolerance), ensuring no "vanishing money."
+4.  **Holdings-Aware Safety:** Strict blocking of negative holdings (shorting) and correct handling of `SELL_ONLY`/`SUSPENDED` assets.
+
+---
+
+## 1. Problem Statement
+
+The current implementation lacks "institution-grade" rigor:
+* **Inconsistent State:** `after_simulated` richness varies; allocations are often empty.
+* **Ad-hoc Rules:** Compliance checks are scattered and not consistently emitted.
+* **Trust Gap:** No explicit reconciliation prevents verifying if FX/rounding caused value leakage.
+* **Safety Gap:** Simulation logic could theoretically allow selling more than held (negative inventory).
+
+---
+
+## 2. Goals
+
+### 2.1 Functional Requirements
+* **State Completeness:** `before` and `after` objects must populate `positions`, `cash_balances`, `allocation_by_asset_class`, and `allocation_by_instrument`.
+* **Rule Engine v2:**
+    * **Always** emit results for `SINGLE_POSITION_MAX`, `CASH_BAND`, `MIN_TRADE_SIZE`.
+    * Evaluate rules against the *Simulated After-State*.
+* **Reconciliation:**
+    * Enforce `Abs(After_Total_Value - Before_Total_Value) <= Tolerance`.
+    * If mismatched, return `BLOCKED` with `RECONCILIATION_MISMATCH`.
+* **Holdings Safety:**
+    * Block run if `after_simulated.positions[].quantity < 0`.
+    * Enforce `SELL_ONLY` (Block Buys) and `SUSPENDED` (Freeze) logic.
+
+### 2.2 Quality & Standards
+* **Modular Architecture:** Refactor `engine.py` into distinct domains (`Valuation`, `Compliance`, `Simulation`) for maintainability.
+* **Demo Pack:** Create `docs/demo/` with curated scenarios (Drift, Cash Inflow, Sell-to-Fund, Multi-Currency).
+
+---
+
+## 3. Post-Trade Rule Engine Specification
+
+The Rule Engine must run *after* the simulation step.
+
+| Rule ID | Severity | Logic | Outcome |
+| :--- | :--- | :--- | :--- |
+| **SINGLE_POSITION_MAX** | **HARD** | `Position_Weight > Limit` | `BLOCKED` |
+| **CASH_BAND** | **SOFT** | `Cash_Weight` outside `[Min, Max]` | `PENDING_REVIEW` |
+| **MIN_TRADE_SIZE** | **INFO** | `Notional < Min` | `PASS` (Log to Diagnostics) |
+| **NO_SHORTING** | **HARD** | `Quantity < 0` | `BLOCKED` |
+| **RECONCILIATION** | **HARD** | `Value_Delta > Tolerance` | `BLOCKED` |
+
+---
+
+## 4. Implementation Plan
+
+1.  **Modularization:** Split `src/core/engine.py` into:
+    * `valuation.py`: State construction & normalization.
+    * `compliance.py`: The Rule Engine.
+    * `simulation.py`: Intent application & FX.
+2.  **Safety Logic:** Implement negative quantity checks and total value reconciliation.
+3.  **Golden Suite:** Update golden scenarios to reflect the new strict rule outputs.

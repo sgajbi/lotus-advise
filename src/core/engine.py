@@ -5,161 +5,25 @@ FILE: src/core/engine.py
 import uuid
 from copy import deepcopy
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
 
+from src.core.compliance import RuleEngine
 from src.core.models import (
-    AllocationMetric,
     CashBalance,
     DiagnosticsData,
     ExcludedInstrument,
     IntentRationale,
     LineageData,
-    MarketDataSnapshot,
     Money,
     OrderIntent,
-    PortfolioSnapshot,
     Position,
-    PositionSummary,
     RebalanceResult,
-    RuleResult,
-    ShelfEntry,
-    SimulatedState,
     SuppressedIntent,
     TargetData,
     TargetInstrument,
     UniverseCoverage,
     UniverseData,
 )
-
-
-def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> Optional[Decimal]:
-    if from_ccy == to_ccy:
-        return Decimal("1.0")
-    pair_name = f"{from_ccy}/{to_ccy}"
-    rate_entry = next((fx for fx in market_data.fx_rates if fx.pair == pair_name), None)
-    return rate_entry.rate if rate_entry else None
-
-
-def _evaluate_portfolio_state(
-    portfolio: PortfolioSnapshot,
-    market_data: MarketDataSnapshot,
-    shelf: List[ShelfEntry],
-    dq_log: Dict[str, List[str]],
-    diagnostics_warnings: List[str],
-) -> Tuple[Decimal, SimulatedState]:
-    """
-    Computes total value and enriched state for before/after snapshots.
-    """
-    total_value_base = Decimal("0.0")
-    positions_summary: List[PositionSummary] = []
-    allocation_by_asset: Dict[str, Decimal] = {}
-    allocation_by_instr: Dict[str, Decimal] = {}
-
-    # 1. Cash Valuation
-    for cash in portfolio.cash_balances:
-        rate = get_fx_rate(market_data, cash.currency, portfolio.base_currency)
-        if rate is None:
-            if cash.amount != 0:
-                dq_log.setdefault("fx_missing", []).append(
-                    f"{cash.currency}/{portfolio.base_currency}"
-                )
-        else:
-            val_base = cash.amount * rate
-            total_value_base += val_base
-            allocation_by_asset["CASH"] = allocation_by_asset.get("CASH", Decimal("0")) + val_base
-
-    # 2. Position Valuation
-    for pos in portfolio.positions:
-        if pos.quantity == 0:
-            continue
-
-        price_ent = next(
-            (p for p in market_data.prices if p.instrument_id == pos.instrument_id), None
-        )
-        if not price_ent:
-            dq_log.setdefault("price_missing", []).append(pos.instrument_id)
-            continue
-
-        rate = get_fx_rate(market_data, price_ent.currency, portfolio.base_currency)
-        if rate is None:
-            dq_log.setdefault("fx_missing", []).append(
-                f"{price_ent.currency}/{portfolio.base_currency}"
-            )
-            continue
-
-        comp_instr = pos.quantity * price_ent.price
-        comp_base = comp_instr * rate
-        final_val_base = comp_base
-
-        if pos.market_value and pos.market_value.currency == portfolio.base_currency:
-            if comp_base != 0 and (abs(pos.market_value.amount - comp_base) / comp_base) > Decimal(
-                "0.005"
-            ):
-                diagnostics_warnings.append(f"POSITION_VALUE_MISMATCH: {pos.instrument_id}")
-            final_val_base = pos.market_value.amount
-
-        total_value_base += final_val_base
-        shelf_ent = next((s for s in shelf if s.instrument_id == pos.instrument_id), None)
-        asset_class = shelf_ent.asset_class if shelf_ent else "UNKNOWN"
-
-        allocation_by_asset[asset_class] = (
-            allocation_by_asset.get(asset_class, Decimal("0")) + final_val_base
-        )
-        allocation_by_instr[pos.instrument_id] = (
-            allocation_by_instr.get(pos.instrument_id, Decimal("0")) + final_val_base
-        )
-
-        positions_summary.append(
-            PositionSummary(
-                instrument_id=pos.instrument_id,
-                quantity=pos.quantity,
-                instrument_currency=price_ent.currency,
-                price=Money(amount=price_ent.price, currency=price_ent.currency),
-                value_in_instrument_ccy=Money(amount=comp_instr, currency=price_ent.currency),
-                value_in_base_ccy=Money(amount=final_val_base, currency=portfolio.base_currency),
-                weight=Decimal("0"),
-            )
-        )
-
-    # 3. Final Weights
-    tv_divisor = total_value_base if total_value_base != 0 else Decimal("1")
-    for p in positions_summary:
-        p.weight = p.value_in_base_ccy.amount / tv_divisor
-
-    sim_state = SimulatedState(
-        total_value=Money(amount=total_value_base, currency=portfolio.base_currency),
-        cash_balances=portfolio.cash_balances,
-        positions=positions_summary,
-        allocation_by_asset_class=[
-            AllocationMetric(
-                key=k,
-                weight=v / tv_divisor,
-                value=Money(amount=v, currency=portfolio.base_currency),
-            )
-            for k, v in allocation_by_asset.items()
-        ],
-        allocation_by_instrument=[
-            AllocationMetric(
-                key=k,
-                weight=v / tv_divisor,
-                value=Money(amount=v, currency=portfolio.base_currency),
-            )
-            for k, v in allocation_by_instr.items()
-        ],
-        allocation=[
-            AllocationMetric(
-                key=k,
-                weight=v / tv_divisor,
-                value=Money(amount=v, currency=portfolio.base_currency),
-            )
-            for k, v in allocation_by_asset.items()
-        ],
-    )
-    return total_value_base, sim_state
-
-
-def _calculate_valuation(portfolio, market_data, shelf, dq_log, warns):
-    return _evaluate_portfolio_state(portfolio, market_data, shelf, dq_log, warns)
+from src.core.valuation import evaluate_portfolio_state, get_fx_rate
 
 
 def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
@@ -395,6 +259,7 @@ def _generate_intents(
 
 
 def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, total_val):
+    # 1. Calculate projected cash by currency
     proj = {c.currency: c.amount for c in portfolio.cash_balances}
     for i in intents:
         if i.intent_type == "SECURITY_TRADE":
@@ -402,6 +267,7 @@ def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, t
                 i.notional.amount if i.side == "SELL" else -i.notional.amount
             )
 
+    # 2. Generate FX Intents
     fx_map = {}
     for ccy, bal in proj.items():
         if ccy == portfolio.base_currency:
@@ -441,7 +307,7 @@ def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, t
                 )
             )
 
-    # Deps
+    # 3. Link Dependencies
     for i in intents:
         if i.intent_type == "SECURITY_TRADE" and i.side == "BUY" and i.notional.currency in fx_map:
             i.dependencies.append(fx_map[i.notional.currency])
@@ -451,9 +317,10 @@ def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, t
             if sell_ids[i.notional.currency] not in i.dependencies:
                 i.dependencies.append(sell_ids[i.notional.currency])
 
+    # 4. Sort (Sell -> FX -> Buy)
     intents.sort(key=lambda x: 0 if x.side == "SELL" else (1 if x.intent_type == "FX_SPOT" else 2))
 
-    # Simulation
+    # 5. Simulate After State
     after = deepcopy(portfolio)
 
     def g_pos(after_pf, i_id):
@@ -480,37 +347,41 @@ def _generate_fx_and_simulate(portfolio, market_data, shelf, intents, options, t
             g_cash(after, i.sell_currency).amount -= i.estimated_sell_amount
             g_cash(after, i.buy_currency).amount += i.buy_amount
 
-    _, state = _evaluate_portfolio_state(after, market_data, shelf, {}, [])
-    cw = next((a.weight for a in state.allocation_by_asset_class if a.key == "CASH"), Decimal("0"))
-    rules = [
-        RuleResult(
-            rule_id="CASH_BAND",
-            severity="SOFT",
-            status="FAIL" if cw > 0.05 else "PASS",
-            measured=cw,
-            threshold={"max": 0.05},
-            reason_code="BREACH" if cw > 0.05 else "OK",
-        )
-    ]
-    return (
-        intents,
-        state,
-        rules,
-        ("PENDING_REVIEW" if any(r.status == "FAIL" for r in rules) else "READY"),
-    )
+    # 6. Evaluate Rules (Rule Engine v2)
+    _, state = evaluate_portfolio_state(after, market_data, shelf, {}, [])
+    rules = RuleEngine.evaluate(state, options)
+
+    # 7. Determine Final Status based on Rule Results
+    # Hard Fail -> BLOCKED
+    # Soft Fail -> PENDING_REVIEW
+    # Pass -> READY
+    final_status = "READY"
+    if any(r.severity == "HARD" and r.status == "FAIL" for r in rules):
+        final_status = "BLOCKED"
+    elif any(r.severity == "SOFT" and r.status == "FAIL" for r in rules):
+        final_status = "PENDING_REVIEW"
+
+    return intents, state, rules, final_status
 
 
 def run_simulation(portfolio, market_data, model, shelf, options, request_hash="no_hash"):
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
     dq, warns, suppressed = {"price_missing": [], "fx_missing": [], "shelf_missing": []}, [], []
-    tv, before = _calculate_valuation(portfolio, market_data, shelf, dq, warns)
+
+    # 1. Valuation
+    tv, before = evaluate_portfolio_state(portfolio, market_data, shelf, dq, warns)
+
+    # 2. Universe
     eligible, excl, buy_l, sell_l, s_exc = _build_universe(
         model, portfolio, shelf, options, dq, before
     )
+
+    # 3. Targets
     trace, s3_stat = _generate_targets(
         model, eligible, buy_l, s_exc, options, tv, portfolio.base_currency
     )
 
+    # Short-circuit if Blocked
     if any(dq.values()) or s3_stat == "BLOCKED":
         return RebalanceResult(
             rebalance_run_id=run_id,
@@ -538,6 +409,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             ),
         )
 
+    # 4. Intents
     intents = _generate_intents(portfolio, market_data, trace, shelf, options, tv, dq, suppressed)
     if any(dq.values()):
         return RebalanceResult(
@@ -566,9 +438,12 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             ),
         )
 
+    # 5. Simulation & Rules
     intents, after, rules, f_stat = _generate_fx_and_simulate(
         portfolio, market_data, shelf, intents, options, tv
     )
+
+    # Propagate PENDING_REVIEW if Target stage was soft-failed
     if s3_stat == "PENDING_REVIEW" and f_stat == "READY":
         f_stat = "PENDING_REVIEW"
 
