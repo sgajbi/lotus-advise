@@ -305,7 +305,12 @@ def test_infeasible_constraint_no_recipients(base_portfolio):
     opts = EngineOptions(single_position_max_weight=Decimal("0.5"))
 
     result = run_simulation(base_portfolio, market_data, model, shelf, opts)
-    assert result.status == "BLOCKED"
+
+    # Was BLOCKED, now PENDING_REVIEW (Partial Allocation)
+    assert result.status == "PENDING_REVIEW"
+    # Verify allocation is 50% Equity, 50% Cash
+    eq_alloc = next(a for a in result.after_simulated.allocation_by_instrument if a.key == "EQ_1")
+    assert eq_alloc.weight == Decimal("0.5")
 
 
 def test_infeasible_constraint_secondary_breach(base_portfolio):
@@ -328,7 +333,14 @@ def test_infeasible_constraint_secondary_breach(base_portfolio):
     opts = EngineOptions(single_position_max_weight=Decimal("0.45"))
 
     result = run_simulation(base_portfolio, market_data, model, shelf, opts)
-    assert result.status == "BLOCKED"
+
+    assert result.status == "PENDING_REVIEW"
+
+    alloc_1 = next(a for a in result.after_simulated.allocation_by_instrument if a.key == "EQ_1")
+    alloc_2 = next(a for a in result.after_simulated.allocation_by_instrument if a.key == "EQ_2")
+
+    assert alloc_1.weight == Decimal("0.45")
+    assert alloc_2.weight == Decimal("0.45")
 
 
 def test_sell_intent_generation(base_options):
@@ -445,10 +457,6 @@ def test_all_assets_sell_only_blocks_run(base_portfolio, base_options):
 
 
 def test_dependency_sell_to_fund(base_options):
-    """
-    Verify that if StartCash < BuyNotional, the Buy intent links to the Sell intent
-    in the same currency.
-    """
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_dep",
         base_currency="SGD",
@@ -457,9 +465,6 @@ def test_dependency_sell_to_fund(base_options):
         ],
         cash_balances=[CashBalance(currency="SGD", amount=Decimal("1000.0"))],
     )
-    # Total ~11k. Target 50/50.
-    # Sell EQ_SELL (4500). Buy EQ_BUY (5500).
-    # Buy (5500) > StartCash (1000) -> Need Sell proceeds.
     model = ModelPortfolio(
         targets=[
             ModelTarget(instrument_id="EQ_SELL", weight=Decimal("0.5")),
@@ -479,7 +484,6 @@ def test_dependency_sell_to_fund(base_options):
 
     result = run_simulation(portfolio, market_data, model, shelf, base_options)
 
-    # Expect: SELL, BUY
     sell_intent = next(i for i in result.intents if i.side == "SELL")
     buy_intent = next(i for i in result.intents if i.side == "BUY")
 
@@ -487,17 +491,12 @@ def test_dependency_sell_to_fund(base_options):
 
 
 def test_implicit_sell_to_zero(base_options):
-    """
-    Scenario 112 Logic Check:
-    Held asset not in model -> Implicit Target 0% -> SELL Intent.
-    """
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_implicit",
         base_currency="SGD",
         positions=[Position(instrument_id="OLD_ASSET", quantity=Decimal("100"))],  # 1000 SGD
         cash_balances=[CashBalance(currency="SGD", amount=Decimal("0.0"))],
     )
-    # Model doesn't mention OLD_ASSET. Only NEW_ASSET.
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="NEW_ASSET", weight=Decimal("1.0"))])
     shelf = [
         ShelfEntry(instrument_id="OLD_ASSET", status="APPROVED"),
@@ -512,11 +511,43 @@ def test_implicit_sell_to_zero(base_options):
 
     result = run_simulation(portfolio, market_data, model, shelf, base_options)
 
-    # Check for SELL intent
     sells = [i for i in result.intents if i.instrument_id == "OLD_ASSET" and i.side == "SELL"]
     assert len(sells) == 1
     assert sells[0].quantity == Decimal("100")
 
-    # Check Target Trace for implicit entry
     trace = next(t for t in result.target.targets if t.instrument_id == "OLD_ASSET")
     assert "IMPLICIT_SELL_TO_ZERO" in trace.tags
+
+
+def test_soft_constraint_breach_within_cash_limits(base_portfolio, base_options):
+    """
+    Ensures that if Stage 3 (Constraints) returns PENDING_REVIEW, and Stage 5 (Rules)
+    returns READY, the final status is PENDING_REVIEW (propagated).
+
+    Setup:
+    - Target 100% Equity.
+    - Constraint Max 99%.
+    - Result: 99% Equity, 1% Cash.
+    - Rule: Cash < 5% is OK (READY).
+    - Expected Final: PENDING_REVIEW (due to partial fill).
+    """
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
+    shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_1", price=Decimal("100.0"), currency="SGD")]
+    )
+    # 1. Force partial fill
+    opts = EngineOptions(single_position_max_weight=Decimal("0.99"))
+
+    result = run_simulation(base_portfolio, market_data, model, shelf, opts)
+
+    # 2. Check Allocation: 99% Eq, 1% Cash
+    eq_alloc = next(a for a in result.after_simulated.allocation_by_instrument if a.key == "EQ_1")
+    assert eq_alloc.weight == Decimal("0.99")
+
+    # 3. Check Rule Result: Cash is 1%, limit is 5% -> PASS
+    cash_rule = next(r for r in result.rule_results if r.rule_id == "CASH_BAND")
+    assert cash_rule.status == "PASS"
+
+    # 4. Check Final Status: Must be PENDING_REVIEW (propagated from Stage 3)
+    assert result.status == "PENDING_REVIEW"

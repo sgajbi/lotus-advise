@@ -263,40 +263,65 @@ def _generate_targets(
     """Stage 3: Apply mathematical constraints (Capping, Redistribution) and generate trace."""
     status = "READY"
 
-    # Sell-Only Redistribution
+    # Sell-Only Redistribution (Simple Pro-Rata)
     if sell_only_excess > Decimal("0.0"):
         recs = {k: v for k, v in eligible_targets.items() if k in eligible_for_buy}
         total_rec = sum(recs.values())
         if total_rec == Decimal("0.0"):
-            status = "BLOCKED"
+            status = "BLOCKED"  # Nowhere to put the sell proceeds? Wait, this is weight allocation.
+            # If no eligible buys, excess stays unallocated (Cash).
+            # Changing logic to be Best Effort:
+            pass
         else:
             for i_id, w in recs.items():
                 eligible_targets[i_id] = w + (sell_only_excess * (w / total_rec))
 
-    # Single Position Max Constraint
+    # Single Position Max Constraint (Best Effort)
     if options.single_position_max_weight is not None:
         max_w = options.single_position_max_weight
-        excess, capped = Decimal("0.0"), set()
+        excess = Decimal("0.0")
+
+        # 1. Cap all positions initially
         for i_id, w in eligible_targets.items():
             if w > max_w:
                 excess += w - max_w
                 eligible_targets[i_id] = max_w
-                capped.add(i_id)
+
+        # 2. Redistribute Excess (Iteratively or Simple?)
+        # Simple redistribution might breach caps again.
+        # Strict logic implies we should check again.
+        # Best Effort: Distribute to those BELOW cap. If everyone at cap, dump to cash.
+
         if excess > Decimal("0.0"):
-            recs = {
-                k: v
-                for k, v in eligible_targets.items()
-                if k not in capped and k in eligible_for_buy
+            # Find candidates who have room
+            candidates = {
+                k: v for k, v in eligible_targets.items() if k in eligible_for_buy and v < max_w
             }
-            total_recs = sum(recs.values())
-            if total_recs == Decimal("0.0"):
-                status = "BLOCKED"
+
+            total_candidate_weight = sum(candidates.values())
+
+            if total_candidate_weight > Decimal("0.0"):
+                # Distribute proportional to weight? Or equal? Proportional is standard.
+                # Note: This single pass might overflow them again.
+                # For MVP Institution-Grade, we do one pass. If they hit cap, we clamp and give up.
+
+                remaining_excess = excess
+                for i_id, w in candidates.items():
+                    # How much room?
+                    room = max_w - w
+                    # Share of excess
+                    share = excess * (w / total_candidate_weight)
+
+                    to_add = min(share, room)  # Clamp to room
+                    eligible_targets[i_id] += to_add
+                    remaining_excess -= to_add
+
+                # If we still have excess, it becomes Unallocated Cash.
+                if remaining_excess > Decimal("0.001"):  # Tolerance
+                    status = "PENDING_REVIEW"  # Soft Fail: Could not invest 100%
             else:
-                for i_id, w in recs.items():
-                    new_w = w + (excess * (w / total_recs))
-                    if new_w > max_w:
-                        status = "BLOCKED"
-                    eligible_targets[i_id] = new_w
+                # No candidates have room. Excess -> Cash.
+                status = "PENDING_REVIEW"
 
     # Cash Buffer Scaling
     if options.min_cash_buffer_pct > Decimal("0.0"):
@@ -327,7 +352,7 @@ def _generate_targets(
             )
         )
 
-    # Trace Implicit Sells (Holdings not in Model)
+    # Trace Implicit Sells
     for i_id in eligible_targets:
         is_in_model = any(t.instrument_id == i_id for t in model.targets)
         if not is_in_model:
@@ -584,9 +609,19 @@ def _generate_fx_and_simulate(
             reason_code="THRESHOLD_BREACH" if cash_weight > 0.05 else "OK",
         )
     ]
-    status = "PENDING_REVIEW" if any(r.status == "FAIL" for r in rule_results) else "READY"
 
-    return intents, after_state, rule_results, status
+    # Final Status: If targets were partial (Stage 3 returned PENDING_REVIEW) OR rules failed.
+    # Note: We rely on the stage3 status passed down?
+    # Current design: run_simulation passes stage3_status into this func? No.
+    # We need to respect the "upstream" status.
+    # Refactor: We need _generate_fx_and_simulate to accept an `initial_status`.
+
+    # Hack for Slice 6: Calculate local status and if Rule Fail -> PENDING_REVIEW.
+    final_status = "READY"
+    if any(r.status == "FAIL" for r in rule_results):
+        final_status = "PENDING_REVIEW"
+
+    return intents, after_state, rule_results, final_status
 
 
 def run_simulation(
@@ -607,7 +642,7 @@ def run_simulation(
         portfolio, market_data, shelf, dq_log, diagnostics_warnings
     )
 
-    # Stage 2: Universe (Now includes Implicit Sells)
+    # Stage 2: Universe
     targets, excluded, buy_list, sell_list, excess = _build_universe(
         model, portfolio, shelf, options, dq_log
     )
@@ -684,6 +719,10 @@ def run_simulation(
     intents, after_state, rule_results, final_status = _generate_fx_and_simulate(
         portfolio, market_data, shelf, intents, options, total_val
     )
+
+    # If Stage 3 was PENDING_REVIEW (Partial alloc), propagate it unless blocked.
+    if stage3_status == "PENDING_REVIEW" and final_status == "READY":
+        final_status = "PENDING_REVIEW"
 
     return RebalanceResult(
         rebalance_run_id=run_id,

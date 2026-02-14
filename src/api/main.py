@@ -1,9 +1,11 @@
-import hashlib
-import json
-from typing import Dict, List, Optional, Tuple
+"""
+FILE: src/api/main.py
+"""
 
-from fastapi import FastAPI, Header
-from fastapi.responses import JSONResponse
+import logging
+from typing import Annotated, List, Optional
+
+from fastapi import Depends, FastAPI, Header, Response, status
 from pydantic import BaseModel
 
 from src.core.engine import run_simulation
@@ -16,15 +18,21 @@ from src.core.models import (
     ShelfEntry,
 )
 
-app = FastAPI(title="DPM Rebalance Simulation API (RFC-0003)")
+app = FastAPI(title="DPM Rebalance Engine", version="0.1.0")
 
-MOCK_DB_RUNS: Dict[str, dict] = {}
-# Maps Idempotency-Key -> (RequestHash, RebalanceRunID)
-MOCK_DB_IDEMPOTENCY: Dict[str, Tuple[str, str]] = {}
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
+# --- Dependencies ---
+async def get_db_session():
+    """Stub for Database Session (RFC-0005). To be replaced with actual AsyncPG session."""
+    yield None
+
+
+# --- Models ---
 class RebalanceRequest(BaseModel):
-    model_config = {"protected_namespaces": ()}
     portfolio_snapshot: PortfolioSnapshot
     market_data_snapshot: MarketDataSnapshot
     model_portfolio: ModelPortfolio
@@ -32,51 +40,38 @@ class RebalanceRequest(BaseModel):
     options: EngineOptions
 
 
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
-
-
-@app.post("/rebalance/simulate", response_model=RebalanceResult)
+# --- Endpoints ---
+@app.post(
+    "/rebalance/simulate",
+    response_model=RebalanceResult,
+    status_code=status.HTTP_200_OK,
+    summary="Simulate a Portfolio Rebalance",
+)
 async def simulate_rebalance(
-    payload: RebalanceRequest,
-    idempotency_key: str = Header(..., alias="Idempotency-Key"),
-    x_correlation_id: Optional[str] = Header(None, alias="X-Correlation-Id"),
-):
-    payload_json_str = payload.model_dump_json(exclude_none=True)
-    request_hash = f"sha256:{hashlib.sha256(payload_json_str.encode('utf-8')).hexdigest()}"
-    correlation_id = x_correlation_id or "c_generated_uuid"
+    request: RebalanceRequest,
+    response: Response,
+    idempotency_key: Annotated[Optional[str], Header(alias="Idempotency-Key")] = None,
+    correlation_id: Annotated[Optional[str], Header(alias="X-Correlation-Id")] = None,
+    db: Annotated[None, Depends(get_db_session)] = None,
+) -> RebalanceResult:
+    """
+    Core calculation endpoint. Stateless domain logic.
+    """
+    logger.info(f"Simulating rebalance. CID={correlation_id} Idempotency={idempotency_key}")
 
-    if idempotency_key in MOCK_DB_IDEMPOTENCY:
-        stored_hash, stored_run_id = MOCK_DB_IDEMPOTENCY[idempotency_key]
-        if stored_hash != request_hash:
-            return JSONResponse(
-                status_code=409,
-                content={
-                    "type": "https://api.bank.com/errors/idempotency/conflict",
-                    "title": "Idempotency Key Conflict",
-                    "status": 409,
-                    "error_code": "IDEMPOTENCY_CONFLICT",
-                    "detail": "Key used with a different request payload.",
-                    "correlation_id": correlation_id,
-                },
-            )
-        # Return cached result
-        if stored_run_id in MOCK_DB_RUNS:
-            return MOCK_DB_RUNS[stored_run_id]
-
+    # Run the Domain Engine
     result = run_simulation(
-        portfolio=payload.portfolio_snapshot,
-        market_data=payload.market_data_snapshot,
-        model=payload.model_portfolio,
-        shelf=payload.shelf_entries,
-        options=payload.options,
-        request_hash=request_hash,
+        portfolio=request.portfolio_snapshot,
+        market_data=request.market_data_snapshot,
+        model=request.model_portfolio,
+        shelf=request.shelf_entries,
+        options=request.options,
+        request_hash=idempotency_key or "no_key",  # Pass key as hash for lineage
     )
-    result.correlation_id = correlation_id
-    result_dict = json.loads(result.model_dump_json())
 
-    MOCK_DB_RUNS[result.rebalance_run_id] = result_dict
-    MOCK_DB_IDEMPOTENCY[idempotency_key] = (request_hash, result.rebalance_run_id)
+    # Map Domain Status to HTTP Status Codes if needed (RFC-7807)
+    # RFC-0003 Spec: "BLOCKED" is a valid 200 OK domain result.
+    if result.status == "BLOCKED":
+        logger.warning(f"Run blocked. Diagnostics: {result.diagnostics}")
 
     return result
