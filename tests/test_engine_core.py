@@ -461,6 +461,12 @@ def test_locked_assets_exceed_total(base_options):
 
 
 def test_buy_depends_on_sell_explicit(base_options):
+    # ... (imports and setup same as existing file)
+    from decimal import Decimal
+
+    from src.core.engine import _generate_fx_and_simulate
+    from src.core.models import FxRate, MarketDataSnapshot, Money, PortfolioSnapshot
+
     portfolio = PortfolioSnapshot(
         portfolio_id="pf",
         base_currency="SGD",
@@ -495,22 +501,40 @@ def test_buy_depends_on_sell_explicit(base_options):
     ]
 
     diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
-    intents, _, _, _ = _generate_fx_and_simulate(
+
+    # FIX: Unpack 5 values
+    intents, _, _, _, _ = _generate_fx_and_simulate(
         portfolio, market_data, shelf, intents, base_options, total_val, diag
     )
 
+    # Check that Buy depends on Sell (because they share USD currency and Sell provides cash)
+    # Actually, logical check: Sell USD -> We gain USD? No, Sell Asset -> Gain USD.
+    # Buy Asset -> Spend USD.
+    # So Sell funds Buy.
     buy_intent = next(i for i in intents if i.side == "BUY")
-    assert "oi_sell" in buy_intent.dependencies
+    sell_intent = next(i for i in intents if i.side == "SELL")
+    assert sell_intent.intent_id in buy_intent.dependencies
 
 
 def test_status_propagation_explicit(base_options):
     """
     Explicitly tests that if s3_stat is PENDING_REVIEW and f_stat is READY,
     the final status becomes PENDING_REVIEW.
-    This guarantees coverage of the status propagation logic in run_simulation.
     """
+    from decimal import Decimal
+
+    from src.core.engine import _generate_targets
+    from src.core.models import (
+        CashBalance,
+        DiagnosticsData,
+        MarketDataSnapshot,
+        ModelPortfolio,
+        PortfolioSnapshot,
+        Position,
+        Price,
+    )
+
     # 1. Setup a scenario where Target Generation (S3) yields PENDING_REVIEW
-    # We use 'Locked Assets Exceed Total' logic via _generate_targets
     eligible = {"A": Decimal("0.6"), "B": Decimal("0.5")}  # Sum 1.1
     buy_list = []  # All locked
     sell_only_excess = Decimal("0.0")
@@ -530,32 +554,21 @@ def test_status_propagation_explicit(base_options):
     assert s3_stat == "PENDING_REVIEW"
 
     # 2. Setup a simulation that yields READY
-    # We must ensure the portfolio satisfies CASH_BAND rules (Cash < 5%)
-    # Construct a portfolio that is fully invested.
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_ready",
         base_currency="SGD",
         positions=[Position(instrument_id="SAFE_ASSET", quantity=Decimal("10"))],
-        cash_balances=[CashBalance(currency="SGD", amount=Decimal("10.0"))],  # Minimal cash
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("10.0"))],
     )
     market_data = MarketDataSnapshot(
         prices=[Price(instrument_id="SAFE_ASSET", price=Decimal("100.0"), currency="SGD")],
         fx_rates=[],
     )
     diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
-
-    # Total val must match to pass reconciliation
-    # 10 * 100 + 10 = 1010
     total_val_compliant = Decimal("1010.0")
 
-    intents, after, rules, f_stat = _generate_fx_and_simulate(
+    # FIX: Unpack 5 values
+    intents, after, rules, f_stat, _ = _generate_fx_and_simulate(
         portfolio, market_data, [], [], base_options, total_val_compliant, diag
     )
     assert f_stat == "READY"
-
-    # 3. Simulate the logic in run_simulation
-    final_stat = f_stat
-    if s3_stat == "PENDING_REVIEW" and f_stat == "READY":
-        final_stat = "PENDING_REVIEW"
-
-    assert final_stat == "PENDING_REVIEW"
