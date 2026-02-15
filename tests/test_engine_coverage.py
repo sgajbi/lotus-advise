@@ -65,3 +65,25 @@ def test_coverage_holding_missing_shelf_with_market_data():
 
     # Ensure it's not sold
     assert not any(i.instrument_id == "DELISTED" for i in result.intents)
+
+
+def test_coverage_fx_sweep_missing_rate():
+    """
+    Hits engine.py: _generate_fx_and_simulate -> if options.block_on_missing_fx -> return BLOCKED
+    Scenario: Cash Balance in USD (needs sweep), no Trade Intents, no USD/SGD rate.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_sweep",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[CashBalance(currency="USD", amount=Decimal("100.0"))],
+    )
+    # No trades, just a pure sweep scenario
+    model = ModelPortfolio(targets=[])
+    shelf = []
+    market_data = MarketDataSnapshot(prices=[], fx_rates=[])  # No FX rates
+
+    result = run_simulation(portfolio, market_data, model, shelf, EngineOptions())
+
+    assert result.status == "BLOCKED"
+    assert "USD/SGD" in result.diagnostics.data_quality["fx_missing"]

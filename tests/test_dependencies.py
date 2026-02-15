@@ -99,26 +99,6 @@ def test_dependency_sell_to_fund_same_currency():
 def test_dependency_multi_leg_chain():
     """
     Complex: Sell EUR -> SGD -> Buy USD.
-    1. Sell EUR Asset (Generates EUR)
-    2. FX Sell EUR / Buy SGD (Sweep)
-    3. FX Sell SGD / Buy USD (Funding)
-    4. Buy USD Asset
-
-    Note: Current Engine aggregates cash.
-    It sees: +EUR (from sale), -USD (for buy).
-    It generates: FX Sell EUR, FX Buy USD.
-
-    Dependencies:
-    - FX Sell EUR depends on Security Sell EUR? (Ideally yes, but engine uses net flow)
-      Actually, engine logic:
-      `sell_ids` map contains Security Sells.
-      FX generation is based on `proj` (projected balances).
-
-    Let's check what the engine currently links.
-    RFC Requirement: "Security Trade Buy ... list FX intent".
-    The engine implementation links FX->Security Buy.
-    It DOES NOT currently link Security Sell -> FX Sell (Sweep).
-    This is acceptable for RFC-0006B as long as Security Buy -> FX Buy is strict.
     """
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_chain",
@@ -156,7 +136,7 @@ def test_dependency_multi_leg_chain():
     result = run_simulation(portfolio, market_data, model, shelf, EngineOptions())
 
     # Intents: Sell EUR_ASSET, Buy USD_ASSET, FX Sell EUR, FX Buy USD
-    sell_sec = next(i for i in result.intents if i.instrument_id == "EUR_ASSET")
+    # Fixed F841: removed unused assignment 'sell_sec'
     buy_sec = next(i for i in result.intents if i.instrument_id == "USD_ASSET")
 
     fx_buy_usd = next(
@@ -166,9 +146,3 @@ def test_dependency_multi_leg_chain():
     # Verify strict upstream dependency
     # Buy USD Asset MUST depend on FX Buy USD
     assert fx_buy_usd.intent_id in buy_sec.dependencies
-
-    # The Sell EUR Asset does NOT necessarily have to be linked to the FX Sell EUR in this version
-    # because the FX is a "Sweep".
-    # But checking if the FX Buy USD depends on anything?
-    # Currently FX trades don't depend on other FX trades in this engine.
-    # This is fine for Phase 1.
