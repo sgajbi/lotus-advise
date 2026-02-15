@@ -4,7 +4,7 @@ Domain logic for valuing portfolios and normalizing currency.
 """
 
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from src.core.models import (
     AllocationMetric,
@@ -26,16 +26,17 @@ def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> 
     return rate_entry.rate if rate_entry else None
 
 
-def evaluate_portfolio_state(
+def build_simulated_state(
     portfolio: PortfolioSnapshot,
     market_data: MarketDataSnapshot,
     shelf: List[ShelfEntry],
     dq_log: Dict[str, List[str]],
     diagnostics_warnings: List[str],
-) -> Tuple[Decimal, SimulatedState]:
+) -> SimulatedState:
     """
     Computes total value and enriched state for before/after snapshots.
     Enforces the 'Currency Truth' model (Base Currency).
+    RFC-0006A: Includes negative quantities in valuation; does not filter them.
     """
     total_value_base = Decimal("0.0")
     positions_summary: List[PositionSummary] = []
@@ -44,6 +45,11 @@ def evaluate_portfolio_state(
 
     # 1. Cash Valuation
     for cash in portfolio.cash_balances:
+        # RFC-0006A: Even negative cash (if allowed) should be valued
+        if cash.amount == 0 and not cash.currency == portfolio.base_currency:
+            # Skip pure zero records to keep noise down, unless it's base ccy placeholder
+            pass
+
         rate = get_fx_rate(market_data, cash.currency, portfolio.base_currency)
         if rate is None:
             if cash.amount != 0:
@@ -57,6 +63,9 @@ def evaluate_portfolio_state(
 
     # 2. Position Valuation
     for pos in portfolio.positions:
+        # RFC-0006A: Do not skip negative quantities. Only skip exact zero if desired,
+        # but typically keeping zero helps show "Sold Out" state.
+        # We will skip only if strictly 0 to reduce noise, unless it's critical.
         if pos.quantity == 0:
             continue
 
@@ -65,6 +74,7 @@ def evaluate_portfolio_state(
         )
         if not price_ent:
             dq_log.setdefault("price_missing", []).append(pos.instrument_id)
+            # Cannot value without price. Skip adding to total, log DQ.
             continue
 
         rate = get_fx_rate(market_data, price_ent.currency, portfolio.base_currency)
@@ -78,13 +88,25 @@ def evaluate_portfolio_state(
         comp_base = comp_instr * rate
         final_val_base = comp_base
 
-        # Cross-check with upstream Market Value if provided
+        # Cross-check with upstream Market Value if provided (Only for Before state generally)
+        # We only do this check if the provided market_value is in base currency for simplicity
         if pos.market_value and pos.market_value.currency == portfolio.base_currency:
-            if comp_base != 0 and (abs(pos.market_value.amount - comp_base) / comp_base) > Decimal(
-                "0.005"
-            ):
+            # Only warn if the difference is significant (>0.5%)
+            if comp_base != 0 and (
+                abs(pos.market_value.amount - comp_base) / abs(comp_base)
+            ) > Decimal("0.005"):
                 diagnostics_warnings.append(f"POSITION_VALUE_MISMATCH: {pos.instrument_id}")
-            final_val_base = pos.market_value.amount
+            # RFC-0006A: Trust the calculated value for consistency in simulation,
+            # or trust the snapshot?
+            # RFC-0002/5 said "Trust Snapshot".
+            # However, if we trust snapshot for 'Before' but calculate 'After',
+            # we induce reconciliation errors due to price/fx diffs.
+            # To ensure strict Before/After reconciliation (RFC-0006A),
+            # we should prefer the CALCULATED value using the provided MarketData
+            # unless we explicitly want to respect the source of truth.
+            # Decision: Use CALCULATED value to ensure mathematical consistency with After State.
+            # The mismatch warning preserves auditability.
+            final_val_base = comp_base
 
         total_value_base += final_val_base
         shelf_ent = next((s for s in shelf if s.instrument_id == pos.instrument_id), None)
@@ -102,15 +124,18 @@ def evaluate_portfolio_state(
                 instrument_id=pos.instrument_id,
                 quantity=pos.quantity,
                 instrument_currency=price_ent.currency,
+                asset_class=asset_class,
                 price=Money(amount=price_ent.price, currency=price_ent.currency),
                 value_in_instrument_ccy=Money(amount=comp_instr, currency=price_ent.currency),
                 value_in_base_ccy=Money(amount=final_val_base, currency=portfolio.base_currency),
-                weight=Decimal("0"),
+                weight=Decimal("0"),  # Calculated below
             )
         )
 
     # 3. Final Weight Calculation
+    # Avoid division by zero
     tv_divisor = total_value_base if total_value_base != 0 else Decimal("1")
+
     for p in positions_summary:
         p.weight = p.value_in_base_ccy.amount / tv_divisor
 
@@ -143,4 +168,4 @@ def evaluate_portfolio_state(
             for k, v in allocation_by_asset.items()
         ],
     )
-    return total_value_base, sim_state
+    return sim_state

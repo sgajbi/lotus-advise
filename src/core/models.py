@@ -93,6 +93,7 @@ class PositionSummary(BaseModel):
     instrument_id: str
     quantity: Decimal
     instrument_currency: str
+    asset_class: str = "UNKNOWN"
     price: Optional[Money] = None
     value_in_instrument_ccy: Money
     value_in_base_ccy: Money

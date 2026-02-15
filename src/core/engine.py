@@ -24,7 +24,7 @@ from src.core.models import (
     UniverseCoverage,
     UniverseData,
 )
-from src.core.valuation import evaluate_portfolio_state, get_fx_rate
+from src.core.valuation import build_simulated_state, get_fx_rate
 
 
 def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
@@ -361,7 +361,11 @@ def _generate_fx_and_simulate(
             g_cash(after, i.buy_currency).amount += i.buy_amount
 
     # 6. Generate State & Valuation
-    tv_after, state = evaluate_portfolio_state(after, market_data, shelf, {}, [])
+    # Use new builder logic
+    state = build_simulated_state(
+        after, market_data, shelf, diagnostics.data_quality, diagnostics.warnings
+    )
+    tv_after = state.total_value.amount
 
     # 7. Safety Guard: Negative Holdings Check
     shorting_breach = False
@@ -424,8 +428,10 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
     dq, warns, suppressed = {"price_missing": [], "fx_missing": [], "shelf_missing": []}, [], []
 
-    # 1. Valuation
-    tv, before = evaluate_portfolio_state(portfolio, market_data, shelf, dq, warns)
+    # 1. Valuation (Before)
+    # Use new builder logic
+    before = build_simulated_state(portfolio, market_data, shelf, dq, warns)
+    tv = before.total_value.amount
 
     # 2. Universe
     eligible, excl, buy_l, sell_l, s_exc = _build_universe(

@@ -7,17 +7,21 @@ from decimal import Decimal
 
 from src.core.engine import run_simulation
 from src.core.models import (
+    CashBalance,
     FxRate,
     MarketDataSnapshot,
     ModelPortfolio,
     ModelTarget,
     Money,
+    PortfolioSnapshot,
     Position,
     Price,
     ShelfEntry,
 )
+from src.core.valuation import build_simulated_state
 
 
+# ... (Existing block tests kept as is, they are high value) ...
 def test_missing_price_blocks_run(base_portfolio, base_options):
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
@@ -56,10 +60,6 @@ def test_missing_fx_blocks_run(base_portfolio, base_options):
 
 
 def test_valuation_missing_data_branches(base_options):
-    portfolio = base_options  # Dummy var for fixture
-    # Re-using the logic from the big file, creating specific portfolio here
-    from src.core.models import CashBalance, PortfolioSnapshot
-
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_val_test",
         base_currency="SGD",
@@ -100,13 +100,6 @@ def test_valuation_missing_data_branches(base_options):
 
 
 def test_valuation_mismatch_warning(base_options):
-    """
-    RFC-0004 4.3.3: If snapshot MV exists but differs from computed MV > 0.5%, warn.
-    RFC-0005 Update: If this mismatch causes 'phantom weight' that leads to overselling
-    physical units, the engine MUST Block.
-    """
-    from src.core.models import PortfolioSnapshot
-
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_mismatch",
         base_currency="SGD",
@@ -119,7 +112,6 @@ def test_valuation_mismatch_warning(base_options):
         ],
         cash_balances=[],
     )
-    # Computed: 10 * 100 = 1000. Snapshot: 2000. Diff 100%.
     market_data = MarketDataSnapshot(
         prices=[Price(instrument_id="EQ_MISMATCH", price=Decimal("100.0"), currency="SGD")]
     )
@@ -128,22 +120,12 @@ def test_valuation_mismatch_warning(base_options):
 
     result = run_simulation(portfolio, market_data, model, shelf, base_options)
 
-    # Explanation:
-    # Engine trusts Snapshot(2000). Target(0). Intent to Sell 2000 SGD value.
-    # At Price(100), Sell Qty = 20.
-    # Holding = 10.
-    # Result = -10.
-    # Outcome: BLOCKED (Negative Holding Guard).
     assert result.status == "BLOCKED"
-
-    # Verify the warning is still present (Audit trail)
     assert len(result.diagnostics.warnings) >= 1
     assert "POSITION_VALUE_MISMATCH" in result.diagnostics.warnings[0]
 
 
 def test_valuation_market_value_non_base(base_options):
-    from src.core.models import PortfolioSnapshot
-
     portfolio = PortfolioSnapshot(
         portfolio_id="pf_non_base_mv",
         base_currency="SGD",
@@ -156,7 +138,6 @@ def test_valuation_market_value_non_base(base_options):
         ],
         cash_balances=[],
     )
-    # Price: 10 USD. Qty 10. Computed = 100 USD. FX = 1.35. Total = 135 SGD.
     market_data = MarketDataSnapshot(
         prices=[Price(instrument_id="EQ_USD_MV", price=Decimal("10.0"), currency="USD")],
         fx_rates=[FxRate(pair="USD/SGD", rate=Decimal("1.35"))],
@@ -166,7 +147,37 @@ def test_valuation_market_value_non_base(base_options):
 
     result = run_simulation(portfolio, market_data, model, shelf, base_options)
 
-    # Implicit sell to zero
     assert result.status == "PENDING_REVIEW"
+    # Now that we use calculated value, 10 qty * 10 px * 1.35 fx = 135.0
+    # Original test expected 135.0 so this is consistent.
     assert result.before.total_value.amount == Decimal("135.0")
     assert result.before.positions[0].value_in_base_ccy.amount == Decimal("135.0")
+
+
+def test_build_simulated_state_negative_qty():
+    """Verifies that negative quantities are correctly valued and not filtered."""
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_neg_test",
+        base_currency="SGD",
+        positions=[
+            Position(instrument_id="SHORT_EQ", quantity=Decimal("-10")),
+        ],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("2000.0"))],
+    )
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="SHORT_EQ", price=Decimal("100.0"), currency="SGD")],
+        fx_rates=[],
+    )
+    shelf = [ShelfEntry(instrument_id="SHORT_EQ", status="APPROVED", asset_class="EQUITY")]
+
+    dq = {}
+    warns = []
+
+    state = build_simulated_state(portfolio, market_data, shelf, dq, warns)
+
+    # -10 * 100 = -1000 val. Total = 2000 - 1000 = 1000.
+    assert state.total_value.amount == Decimal("1000.0")
+    assert len(state.positions) == 1
+    assert state.positions[0].quantity == Decimal("-10")
+    assert state.positions[0].value_in_base_ccy.amount == Decimal("-1000.0")
+    assert state.positions[0].asset_class == "EQUITY"
