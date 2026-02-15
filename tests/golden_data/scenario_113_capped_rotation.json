@@ -137,6 +137,7 @@
           "instrument_id": "USD_OLD",
           "quantity": "100",
           "instrument_currency": "USD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "USD"
@@ -393,6 +394,7 @@
           "instrument_id": "USD_NEW",
           "quantity": "30",
           "instrument_currency": "USD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "USD"
@@ -411,6 +413,7 @@
           "instrument_id": "EUR_NEW",
           "quantity": "28",
           "instrument_currency": "EUR",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "EUR"
@@ -480,6 +483,25 @@
           }
         }
       ]
+    },
+    "reconciliation": {
+      "before_total_value": {
+        "amount": "15000.00",
+        "currency": "SGD"
+      },
+      "after_total_value": {
+        "amount": "15000.00000",
+        "currency": "SGD"
+      },
+      "delta": {
+        "amount": "0.00000",
+        "currency": "SGD"
+      },
+      "tolerance": {
+        "amount": "8.000000",
+        "currency": "SGD"
+      },
+      "status": "OK"
     },
     "rule_results": [
       {

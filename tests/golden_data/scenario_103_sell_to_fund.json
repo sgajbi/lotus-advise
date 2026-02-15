@@ -74,7 +74,7 @@
   "expected_outputs": {
     "rebalance_run_id": "rr_golden",
     "correlation_id": "c_none",
-    "status": "READY",
+    "status": "BLOCKED",
     "before": {
       "total_value": {
         "amount": "100100.00",
@@ -93,6 +93,7 @@
           "instrument_id": "BOND_SGD",
           "quantity": "1000",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "SGD"
@@ -261,6 +262,7 @@
           "instrument_id": "BOND_SGD",
           "quantity": "501",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "SGD"
@@ -279,6 +281,7 @@
           "instrument_id": "EQ_SGD",
           "quantity": "1001",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "50.0",
             "currency": "SGD"
@@ -349,6 +352,7 @@
         }
       ]
     },
+    "reconciliation": null,
     "rule_results": [
       {
         "rule_id": "CASH_BAND",
@@ -382,13 +386,26 @@
         },
         "reason_code": "OK",
         "remediation_hint": null
+      },
+      {
+        "rule_id": "INSUFFICIENT_CASH",
+        "severity": "HARD",
+        "status": "FAIL",
+        "measured": "-1",
+        "threshold": {
+          "min": "0"
+        },
+        "reason_code": "CASH_BALANCE_NEGATIVE",
+        "remediation_hint": "Ensure sufficient funding or sell orders."
       }
     ],
     "explanation": {
-      "summary": "READY"
+      "summary": "BLOCKED"
     },
     "diagnostics": {
-      "warnings": [],
+      "warnings": [
+        "SIMULATION_SAFETY_CHECK_FAILED"
+      ],
       "suppressed_intents": [],
       "data_quality": {
         "price_missing": [],

@@ -93,6 +93,7 @@
           "instrument_id": "EQ_SGD_1",
           "quantity": "100",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "SGD"
@@ -265,6 +266,7 @@
           "instrument_id": "EQ_SGD_1",
           "quantity": "55",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "SGD"
@@ -283,6 +285,7 @@
           "instrument_id": "EQ_SGD_2",
           "quantity": "109",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "50.0",
             "currency": "SGD"
@@ -352,6 +355,25 @@
           }
         }
       ]
+    },
+    "reconciliation": {
+      "before_total_value": {
+        "amount": "11000.00",
+        "currency": "SGD"
+      },
+      "after_total_value": {
+        "amount": "11000.00",
+        "currency": "SGD"
+      },
+      "delta": {
+        "amount": "0.00",
+        "currency": "SGD"
+      },
+      "tolerance": {
+        "amount": "6.000000",
+        "currency": "SGD"
+      },
+      "status": "OK"
     },
     "rule_results": [
       {

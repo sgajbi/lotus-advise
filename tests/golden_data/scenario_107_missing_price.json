@@ -157,6 +157,7 @@
         }
       ]
     },
+    "reconciliation": null,
     "rule_results": [
       {
         "rule_id": "CASH_BAND",

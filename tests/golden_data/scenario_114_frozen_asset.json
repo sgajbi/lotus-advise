@@ -89,6 +89,7 @@
           "instrument_id": "RUSSIA_ETF",
           "quantity": "100",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "SGD"
@@ -242,6 +243,7 @@
           "instrument_id": "RUSSIA_ETF",
           "quantity": "100",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "SGD"
@@ -260,6 +262,7 @@
           "instrument_id": "US_BOND",
           "quantity": "100",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "SGD"
@@ -329,6 +332,25 @@
           }
         }
       ]
+    },
+    "reconciliation": {
+      "before_total_value": {
+        "amount": "20000.000",
+        "currency": "SGD"
+      },
+      "after_total_value": {
+        "amount": "20000.000",
+        "currency": "SGD"
+      },
+      "delta": {
+        "amount": "0.000",
+        "currency": "SGD"
+      },
+      "tolerance": {
+        "amount": "10.5000000",
+        "currency": "SGD"
+      },
+      "status": "OK"
     },
     "rule_results": [
       {

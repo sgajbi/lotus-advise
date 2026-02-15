@@ -191,6 +191,7 @@
           "instrument_id": "BIG_ASSET",
           "quantity": "99",
           "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
           "price": {
             "amount": "100.0",
             "currency": "SGD"
@@ -252,6 +253,25 @@
           }
         }
       ]
+    },
+    "reconciliation": {
+      "before_total_value": {
+        "amount": "10000.00",
+        "currency": "SGD"
+      },
+      "after_total_value": {
+        "amount": "10000.00",
+        "currency": "SGD"
+      },
+      "delta": {
+        "amount": "0.00",
+        "currency": "SGD"
+      },
+      "tolerance": {
+        "amount": "5.500000",
+        "currency": "SGD"
+      },
+      "status": "OK"
     },
     "rule_results": [
       {
