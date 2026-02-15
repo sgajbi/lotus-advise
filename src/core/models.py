@@ -74,22 +74,17 @@ class EngineOptions(BaseModel):
     fx_buffer_pct: Decimal = Decimal("0.01")
     single_position_max_weight: Optional[Decimal] = None
     block_on_missing_prices: bool = True
-    # New: Safety buffer to ensure we don't spend 100% of cash (leaving room for fees/slippage)
     min_cash_buffer_pct: Decimal = Decimal("0.0")
 
 
 # --- Expanded Outputs (RFC-0003 Audit Bundle) ---
 class AllocationMetric(BaseModel):
-    """Generic allocation bucket (Asset Class or Instrument)."""
-
     key: str
     weight: Decimal
     value: Money
 
 
 class PositionSummary(BaseModel):
-    """Enriched position data with valuation in base currency."""
-
     instrument_id: str
     quantity: Decimal
     instrument_currency: str
@@ -106,7 +101,6 @@ class SimulatedState(BaseModel):
     positions: List[PositionSummary] = Field(default_factory=list)
     allocation_by_asset_class: List[AllocationMetric] = Field(default_factory=list)
     allocation_by_instrument: List[AllocationMetric] = Field(default_factory=list)
-    # Legacy field for backward compatibility (mapped to asset class)
     allocation: List[AllocationMetric] = Field(default_factory=list)
 
 
@@ -130,21 +124,17 @@ class UniverseData(BaseModel):
 
 
 class TargetInstrument(BaseModel):
-    """Tracks the transition from model-requested weight to final calculated weight."""
-
     model_config = {"protected_namespaces": ()}
     instrument_id: str
-    model_weight: Decimal  # Requested weight from the Strategy
-    final_weight: Decimal  # Actual weight after Shelf/Constraint checks
-    final_value: Money  # Monetary value of the final weight
+    model_weight: Decimal
+    final_weight: Decimal
+    final_value: Money
     tags: List[str] = Field(default_factory=list)
 
 
 class TargetData(BaseModel):
-    """Captures the outcome of target generation with full lineage."""
-
     target_id: str
-    strategy: Dict[str, Any]  # Strategy metadata
+    strategy: Dict[str, Any]
     targets: List[TargetInstrument]
 
 
@@ -157,20 +147,14 @@ class OrderIntent(BaseModel):
     intent_id: str
     intent_type: Literal["SECURITY_TRADE", "FX_SPOT"] = "SECURITY_TRADE"
     side: Literal["BUY", "SELL", "BUY_BASE_SELL_QUOTE", "SELL_BASE_BUY_QUOTE"]
-
-    # Security Fields
     instrument_id: Optional[str] = None
     quantity: Optional[Decimal] = None
     notional: Optional[Money] = None
-
-    # FX Fields
     pair: Optional[str] = None
     buy_currency: Optional[str] = None
     buy_amount: Optional[Decimal] = None
     sell_currency: Optional[str] = None
     estimated_sell_amount: Optional[Decimal] = None
-
-    # Metadata
     dependencies: List[str] = Field(default_factory=list)
     rationale: Optional[IntentRationale] = None
 
@@ -186,17 +170,13 @@ class RuleResult(BaseModel):
 
 
 class SuppressedIntent(BaseModel):
-    """Captured trades dropped due to min_notional or dust thresholds."""
-
     instrument_id: str
-    reason: str  # e.g., "BELOW_MIN_NOTIONAL"
+    reason: str
     intended_notional: Money
     threshold: Money
 
 
 class DiagnosticsData(BaseModel):
-    """Granular reporting of data quality and processing outcomes."""
-
     warnings: List[str] = Field(default_factory=list)
     suppressed_intents: List[SuppressedIntent] = Field(default_factory=list)
     data_quality: Dict[str, List[str]]
@@ -206,6 +186,16 @@ class LineageData(BaseModel):
     portfolio_snapshot_id: str
     market_data_snapshot_id: str
     request_hash: str
+
+
+class Reconciliation(BaseModel):
+    """Proof of value conservation (Before vs After)."""
+
+    before_total_value: Money
+    after_total_value: Money
+    delta: Money
+    tolerance: Money
+    status: Literal["OK", "MISMATCH"]
 
 
 class RebalanceResult(BaseModel):
@@ -219,6 +209,7 @@ class RebalanceResult(BaseModel):
     target: TargetData
     intents: List[OrderIntent]
     after_simulated: SimulatedState
+    reconciliation: Optional[Reconciliation] = None  # RFC-0006A: Must be populated on success
     rule_results: List[RuleResult] = Field(default_factory=list)
     explanation: Dict[str, Any]
     diagnostics: DiagnosticsData

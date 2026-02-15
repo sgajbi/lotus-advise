@@ -17,6 +17,7 @@ from src.core.models import (
     OrderIntent,
     Position,
     RebalanceResult,
+    Reconciliation,
     RuleResult,
     SuppressedIntent,
     TargetData,
@@ -33,7 +34,6 @@ def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
     buy_list, sell_list = [], []
     sell_only_excess = Decimal("0.0")
 
-    # 1. Model Targets
     for target in model.targets:
         shelf_ent = next((s for s in shelf if s.instrument_id == target.instrument_id), None)
         if not shelf_ent:
@@ -68,7 +68,6 @@ def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
         buy_list.append(target.instrument_id)
         sell_list.append(target.instrument_id)
 
-    # 2. Holding Overrides (Locking)
     for pos in portfolio.positions:
         if pos.quantity > 0 and pos.instrument_id not in eligible_targets:
             shelf_ent = next((s for s in shelf if s.instrument_id == pos.instrument_id), None)
@@ -106,7 +105,6 @@ def _generate_targets(
     """Stage 3: Normalization and Constraints."""
     status = "READY"
 
-    # 1. Sell-Only Redistribution
     if sell_only_excess > Decimal("0.0"):
         recs = {k: v for k, v in eligible_targets.items() if k in buy_list}
         total_rec = sum(recs.values())
@@ -116,7 +114,6 @@ def _generate_targets(
         else:
             status = "PENDING_REVIEW"
 
-    # 2. Normalization (Locked Assets)
     total_w = sum(eligible_targets.values())
     if total_w > Decimal("1.0001"):
         tradeable_keys = [k for k in eligible_targets if k in buy_list]
@@ -132,7 +129,6 @@ def _generate_targets(
                     eligible_targets[k] *= scale
             status = "PENDING_REVIEW"
 
-    # 3. Max Weight Cap
     if options.single_position_max_weight is not None:
         max_w = options.single_position_max_weight
         excess = sum(max(Decimal("0.0"), w - max_w) for w in eligible_targets.values())
@@ -152,7 +148,6 @@ def _generate_targets(
             else:
                 status = "PENDING_REVIEW"
 
-    # 4. Buffer Scaling
     if options.min_cash_buffer_pct > Decimal("0.0"):
         tw = sum(v for k, v in eligible_targets.items() if k in buy_list)
         lw = sum(v for k, v in eligible_targets.items() if k not in buy_list)
@@ -165,7 +160,6 @@ def _generate_targets(
                         eligible_targets[k] *= scale
             status = "PENDING_REVIEW"
 
-    # Trace construction
     trace = []
     for t in model.targets:
         final_w = eligible_targets.get(t.instrument_id, Decimal("0.0"))
@@ -263,8 +257,7 @@ def _generate_fx_and_simulate(
     portfolio, market_data, shelf, intents, options, total_val_before, diagnostics
 ):
     """
-    Applies intents to the portfolio to create the after_simulated state.
-    Includes Safety Guardrails: Negative Holdings and Reconciliation.
+    Applies intents, generates FX, checks Safety Guards, and computes Reconciliation.
     """
     # 1. Calculate projected cash by currency
     proj = {c.currency: c.amount for c in portfolio.cash_balances}
@@ -279,8 +272,6 @@ def _generate_fx_and_simulate(
     for ccy, bal in proj.items():
         if ccy == portfolio.base_currency:
             continue
-
-        # Defensive Check: Ensure we have an FX rate before attempting conversion
         rate = get_fx_rate(market_data, ccy, portfolio.base_currency)
         if rate is None:
             raise ValueError(f"Missing FX rate for {ccy}/{portfolio.base_currency}")
@@ -330,10 +321,10 @@ def _generate_fx_and_simulate(
             if sell_ids[i.notional.currency] not in i.dependencies:
                 i.dependencies.append(sell_ids[i.notional.currency])
 
-    # 4. Sort (Sell -> FX -> Buy)
+    # 4. Sort
     intents.sort(key=lambda x: 0 if x.side == "SELL" else (1 if x.intent_type == "FX_SPOT" else 2))
 
-    # 5. Simulate After State
+    # 5. Simulate
     after = deepcopy(portfolio)
 
     def g_pos(after_pf, i_id):
@@ -360,47 +351,74 @@ def _generate_fx_and_simulate(
             g_cash(after, i.sell_currency).amount -= i.estimated_sell_amount
             g_cash(after, i.buy_currency).amount += i.buy_amount
 
-    # 6. Generate State & Valuation
-    # Use new builder logic
+    # 6. Build State
     state = build_simulated_state(
         after, market_data, shelf, diagnostics.data_quality, diagnostics.warnings
     )
     tv_after = state.total_value.amount
 
-    # 7. Safety Guard: Negative Holdings Check
+    # --- SAFETY GUARDS ---
+
+    # Guard 1: No Shorting (Negative Holdings)
     shorting_breach = False
     for p in after.positions:
         if p.quantity < Decimal("0"):
             shorting_breach = True
             break
 
+    # Guard 2: Insufficient Cash (Negative Balance)
+    cash_breach = False
+    for c in after.cash_balances:
+        # We allow a very small epsilon for float precision if needed, but Decimal is exact.
+        # Strict < 0 is safer for "Production Grade".
+        if c.amount < Decimal("0"):
+            cash_breach = True
+            break
+
+    rules = RuleEngine.evaluate(state, options, diagnostics)
+
     if shorting_breach:
-        # Construct NO_SHORTING rule result manually
-        rules = [
+        rules.append(
             RuleResult(
                 rule_id="NO_SHORTING",
                 severity="HARD",
                 status="FAIL",
-                measured=Decimal("-1"),  # Indicator
+                measured=Decimal("-1"),
                 threshold={"min": Decimal("0")},
                 reason_code="SELL_EXCEEDS_HOLDINGS",
-                remediation_hint="Ensure sell quantity does not exceed holdings.",
+                remediation_hint="Reduce sell quantity.",
             )
-        ]
-        # Append other standard rules (DQ, MinTrade)
-        rules.extend(RuleEngine.evaluate(state, options, diagnostics))
-        return intents, state, rules, "BLOCKED"
+        )
+        return intents, state, rules, "BLOCKED", None
 
-    # 8. Rules (Standard)
-    rules = RuleEngine.evaluate(state, options, diagnostics)
+    if cash_breach:
+        rules.append(
+            RuleResult(
+                rule_id="INSUFFICIENT_CASH",
+                severity="HARD",
+                status="FAIL",
+                measured=Decimal("-1"),
+                threshold={"min": Decimal("0")},
+                reason_code="CASH_BALANCE_NEGATIVE",
+                remediation_hint="Ensure sufficient funding or sell orders.",
+            )
+        )
+        return intents, state, rules, "BLOCKED", None
 
-    # 9. Safety Guard: Reconciliation Check
-    # Tolerance: 0.5 base units + 0.05% FX friction
+    # Guard 3: Reconciliation
     recon_diff = abs(tv_after - total_val_before)
+    # Tolerance: 0.5 units base + 0.05% of TV
     tolerance = Decimal("0.5") + (total_val_before * Decimal("0.0005"))
 
-    if recon_diff > tolerance:
-        # Add RECONCILIATION rule result
+    recon = Reconciliation(
+        before_total_value=Money(amount=total_val_before, currency=portfolio.base_currency),
+        after_total_value=Money(amount=tv_after, currency=portfolio.base_currency),
+        delta=Money(amount=tv_after - total_val_before, currency=portfolio.base_currency),
+        tolerance=Money(amount=tolerance, currency=portfolio.base_currency),
+        status="OK" if recon_diff <= tolerance else "MISMATCH",
+    )
+
+    if recon.status == "MISMATCH":
         rules.append(
             RuleResult(
                 rule_id="RECONCILIATION",
@@ -409,117 +427,105 @@ def _generate_fx_and_simulate(
                 measured=recon_diff,
                 threshold={"max": tolerance},
                 reason_code="VALUE_MISMATCH",
-                remediation_hint="Portfolio value changed unexpectedly during simulation.",
+                remediation_hint="Check pricing/FX or engine logic.",
             )
         )
-        return intents, state, rules, "BLOCKED"
+        return intents, state, rules, "BLOCKED", recon
 
-    # 10. Determine Final Status
+    # Final Status Determination
     final_status = "READY"
     if any(r.severity == "HARD" and r.status == "FAIL" for r in rules):
         final_status = "BLOCKED"
     elif any(r.severity == "SOFT" and r.status == "FAIL" for r in rules):
         final_status = "PENDING_REVIEW"
 
-    return intents, state, rules, final_status
+    return intents, state, rules, final_status, recon
 
 
 def run_simulation(portfolio, market_data, model, shelf, options, request_hash="no_hash"):
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
     dq, warns, suppressed = {"price_missing": [], "fx_missing": [], "shelf_missing": []}, [], []
 
-    # 1. Valuation (Before)
-    # Use new builder logic
     before = build_simulated_state(portfolio, market_data, shelf, dq, warns)
     tv = before.total_value.amount
 
-    # 2. Universe
     eligible, excl, buy_l, sell_l, s_exc = _build_universe(
         model, portfolio, shelf, options, dq, before
     )
 
-    # 3. Targets
     trace, s3_stat = _generate_targets(
         model, eligible, buy_l, s_exc, options, tv, portfolio.base_currency
     )
 
-    # Short-circuit if Blocked
-    if any(dq.values()) or s3_stat == "BLOCKED":
-        # Generate partial diagnostics to feed RuleEngine
-        diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
-        # We need a dummy state for RuleEngine
-        rules = RuleEngine.evaluate(before, options, diag_data)
-
-        return RebalanceResult(
-            rebalance_run_id=run_id,
-            correlation_id="c_none",
-            status="BLOCKED",
-            before=before,
-            universe=UniverseData(
-                universe_id=f"u_{run_id}",
-                eligible_for_buy=buy_l,
-                eligible_for_sell=sell_l,
-                excluded=excl,
-                coverage=UniverseCoverage(price_coverage_pct=0, fx_coverage_pct=0),
-            ),
-            target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
-            intents=[],
-            after_simulated=before,
-            rule_results=rules,
-            diagnostics=diag_data,
-            explanation={"summary": "Blocked"},
-            lineage=LineageData(
-                portfolio_snapshot_id=portfolio.portfolio_id,
-                market_data_snapshot_id="md",
-                request_hash=request_hash,
-            ),
-        )
-
-    # 4. Intents
-    intents = _generate_intents(portfolio, market_data, trace, shelf, options, tv, dq, suppressed)
-    if any(dq.values()):
-        # Late DQ failure (e.g. FX missing during intent generation)
-        diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
-        rules = RuleEngine.evaluate(before, options, diag_data)
-        return RebalanceResult(
-            rebalance_run_id=run_id,
-            correlation_id="c_none",
-            status="BLOCKED",
-            before=before,
-            universe=UniverseData(
-                universe_id=f"u_{run_id}",
-                eligible_for_buy=buy_l,
-                eligible_for_sell=sell_l,
-                excluded=excl,
-                coverage=UniverseCoverage(price_coverage_pct=0, fx_coverage_pct=0),
-            ),
-            target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
-            intents=[],
-            after_simulated=before,
-            rule_results=rules,
-            diagnostics=diag_data,
-            explanation={"summary": "Blocked"},
-            lineage=LineageData(
-                portfolio_snapshot_id=portfolio.portfolio_id,
-                market_data_snapshot_id="md",
-                request_hash=request_hash,
-            ),
-        )
-
-    # 5. Simulation & Rules
-    # Fix: Create DiagnosticsData container to pass around
     diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
 
-    intents, after, rules, f_stat = _generate_fx_and_simulate(
+    if any(dq.values()) or s3_stat == "BLOCKED":
+        # Create dummy universe/target for blocked response
+        return RebalanceResult(
+            rebalance_run_id=run_id,
+            correlation_id="c_none",
+            status="BLOCKED",
+            before=before,
+            universe=UniverseData(
+                universe_id=f"u_{run_id}",
+                eligible_for_buy=buy_l,
+                eligible_for_sell=sell_l,
+                excluded=excl,
+                coverage=UniverseCoverage(price_coverage_pct=0, fx_coverage_pct=0),
+            ),
+            target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
+            intents=[],
+            after_simulated=before,
+            rule_results=RuleEngine.evaluate(before, options, diag_data),
+            diagnostics=diag_data,
+            explanation={"summary": "Blocked"},
+            lineage=LineageData(
+                portfolio_snapshot_id=portfolio.portfolio_id,
+                market_data_snapshot_id="md",
+                request_hash=request_hash,
+            ),
+        )
+
+    intents = _generate_intents(portfolio, market_data, trace, shelf, options, tv, dq, suppressed)
+
+    if any(dq.values()):
+        diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
+        return RebalanceResult(
+            rebalance_run_id=run_id,
+            correlation_id="c_none",
+            status="BLOCKED",
+            before=before,
+            universe=UniverseData(
+                universe_id=f"u_{run_id}",
+                eligible_for_buy=buy_l,
+                eligible_for_sell=sell_l,
+                excluded=excl,
+                coverage=UniverseCoverage(price_coverage_pct=0, fx_coverage_pct=0),
+            ),
+            target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
+            intents=[],
+            after_simulated=before,
+            rule_results=RuleEngine.evaluate(before, options, diag_data),
+            diagnostics=diag_data,
+            explanation={"summary": "Blocked"},
+            lineage=LineageData(
+                portfolio_snapshot_id=portfolio.portfolio_id,
+                market_data_snapshot_id="md",
+                request_hash=request_hash,
+            ),
+        )
+
+    # 5. Simulation & Safety
+    diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
+
+    intents, after, rules, f_stat, recon = _generate_fx_and_simulate(
         portfolio, market_data, shelf, intents, options, tv, diag_data
     )
 
-    # Propagate PENDING_REVIEW if Target stage was soft-failed
     if s3_stat == "PENDING_REVIEW" and f_stat == "READY":
         f_stat = "PENDING_REVIEW"
 
     if f_stat == "BLOCKED":
-        # Fix: Append to the DiagnosticsData object directly so it appears in the final result
         diag_data.warnings.append("SIMULATION_SAFETY_CHECK_FAILED")
 
     return RebalanceResult(
@@ -537,6 +543,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
         target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
         intents=intents,
         after_simulated=after,
+        reconciliation=recon,  # Attached here
         rule_results=rules,
         diagnostics=diag_data,
         explanation={"summary": f_stat},
