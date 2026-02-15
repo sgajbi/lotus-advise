@@ -47,10 +47,23 @@ def test_simulate_endpoint_success():
     assert data["rebalance_run_id"].startswith("rr_")
 
 
-def test_simulate_validation_error_422():
+def test_simulate_missing_idempotency_key_422():
+    """Verifies that Idempotency-Key is mandatory."""
+    payload = get_valid_payload()
+    # No headers provided
+    response = client.post("/rebalance/simulate", json=payload)
+    assert response.status_code == 422
+    errors = response.json()["detail"]
+    # Verify the error is about the missing header
+    assert any(e["type"] == "missing" and "Idempotency-Key" in e["loc"] for e in errors)
+
+
+def test_simulate_payload_validation_error_422():
+    """Verifies that invalid payloads still return 422."""
     payload = get_valid_payload()
     del payload["portfolio_snapshot"]  # Invalid payload
-    response = client.post("/rebalance/simulate", json=payload)
+    headers = {"Idempotency-Key": "test-key-val"}
+    response = client.post("/rebalance/simulate", json=payload, headers=headers)
     assert response.status_code == 422
     assert "detail" in response.json()
 
@@ -76,17 +89,10 @@ def test_get_db_session_dependency():
     """Trivial coverage for the DB stub (Synchronous wrapper)."""
     # Manually iterate the async generator
     gen = get_db_session()
-    # In pure Python < 3.10 async gen handling without loop can be tricky.
-    # But since it yields None immediately, we can inspect it.
-    # Actually, easiest way without async libs is to just trust it's defined
-    # or use a tiny helper if we really want to execute it.
-    # Given we just want to hit the 'yield None' line:
     try:
         gen.asend(None).send(None)
     except (StopIteration, AttributeError):
         pass
-    # This is a hack. The cleaner way for 100% coverage without pytest-asyncio
-    # is to verify it returns an AsyncGenerator.
     import inspect
 
     assert inspect.isasyncgen(gen)
@@ -100,8 +106,9 @@ def test_simulate_blocked_logs_warning():
     # Missing price for EQ_1 -> DQ Failure -> BLOCKED
     payload["market_data_snapshot"]["prices"] = []
 
+    headers = {"Idempotency-Key": "test-key-block"}
     with patch("src.api.main.logger") as mock_logger:
-        response = client.post("/rebalance/simulate", json=payload)
+        response = client.post("/rebalance/simulate", json=payload, headers=headers)
         assert response.status_code == 200
         assert response.json()["status"] == "BLOCKED"
 

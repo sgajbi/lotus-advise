@@ -1,3 +1,6 @@
+"""
+FILE: docs/demo/README.md
+"""
 # DPM Rebalance Engine: Demo Scenarios
 
 This directory contains curated JSON input files demonstrating the engine's capabilities and safety features.
@@ -21,9 +24,10 @@ This directory contains curated JSON input files demonstrating the engine's capa
 
 ## Usage
 
-You can feed these JSONs into the API endpoint `/v1/rebalance`:
+You can feed these JSONs into the canonical API endpoint `/rebalance/simulate`:
 
 ```bash
-curl -X POST "http://localhost:8000/v1/rebalance" \
+curl -X POST "http://localhost:8000/rebalance/simulate" \
      -H "Content-Type: application/json" \
+     -H "Idempotency-Key: demo-run-001" \
      -d @docs/demo/01_simple_drift.json

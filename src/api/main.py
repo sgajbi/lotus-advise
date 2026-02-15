@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 # --- Dependencies ---
 async def get_db_session():
-    """Stub for Database Session (RFC-0005). To be replaced with actual AsyncPG session."""
+    """Stub for Database Session (RFC-0005).
+    To be replaced with actual AsyncPG session."""
     yield None
 
 
@@ -50,7 +51,7 @@ class RebalanceRequest(BaseModel):
 async def simulate_rebalance(
     request: RebalanceRequest,
     response: Response,
-    idempotency_key: Annotated[Optional[str], Header(alias="Idempotency-Key")] = None,
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
     correlation_id: Annotated[Optional[str], Header(alias="X-Correlation-Id")] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> RebalanceResult:
@@ -66,7 +67,7 @@ async def simulate_rebalance(
         model=request.model_portfolio,
         shelf=request.shelf_entries,
         options=request.options,
-        request_hash=idempotency_key or "no_key",  # Pass key as hash for lineage
+        request_hash=idempotency_key,  # Pass key as hash for lineage
     )
 
     # Map Domain Status to HTTP Status Codes if needed (RFC-7807)
