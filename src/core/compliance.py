@@ -125,8 +125,6 @@ class RuleEngine:
                 )
             )
         else:
-            # If we have missing data but blocking is disabled, we pass logic but maybe warn?
-            # For now, PASS is correct for the Rule (Blocking Rule).
             results.append(
                 RuleResult(
                     rule_id="DATA_QUALITY",
