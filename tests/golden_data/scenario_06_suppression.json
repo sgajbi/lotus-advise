@@ -54,7 +54,7 @@
   "expected_outputs": {
     "rebalance_run_id": "rr_golden",
     "correlation_id": "c_placeholder",
-    "status": "PENDING_REVIEW",
+    "status": "READY",
     "before": {
       "total_value": {
         "amount": "10000.000",

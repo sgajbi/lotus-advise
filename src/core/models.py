@@ -74,7 +74,9 @@ class EngineOptions(BaseModel):
     cash_band_min_weight: Decimal = Decimal("0.00")
     cash_band_max_weight: Decimal = Decimal("1.00")
 
-    single_position_max_weight: Optional[Decimal] = Decimal("0.10")
+    # Default to None (no cap) to match legacy behavior.
+    # Clients/Tests must explicitly set this to enforce caps.
+    single_position_max_weight: Optional[Decimal] = None
     min_trade_notional: Optional[Money] = None  # Global minimum trade size
 
     # Behavior

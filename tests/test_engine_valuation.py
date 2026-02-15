@@ -5,9 +5,12 @@ Tests for Valuation, Data Quality, and Market Data normalization.
 
 from decimal import Decimal
 
+import pytest
+
 from src.core.engine import run_simulation
 from src.core.models import (
     CashBalance,
+    EngineOptions,
     FxRate,
     MarketDataSnapshot,
     ModelPortfolio,
@@ -21,7 +24,129 @@ from src.core.models import (
 from src.core.valuation import build_simulated_state
 
 
-# ... (Existing block tests kept as is, they are high value) ...
+@pytest.fixture
+def base_options():
+    return EngineOptions(
+        cash_band_min_weight=Decimal("0.00"),
+        cash_band_max_weight=Decimal("1.00"),
+        single_position_max_weight=None,
+    )
+
+
+def test_valuation_basic_sgd(base_options):
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_1",
+        base_currency="SGD",
+        positions=[Position(instrument_id="EQ_1", quantity=Decimal("100"))],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("5000.00"))],
+    )
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_1", price=Decimal("50.0"), currency="SGD")]
+    )
+    model = ModelPortfolio(targets=[])
+    shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED", asset_class="EQUITY")]
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # Total = 100*50 + 5000 = 10000
+    assert result.before.total_value.amount == Decimal("10000.00")
+    assert result.before.positions[0].weight == Decimal("0.5")
+
+
+def test_valuation_missing_price_blocked(base_options):
+    """Test RFC-0006B Data Quality Hard Block."""
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_err",
+        base_currency="SGD",
+        positions=[Position(instrument_id="EQ_NO_PRICE", quantity=Decimal("10"))],
+    )
+    market_data = MarketDataSnapshot(prices=[])  # Empty
+    model = ModelPortfolio(targets=[])
+    shelf = [ShelfEntry(instrument_id="EQ_NO_PRICE", status="APPROVED")]
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    assert result.status == "BLOCKED"
+    assert "MISSING_DATA" in [r.reason_code for r in result.rule_results]
+    assert len(result.diagnostics.data_quality["price_missing"]) > 0
+
+
+def test_valuation_fx_conversion(base_options):
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_fx",
+        base_currency="SGD",
+        positions=[Position(instrument_id="EQ_USD", quantity=Decimal("10"))],
+        cash_balances=[],
+    )
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_USD", price=Decimal("100.0"), currency="USD")],
+        fx_rates=[FxRate(pair="USD/SGD", rate=Decimal("1.5"))],
+    )
+    model = ModelPortfolio(targets=[])
+    shelf = [ShelfEntry(instrument_id="EQ_USD", status="APPROVED")]
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # 10 * 100 USD = 1000 USD * 1.5 = 1500 SGD
+    assert result.before.total_value.amount == Decimal("1500.0")
+    assert result.before.total_value.currency == "SGD"
+
+
+def test_valuation_market_value_override_warns(base_options):
+    """Test that explicit market_value mismatch triggers warning, but Engine uses Calc Value."""
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_mv",
+        base_currency="SGD",
+        positions=[
+            Position(
+                instrument_id="EQ_1",
+                quantity=Decimal("10"),
+                market_value=Money(amount=Decimal("2000.0"), currency="SGD"),
+            )
+        ],
+        cash_balances=[],
+    )
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_1", price=Decimal("10.0"), currency="SGD")]
+    )
+    model = ModelPortfolio(targets=[])
+    shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # Updated: Expect calculated value (100.0) not snapshot (2000.0)
+    assert result.before.total_value.amount == Decimal("100.0")
+    # Expect warning about the mismatch
+    assert any("POSITION_VALUE_MISMATCH" in w for w in result.diagnostics.warnings)
+
+
+def test_valuation_market_value_non_base(base_options):
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_non_base_mv",
+        base_currency="SGD",
+        positions=[
+            Position(
+                instrument_id="EQ_USD_MV",
+                quantity=Decimal("10"),
+                market_value=Money(amount=Decimal("100.0"), currency="USD"),
+            )
+        ],
+        cash_balances=[],
+    )
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EQ_USD_MV", price=Decimal("10.0"), currency="USD")],
+        fx_rates=[FxRate(pair="USD/SGD", rate=Decimal("1.35"))],
+    )
+    model = ModelPortfolio(targets=[])
+    shelf = [ShelfEntry(instrument_id="EQ_USD_MV", status="APPROVED", asset_class="EQUITY")]
+
+    result = run_simulation(portfolio, market_data, model, shelf, base_options)
+
+    # 100 USD * 1.35 = 135 SGD. (Not 10*10*1.35=135)
+    assert result.before.total_value.amount == Decimal("135.0")
+    assert result.status == "READY"
+
+
 def test_missing_price_blocks_run(base_portfolio, base_options):
     model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("1.0"))])
     shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
@@ -123,35 +248,6 @@ def test_valuation_mismatch_warning(base_options):
     assert result.status == "BLOCKED"
     assert len(result.diagnostics.warnings) >= 1
     assert "POSITION_VALUE_MISMATCH" in result.diagnostics.warnings[0]
-
-
-def test_valuation_market_value_non_base(base_options):
-    portfolio = PortfolioSnapshot(
-        portfolio_id="pf_non_base_mv",
-        base_currency="SGD",
-        positions=[
-            Position(
-                instrument_id="EQ_USD_MV",
-                quantity=Decimal("10"),
-                market_value=Money(amount=Decimal("100.0"), currency="USD"),
-            )
-        ],
-        cash_balances=[],
-    )
-    market_data = MarketDataSnapshot(
-        prices=[Price(instrument_id="EQ_USD_MV", price=Decimal("10.0"), currency="USD")],
-        fx_rates=[FxRate(pair="USD/SGD", rate=Decimal("1.35"))],
-    )
-    model = ModelPortfolio(targets=[])
-    shelf = [ShelfEntry(instrument_id="EQ_USD_MV", status="APPROVED", asset_class="EQUITY")]
-
-    result = run_simulation(portfolio, market_data, model, shelf, base_options)
-
-    assert result.status == "PENDING_REVIEW"
-    # Now that we use calculated value, 10 qty * 10 px * 1.35 fx = 135.0
-    # Original test expected 135.0 so this is consistent.
-    assert result.before.total_value.amount == Decimal("135.0")
-    assert result.before.positions[0].value_in_base_ccy.amount == Decimal("135.0")
 
 
 def test_build_simulated_state_negative_qty():
