@@ -68,12 +68,24 @@ class ShelfEntry(BaseModel):
 
 
 class EngineOptions(BaseModel):
+    # Rules & Thresholds (RFC-0006B)
+    # Default permissive (0-100%) to preserve backward compatibility with MVP goldens.
+    # Strict 1-5% bands should be enabled explicitly via payload.
+    cash_band_min_weight: Decimal = Decimal("0.00")
+    cash_band_max_weight: Decimal = Decimal("1.00")
+
+    single_position_max_weight: Optional[Decimal] = Decimal("0.10")
+    min_trade_notional: Optional[Money] = None  # Global minimum trade size
+
+    # Behavior
     allow_restricted: bool = False
     suppress_dust_trades: bool = True
-    dust_trade_threshold: Optional[Money] = None
+    dust_trade_threshold: Optional[Money] = (
+        None  # Deprecated in favor of min_trade_notional? Keeping for compat.
+    )
     fx_buffer_pct: Decimal = Decimal("0.01")
-    single_position_max_weight: Optional[Decimal] = None
     block_on_missing_prices: bool = True
+    block_on_missing_fx: bool = True
     min_cash_buffer_pct: Decimal = Decimal("0.0")
 
 
@@ -161,7 +173,7 @@ class OrderIntent(BaseModel):
 
 class RuleResult(BaseModel):
     rule_id: str
-    severity: Literal["HARD", "SOFT"]
+    severity: Literal["HARD", "SOFT", "INFO"]
     status: Literal["PASS", "FAIL"]
     measured: Decimal
     threshold: Dict[str, Decimal]
@@ -209,7 +221,7 @@ class RebalanceResult(BaseModel):
     target: TargetData
     intents: List[OrderIntent]
     after_simulated: SimulatedState
-    reconciliation: Optional[Reconciliation] = None  # RFC-0006A: Must be populated on success
+    reconciliation: Optional[Reconciliation] = None
     rule_results: List[RuleResult] = Field(default_factory=list)
     explanation: Dict[str, Any]
     diagnostics: DiagnosticsData

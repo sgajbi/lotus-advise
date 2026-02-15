@@ -1,6 +1,6 @@
 # RFC-0006B: Pre-Persistence Hardening — Rules Configurability, Dependency Fidelity & Scenario Matrix
 
-**Status:** PROPOSED
+**Status:** APPROVED
 **Owner:** Lead Architect
 **Created:** 2026-02-15
 **Depends On:** RFC-0006A

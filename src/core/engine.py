@@ -223,18 +223,21 @@ def _generate_intents(
         notional = Decimal(qty) * price_ent.price
 
         shelf_ent = next((s for s in shelf if s.instrument_id == i_id), None)
-        if (
-            options.suppress_dust_trades
-            and shelf_ent
-            and shelf_ent.min_notional
-            and notional < shelf_ent.min_notional.amount
-        ):
+
+        # RFC-0006B: Suppress based on options.min_trade_notional OR shelf.min_notional
+        threshold = None
+        if options.min_trade_notional:
+            threshold = options.min_trade_notional
+        elif shelf_ent and shelf_ent.min_notional:
+            threshold = shelf_ent.min_notional
+
+        if options.suppress_dust_trades and threshold and notional < threshold.amount:
             suppressed.append(
                 SuppressedIntent(
                     instrument_id=i_id,
                     reason="BELOW_MIN_NOTIONAL",
                     intended_notional=Money(amount=notional, currency=price_ent.currency),
-                    threshold=shelf_ent.min_notional,
+                    threshold=threshold,
                 )
             )
             continue
@@ -274,7 +277,13 @@ def _generate_fx_and_simulate(
             continue
         rate = get_fx_rate(market_data, ccy, portfolio.base_currency)
         if rate is None:
-            raise ValueError(f"Missing FX rate for {ccy}/{portfolio.base_currency}")
+            # Should have been caught by DQ, but safe fallback
+            if options.block_on_missing_fx:
+                diagnostics.data_quality.setdefault("fx_missing", []).append(
+                    f"{ccy}/{portfolio.base_currency}"
+                )
+                return intents, deepcopy(portfolio), [], "BLOCKED", None
+            continue
 
         if bal < 0:
             buy_amt = abs(bal) * (Decimal("1.0") + options.fx_buffer_pct)
@@ -357,57 +366,25 @@ def _generate_fx_and_simulate(
     )
     tv_after = state.total_value.amount
 
-    # --- SAFETY GUARDS ---
-
-    # Guard 1: No Shorting (Negative Holdings)
-    shorting_breach = False
-    for p in after.positions:
-        if p.quantity < Decimal("0"):
-            shorting_breach = True
-            break
-
-    # Guard 2: Insufficient Cash (Negative Balance)
-    cash_breach = False
-    for c in after.cash_balances:
-        # We allow a very small epsilon for float precision if needed, but Decimal is exact.
-        # Strict < 0 is safer for "Production Grade".
-        if c.amount < Decimal("0"):
-            cash_breach = True
-            break
-
+    # 7. Evaluate Rules (Rules Engine)
+    # RFC-0006B: Delegate No-Shorting and Insufficient-Cash checks to RuleEngine
     rules = RuleEngine.evaluate(state, options, diagnostics)
 
-    if shorting_breach:
-        rules.append(
-            RuleResult(
-                rule_id="NO_SHORTING",
-                severity="HARD",
-                status="FAIL",
-                measured=Decimal("-1"),
-                threshold={"min": Decimal("0")},
-                reason_code="SELL_EXCEEDS_HOLDINGS",
-                remediation_hint="Reduce sell quantity.",
-            )
-        )
+    # 8. Check for Hard Fails
+    blocked = any(r.severity == "HARD" and r.status == "FAIL" for r in rules)
+
+    if blocked:
+        # We identify the blocker for the warning log
+        blockers = [r.rule_id for r in rules if r.severity == "HARD" and r.status == "FAIL"]
+        if "NO_SHORTING" in blockers:
+            diagnostics.warnings.append("SIMULATION_SAFETY_CHECK_FAILED")
+        if "INSUFFICIENT_CASH" in blockers:
+            diagnostics.warnings.append("SIMULATION_SAFETY_CHECK_FAILED")
+
         return intents, state, rules, "BLOCKED", None
 
-    if cash_breach:
-        rules.append(
-            RuleResult(
-                rule_id="INSUFFICIENT_CASH",
-                severity="HARD",
-                status="FAIL",
-                measured=Decimal("-1"),
-                threshold={"min": Decimal("0")},
-                reason_code="CASH_BALANCE_NEGATIVE",
-                remediation_hint="Ensure sufficient funding or sell orders.",
-            )
-        )
-        return intents, state, rules, "BLOCKED", None
-
-    # Guard 3: Reconciliation
+    # Guard 3: Reconciliation (Keep strictly in Engine as it compares Before/After)
     recon_diff = abs(tv_after - total_val_before)
-    # Tolerance: 0.5 units base + 0.05% of TV
     tolerance = Decimal("0.5") + (total_val_before * Decimal("0.0005"))
 
     recon = Reconciliation(
@@ -434,9 +411,7 @@ def _generate_fx_and_simulate(
 
     # Final Status Determination
     final_status = "READY"
-    if any(r.severity == "HARD" and r.status == "FAIL" for r in rules):
-        final_status = "BLOCKED"
-    elif any(r.severity == "SOFT" and r.status == "FAIL" for r in rules):
+    if any(r.severity == "SOFT" and r.status == "FAIL" for r in rules):
         final_status = "PENDING_REVIEW"
 
     return intents, state, rules, final_status, recon
@@ -459,8 +434,8 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
 
     diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
 
+    # Pre-flight DQ check
     if any(dq.values()) or s3_stat == "BLOCKED":
-        # Create dummy universe/target for blocked response
         return RebalanceResult(
             rebalance_run_id=run_id,
             correlation_id="c_none",
@@ -525,8 +500,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
     if s3_stat == "PENDING_REVIEW" and f_stat == "READY":
         f_stat = "PENDING_REVIEW"
 
-    if f_stat == "BLOCKED":
-        diag_data.warnings.append("SIMULATION_SAFETY_CHECK_FAILED")
+    # Warning already appended in generate_fx_and_simulate if hard fail
 
     return RebalanceResult(
         rebalance_run_id=run_id,
@@ -543,7 +517,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
         target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
         intents=intents,
         after_simulated=after,
-        reconciliation=recon,  # Attached here
+        reconciliation=recon,
         rule_results=rules,
         diagnostics=diag_data,
         explanation={"summary": f_stat},
