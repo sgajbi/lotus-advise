@@ -604,3 +604,199 @@ def test_status_propagation_explicit(base_options):
     )
 
     assert result.status == "PENDING_REVIEW"
+
+
+def test_coverage_missing_fx_non_blocking():
+    """
+    Scenario: block_on_missing_fx = False.
+    We have a USD cash balance that needs sweeping, but no USD/SGD rate.
+    Expectation: Warning logged, but simulation proceeds (Result: READY, not BLOCKED).
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_warn",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[CashBalance(currency="USD", amount=Decimal("100.0"))],
+    )
+    # No trades
+    model = ModelPortfolio(targets=[])
+    shelf = []
+    market_data = MarketDataSnapshot(prices=[], fx_rates=[])  # Missing FX
+
+    # Enable non-blocking behavior
+    options = EngineOptions(block_on_missing_fx=False)
+
+    result = run_simulation(portfolio, market_data, model, shelf, options)
+
+    # Should proceed
+    assert result.status == "READY"
+    # Should check diagnostics for the missing FX warning/log
+    # Note: Logic might log to data_quality but not block
+    assert "USD/SGD" in result.diagnostics.data_quality["fx_missing"]
+
+
+def test_coverage_sub_unit_trade_quantity_zero():
+    """
+    Scenario: Target weight implies purchasing 0.5 shares.
+    Price = 1000. Target Value = 500. Qty = 0.
+    Expectation: No intent generated (implicitly suppressed by integer math),
+    logic should handle 'qty > 0' check gracefully.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_small",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("10000.0"))],
+    )
+
+    # Target 500 SGD allocation
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EXPENSIVE", weight=Decimal("0.05"))])
+    shelf = [ShelfEntry(instrument_id="EXPENSIVE", status="APPROVED")]
+
+    # Price 1000 SGD. 500 / 1000 = 0.5 shares -> 0 shares.
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="EXPENSIVE", price=Decimal("1000.0"), currency="SGD")]
+    )
+
+    # Disable explicit dust suppression to force the integer logic check
+    options = EngineOptions(suppress_dust_trades=False)
+
+    result = run_simulation(portfolio, market_data, model, shelf, options)
+
+    assert result.status == "READY"
+    assert len(result.intents) == 0
+
+
+def test_coverage_target_missing_shelf_entry():
+    """Hits engine.py: _build_universe -> if not shelf_ent: dq_log..."""
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_1", base_currency="SGD", positions=[], cash_balances=[]
+    )
+    model = ModelPortfolio(targets=[ModelTarget(instrument_id="GHOST", weight=Decimal("0.1"))])
+    shelf = []
+    market_data = MarketDataSnapshot(prices=[])
+
+    result = run_simulation(portfolio, market_data, model, shelf, EngineOptions())
+
+    assert result.status == "BLOCKED"
+    assert "GHOST" in result.diagnostics.data_quality["shelf_missing"]
+
+
+def test_coverage_holding_missing_shelf_with_market_data():
+    """Hits engine.py: _build_universe -> if not shelf_ent: if curr: excluded.append(...)"""
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_2",
+        base_currency="SGD",
+        positions=[Position(instrument_id="DELISTED", quantity=Decimal("100"))],
+        cash_balances=[],
+    )
+    model = ModelPortfolio(targets=[])
+    shelf = []
+    market_data = MarketDataSnapshot(
+        prices=[Price(instrument_id="DELISTED", price=Decimal("10.0"), currency="SGD")]
+    )
+
+    result = run_simulation(portfolio, market_data, model, shelf, EngineOptions())
+
+    excl = next((e for e in result.universe.excluded if e.instrument_id == "DELISTED"), None)
+    assert excl is not None
+    assert excl.reason_code == "LOCKED_DUE_TO_MISSING_SHELF"
+
+
+def test_coverage_fx_sweep_missing_rate():
+    """Hits engine.py: _generate_fx_and_simulate -> block_on_missing_fx"""
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_sweep",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[CashBalance(currency="USD", amount=Decimal("100.0"))],
+    )
+    model = ModelPortfolio(targets=[])
+    shelf = []
+    market_data = MarketDataSnapshot(prices=[], fx_rates=[])
+
+    result = run_simulation(portfolio, market_data, model, shelf, EngineOptions())
+
+    assert result.status == "BLOCKED"
+    assert "USD/SGD" in result.diagnostics.data_quality["fx_missing"]
+
+
+def test_coverage_reconciliation_mismatch_direct():
+    """
+    Hits engine.py: _generate_fx_and_simulate -> if recon.status == 'MISMATCH'
+    We force this by passing a total_val_before that logicially contradicts the portfolio.
+    """
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_recon",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("100.0"))],
+    )
+    market_data = MarketDataSnapshot(prices=[], fx_rates=[])
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
+
+    # Real value is 100.0. We tell it 99999.9.
+    fake_before_val = Decimal("99999.9")
+
+    intents, state, rules, status, recon = _generate_fx_and_simulate(
+        portfolio, market_data, [], [], EngineOptions(), fake_before_val, diag
+    )
+
+    assert status == "BLOCKED"
+    assert recon.status == "MISMATCH"
+    assert any(r.rule_id == "RECONCILIATION" and r.status == "FAIL" for r in rules)
+
+
+def test_coverage_min_cash_buffer_breach():
+    """
+    Hits engine.py: _generate_targets -> min_cash_buffer_pct logic
+    """
+    options = EngineOptions(min_cash_buffer_pct=Decimal("0.5"))  # Require 50% cash
+
+    # We ask for 100% allocation to A
+    eligible_targets = {"A": Decimal("1.0")}
+    buy_list = ["A"]
+    sell_only_excess = Decimal("0.0")
+
+    trace, status = _generate_targets(
+        ModelPortfolio(targets=[]),
+        eligible_targets,
+        buy_list,
+        sell_only_excess,
+        options,
+        total_val=Decimal("1000.0"),
+        base_ccy="SGD",
+    )
+
+    # Should scale down to 0.5 and flag REVIEW
+    assert status == "PENDING_REVIEW"
+    assert eligible_targets["A"] == Decimal("0.5")
+
+
+def test_coverage_soft_rule_failure_in_simulation():
+    """
+    Hits engine.py: _generate_fx_and_simulate -> final_status = 'PENDING_REVIEW'
+    We use strict cash bands to force a SOFT FAIL on the after-state.
+    """
+    # Start with 100% Cash.
+    portfolio = PortfolioSnapshot(
+        portfolio_id="pf_soft",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[CashBalance(currency="SGD", amount=Decimal("1000.0"))],
+    )
+    # Don't trade anything. Result is 100% Cash.
+    market_data = MarketDataSnapshot(prices=[], fx_rates=[])
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
+
+    # Strict options: Max Cash 50%. We have 100%. This is a SOFT FAIL.
+    strict_opts = EngineOptions(
+        cash_band_max_weight=Decimal("0.5"), cash_band_min_weight=Decimal("0.0")
+    )
+
+    intents, state, rules, status, recon = _generate_fx_and_simulate(
+        portfolio, market_data, [], [], strict_opts, Decimal("1000.0"), diag
+    )
+
+    assert status == "PENDING_REVIEW"
+    assert any(r.rule_id == "CASH_BAND" and r.status == "FAIL" for r in rules)

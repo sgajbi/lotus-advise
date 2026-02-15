@@ -277,12 +277,17 @@ def _generate_fx_and_simulate(
             continue
         rate = get_fx_rate(market_data, ccy, portfolio.base_currency)
         if rate is None:
-            # Should have been caught by DQ, but safe fallback
+            # Check DQ Policy
             if options.block_on_missing_fx:
                 diagnostics.data_quality.setdefault("fx_missing", []).append(
                     f"{ccy}/{portfolio.base_currency}"
                 )
                 return intents, deepcopy(portfolio), [], "BLOCKED", None
+            else:
+                # Log but don't block
+                diagnostics.data_quality.setdefault("fx_missing", []).append(
+                    f"{ccy}/{portfolio.base_currency}"
+                )
             continue
 
         if bal < 0:
@@ -417,6 +422,17 @@ def _generate_fx_and_simulate(
     return intents, state, rules, final_status, recon
 
 
+def _check_blocking_dq(dq_log, options):
+    """Returns True if any DQ entries violate blocking policy."""
+    if dq_log.get("shelf_missing"):
+        return True
+    if dq_log.get("price_missing") and options.block_on_missing_prices:
+        return True
+    if dq_log.get("fx_missing") and options.block_on_missing_fx:
+        return True
+    return False
+
+
 def run_simulation(portfolio, market_data, model, shelf, options, request_hash="no_hash"):
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
     dq, warns, suppressed = {"price_missing": [], "fx_missing": [], "shelf_missing": []}, [], []
@@ -434,8 +450,8 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
 
     diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
 
-    # Pre-flight DQ check
-    if any(dq.values()) or s3_stat == "BLOCKED":
+    # Pre-flight DQ check (Intelligent)
+    if _check_blocking_dq(dq, options) or s3_stat == "BLOCKED":
         return RebalanceResult(
             rebalance_run_id=run_id,
             correlation_id="c_none",
@@ -463,7 +479,8 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
 
     intents = _generate_intents(portfolio, market_data, trace, shelf, options, tv, dq, suppressed)
 
-    if any(dq.values()):
+    # Secondary DQ check after intents (in case new prices/FX were checked)
+    if _check_blocking_dq(dq, options):
         diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
         return RebalanceResult(
             rebalance_run_id=run_id,

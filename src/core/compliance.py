@@ -23,7 +23,6 @@ class RuleEngine:
         results = []
 
         # 1. CASH_BAND (Soft)
-        # RFC-0006B: Use configurable thresholds
         cash_weight = next(
             (a.weight for a in state.allocation_by_asset_class if a.key == "CASH"), Decimal("0")
         )
@@ -55,11 +54,6 @@ class RuleEngine:
             )
 
         # 2. SINGLE_POSITION_MAX (Hard)
-        # RFC-0006B: Always emit. Default 0.10 if not set? Options has default 0.10.
-        # Logic: If options is None (explicitly set to None), we skip enforcement
-        # but emit PASS (or skip?)
-        # RFC says "Always emit". If None, we effectively have infinite limit.
-
         limit_w = options.single_position_max_weight
         if limit_w is not None:
             breach = False
@@ -104,30 +98,41 @@ class RuleEngine:
             )
 
         # 3. DATA_QUALITY (Hard)
-        dq_issues = (
-            len(diagnostics.data_quality.get("price_missing", []))
-            + len(diagnostics.data_quality.get("fx_missing", []))
-            + len(diagnostics.data_quality.get("shelf_missing", []))
-        )
-        if dq_issues > 0:
+        # RFC-0006B: Respect options.block_on_missing_* flags
+        dq_count = 0
+
+        # Price Missing: Always counts if blocking enabled
+        if options.block_on_missing_prices:
+            dq_count += len(diagnostics.data_quality.get("price_missing", []))
+
+        # FX Missing: Only count if blocking enabled
+        if options.block_on_missing_fx:
+            dq_count += len(diagnostics.data_quality.get("fx_missing", []))
+
+        # Shelf Missing: Implicitly blocking usually, but let's count it
+        dq_count += len(diagnostics.data_quality.get("shelf_missing", []))
+
+        if dq_count > 0:
             results.append(
                 RuleResult(
                     rule_id="DATA_QUALITY",
                     severity="HARD",
                     status="FAIL",
-                    measured=Decimal(dq_issues),
+                    measured=Decimal(dq_count),
                     threshold={"max": Decimal("0")},
                     reason_code="MISSING_DATA",
                     remediation_hint="Check diagnostics for missing prices/FX.",
                 )
             )
         else:
+            # If we have missing data but blocking is disabled, we pass logic but maybe warn?
+            # For now, PASS is correct for the Rule (Blocking Rule).
             results.append(
                 RuleResult(
                     rule_id="DATA_QUALITY",
                     severity="HARD",
                     status="PASS",
-                    measured=Decimal("0"),
+                    measured=Decimal(dq_count),
                     threshold={"max": Decimal("0")},
                     reason_code="OK",
                 )
@@ -140,7 +145,6 @@ class RuleEngine:
                 RuleResult(
                     rule_id="MIN_TRADE_SIZE",
                     severity="SOFT",
-                    # Technically we handled it by suppressing, so it's a PASS with info
                     status="PASS",
                     measured=Decimal(suppressed_count),
                     threshold={"min": Decimal("0")},
@@ -160,7 +164,6 @@ class RuleEngine:
             )
 
         # 5. NO_SHORTING (Hard)
-        # RFC-0006B: Move check here for consistent emission
         shorting_breach = False
         min_qty = Decimal("0")
         for p in state.positions:
@@ -193,7 +196,6 @@ class RuleEngine:
             )
 
         # 6. INSUFFICIENT_CASH (Hard)
-        # RFC-0006B: Consistency
         cash_breach = False
         min_cash = Decimal("0")
         for c in state.cash_balances:

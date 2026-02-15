@@ -59,12 +59,16 @@
       }
     ],
     "options": {
+      "cash_band_min_weight": "0.00",
+      "cash_band_max_weight": "1.00",
+      "single_position_max_weight": null,
+      "min_trade_notional": null,
       "allow_restricted": false,
       "suppress_dust_trades": true,
       "dust_trade_threshold": null,
       "fx_buffer_pct": "0.01",
-      "single_position_max_weight": null,
       "block_on_missing_prices": true,
+      "block_on_missing_fx": true,
       "min_cash_buffer_pct": "0.0"
     }
   },
@@ -280,9 +284,21 @@
         "status": "PASS",
         "measured": "0.01",
         "threshold": {
-          "max": "0.05"
+          "min": "0.00",
+          "max": "1.00"
         },
         "reason_code": "OK",
+        "remediation_hint": null
+      },
+      {
+        "rule_id": "SINGLE_POSITION_MAX",
+        "severity": "HARD",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "max": "-1"
+        },
+        "reason_code": "NO_LIMIT_SET",
         "remediation_hint": null
       },
       {
@@ -305,7 +321,29 @@
           "min": "0"
         },
         "reason_code": "INTENTS_SUPPRESSED",
-        "remediation_hint": "Trades were suppressed due to dust thresholds."
+        "remediation_hint": null
+      },
+      {
+        "rule_id": "NO_SHORTING",
+        "severity": "HARD",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "min": "0"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
+      },
+      {
+        "rule_id": "INSUFFICIENT_CASH",
+        "severity": "HARD",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "min": "0"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
       }
     ],
     "explanation": {

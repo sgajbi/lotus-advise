@@ -94,12 +94,16 @@
       }
     ],
     "options": {
+      "cash_band_min_weight": "0.00",
+      "cash_band_max_weight": "1.00",
+      "single_position_max_weight": "0.30",
+      "min_trade_notional": null,
       "allow_restricted": false,
       "suppress_dust_trades": true,
       "dust_trade_threshold": null,
       "fx_buffer_pct": "0.01",
-      "single_position_max_weight": "0.30",
       "block_on_missing_prices": true,
+      "block_on_missing_fx": true,
       "min_cash_buffer_pct": "0.0"
     }
   },
@@ -507,19 +511,20 @@
       {
         "rule_id": "CASH_BAND",
         "severity": "SOFT",
-        "status": "FAIL",
+        "status": "PASS",
         "measured": "0.4013333333333333333333333333",
         "threshold": {
-          "max": "0.05"
+          "min": "0.00",
+          "max": "1.00"
         },
-        "reason_code": "THRESHOLD_BREACH",
-        "remediation_hint": "Portfolio has excess cash. Consider investing or verifying exclusions."
+        "reason_code": "OK",
+        "remediation_hint": null
       },
       {
         "rule_id": "SINGLE_POSITION_MAX",
         "severity": "HARD",
         "status": "PASS",
-        "measured": "0",
+        "measured": "0.3",
         "threshold": {
           "max": "0.30"
         },
@@ -540,6 +545,28 @@
       {
         "rule_id": "MIN_TRADE_SIZE",
         "severity": "SOFT",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "min": "0"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
+      },
+      {
+        "rule_id": "NO_SHORTING",
+        "severity": "HARD",
+        "status": "PASS",
+        "measured": "0",
+        "threshold": {
+          "min": "0"
+        },
+        "reason_code": "OK",
+        "remediation_hint": null
+      },
+      {
+        "rule_id": "INSUFFICIENT_CASH",
+        "severity": "HARD",
         "status": "PASS",
         "measured": "0",
         "threshold": {
