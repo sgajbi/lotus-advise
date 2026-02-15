@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from src.core.engine import run_simulation
 from src.core.models import (
+    CashBalance,
     EngineOptions,
     MarketDataSnapshot,
     ModelPortfolio,
