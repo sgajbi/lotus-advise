@@ -7,11 +7,11 @@ from decimal import Decimal
 from src.core.engine import run_simulation
 from src.core.models import (
     CashBalance,
-    FxRate,  # Added
+    FxRate,
     MarketDataSnapshot,
     ModelPortfolio,
     ModelTarget,
-    Money,  # Added
+    Money,
     PortfolioSnapshot,
     Position,
     Price,
@@ -64,6 +64,9 @@ def test_safety_insufficient_cash_block(base_options):
     Scenario: Buying a new asset with target weight > cash available.
     """
     portfolio, market_data, model, shelf = get_base_data()
+
+    # FIX: Remove EQ_1 to prevent 'price_missing' DQ error (since we overwrite prices below)
+    portfolio.positions = []
 
     # Start with very little cash
     portfolio.cash_balances[0].amount = Decimal("100.0")
