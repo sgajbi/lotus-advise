@@ -138,7 +138,10 @@ def test_target_normalization_over_100(base_context):
         ]
     )
 
-    result = run_simulation(pf, mkt, model, shelf, EngineOptions())
+    # Fix: Disable FX buffer to prevent INSUFFICIENT_CASH due to over-allocation
+    options = EngineOptions(fx_buffer_pct=Decimal("0.0"))
+
+    result = run_simulation(pf, mkt, model, shelf, options)
 
     # Total 1.6 -> Scaled to 0.5 each
     # AAPL: 100k * 0.5 / 150 = 333

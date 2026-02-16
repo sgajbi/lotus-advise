@@ -66,94 +66,16 @@
     }
   },
   "expected_outputs": {
-    "rebalance_run_id": "rr_4a2405f9",
-    "correlation_id": "c_none",
     "status": "READY",
-    "before": {
-      "total_value": {
-        "amount": "11350.000",
-        "currency": "SGD"
-      },
-      "cash_balances": [
-        {
-          "currency": "SGD",
-          "amount": "10000.0",
-          "settled": null,
-          "pending": null
-        },
-        {
-          "currency": "USD",
-          "amount": "1000.0",
-          "settled": null,
-          "pending": null
-        }
-      ],
-      "positions": [],
-      "allocation_by_asset_class": [
-        {
-          "key": "CASH",
-          "weight": "1",
-          "value": {
-            "amount": "11350.000",
-            "currency": "SGD"
-          }
-        }
-      ],
-      "allocation_by_instrument": [],
-      "allocation": [
-        {
-          "key": "CASH",
-          "weight": "1",
-          "value": {
-            "amount": "11350.000",
-            "currency": "SGD"
-          }
-        }
-      ]
-    },
-    "universe": {
-      "universe_id": "u_rr_4a2405f9",
-      "eligible_for_buy": [
-        "US_STK"
-      ],
-      "eligible_for_sell": [
-        "US_STK"
-      ],
-      "excluded": [],
-      "coverage": {
-        "price_coverage_pct": "1",
-        "fx_coverage_pct": "1"
-      }
-    },
-    "target": {
-      "target_id": "t_rr_4a2405f9",
-      "strategy": {},
-      "targets": [
-        {
-          "instrument_id": "US_STK",
-          "model_weight": "0.5",
-          "final_weight": "0.5",
-          "final_value": {
-            "amount": "5675.0000",
-            "currency": "SGD"
-          },
-          "tags": []
-        }
-      ]
-    },
     "intents": [
       {
-        "intent_id": "oi_fx_2",
         "intent_type": "FX_SPOT",
-        "side": "BUY_BASE_SELL_QUOTE",
-        "instrument_id": null,
-        "quantity": null,
-        "notional": null,
+        "intent_id": "oi_fx_2",
         "pair": "USD/SGD",
         "buy_currency": "USD",
         "buy_amount": "3232.000",
         "sell_currency": "SGD",
-        "estimated_sell_amount": "4363.20000",
+        "sell_amount_estimated": "4363.20000",
         "dependencies": [],
         "rationale": {
           "code": "FUNDING",
@@ -161,46 +83,42 @@
         }
       },
       {
-        "intent_id": "oi_1",
         "intent_type": "SECURITY_TRADE",
-        "side": "BUY",
+        "intent_id": "oi_1",
         "instrument_id": "US_STK",
+        "side": "BUY",
         "quantity": "42",
         "notional": {
           "amount": "4200.0",
           "currency": "USD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "5670.000",
+          "currency": "SGD"
+        },
         "dependencies": [
           "oi_fx_2"
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       }
     ],
     "after_simulated": {
       "total_value": {
-        "amount": "11350.000000",
+        "amount": "11350.00000",
         "currency": "SGD"
       },
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "5636.80000",
-          "settled": null,
-          "pending": null
+          "amount": "5636.80000"
         },
         {
           "currency": "USD",
-          "amount": "32.000",
-          "settled": null,
-          "pending": null
+          "amount": "32.000"
         }
       ],
       "positions": [
@@ -226,18 +144,18 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0.5004405286343612334801762115",
-          "value": {
-            "amount": "5680.000000",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "0.4995594713656387665198237885",
           "value": {
             "amount": "5670.000",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "CASH",
+          "weight": "0.5004405286343612334801762115",
+          "value": {
+            "amount": "5680.00000",
             "currency": "SGD"
           }
         }
@@ -254,15 +172,7 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0.5004405286343612334801762115",
-          "value": {
-            "amount": "5680.000000",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "UNKNOWN",
+          "key": "US_STK",
           "weight": "0.4995594713656387665198237885",
           "value": {
             "amount": "5670.000",
@@ -270,97 +180,6 @@
           }
         }
       ]
-    },
-    "reconciliation": {
-      "before_total_value": {
-        "amount": "11350.000",
-        "currency": "SGD"
-      },
-      "after_total_value": {
-        "amount": "11350.000000",
-        "currency": "SGD"
-      },
-      "delta": {
-        "amount": "0.000000",
-        "currency": "SGD"
-      },
-      "tolerance": {
-        "amount": "6.1750000",
-        "currency": "SGD"
-      },
-      "status": "OK"
-    },
-    "rule_results": [
-      {
-        "rule_id": "CASH_BAND",
-        "severity": "SOFT",
-        "status": "PASS",
-        "measured": "0.5004405286343612334801762115",
-        "threshold": {
-          "min": "0.0",
-          "max": "1.0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "SINGLE_POSITION_MAX",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "max": "-1"
-        },
-        "reason_code": "NO_LIMIT_SET",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "DATA_QUALITY",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "max": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "MIN_TRADE_SIZE",
-        "severity": "SOFT",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "NO_SHORTING",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "INSUFFICIENT_CASH",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      }
-    ],
-    "explanation": {
-      "summary": "READY"
     },
     "diagnostics": {
       "warnings": [],
@@ -371,10 +190,19 @@
         "shelf_missing": []
       }
     },
-    "lineage": {
-      "portfolio_snapshot_id": "pf_304",
-      "market_data_snapshot_id": "md",
-      "request_hash": "gen_script"
+    "universe": {
+      "universe_id": "u_rr_2271f696",
+      "eligible_for_buy": [
+        "US_STK"
+      ],
+      "eligible_for_sell": [
+        "US_STK"
+      ],
+      "excluded": [],
+      "coverage": {
+        "price_coverage_pct": "1",
+        "fx_coverage_pct": "1"
+      }
     }
   }
 }

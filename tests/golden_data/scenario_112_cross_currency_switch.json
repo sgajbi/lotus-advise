@@ -94,137 +94,7 @@
     }
   },
   "expected_outputs": {
-    "rebalance_run_id": "rr_golden",
-    "correlation_id": "c_none",
     "status": "BLOCKED",
-    "before": {
-      "total_value": {
-        "amount": "15000.00",
-        "currency": "SGD"
-      },
-      "cash_balances": [
-        {
-          "currency": "SGD",
-          "amount": "0.0",
-          "settled": null,
-          "pending": null
-        },
-        {
-          "currency": "USD",
-          "amount": "0.0",
-          "settled": null,
-          "pending": null
-        },
-        {
-          "currency": "EUR",
-          "amount": "0.0",
-          "settled": null,
-          "pending": null
-        }
-      ],
-      "positions": [
-        {
-          "instrument_id": "US_TECH",
-          "quantity": "100",
-          "instrument_currency": "USD",
-          "asset_class": "UNKNOWN",
-          "price": {
-            "amount": "100.0",
-            "currency": "USD"
-          },
-          "value_in_instrument_ccy": {
-            "amount": "10000.0",
-            "currency": "USD"
-          },
-          "value_in_base_ccy": {
-            "amount": "15000.00",
-            "currency": "SGD"
-          },
-          "weight": "1"
-        }
-      ],
-      "allocation_by_asset_class": [
-        {
-          "key": "UNKNOWN",
-          "weight": "1",
-          "value": {
-            "amount": "15000.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "CASH",
-          "weight": "0",
-          "value": {
-            "amount": "0.00",
-            "currency": "SGD"
-          }
-        }
-      ],
-      "allocation_by_instrument": [
-        {
-          "key": "US_TECH",
-          "weight": "1",
-          "value": {
-            "amount": "15000.00",
-            "currency": "SGD"
-          }
-        }
-      ],
-      "allocation": [
-        {
-          "key": "US_TECH",
-          "weight": "1",
-          "value": {
-            "amount": "15000.00",
-            "currency": "SGD"
-          }
-        }
-      ]
-    },
-    "universe": {
-      "universe_id": "uni_golden",
-      "eligible_for_buy": [
-        "EU_BOND"
-      ],
-      "eligible_for_sell": [
-        "EU_BOND",
-        "US_TECH"
-      ],
-      "excluded": [],
-      "coverage": {
-        "price_coverage_pct": "1",
-        "fx_coverage_pct": "1"
-      }
-    },
-    "target": {
-      "target_id": "tgt_golden",
-      "strategy": {},
-      "targets": [
-        {
-          "instrument_id": "EU_BOND",
-          "model_weight": "1.0",
-          "final_weight": "1.0",
-          "final_value": {
-            "amount": "15000.000",
-            "currency": "SGD"
-          },
-          "tags": []
-        },
-        {
-          "instrument_id": "US_TECH",
-          "model_weight": "0.0",
-          "final_weight": "0.0",
-          "final_value": {
-            "amount": "0.000",
-            "currency": "SGD"
-          },
-          "tags": [
-            "IMPLICIT_SELL_TO_ZERO"
-          ]
-        }
-      ]
-    },
     "intents": [
       {
         "intent_type": "SECURITY_TRADE",
@@ -307,21 +177,15 @@
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "-28.8000",
-          "settled": null,
-          "pending": null
+          "amount": "-28.8000"
         },
         {
           "currency": "USD",
-          "amount": "0.0",
-          "settled": null,
-          "pending": null
+          "amount": "0.0"
         },
         {
           "currency": "EUR",
-          "amount": "93.000",
-          "settled": null,
-          "pending": null
+          "amount": "93.000"
         }
       ],
       "positions": [
@@ -419,79 +283,6 @@
         }
       ]
     },
-    "reconciliation": null,
-    "rule_results": [
-      {
-        "rule_id": "CASH_BAND",
-        "severity": "SOFT",
-        "status": "PASS",
-        "measured": "0.008",
-        "threshold": {
-          "min": "0.00",
-          "max": "1.00"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "SINGLE_POSITION_MAX",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "max": "-1"
-        },
-        "reason_code": "NO_LIMIT_SET",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "DATA_QUALITY",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "max": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "MIN_TRADE_SIZE",
-        "severity": "SOFT",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "NO_SHORTING",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "INSUFFICIENT_CASH",
-        "severity": "HARD",
-        "status": "FAIL",
-        "measured": "-28.8000",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "CASH_BALANCE_NEGATIVE",
-        "remediation_hint": "Ensure sufficient funding."
-      }
-    ],
-    "explanation": {
-      "summary": "BLOCKED"
-    },
     "diagnostics": {
       "warnings": [
         "SIMULATION_SAFETY_CHECK_FAILED"
@@ -503,10 +294,20 @@
         "shelf_missing": []
       }
     },
-    "lineage": {
-      "portfolio_snapshot_id": "pf_112",
-      "market_data_snapshot_id": "md",
-      "request_hash": "hash_golden"
+    "universe": {
+      "universe_id": "u_rr_d434c7d2",
+      "eligible_for_buy": [
+        "EU_BOND"
+      ],
+      "eligible_for_sell": [
+        "EU_BOND",
+        "US_TECH"
+      ],
+      "excluded": [],
+      "coverage": {
+        "price_coverage_pct": "1",
+        "fx_coverage_pct": "1"
+      }
     }
   }
 }

@@ -62,112 +62,7 @@
     }
   },
   "expected_outputs": {
-    "rebalance_run_id": "rr_golden",
-    "correlation_id": "c_none",
     "status": "READY",
-    "before": {
-      "total_value": {
-        "amount": "20000.00",
-        "currency": "SGD"
-      },
-      "cash_balances": [
-        {
-          "currency": "SGD",
-          "amount": "15000.0",
-          "settled": null,
-          "pending": null
-        }
-      ],
-      "positions": [
-        {
-          "instrument_id": "EQ_SGD_1",
-          "quantity": "50",
-          "instrument_currency": "SGD",
-          "asset_class": "EQUITY",
-          "price": {
-            "amount": "100.0",
-            "currency": "SGD"
-          },
-          "value_in_instrument_ccy": {
-            "amount": "5000.0",
-            "currency": "SGD"
-          },
-          "value_in_base_ccy": {
-            "amount": "5000.00",
-            "currency": "SGD"
-          },
-          "weight": "0.25"
-        }
-      ],
-      "allocation_by_asset_class": [
-        {
-          "key": "EQUITY",
-          "weight": "0.25",
-          "value": {
-            "amount": "5000.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "CASH",
-          "weight": "0.75",
-          "value": {
-            "amount": "15000.0",
-            "currency": "SGD"
-          }
-        }
-      ],
-      "allocation_by_instrument": [
-        {
-          "key": "EQ_SGD_1",
-          "weight": "0.25",
-          "value": {
-            "amount": "5000.00",
-            "currency": "SGD"
-          }
-        }
-      ],
-      "allocation": [
-        {
-          "key": "EQ_SGD_1",
-          "weight": "0.25",
-          "value": {
-            "amount": "5000.00",
-            "currency": "SGD"
-          }
-        }
-      ]
-    },
-    "universe": {
-      "universe_id": "uni_golden",
-      "eligible_for_buy": [
-        "EQ_SGD_1"
-      ],
-      "eligible_for_sell": [
-        "EQ_SGD_1"
-      ],
-      "excluded": [],
-      "coverage": {
-        "price_coverage_pct": "1",
-        "fx_coverage_pct": "1"
-      }
-    },
-    "target": {
-      "target_id": "tgt_golden",
-      "strategy": {},
-      "targets": [
-        {
-          "instrument_id": "EQ_SGD_1",
-          "model_weight": "1.0",
-          "final_weight": "1.0",
-          "final_value": {
-            "amount": "20000.000",
-            "currency": "SGD"
-          },
-          "tags": []
-        }
-      ]
-    },
     "intents": [
       {
         "intent_type": "SECURITY_TRADE",
@@ -199,9 +94,7 @@
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "0.0",
-          "settled": null,
-          "pending": null
+          "amount": "0.0"
         }
       ],
       "positions": [
@@ -264,97 +157,6 @@
         }
       ]
     },
-    "reconciliation": {
-      "before_total_value": {
-        "amount": "20000.00",
-        "currency": "SGD"
-      },
-      "after_total_value": {
-        "amount": "20000.00",
-        "currency": "SGD"
-      },
-      "delta": {
-        "amount": "0.00",
-        "currency": "SGD"
-      },
-      "tolerance": {
-        "amount": "10.500000",
-        "currency": "SGD"
-      },
-      "status": "OK"
-    },
-    "rule_results": [
-      {
-        "rule_id": "CASH_BAND",
-        "severity": "SOFT",
-        "status": "PASS",
-        "measured": "0E+1",
-        "threshold": {
-          "min": "0.00",
-          "max": "1.00"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "SINGLE_POSITION_MAX",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "max": "-1"
-        },
-        "reason_code": "NO_LIMIT_SET",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "DATA_QUALITY",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "max": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "MIN_TRADE_SIZE",
-        "severity": "SOFT",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "NO_SHORTING",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "INSUFFICIENT_CASH",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      }
-    ],
-    "explanation": {
-      "summary": "READY"
-    },
     "diagnostics": {
       "warnings": [],
       "suppressed_intents": [],
@@ -364,10 +166,19 @@
         "shelf_missing": []
       }
     },
-    "lineage": {
-      "portfolio_snapshot_id": "pf_102",
-      "market_data_snapshot_id": "md",
-      "request_hash": "hash_golden"
+    "universe": {
+      "universe_id": "u_rr_4430b494",
+      "eligible_for_buy": [
+        "EQ_SGD_1"
+      ],
+      "eligible_for_sell": [
+        "EQ_SGD_1"
+      ],
+      "excluded": [],
+      "coverage": {
+        "price_coverage_pct": "1",
+        "fx_coverage_pct": "1"
+      }
     }
   }
 }

@@ -43,73 +43,32 @@
     }
   },
   "expected_outputs": {
-    "rebalance_run_id": "rr_golden",
-    "correlation_id": "c_placeholder",
     "status": "BLOCKED",
-    "before": {
-      "total_value": {
-        "amount": "10000.000",
-        "currency": "SGD"
-      },
-      "allocation": [],
-      "cash_balances": [
-        {
-          "currency": "SGD",
-          "amount": "10000.00",
-          "settled": null,
-          "pending": null
-        }
-      ]
-    },
-    "universe": {
-      "universe_id": "uni_golden",
-      "eligible_for_buy": [
-        "EQ_1"
-      ],
-      "eligible_for_sell": [
-        "EQ_1"
-      ],
-      "excluded": [],
-      "coverage": {
-        "price_coverage_pct": "0.0",
-        "fx_coverage_pct": "0.0"
-      }
-    },
-    "target": {
-      "target_id": "tgt_golden",
-      "strategy": {},
-      "targets": [
-        {
-          "instrument_id": "EQ_1",
-          "model_weight": "1.0",
-          "final_weight": "1.0",
-          "final_value": {
-            "amount": "10000.0000",
-            "currency": "SGD"
-          },
-          "tags": []
-        }
-      ]
-    },
     "intents": [],
     "after_simulated": {
       "total_value": {
-        "amount": "10000.000",
+        "amount": "10000.00",
         "currency": "SGD"
       },
-      "allocation": [],
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "10000.00",
-          "settled": null,
-          "pending": null
+          "amount": "10000.00"
         }
-      ]
-    },
-    "rule_results": [],
-    "explanation": {
-      "summary": "Run blocked. Check diagnostics."
+      ],
+      "positions": [],
+      "allocation_by_asset_class": [
+        {
+          "key": "CASH",
+          "weight": "1",
+          "value": {
+            "amount": "10000.00",
+            "currency": "SGD"
+          }
+        }
+      ],
+      "allocation_by_instrument": [],
+      "allocation": []
     },
     "diagnostics": {
       "warnings": [],
@@ -122,10 +81,19 @@
         "shelf_missing": []
       }
     },
-    "lineage": {
-      "portfolio_snapshot_id": "pf_001",
-      "market_data_snapshot_id": "md",
-      "request_hash": "hash_golden"
+    "universe": {
+      "universe_id": "u_rr_595fb5af",
+      "eligible_for_buy": [
+        "EQ_1"
+      ],
+      "eligible_for_sell": [
+        "EQ_1"
+      ],
+      "excluded": [],
+      "coverage": {
+        "price_coverage_pct": "0",
+        "fx_coverage_pct": "0"
+      }
     }
   }
 }

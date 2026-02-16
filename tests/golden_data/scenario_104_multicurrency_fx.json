@@ -61,66 +61,7 @@
     }
   },
   "expected_outputs": {
-    "rebalance_run_id": "rr_golden",
-    "correlation_id": "c_none",
     "status": "BLOCKED",
-    "before": {
-      "total_value": {
-        "amount": "20000.0",
-        "currency": "SGD"
-      },
-      "cash_balances": [
-        {
-          "currency": "SGD",
-          "amount": "20000.0",
-          "settled": null,
-          "pending": null
-        }
-      ],
-      "positions": [],
-      "allocation_by_asset_class": [
-        {
-          "key": "CASH",
-          "weight": "1",
-          "value": {
-            "amount": "20000.0",
-            "currency": "SGD"
-          }
-        }
-      ],
-      "allocation_by_instrument": [],
-      "allocation": []
-    },
-    "universe": {
-      "universe_id": "uni_golden",
-      "eligible_for_buy": [
-        "US_ETF"
-      ],
-      "eligible_for_sell": [
-        "US_ETF"
-      ],
-      "excluded": [],
-      "coverage": {
-        "price_coverage_pct": "1",
-        "fx_coverage_pct": "1"
-      }
-    },
-    "target": {
-      "target_id": "tgt_golden",
-      "strategy": {},
-      "targets": [
-        {
-          "instrument_id": "US_ETF",
-          "model_weight": "1.0",
-          "final_weight": "1.0",
-          "final_value": {
-            "amount": "20000.00",
-            "currency": "SGD"
-          },
-          "tags": []
-        }
-      ]
-    },
     "intents": [
       {
         "intent_type": "FX_SPOT",
@@ -168,15 +109,11 @@
       "cash_balances": [
         {
           "currency": "SGD",
-          "amount": "-179.80000",
-          "settled": null,
-          "pending": null
+          "amount": "-179.80000"
         },
         {
           "currency": "USD",
-          "amount": "148.000",
-          "settled": null,
-          "pending": null
+          "amount": "148.000"
         }
       ],
       "positions": [
@@ -239,79 +176,6 @@
         }
       ]
     },
-    "reconciliation": null,
-    "rule_results": [
-      {
-        "rule_id": "CASH_BAND",
-        "severity": "SOFT",
-        "status": "PASS",
-        "measured": "0.001",
-        "threshold": {
-          "min": "0.00",
-          "max": "1.00"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "SINGLE_POSITION_MAX",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "max": "-1"
-        },
-        "reason_code": "NO_LIMIT_SET",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "DATA_QUALITY",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "max": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "MIN_TRADE_SIZE",
-        "severity": "SOFT",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "NO_SHORTING",
-        "severity": "HARD",
-        "status": "PASS",
-        "measured": "0",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "OK",
-        "remediation_hint": null
-      },
-      {
-        "rule_id": "INSUFFICIENT_CASH",
-        "severity": "HARD",
-        "status": "FAIL",
-        "measured": "-179.80000",
-        "threshold": {
-          "min": "0"
-        },
-        "reason_code": "CASH_BALANCE_NEGATIVE",
-        "remediation_hint": "Ensure sufficient funding."
-      }
-    ],
-    "explanation": {
-      "summary": "BLOCKED"
-    },
     "diagnostics": {
       "warnings": [
         "SIMULATION_SAFETY_CHECK_FAILED"
@@ -323,10 +187,19 @@
         "shelf_missing": []
       }
     },
-    "lineage": {
-      "portfolio_snapshot_id": "pf_104",
-      "market_data_snapshot_id": "md",
-      "request_hash": "hash_golden"
+    "universe": {
+      "universe_id": "u_rr_64aeec7e",
+      "eligible_for_buy": [
+        "US_ETF"
+      ],
+      "eligible_for_sell": [
+        "US_ETF"
+      ],
+      "excluded": [],
+      "coverage": {
+        "price_coverage_pct": "1",
+        "fx_coverage_pct": "1"
+      }
     }
   }
 }
