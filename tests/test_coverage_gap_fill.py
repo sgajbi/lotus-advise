@@ -55,7 +55,9 @@ def test_engine_restricted_logic(base_inputs):
     """Hits engine.py:79-81 (Restricted logic)."""
     pf, mkt, model, shelf = base_inputs
     result = run_simulation(pf, mkt, model, shelf, EngineOptions(allow_restricted=False))
-    excl = next((e for e in result.universe.excluded if e.instrument_id == "LOCKED_ASSET"), None)
+    excl = next(
+        (e for e in result.universe.excluded if e.instrument_id == "LOCKED_ASSET"), None
+    )
     assert excl is not None
     assert "LOCKED_DUE_TO_RESTRICTED" in excl.reason_code
 
@@ -65,8 +67,13 @@ def test_reconciliation_failure_block(base_inputs):
     pf, mkt, model, shelf = base_inputs
     pf.positions[0].market_value = Money(amount=Decimal("9999999"), currency="USD")
     result = run_simulation(
-        pf, mkt, model, shelf, EngineOptions(valuation_mode=ValuationMode.TRUST_SNAPSHOT)
+        pf,
+        mkt,
+        model,
+        shelf,
+        EngineOptions(valuation_mode=ValuationMode.TRUST_SNAPSHOT),
     )
+    # With the fix in engine.py, this should now be BLOCKED
     assert result.status == "BLOCKED"
     blocker = next(r for r in result.rule_results if r.rule_id == "RECONCILIATION")
     assert blocker.status == "FAIL"
@@ -76,7 +83,9 @@ def test_valuation_missing_fx_log(base_inputs):
     """Hits valuation.py:157 & 192 (Missing FX paths)."""
     pf, mkt, model, shelf = base_inputs
     pf.positions.append(Position(instrument_id="NO_FX_ASSET", quantity=Decimal("10")))
-    mkt.prices.append(Price(instrument_id="NO_FX_ASSET", price=Decimal("100"), currency="KRW"))
+    mkt.prices.append(
+        Price(instrument_id="NO_FX_ASSET", price=Decimal("100"), currency="KRW")
+    )
     pf.cash_balances.append(CashBalance(currency="KRW", amount=Decimal("500")))
     dq = {}
     warns = []
@@ -97,9 +106,15 @@ def test_dependency_linking_explicit(base_inputs):
         fx_rates=[FxRate(pair="GBP/USD", rate=Decimal("1.2"))],
     )
     shelf = [ShelfEntry(instrument_id="GBP_STK", status="APPROVED")]
-    model = ModelPortfolio(targets=[ModelTarget(instrument_id="GBP_STK", weight=Decimal("1.0"))])
+    model = ModelPortfolio(
+        targets=[ModelTarget(instrument_id="GBP_STK", weight=Decimal("1.0"))]
+    )
     result = run_simulation(pf, mkt, model, shelf, EngineOptions())
-    buy = next(i for i in result.intents if isinstance(i, SecurityTradeIntent) and i.side == "BUY")
+    buy = next(
+        i
+        for i in result.intents
+        if isinstance(i, SecurityTradeIntent) and i.side == "BUY"
+    )
     assert len(buy.dependencies) > 0
 
 
@@ -116,7 +131,9 @@ def test_universe_suspended_exclusion(base_inputs):
 
     result = run_simulation(pf, mkt, model, shelf, EngineOptions())
 
-    excl = next((e for e in result.universe.excluded if e.instrument_id == "SUSPENDED_ASSET"), None)
+    excl = next(
+        (e for e in result.universe.excluded if e.instrument_id == "SUSPENDED_ASSET"), None
+    )
     assert excl is not None
     assert "SHELF_STATUS_SUSPENDED" in excl.reason_code
 
@@ -125,11 +142,15 @@ def test_universe_missing_shelf_locked(base_inputs):
     """Hits engine.py:81-83 (Held asset missing from Shelf)."""
     pf, mkt, model, shelf = base_inputs
     pf.positions.append(Position(instrument_id="GHOST_ASSET", quantity=Decimal("10")))
-    mkt.prices.append(Price(instrument_id="GHOST_ASSET", price=Decimal("100"), currency="USD"))
+    mkt.prices.append(
+        Price(instrument_id="GHOST_ASSET", price=Decimal("100"), currency="USD")
+    )
 
     result = run_simulation(pf, mkt, model, shelf, EngineOptions())
 
-    excl = next((e for e in result.universe.excluded if e.instrument_id == "GHOST_ASSET"), None)
+    excl = next(
+        (e for e in result.universe.excluded if e.instrument_id == "GHOST_ASSET"), None
+    )
     assert excl is not None
     assert "LOCKED_DUE_TO_MISSING_SHELF" in excl.reason_code
 
@@ -137,7 +158,9 @@ def test_universe_missing_shelf_locked(base_inputs):
 def test_target_locked_over_100(base_inputs):
     """Hits engine.py:126 (Locked > 100%)."""
     pf, mkt, model, shelf = base_inputs
-    pf.positions = [Position(instrument_id="LOCKED_ASSET", quantity=Decimal("1000"))]  # 10k val
+    pf.positions = [
+        Position(instrument_id="LOCKED_ASSET", quantity=Decimal("1000"))
+    ]  # 10k val
     mkt.prices[0].price = Decimal("1000")  # Now 1M val!
 
     result = run_simulation(pf, mkt, model, shelf, EngineOptions())
@@ -204,7 +227,9 @@ def test_hard_fail_shorting(base_inputs):
     """Hits engine.py:431 (NO_SHORTING Hard Fail)."""
     pf, mkt, model, shelf = base_inputs
     pf.positions.append(Position(instrument_id="SHORT_POS", quantity=Decimal("-10")))
-    mkt.prices.append(Price(instrument_id="SHORT_POS", price=Decimal("100"), currency="USD"))
+    mkt.prices.append(
+        Price(instrument_id="SHORT_POS", price=Decimal("100"), currency="USD")
+    )
     shelf.append(ShelfEntry(instrument_id="SHORT_POS", status="APPROVED"))
 
     result = run_simulation(pf, mkt, model, shelf, EngineOptions())
