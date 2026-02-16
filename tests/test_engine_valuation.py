@@ -84,7 +84,11 @@ def test_valuation_zero_price_handling(market_data):
 
     dq = {}
     summary = ValuationService.value_position(
-        pos, market_data, "USD", EngineOptions(valuation_mode=ValuationMode.CALCULATED), dq
+        pos,
+        market_data,
+        "USD",
+        EngineOptions(valuation_mode=ValuationMode.CALCULATED),
+        dq,
     )
 
     assert summary.value_in_base_ccy.amount == Decimal("0")
@@ -99,15 +103,18 @@ def test_valuation_missing_fx_logging(market_data):
 
     # No JPY/USD rate in market_data
     dq = {}
-    # We call build_simulated_state indirectly via a mock portfolio context if strictly unit testing,
-    # but here we test the Service directly. Service returns 0 for base val if FX missing.
+    # We test the Service directly. Service returns 0 for base val if FX missing.
 
     summary = ValuationService.value_position(
-        pos, market_data, "USD", EngineOptions(valuation_mode=ValuationMode.CALCULATED), dq
+        pos,
+        market_data,
+        "USD",
+        EngineOptions(valuation_mode=ValuationMode.CALCULATED),
+        dq,
     )
 
     assert summary.value_in_base_ccy.amount == Decimal("0")
-    # Note: Service itself doesn't append to DQ, the caller (engine/build_simulated_state) does.
+    # Note: Service itself doesn't append to DQ, the caller (engine) does.
     # Let's verify build_simulated_state does it.
 
     from src.core.models import PortfolioSnapshot
@@ -115,6 +122,6 @@ def test_valuation_missing_fx_logging(market_data):
     pf = PortfolioSnapshot(portfolio_id="p1", base_currency="USD", positions=[pos])
     warns = []
 
-    state = build_simulated_state(pf, market_data, [], dq, warns)
+    _ = build_simulated_state(pf, market_data, [], dq, warns)
 
     assert "JPY/USD" in dq["fx_missing"]

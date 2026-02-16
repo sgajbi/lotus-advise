@@ -111,7 +111,10 @@ def test_universe_banned_asset_exclusion(base_context):
 
 
 def test_universe_sell_only_logic(base_context):
-    """Universe Logic: SELL_ONLY asset held should be sold to 0 if not in model, or limited if in model."""
+    """
+    Universe Logic: SELL_ONLY asset held should be sold to 0 if not in model,
+    or limited if in model.
+    """
     pf, mkt, shelf = base_context
     # Portfolio holds SELL_ONLY_ASSET
     pf.positions.append(Position(instrument_id="SELL_ONLY_ASSET", quantity=Decimal("100")))

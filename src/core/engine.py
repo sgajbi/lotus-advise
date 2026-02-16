@@ -10,7 +10,6 @@ from src.core.compliance import RuleEngine
 from src.core.models import (
     CashBalance,
     DiagnosticsData,
-    EngineOptions,
     ExcludedInstrument,
     FxSpotIntent,
     IntentRationale,
@@ -26,7 +25,7 @@ from src.core.models import (
     TargetInstrument,
     UniverseCoverage,
     UniverseData,
-    ValuationMode,  # Needed for the fix
+    ValuationMode,
 )
 from src.core.valuation import build_simulated_state, get_fx_rate
 
@@ -344,9 +343,11 @@ def _generate_fx_and_simulate(
 
     # 4. Sort
     intents.sort(
-        key=lambda x: 0
-        if (x.intent_type == "SECURITY_TRADE" and x.side == "SELL")
-        else (1 if x.intent_type == "FX_SPOT" else 2)
+        key=lambda x: (
+            0
+            if (x.intent_type == "SECURITY_TRADE" and x.side == "SELL")
+            else (1 if x.intent_type == "FX_SPOT" else 2)
+        )
     )
 
     # 5. Simulate
@@ -377,10 +378,7 @@ def _generate_fx_and_simulate(
             g_cash(after, i.buy_currency).amount += i.buy_amount
 
     # 6. Build State
-    # FIXED: Force CALCULATED mode for After-State to ensure we detect reconciliation drifts.
-    # We copy options and override the mode.
     after_opts = options.model_copy(update={"valuation_mode": ValuationMode.CALCULATED})
-    
     state = build_simulated_state(
         after, market_data, shelf, diagnostics.data_quality, diagnostics.warnings, after_opts
     )
@@ -427,7 +425,9 @@ def _generate_fx_and_simulate(
         return intents, state, rules, "BLOCKED", recon
 
     final_status = "READY"
-    if any(r.severity == "SOFT" and r.status == "FAIL" for r in rules):
+    # Unrolled for explicit coverage
+    soft_fails = [r for r in rules if r.severity == "SOFT" and r.status == "FAIL"]
+    if soft_fails:
         final_status = "PENDING_REVIEW"
 
     return intents, state, rules, final_status, recon

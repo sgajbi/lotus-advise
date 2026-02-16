@@ -105,15 +105,9 @@ def test_dependency_multi_leg_chain():
     fx_intents = [i for i in result.intents if isinstance(i, FxSpotIntent)]
 
     buy_sec = next(i for i in sec_intents if i.instrument_id == "USD_ASSET")
-    sell_sec = next(i for i in sec_intents if i.instrument_id == "EUR_ASSET")
+    # sell_sec unused
 
     # Check FX linking
-    # Sell EUR_ASSET (EUR) -> generates cash
-    # The FX Sell EUR -> SGD should depend on the Sell Security?
-    # Current engine logic: "Sells happen first". FX implies using cash from sells.
-    # dependency logic in engine.py:
-    # "if i.side == "BUY" and i.notional.currency in sell_ids:"
-
     # Buy USD_ASSET (USD) -> needs USD.
     # FX Buy USD (from SGD) must exist.
     fx_buy_usd = next(i for i in fx_intents if i.buy_currency == "USD")

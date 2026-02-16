@@ -78,9 +78,9 @@ class ValuationService:
         # 2. Calculate Market Value (Native)
         mv_instr_ccy = Decimal("0")
 
-        if options.valuation_mode == ValuationMode.TRUST_SNAPSHOT and position.market_value:
-            # TRUST_SNAPSHOT: Use provided MV, assume it matches instrument currency if not specified
-            # Note: We rely on position.market_value.currency matching the price currency usually.
+        # TRUST_SNAPSHOT: Use provided MV
+        is_trust = options.valuation_mode == ValuationMode.TRUST_SNAPSHOT
+        if is_trust and position.market_value:
             mv_instr_ccy = position.market_value.amount
             currency = position.market_value.currency
         else:
