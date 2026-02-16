@@ -41,6 +41,7 @@
       }
     ],
     "options": {
+      "valuation_mode": "CALCULATED",
       "cash_band_min_weight": "0.00",
       "cash_band_max_weight": "1.00",
       "single_position_max_weight": null,
@@ -60,7 +61,7 @@
     "status": "BLOCKED",
     "before": {
       "total_value": {
-        "amount": "100.00",
+        "amount": "100.0",
         "currency": "SGD"
       },
       "cash_balances": [
@@ -71,24 +72,58 @@
           "pending": null
         }
       ],
-      "positions": [],
+      "positions": [
+        {
+          "instrument_id": "UNKNOWN_ASSET",
+          "quantity": "10",
+          "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
+          "price": null,
+          "value_in_instrument_ccy": {
+            "amount": "0",
+            "currency": "SGD"
+          },
+          "value_in_base_ccy": {
+            "amount": "0.0",
+            "currency": "SGD"
+          },
+          "weight": "0"
+        }
+      ],
       "allocation_by_asset_class": [
+        {
+          "key": "UNKNOWN",
+          "weight": "0",
+          "value": {
+            "amount": "0.0",
+            "currency": "SGD"
+          }
+        },
         {
           "key": "CASH",
           "weight": "1",
           "value": {
-            "amount": "100.00",
+            "amount": "100.0",
             "currency": "SGD"
           }
         }
       ],
-      "allocation_by_instrument": [],
+      "allocation_by_instrument": [
+        {
+          "key": "UNKNOWN_ASSET",
+          "weight": "0",
+          "value": {
+            "amount": "0.0",
+            "currency": "SGD"
+          }
+        }
+      ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "1",
+          "key": "UNKNOWN_ASSET",
+          "weight": "0",
           "value": {
-            "amount": "100.00",
+            "amount": "0.0",
             "currency": "SGD"
           }
         }
@@ -117,7 +152,7 @@
           "model_weight": "1.0",
           "final_weight": "1.0",
           "final_value": {
-            "amount": "100.000",
+            "amount": "100.00",
             "currency": "SGD"
           },
           "tags": []
@@ -127,7 +162,7 @@
     "intents": [],
     "after_simulated": {
       "total_value": {
-        "amount": "100.00",
+        "amount": "100.0",
         "currency": "SGD"
       },
       "cash_balances": [
@@ -138,24 +173,58 @@
           "pending": null
         }
       ],
-      "positions": [],
+      "positions": [
+        {
+          "instrument_id": "UNKNOWN_ASSET",
+          "quantity": "10",
+          "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
+          "price": null,
+          "value_in_instrument_ccy": {
+            "amount": "0",
+            "currency": "SGD"
+          },
+          "value_in_base_ccy": {
+            "amount": "0.0",
+            "currency": "SGD"
+          },
+          "weight": "0"
+        }
+      ],
       "allocation_by_asset_class": [
+        {
+          "key": "UNKNOWN",
+          "weight": "0",
+          "value": {
+            "amount": "0.0",
+            "currency": "SGD"
+          }
+        },
         {
           "key": "CASH",
           "weight": "1",
           "value": {
-            "amount": "100.00",
+            "amount": "100.0",
             "currency": "SGD"
           }
         }
       ],
-      "allocation_by_instrument": [],
+      "allocation_by_instrument": [
+        {
+          "key": "UNKNOWN_ASSET",
+          "weight": "0",
+          "value": {
+            "amount": "0.0",
+            "currency": "SGD"
+          }
+        }
+      ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "1",
+          "key": "UNKNOWN_ASSET",
+          "weight": "0",
           "value": {
-            "amount": "100.00",
+            "amount": "0.0",
             "currency": "SGD"
           }
         }

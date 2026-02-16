@@ -6,16 +6,18 @@
 **Depends On:** RFC-0006A / RFC-0006B (Pre-persistence hardening)
 **Backward Compatibility:** **Not required** (application not live)
 
+**Doc Location:** `docs/rfcs/RFC-0007A-contract-tightening.md`
+
 ---
 
 ## 0. Executive Summary
 
 This RFC cleans up the public interface and core semantics to make the service unambiguous and institutional-grade:
 
-1.  Establish one canonical endpoint and request/response schema (no duplicates).
-2.  Replace "optional soup" intents with **discriminated union** intent types (SecurityTrade vs FxSpot).
-3.  Make valuation behavior explicit via `valuation_mode` (CALCULATED vs TRUST_SNAPSHOT).
-4.  Tighten universe/locking logic and handling of non-zero holdings deterministically.
+1.  **Canonical Endpoint:** Establish one canonical endpoint (`POST /v1/rebalance/simulate`) and request/response schema.
+2.  **Discriminated Intents:** Replace “optional soup” intents with **discriminated union** intent types (`SecurityTrade` vs `FxSpot`).
+3.  **Explicit Valuation:** Make valuation behavior explicit via `valuation_mode` (`CALCULATED` vs `TRUST_SNAPSHOT`).
+4.  **Universe Locking:** Tighten universe/locking logic to handle all non-zero holdings deterministically.
 
 This RFC intentionally breaks any old contract shape; we will update demos and tests accordingly.
 
@@ -24,26 +26,26 @@ This RFC intentionally breaks any old contract shape; we will update demos and t
 ## 1. Problem Statement
 
 Pre-persistence, the most common institutional failures are ambiguity and drift:
-* docs/demo and tests refer to different routes
-* intent objects have many nullable fields, inviting incorrect consumers
-* valuation behavior is an implicit choice
-* holding overrides/locking apply only for `qty > 0`, which is not a robust invariant
+* **Route Confusion:** docs/demo and tests refer to different routes.
+* **Intent Ambiguity:** Intent objects have many nullable fields, inviting incorrect consumers to guess structure.
+* **Implicit Valuation:** The engine currently makes implicit choices about whether to trust the input `market_value` or recalculate it from `price * qty`.
+* **Holding Invariants:** Holding overrides/locking apply only for `qty > 0`, which ignores short positions or dust, failing robust invariant checks.
 
 ---
 
 ## 2. Goals
 
 ### 2.1 Must-Have
-* One canonical route and schema used everywhere.
-* Strict intent schema:
-    * `SecurityTradeIntent`: instrument_id required; quantity or notional required
-    * `FxSpotIntent`: pair + amounts required
-* Explicit valuation mode and documented behavior.
-* Locking and universe eligibility computed consistently for all non-zero holdings.
+* **One Canonical Route:** `/v1/rebalance/simulate` used everywhere.
+* **Strict Intent Schema:**
+    * `SecurityTradeIntent`: `instrument_id` required; `quantity` or `notional` required.
+    * `FxSpotIntent`: `pair` + amounts required; no `instrument_id`.
+* **Explicit Valuation Mode:** `options.valuation_mode` must be set or default explicitly.
+* **Robust Locking:** Universe eligibility computed consistently for *all* non-zero holdings (including negative).
 
 ### 2.2 Non-Goals
-* Persistence / DB idempotency
-* OMS execution integration
+* Persistence / DB idempotency (deferred to RFC-0008).
+* OMS execution integration (downstream).
 
 ---
 
@@ -52,14 +54,15 @@ Pre-persistence, the most common institutional failures are ambiguity and drift:
 ### 3.1 Endpoint
 **Canonical:** `POST /v1/rebalance/simulate`
 
-Remove or rename any other similar routes (`/rebalance/simulate`, `/v1/rebalance`, etc.) so there is exactly one.
+*Action:* Remove or rename any other similar routes (`/rebalance/simulate`, `/v1/rebalance`, etc.) so there is exactly one.
 
-### 3.2 Required headers
-* `Idempotency-Key` (required)
-* `X-Correlation-Id` (optional)
+### 3.2 Required Headers
+* `Idempotency-Key` (Required): SHA-256 of canonical inputs or UUID.
+* `X-Correlation-Id` (Optional): Trace ID for logging.
 
-### 3.3 Request schema (canonical)
-Keep your existing schema, but ensure demos match this exactly:
+### 3.3 Request Schema (Canonical)
+Keep existing schema, but ensure demos match this exactly. Add `options.valuation_mode`.
+
 ```json
 {
   "portfolio_id": "pf_123",
@@ -84,9 +87,9 @@ Keep your existing schema, but ensure demos match this exactly:
 
 ## 4. Discriminated Intent Model (Contract-breaking Improvement)
 
-### 4.1 Intent types
+### 4.1 Intent Types
 
-Replace single "OrderIntent" with a discriminated union:
+Replace single `OrderIntent` with a discriminated union.
 
 #### 4.1.1 SecurityTradeIntent
 
@@ -106,11 +109,11 @@ Replace single "OrderIntent" with a discriminated union:
 
 ```
 
-Rules:
+**Rules:**
 
-* `instrument_id` required
-* either `quantity` or `notional` must be present (prefer both when available)
-* always include `notional_base` for auditability
+* `instrument_id` required.
+* Either `quantity` or `notional` must be present.
+* Always include `notional_base` for auditability.
 
 #### 4.1.2 FxSpotIntent
 
@@ -129,14 +132,14 @@ Rules:
 
 ```
 
-Rules:
+**Rules:**
 
-* all FX fields required for FX intent
-* no irrelevant fields allowed (no instrument_id, etc.)
+* All FX fields required.
+* No irrelevant fields allowed (no `instrument_id`).
 
-### 4.2 Schema validation
+### 4.2 Schema Validation
 
-* Fail fast at model validation for invalid intent combinations (request validation errors remain 4xx; domain errors remain 200 + BLOCKED per your chosen style).
+* Fail fast at Pydantic model validation for invalid intent combinations.
 
 ---
 
@@ -144,26 +147,21 @@ Rules:
 
 ### 5.1 Options
 
-Add required option:
+Add required option: `options.valuation_mode`: `"CALCULATED"` (Default) or `"TRUST_SNAPSHOT"`.
 
-* `options.valuation_mode`: `"CALCULATED"` or `"TRUST_SNAPSHOT"`
+### 5.2 CALCULATED Mode (Default)
 
-### 5.2 CALCULATED mode (default)
+* All position values computed from `qty * price * fx` using the market snapshot.
+* If snapshot MV exists and differs from calculated > tolerance, add warning `POSITION_VALUE_MISMATCH`.
+* **Benefit:** Before-state and after-state are mathematically consistent with the same market snapshot.
 
-* All position values computed from `qty * price * fx` using the market snapshot
-* If snapshot MV exists and differs beyond tolerance, add warning:
-* `POSITION_VALUE_MISMATCH`
+### 5.3 TRUST_SNAPSHOT Mode
 
-
-* Before-state and after-state are mathematically consistent with the same market snapshot.
-
-### 5.3 TRUST_SNAPSHOT mode
-
-* Before-state uses snapshot MV (base) if provided
-* After-state uses computed valuation (still from the same market snapshot) unless you also supply an "execution MV" snapshot (not in scope here)
-* If TRUST_SNAPSHOT causes reconciliation mismatch beyond tolerance:
-* add warning `RECONCILIATION_MISMATCH_TRUST_SNAPSHOT`
-* status becomes `PENDING_REVIEW` (recommended) rather than BLOCKED (policy choice; pick one)
+* Before-state uses snapshot MV (base) if provided.
+* After-state uses computed valuation (unless "execution MV" snapshot provided).
+* If `TRUST_SNAPSHOT` causes reconciliation mismatch > tolerance:
+* Add warning `RECONCILIATION_MISMATCH_TRUST_SNAPSHOT`.
+* Status becomes `PENDING_REVIEW`.
 
 
 
@@ -171,46 +169,44 @@ Add required option:
 
 ## 6. Universe + Locking Semantics (Institutional)
 
-### 6.1 Non-zero holdings
+### 6.1 Non-zero Holdings
 
-Locking/holding overrides must trigger for:
+Locking/holding overrides must trigger for `pos.quantity != 0` (not just `> 0`).
 
-* `pos.quantity != 0` (not only `> 0`)
-
-### 6.2 Negative holdings policy
+### 6.2 Negative Holdings Policy
 
 If any `quantity < 0` is present in input snapshot:
 
-* default: status BLOCKED + NO_SHORTING (HARD fail) + diagnostics listing instruments
+* Default: Status `BLOCKED` + `NO_SHORTING` (HARD fail) + diagnostics listing instruments.
+* (Future: `options.allow_shorting=true`).
 
-(You can later add `options.allow_shorting=true`, but not required now.)
+### 6.3 Shelf Status Behavior for Held Instruments
 
-### 6.3 Shelf status behavior for held instruments
-
-Define explicit behavior for holdings:
-
-* SELL_ONLY held: sell allowed, buy blocked
-* RESTRICTED held: sell allowed; buy allowed only if allow_restricted=true
-* SUSPENDED held: freeze (no buy/sell); if engine attempts to trade it -> BLOCKED
-* BANNED held: default forced liquidation unless `options.freeze_banned_holdings=true`
+* **SELL_ONLY held:** Sell allowed, Buy blocked.
+* **RESTRICTED held:** Sell allowed; Buy allowed only if `allow_restricted=true`.
+* **SUSPENDED held:** Freeze (no buy/sell). If engine logic attempts to trade it -> `BLOCKED`.
+* **BANNED held:** Default forced liquidation unless `options.freeze_banned_holdings=true`.
 
 ---
 
 ## 7. Implementation Plan
 
-1. Choose canonical route `/v1/rebalance/simulate` and delete/rename other routes.
-2. Update demo pack JSONs and tests to use the canonical route and schema.
-3. Refactor intent models to discriminated union and update the engine and serializer.
-4. Implement valuation_mode and add targeted unit tests for CALCULATED vs TRUST_SNAPSHOT.
-5. Update universe/locking logic from `qty > 0` to `qty != 0`, and enforce negative holdings policy.
+1. **Refactor API:** Implement `POST /v1/rebalance/simulate` and delete old routes.
+2. **Update Demo Pack:** Fix all JSONs and tests to match new schema.
+3. **Refactor Models:** Split `OrderIntent` into `SecurityTradeIntent` and `FxSpotIntent`.
+4. **Implement Valuation Logic:** Add `ValuationService` branch for `CALCULATED` vs `TRUST_SNAPSHOT`.
+5. **Harden Universe:** Update locking logic to `qty != 0`.
 
 ---
 
 ## 8. Acceptance Criteria (DoD)
 
-* Exactly one simulate endpoint exists and is referenced everywhere.
-* Intents are discriminated unions; no nullable junk fields.
-* Valuation_mode is implemented and documented; behavior differences are test-covered.
-* Locking applies to all non-zero holdings; negative holdings are handled deterministically.
-* Demos and tests run cleanly with the new schema (no backward-compat shims).
+1. Exactly one simulate endpoint exists.
+2. Intents are discriminated unions in the response.
+3. `options.valuation_mode` changes behavior as documented.
+4. Locking applies to all non-zero holdings.
+5. `ruff check` and `pytest` pass 100%.
 
+```
+
+```

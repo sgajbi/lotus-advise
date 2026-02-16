@@ -62,6 +62,7 @@
       }
     ],
     "options": {
+      "valuation_mode": "CALCULATED",
       "cash_band_min_weight": "0.00",
       "cash_band_max_weight": "1.00",
       "single_position_max_weight": null,
@@ -115,18 +116,18 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0.9",
-          "value": {
-            "amount": "9000.00",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "0.1",
           "value": {
             "amount": "1000.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "CASH",
+          "weight": "0.9",
+          "value": {
+            "amount": "9000.0",
             "currency": "SGD"
           }
         }
@@ -143,15 +144,7 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0.9",
-          "value": {
-            "amount": "9000.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "UNKNOWN",
+          "key": "BAD_ASSET",
           "weight": "0.1",
           "value": {
             "amount": "1000.00",
@@ -213,48 +206,48 @@
     },
     "intents": [
       {
-        "intent_id": "oi_1",
         "intent_type": "SECURITY_TRADE",
-        "side": "SELL",
+        "intent_id": "oi_1",
         "instrument_id": "BAD_ASSET",
+        "side": "SELL",
         "quantity": "100",
         "notional": {
           "amount": "1000.0",
           "currency": "SGD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "1000.00",
+          "currency": "SGD"
+        },
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       },
       {
-        "intent_id": "oi_2",
         "intent_type": "SECURITY_TRADE",
-        "side": "BUY",
+        "intent_id": "oi_2",
         "instrument_id": "GOOD_ASSET",
+        "side": "BUY",
         "quantity": "1000",
         "notional": {
           "amount": "10000.0",
           "currency": "SGD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "10000.00",
+          "currency": "SGD"
+        },
         "dependencies": [
           "oi_1"
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       }
     ],
     "after_simulated": {
@@ -271,6 +264,25 @@
         }
       ],
       "positions": [
+        {
+          "instrument_id": "BAD_ASSET",
+          "quantity": "0",
+          "instrument_currency": "SGD",
+          "asset_class": "UNKNOWN",
+          "price": {
+            "amount": "10.0",
+            "currency": "SGD"
+          },
+          "value_in_instrument_ccy": {
+            "amount": "0.0",
+            "currency": "SGD"
+          },
+          "value_in_base_ccy": {
+            "amount": "0.00",
+            "currency": "SGD"
+          },
+          "weight": "0"
+        },
         {
           "instrument_id": "GOOD_ASSET",
           "quantity": "1000",
@@ -293,23 +305,31 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0",
-          "value": {
-            "amount": "0.00",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "1",
           "value": {
             "amount": "10000.00",
             "currency": "SGD"
           }
+        },
+        {
+          "key": "CASH",
+          "weight": "0E+1",
+          "value": {
+            "amount": "0.0",
+            "currency": "SGD"
+          }
         }
       ],
       "allocation_by_instrument": [
+        {
+          "key": "BAD_ASSET",
+          "weight": "0",
+          "value": {
+            "amount": "0.00",
+            "currency": "SGD"
+          }
+        },
         {
           "key": "GOOD_ASSET",
           "weight": "1",
@@ -321,7 +341,7 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
+          "key": "BAD_ASSET",
           "weight": "0",
           "value": {
             "amount": "0.00",
@@ -329,7 +349,7 @@
           }
         },
         {
-          "key": "UNKNOWN",
+          "key": "GOOD_ASSET",
           "weight": "1",
           "value": {
             "amount": "10000.00",
@@ -362,7 +382,7 @@
         "rule_id": "CASH_BAND",
         "severity": "SOFT",
         "status": "PASS",
-        "measured": "0",
+        "measured": "0E+1",
         "threshold": {
           "min": "0.00",
           "max": "1.00"

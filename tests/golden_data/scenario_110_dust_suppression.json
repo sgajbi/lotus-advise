@@ -59,6 +59,7 @@
       }
     ],
     "options": {
+      "valuation_mode": "CALCULATED",
       "cash_band_min_weight": "0.00",
       "cash_band_max_weight": "1.00",
       "single_position_max_weight": null,
@@ -78,7 +79,7 @@
     "status": "READY",
     "before": {
       "total_value": {
-        "amount": "10000.00",
+        "amount": "10000.0",
         "currency": "SGD"
       },
       "cash_balances": [
@@ -95,22 +96,13 @@
           "key": "CASH",
           "weight": "1",
           "value": {
-            "amount": "10000.00",
+            "amount": "10000.0",
             "currency": "SGD"
           }
         }
       ],
       "allocation_by_instrument": [],
-      "allocation": [
-        {
-          "key": "CASH",
-          "weight": "1",
-          "value": {
-            "amount": "10000.00",
-            "currency": "SGD"
-          }
-        }
-      ]
+      "allocation": []
     },
     "universe": {
       "universe_id": "uni_golden",
@@ -137,7 +129,7 @@
           "model_weight": "0.99",
           "final_weight": "0.99",
           "final_value": {
-            "amount": "9900.0000",
+            "amount": "9900.000",
             "currency": "SGD"
           },
           "tags": []
@@ -147,7 +139,7 @@
           "model_weight": "0.01",
           "final_weight": "0.01",
           "final_value": {
-            "amount": "100.0000",
+            "amount": "100.000",
             "currency": "SGD"
           },
           "tags": []
@@ -156,25 +148,25 @@
     },
     "intents": [
       {
-        "intent_id": "oi_1",
         "intent_type": "SECURITY_TRADE",
-        "side": "BUY",
+        "intent_id": "oi_1",
         "instrument_id": "BIG_ASSET",
+        "side": "BUY",
         "quantity": "99",
         "notional": {
           "amount": "9900.0",
           "currency": "SGD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "9900.00",
+          "currency": "SGD"
+        },
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       }
     ],
     "after_simulated": {
@@ -213,18 +205,18 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0.01",
-          "value": {
-            "amount": "100.00",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "0.99",
           "value": {
             "amount": "9900.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "CASH",
+          "weight": "0.01",
+          "value": {
+            "amount": "100.0",
             "currency": "SGD"
           }
         }
@@ -241,15 +233,7 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0.01",
-          "value": {
-            "amount": "100.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "UNKNOWN",
+          "key": "BIG_ASSET",
           "weight": "0.99",
           "value": {
             "amount": "9900.00",
@@ -260,7 +244,7 @@
     },
     "reconciliation": {
       "before_total_value": {
-        "amount": "10000.00",
+        "amount": "10000.0",
         "currency": "SGD"
       },
       "after_total_value": {
@@ -272,7 +256,7 @@
         "currency": "SGD"
       },
       "tolerance": {
-        "amount": "5.500000",
+        "amount": "5.50000",
         "currency": "SGD"
       },
       "status": "OK"

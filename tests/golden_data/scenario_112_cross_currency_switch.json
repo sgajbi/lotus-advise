@@ -79,6 +79,7 @@
       }
     ],
     "options": {
+      "valuation_mode": "CALCULATED",
       "cash_band_min_weight": "0.00",
       "cash_band_max_weight": "1.00",
       "single_position_max_weight": null,
@@ -144,18 +145,18 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0",
-          "value": {
-            "amount": "0.00",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "1",
           "value": {
             "amount": "15000.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "CASH",
+          "weight": "0",
+          "value": {
+            "amount": "0.00",
             "currency": "SGD"
           }
         }
@@ -172,15 +173,7 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0",
-          "value": {
-            "amount": "0.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "UNKNOWN",
+          "key": "US_TECH",
           "weight": "1",
           "value": {
             "amount": "15000.00",
@@ -234,38 +227,34 @@
     },
     "intents": [
       {
-        "intent_id": "oi_2",
         "intent_type": "SECURITY_TRADE",
-        "side": "SELL",
+        "intent_id": "oi_2",
         "instrument_id": "US_TECH",
+        "side": "SELL",
         "quantity": "100",
         "notional": {
           "amount": "10000.0",
           "currency": "USD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "15000.00",
+          "currency": "SGD"
+        },
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       },
       {
-        "intent_id": "oi_fx_3",
         "intent_type": "FX_SPOT",
-        "side": "SELL_BASE_BUY_QUOTE",
-        "instrument_id": null,
-        "quantity": null,
-        "notional": null,
+        "intent_id": "oi_fx_3",
         "pair": "USD/SGD",
         "buy_currency": "SGD",
         "buy_amount": "15000.00",
         "sell_currency": "USD",
-        "estimated_sell_amount": "10000.0",
+        "sell_amount_estimated": "10000.0",
         "dependencies": [],
         "rationale": {
           "code": "SWEEP",
@@ -273,17 +262,13 @@
         }
       },
       {
-        "intent_id": "oi_fx_4",
         "intent_type": "FX_SPOT",
-        "side": "BUY_BASE_SELL_QUOTE",
-        "instrument_id": null,
-        "quantity": null,
-        "notional": null,
+        "intent_id": "oi_fx_4",
         "pair": "EUR/SGD",
         "buy_currency": "EUR",
         "buy_amount": "9393.000",
         "sell_currency": "SGD",
-        "estimated_sell_amount": "15028.8000",
+        "sell_amount_estimated": "15028.8000",
         "dependencies": [],
         "rationale": {
           "code": "FUNDING",
@@ -291,32 +276,32 @@
         }
       },
       {
-        "intent_id": "oi_1",
         "intent_type": "SECURITY_TRADE",
-        "side": "BUY",
+        "intent_id": "oi_1",
         "instrument_id": "EU_BOND",
+        "side": "BUY",
         "quantity": "93",
         "notional": {
           "amount": "9300.0",
           "currency": "EUR"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "14880.00",
+          "currency": "SGD"
+        },
         "dependencies": [
           "oi_fx_4"
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       }
     ],
     "after_simulated": {
       "total_value": {
-        "amount": "15000.00000",
+        "amount": "15000.0000",
         "currency": "SGD"
       },
       "cash_balances": [
@@ -341,6 +326,25 @@
       ],
       "positions": [
         {
+          "instrument_id": "US_TECH",
+          "quantity": "0",
+          "instrument_currency": "USD",
+          "asset_class": "UNKNOWN",
+          "price": {
+            "amount": "100.0",
+            "currency": "USD"
+          },
+          "value_in_instrument_ccy": {
+            "amount": "0.0",
+            "currency": "USD"
+          },
+          "value_in_base_ccy": {
+            "amount": "0.00",
+            "currency": "SGD"
+          },
+          "weight": "0E+2"
+        },
+        {
           "instrument_id": "EU_BOND",
           "quantity": "93",
           "instrument_currency": "EUR",
@@ -362,23 +366,31 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0.008",
-          "value": {
-            "amount": "120.00000",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "0.992",
           "value": {
             "amount": "14880.00",
             "currency": "SGD"
           }
+        },
+        {
+          "key": "CASH",
+          "weight": "0.008",
+          "value": {
+            "amount": "120.0000",
+            "currency": "SGD"
+          }
         }
       ],
       "allocation_by_instrument": [
+        {
+          "key": "US_TECH",
+          "weight": "0E+2",
+          "value": {
+            "amount": "0.00",
+            "currency": "SGD"
+          }
+        },
         {
           "key": "EU_BOND",
           "weight": "0.992",
@@ -390,15 +402,15 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0.008",
+          "key": "US_TECH",
+          "weight": "0E+2",
           "value": {
-            "amount": "120.00000",
+            "amount": "0.00",
             "currency": "SGD"
           }
         },
         {
-          "key": "UNKNOWN",
+          "key": "EU_BOND",
           "weight": "0.992",
           "value": {
             "amount": "14880.00",

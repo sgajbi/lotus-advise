@@ -94,6 +94,7 @@
       }
     ],
     "options": {
+      "valuation_mode": "CALCULATED",
       "cash_band_min_weight": "0.00",
       "cash_band_max_weight": "1.00",
       "single_position_max_weight": "0.30",
@@ -159,18 +160,18 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0",
-          "value": {
-            "amount": "0.00",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "1",
           "value": {
             "amount": "15000.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "CASH",
+          "weight": "0",
+          "value": {
+            "amount": "0.00",
             "currency": "SGD"
           }
         }
@@ -187,15 +188,7 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0",
-          "value": {
-            "amount": "0.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "UNKNOWN",
+          "key": "USD_OLD",
           "weight": "1",
           "value": {
             "amount": "15000.00",
@@ -265,38 +258,34 @@
     },
     "intents": [
       {
-        "intent_id": "oi_3",
         "intent_type": "SECURITY_TRADE",
-        "side": "SELL",
+        "intent_id": "oi_3",
         "instrument_id": "USD_OLD",
+        "side": "SELL",
         "quantity": "100",
         "notional": {
           "amount": "10000.0",
           "currency": "USD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "15000.00",
+          "currency": "SGD"
+        },
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       },
       {
-        "intent_id": "oi_fx_4",
         "intent_type": "FX_SPOT",
-        "side": "SELL_BASE_BUY_QUOTE",
-        "instrument_id": null,
-        "quantity": null,
-        "notional": null,
+        "intent_id": "oi_fx_4",
         "pair": "USD/SGD",
         "buy_currency": "SGD",
         "buy_amount": "10500.00",
         "sell_currency": "USD",
-        "estimated_sell_amount": "7000.0",
+        "sell_amount_estimated": "7000.0",
         "dependencies": [],
         "rationale": {
           "code": "SWEEP",
@@ -304,17 +293,13 @@
         }
       },
       {
-        "intent_id": "oi_fx_5",
         "intent_type": "FX_SPOT",
-        "side": "BUY_BASE_SELL_QUOTE",
-        "instrument_id": null,
-        "quantity": null,
-        "notional": null,
+        "intent_id": "oi_fx_5",
         "pair": "EUR/SGD",
         "buy_currency": "EUR",
         "buy_amount": "2828.000",
         "sell_currency": "SGD",
-        "estimated_sell_amount": "4524.8000",
+        "sell_amount_estimated": "4524.8000",
         "dependencies": [],
         "rationale": {
           "code": "FUNDING",
@@ -322,55 +307,55 @@
         }
       },
       {
-        "intent_id": "oi_1",
         "intent_type": "SECURITY_TRADE",
-        "side": "BUY",
+        "intent_id": "oi_1",
         "instrument_id": "USD_NEW",
+        "side": "BUY",
         "quantity": "30",
         "notional": {
           "amount": "3000.0",
           "currency": "USD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "4500.00",
+          "currency": "SGD"
+        },
         "dependencies": [
           "oi_3"
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       },
       {
-        "intent_id": "oi_2",
         "intent_type": "SECURITY_TRADE",
-        "side": "BUY",
+        "intent_id": "oi_2",
         "instrument_id": "EUR_NEW",
+        "side": "BUY",
         "quantity": "28",
         "notional": {
           "amount": "2800.0",
           "currency": "EUR"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "4480.00",
+          "currency": "SGD"
+        },
         "dependencies": [
           "oi_fx_5"
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       }
     ],
     "after_simulated": {
       "total_value": {
-        "amount": "15000.00000",
+        "amount": "15000.0000",
         "currency": "SGD"
       },
       "cash_balances": [
@@ -394,6 +379,25 @@
         }
       ],
       "positions": [
+        {
+          "instrument_id": "USD_OLD",
+          "quantity": "0",
+          "instrument_currency": "USD",
+          "asset_class": "UNKNOWN",
+          "price": {
+            "amount": "100.0",
+            "currency": "USD"
+          },
+          "value_in_instrument_ccy": {
+            "amount": "0.0",
+            "currency": "USD"
+          },
+          "value_in_base_ccy": {
+            "amount": "0.00",
+            "currency": "SGD"
+          },
+          "weight": "0E+2"
+        },
         {
           "instrument_id": "USD_NEW",
           "quantity": "30",
@@ -435,23 +439,31 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0.4013333333333333333333333333",
-          "value": {
-            "amount": "6020.00000",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "0.5986666666666666666666666667",
           "value": {
             "amount": "8980.00",
             "currency": "SGD"
           }
+        },
+        {
+          "key": "CASH",
+          "weight": "0.4013333333333333333333333333",
+          "value": {
+            "amount": "6020.0000",
+            "currency": "SGD"
+          }
         }
       ],
       "allocation_by_instrument": [
+        {
+          "key": "USD_OLD",
+          "weight": "0E+2",
+          "value": {
+            "amount": "0.00",
+            "currency": "SGD"
+          }
+        },
         {
           "key": "USD_NEW",
           "weight": "0.3",
@@ -471,18 +483,26 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0.4013333333333333333333333333",
+          "key": "USD_OLD",
+          "weight": "0E+2",
           "value": {
-            "amount": "6020.00000",
+            "amount": "0.00",
             "currency": "SGD"
           }
         },
         {
-          "key": "UNKNOWN",
-          "weight": "0.5986666666666666666666666667",
+          "key": "USD_NEW",
+          "weight": "0.3",
           "value": {
-            "amount": "8980.00",
+            "amount": "4500.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "EUR_NEW",
+          "weight": "0.2986666666666666666666666667",
+          "value": {
+            "amount": "4480.00",
             "currency": "SGD"
           }
         }
@@ -494,11 +514,11 @@
         "currency": "SGD"
       },
       "after_total_value": {
-        "amount": "15000.00000",
+        "amount": "15000.0000",
         "currency": "SGD"
       },
       "delta": {
-        "amount": "0.00000",
+        "amount": "0.0000",
         "currency": "SGD"
       },
       "tolerance": {

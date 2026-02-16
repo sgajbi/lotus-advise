@@ -58,6 +58,7 @@
       }
     ],
     "options": {
+      "valuation_mode": "CALCULATED",
       "cash_band_min_weight": "0.00",
       "cash_band_max_weight": "1.00",
       "single_position_max_weight": null,
@@ -77,7 +78,7 @@
     "status": "PENDING_REVIEW",
     "before": {
       "total_value": {
-        "amount": "20000.000",
+        "amount": "20000.00",
         "currency": "SGD"
       },
       "cash_balances": [
@@ -111,15 +112,15 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
+          "key": "UNKNOWN",
           "weight": "0.5",
           "value": {
-            "amount": "10000.000",
+            "amount": "10000.00",
             "currency": "SGD"
           }
         },
         {
-          "key": "UNKNOWN",
+          "key": "CASH",
           "weight": "0.5",
           "value": {
             "amount": "10000.00",
@@ -139,15 +140,7 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0.5",
-          "value": {
-            "amount": "10000.000",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "UNKNOWN",
+          "key": "RUSSIA_ETF",
           "weight": "0.5",
           "value": {
             "amount": "10000.00",
@@ -185,7 +178,7 @@
           "model_weight": "1.0",
           "final_weight": "0.50",
           "final_value": {
-            "amount": "10000.00000",
+            "amount": "10000.0000",
             "currency": "SGD"
           },
           "tags": [
@@ -197,7 +190,7 @@
           "model_weight": "0.0",
           "final_weight": "0.5",
           "final_value": {
-            "amount": "10000.0000",
+            "amount": "10000.000",
             "currency": "SGD"
           },
           "tags": [
@@ -208,30 +201,30 @@
     },
     "intents": [
       {
-        "intent_id": "oi_1",
         "intent_type": "SECURITY_TRADE",
-        "side": "BUY",
+        "intent_id": "oi_1",
         "instrument_id": "US_BOND",
+        "side": "BUY",
         "quantity": "100",
         "notional": {
           "amount": "10000.0",
           "currency": "SGD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "10000.00",
+          "currency": "SGD"
+        },
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       }
     ],
     "after_simulated": {
       "total_value": {
-        "amount": "20000.000",
+        "amount": "20000.00",
         "currency": "SGD"
       },
       "cash_balances": [
@@ -284,18 +277,18 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0",
-          "value": {
-            "amount": "0.000",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "1",
           "value": {
             "amount": "20000.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "CASH",
+          "weight": "0",
+          "value": {
+            "amount": "0.00",
             "currency": "SGD"
           }
         }
@@ -320,18 +313,18 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0",
+          "key": "RUSSIA_ETF",
+          "weight": "0.5",
           "value": {
-            "amount": "0.000",
+            "amount": "10000.00",
             "currency": "SGD"
           }
         },
         {
-          "key": "UNKNOWN",
-          "weight": "1",
+          "key": "US_BOND",
+          "weight": "0.5",
           "value": {
-            "amount": "20000.00",
+            "amount": "10000.00",
             "currency": "SGD"
           }
         }
@@ -339,19 +332,19 @@
     },
     "reconciliation": {
       "before_total_value": {
-        "amount": "20000.000",
+        "amount": "20000.00",
         "currency": "SGD"
       },
       "after_total_value": {
-        "amount": "20000.000",
+        "amount": "20000.00",
         "currency": "SGD"
       },
       "delta": {
-        "amount": "0.000",
+        "amount": "0.00",
         "currency": "SGD"
       },
       "tolerance": {
-        "amount": "10.5000000",
+        "amount": "10.500000",
         "currency": "SGD"
       },
       "status": "OK"

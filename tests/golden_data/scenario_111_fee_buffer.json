@@ -62,6 +62,7 @@
       }
     ],
     "options": {
+      "valuation_mode": "CALCULATED",
       "cash_band_min_weight": "0.00",
       "cash_band_max_weight": "1.00",
       "single_position_max_weight": null,
@@ -115,18 +116,18 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0.09090909090909090909090909091",
-          "value": {
-            "amount": "1000.00",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "0.9090909090909090909090909091",
           "value": {
             "amount": "10000.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "CASH",
+          "weight": "0.09090909090909090909090909091",
+          "value": {
+            "amount": "1000.0",
             "currency": "SGD"
           }
         }
@@ -143,15 +144,7 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0.09090909090909090909090909091",
-          "value": {
-            "amount": "1000.00",
-            "currency": "SGD"
-          }
-        },
-        {
-          "key": "UNKNOWN",
+          "key": "EQ_SGD_1",
           "weight": "0.9090909090909090909090909091",
           "value": {
             "amount": "10000.00",
@@ -208,48 +201,48 @@
     },
     "intents": [
       {
-        "intent_id": "oi_1",
         "intent_type": "SECURITY_TRADE",
-        "side": "SELL",
+        "intent_id": "oi_1",
         "instrument_id": "EQ_SGD_1",
+        "side": "SELL",
         "quantity": "45",
         "notional": {
           "amount": "4500.0",
           "currency": "SGD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "4500.00",
+          "currency": "SGD"
+        },
         "dependencies": [],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       },
       {
-        "intent_id": "oi_2",
         "intent_type": "SECURITY_TRADE",
-        "side": "BUY",
+        "intent_id": "oi_2",
         "instrument_id": "EQ_SGD_2",
+        "side": "BUY",
         "quantity": "109",
         "notional": {
           "amount": "5450.0",
           "currency": "SGD"
         },
-        "pair": null,
-        "buy_currency": null,
-        "buy_amount": null,
-        "sell_currency": null,
-        "estimated_sell_amount": null,
+        "notional_base": {
+          "amount": "5450.00",
+          "currency": "SGD"
+        },
         "dependencies": [
           "oi_1"
         ],
         "rationale": {
           "code": "DRIFT_REBALANCE",
           "message": "Align"
-        }
+        },
+        "constraints_applied": []
       }
     ],
     "after_simulated": {
@@ -307,18 +300,18 @@
       ],
       "allocation_by_asset_class": [
         {
-          "key": "CASH",
-          "weight": "0.004545454545454545454545454545",
-          "value": {
-            "amount": "50.00",
-            "currency": "SGD"
-          }
-        },
-        {
           "key": "UNKNOWN",
           "weight": "0.9954545454545454545454545455",
           "value": {
             "amount": "10950.00",
+            "currency": "SGD"
+          }
+        },
+        {
+          "key": "CASH",
+          "weight": "0.004545454545454545454545454545",
+          "value": {
+            "amount": "50.0",
             "currency": "SGD"
           }
         }
@@ -343,18 +336,18 @@
       ],
       "allocation": [
         {
-          "key": "CASH",
-          "weight": "0.004545454545454545454545454545",
+          "key": "EQ_SGD_1",
+          "weight": "0.5",
           "value": {
-            "amount": "50.00",
+            "amount": "5500.00",
             "currency": "SGD"
           }
         },
         {
-          "key": "UNKNOWN",
-          "weight": "0.9954545454545454545454545455",
+          "key": "EQ_SGD_2",
+          "weight": "0.4954545454545454545454545455",
           "value": {
-            "amount": "10950.00",
+            "amount": "5450.00",
             "currency": "SGD"
           }
         }

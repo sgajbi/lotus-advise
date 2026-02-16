@@ -377,8 +377,9 @@ def _generate_fx_and_simulate(
             g_cash(after, i.buy_currency).amount += i.buy_amount
 
     # 6. Build State
+    # RFC-0007A: Update to pass options for correct valuation mode in After State
     state = build_simulated_state(
-        after, market_data, shelf, diagnostics.data_quality, diagnostics.warnings
+        after, market_data, shelf, diagnostics.data_quality, diagnostics.warnings, options
     )
     tv_after = state.total_value.amount
 
@@ -443,7 +444,8 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
     dq, warns, suppressed = {"price_missing": [], "fx_missing": [], "shelf_missing": []}, [], []
 
-    before = build_simulated_state(portfolio, market_data, shelf, dq, warns)
+    # RFC-0007A: Update to pass options for correct valuation mode in Before State
+    before = build_simulated_state(portfolio, market_data, shelf, dq, warns, options)
     tv = before.total_value.amount
 
     eligible, excl, buy_l, sell_l, s_exc = _build_universe(
