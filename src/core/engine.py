@@ -11,14 +11,15 @@ from src.core.models import (
     CashBalance,
     DiagnosticsData,
     ExcludedInstrument,
+    FxSpotIntent,
     IntentRationale,
     LineageData,
     Money,
-    OrderIntent,
     Position,
     RebalanceResult,
     Reconciliation,
     RuleResult,
+    SecurityTradeIntent,
     SuppressedIntent,
     TargetData,
     TargetInstrument,
@@ -221,10 +222,10 @@ def _generate_intents(
         side = "BUY" if delta > 0 else "SELL"
         qty = int(abs(delta) // price_ent.price)
         notional = Decimal(qty) * price_ent.price
+        notional_base = notional * rate
 
         shelf_ent = next((s for s in shelf if s.instrument_id == i_id), None)
 
-        # RFC-0006B: Suppress based on options.min_trade_notional OR shelf.min_notional
         threshold = None
         if options.min_trade_notional:
             threshold = options.min_trade_notional
@@ -244,13 +245,15 @@ def _generate_intents(
 
         if qty > 0:
             intents.append(
-                OrderIntent(
+                SecurityTradeIntent(
                     intent_id=f"oi_{len(intents) + 1}",
                     side=side,
                     instrument_id=i_id,
                     quantity=Decimal(qty),
                     notional=Money(amount=notional, currency=price_ent.currency),
+                    notional_base=Money(amount=notional_base, currency=portfolio.base_currency),
                     rationale=IntentRationale(code="DRIFT_REBALANCE", message="Align"),
+                    constraints_applied=["MIN_NOTIONAL"] if threshold else [],
                 )
             )
     return intents
@@ -277,14 +280,12 @@ def _generate_fx_and_simulate(
             continue
         rate = get_fx_rate(market_data, ccy, portfolio.base_currency)
         if rate is None:
-            # Check DQ Policy
             if options.block_on_missing_fx:
                 diagnostics.data_quality.setdefault("fx_missing", []).append(
                     f"{ccy}/{portfolio.base_currency}"
                 )
                 return intents, deepcopy(portfolio), [], "BLOCKED", None
             else:
-                # Log but don't block
                 diagnostics.data_quality.setdefault("fx_missing", []).append(
                     f"{ccy}/{portfolio.base_currency}"
                 )
@@ -296,15 +297,13 @@ def _generate_fx_and_simulate(
             fx_id = f"oi_fx_{len(intents) + 1}"
             fx_map[ccy] = fx_id
             intents.append(
-                OrderIntent(
+                FxSpotIntent(
                     intent_id=fx_id,
-                    intent_type="FX_SPOT",
-                    side="BUY_BASE_SELL_QUOTE",
                     pair=f"{ccy}/{portfolio.base_currency}",
                     buy_currency=ccy,
                     buy_amount=buy_amt,
                     sell_currency=portfolio.base_currency,
-                    estimated_sell_amount=sell_amt,
+                    sell_amount_estimated=sell_amt,
                     rationale=IntentRationale(code="FUNDING", message="Fund"),
                 )
             )
@@ -312,15 +311,13 @@ def _generate_fx_and_simulate(
             buy_amt = bal * rate
             fx_id = f"oi_fx_{len(intents) + 1}"
             intents.append(
-                OrderIntent(
+                FxSpotIntent(
                     intent_id=fx_id,
-                    intent_type="FX_SPOT",
-                    side="SELL_BASE_BUY_QUOTE",
                     pair=f"{ccy}/{portfolio.base_currency}",
                     buy_currency=portfolio.base_currency,
                     buy_amount=buy_amt,
                     sell_currency=ccy,
-                    estimated_sell_amount=bal,
+                    sell_amount_estimated=bal,
                     rationale=IntentRationale(code="SWEEP", message="Sweep"),
                 )
             )
@@ -329,14 +326,28 @@ def _generate_fx_and_simulate(
     for i in intents:
         if i.intent_type == "SECURITY_TRADE" and i.side == "BUY" and i.notional.currency in fx_map:
             i.dependencies.append(fx_map[i.notional.currency])
-    sell_ids = {i.notional.currency: i.intent_id for i in intents if i.side == "SELL"}
+    sell_ids = {
+        i.notional.currency: i.intent_id
+        for i in intents
+        if i.intent_type == "SECURITY_TRADE" and i.side == "SELL"
+    }
     for i in intents:
-        if i.side == "BUY" and i.notional.currency in sell_ids:
+        if (
+            i.intent_type == "SECURITY_TRADE"
+            and i.side == "BUY"
+            and i.notional.currency in sell_ids
+        ):
             if sell_ids[i.notional.currency] not in i.dependencies:
                 i.dependencies.append(sell_ids[i.notional.currency])
 
     # 4. Sort
-    intents.sort(key=lambda x: 0 if x.side == "SELL" else (1 if x.intent_type == "FX_SPOT" else 2))
+    intents.sort(
+        key=lambda x: (
+            0
+            if (x.intent_type == "SECURITY_TRADE" and x.side == "SELL")
+            else (1 if x.intent_type == "FX_SPOT" else 2)
+        )
+    )
 
     # 5. Simulate
     after = deepcopy(portfolio)
@@ -361,8 +372,8 @@ def _generate_fx_and_simulate(
             g_cash(after, i.notional.currency).amount += (
                 i.notional.amount if i.side == "SELL" else -i.notional.amount
             )
-        else:
-            g_cash(after, i.sell_currency).amount -= i.estimated_sell_amount
+        elif i.intent_type == "FX_SPOT":
+            g_cash(after, i.sell_currency).amount -= i.sell_amount_estimated
             g_cash(after, i.buy_currency).amount += i.buy_amount
 
     # 6. Build State
@@ -371,15 +382,13 @@ def _generate_fx_and_simulate(
     )
     tv_after = state.total_value.amount
 
-    # 7. Evaluate Rules (Rules Engine)
-    # RFC-0006B: Delegate No-Shorting and Insufficient-Cash checks to RuleEngine
+    # 7. Evaluate Rules
     rules = RuleEngine.evaluate(state, options, diagnostics)
 
     # 8. Check for Hard Fails
     blocked = any(r.severity == "HARD" and r.status == "FAIL" for r in rules)
 
     if blocked:
-        # We identify the blocker for the warning log
         blockers = [r.rule_id for r in rules if r.severity == "HARD" and r.status == "FAIL"]
         if "NO_SHORTING" in blockers:
             diagnostics.warnings.append("SIMULATION_SAFETY_CHECK_FAILED")
@@ -388,7 +397,6 @@ def _generate_fx_and_simulate(
 
         return intents, state, rules, "BLOCKED", None
 
-    # Guard 3: Reconciliation (Keep strictly in Engine as it compares Before/After)
     recon_diff = abs(tv_after - total_val_before)
     tolerance = Decimal("0.5") + (total_val_before * Decimal("0.0005"))
 
@@ -414,7 +422,6 @@ def _generate_fx_and_simulate(
         )
         return intents, state, rules, "BLOCKED", recon
 
-    # Final Status Determination
     final_status = "READY"
     if any(r.severity == "SOFT" and r.status == "FAIL" for r in rules):
         final_status = "PENDING_REVIEW"
@@ -423,7 +430,6 @@ def _generate_fx_and_simulate(
 
 
 def _check_blocking_dq(dq_log, options):
-    """Returns True if any DQ entries violate blocking policy."""
     if dq_log.get("shelf_missing"):
         return True
     if dq_log.get("price_missing") and options.block_on_missing_prices:
@@ -450,7 +456,6 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
 
     diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
 
-    # Pre-flight DQ check (Intelligent)
     if _check_blocking_dq(dq, options) or s3_stat == "BLOCKED":
         return RebalanceResult(
             rebalance_run_id=run_id,
@@ -479,7 +484,6 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
 
     intents = _generate_intents(portfolio, market_data, trace, shelf, options, tv, dq, suppressed)
 
-    # Secondary DQ check after intents (in case new prices/FX were checked)
     if _check_blocking_dq(dq, options):
         diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
         return RebalanceResult(
@@ -507,7 +511,6 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             ),
         )
 
-    # 5. Simulation & Safety
     diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
 
     intents, after, rules, f_stat, recon = _generate_fx_and_simulate(
@@ -516,8 +519,6 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
 
     if s3_stat == "PENDING_REVIEW" and f_stat == "READY":
         f_stat = "PENDING_REVIEW"
-
-    # Warning already appended in generate_fx_and_simulate if hard fail
 
     return RebalanceResult(
         rebalance_run_id=run_id,

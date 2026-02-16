@@ -3,9 +3,16 @@ FILE: src/core/models.py
 """
 
 from decimal import Decimal
-from typing import Any, Dict, List, Literal, Optional
+from enum import Enum
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
+
+
+# --- Enums ---
+class ValuationMode(str, Enum):
+    CALCULATED = "CALCULATED"
+    TRUST_SNAPSHOT = "TRUST_SNAPSHOT"
 
 
 # --- Primitives ---
@@ -68,30 +75,27 @@ class ShelfEntry(BaseModel):
 
 
 class EngineOptions(BaseModel):
-    # Rules & Thresholds (RFC-0006B)
-    # Default permissive (0-100%) to preserve backward compatibility with MVP goldens.
-    # Strict 1-5% bands should be enabled explicitly via payload.
+    # RFC-0007A: Explicit Valuation Policy
+    valuation_mode: ValuationMode = ValuationMode.CALCULATED
+
+    # Rules & Thresholds
     cash_band_min_weight: Decimal = Decimal("0.00")
     cash_band_max_weight: Decimal = Decimal("1.00")
 
-    # Default to None (no cap) to match legacy behavior.
-    # Clients/Tests must explicitly set this to enforce caps.
     single_position_max_weight: Optional[Decimal] = None
-    min_trade_notional: Optional[Money] = None  # Global minimum trade size
+    min_trade_notional: Optional[Money] = None
 
     # Behavior
     allow_restricted: bool = False
     suppress_dust_trades: bool = True
-    dust_trade_threshold: Optional[Money] = (
-        None  # Deprecated in favor of min_trade_notional? Keeping for compat.
-    )
+    dust_trade_threshold: Optional[Money] = None  # Deprecated
     fx_buffer_pct: Decimal = Decimal("0.01")
     block_on_missing_prices: bool = True
     block_on_missing_fx: bool = True
     min_cash_buffer_pct: Decimal = Decimal("0.0")
 
 
-# --- Expanded Outputs (RFC-0003 Audit Bundle) ---
+# --- Outputs ---
 class AllocationMetric(BaseModel):
     key: str
     weight: Decimal
@@ -157,20 +161,35 @@ class IntentRationale(BaseModel):
     message: str
 
 
-class OrderIntent(BaseModel):
+# --- RFC-0007A: Discriminated Intents ---
+
+
+class SecurityTradeIntent(BaseModel):
+    intent_type: Literal["SECURITY_TRADE"] = "SECURITY_TRADE"
     intent_id: str
-    intent_type: Literal["SECURITY_TRADE", "FX_SPOT"] = "SECURITY_TRADE"
-    side: Literal["BUY", "SELL", "BUY_BASE_SELL_QUOTE", "SELL_BASE_BUY_QUOTE"]
-    instrument_id: Optional[str] = None
+    instrument_id: str
+    side: Literal["BUY", "SELL"]
     quantity: Optional[Decimal] = None
     notional: Optional[Money] = None
-    pair: Optional[str] = None
-    buy_currency: Optional[str] = None
-    buy_amount: Optional[Decimal] = None
-    sell_currency: Optional[str] = None
-    estimated_sell_amount: Optional[Decimal] = None
+    notional_base: Optional[Money] = None
     dependencies: List[str] = Field(default_factory=list)
     rationale: Optional[IntentRationale] = None
+    constraints_applied: List[str] = Field(default_factory=list)
+
+
+class FxSpotIntent(BaseModel):
+    intent_type: Literal["FX_SPOT"] = "FX_SPOT"
+    intent_id: str
+    pair: str
+    buy_currency: str
+    buy_amount: Decimal
+    sell_currency: str
+    sell_amount_estimated: Decimal
+    dependencies: List[str] = Field(default_factory=list)
+    rationale: Optional[IntentRationale] = None
+
+
+OrderIntent = Union[SecurityTradeIntent, FxSpotIntent]
 
 
 class RuleResult(BaseModel):
@@ -203,8 +222,6 @@ class LineageData(BaseModel):
 
 
 class Reconciliation(BaseModel):
-    """Proof of value conservation (Before vs After)."""
-
     before_total_value: Money
     after_total_value: Money
     delta: Money
@@ -221,7 +238,7 @@ class RebalanceResult(BaseModel):
     before: SimulatedState
     universe: UniverseData
     target: TargetData
-    intents: List[OrderIntent]
+    intents: List[OrderIntent] = Field(discriminator="intent_type")
     after_simulated: SimulatedState
     reconciliation: Optional[Reconciliation] = None
     rule_results: List[RuleResult] = Field(default_factory=list)
