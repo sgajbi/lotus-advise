@@ -30,6 +30,45 @@ from src.core.models import (
 from src.core.valuation import build_simulated_state, get_fx_rate
 
 
+def _make_blocked_result(
+    run_id,
+    portfolio,
+    before,
+    buy_l,
+    sell_l,
+    excl,
+    trace,
+    options,
+    diagnostics,
+    request_hash,
+):
+    """Create a consistent blocked response payload."""
+    return RebalanceResult(
+        rebalance_run_id=run_id,
+        correlation_id="c_none",
+        status="BLOCKED",
+        before=before,
+        universe=UniverseData(
+            universe_id=f"u_{run_id}",
+            eligible_for_buy=buy_l,
+            eligible_for_sell=sell_l,
+            excluded=excl,
+            coverage=UniverseCoverage(price_coverage_pct=0, fx_coverage_pct=0),
+        ),
+        target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
+        intents=[],
+        after_simulated=before,
+        rule_results=RuleEngine.evaluate(before, options, diagnostics),
+        diagnostics=diagnostics,
+        explanation={"summary": "Blocked"},
+        lineage=LineageData(
+            portfolio_snapshot_id=portfolio.portfolio_id,
+            market_data_snapshot_id="md",
+            request_hash=request_hash,
+        ),
+    )
+
+
 def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
     """Stage 2: Filter targets and handle implicit locking/sells."""
     eligible_targets, excluded = {}, []
@@ -281,15 +320,11 @@ def _generate_fx_and_simulate(
             continue
         rate = get_fx_rate(market_data, ccy, portfolio.base_currency)
         if rate is None:
+            diagnostics.data_quality.setdefault("fx_missing", []).append(
+                f"{ccy}/{portfolio.base_currency}"
+            )
             if options.block_on_missing_fx:
-                diagnostics.data_quality.setdefault("fx_missing", []).append(
-                    f"{ccy}/{portfolio.base_currency}"
-                )
                 return intents, deepcopy(portfolio), [], "BLOCKED", None
-            else:
-                diagnostics.data_quality.setdefault("fx_missing", []).append(
-                    f"{ccy}/{portfolio.base_currency}"
-                )
             continue
 
         if bal < 0:
@@ -461,58 +496,34 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
     diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
 
     if _check_blocking_dq(dq, options) or s3_stat == "BLOCKED":
-        return RebalanceResult(
-            rebalance_run_id=run_id,
-            correlation_id="c_none",
-            status="BLOCKED",
+        return _make_blocked_result(
+            run_id=run_id,
+            portfolio=portfolio,
             before=before,
-            universe=UniverseData(
-                universe_id=f"u_{run_id}",
-                eligible_for_buy=buy_l,
-                eligible_for_sell=sell_l,
-                excluded=excl,
-                coverage=UniverseCoverage(price_coverage_pct=0, fx_coverage_pct=0),
-            ),
-            target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
-            intents=[],
-            after_simulated=before,
-            rule_results=RuleEngine.evaluate(before, options, diag_data),
+            buy_l=buy_l,
+            sell_l=sell_l,
+            excl=excl,
+            trace=trace,
+            options=options,
             diagnostics=diag_data,
-            explanation={"summary": "Blocked"},
-            lineage=LineageData(
-                portfolio_snapshot_id=portfolio.portfolio_id,
-                market_data_snapshot_id="md",
-                request_hash=request_hash,
-            ),
+            request_hash=request_hash,
         )
 
     intents = _generate_intents(portfolio, market_data, trace, shelf, options, tv, dq, suppressed)
 
     if _check_blocking_dq(dq, options):
         diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
-        return RebalanceResult(
-            rebalance_run_id=run_id,
-            correlation_id="c_none",
-            status="BLOCKED",
+        return _make_blocked_result(
+            run_id=run_id,
+            portfolio=portfolio,
             before=before,
-            universe=UniverseData(
-                universe_id=f"u_{run_id}",
-                eligible_for_buy=buy_l,
-                eligible_for_sell=sell_l,
-                excluded=excl,
-                coverage=UniverseCoverage(price_coverage_pct=0, fx_coverage_pct=0),
-            ),
-            target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
-            intents=[],
-            after_simulated=before,
-            rule_results=RuleEngine.evaluate(before, options, diag_data),
+            buy_l=buy_l,
+            sell_l=sell_l,
+            excl=excl,
+            trace=trace,
+            options=options,
             diagnostics=diag_data,
-            explanation={"summary": "Blocked"},
-            lineage=LineageData(
-                portfolio_snapshot_id=portfolio.portfolio_id,
-                market_data_snapshot_id="md",
-                request_hash=request_hash,
-            ),
+            request_hash=request_hash,
         )
 
     diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
