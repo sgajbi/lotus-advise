@@ -14,7 +14,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 
 Unlike traditional engines that crash (HTTP 500) or reject (HTTP 400) on complex domain states, this engine follows a **"No-Throw" Protocol (RFC-0003)**.
 
-* **Always Returns 200 OK:** Even if the run is blocked by data quality or mathematical infeasibility.
+* **Returns 200 OK for Domain Outcomes:** Valid simulation requests return `READY`, `PENDING_REVIEW`, or `BLOCKED` in a 200 response. Malformed payloads or missing required headers return 422.
 * **Status-Driven Flow:** The `status` field (`READY`, `PENDING_REVIEW`, `BLOCKED`) dictates the next step.
 * **Audit Bundle:** Every response contains the *complete context* needed to reconstruct the decision:
     * `before`: The starting valuation.
@@ -64,13 +64,12 @@ uvicorn src.api.main:app --reload --port 8000
 ```
 
 * **API Docs:** `http://127.0.0.1:8000/docs`
-* **Health Check:** `http://127.0.0.1:8000/health`
 
 ### Testing
 
 ```bash
 # Run full test suite with coverage
-pytest --cov=src --cov-report=term-missing --cov-fail-under=100
+python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=100
 
 # Linting & Formatting
 ruff check .
@@ -130,6 +129,9 @@ Performs a full rebalance simulation.
 | **READY** | Success. Trades generated. | Approve and execute. |
 | **PENDING_REVIEW** | Soft Rule Breach (e.g., High Cash). | Human review required. |
 | **BLOCKED** | Hard Failure (Data/Constraint). | Fix data or relax constraints. |
+
+Notes:
+* `X-Correlation-Id` is currently used for logging and is not echoed in the response body.
 
 ---
 

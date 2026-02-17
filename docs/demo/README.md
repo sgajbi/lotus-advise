@@ -1,18 +1,17 @@
 # DPM Rebalance Engine Demo Scenarios
 
-This folder contains JSON input files demonstrating key capabilities of the DPM Rebalance Engine (RFC-0006B). You can run these scenarios using the CLI or API.
+This folder contains JSON input files demonstrating key capabilities of the DPM Rebalance Engine (RFC-0006B). Run these scenarios through the API endpoint.
 
 ## Running Scenarios
 
-### CLI Usage (Hypothetical)
-```bash
-python -m src.api.main --input docs/demo/01_standard_drift.json
-
-```
-
 ### API Usage
 
-POST the content of any JSON file to `/v1/rebalance/run`.
+POST the content of any JSON file to `/rebalance/simulate` with `Idempotency-Key`.
+
+Example:
+```bash
+curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-01" --data-binary "@docs/demo/01_standard_drift.json"
+```
 
 ---
 

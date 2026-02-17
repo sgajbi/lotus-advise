@@ -1,90 +1,432 @@
-
 {
-  "rebalance_run_id": "rr_sample_123",
-  "correlation_id": "c_demo_001",
+  "rebalance_run_id": "rr_24d8e9f2",
+  "correlation_id": "c_none",
   "status": "READY",
   "before": {
     "total_value": {
-      "amount": "1000000.00",
+      "amount": "15000.0000",
       "currency": "SGD"
     },
     "cash_balances": [
       {
         "currency": "SGD",
-        "amount": "10000.00"
+        "amount": "0.00",
+        "settled": null,
+        "pending": null
+      },
+      {
+        "currency": "USD",
+        "amount": "0.00",
+        "settled": null,
+        "pending": null
+      },
+      {
+        "currency": "EUR",
+        "amount": "0.00",
+        "settled": null,
+        "pending": null
       }
     ],
     "positions": [
       {
-        "instrument_id": "US_TECH_ETF",
-        "quantity": "5000",
+        "instrument_id": "US_TECH",
+        "quantity": "100",
         "instrument_currency": "USD",
+        "asset_class": "UNKNOWN",
+        "price": {
+          "amount": "100.00",
+          "currency": "USD"
+        },
+        "value_in_instrument_ccy": {
+          "amount": "10000.00",
+          "currency": "USD"
+        },
         "value_in_base_ccy": {
-          "amount": "675000.00",
+          "amount": "15000.0000",
           "currency": "SGD"
         },
-        "weight": "0.675"
+        "weight": "1"
       }
     ],
     "allocation_by_asset_class": [
       {
-        "key": "EQUITY",
-        "weight": "0.675",
-        "value": { "amount": "675000.00", "currency": "SGD" }
+        "key": "UNKNOWN",
+        "weight": "1",
+        "value": {
+          "amount": "15000.0000",
+          "currency": "SGD"
+        }
       },
       {
         "key": "CASH",
-        "weight": "0.01",
-        "value": { "amount": "10000.00", "currency": "SGD" }
+        "weight": "0",
+        "value": {
+          "amount": "0.0000",
+          "currency": "SGD"
+        }
+      }
+    ],
+    "allocation_by_instrument": [
+      {
+        "key": "US_TECH",
+        "weight": "1",
+        "value": {
+          "amount": "15000.0000",
+          "currency": "SGD"
+        }
+      }
+    ],
+    "allocation": [
+      {
+        "key": "US_TECH",
+        "weight": "1",
+        "value": {
+          "amount": "15000.0000",
+          "currency": "SGD"
+        }
       }
     ]
   },
   "universe": {
-    "universe_id": "uni_sample",
-    "eligible_for_buy": ["US_TECH_ETF", "SG_BOND_FUND"],
-    "excluded": []
+    "universe_id": "u_rr_24d8e9f2",
+    "eligible_for_buy": [
+      "EU_BOND"
+    ],
+    "eligible_for_sell": [
+      "EU_BOND",
+      "US_TECH"
+    ],
+    "excluded": [],
+    "coverage": {
+      "price_coverage_pct": "1",
+      "fx_coverage_pct": "1"
+    }
   },
   "target": {
-    "target_id": "tgt_sample",
+    "target_id": "t_rr_24d8e9f2",
+    "strategy": {},
     "targets": [
       {
-        "instrument_id": "US_TECH_ETF",
-        "model_weight": "0.65",
-        "final_weight": "0.65",
-        "final_value": { "amount": "650000.00", "currency": "SGD" }
+        "instrument_id": "EU_BOND",
+        "model_weight": "1.0",
+        "final_weight": "1.0",
+        "final_value": {
+          "amount": "15000.00000",
+          "currency": "SGD"
+        },
+        "tags": []
+      },
+      {
+        "instrument_id": "US_TECH",
+        "model_weight": "0.0",
+        "final_weight": "0.0",
+        "final_value": {
+          "amount": "0.00000",
+          "currency": "SGD"
+        },
+        "tags": [
+          "IMPLICIT_SELL_TO_ZERO"
+        ]
       }
     ]
   },
   "intents": [
     {
-      "intent_id": "oi_1",
       "intent_type": "SECURITY_TRADE",
+      "intent_id": "oi_2",
+      "instrument_id": "US_TECH",
       "side": "SELL",
-      "instrument_id": "US_TECH_ETF",
-      "notional": { "amount": "18500.00", "currency": "USD" },
-      "rationale": { "code": "DRIFT_REBALANCE", "message": "Align to model target" }
+      "quantity": "100",
+      "notional": {
+        "amount": "10000.00",
+        "currency": "USD"
+      },
+      "notional_base": {
+        "amount": "15000.0000",
+        "currency": "SGD"
+      },
+      "dependencies": [],
+      "rationale": {
+        "code": "DRIFT_REBALANCE",
+        "message": "Align"
+      },
+      "constraints_applied": []
+    },
+    {
+      "intent_type": "FX_SPOT",
+      "intent_id": "oi_fx_3",
+      "pair": "USD/SGD",
+      "buy_currency": "SGD",
+      "buy_amount": "15000.0000",
+      "sell_currency": "USD",
+      "sell_amount_estimated": "10000.00",
+      "dependencies": [],
+      "rationale": {
+        "code": "SWEEP",
+        "message": "Sweep"
+      }
+    },
+    {
+      "intent_type": "FX_SPOT",
+      "intent_id": "oi_fx_4",
+      "pair": "EUR/SGD",
+      "buy_currency": "EUR",
+      "buy_amount": "9300.0000",
+      "sell_currency": "SGD",
+      "sell_amount_estimated": "14880.000000",
+      "dependencies": [],
+      "rationale": {
+        "code": "FUNDING",
+        "message": "Fund"
+      }
+    },
+    {
+      "intent_type": "SECURITY_TRADE",
+      "intent_id": "oi_1",
+      "instrument_id": "EU_BOND",
+      "side": "BUY",
+      "quantity": "93",
+      "notional": {
+        "amount": "9300.00",
+        "currency": "EUR"
+      },
+      "notional_base": {
+        "amount": "14880.0000",
+        "currency": "SGD"
+      },
+      "dependencies": [
+        "oi_fx_4"
+      ],
+      "rationale": {
+        "code": "DRIFT_REBALANCE",
+        "message": "Align"
+      },
+      "constraints_applied": []
     }
   ],
   "after_simulated": {
     "total_value": {
-      "amount": "1000000.00",
+      "amount": "15000.000000",
       "currency": "SGD"
     },
+    "cash_balances": [
+      {
+        "currency": "SGD",
+        "amount": "120.000000",
+        "settled": null,
+        "pending": null
+      },
+      {
+        "currency": "USD",
+        "amount": "0.00",
+        "settled": null,
+        "pending": null
+      },
+      {
+        "currency": "EUR",
+        "amount": "0.0000",
+        "settled": null,
+        "pending": null
+      }
+    ],
+    "positions": [
+      {
+        "instrument_id": "US_TECH",
+        "quantity": "0",
+        "instrument_currency": "USD",
+        "asset_class": "UNKNOWN",
+        "price": {
+          "amount": "100.00",
+          "currency": "USD"
+        },
+        "value_in_instrument_ccy": {
+          "amount": "0.00",
+          "currency": "USD"
+        },
+        "value_in_base_ccy": {
+          "amount": "0.0000",
+          "currency": "SGD"
+        },
+        "weight": "0E+2"
+      },
+      {
+        "instrument_id": "EU_BOND",
+        "quantity": "93",
+        "instrument_currency": "EUR",
+        "asset_class": "UNKNOWN",
+        "price": {
+          "amount": "100.00",
+          "currency": "EUR"
+        },
+        "value_in_instrument_ccy": {
+          "amount": "9300.00",
+          "currency": "EUR"
+        },
+        "value_in_base_ccy": {
+          "amount": "14880.0000",
+          "currency": "SGD"
+        },
+        "weight": "0.992"
+      }
+    ],
     "allocation_by_asset_class": [
       {
-        "key": "EQUITY",
-        "weight": "0.65",
-        "value": { "amount": "650000.00", "currency": "SGD" }
+        "key": "UNKNOWN",
+        "weight": "0.992",
+        "value": {
+          "amount": "14880.0000",
+          "currency": "SGD"
+        }
+      },
+      {
+        "key": "CASH",
+        "weight": "0.008",
+        "value": {
+          "amount": "120.000000",
+          "currency": "SGD"
+        }
+      }
+    ],
+    "allocation_by_instrument": [
+      {
+        "key": "US_TECH",
+        "weight": "0E+2",
+        "value": {
+          "amount": "0.0000",
+          "currency": "SGD"
+        }
+      },
+      {
+        "key": "EU_BOND",
+        "weight": "0.992",
+        "value": {
+          "amount": "14880.0000",
+          "currency": "SGD"
+        }
+      }
+    ],
+    "allocation": [
+      {
+        "key": "US_TECH",
+        "weight": "0E+2",
+        "value": {
+          "amount": "0.0000",
+          "currency": "SGD"
+        }
+      },
+      {
+        "key": "EU_BOND",
+        "weight": "0.992",
+        "value": {
+          "amount": "14880.0000",
+          "currency": "SGD"
+        }
       }
     ]
   },
-  "rule_results": [],
-  "explanation": { "summary": "Status: READY" },
+  "reconciliation": {
+    "before_total_value": {
+      "amount": "15000.0000",
+      "currency": "SGD"
+    },
+    "after_total_value": {
+      "amount": "15000.000000",
+      "currency": "SGD"
+    },
+    "delta": {
+      "amount": "0.000000",
+      "currency": "SGD"
+    },
+    "tolerance": {
+      "amount": "8.00000000",
+      "currency": "SGD"
+    },
+    "status": "OK"
+  },
+  "rule_results": [
+    {
+      "rule_id": "CASH_BAND",
+      "severity": "SOFT",
+      "status": "PASS",
+      "measured": "0.008",
+      "threshold": {
+        "min": "0.00",
+        "max": "1.00"
+      },
+      "reason_code": "OK",
+      "remediation_hint": null
+    },
+    {
+      "rule_id": "SINGLE_POSITION_MAX",
+      "severity": "HARD",
+      "status": "PASS",
+      "measured": "0",
+      "threshold": {
+        "max": "-1"
+      },
+      "reason_code": "NO_LIMIT_SET",
+      "remediation_hint": null
+    },
+    {
+      "rule_id": "DATA_QUALITY",
+      "severity": "HARD",
+      "status": "PASS",
+      "measured": "0",
+      "threshold": {
+        "max": "0"
+      },
+      "reason_code": "OK",
+      "remediation_hint": null
+    },
+    {
+      "rule_id": "MIN_TRADE_SIZE",
+      "severity": "SOFT",
+      "status": "PASS",
+      "measured": "0",
+      "threshold": {
+        "min": "0"
+      },
+      "reason_code": "OK",
+      "remediation_hint": null
+    },
+    {
+      "rule_id": "NO_SHORTING",
+      "severity": "HARD",
+      "status": "PASS",
+      "measured": "0",
+      "threshold": {
+        "min": "0"
+      },
+      "reason_code": "OK",
+      "remediation_hint": null
+    },
+    {
+      "rule_id": "INSUFFICIENT_CASH",
+      "severity": "HARD",
+      "status": "PASS",
+      "measured": "0",
+      "threshold": {
+        "min": "0"
+      },
+      "reason_code": "OK",
+      "remediation_hint": null
+    }
+  ],
+  "explanation": {
+    "summary": "READY"
+  },
   "diagnostics": {
-    "data_quality": { "price_missing": [], "fx_missing": [] },
-    "warnings": []
+    "warnings": [],
+    "suppressed_intents": [],
+    "data_quality": {
+      "price_missing": [],
+      "fx_missing": [],
+      "shelf_missing": []
+    }
   },
   "lineage": {
-    "request_hash": "sha256:..."
+    "portfolio_snapshot_id": "pf_112",
+    "market_data_snapshot_id": "md",
+    "request_hash": "sha256:sample"
   }
 }
