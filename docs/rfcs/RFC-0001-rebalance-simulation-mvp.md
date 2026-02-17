@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | **PROPOSED** (Ready for Approval) |
+| **Status** | **IMPLEMENTED** (With Later RFC Deltas) |
 | **Created** | 2026-02-13 |
 | **Target Release** | MVP-1 |
 | **Doc Location** | `docs/rfcs/RFC-0001-rebalance-simulation-mvp.md` |
@@ -22,6 +22,13 @@ The service provides a **single, golden endpoint** that accepts a portfolio snap
 * **Audit Lineage:** Every run produces an "Evidence Bundle" linking the decision to specific immutable versions of the mandate, policy rules, and market data.
 * **Hub-and-Spoke FX:** All currency management is calculated relative to the Portfolio Base Currency.
 
+### 1.1 Implementation Alignment (As of 2026-02-17)
+
+1. Implemented canonical endpoint is `POST /rebalance/simulate` (`src/api/main.py`).
+2. Implemented run statuses are `READY`, `PENDING_REVIEW`, `BLOCKED` (`src/core/models.py`).
+3. Implemented domain failures return HTTP 200 with `status=BLOCKED` for valid payloads.
+4. Persistence and durable idempotency store are not implemented in this codebase yet.
+
 ---
 
 ## 2. Problem Statement
@@ -36,7 +43,7 @@ Automating portfolio rebalancing in a private banking context requires strict ad
 
 ## 3. Scope & Goals
 
-### 3.1 In Scope (MVP)
+### 3.1 In Scope (MVP, Implemented Core)
 
 * **Core Endpoint:** `POST /rebalance/simulate`.
 * **Universe Construction:** Filtering investable assets based on Product Shelf (Approved/Restricted/Banned) and Data Quality.
@@ -44,7 +51,7 @@ Automating portfolio rebalancing in a private banking context requires strict ad
 * **Constraint Solving:** Single-pass redistribution for "Single Position Max" constraints.
 * **Trade Generation:** Calculation of buys/sells for Securities (Notional & Unitized) and FX Spot.
 * **Compliance Check:** Post-simulation evaluation of Hard (Block) and Soft (Warning) rules.
-* **Persistence:** Storing the `RebalanceRun` result and lineage.
+* **Persistence:** Deferred in current implementation.
 
 ### 3.2 Out of Scope
 
@@ -248,12 +255,12 @@ For each instrument:
 
 **Response Codes:**
 
-* `200 OK`: Simulation successful (Run status may be READY, BLOCKED, or PENDING_REVIEW).
-* `400 Bad Request`: Validation failure.
-* `409 Conflict`: Idempotency mismatch.
-* `422 Unprocessable Entity`: Domain logic failure (e.g., Infeasible Constraints).
+* `200 OK`: Simulation processed (run status may be READY, BLOCKED, or PENDING_REVIEW).
+* `422 Unprocessable Entity`: Request schema/header validation failure.
 
-**Error Payload (RFC 7807):**
+**Current behavior note:**
+
+RFC 7807 domain-error payloads are not implemented; domain failures are represented inside `RebalanceResult` with `status=BLOCKED`.
 
 ```json
 {
@@ -273,7 +280,7 @@ For each instrument:
 
 ### 8.1 Schema
 
-We will use PostgreSQL.
+PostgreSQL persistence is planned but not implemented in current code.
 
 * **Table:** `rebalance_runs`
 * `id` (PK)

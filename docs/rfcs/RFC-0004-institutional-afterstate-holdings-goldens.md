@@ -1,7 +1,7 @@
  
 # RFC-0004: Institutional After-State + Holdings-aware Golden Scenarios (Demo-tight, Pre-Persistence)
 
-**Status:** PROPOSED  
+**Status:** IMPLEMENTED  
 **Created:** 2026-02-14  
 **Depends On:** RFC-0003  
 **Doc Location:** docs/rfcs/RFC-0004-institutional-afterstate-holdings-goldens.md
@@ -18,6 +18,12 @@ Before adding persistence, we will make the simulation **institution-grade** and
 4.  Updating **sample examples** (sample snapshots + sample responses) so demos are credible and cover multiple institutional edge cases.
 
 This RFC is strictly **pre-persistence** (runs may still be in-memory).
+
+### 0.1 Implementation Alignment (As of 2026-02-17)
+
+1. Holdings-aware `before`/`after_simulated` state is implemented in `src/core/valuation.py`.
+2. Golden suite is implemented with filenames `scenario_101...scenario_114` under `tests/golden_data/`.
+3. Rule and diagnostics outputs are present and exercised by golden tests.
 
 ---
 
@@ -200,7 +206,7 @@ Any dust or min-notional suppression MUST append:
 
 ## 8. Holdings-aware Golden Scenarios (Must Implement)
 
-Scenarios under `tests/golden_data/` with IDs `GOLDEN_101_*`:
+Scenarios under `tests/golden_data/` are implemented as `scenario_10x_*` and `scenario_11x_*` files:
 
 * **GOLDEN_101:** Simple drift rebalance with holdings (same currency).
 * **GOLDEN_102:** Cash inflow with holdings.

@@ -3,7 +3,7 @@
 **Status:** IMPLEMENTED
 **Created:** 2026-02-14
 **Depends On:** RFC-0004 (Holdings Awareness)
-**Doc Location:** `docs/rfcs/RFC-0005-institutional-tightening.md`
+**Doc Location:** `docs/rfcs/RFC-0005-institutional-tightening-post-trade-rules-reconciliation-demo-pack.md`
 
 ---
 
@@ -16,6 +16,12 @@ RFC-0005 upgrades the rebalance engine from a functional calculator to an **inst
 2.  **Post-Trade Rule Engine:** A dedicated module verifying `SINGLE_POSITION_MAX` (Hard), `CASH_BAND` (Soft), and `MIN_TRADE_SIZE` (Info) on the *simulated* after-state.
 3.  **Reconciliation Invariants:** Mathematical proof that `Before Value ≈ After Value` (within tolerance), ensuring no "vanishing money."
 4.  **Holdings-Aware Safety:** Strict blocking of negative holdings (shorting) and correct handling of `SELL_ONLY`/`SUSPENDED` assets.
+
+### 0.1 Implementation Alignment (As of 2026-02-17)
+
+1. Rule engine and reconciliation are implemented.
+2. Core orchestration remains in `src/core/engine.py`; `src/core/compliance.py` and `src/core/valuation.py` are modularized, while `simulation.py` is not a separate module.
+3. `MIN_TRADE_SIZE` is emitted as `severity=SOFT` with `status=PASS` and reason `INTENTS_SUPPRESSED` when applicable.
 
 ---
 
@@ -65,9 +71,9 @@ The Rule Engine must run *after* the simulation step.
 
 ## 4. Implementation Plan
 
-1.  **Modularization:** Split `src/core/engine.py` into:
+1.  **Modularization:** Keep `src/core/engine.py` as orchestrator and use:
     * `valuation.py`: State construction & normalization.
     * `compliance.py`: The Rule Engine.
-    * `simulation.py`: Intent application & FX.
+    * Intent application & FX simulation inside `engine.py`.
 2.  **Safety Logic:** Implement negative quantity checks and total value reconciliation.
 3.  **Golden Suite:** Update golden scenarios to reflect the new strict rule outputs.

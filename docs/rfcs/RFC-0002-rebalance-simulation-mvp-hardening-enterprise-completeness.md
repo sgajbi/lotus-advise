@@ -1,11 +1,11 @@
 # RFC-0002: Rebalance Simulation MVP Hardening & Enterprise Completeness
 
-**Status:** PROPOSED  
+**Status:** IMPLEMENTED (Partially, Pre-Persistence)  
 **Owner:** Rumi  
 **Reviewers:** Architecture, Risk/Compliance Tech, Ops  
 **Created:** 2026-02-13  
 **Depends On:** RFC-0001 (Rebalance Simulation MVP)  
-**Doc Location:** `docs/rfcs/RFC-0002-rebalance-simulation-hardening.md`
+**Doc Location:** `docs/rfcs/RFC-0002-rebalance-simulation-mvp-hardening-enterprise-completeness.md`
 
 ---
 
@@ -20,6 +20,14 @@ The focus of this phase is **Safety, Auditability, and Completeness**:
 4.  **Post-Trade Compliance:** Simulating the after-state and routing it through a v1 Rule Engine for Hard/Soft constraint validation.
 5.  **Product Shelf Completeness:** Encoding enterprise shelf semantics (`RESTRICTED`, `SELL_ONLY`) and mapping FX funding dependencies.
 6.  **RFC 7807 Error Model:** Standardizing domain failures (e.g., Infeasible Constraints) into machine-readable Problem Details payloads.
+
+### 0.1 Implementation Alignment (As of 2026-02-17)
+
+1. Implemented endpoint is `POST /rebalance/simulate`.
+2. Implemented contract returns full `RebalanceResult` with `before`, `after_simulated`, `rule_results`, `diagnostics`, `lineage`.
+3. Domain failures are represented as `status=BLOCKED` within HTTP 200 for valid payloads.
+4. PostgreSQL persistence and idempotency key store are not implemented.
+5. `Reconciliation` is implemented with `status: OK|MISMATCH` and mismatch blocks the run.
 
 ---
 
@@ -36,9 +44,9 @@ While the current MVP successfully generates mathematically correct trade intent
 ## 2. Goals
 
 ### 2.1 Functional Goals
-* **Golden Contract:** `POST /rebalance/simulate` must return the comprehensive audit bundle (Before, Target, Universe, Intents, After, Rules, Explanation, Diagnostics, Lineage).
-* **Run Persistence:** Store every `RebalanceRun` payload to PostgreSQL for instant replay and audit.
-* **Strict Idempotency:** Enforce `Idempotency-Key` + `Request-Hash` matching.
+* **Golden Contract:** `POST /rebalance/simulate` returns the audit bundle (Before, Target, Universe, Intents, After, Rules, Explanation, Diagnostics, Lineage).
+* **Run Persistence:** Deferred.
+* **Strict Idempotency:** Header is required; durable key/hash store is deferred.
 * **Canonical Valuation:** Ensure consistent valuation sizing across base and instrument currencies (The "Currency Truth Model").
 * **Rule Engine v1:** Evaluate `CASH_BAND` (Soft), `SINGLE_POSITION_MAX` (Hard), and `MIN_TRADE_SIZE` (Soft/Configurable).
 * **Shelf Semantics:** Strictly enforce `APPROVED`, `RESTRICTED`, `SELL_ONLY`, `SUSPENDED`, and `BANNED`.
@@ -188,13 +196,12 @@ The hardening process introduces wrapping layers around the pure functional core
 
 ### 5.1 Idempotency Logic
 
-1. Compute `request_hash = SHA-256(CanonicalJSON(request_body))`.
-2. Query `idempotency_keys` table.
-3. **Cache Miss:** Process simulation, persist `rebalance_runs`, write `idempotency_keys` (with 24h TTL), return 200 OK.
-4. **Cache Hit (Hash Match):** Retrieve `rebalance_run_id`, fetch payload from `rebalance_runs`, return 200 OK.
-5. **Cache Hit (Hash Mismatch):** Return `409 Conflict` (Client reused a key for a different payload).
+Current implementation:
+1. `Idempotency-Key` header is required by API schema.
+2. Header value is passed as `request_hash` into `run_simulation`.
+3. Persistence-backed key/hash replay logic is deferred.
 
-### 5.2 Schema Design (PostgreSQL)
+### 5.2 Schema Design (PostgreSQL, Deferred)
 
 **Table: `rebalance_runs**`
 
@@ -309,7 +316,7 @@ Constraints are evaluated against the `after_simulated` portfolio.
 
 ### 10.1 Problem Details Payload
 
-Domain errors must strictly map to HTTP `422 Unprocessable Entity` to distinguish them from standard `400 Bad Request` payload validation errors.
+Current implementation uses HTTP 200 with `status=BLOCKED` for domain failures on valid requests. HTTP 422 remains for request validation failures.
 
 ```json
 {

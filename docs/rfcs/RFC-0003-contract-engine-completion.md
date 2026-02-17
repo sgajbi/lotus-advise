@@ -1,6 +1,6 @@
 # RFC-0003: Rebalance Simulation Contract & Engine Completion (Audit Bundle)
 
-**Status:** PROPOSED (Refined)
+**Status:** IMPLEMENTED
 
 **Owner:** Senior Architect
 
@@ -22,6 +22,12 @@ This RFC completes the transition of the `dpm-rebalance-engine` from a functiona
 2. **No-Throw Architecture:** Domain errors (missing data, infeasible constraints) no longer raise 422 exceptions. Instead, they produce a `BLOCKED` result with a populated `diagnostics` object.
 3. **Post-Trade Rule Engine:** Formal implementation of `SINGLE_POSITION_MAX` (Hard), `CASH_BAND` (Soft), and `MIN_TRADE_SIZE` (Info/Soft) on the *simulated after-state*.
 4. **Audit Completeness:** Every response must include the `before` state, `after` state, `universe` coverage, and `lineage` to guarantee historical replayability.
+
+### 1.1 Implementation Alignment (As of 2026-02-17)
+
+1. No-throw domain behavior is implemented for valid payloads: run outcomes are surfaced via `status` in `RebalanceResult`.
+2. Rule engine currently emits `CASH_BAND`, `SINGLE_POSITION_MAX`, `DATA_QUALITY`, `MIN_TRADE_SIZE`, `NO_SHORTING`, and `INSUFFICIENT_CASH`.
+3. Endpoint remains `POST /rebalance/simulate`.
 
 ---
 
@@ -115,7 +121,7 @@ The engine proceeds through stages, accumulating state. If a **Hard Block** occu
 | Scenario | Input Feature | Expected Output |
 | --- | --- | --- |
 | **04_dq_failure** | Asset missing price. | `status="BLOCKED"`, `diagnostics` has ID, `intents=[]`. |
-| **05_constraint_fail** | 2 Assets, Max 40%, Target 50/50. | `status="BLOCKED"`, `rule_results` shows "Infeasible Redistribution". |
+| **05_constraint_fail** | 2 Assets, Max 40%, Target 50/50. | `status="PENDING_REVIEW"` in current goldens (constrained best-effort). |
 | **06_suppression** | Trade size < Min Notional. | `status="READY"`, `diagnostics.suppressed_intents` populated. |
 | **07_audit_trace** | Model 20% -> Capped 10%. | `target.targets` shows `model: 0.2`, `final: 0.1`, `tags: ["CAPPED..."]`. |
 

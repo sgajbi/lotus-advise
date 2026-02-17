@@ -1,6 +1,6 @@
 # RFC-0006B: Pre-Persistence Hardening — Rules Configurability, Dependency Fidelity & Scenario Matrix
 
-**Status:** APPROVED
+**Status:** IMPLEMENTED
 **Owner:** Lead Architect
 **Created:** 2026-02-15
 **Depends On:** RFC-0006A
@@ -18,6 +18,12 @@ RFC-0006B bridges the gap between a functional calculator and a demo-credible, i
 2.  **Explicit Dependencies:** Ensuring every FX-funded Security Buy explicitly links to its funding FX trade in the `dependencies` list.
 3.  **Institutional Scenario Matrix:** Implementing the `GOLDEN_3xx` suite—12+ scenarios covering real-world DPM edge cases (Drift, Sell-to-Fund, Multi-Currency, Restricted Assets).
 4.  **Demo Pack Tightening:** Updating `docs/demo/` so all scenarios are triggerable purely via JSON input, without code manipulation.
+
+### 0.1 Implementation Alignment (As of 2026-02-17)
+
+1. 300-series golden scenarios are implemented as `scenario_301` to `scenario_312` files.
+2. Dependency linking for FX-funded buys is implemented in `_generate_fx_and_simulate`.
+3. Rule emission includes all core rule IDs; `MIN_TRADE_SIZE` currently emits as `SOFT/PASS` with diagnostics context.
 
 ---
 

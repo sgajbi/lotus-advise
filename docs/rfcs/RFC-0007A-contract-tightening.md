@@ -1,10 +1,10 @@
-# RFC-0007A: Contract Tightening — Canonical Endpoint, Discriminated Intents, Valuation Policy, Universe Locking
+# RFC-0007A: Contract Tightening - Canonical Endpoint, Discriminated Intents, Valuation Policy, Universe Locking
 
-**Status:** Draft
+**Status:** PARTIALLY IMPLEMENTED
 **Owner:** Lead Architect
 **Created:** 2026-02-16
 **Depends On:** RFC-0006A / RFC-0006B (Pre-persistence hardening)
-**Backward Compatibility:** **Not required** (application not live)
+**Backward Compatibility:** Not required (application not live)
 
 **Doc Location:** `docs/rfcs/RFC-0007A-contract-tightening.md`
 
@@ -12,201 +12,156 @@
 
 ## 0. Executive Summary
 
-This RFC cleans up the public interface and core semantics to make the service unambiguous and institutional-grade:
+This RFC tightens API and core semantics to remove ambiguity and align demos/tests with one contract.
 
-1.  **Canonical Endpoint:** Establish one canonical endpoint (`POST /v1/rebalance/simulate`) and request/response schema.
-2.  **Discriminated Intents:** Replace “optional soup” intents with **discriminated union** intent types (`SecurityTrade` vs `FxSpot`).
-3.  **Explicit Valuation:** Make valuation behavior explicit via `valuation_mode` (`CALCULATED` vs `TRUST_SNAPSHOT`).
-4.  **Universe Locking:** Tighten universe/locking logic to handle all non-zero holdings deterministically.
+1. Canonical endpoint is `POST /rebalance/simulate` in current implementation.
+2. Intents are discriminated unions (`SECURITY_TRADE`, `FX_SPOT`).
+3. Valuation mode is explicit via `options.valuation_mode` (`CALCULATED`, `TRUST_SNAPSHOT`).
+4. Universe locking semantics are tightened, with one remaining gap for non-zero holdings handling.
 
-This RFC intentionally breaks any old contract shape; we will update demos and tests accordingly.
+### 0.1 Implementation Alignment (As of 2026-02-17)
+
+Implemented:
+1. Discriminated intents in response models (`src/core/models.py`).
+2. `valuation_mode` in options (`src/core/models.py`).
+3. Single active simulate route (`src/api/main.py`).
+
+Pending:
+1. `/v1` route versioning is not introduced.
+2. Universe locking still checks `qty > 0` in `_build_universe` (`src/core/engine.py`).
 
 ---
 
 ## 1. Problem Statement
 
-Pre-persistence, the most common institutional failures are ambiguity and drift:
-* **Route Confusion:** docs/demo and tests refer to different routes.
-* **Intent Ambiguity:** Intent objects have many nullable fields, inviting incorrect consumers to guess structure.
-* **Implicit Valuation:** The engine currently makes implicit choices about whether to trust the input `market_value` or recalculate it from `price * qty`.
-* **Holding Invariants:** Holding overrides/locking apply only for `qty > 0`, which ignores short positions or dust, failing robust invariant checks.
+Pre-persistence institutional risks are ambiguity and contract drift:
+1. Route mismatch across docs, demos, and tests.
+2. Nullable intent structures that are easy to misuse.
+3. Implicit valuation assumptions.
+4. Incomplete locking semantics for non-zero holdings.
 
 ---
 
-## 2. Goals
+## 2. Goals and Non-Goals
 
-### 2.1 Must-Have
-* **One Canonical Route:** `/v1/rebalance/simulate` used everywhere.
-* **Strict Intent Schema:**
-    * `SecurityTradeIntent`: `instrument_id` required; `quantity` or `notional` required.
-    * `FxSpotIntent`: `pair` + amounts required; no `instrument_id`.
-* **Explicit Valuation Mode:** `options.valuation_mode` must be set or default explicitly.
-* **Robust Locking:** Universe eligibility computed consistently for *all* non-zero holdings (including negative).
+### 2.1 Goals
+1. Keep one canonical route: `/rebalance/simulate`.
+2. Enforce discriminated intent schema.
+3. Keep valuation mode explicit in options.
+4. Align locking behavior with non-zero holdings policy.
 
 ### 2.2 Non-Goals
-* Persistence / DB idempotency (deferred to RFC-0008).
-* OMS execution integration (downstream).
+1. Persistence / DB idempotency (deferred).
+2. OMS execution integration.
 
 ---
 
-## 3. Canonical API (No Backward Compatibility)
+## 3. Canonical API
 
 ### 3.1 Endpoint
-**Canonical:** `POST /v1/rebalance/simulate`
 
-*Action:* Remove or rename any other similar routes (`/rebalance/simulate`, `/v1/rebalance`, etc.) so there is exactly one.
+Canonical route: `POST /rebalance/simulate`.
 
 ### 3.2 Required Headers
-* `Idempotency-Key` (Required): SHA-256 of canonical inputs or UUID.
-* `X-Correlation-Id` (Optional): Trace ID for logging.
 
-### 3.3 Request Schema (Canonical)
-Keep existing schema, but ensure demos match this exactly. Add `options.valuation_mode`.
+1. `Idempotency-Key` (required).
+2. `X-Correlation-Id` (optional).
+
+### 3.3 Request Schema (Current)
 
 ```json
 {
-  "portfolio_id": "pf_123",
-  "mandate_id": "mand_001",
-  "portfolio_snapshot_id": "ps_...",
-  "market_data_snapshot_id": "md_...",
+  "portfolio_snapshot": { "...": "..." },
+  "market_data_snapshot": { "...": "..." },
+  "model_portfolio": { "...": "..." },
+  "shelf_entries": [{ "...": "..." }],
   "options": {
     "valuation_mode": "CALCULATED",
     "allow_restricted": false,
     "suppress_dust_trades": true,
-    "min_trade_notional_base": { "amount": 2000, "currency": "SGD" },
-    "cash_band": { "min": 0.01, "max": 0.05 },
+    "min_trade_notional": { "amount": 2000, "currency": "SGD" },
+    "cash_band_min_weight": 0.01,
+    "cash_band_max_weight": 0.05,
     "single_position_max_weight": 0.10,
     "block_on_missing_prices": true,
     "block_on_missing_fx": true
   }
 }
-
 ```
 
 ---
 
-## 4. Discriminated Intent Model (Contract-breaking Improvement)
+## 4. Discriminated Intent Model
 
-### 4.1 Intent Types
+### 4.1 SecurityTradeIntent
 
-Replace single `OrderIntent` with a discriminated union.
+1. `intent_type = SECURITY_TRADE`.
+2. `instrument_id` required.
+3. `quantity` and/or `notional` used with `notional_base` for auditability.
 
-#### 4.1.1 SecurityTradeIntent
+### 4.2 FxSpotIntent
 
-```json
-{
-  "intent_type": "SECURITY_TRADE",
-  "intent_id": "oi_...",
-  "instrument_id": "ins_...",
-  "side": "BUY|SELL",
-  "quantity": 12.5,
-  "notional": { "amount": 25000, "currency": "USD" },
-  "notional_base": { "amount": 33500, "currency": "SGD" },
-  "dependencies": ["oi_fx_..."],
-  "rationale": { "code": "DRIFT_REBALANCE", "message": "..." },
-  "constraints_applied": ["MIN_NOTIONAL", "ROUNDING"]
-}
+1. `intent_type = FX_SPOT`.
+2. Pair and buy/sell currency fields required.
+3. No `instrument_id`.
 
-```
+### 4.3 Validation
 
-**Rules:**
-
-* `instrument_id` required.
-* Either `quantity` or `notional` must be present.
-* Always include `notional_base` for auditability.
-
-#### 4.1.2 FxSpotIntent
-
-```json
-{
-  "intent_type": "FX_SPOT",
-  "intent_id": "oi_fx_...",
-  "pair": "USD/SGD",
-  "buy_currency": "USD",
-  "buy_amount": 25000,
-  "sell_currency": "SGD",
-  "sell_amount_estimated": 33500,
-  "dependencies": [],
-  "rationale": { "code": "FUNDING", "message": "Fund USD buys" }
-}
-
-```
-
-**Rules:**
-
-* All FX fields required.
-* No irrelevant fields allowed (no `instrument_id`).
-
-### 4.2 Schema Validation
-
-* Fail fast at Pydantic model validation for invalid intent combinations.
+Pydantic discriminator validation enforces intent type shape.
 
 ---
 
-## 5. Valuation Policy (Make it Explicit)
+## 5. Valuation Policy
 
 ### 5.1 Options
 
-Add required option: `options.valuation_mode`: `"CALCULATED"` (Default) or `"TRUST_SNAPSHOT"`.
+`options.valuation_mode`: `CALCULATED` (default) or `TRUST_SNAPSHOT`.
 
-### 5.2 CALCULATED Mode (Default)
+### 5.2 CALCULATED
 
-* All position values computed from `qty * price * fx` using the market snapshot.
-* If snapshot MV exists and differs from calculated > tolerance, add warning `POSITION_VALUE_MISMATCH`.
-* **Benefit:** Before-state and after-state are mathematically consistent with the same market snapshot.
+1. Values computed from price/fx paths.
+2. Supports reconciliation consistency.
 
-### 5.3 TRUST_SNAPSHOT Mode
+### 5.3 TRUST_SNAPSHOT
 
-* Before-state uses snapshot MV (base) if provided.
-* After-state uses computed valuation (unless "execution MV" snapshot provided).
-* If `TRUST_SNAPSHOT` causes reconciliation mismatch > tolerance:
-* Add warning `RECONCILIATION_MISMATCH_TRUST_SNAPSHOT`.
-* Status becomes `PENDING_REVIEW`.
-
-
+1. Trust snapshot market values where present.
+2. Can result in reconciliation mismatch; final status handling remains per current engine behavior.
 
 ---
 
-## 6. Universe + Locking Semantics (Institutional)
+## 6. Universe and Locking Semantics
 
 ### 6.1 Non-zero Holdings
 
-Locking/holding overrides must trigger for `pos.quantity != 0` (not just `> 0`).
+Target policy is to apply locking for `pos.quantity != 0`.
 
-### 6.2 Negative Holdings Policy
+Current implementation note:
+1. `_build_universe` currently applies locking for held positions using `pos.quantity > 0`.
 
-If any `quantity < 0` is present in input snapshot:
+### 6.2 Negative Holdings
 
-* Default: Status `BLOCKED` + `NO_SHORTING` (HARD fail) + diagnostics listing instruments.
-* (Future: `options.allow_shorting=true`).
+Negative holdings are blocked downstream by safety rule `NO_SHORTING` with reason `SELL_EXCEEDS_HOLDINGS`.
 
-### 6.3 Shelf Status Behavior for Held Instruments
+### 6.3 Shelf Status Behavior
 
-* **SELL_ONLY held:** Sell allowed, Buy blocked.
-* **RESTRICTED held:** Sell allowed; Buy allowed only if `allow_restricted=true`.
-* **SUSPENDED held:** Freeze (no buy/sell). If engine logic attempts to trade it -> `BLOCKED`.
-* **BANNED held:** Default forced liquidation unless `options.freeze_banned_holdings=true`.
-
----
-
-## 7. Implementation Plan
-
-1. **Refactor API:** Implement `POST /v1/rebalance/simulate` and delete old routes.
-2. **Update Demo Pack:** Fix all JSONs and tests to match new schema.
-3. **Refactor Models:** Split `OrderIntent` into `SecurityTradeIntent` and `FxSpotIntent`.
-4. **Implement Valuation Logic:** Add `ValuationService` branch for `CALCULATED` vs `TRUST_SNAPSHOT`.
-5. **Harden Universe:** Update locking logic to `qty != 0`.
+1. `SELL_ONLY`: buy blocked, sell allowed.
+2. `RESTRICTED`: buy blocked unless `allow_restricted=true`.
+3. `SUSPENDED` / `BANNED`: excluded/locked behavior applied by universe logic.
 
 ---
 
-## 8. Acceptance Criteria (DoD)
+## 7. Implementation Plan (Remaining)
 
-1. Exactly one simulate endpoint exists.
-2. Intents are discriminated unions in the response.
-3. `options.valuation_mode` changes behavior as documented.
+1. Keep `/rebalance/simulate` as the stable canonical simulate endpoint across docs, tests, and API.
+2. Update universe locking check from `qty > 0` to `qty != 0`.
+3. Re-run contract and golden tests after route/locking updates.
+
+---
+
+## 8. Acceptance Criteria
+
+1. Exactly one simulate endpoint exists and docs match it.
+2. Intents remain discriminated unions in responses.
+3. `valuation_mode` behavior is test-covered.
 4. Locking applies to all non-zero holdings.
-5. `ruff check` and `pytest` pass 100%.
-
-```
-
-```
+5. `ruff check` and `pytest` pass.

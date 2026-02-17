@@ -21,6 +21,13 @@ RFC-0006A closes the highest-risk correctness and demo credibility gaps (excludi
 
 This RFC intentionally does **NOT** expand the scenario matrix or ruleset breadth; it focuses strictly on the correctness of the simulation engine itself.
 
+### 0.1 Implementation Alignment (As of 2026-02-17)
+
+1. Canonical route remains `POST /rebalance/simulate`.
+2. `Idempotency-Key` is required at API boundary; durable idempotency persistence is deferred.
+3. Reconciliation output is implemented and enforced (`MISMATCH` blocks run).
+4. Safety outcomes are surfaced via rule results (`NO_SHORTING`, `INSUFFICIENT_CASH`) and `status=BLOCKED`.
+
 ---
 
 ## 1. Problem Statement
