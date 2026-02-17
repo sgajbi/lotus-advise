@@ -22,7 +22,6 @@ class RuleEngine:
     ) -> List[RuleResult]:
         results = []
 
-        # 1. CASH_BAND (Soft)
         cash_weight = next(
             (a.weight for a in state.allocation_by_asset_class if a.key == "CASH"), Decimal("0")
         )
@@ -53,14 +52,13 @@ class RuleEngine:
                 )
             )
 
-        # 2. SINGLE_POSITION_MAX (Hard)
         limit_w = options.single_position_max_weight
         if limit_w is not None:
             breach = False
             max_measured = Decimal("0")
             for pos in state.allocation_by_instrument:
                 max_measured = max(max_measured, pos.weight)
-                if pos.weight > limit_w + Decimal("0.001"):  # Tolerance
+                if pos.weight > limit_w + Decimal("0.001"):
                     breach = True
                     results.append(
                         RuleResult(
@@ -92,24 +90,19 @@ class RuleEngine:
                     severity="HARD",
                     status="PASS",
                     measured=Decimal("0"),
-                    threshold={"max": Decimal("-1")},  # Indicator for no limit
+                    threshold={"max": Decimal("-1")},
                     reason_code="NO_LIMIT_SET",
                 )
             )
 
-        # 3. DATA_QUALITY (Hard)
-        # RFC-0006B: Respect options.block_on_missing_* flags
         dq_count = 0
 
-        # Price Missing: Always counts if blocking enabled
         if options.block_on_missing_prices:
             dq_count += len(diagnostics.data_quality.get("price_missing", []))
 
-        # FX Missing: Only count if blocking enabled
         if options.block_on_missing_fx:
             dq_count += len(diagnostics.data_quality.get("fx_missing", []))
 
-        # Shelf Missing: Implicitly blocking usually, but let's count it
         dq_count += len(diagnostics.data_quality.get("shelf_missing", []))
 
         if dq_count > 0:
@@ -136,7 +129,6 @@ class RuleEngine:
                 )
             )
 
-        # 4. MIN_TRADE_SIZE (Info/Soft)
         suppressed_count = len(diagnostics.suppressed_intents)
         if suppressed_count > 0:
             results.append(
@@ -161,7 +153,6 @@ class RuleEngine:
                 )
             )
 
-        # 5. NO_SHORTING (Hard)
         shorting_breach = False
         min_qty = Decimal("0")
         for p in state.positions:
@@ -193,7 +184,6 @@ class RuleEngine:
                 )
             )
 
-        # 6. INSUFFICIENT_CASH (Hard)
         cash_breach = False
         min_cash = Decimal("0")
         for c in state.cash_balances:

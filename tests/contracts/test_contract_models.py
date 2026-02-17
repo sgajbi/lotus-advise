@@ -48,7 +48,6 @@ def test_fx_spot_intent_valid():
         sell_amount_estimated=Decimal("1350"),
     )
     assert intent.intent_type == "FX_SPOT"
-    # Ensure no extra fields like instrument_id are allowed/present implicitly
     assert not hasattr(intent, "instrument_id")
 
 
@@ -61,7 +60,6 @@ def test_intent_discrimination():
         SecurityTradeIntent(
             intent_id="fail_1",
             side="BUY",
-            # Missing instrument_id
             quantity=Decimal("10"),
         )
     assert "Field required" in str(exc.value)
@@ -73,7 +71,6 @@ def test_fx_intent_requirements():
     with pytest.raises(ValidationError) as exc:
         FxSpotIntent(
             intent_id="fail_fx",
-            # Missing pair
             buy_currency="USD",
             buy_amount=Decimal("100"),
             sell_currency="SGD",

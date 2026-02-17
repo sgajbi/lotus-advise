@@ -40,17 +40,14 @@ def load_demo_scenario(filename):
 def test_demo_scenario_execution(filename, expected_status):
     data = load_demo_scenario(filename)
 
-    # Parse inputs using Pydantic models
     portfolio = PortfolioSnapshot(**data["portfolio_snapshot"])
     market_data = MarketDataSnapshot(**data["market_data_snapshot"])
     model = ModelPortfolio(**data["model_portfolio"])
     shelf = [ShelfEntry(**s) for s in data["shelf_entries"]]
     options = EngineOptions(**data.get("options", {}))
 
-    # Run
     result = run_simulation(portfolio, market_data, model, shelf, options)
 
-    # Verify
     assert result.status == expected_status, (
         f"Scenario {filename} failed. Got {result.status}, expected {expected_status}"
     )

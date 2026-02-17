@@ -13,9 +13,8 @@ from src.api.main import app, get_db_session
 from tests.factories import valid_api_payload
 
 
-# Mock DB Dependency to avoid AsyncPG errors in unit tests
 async def override_get_db_session():
-    yield None  # We don't need a real DB for these tests
+    yield None
 
 
 @pytest.fixture(autouse=True)
@@ -53,18 +52,16 @@ def test_simulate_endpoint_success(client):
 def test_simulate_missing_idempotency_key_422(client):
     """Verifies that Idempotency-Key is mandatory."""
     payload = get_valid_payload()
-    # No headers provided
     response = client.post("/rebalance/simulate", json=payload)
     assert response.status_code == 422
     errors = response.json()["detail"]
-    # Verify the error is about the missing header
     assert any(e["type"] == "missing" and "Idempotency-Key" in e["loc"] for e in errors)
 
 
 def test_simulate_payload_validation_error_422(client):
     """Verifies that invalid payloads still return 422."""
     payload = get_valid_payload()
-    del payload["portfolio_snapshot"]  # Invalid payload
+    del payload["portfolio_snapshot"]
     headers = {"Idempotency-Key": "test-key-val"}
     response = client.post("/rebalance/simulate", json=payload, headers=headers)
     assert response.status_code == 422
@@ -72,8 +69,6 @@ def test_simulate_payload_validation_error_422(client):
 
 
 def test_simulate_rfc7807_domain_error_mapping(client):
-    # Force a domain outcome where constraints prevent full allocation (Soft Fail).
-    # Returns PENDING_REVIEW.
     payload = get_valid_payload()
     payload["options"]["single_position_max_weight"] = "0.50"
 
@@ -107,7 +102,6 @@ def test_simulate_blocked_logs_warning(client):
     Force a 'BLOCKED' status (e.g. missing price) to verify the API logging branch.
     """
     payload = get_valid_payload()
-    # Missing price for EQ_1 -> DQ Failure -> BLOCKED
     payload["market_data_snapshot"]["prices"] = []
 
     headers = {"Idempotency-Key": "test-key-block"}
@@ -116,7 +110,6 @@ def test_simulate_blocked_logs_warning(client):
         assert response.status_code == 200
         assert response.json()["status"] == "BLOCKED"
 
-        # Verify the warning log was called
         mock_logger.warning.assert_called()
         args, _ = mock_logger.warning.call_args
         assert "Run blocked" in args[0]

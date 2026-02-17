@@ -305,7 +305,6 @@ def _generate_fx_and_simulate(
     """
     Applies intents, generates FX, checks Safety Guards, and computes Reconciliation.
     """
-    # 1. Calculate projected cash by currency
     proj = {c.currency: c.amount for c in portfolio.cash_balances}
     for i in intents:
         if i.intent_type == "SECURITY_TRADE":
@@ -313,7 +312,6 @@ def _generate_fx_and_simulate(
                 i.notional.amount if i.side == "SELL" else -i.notional.amount
             )
 
-    # 2. Generate FX Intents
     fx_map = {}
     for ccy, bal in proj.items():
         if ccy == portfolio.base_currency:
@@ -358,7 +356,6 @@ def _generate_fx_and_simulate(
                 )
             )
 
-    # 3. Link Dependencies
     for i in intents:
         if i.intent_type == "SECURITY_TRADE" and i.side == "BUY" and i.notional.currency in fx_map:
             i.dependencies.append(fx_map[i.notional.currency])
@@ -376,7 +373,6 @@ def _generate_fx_and_simulate(
             if sell_ids[i.notional.currency] not in i.dependencies:
                 i.dependencies.append(sell_ids[i.notional.currency])
 
-    # 4. Sort
     intents.sort(
         key=lambda x: (
             0
@@ -385,7 +381,6 @@ def _generate_fx_and_simulate(
         )
     )
 
-    # 5. Simulate
     after = deepcopy(portfolio)
 
     def g_pos(after_pf, i_id):
@@ -412,17 +407,14 @@ def _generate_fx_and_simulate(
             g_cash(after, i.sell_currency).amount -= i.sell_amount_estimated
             g_cash(after, i.buy_currency).amount += i.buy_amount
 
-    # 6. Build State
     after_opts = options.model_copy(update={"valuation_mode": ValuationMode.CALCULATED})
     state = build_simulated_state(
         after, market_data, shelf, diagnostics.data_quality, diagnostics.warnings, after_opts
     )
     tv_after = state.total_value.amount
 
-    # 7. Evaluate Rules
     rules = RuleEngine.evaluate(state, options, diagnostics)
 
-    # 8. Check for Hard Fails
     blocked = any(r.severity == "HARD" and r.status == "FAIL" for r in rules)
 
     if blocked:
@@ -460,7 +452,6 @@ def _generate_fx_and_simulate(
         return intents, state, rules, "BLOCKED", recon
 
     final_status = "READY"
-    # Unrolled for explicit coverage
     soft_fails = [r for r in rules if r.severity == "SOFT" and r.status == "FAIL"]
     if soft_fails:
         final_status = "PENDING_REVIEW"

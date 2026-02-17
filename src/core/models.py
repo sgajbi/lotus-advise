@@ -9,13 +9,11 @@ from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 
-# --- Enums ---
 class ValuationMode(str, Enum):
     CALCULATED = "CALCULATED"
     TRUST_SNAPSHOT = "TRUST_SNAPSHOT"
 
 
-# --- Primitives ---
 class Money(BaseModel):
     amount: Decimal
     currency: str
@@ -26,7 +24,6 @@ class FxRate(BaseModel):
     rate: Decimal
 
 
-# --- Inputs ---
 class Position(BaseModel):
     instrument_id: str
     quantity: Decimal
@@ -75,27 +72,23 @@ class ShelfEntry(BaseModel):
 
 
 class EngineOptions(BaseModel):
-    # RFC-0007A: Explicit Valuation Policy
     valuation_mode: ValuationMode = ValuationMode.CALCULATED
 
-    # Rules & Thresholds
     cash_band_min_weight: Decimal = Decimal("0.00")
     cash_band_max_weight: Decimal = Decimal("1.00")
 
     single_position_max_weight: Optional[Decimal] = None
     min_trade_notional: Optional[Money] = None
 
-    # Behavior
     allow_restricted: bool = False
     suppress_dust_trades: bool = True
-    dust_trade_threshold: Optional[Money] = None  # Deprecated
+    dust_trade_threshold: Optional[Money] = None
     fx_buffer_pct: Decimal = Decimal("0.01")
     block_on_missing_prices: bool = True
     block_on_missing_fx: bool = True
     min_cash_buffer_pct: Decimal = Decimal("0.0")
 
 
-# --- Outputs ---
 class AllocationMetric(BaseModel):
     key: str
     weight: Decimal
@@ -159,9 +152,6 @@ class TargetData(BaseModel):
 class IntentRationale(BaseModel):
     code: str
     message: str
-
-
-# --- RFC-0007A: Discriminated Intents ---
 
 
 class SecurityTradeIntent(BaseModel):

@@ -92,7 +92,6 @@ def test_golden_scenario(filename, scenario):
     model = ModelPortfolio(**inputs["model_portfolio"])
     shelf = [ShelfEntry(**s) for s in inputs["shelf_entries"]]
 
-    # Handle optional fields in options that might be missing in old goldens
     opt_dict = inputs["options"]
     options = EngineOptions(**opt_dict)
 
@@ -116,11 +115,8 @@ def test_golden_scenario(filename, scenario):
         )
         assert actual_intents == expected_intents
 
-        # Validate After-State Cash (High level check)
         act_cash = {c.currency: c.amount for c in result.after_simulated.cash_balances}
         for exp_c in expected["after_simulated"]["cash_balances"]:
             ccy = exp_c["currency"]
             amt = Decimal(str(exp_c["amount"]))
-            # Allow small float diffs from JSON serialization if strictly needed,
-            # but Pydantic should handle this. Exact match preferred.
             assert abs(act_cash.get(ccy, Decimal(0)) - amt) < Decimal("0.0001")

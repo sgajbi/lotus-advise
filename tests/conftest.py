@@ -26,8 +26,6 @@ def base_portfolio():
 
 @pytest.fixture
 def base_options():
-    # Explicitly disable single_position_max_weight to match legacy test expectations
-    # (Unit tests assume no cap unless specified)
     return EngineOptions(
         allow_restricted=False,
         suppress_dust_trades=True,

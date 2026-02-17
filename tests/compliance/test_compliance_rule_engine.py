@@ -29,7 +29,6 @@ def test_cash_band_pass():
             )
         ],
     )
-    # Default options are permissive (0-1.0), so 0.04 should pass easily
     diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
     results = RuleEngine.evaluate(state, EngineOptions(), diag)
     cash_rule = next(r for r in results if r.rule_id == "CASH_BAND")
@@ -47,7 +46,6 @@ def test_cash_band_fail():
             )
         ],
     )
-    # We must enforce strict options to test failure
     strict_options = EngineOptions(
         cash_band_min_weight=Decimal("0.01"), cash_band_max_weight=Decimal("0.05")
     )
@@ -65,7 +63,7 @@ def test_single_position_max_fail():
         allocation_by_instrument=[
             AllocationMetric(
                 key="APPLE",
-                weight=Decimal("0.55"),  # Exceeds 0.50 limit
+                weight=Decimal("0.55"),
                 value=Money(amount=Decimal("550"), currency="SGD"),
             )
         ],
@@ -127,7 +125,6 @@ def test_always_emit_all_rules():
     }
     assert expected.issubset(rule_ids)
 
-    # Check SINGLE_POSITION_MAX is PASS with NO_LIMIT_SET
     spm = next(r for r in results if r.rule_id == "SINGLE_POSITION_MAX")
     assert spm.status == "PASS"
     assert spm.reason_code == "NO_LIMIT_SET"
@@ -136,8 +133,8 @@ def test_always_emit_all_rules():
 @pytest.mark.parametrize(
     "weight, expected_status",
     [
-        (Decimal("0.5010"), "PASS"),  # exact tolerance boundary
-        (Decimal("0.5011"), "FAIL"),  # just beyond tolerance
+        (Decimal("0.5010"), "PASS"),
+        (Decimal("0.5011"), "FAIL"),
     ],
 )
 def test_single_position_max_tolerance_boundary(weight, expected_status):

@@ -39,8 +39,6 @@ def test_dependency_chain_generation():
 
     result = run_simulation(portfolio, market_data, model, shelf, EngineOptions())
 
-    # Find intents
-    # Fix: Filter strictly by type
     fx_i = fx_intents(result)
     sec_i = security_intents(result)
 
@@ -53,7 +51,6 @@ def test_dependency_chain_generation():
     assert fx_intent.buy_currency == "SGD"
     assert sec.instrument_id == "DBS"
 
-    # Check dependency
     assert fx_intent.intent_id in sec.dependencies
 
 
@@ -70,7 +67,6 @@ def test_dependency_multi_leg_chain():
         cash_balances=[cash("SGD", "0.0")],
     )
 
-    # Swap EUR Asset for USD Asset
     model = model_portfolio(targets=[target("EUR_ASSET", "0.0"), target("USD_ASSET", "1.0")])
 
     shelf = [
@@ -91,18 +87,11 @@ def test_dependency_multi_leg_chain():
 
     result = run_simulation(portfolio, market_data, model, shelf, EngineOptions())
 
-    # Intents: Sell EUR_ASSET, Buy USD_ASSET, FX Sell EUR, FX Buy USD
-
-    # Fix: Filter by type before accessing instrument_id
     sec_i = security_intents(result)
     fx_i = fx_intents(result)
 
     buy_sec = next(i for i in sec_i if i.instrument_id == "USD_ASSET")
-    # sell_sec unused
 
-    # Check FX linking
-    # Buy USD_ASSET (USD) -> needs USD.
-    # FX Buy USD (from SGD) must exist.
     fx_buy_usd = next(i for i in fx_i if i.buy_currency == "USD")
 
     assert fx_buy_usd.intent_id in buy_sec.dependencies
