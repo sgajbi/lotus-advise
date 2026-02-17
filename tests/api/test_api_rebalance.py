@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app, get_db_session
+from tests.factories import valid_api_payload
 
 
 # Mock DB Dependency to avoid AsyncPG errors in unit tests
@@ -32,21 +33,7 @@ def client():
 
 
 def get_valid_payload():
-    return {
-        "portfolio_snapshot": {
-            "portfolio_id": "pf_1",
-            "base_currency": "SGD",
-            "positions": [],
-            "cash_balances": [{"currency": "SGD", "amount": "10000.00"}],
-        },
-        "market_data_snapshot": {
-            "prices": [{"instrument_id": "EQ_1", "price": "100.00", "currency": "SGD"}],
-            "fx_rates": [],
-        },
-        "model_portfolio": {"targets": [{"instrument_id": "EQ_1", "weight": "1.0"}]},
-        "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
-        "options": {},
-    }
+    return valid_api_payload()
 
 
 def test_simulate_endpoint_success(client):
@@ -133,3 +120,19 @@ def test_simulate_blocked_logs_warning(client):
         mock_logger.warning.assert_called()
         args, _ = mock_logger.warning.call_args
         assert "Run blocked" in args[0]
+
+
+def test_simulate_missing_price_can_continue_when_non_blocking(client):
+    payload = get_valid_payload()
+    payload["market_data_snapshot"]["prices"] = []
+    payload["options"]["block_on_missing_prices"] = False
+
+    response = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-missing-price-nonblock"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] in {"READY", "PENDING_REVIEW"}
+    assert "EQ_1" in body["diagnostics"]["data_quality"]["price_missing"]

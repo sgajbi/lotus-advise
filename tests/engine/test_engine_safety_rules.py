@@ -2,31 +2,31 @@ from decimal import Decimal
 
 from src.core.engine import run_simulation
 from src.core.models import (
-    CashBalance,
-    FxRate,
-    MarketDataSnapshot,
-    ModelPortfolio,
-    ModelTarget,
     Money,
-    PortfolioSnapshot,
-    Position,
-    Price,
-    ShelfEntry,
+)
+from tests.factories import (
+    cash,
+    fx,
+    market_data_snapshot,
+    model_portfolio,
+    portfolio_snapshot,
+    position,
+    price,
+    shelf_entry,
+    target,
 )
 
 
 def get_base_data():
-    portfolio = PortfolioSnapshot(
+    portfolio = portfolio_snapshot(
         portfolio_id="pf_safe",
         base_currency="SGD",
-        positions=[Position(instrument_id="EQ_1", quantity=Decimal("100"))],
-        cash_balances=[CashBalance(currency="SGD", amount=Decimal("1000.0"))],
+        positions=[position("EQ_1", "100")],
+        cash_balances=[cash("SGD", "1000.0")],
     )
-    market_data = MarketDataSnapshot(
-        prices=[Price(instrument_id="EQ_1", price=Decimal("10.0"), currency="SGD")], fx_rates=[]
-    )
-    model = ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=Decimal("0.0"))])
-    shelf = [ShelfEntry(instrument_id="EQ_1", status="APPROVED")]
+    market_data = market_data_snapshot(prices=[price("EQ_1", "10.0", "SGD")], fx_rates=[])
+    model = model_portfolio(targets=[target("EQ_1", "0.0")])
+    shelf = [shelf_entry("EQ_1", status="APPROVED")]
     return portfolio, market_data, model, shelf
 
 
@@ -51,10 +51,10 @@ def test_safety_insufficient_cash_block(base_options):
     portfolio.positions = []
     portfolio.cash_balances[0].amount = Decimal("100.0")
 
-    market_data.prices = [Price(instrument_id="US_EQ", price=Decimal("10.0"), currency="USD")]
-    market_data.fx_rates = [FxRate(pair="USD/SGD", rate=Decimal("1.0"))]
-    model.targets = [ModelTarget(instrument_id="US_EQ", weight=Decimal("1.0"))]
-    shelf = [ShelfEntry(instrument_id="US_EQ", status="APPROVED")]
+    market_data.prices = [price("US_EQ", "10.0", "USD")]
+    market_data.fx_rates = [fx("USD/SGD", "1.0")]
+    model.targets = [target("US_EQ", "1.0")]
+    shelf = [shelf_entry("US_EQ", status="APPROVED")]
     options = base_options.model_copy(update={"fx_buffer_pct": Decimal("0.05")})
 
     result = run_simulation(portfolio, market_data, model, shelf, options)

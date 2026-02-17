@@ -5,6 +5,8 @@ Unit tests for the Rule Engine (RFC-0005/RFC-0006B).
 
 from decimal import Decimal
 
+import pytest
+
 from src.core.compliance import RuleEngine
 from src.core.models import (
     AllocationMetric,
@@ -129,3 +131,31 @@ def test_always_emit_all_rules():
     spm = next(r for r in results if r.rule_id == "SINGLE_POSITION_MAX")
     assert spm.status == "PASS"
     assert spm.reason_code == "NO_LIMIT_SET"
+
+
+@pytest.mark.parametrize(
+    "weight, expected_status",
+    [
+        (Decimal("0.5010"), "PASS"),  # exact tolerance boundary
+        (Decimal("0.5011"), "FAIL"),  # just beyond tolerance
+    ],
+)
+def test_single_position_max_tolerance_boundary(weight, expected_status):
+    state = SimulatedState(
+        total_value=Money(amount=Decimal("1000"), currency="SGD"),
+        allocation_by_instrument=[
+            AllocationMetric(
+                key="EDGE_POS",
+                weight=weight,
+                value=Money(amount=Decimal("501"), currency="SGD"),
+            )
+        ],
+    )
+    diag = DiagnosticsData(data_quality={}, suppressed_intents=[], warnings=[])
+    results = RuleEngine.evaluate(
+        state,
+        EngineOptions(single_position_max_weight=Decimal("0.50")),
+        diag,
+    )
+    spm = next(r for r in results if r.rule_id == "SINGLE_POSITION_MAX")
+    assert spm.status == expected_status
