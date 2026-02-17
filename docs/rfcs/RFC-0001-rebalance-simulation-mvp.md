@@ -1,11 +1,11 @@
- # RFC-0001: Enterprise Rebalance Simulation MVP (DPM Platform)
+# RFC-0001: Enterprise Rebalance Simulation MVP (DPM Platform)
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | **IMPLEMENTED** (With Later RFC Deltas) |
+| **Status** | IMPLEMENTED (With Later RFC Deltas) |
 | **Created** | 2026-02-13 |
 | **Target Release** | MVP-1 |
-| **Doc Location** | `docs/rfcs/RFC-0001-rebalance-simulation-mvp.md` |
+| **Doc Location** | docs/rfcs/RFC-0001-rebalance-simulation-mvp.md |
 
 ---
 

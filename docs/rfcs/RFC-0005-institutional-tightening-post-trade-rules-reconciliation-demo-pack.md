@@ -1,9 +1,11 @@
 # RFC-0005: Institutional Tightening (Post-trade Rules, Reconciliation, Demo Pack)
 
-**Status:** IMPLEMENTED
-**Created:** 2026-02-14
-**Depends On:** RFC-0004 (Holdings Awareness)
-**Doc Location:** `docs/rfcs/RFC-0005-institutional-tightening-post-trade-rules-reconciliation-demo-pack.md`
+| Metadata | Details |
+| --- | --- |
+| **Status** | IMPLEMENTED |
+| **Created** | 2026-02-14 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0005-institutional-tightening-post-trade-rules-reconciliation-demo-pack.md |
 
 ---
 

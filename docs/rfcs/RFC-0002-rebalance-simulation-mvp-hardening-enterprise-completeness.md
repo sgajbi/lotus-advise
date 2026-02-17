@@ -1,11 +1,11 @@
 # RFC-0002: Rebalance Simulation MVP Hardening & Enterprise Completeness
 
-**Status:** IMPLEMENTED (Partially, Pre-Persistence)  
-**Owner:** Rumi  
-**Reviewers:** Architecture, Risk/Compliance Tech, Ops  
-**Created:** 2026-02-13  
-**Depends On:** RFC-0001 (Rebalance Simulation MVP)  
-**Doc Location:** `docs/rfcs/RFC-0002-rebalance-simulation-mvp-hardening-enterprise-completeness.md`
+| Metadata | Details |
+| --- | --- |
+| **Status** | IMPLEMENTED (Partially, Pre-Persistence) |
+| **Created** | 2026-02-13 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0002-rebalance-simulation-mvp-hardening-enterprise-completeness.md |
 
 ---
 

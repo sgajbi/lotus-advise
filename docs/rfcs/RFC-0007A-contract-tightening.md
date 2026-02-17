@@ -1,12 +1,11 @@
 # RFC-0007A: Contract Tightening - Canonical Endpoint, Discriminated Intents, Valuation Policy, Universe Locking
 
-**Status:** PARTIALLY IMPLEMENTED
-**Owner:** Lead Architect
-**Created:** 2026-02-16
-**Depends On:** RFC-0006A / RFC-0006B (Pre-persistence hardening)
-**Backward Compatibility:** Not required (application not live)
-
-**Doc Location:** `docs/rfcs/RFC-0007A-contract-tightening.md`
+| Metadata | Details |
+| --- | --- |
+| **Status** | PARTIALLY IMPLEMENTED |
+| **Created** | 2026-02-16 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0007A-contract-tightening.md |
 
 ---
 

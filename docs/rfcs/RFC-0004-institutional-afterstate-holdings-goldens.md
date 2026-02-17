@@ -1,10 +1,11 @@
- 
 # RFC-0004: Institutional After-State + Holdings-aware Golden Scenarios (Demo-tight, Pre-Persistence)
 
-**Status:** IMPLEMENTED  
-**Created:** 2026-02-14  
-**Depends On:** RFC-0003  
-**Doc Location:** docs/rfcs/RFC-0004-institutional-afterstate-holdings-goldens.md
+| Metadata | Details |
+| --- | --- |
+| **Status** | IMPLEMENTED |
+| **Created** | 2026-02-14 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0004-institutional-afterstate-holdings-goldens.md |
 
 ---
 

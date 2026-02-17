@@ -1,8 +1,11 @@
 # RFC-0010: Turnover & Transaction Cost Control
 
-**Status:** DRAFT
-**Created:** 2026-02-17
-**Depends On:** RFC-0007A (Contract Tightening)
+| Metadata | Details |
+| --- | --- |
+| **Status** | DRAFT |
+| **Created** | 2026-02-17 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0010-turnover-transaction-cost-control.md |
 
 ---
 

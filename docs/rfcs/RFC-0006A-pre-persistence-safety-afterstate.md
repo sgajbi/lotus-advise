@@ -1,13 +1,11 @@
-# RFC-0006A: Pre-Persistence Hardening — Safety, After-State Completeness, Contract Consistency
+# RFC-0006A: Pre-Persistence Hardening - Safety, After-State Completeness, Contract Consistency
 
-**Status:** IMPLEMENTED
-**Owner:** Lead Architect
-**Created:** 2026-02-15
-**Implemented:** 2026-02-15
-**Depends On:** RFC-0003, RFC-0005
-**Out of Scope:** PostgreSQL persistence, durable idempotency store (RFC-0007)
-
-**Doc Location:** `docs/rfcs/RFC-0006A-pre-persistence-safety-afterstate.md`
+| Metadata | Details |
+| --- | --- |
+| **Status** | IMPLEMENTED |
+| **Created** | 2026-02-15 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0006A-pre-persistence-safety-afterstate.md |
 
 ---
 

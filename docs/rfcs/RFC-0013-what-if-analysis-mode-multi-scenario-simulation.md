@@ -1,8 +1,11 @@
 # RFC-0013: "What-If" Analysis Mode (Multi-Scenario Simulation)
 
-**Status:** DRAFT
-**Created:** 2026-02-17
-**Depends On:** RFC-0003 (No-Throw Architecture)
+| Metadata | Details |
+| --- | --- |
+| **Status** | DRAFT |
+| **Created** | 2026-02-17 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0013-what-if-analysis-mode-multi-scenario-simulation.md |
 
 ---
 

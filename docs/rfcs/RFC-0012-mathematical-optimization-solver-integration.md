@@ -1,8 +1,11 @@
 # RFC-0012: Mathematical Optimization (Solver Integration)
 
-**Status:** DRAFT
-**Created:** 2026-02-17
-**Depends On:** RFC-0008 (Multi-Dimensional Constraints)
+| Metadata | Details |
+| --- | --- |
+| **Status** | DRAFT |
+| **Created** | 2026-02-17 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0012-mathematical-optimization-solver-integration.md |
 
 ---
 

@@ -1,8 +1,11 @@
 # RFC-0009: Tax-Aware Rebalancing (HIFO and Tax Budget)
 
-**Status:** DRAFT
-**Created:** 2026-02-17
-**Depends On:** RFC-0008 (Multi-Dimensional Constraints)
+| Metadata | Details |
+| --- | --- |
+| **Status** | DRAFT |
+| **Created** | 2026-02-17 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0009-tax-aware-rebalancing-hifo-tax-budget.md |
 
 ---
 

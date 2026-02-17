@@ -1,12 +1,11 @@
-# RFC-0006B: Pre-Persistence Hardening — Rules Configurability, Dependency Fidelity & Scenario Matrix
+# RFC-0006B: Pre-Persistence Hardening - Rules Configurability, Dependency Fidelity & Scenario Matrix
 
-**Status:** IMPLEMENTED
-**Owner:** Lead Architect
-**Created:** 2026-02-15
-**Depends On:** RFC-0006A
-**Out of Scope:** PostgreSQL persistence, durable idempotency store
-
-**Doc Location:** `docs/rfcs/RFC-0006B-pre-persistence-rules-scenarios-demo.md`
+| Metadata | Details |
+| --- | --- |
+| **Status** | IMPLEMENTED |
+| **Created** | 2026-02-15 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0006B-pre-persistence-rules-scenarios-demo.md |
 
 ---
 

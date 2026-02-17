@@ -1,14 +1,11 @@
 # RFC-0003: Rebalance Simulation Contract & Engine Completion (Audit Bundle)
 
-**Status:** IMPLEMENTED
-
-**Owner:** Senior Architect
-
-**Created:** 2026-02-14
-
-**Depends On:** RFC-0001, RFC-0002
-
-**Doc Location:** `docs/rfcs/RFC-0003-contract-engine-completion.md`
+| Metadata | Details |
+| --- | --- |
+| **Status** | IMPLEMENTED |
+| **Created** | 2026-02-14 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0003-contract-engine-completion.md |
 
 ---
 

@@ -1,8 +1,11 @@
 # RFC-0008: Multi-Dimensional Constraints (Attribute Tagging and Group Limits)
 
-**Status:** DRAFT
-**Created:** 2026-02-17
-**Depends On:** RFC-0007A (Contract Tightening)
+| Metadata | Details |
+| --- | --- |
+| **Status** | DRAFT |
+| **Created** | 2026-02-17 |
+| **Target Release** | TBD |
+| **Doc Location** | docs/rfcs/RFC-0008-multi-dimensional-constraints-attribute-tagging-group-limits.md |
 
 ---
 
