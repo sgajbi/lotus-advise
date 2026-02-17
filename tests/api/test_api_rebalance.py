@@ -1,14 +1,15 @@
 """
-FILE: tests/test_api.py
+FILE: tests/api/test_api_rebalance.py
 """
 
+import asyncio
+import inspect
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app, get_db_session
-
-client = TestClient(app)
 
 
 # Mock DB Dependency to avoid AsyncPG errors in unit tests
@@ -16,7 +17,18 @@ async def override_get_db_session():
     yield None  # We don't need a real DB for these tests
 
 
-app.dependency_overrides[get_db_session] = override_get_db_session
+@pytest.fixture(autouse=True)
+def override_db_dependency():
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[get_db_session] = override_get_db_session
+    yield
+    app.dependency_overrides = original_overrides
+
+
+@pytest.fixture
+def client():
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 def get_valid_payload():
@@ -37,7 +49,7 @@ def get_valid_payload():
     }
 
 
-def test_simulate_endpoint_success():
+def test_simulate_endpoint_success(client):
     payload = get_valid_payload()
     headers = {"Idempotency-Key": "test-key-1", "X-Correlation-Id": "corr-1"}
     response = client.post("/rebalance/simulate", json=payload, headers=headers)
@@ -45,9 +57,13 @@ def test_simulate_endpoint_success():
     data = response.json()
     assert data["status"] == "READY"
     assert data["rebalance_run_id"].startswith("rr_")
+    assert "before" in data
+    assert "after_simulated" in data
+    assert "rule_results" in data
+    assert "diagnostics" in data
 
 
-def test_simulate_missing_idempotency_key_422():
+def test_simulate_missing_idempotency_key_422(client):
     """Verifies that Idempotency-Key is mandatory."""
     payload = get_valid_payload()
     # No headers provided
@@ -58,7 +74,7 @@ def test_simulate_missing_idempotency_key_422():
     assert any(e["type"] == "missing" and "Idempotency-Key" in e["loc"] for e in errors)
 
 
-def test_simulate_payload_validation_error_422():
+def test_simulate_payload_validation_error_422(client):
     """Verifies that invalid payloads still return 422."""
     payload = get_valid_payload()
     del payload["portfolio_snapshot"]  # Invalid payload
@@ -68,7 +84,7 @@ def test_simulate_payload_validation_error_422():
     assert "detail" in response.json()
 
 
-def test_simulate_rfc7807_domain_error_mapping():
+def test_simulate_rfc7807_domain_error_mapping(client):
     # Force a domain outcome where constraints prevent full allocation (Soft Fail).
     # Returns PENDING_REVIEW.
     payload = get_valid_payload()
@@ -86,19 +102,20 @@ def test_simulate_rfc7807_domain_error_mapping():
 
 
 def test_get_db_session_dependency():
-    """Trivial coverage for the DB stub (Synchronous wrapper)."""
-    # Manually iterate the async generator
+    """Verify DB dependency yields expected stub session value."""
     gen = get_db_session()
-    try:
-        gen.asend(None).send(None)
-    except (StopIteration, AttributeError):
-        pass
-    import inspect
-
     assert inspect.isasyncgen(gen)
 
+    async def consume():
+        first = await gen.__anext__()
+        assert first is None
+        with pytest.raises(StopAsyncIteration):
+            await gen.__anext__()
 
-def test_simulate_blocked_logs_warning():
+    asyncio.run(consume())
+
+
+def test_simulate_blocked_logs_warning(client):
     """
     Force a 'BLOCKED' status (e.g. missing price) to verify the API logging branch.
     """

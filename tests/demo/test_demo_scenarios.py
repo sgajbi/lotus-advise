@@ -1,5 +1,5 @@
 """
-FILE: tests/test_demo_pack.py
+FILE: tests/demo/test_demo_scenarios.py
 Verifies that the public demo scenarios in docs/demo/ execute correctly.
 """
 
@@ -17,7 +17,7 @@ from src.core.models import (
     ShelfEntry,
 )
 
-DEMO_DIR = "docs/demo"
+DEMO_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "demo")
 
 
 def load_demo_scenario(filename):

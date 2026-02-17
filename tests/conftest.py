@@ -7,7 +7,11 @@ from decimal import Decimal
 
 import pytest
 
-from src.core.models import CashBalance, EngineOptions, PortfolioSnapshot
+from src.core.models import (
+    CashBalance,
+    EngineOptions,
+    PortfolioSnapshot,
+)
 
 
 @pytest.fixture

@@ -1,5 +1,5 @@
 """
-FILE: tests/test_contract.py
+FILE: tests/contracts/test_contract_models.py
 """
 
 from decimal import Decimal

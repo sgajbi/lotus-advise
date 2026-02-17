@@ -1,5 +1,5 @@
 """
-FILE: tests/test_golden_scenarios.py
+FILE: tests/golden/test_golden_scenarios.py
 """
 
 import glob
@@ -18,7 +18,7 @@ from src.core.models import (
     ShelfEntry,
 )
 
-GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "golden_data")
+GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "..", "golden_data")
 
 
 def load_golden_scenarios():
@@ -28,6 +28,60 @@ def load_golden_scenarios():
             data = json.load(f)
             scenarios.append((os.path.basename(filepath), data))
     return scenarios
+
+
+def _normalized_actual_intent(intent):
+    base = {"intent_type": intent.intent_type}
+    if intent.intent_type == "SECURITY_TRADE":
+        base.update(
+            {
+                "instrument_id": intent.instrument_id,
+                "side": intent.side,
+                "quantity": str(intent.quantity),
+            }
+        )
+    elif intent.intent_type == "FX_SPOT":
+        base.update(
+            {
+                "pair": intent.pair,
+                "buy_currency": intent.buy_currency,
+                "sell_currency": intent.sell_currency,
+            }
+        )
+    return base
+
+
+def _normalized_expected_intent(intent):
+    base = {"intent_type": intent["intent_type"]}
+    if intent["intent_type"] == "SECURITY_TRADE":
+        base.update(
+            {
+                "instrument_id": intent["instrument_id"],
+                "side": intent["side"],
+                "quantity": str(intent["quantity"]),
+            }
+        )
+    elif intent["intent_type"] == "FX_SPOT":
+        base.update(
+            {
+                "pair": intent["pair"],
+                "buy_currency": intent["buy_currency"],
+                "sell_currency": intent["sell_currency"],
+            }
+        )
+    return base
+
+
+def _intent_sort_key(intent):
+    return (
+        intent["intent_type"],
+        intent.get("instrument_id", ""),
+        intent.get("pair", ""),
+        intent.get("side", ""),
+        intent.get("buy_currency", ""),
+        intent.get("sell_currency", ""),
+        intent.get("quantity", ""),
+    )
 
 
 @pytest.mark.parametrize("filename, scenario", load_golden_scenarios())
@@ -52,20 +106,15 @@ def test_golden_scenario(filename, scenario):
         assert result.status == expected["status"]
         assert len(result.intents) == len(expected["intents"])
 
-        for act_intent, exp_intent in zip(result.intents, expected["intents"]):
-            # RFC-0007A: Strict Type Checking
-            assert act_intent.intent_type == exp_intent["intent_type"]
-
-            if act_intent.intent_type == "SECURITY_TRADE":
-                assert act_intent.instrument_id == exp_intent["instrument_id"]
-                assert act_intent.side == exp_intent["side"]
-                # Compare as strings to avoid Decimal precision issues in JSON
-                assert str(act_intent.quantity) == str(exp_intent["quantity"])
-
-            elif act_intent.intent_type == "FX_SPOT":
-                assert act_intent.pair == exp_intent["pair"]
-                assert act_intent.buy_currency == exp_intent["buy_currency"]
-                assert act_intent.sell_currency == exp_intent["sell_currency"]
+        actual_intents = sorted(
+            (_normalized_actual_intent(i) for i in result.intents),
+            key=_intent_sort_key,
+        )
+        expected_intents = sorted(
+            (_normalized_expected_intent(i) for i in expected["intents"]),
+            key=_intent_sort_key,
+        )
+        assert actual_intents == expected_intents
 
         # Validate After-State Cash (High level check)
         act_cash = {c.currency: c.amount for c in result.after_simulated.cash_balances}

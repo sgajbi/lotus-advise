@@ -1,5 +1,5 @@
 """
-FILE: tests/test_dependencies.py
+FILE: tests/dependencies/test_dependency_chains.py
 """
 
 from decimal import Decimal

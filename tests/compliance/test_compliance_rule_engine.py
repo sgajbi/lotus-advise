@@ -1,5 +1,5 @@
 """
-FILE: tests/test_compliance.py
+FILE: tests/compliance/test_compliance_rule_engine.py
 Unit tests for the Rule Engine (RFC-0005/RFC-0006B).
 """
 
