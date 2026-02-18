@@ -14,6 +14,11 @@ class ValuationMode(str, Enum):
     TRUST_SNAPSHOT = "TRUST_SNAPSHOT"
 
 
+class TargetMethod(str, Enum):
+    HEURISTIC = "HEURISTIC"
+    SOLVER = "SOLVER"
+
+
 class Money(BaseModel):
     amount: Decimal
     currency: str
@@ -85,6 +90,7 @@ class GroupConstraint(BaseModel):
 
 class EngineOptions(BaseModel):
     valuation_mode: ValuationMode = ValuationMode.CALCULATED
+    target_method: TargetMethod = TargetMethod.HEURISTIC
 
     cash_band_min_weight: Decimal = Decimal("0.00")
     cash_band_max_weight: Decimal = Decimal("1.00")

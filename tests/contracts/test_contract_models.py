@@ -14,6 +14,7 @@ from src.core.models import (
     Money,
     ShelfEntry,
     SimulatedState,
+    TargetMethod,
 )
 
 
@@ -88,3 +89,8 @@ def test_diagnostics_supports_group_constraint_events():
         data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
     )
     assert diag.group_constraint_events == []
+
+
+def test_target_method_defaults_to_heuristic():
+    options = EngineOptions()
+    assert options.target_method == TargetMethod.HEURISTIC
