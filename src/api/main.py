@@ -9,7 +9,7 @@ from decimal import Decimal
 from typing import Annotated, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, Header, status
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from src.core.engine import run_simulation
 from src.core.models import (
@@ -25,7 +25,15 @@ from src.core.models import (
     ShelfEntry,
 )
 
-app = FastAPI(title="DPM Rebalance Engine", version="0.1.0")
+app = FastAPI(
+    title="DPM Rebalance Engine",
+    version="0.1.0",
+    description=(
+        "Deterministic rebalance simulation service.\n\n"
+        "Domain outcomes for valid payloads are returned in response body status: "
+        "`READY`, `PENDING_REVIEW`, or `BLOCKED`."
+    ),
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,11 +46,104 @@ async def get_db_session():
 
 
 class RebalanceRequest(BaseModel):
-    portfolio_snapshot: PortfolioSnapshot
-    market_data_snapshot: MarketDataSnapshot
-    model_portfolio: ModelPortfolio
-    shelf_entries: List[ShelfEntry]
-    options: EngineOptions
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_1",
+                    "base_currency": "USD",
+                    "positions": [{"instrument_id": "EQ_1", "quantity": "100"}],
+                    "cash_balances": [{"currency": "USD", "amount": "5000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "model_portfolio": {"targets": [{"instrument_id": "EQ_1", "weight": "0.6"}]},
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {
+                    "target_method": "HEURISTIC",
+                    "enable_tax_awareness": False,
+                    "enable_settlement_awareness": False,
+                },
+            }
+        }
+    }
+
+    portfolio_snapshot: PortfolioSnapshot = Field(
+        description="Current portfolio holdings and cash balances."
+    )
+    market_data_snapshot: MarketDataSnapshot = Field(
+        description="Price and FX snapshot used for valuation and intent generation."
+    )
+    model_portfolio: ModelPortfolio = Field(description="Target model weights by instrument.")
+    shelf_entries: List[ShelfEntry] = Field(
+        description=(
+            "Instrument eligibility and policy metadata (status, attributes, settlement days)."
+        )
+    )
+    options: EngineOptions = Field(description="Request-level engine behavior and feature toggles.")
+
+
+SIMULATE_READY_EXAMPLE = {
+    "summary": "Ready run",
+    "value": {
+        "status": "READY",
+        "rebalance_run_id": "rr_demo1234",
+        "diagnostics": {"warnings": [], "data_quality": {"price_missing": [], "fx_missing": []}},
+    },
+}
+SIMULATE_PENDING_EXAMPLE = {
+    "summary": "Pending review run",
+    "value": {
+        "status": "PENDING_REVIEW",
+        "rebalance_run_id": "rr_demo5678",
+        "diagnostics": {"warnings": ["CAPPED_BY_GROUP_LIMIT_sector:TECH"]},
+    },
+}
+SIMULATE_BLOCKED_EXAMPLE = {
+    "summary": "Blocked run",
+    "value": {
+        "status": "BLOCKED",
+        "rebalance_run_id": "rr_demo9999",
+        "diagnostics": {"warnings": ["OVERDRAFT_ON_T_PLUS_1"]},
+    },
+}
+
+BATCH_EXAMPLE = {
+    "summary": "Batch what-if request",
+    "value": {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_batch",
+            "base_currency": "USD",
+            "positions": [{"instrument_id": "EQ_1", "quantity": "100"}],
+            "cash_balances": [{"currency": "USD", "amount": "1000"}],
+        },
+        "market_data_snapshot": {
+            "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+            "fx_rates": [],
+        },
+        "model_portfolio": {"targets": [{"instrument_id": "EQ_1", "weight": "0.5"}]},
+        "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+        "scenarios": {
+            "baseline": {"options": {}},
+            "solver_case": {"options": {"target_method": "SOLVER"}},
+        },
+    },
+}
+
+ANALYZE_RESPONSE_EXAMPLE = {
+    "summary": "Batch result",
+    "value": {
+        "batch_run_id": "batch_ab12cd34",
+        "run_at_utc": "2026-02-18T10:00:00+00:00",
+        "base_snapshot_ids": {"portfolio_snapshot_id": "pf_batch", "market_data_snapshot_id": "md"},
+        "results": {},
+        "comparison_metrics": {},
+        "failed_scenarios": {},
+        "warnings": [],
+    },
+}
 
 
 def _resolve_base_snapshot_ids(request: BatchRebalanceRequest) -> Dict[str, str]:
@@ -86,11 +187,48 @@ def _build_comparison_metric(
     response_model=RebalanceResult,
     status_code=status.HTTP_200_OK,
     summary="Simulate a Portfolio Rebalance",
+    description=(
+        "Runs one deterministic rebalance simulation.\n\n"
+        "Required header: `Idempotency-Key`.\n"
+        "Optional header: `X-Correlation-Id`.\n\n"
+        "For valid payloads, domain outcomes are returned in the response body status field."
+    ),
+    responses={
+        200: {
+            "description": "Simulation completed with domain status in payload.",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "ready": SIMULATE_READY_EXAMPLE,
+                        "pending_review": SIMULATE_PENDING_EXAMPLE,
+                        "blocked": SIMULATE_BLOCKED_EXAMPLE,
+                    }
+                }
+            },
+        },
+        422: {
+            "description": "Validation error (invalid payload or missing required headers).",
+        },
+    },
 )
 async def simulate_rebalance(
     request: RebalanceRequest,
-    idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
-    correlation_id: Annotated[Optional[str], Header(alias="X-Correlation-Id")] = None,
+    idempotency_key: Annotated[
+        str,
+        Header(
+            alias="Idempotency-Key",
+            description="Required idempotency token for request deduplication at client boundary.",
+            examples=["demo-idem-001"],
+        ),
+    ],
+    correlation_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Correlation-Id",
+            description="Optional trace/correlation identifier propagated to logs.",
+            examples=["corr-1234-abcd"],
+        ),
+    ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> RebalanceResult:
     """
@@ -118,9 +256,27 @@ async def simulate_rebalance(
     response_model=BatchRebalanceResult,
     status_code=status.HTTP_200_OK,
     summary="Analyze Multiple Rebalance Scenarios",
+    description=(
+        "Runs multiple named what-if scenarios using shared snapshots.\n\n"
+        "Each scenario validates `options` independently and executes in sorted scenario-key order."
+    ),
+    responses={
+        200: {
+            "description": "Batch analysis result.",
+            "content": {
+                "application/json": {"examples": {"batch_result": ANALYZE_RESPONSE_EXAMPLE}}
+            },
+        },
+        422: {
+            "description": "Validation error (invalid shared payload or scenario key format).",
+        },
+    },
 )
 async def analyze_scenarios(
-    request: BatchRebalanceRequest,
+    request: Annotated[
+        BatchRebalanceRequest,
+        Field(description="Shared snapshots plus scenario map of option overrides."),
+    ],
     correlation_id: Annotated[Optional[str], Header(alias="X-Correlation-Id")] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> BatchRebalanceResult:
