@@ -250,3 +250,68 @@ def test_solver_returns_blocked_when_solver_dependencies_unavailable(monkeypatch
     assert status == "BLOCKED"
     assert trace == []
     assert "SOLVER_ERROR" in diagnostics.warnings
+
+
+@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+def test_solver_infeasible_emits_cash_band_and_capacity_hints():
+    model = model_portfolio(targets=[target("A", "1.0")])
+    diagnostics = _diag()
+    trace, status = _generate_targets(
+        model=model,
+        eligible_targets={"A": Decimal("1.0")},
+        buy_list=["A"],
+        sell_only_excess=Decimal("0"),
+        shelf=[ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"})],
+        options=EngineOptions(
+            target_method="SOLVER",
+            cash_band_min_weight=Decimal("0.7"),
+            cash_band_max_weight=Decimal("0.1"),
+            single_position_max_weight=Decimal("0.2"),
+        ),
+        total_val=Decimal("1000"),
+        base_ccy="USD",
+        diagnostics=diagnostics,
+    )
+
+    assert status == "BLOCKED"
+    assert trace == []
+    assert any(w.startswith("INFEASIBLE_") for w in diagnostics.warnings)
+    assert "INFEASIBILITY_HINT_CASH_BAND_CONTRADICTION" in diagnostics.warnings
+    assert "INFEASIBILITY_HINT_SINGLE_POSITION_CAPACITY" in diagnostics.warnings
+
+
+@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+def test_solver_infeasible_emits_locked_group_hint():
+    model = model_portfolio(targets=[target("TECH_BUY", "0.0"), target("BOND", "1.0")])
+    diagnostics = _diag()
+    trace, status = _generate_targets(
+        model=model,
+        eligible_targets={
+            "TECH_BUY": Decimal("0.0"),
+            "TECH_LOCKED": Decimal("0.4"),
+            "BOND": Decimal("0.6"),
+        },
+        buy_list=["TECH_BUY", "BOND"],
+        sell_only_excess=Decimal("0"),
+        shelf=[
+            ShelfEntry(instrument_id="TECH_BUY", status="APPROVED", attributes={"sector": "TECH"}),
+            ShelfEntry(
+                instrument_id="TECH_LOCKED", status="SUSPENDED", attributes={"sector": "TECH"}
+            ),
+            ShelfEntry(instrument_id="BOND", status="APPROVED", attributes={"sector": "FI"}),
+        ],
+        options=EngineOptions(
+            target_method="SOLVER",
+            cash_band_min_weight=Decimal("0"),
+            cash_band_max_weight=Decimal("0"),
+            group_constraints={"sector:TECH": GroupConstraint(max_weight=Decimal("0.3"))},
+        ),
+        total_val=Decimal("1000"),
+        base_ccy="USD",
+        diagnostics=diagnostics,
+    )
+
+    assert status == "BLOCKED"
+    assert trace == []
+    assert any(w.startswith("INFEASIBLE_") for w in diagnostics.warnings)
+    assert "INFEASIBILITY_HINT_LOCKED_GROUP_WEIGHT_sector:TECH" in diagnostics.warnings

@@ -3,6 +3,44 @@ from decimal import Decimal
 from src.core.models import Money, TargetInstrument
 
 
+def _collect_infeasibility_hints(
+    *, tradeable_ids, locked_weight, options, eligible_targets, shelf
+):
+    hints = []
+
+    invested_min = Decimal("1.0") - options.cash_band_max_weight - locked_weight
+    invested_max = Decimal("1.0") - options.cash_band_min_weight - locked_weight
+    if invested_min > invested_max:
+        hints.append("INFEASIBILITY_HINT_CASH_BAND_CONTRADICTION")
+
+    if options.single_position_max_weight is not None:
+        max_capacity = options.single_position_max_weight * Decimal(len(tradeable_ids))
+        if max_capacity < invested_min:
+            hints.append("INFEASIBILITY_HINT_SINGLE_POSITION_CAPACITY")
+
+    indexed_tradeable = {i_id: idx for idx, i_id in enumerate(tradeable_ids)}
+    for constraint_key in sorted(options.group_constraints.keys()):
+        constraint = options.group_constraints[constraint_key]
+        attr_key, attr_val = constraint_key.split(":", 1)
+        group_locked_weight = Decimal("0")
+        group_tradeable_count = 0
+        for i_id in eligible_targets:
+            s_ent = next((s for s in shelf if s.instrument_id == i_id), None)
+            if not s_ent or s_ent.attributes.get(attr_key) != attr_val:
+                continue
+            if i_id in indexed_tradeable:
+                group_tradeable_count += 1
+            else:
+                group_locked_weight += eligible_targets[i_id]
+
+        if group_locked_weight > constraint.max_weight:
+            hints.append(f"INFEASIBILITY_HINT_LOCKED_GROUP_WEIGHT_{constraint_key}")
+        if group_tradeable_count == 0 and group_locked_weight == Decimal("0"):
+            continue
+
+    return hints
+
+
 def build_target_trace(model, eligible_targets, buy_list, total_val, base_ccy):
     trace = []
     for t in model.targets:
@@ -134,6 +172,16 @@ def generate_targets_solver(
     if not solved:
         reason = "SOLVER_ERROR" if latest_status is None else f"INFEASIBLE_{latest_status}"
         diagnostics.warnings.append(reason)
+        if reason.startswith("INFEASIBLE_"):
+            diagnostics.warnings.extend(
+                _collect_infeasibility_hints(
+                    tradeable_ids=tradeable_ids,
+                    locked_weight=locked_weight,
+                    options=options,
+                    eligible_targets=eligible_targets,
+                    shelf=shelf,
+                )
+            )
         return [], "BLOCKED"
 
     for idx, i_id in enumerate(tradeable_ids):
