@@ -134,6 +134,11 @@ def test_max_turnover_pct_validation_bounds():
         EngineOptions(max_turnover_pct=Decimal("1.01"))
 
 
+def test_max_turnover_pct_accepts_none():
+    opts = EngineOptions(max_turnover_pct=None)
+    assert opts.max_turnover_pct is None
+
+
 def test_settlement_awareness_options_defaults_and_bounds():
     options = EngineOptions()
     assert options.enable_tax_awareness is False
@@ -152,6 +157,11 @@ def test_settlement_awareness_options_defaults_and_bounds():
 def test_max_overdraft_by_ccy_rejects_negative_values():
     with pytest.raises(ValidationError):
         EngineOptions(max_overdraft_by_ccy={"USD": Decimal("-1")})
+
+
+def test_max_overdraft_by_ccy_rejects_empty_currency_key():
+    with pytest.raises(ValidationError):
+        EngineOptions(max_overdraft_by_ccy={"": Decimal("1")})
 
 
 def test_tax_lot_quantity_must_match_position_quantity_within_tolerance():
@@ -220,6 +230,23 @@ def test_batch_request_validates_scenario_name_format():
             model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
             shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
             scenarios={"Invalid-Name": SimulationScenario(options={})},
+        )
+
+
+def test_batch_request_rejects_case_insensitive_duplicate_scenario_keys():
+    with pytest.raises(ValidationError):
+        BatchRebalanceRequest(
+            portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
+            market_data_snapshot=MarketDataSnapshot(
+                prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
+                fx_rates=[],
+            ),
+            model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
+            shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
+            scenarios={
+                "base": SimulationScenario(options={}),
+                "BASE": SimulationScenario(options={}),
+            },
         )
 
 
