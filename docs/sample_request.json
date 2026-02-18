@@ -6,7 +6,27 @@
       {
         "instrument_id": "US_TECH",
         "quantity": "100",
-        "market_value": null
+        "market_value": null,
+        "lots": [
+          {
+            "lot_id": "L1",
+            "quantity": "50",
+            "unit_cost": {
+              "amount": "80.00",
+              "currency": "USD"
+            },
+            "purchase_date": "2024-01-01"
+          },
+          {
+            "lot_id": "L2",
+            "quantity": "50",
+            "unit_cost": {
+              "amount": "95.00",
+              "currency": "USD"
+            },
+            "purchase_date": "2024-06-01"
+          }
+        ]
       }
     ],
     "cash_balances": [
@@ -69,6 +89,8 @@
     }
   ],
   "options": {
+    "enable_tax_awareness": false,
+    "max_realized_capital_gains": null,
     "enable_settlement_awareness": false,
     "settlement_horizon_days": 5,
     "fx_settlement_days": 2,

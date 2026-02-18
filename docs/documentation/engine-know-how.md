@@ -158,6 +158,13 @@ Behavior:
   - skip-and-continue selection is applied against turnover budget.
   - dropped candidates are written to `diagnostics.dropped_intents` with reason `TURNOVER_LIMIT`.
   - warning `PARTIAL_REBALANCE_TURNOVER_LIMIT` is added when any intent is dropped.
+- Optional tax-aware sells (`options.enable_tax_awareness=True`):
+  - lot-level HIFO ordering for sells when `position.lots` are present
+  - run-level gains budget via `options.max_realized_capital_gains`
+  - when budget binds, sell quantity is reduced and warning
+    `TAX_BUDGET_LIMIT_REACHED` is emitted
+  - constrained sells are captured in `diagnostics.tax_budget_constraint_events`
+  - aggregate tax metrics are returned in `tax_impact`
 
 ### Stage 5: FX + Simulation + Rules + Reconciliation
 
@@ -228,6 +235,8 @@ Implemented and active:
 - `min_cash_buffer_pct`
 - `max_turnover_pct`
 - `group_constraints`
+- `enable_tax_awareness`
+- `max_realized_capital_gains`
 - `enable_settlement_awareness`
 - `settlement_horizon_days`
 - `fx_settlement_days`
@@ -261,13 +270,13 @@ Comparison metrics:
 
 Implemented RFC slices:
 - RFC-0001 to RFC-0008
+- RFC-0009 (tax-aware HIFO sells and gains budget; request-scoped toggle via `enable_tax_awareness`)
 - RFC-0010 (turnover cap control)
 - RFC-0011 (settlement awareness; request-scoped toggle via `enable_settlement_awareness`)
 - RFC-0012 (solver integration; selectable by `target_method`)
 - RFC-0013 (batch what-if analysis)
 
 Explicitly deferred:
-- RFC-0009 tax-aware controls and tax-impact metrics
 - RFC-0010 explicit transaction cost model terms
 
 ## 9. Practical Examples

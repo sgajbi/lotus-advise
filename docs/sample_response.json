@@ -343,6 +343,7 @@
     },
     "status": "OK"
   },
+  "tax_impact": null,
   "rule_results": [
     {
       "rule_id": "CASH_BAND",
@@ -418,6 +419,7 @@
   "diagnostics": {
     "warnings": [],
     "suppressed_intents": [],
+    "tax_budget_constraint_events": [],
     "group_constraint_events": [],
     "cash_ladder": [],
     "cash_ladder_breaches": [],

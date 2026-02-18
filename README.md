@@ -13,13 +13,11 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 ## Implemented RFCs
 
 * RFC-0001 to RFC-0008
+* RFC-0009 (tax-aware HIFO sell budget controls, feature-flagged via `options.enable_tax_awareness`)
 * RFC-0010 (turnover cap control via `options.max_turnover_pct`)
 * RFC-0011 (settlement ladder & overdraft protection, feature-flagged via `options.enable_settlement_awareness`)
 * RFC-0012 (solver integration, feature-flagged via `options.target_method`)
 * RFC-0013 (what-if batch analysis via `POST /rebalance/analyze`)
-
-Deferred:
-* RFC-0009 tax-aware controls and tax-impact comparison fields
 
 ---
 ## Engine Know-How
@@ -145,7 +143,7 @@ Performs a full rebalance simulation.
 * `market_data_snapshot`: Prices and FX rates.
 * `model_portfolio`: Target weights.
 * `shelf_entries`: Regulatory status of assets.
-* `options`: Constraints and execution controls (e.g., `suppress_dust_trades`, `group_constraints`, `target_method`, `enable_settlement_awareness`).
+* `options`: Constraints and execution controls (e.g., `suppress_dust_trades`, `group_constraints`, `target_method`, `enable_settlement_awareness`, `enable_tax_awareness`).
   `group_constraints` keys must use `<attribute_key>:<attribute_value>`.
   Invalid keys or invalid `max_weight` values return 422.
 
@@ -194,7 +192,7 @@ Runs multiple named what-if scenarios in one call using shared snapshots.
 * `warnings`: includes `PARTIAL_BATCH_FAILURE` when applicable
 
 Notes:
-* Tax-budget and realized-gains comparison fields are out of scope here and deferred to RFC-0009.
+* Batch comparison metrics currently expose turnover proxy only; tax-impact aggregation is not included in batch metrics.
 
 ---
 

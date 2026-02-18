@@ -2,9 +2,9 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED (Feature-Flagged) |
 | **Created** | 2026-02-17 |
-| **Target Release** | TBD |
+| **Target Release** | 2026-02-18 |
 | **Doc Location** | docs/rfcs/RFC-0009-tax-aware-rebalancing-hifo-tax-budget.md |
 
 ---
@@ -61,6 +61,7 @@ class Position(BaseModel):
     lots: List[TaxLot] = Field(default_factory=list)
 
 class EngineOptions(BaseModel):
+    enable_tax_awareness: bool = False
     max_realized_capital_gains: Optional[Decimal] = None  # base currency amount
 ```
 
@@ -145,7 +146,7 @@ Add second case where requested sell exceeds budget and verify partial sell with
 
 ## 6. Open Questions
 
-1. Should default lot policy be configurable (`HIFO`, `FIFO`, `LIFO`) now or later?
+1. Current implementation fixes lot policy to HIFO; configurable lot policy (`FIFO`, `LIFO`) remains future scope.
 2. Should tax-budget enforcement be account-level only, or also per-instrument caps?
 
 ---
