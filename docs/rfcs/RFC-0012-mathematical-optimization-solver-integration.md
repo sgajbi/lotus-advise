@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | DRAFT (Implementation In Progress) |
 | **Created** | 2026-02-17 |
 | **Target Release** | TBD |
 | **Doc Location** | docs/rfcs/RFC-0012-mathematical-optimization-solver-integration.md |
@@ -64,13 +64,23 @@ numpy>=1.26.0
 
 ### 3.2 Target Solver (`src/core/target_generation.py`)
 
-Replace target generation with `_solve_targets`.
+Implemented with `generate_targets_solver(...)` in `src/core/target_generation.py`, invoked from Stage 3 dispatch in `src/core/engine.py`.
 
 ```python
 import cvxpy as cp
 import numpy as np
 
-def _solve_targets(model, universe, options, current_valuations):
+def generate_targets_solver(
+    model,
+    eligible_targets,
+    buy_list,
+    sell_only_excess,
+    shelf,
+    options,
+    total_val,
+    base_ccy,
+    diagnostics,
+):
     # 1. Setup Variables
     n = len(universe.all_instruments)
     w = cp.Variable(n)
@@ -118,10 +128,10 @@ def _solve_targets(model, universe, options, current_valuations):
 
 Implementation requirements:
 1. Use a fixed solver preference order (for example `OSQP` then `SCS`) for deterministic behavior.
-2. Capture dual infeasibility details when available and map to diagnostics.
+2. Capture dual infeasibility details when available and map to diagnostics. (Pending)
 3. Keep legacy heuristic as feature-flag fallback during rollout (`options.target_method`).
 
-### 3.4 Implementation Progress (2026-02-18)
+### 3.3 Implementation Progress (2026-02-18)
 
 Completed:
 1. Added feature flag `EngineOptions.target_method = HEURISTIC | SOLVER` (default `HEURISTIC`).
@@ -140,7 +150,7 @@ Verification:
 2. `pytest -q` passes.
 3. `pip_audit -r requirements.txt` reports no known vulnerabilities.
 
-### 3.3 Objective and Constraints
+### 3.4 Objective and Constraints
 
 Baseline objective:
 1. Minimize squared distance from model weights.
@@ -160,7 +170,9 @@ Soft constraints (future extension):
 
 ## 4. Test Plan
 
-Add `tests/golden_data/scenario_12_solver_conflict.json`.
+Add:
+1. `tests/golden_data/scenario_12_solver_conflict.json`
+2. `tests/golden_data/scenario_12_solver_infeasible.json`
 
 Scenario A (feasible):
 1. Model 100% `Tech_A`.

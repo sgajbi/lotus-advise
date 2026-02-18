@@ -30,7 +30,10 @@ The core engine (`src/core/engine.py`) processes every request through a strictl
 
 1.  **Valuation:** Normalizes all positions to Base Currency (Currency Truth Model).
 2.  **Universe:** Filters Shelf (Banned/Restricted checks).
-3.  **Targets:** Applies Constraints (Max Weight) and Redistribution Logic (The "Why" Trace).
+3.  **Targets:** Applies constraints using either:
+    * `HEURISTIC` (legacy redistribution path), or
+    * `SOLVER` (convex optimization via `cvxpy`, RFC-0012).
+    Active method is controlled by `options.target_method` (default: `HEURISTIC`).
 4.  **Intents:** Translates weights to trades, suppressing dust (`min_notional`).
 5.  **Simulation:** Generates FX trades (Hub-and-Spoke) and validates the After-State.
 
@@ -121,7 +124,7 @@ Performs a full rebalance simulation.
 * `market_data_snapshot`: Prices and FX rates.
 * `model_portfolio`: Target weights.
 * `shelf_entries`: Regulatory status of assets.
-* `options`: Constraints (e.g., `suppress_dust_trades`, `group_constraints`).
+* `options`: Constraints and execution controls (e.g., `suppress_dust_trades`, `group_constraints`, `target_method`).
   `group_constraints` keys must use `<attribute_key>:<attribute_value>`.
   Invalid keys or invalid `max_weight` values return 422.
 
@@ -141,6 +144,10 @@ Notes:
 ## 🧪 Regression Testing (Golden Scenarios)
 
 We maintain a set of "Gold Standard" inputs and outputs in `tests/golden_data/`. These ensure that complex math (e.g., redistribution logic) never changes unexpectedly.
+
+Solver-mode golden scenarios (RFC-0012):
+* `tests/golden_data/scenario_12_solver_conflict.json`
+* `tests/golden_data/scenario_12_solver_infeasible.json`
 
 **To Regenerate Golden Files:**
 (Only do this if you have intentionally changed the business logic via an RFC).
