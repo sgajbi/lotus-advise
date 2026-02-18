@@ -110,6 +110,7 @@ class EngineOptions(BaseModel):
     block_on_missing_prices: bool = True
     block_on_missing_fx: bool = True
     min_cash_buffer_pct: Decimal = Decimal("0.0")
+    max_turnover_pct: Optional[Decimal] = None
 
     # Key format: "<attribute_key>:<attribute_value>", for example "sector:TECH"
     group_constraints: Dict[str, GroupConstraint] = Field(default_factory=dict)
@@ -129,6 +130,15 @@ class EngineOptions(BaseModel):
                 raise ValueError(
                     "group_constraints keys must use format '<attribute_key>:<attribute_value>'"
                 )
+        return v
+
+    @field_validator("max_turnover_pct")
+    @classmethod
+    def validate_max_turnover_pct(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        if v is None:
+            return v
+        if v < Decimal("0") or v > Decimal("1"):
+            raise ValueError("max_turnover_pct must be between 0 and 1 inclusive")
         return v
 
 
@@ -243,6 +253,13 @@ class SuppressedIntent(BaseModel):
     threshold: Money
 
 
+class DroppedIntent(BaseModel):
+    instrument_id: str
+    reason: str
+    potential_notional: Money
+    score: Decimal
+
+
 class GroupConstraintEvent(BaseModel):
     constraint_key: str
     group_weight_before: Decimal
@@ -255,6 +272,7 @@ class GroupConstraintEvent(BaseModel):
 class DiagnosticsData(BaseModel):
     warnings: List[str] = Field(default_factory=list)
     suppressed_intents: List[SuppressedIntent] = Field(default_factory=list)
+    dropped_intents: List[DroppedIntent] = Field(default_factory=list)
     group_constraint_events: List[GroupConstraintEvent] = Field(default_factory=list)
     data_quality: Dict[str, List[str]]
 

@@ -93,10 +93,22 @@ def test_diagnostics_supports_group_constraint_events():
     diag = DiagnosticsData(
         warnings=[],
         suppressed_intents=[],
+        dropped_intents=[],
         group_constraint_events=[],
         data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
     )
     assert diag.group_constraint_events == []
+
+
+def test_diagnostics_supports_dropped_intents():
+    diag = DiagnosticsData(
+        warnings=[],
+        suppressed_intents=[],
+        dropped_intents=[],
+        group_constraint_events=[],
+        data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+    )
+    assert diag.dropped_intents == []
 
 
 def test_target_method_defaults_to_heuristic():
@@ -108,6 +120,16 @@ def test_target_method_comparison_options_defaults():
     options = EngineOptions()
     assert options.compare_target_methods is False
     assert options.compare_target_methods_tolerance == Decimal("0.0001")
+
+
+def test_max_turnover_pct_validation_bounds():
+    opts = EngineOptions(max_turnover_pct=Decimal("0.15"))
+    assert opts.max_turnover_pct == Decimal("0.15")
+
+    with pytest.raises(ValidationError):
+        EngineOptions(max_turnover_pct=Decimal("-0.01"))
+    with pytest.raises(ValidationError):
+        EngineOptions(max_turnover_pct=Decimal("1.01"))
 
 
 def test_batch_request_requires_at_least_one_scenario():
