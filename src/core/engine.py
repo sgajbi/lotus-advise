@@ -10,6 +10,7 @@ from src.core.compliance import RuleEngine
 from src.core.models import (
     CashBalance,
     DiagnosticsData,
+    DroppedIntent,
     EngineOptions,
     ExcludedInstrument,
     FxSpotIntent,
@@ -44,6 +45,62 @@ def _make_diagnostics_data():
         group_constraint_events=[],
         data_quality=_make_empty_data_quality_log(),
     )
+
+
+def _calculate_turnover_score(intent, portfolio_value_base):
+    if portfolio_value_base <= Decimal("0"):
+        return Decimal("0")
+    return abs(intent.notional_base.amount) / portfolio_value_base
+
+
+def _apply_turnover_limit(
+    intents,
+    options,
+    portfolio_value_base,
+    base_currency,
+    diagnostics,
+):
+    if options.max_turnover_pct is None:
+        return intents
+
+    budget = portfolio_value_base * options.max_turnover_pct
+    proposed = sum(abs(intent.notional_base.amount) for intent in intents)
+    if proposed <= budget:
+        return intents
+
+    ranked = sorted(
+        intents,
+        key=lambda intent: (
+            -_calculate_turnover_score(intent, portfolio_value_base),
+            abs(intent.notional_base.amount),
+            intent.instrument_id,
+            intent.intent_id,
+        ),
+    )
+
+    selected = []
+    used = Decimal("0")
+    for intent in ranked:
+        notional_abs = abs(intent.notional_base.amount)
+        score = _calculate_turnover_score(intent, portfolio_value_base)
+        if used + notional_abs <= budget:
+            selected.append(intent)
+            used += notional_abs
+            continue
+
+        diagnostics.dropped_intents.append(
+            DroppedIntent(
+                instrument_id=intent.instrument_id,
+                reason="TURNOVER_LIMIT",
+                potential_notional=Money(amount=notional_abs, currency=base_currency),
+                score=score,
+            )
+        )
+
+    if diagnostics.dropped_intents:
+        diagnostics.warnings.append("PARTIAL_REBALANCE_TURNOVER_LIMIT")
+
+    return selected
 
 
 def _make_blocked_result(
@@ -736,6 +793,14 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             diagnostics=diag_data,
             request_hash=request_hash,
         )
+
+    intents = _apply_turnover_limit(
+        intents=intents,
+        options=options,
+        portfolio_value_base=tv,
+        base_currency=portfolio.base_currency,
+        diagnostics=diag_data,
+    )
 
     intents, after, rules, f_stat, recon = _generate_fx_and_simulate(
         portfolio, market_data, shelf, intents, options, tv, diag_data
