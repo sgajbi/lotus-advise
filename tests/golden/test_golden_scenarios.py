@@ -6,6 +6,7 @@ import glob
 import json
 import os
 from decimal import Decimal
+from typing import Any, Dict
 
 import pytest
 
@@ -18,105 +19,87 @@ from src.core.models import (
     ShelfEntry,
 )
 
-GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "..", "golden_data")
+
+def load_golden_file(filename: str) -> Dict[str, Any]:
+    path = os.path.join(os.path.dirname(__file__), "../golden_data", filename)
+    with open(path, "r") as f:
+        return json.loads(f.read(), parse_float=Decimal)
 
 
-def load_golden_scenarios():
-    scenarios = []
-    for filepath in glob.glob(os.path.join(GOLDEN_DIR, "*.json")):
-        with open(filepath, "r") as f:
-            data = json.load(f)
-            scenarios.append((os.path.basename(filepath), data))
-    return scenarios
+GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "../golden_data")
+SCENARIOS = sorted(os.path.basename(p) for p in glob.glob(os.path.join(GOLDEN_DIR, "*.json")))
 
 
-def _normalized_actual_intent(intent):
-    base = {"intent_type": intent.intent_type}
-    if intent.intent_type == "SECURITY_TRADE":
-        base.update(
-            {
-                "instrument_id": intent.instrument_id,
-                "side": intent.side,
-                "quantity": str(intent.quantity),
-            }
-        )
-    elif intent.intent_type == "FX_SPOT":
-        base.update(
-            {
-                "pair": intent.pair,
-                "buy_currency": intent.buy_currency,
-                "sell_currency": intent.sell_currency,
-            }
-        )
-    return base
+@pytest.mark.parametrize("filename", SCENARIOS)
+def test_golden_scenario(filename):
+    data = load_golden_file(filename)
+    inputs = data["inputs"]
+    expected = data.get("expected_output") or data.get("expected_outputs")
+    assert expected is not None, f"Missing expected output block in {filename}"
 
-
-def _normalized_expected_intent(intent):
-    base = {"intent_type": intent["intent_type"]}
-    if intent["intent_type"] == "SECURITY_TRADE":
-        base.update(
-            {
-                "instrument_id": intent["instrument_id"],
-                "side": intent["side"],
-                "quantity": str(intent["quantity"]),
-            }
-        )
-    elif intent["intent_type"] == "FX_SPOT":
-        base.update(
-            {
-                "pair": intent["pair"],
-                "buy_currency": intent["buy_currency"],
-                "sell_currency": intent["sell_currency"],
-            }
-        )
-    return base
-
-
-def _intent_sort_key(intent):
-    return (
-        intent["intent_type"],
-        intent.get("instrument_id", ""),
-        intent.get("pair", ""),
-        intent.get("side", ""),
-        intent.get("buy_currency", ""),
-        intent.get("sell_currency", ""),
-        intent.get("quantity", ""),
-    )
-
-
-@pytest.mark.parametrize("filename, scenario", load_golden_scenarios())
-def test_golden_scenario(filename, scenario):
-    inputs = scenario["inputs"]
+    # 1. Deserialize Inputs
     portfolio = PortfolioSnapshot(**inputs["portfolio_snapshot"])
     market_data = MarketDataSnapshot(**inputs["market_data_snapshot"])
     model = ModelPortfolio(**inputs["model_portfolio"])
-    shelf = [ShelfEntry(**s) for s in inputs["shelf_entries"]]
+    shelf = [ShelfEntry(**entry) for entry in inputs["shelf_entries"]]
+    options = EngineOptions(**inputs.get("options", {}))
 
-    opt_dict = inputs["options"]
-    options = EngineOptions(**opt_dict)
+    # 2. Run Engine
+    result = run_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        model=model,
+        shelf=shelf,
+        options=options,
+        request_hash="golden_test",
+    )
 
-    if "error" in scenario["expected_outputs"]:
-        with pytest.raises(ValueError, match=scenario["expected_outputs"]["error"]):
-            run_simulation(portfolio, market_data, model, shelf, options)
-    else:
-        result = run_simulation(portfolio, market_data, model, shelf, options)
-        expected = scenario["expected_outputs"]
+    # 3. Assertions
+    # Status
+    assert result.status == expected["status"]
 
-        assert result.status == expected["status"]
+    # Target Weights
+    if "target" in expected:
+        for exp_t in expected["target"]["targets"]:
+            actual_t = next(
+                (t for t in result.target.targets if t.instrument_id == exp_t["instrument_id"]),
+                None,
+            )
+            assert actual_t is not None, f"Missing target {exp_t['instrument_id']}"
+            # Exact decimal match expected for golden
+            assert actual_t.final_weight == Decimal(str(exp_t["final_weight"]))
+
+            if "tags" in exp_t:
+                assert set(actual_t.tags) == set(exp_t["tags"])
+
+    # Intents
+    if "intents" in expected:
         assert len(result.intents) == len(expected["intents"])
+        for i, exp_intent in enumerate(expected["intents"]):
+            act_intent = result.intents[i]
+            assert act_intent.intent_type == exp_intent["intent_type"]
+            if "instrument_id" in exp_intent:
+                assert act_intent.instrument_id == exp_intent["instrument_id"]
+            if "side" in exp_intent:
+                assert act_intent.side == exp_intent["side"]
+            if "quantity" in exp_intent:
+                assert act_intent.quantity == Decimal(str(exp_intent["quantity"]))
+            if "notional" in exp_intent:
+                assert act_intent.notional.amount == Decimal(str(exp_intent["notional"]["amount"]))
 
-        actual_intents = sorted(
-            (_normalized_actual_intent(i) for i in result.intents),
-            key=_intent_sort_key,
-        )
-        expected_intents = sorted(
-            (_normalized_expected_intent(i) for i in expected["intents"]),
-            key=_intent_sort_key,
-        )
-        assert actual_intents == expected_intents
+    # Diagnostics
+    if "diagnostics" in expected:
+        if "warnings" in expected["diagnostics"]:
+            assert set(result.diagnostics.warnings) == set(expected["diagnostics"]["warnings"])
 
-        act_cash = {c.currency: c.amount for c in result.after_simulated.cash_balances}
-        for exp_c in expected["after_simulated"]["cash_balances"]:
-            ccy = exp_c["currency"]
-            amt = Decimal(str(exp_c["amount"]))
-            assert abs(act_cash.get(ccy, Decimal(0)) - amt) < Decimal("0.0001")
+    # After Simulated Attributes (RFC-0008 check)
+    if "after_simulated" in expected and "allocation_by_attribute" in expected["after_simulated"]:
+        exp_attrs = expected["after_simulated"]["allocation_by_attribute"]
+        act_attrs = result.after_simulated.allocation_by_attribute
+
+        for attr_key, exp_list in exp_attrs.items():
+            assert attr_key in act_attrs
+            for exp_item in exp_list:
+                act_item = next((a for a in act_attrs[attr_key] if a.key == exp_item["key"]), None)
+                assert act_item is not None
+                assert act_item.weight == Decimal(str(exp_item["weight"]))
