@@ -14,12 +14,12 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 
 * RFC-0001 to RFC-0008
 * RFC-0010 (turnover cap control via `options.max_turnover_pct`)
+* RFC-0011 (settlement ladder & overdraft protection, feature-flagged via `options.enable_settlement_awareness`)
 * RFC-0012 (solver integration, feature-flagged via `options.target_method`)
 * RFC-0013 (what-if batch analysis via `POST /rebalance/analyze`)
 
 Deferred:
 * RFC-0009 tax-aware controls and tax-impact comparison fields
-* RFC-0011 settlement ladder and overdraft protection
 
 ---
 ## Engine Know-How
@@ -56,7 +56,7 @@ The core engine (`src/core/engine.py`) processes every request through a strictl
     Active method is controlled by `options.target_method` (default: `HEURISTIC`).
     Optional dual-path comparison is available via `options.compare_target_methods`.
 4.  **Intents:** Translates weights to trades, suppressing dust (`min_notional`).
-5.  **Simulation:** Generates FX trades (Hub-and-Spoke) and validates the After-State.
+5.  **Simulation:** Generates FX trades (Hub-and-Spoke), optionally evaluates settlement-time cash ladder, and validates the After-State.
 
 ---
 
@@ -145,7 +145,7 @@ Performs a full rebalance simulation.
 * `market_data_snapshot`: Prices and FX rates.
 * `model_portfolio`: Target weights.
 * `shelf_entries`: Regulatory status of assets.
-* `options`: Constraints and execution controls (e.g., `suppress_dust_trades`, `group_constraints`, `target_method`).
+* `options`: Constraints and execution controls (e.g., `suppress_dust_trades`, `group_constraints`, `target_method`, `enable_settlement_awareness`).
   `group_constraints` keys must use `<attribute_key>:<attribute_value>`.
   Invalid keys or invalid `max_weight` values return 422.
 

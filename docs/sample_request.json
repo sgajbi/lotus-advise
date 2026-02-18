@@ -54,6 +54,7 @@
     {
       "instrument_id": "US_TECH",
       "status": "APPROVED",
+      "settlement_days": 2,
       "attributes": {
         "sector": "TECH"
       }
@@ -61,12 +62,17 @@
     {
       "instrument_id": "EU_BOND",
       "status": "APPROVED",
+      "settlement_days": 2,
       "attributes": {
         "sector": "FI"
       }
     }
   ],
   "options": {
+    "enable_settlement_awareness": false,
+    "settlement_horizon_days": 5,
+    "fx_settlement_days": 2,
+    "max_overdraft_by_ccy": {},
     "fx_buffer_pct": "0.00",
     "suppress_dust_trades": false,
     "group_constraints": {

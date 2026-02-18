@@ -2,9 +2,9 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED (Feature-Flagged) |
 | **Created** | 2026-02-17 |
-| **Target Release** | TBD |
+| **Target Release** | 2026-02-18 |
 | **Doc Location** | docs/rfcs/RFC-0011-settlement-awareness-cash-ladder-overdraft-protection.md |
 
 ---
@@ -59,8 +59,12 @@ class DiagnosticsData(BaseModel):
     cash_ladder: List[CashLadderPoint] = Field(default_factory=list)
 ```
 
-Optional future extension:
+Implemented extension:
 1. `options.max_overdraft_by_ccy: Dict[str, Decimal]`.
+
+Runtime toggle:
+1. Settlement behavior is request-scoped via `options.enable_settlement_awareness`.
+2. Default is `False` for backward compatibility.
 
 ### 3.2 Simulation Logic (`src/core/engine.py`)
 
@@ -122,7 +126,7 @@ Add second case with overdraft allowance and verify status changes from `BLOCKED
 
 ## 6. Open Questions
 
-1. Should settlement horizon be fixed or dynamically derived from max `settlement_days` in intents?
+1. Settlement horizon is implemented as `max(configured_horizon, max_intent_settlement_day)` to avoid truncating intent cash flows.
 2. Should FX settlement days be instrumented by currency pair or globally configured?
 
 ---

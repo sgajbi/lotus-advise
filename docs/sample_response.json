@@ -419,6 +419,8 @@
     "warnings": [],
     "suppressed_intents": [],
     "group_constraint_events": [],
+    "cash_ladder": [],
+    "cash_ladder_breaches": [],
     "data_quality": {
       "price_missing": [],
       "fx_missing": [],

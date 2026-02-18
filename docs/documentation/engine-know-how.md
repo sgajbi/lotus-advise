@@ -168,6 +168,16 @@ Behavior:
 - Projects cash and creates `FX_SPOT` intents for:
   - funding negative non-base balances (`FUNDING`)
   - sweeping positive non-base balances (`SWEEP`)
+- Optional settlement ladder (`options.enable_settlement_awareness=True`):
+  - applies security settlement by `shelf_entry.settlement_days` (default `2`)
+  - applies FX settlement by `options.fx_settlement_days` (default `2`)
+  - checks projected balances from T+0 through configured horizon
+    (`options.settlement_horizon_days`)
+  - blocks on breaches with reason code pattern `OVERDRAFT_ON_T_PLUS_<N>`
+  - writes ladder points to `diagnostics.cash_ladder` and breaches to
+    `diagnostics.cash_ladder_breaches`
+  - emits warning `SETTLEMENT_OVERDRAFT_UTILIZED` when configured overdraft
+    is used but no breach occurs
 - Adds dependencies:
   - buy intents depend on funding FX where needed
   - buy intents can depend on same-currency sells
@@ -218,6 +228,10 @@ Implemented and active:
 - `min_cash_buffer_pct`
 - `max_turnover_pct`
 - `group_constraints`
+- `enable_settlement_awareness`
+- `settlement_horizon_days`
+- `fx_settlement_days`
+- `max_overdraft_by_ccy`
 
 Present in model but not actively consumed in core engine logic:
 - `dust_trade_threshold`
@@ -248,13 +262,13 @@ Comparison metrics:
 Implemented RFC slices:
 - RFC-0001 to RFC-0008
 - RFC-0010 (turnover cap control)
+- RFC-0011 (settlement awareness; request-scoped toggle via `enable_settlement_awareness`)
 - RFC-0012 (solver integration; selectable by `target_method`)
 - RFC-0013 (batch what-if analysis)
 
 Explicitly deferred:
 - RFC-0009 tax-aware controls and tax-impact metrics
 - RFC-0010 explicit transaction cost model terms
-- RFC-0011 settlement ladder and overdraft policy mechanics
 
 ## 9. Practical Examples
 
