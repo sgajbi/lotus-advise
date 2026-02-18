@@ -409,3 +409,53 @@ def test_simulate_turnover_cap_emits_partial_rebalance_warning(client):
     body = response.json()
     assert "PARTIAL_REBALANCE_TURNOVER_LIMIT" in body["diagnostics"]["warnings"]
     assert len(body["diagnostics"]["dropped_intents"]) == 1
+
+
+def test_simulate_settlement_awareness_toggle_is_request_scoped(client):
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_settlement_api",
+            "base_currency": "USD",
+            "positions": [{"instrument_id": "SLOW_FUND", "quantity": "10"}],
+            "cash_balances": [{"currency": "USD", "amount": "0"}],
+        },
+        "market_data_snapshot": {
+            "prices": [
+                {"instrument_id": "SLOW_FUND", "price": "100", "currency": "USD"},
+                {"instrument_id": "FAST_STOCK", "price": "100", "currency": "USD"},
+            ],
+            "fx_rates": [],
+        },
+        "model_portfolio": {
+            "targets": [
+                {"instrument_id": "SLOW_FUND", "weight": "0.0"},
+                {"instrument_id": "FAST_STOCK", "weight": "1.0"},
+            ]
+        },
+        "shelf_entries": [
+            {"instrument_id": "SLOW_FUND", "status": "APPROVED", "settlement_days": 3},
+            {"instrument_id": "FAST_STOCK", "status": "APPROVED", "settlement_days": 1},
+        ],
+        "options": {"enable_settlement_awareness": False},
+    }
+
+    disabled = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-settlement-off"},
+    )
+    assert disabled.status_code == 200
+    assert disabled.json()["status"] == "READY"
+
+    payload["options"]["enable_settlement_awareness"] = True
+    payload["options"]["settlement_horizon_days"] = 3
+
+    enabled = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-settlement-on"},
+    )
+    assert enabled.status_code == 200
+    body = enabled.json()
+    assert body["status"] == "BLOCKED"
+    assert "OVERDRAFT_ON_T_PLUS_1" in body["diagnostics"]["warnings"]

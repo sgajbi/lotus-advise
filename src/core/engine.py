@@ -9,6 +9,8 @@ from decimal import Decimal
 from src.core.compliance import RuleEngine
 from src.core.models import (
     CashBalance,
+    CashLadderBreach,
+    CashLadderPoint,
     DiagnosticsData,
     DroppedIntent,
     EngineOptions,
@@ -545,6 +547,77 @@ def _generate_intents(
     return intents
 
 
+def _build_settlement_ladder(portfolio, shelf, intents, options, diagnostics):
+    settlement_days_by_instrument = {entry.instrument_id: entry.settlement_days for entry in shelf}
+    max_security_day = max(
+        (
+            settlement_days_by_instrument.get(intent.instrument_id, 2)
+            for intent in intents
+            if intent.intent_type == "SECURITY_TRADE"
+        ),
+        default=0,
+    )
+    horizon_days = max(
+        options.settlement_horizon_days, options.fx_settlement_days, max_security_day
+    )
+
+    flows = {}
+
+    def ensure_currency(currency):
+        if currency not in flows:
+            flows[currency] = [Decimal("0")] * (horizon_days + 1)
+
+    for cash in portfolio.cash_balances:
+        ensure_currency(cash.currency)
+        flows[cash.currency][0] += cash.settled if cash.settled is not None else cash.amount
+
+    for intent in sorted(intents, key=lambda item: item.intent_id):
+        if intent.intent_type == "SECURITY_TRADE":
+            settlement_day = settlement_days_by_instrument.get(intent.instrument_id, 2)
+            ensure_currency(intent.notional.currency)
+            signed_flow = (
+                intent.notional.amount if intent.side == "SELL" else -intent.notional.amount
+            )
+            flows[intent.notional.currency][settlement_day] += signed_flow
+            continue
+
+        ensure_currency(intent.sell_currency)
+        ensure_currency(intent.buy_currency)
+        flows[intent.sell_currency][options.fx_settlement_days] -= intent.sell_amount_estimated
+        flows[intent.buy_currency][options.fx_settlement_days] += intent.buy_amount
+
+    overdraft_utilized = False
+    for currency in sorted(flows.keys()):
+        projected_balance = Decimal("0")
+        allowed_floor = -options.max_overdraft_by_ccy.get(currency, Decimal("0"))
+        for day in range(horizon_days + 1):
+            projected_balance += flows[currency][day]
+            diagnostics.cash_ladder.append(
+                CashLadderPoint(
+                    date_offset=day,
+                    currency=currency,
+                    projected_balance=projected_balance,
+                )
+            )
+            if projected_balance < Decimal("0") and options.max_overdraft_by_ccy.get(
+                currency, Decimal("0")
+            ) > Decimal("0"):
+                overdraft_utilized = True
+            if projected_balance < allowed_floor:
+                diagnostics.cash_ladder_breaches.append(
+                    CashLadderBreach(
+                        date_offset=day,
+                        currency=currency,
+                        projected_balance=projected_balance,
+                        allowed_floor=allowed_floor,
+                        reason_code=f"OVERDRAFT_ON_T_PLUS_{day}",
+                    )
+                )
+
+    if overdraft_utilized:
+        diagnostics.warnings.append("SETTLEMENT_OVERDRAFT_UTILIZED")
+
+
 def _generate_fx_and_simulate(
     portfolio, market_data, shelf, intents, options, total_val_before, diagnostics
 ):
@@ -626,6 +699,33 @@ def _generate_fx_and_simulate(
             else (1 if x.intent_type == "FX_SPOT" else 2)
         )
     )
+
+    if options.enable_settlement_awareness:
+        _build_settlement_ladder(portfolio, shelf, intents, options, diagnostics)
+        if diagnostics.cash_ladder_breaches:
+            first_breach = diagnostics.cash_ladder_breaches[0]
+            diagnostics.warnings.append(first_breach.reason_code)
+
+            blocked_state = build_simulated_state(
+                deepcopy(portfolio),
+                market_data,
+                shelf,
+                diagnostics.data_quality,
+                diagnostics.warnings,
+                options,
+            )
+            blocked_rules = [
+                RuleResult(
+                    rule_id="SETTLEMENT_CASH_LADDER",
+                    severity="HARD",
+                    status="FAIL",
+                    measured=first_breach.allowed_floor - first_breach.projected_balance,
+                    threshold={"min": first_breach.allowed_floor},
+                    reason_code=first_breach.reason_code,
+                    remediation_hint="Adjust timing, funding, or overdraft settings.",
+                )
+            ]
+            return intents, blocked_state, blocked_rules, "BLOCKED", None
 
     after = deepcopy(portfolio)
 
