@@ -18,4 +18,4 @@ Standards for all current and future RFCs:
 | RFC-0010 | Turnover & Transaction Cost Control | DRAFT | RFC-0007A | `docs/rfcs/RFC-0010-turnover-transaction-cost-control.md` |
 | RFC-0011 | Settlement Awareness (Cash Ladder & Overdraft Protection) | DRAFT | RFC-0007A | `docs/rfcs/RFC-0011-settlement-awareness-cash-ladder-overdraft-protection.md` |
 | RFC-0012 | Mathematical Optimization (Solver Integration) | IMPLEMENTED (Feature-Flagged) | RFC-0008 | `docs/rfcs/RFC-0012-mathematical-optimization-solver-integration.md` |
-| RFC-0013 | "What-If" Analysis Mode (Multi-Scenario Simulation) | DRAFT | RFC-0003 | `docs/rfcs/RFC-0013-what-if-analysis-mode-multi-scenario-simulation.md` |
+| RFC-0013 | "What-If" Analysis Mode (Multi-Scenario Simulation) | IMPLEMENTED (Tax Scope Deferred to RFC-0009) | RFC-0003 | `docs/rfcs/RFC-0013-what-if-analysis-mode-multi-scenario-simulation.md` |

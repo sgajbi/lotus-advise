@@ -4,6 +4,8 @@ FILE: tests/api/test_api_rebalance.py
 
 import asyncio
 import inspect
+from datetime import datetime
+from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
@@ -142,3 +144,236 @@ def test_simulate_rejects_invalid_group_constraint_key(client):
     )
 
     assert response.status_code == 422
+
+
+def test_analyze_endpoint_success(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["portfolio_snapshot"]["snapshot_id"] = "ps_13"
+    payload["market_data_snapshot"]["snapshot_id"] = "md_13"
+    payload["scenarios"] = {
+        "baseline": {"options": {}},
+        "position_cap": {"options": {"single_position_max_weight": "0.5"}},
+    }
+
+    response = client.post(
+        "/rebalance/analyze",
+        json=payload,
+        headers={"X-Correlation-Id": "corr-batch-1"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["batch_run_id"].startswith("batch_")
+    assert "run_at_utc" in body
+    assert body["base_snapshot_ids"]["portfolio_snapshot_id"] == "ps_13"
+    assert body["base_snapshot_ids"]["market_data_snapshot_id"] == "md_13"
+    assert set(body["results"].keys()) == {"baseline", "position_cap"}
+    assert set(body["comparison_metrics"].keys()) == {"baseline", "position_cap"}
+    assert body["failed_scenarios"] == {}
+    assert body["warnings"] == []
+
+    for scenario_result in body["results"].values():
+        assert scenario_result["lineage"]["request_hash"].startswith(body["batch_run_id"])
+    for metrics in body["comparison_metrics"].values():
+        assert metrics["status"] in {"READY", "PENDING_REVIEW", "BLOCKED"}
+        assert isinstance(metrics["security_intent_count"], int)
+        assert (
+            metrics["gross_turnover_notional_base"]["currency"]
+            == payload["portfolio_snapshot"]["base_currency"]
+        )
+
+
+def test_analyze_rejects_invalid_scenario_name(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"Invalid-Name": {"options": {}}}
+
+    response = client.post("/rebalance/analyze", json=payload)
+    assert response.status_code == 422
+
+
+def test_analyze_partial_failure_invalid_scenario_options(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {
+        "valid_case": {"options": {}},
+        "invalid_case": {"options": {"group_constraints": {"sectorTECH": {"max_weight": "0.2"}}}},
+    }
+
+    response = client.post("/rebalance/analyze", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+
+    assert "valid_case" in body["results"]
+    assert "invalid_case" in body["failed_scenarios"]
+    assert body["failed_scenarios"]["invalid_case"].startswith("INVALID_OPTIONS:")
+    assert "PARTIAL_BATCH_FAILURE" in body["warnings"]
+
+
+def test_analyze_rejects_too_many_scenarios(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {f"s{i}": {"options": {}} for i in range(21)}
+
+    response = client.post("/rebalance/analyze", json=payload)
+    assert response.status_code == 422
+
+
+def test_analyze_fallback_snapshot_ids_when_not_provided(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+
+    response = client.post("/rebalance/analyze", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert (
+        body["base_snapshot_ids"]["portfolio_snapshot_id"]
+        == payload["portfolio_snapshot"]["portfolio_id"]
+    )
+    assert body["base_snapshot_ids"]["market_data_snapshot_id"] == "md"
+
+
+def test_analyze_scenarios_are_processed_in_sorted_name_order(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"z_case": {"options": {}}, "a_case": {"options": {}}}
+
+    from src.core.engine import run_simulation as real_run
+    from src.core.models import (
+        EngineOptions,
+        MarketDataSnapshot,
+        ModelPortfolio,
+        PortfolioSnapshot,
+        ShelfEntry,
+    )
+
+    seed_payload = get_valid_payload()
+    real_result = real_run(
+        portfolio=PortfolioSnapshot(**seed_payload["portfolio_snapshot"]),
+        market_data=MarketDataSnapshot(**seed_payload["market_data_snapshot"]),
+        model=ModelPortfolio(**seed_payload["model_portfolio"]),
+        shelf=[ShelfEntry(**entry) for entry in seed_payload["shelf_entries"]],
+        options=EngineOptions(**seed_payload["options"]),
+        request_hash="seed",
+    )
+
+    with patch("src.api.main.run_simulation") as mock_run:
+        mock_run.return_value = real_result
+
+        response = client.post("/rebalance/analyze", json=payload)
+        assert response.status_code == 200
+        call_hashes = [c.kwargs["request_hash"] for c in mock_run.call_args_list]
+        assert call_hashes[0].endswith(":a_case")
+        assert call_hashes[1].endswith(":z_case")
+
+
+def test_analyze_runtime_error_is_isolated_to_failing_scenario(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"ok_case": {"options": {}}, "boom_case": {"options": {}}}
+
+    from src.api.main import run_simulation as real_run
+
+    def _side_effect(*args, **kwargs):
+        if kwargs.get("request_hash", "").endswith(":boom_case"):
+            raise RuntimeError("boom")
+        return real_run(*args, **kwargs)
+
+    with patch("src.api.main.run_simulation", side_effect=_side_effect):
+        response = client.post("/rebalance/analyze", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "ok_case" in body["results"]
+    assert "boom_case" in body["failed_scenarios"]
+    assert body["failed_scenarios"]["boom_case"] == "SCENARIO_EXECUTION_ERROR: RuntimeError"
+    assert "PARTIAL_BATCH_FAILURE" in body["warnings"]
+
+
+def test_analyze_comparison_metrics_turnover_matches_intents(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["portfolio_snapshot"]["base_currency"] = "USD"
+    payload["portfolio_snapshot"]["positions"] = [{"instrument_id": "EQ_1", "quantity": "100"}]
+    payload["portfolio_snapshot"]["cash_balances"] = [{"currency": "USD", "amount": "0"}]
+    payload["model_portfolio"]["targets"] = [{"instrument_id": "EQ_1", "weight": "0.0"}]
+    payload["shelf_entries"] = [{"instrument_id": "EQ_1", "status": "APPROVED"}]
+    payload["scenarios"] = {"de_risk": {"options": {}}}
+
+    response = client.post("/rebalance/analyze", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    metric = body["comparison_metrics"]["de_risk"]
+    result = body["results"]["de_risk"]
+    expected_turnover = sum(
+        Decimal(intent["notional_base"]["amount"])
+        for intent in result["intents"]
+        if intent["intent_type"] == "SECURITY_TRADE"
+    )
+    assert Decimal(metric["gross_turnover_notional_base"]["amount"]) == expected_turnover
+
+
+def test_analyze_accepts_max_scenarios_boundary(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {f"s{i:02d}": {"options": {}} for i in range(20)}
+
+    response = client.post("/rebalance/analyze", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["results"]) == 20
+    assert len(body["comparison_metrics"]) == 20
+    assert body["failed_scenarios"] == {}
+
+
+def test_analyze_run_at_utc_is_timezone_aware_iso8601(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+
+    response = client.post("/rebalance/analyze", json=payload)
+    assert response.status_code == 200
+    run_at = datetime.fromisoformat(response.json()["run_at_utc"])
+    assert run_at.tzinfo is not None
+
+
+def test_analyze_results_and_metrics_keys_match_successful_scenarios_only(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {
+        "ok_case": {"options": {}},
+        "bad_case": {"options": {"group_constraints": {"sectorTECH": {"max_weight": "0.2"}}}},
+    }
+
+    response = client.post("/rebalance/analyze", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body["results"].keys()) == {"ok_case"}
+    assert set(body["comparison_metrics"].keys()) == {"ok_case"}
+    assert set(body["failed_scenarios"].keys()) == {"bad_case"}
+
+
+def test_analyze_mixed_outcomes_ready_pending_review_blocked(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["shelf_entries"] = [
+        {
+            "instrument_id": "EQ_1",
+            "status": "APPROVED",
+            "attributes": {"sector": "TECH"},
+        }
+    ]
+    payload["scenarios"] = {
+        "ready_case": {"options": {}},
+        "pending_case": {"options": {"single_position_max_weight": "0.5"}},
+        "blocked_case": {"options": {"group_constraints": {"sector:TECH": {"max_weight": "0.2"}}}},
+    }
+
+    response = client.post("/rebalance/analyze", json=payload)
+    assert response.status_code == 200
+    metrics = response.json()["comparison_metrics"]
+    assert metrics["ready_case"]["status"] == "READY"
+    assert metrics["pending_case"]["status"] == "PENDING_REVIEW"
+    assert metrics["blocked_case"]["status"] == "BLOCKED"

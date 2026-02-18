@@ -33,6 +33,19 @@ from src.core.target_generation import build_target_trace, generate_targets_solv
 from src.core.valuation import build_simulated_state, get_fx_rate
 
 
+def _make_empty_data_quality_log():
+    return {"price_missing": [], "fx_missing": [], "shelf_missing": []}
+
+
+def _make_diagnostics_data():
+    return DiagnosticsData(
+        warnings=[],
+        suppressed_intents=[],
+        group_constraint_events=[],
+        data_quality=_make_empty_data_quality_log(),
+    )
+
+
 def _make_blocked_result(
     run_id,
     portfolio,
@@ -250,12 +263,7 @@ def _generate_targets(
     if options is None:
         options = EngineOptions()
     if diagnostics is None:
-        diagnostics = DiagnosticsData(
-            warnings=[],
-            suppressed_intents=[],
-            group_constraint_events=[],
-            data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
-        )
+        diagnostics = _make_diagnostics_data()
 
     if options.target_method == TargetMethod.SOLVER:
         return generate_targets_solver(
@@ -306,12 +314,7 @@ def _compare_target_generation_methods(
     )
 
     alt_options = options.model_copy(update={"target_method": alternate_method})
-    alt_diag = DiagnosticsData(
-        warnings=[],
-        suppressed_intents=[],
-        group_constraint_events=[],
-        data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
-    )
+    alt_diag = _make_diagnostics_data()
     alt_trace, alt_status = _generate_targets(
         model=model,
         eligible_targets=deepcopy(eligible_targets),
@@ -657,8 +660,7 @@ def _check_blocking_dq(dq_log, options):
 
 def run_simulation(portfolio, market_data, model, shelf, options, request_hash="no_hash"):
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
-    dq, warns, suppressed = {"price_missing": [], "fx_missing": [], "shelf_missing": []}, [], []
-    diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
+    diag_data = _make_diagnostics_data()
 
     before = build_simulated_state(
         portfolio, market_data, shelf, diag_data.data_quality, diag_data.warnings, options

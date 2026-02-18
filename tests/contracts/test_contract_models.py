@@ -8,12 +8,20 @@ import pytest
 from pydantic import ValidationError
 
 from src.core.models import (
+    BatchRebalanceRequest,
+    BatchScenarioMetric,
     DiagnosticsData,
     EngineOptions,
     GroupConstraint,
+    MarketDataSnapshot,
+    ModelPortfolio,
+    ModelTarget,
     Money,
+    PortfolioSnapshot,
+    Price,
     ShelfEntry,
     SimulatedState,
+    SimulationScenario,
     TargetMethod,
 )
 
@@ -100,3 +108,77 @@ def test_target_method_comparison_options_defaults():
     options = EngineOptions()
     assert options.compare_target_methods is False
     assert options.compare_target_methods_tolerance == Decimal("0.0001")
+
+
+def test_batch_request_requires_at_least_one_scenario():
+    with pytest.raises(ValidationError):
+        BatchRebalanceRequest(
+            portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
+            market_data_snapshot=MarketDataSnapshot(
+                prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
+                fx_rates=[],
+            ),
+            model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
+            shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
+            scenarios={},
+        )
+
+
+def test_batch_request_validates_scenario_name_format():
+    with pytest.raises(ValidationError):
+        BatchRebalanceRequest(
+            portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
+            market_data_snapshot=MarketDataSnapshot(
+                prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
+                fx_rates=[],
+            ),
+            model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
+            shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
+            scenarios={"Invalid-Name": SimulationScenario(options={})},
+        )
+
+
+def test_snapshot_models_accept_snapshot_id():
+    portfolio = PortfolioSnapshot(snapshot_id="ps_1", portfolio_id="pf", base_currency="USD")
+    market = MarketDataSnapshot(
+        snapshot_id="md_1",
+        prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
+        fx_rates=[],
+    )
+    assert portfolio.snapshot_id == "ps_1"
+    assert market.snapshot_id == "md_1"
+
+
+def test_batch_request_enforces_max_scenario_count():
+    scenarios = {f"s{i}": SimulationScenario(options={}) for i in range(21)}
+    with pytest.raises(ValidationError):
+        BatchRebalanceRequest(
+            portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
+            market_data_snapshot=MarketDataSnapshot(
+                prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
+                fx_rates=[],
+            ),
+            model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
+            shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
+            scenarios=scenarios,
+        )
+
+
+def test_batch_scenario_metric_shape():
+    metric = BatchScenarioMetric(
+        status="READY",
+        security_intent_count=2,
+        gross_turnover_notional_base=Money(amount=Decimal("1500"), currency="USD"),
+    )
+    assert metric.status == "READY"
+    assert metric.security_intent_count == 2
+    assert metric.gross_turnover_notional_base.amount == Decimal("1500")
+
+
+def test_batch_scenario_metric_rejects_invalid_status():
+    with pytest.raises(ValidationError):
+        BatchScenarioMetric(
+            status="UNKNOWN",
+            security_intent_count=1,
+            gross_turnover_notional_base=Money(amount=Decimal("10"), currency="USD"),
+        )

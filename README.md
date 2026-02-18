@@ -10,6 +10,17 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 
 ---
 
+## Implemented RFCs
+
+* RFC-0001 to RFC-0008
+* RFC-0012 (solver integration, feature-flagged via `options.target_method`)
+* RFC-0013 (what-if batch analysis via `POST /rebalance/analyze`)
+
+Deferred:
+* RFC-0009 tax-aware controls and tax-impact comparison fields
+
+---
+
 ## 📖 Core Philosophy: "No-Throw" Architecture
 
 Unlike traditional engines that crash (HTTP 500) or reject (HTTP 400) on complex domain states, this engine follows a **"No-Throw" Protocol (RFC-0003)**.
@@ -139,6 +150,42 @@ Performs a full rebalance simulation.
 
 Notes:
 * `X-Correlation-Id` is currently used for logging and is not echoed in the response body.
+
+### POST `/rebalance/analyze`
+
+Runs multiple named what-if scenarios in one call using shared snapshots.
+
+**Request Body:**
+
+* Same shared fields as `/rebalance/simulate`:
+  `portfolio_snapshot`, `market_data_snapshot`, `model_portfolio`, `shelf_entries`.
+* `scenarios`: map of scenario name to:
+  * `description` (optional)
+  * `options` (scenario-specific `EngineOptions` payload)
+
+**Scenario key rules:**
+
+* Must match `[a-z0-9_\\-]{1,64}`
+* At least one scenario is required
+* Maximum scenarios per request: `20`
+* Scenarios are executed in sorted key order for deterministic orchestration
+
+**Snapshot IDs:**
+
+* `portfolio_snapshot.snapshot_id` and `market_data_snapshot.snapshot_id` are supported.
+* `base_snapshot_ids` in batch response uses these IDs when provided.
+
+**Response:**
+
+* `batch_run_id`, `run_at_utc`, `base_snapshot_ids`
+* `results`: per-scenario simulation results
+* `comparison_metrics`: per-scenario quick-compare fields
+  (`status`, `security_intent_count`, `gross_turnover_notional_base`)
+* `failed_scenarios`: per-scenario validation/runtime failures
+* `warnings`: includes `PARTIAL_BATCH_FAILURE` when applicable
+
+Notes:
+* Tax-budget and realized-gains comparison fields are out of scope here and deferred to RFC-0009.
 
 ---
 

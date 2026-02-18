@@ -2,9 +2,9 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED (Tax-Aware Comparison Deferred to RFC-0009) |
 | **Created** | 2026-02-17 |
-| **Target Release** | TBD |
+| **Implemented On** | 2026-02-18 |
 | **Doc Location** | docs/rfcs/RFC-0013-what-if-analysis-mode-multi-scenario-simulation.md |
 
 ---
@@ -15,14 +15,14 @@ This RFC adds a batch simulation API for side-by-side strategy analysis. One req
 
 Key outcomes:
 1. Lower client overhead versus repeated single-scenario calls.
-2. Comparable outputs under same portfolio and market snapshot.
+2. Comparable outputs under the same portfolio and market snapshot.
 3. Deterministic batch orchestration with per-scenario isolation.
 
 ---
 
 ## 1. Problem Statement
 
-Advisors and PMs need quick comparison across policy choices (tax budget, turnover cap, strict constraints). Repeating large requests for each scenario adds latency and risks mismatch if snapshots differ between calls.
+Advisors and PMs need quick comparison across policy choices. Repeating large requests for each scenario adds latency and can create accidental snapshot mismatch between calls.
 
 ---
 
@@ -32,29 +32,37 @@ Advisors and PMs need quick comparison across policy choices (tax budget, turnov
 1. Introduce a batch endpoint that accepts shared snapshots and multiple scenarios.
 2. Reuse existing single-run engine path for each scenario.
 3. Return stable, named per-scenario results with common batch metadata.
-4. Allow frontend to compare key metrics directly (drift, turnover, tax impact, status).
+4. Allow frontend to compare key metrics directly.
 
 ### 2.2 Non-Goals
 1. Cross-scenario optimization.
 2. Scenario dependency graphing (scenario B depends on A).
 3. Asynchronous distributed execution in this RFC.
+4. Tax-budget logic and tax-impact metrics (explicitly deferred to RFC-0009).
 
 ---
 
-## 3. Proposed Implementation
+## 3. Implemented Design
 
 ### 3.1 Data Model Changes (`src/core/models.py`)
 
+Implemented:
 ```python
+class PortfolioSnapshot(BaseModel):
+    snapshot_id: Optional[str] = None
+    ...
+
+class MarketDataSnapshot(BaseModel):
+    snapshot_id: Optional[str] = None
+    ...
+
 class SimulationScenario(BaseModel):
     description: Optional[str] = None
-    options: EngineOptions
+    options: Dict[str, Any] = Field(default_factory=dict)
 
 class BatchRebalanceRequest(BaseModel):
-    portfolio_snapshot: PortfolioSnapshot
-    market_data_snapshot: MarketDataSnapshot
-    model_portfolio: ModelPortfolio
-    shelf_entries: List[ShelfEntry]
+    MAX_SCENARIOS_PER_REQUEST: ClassVar[int] = 20
+    ...
     scenarios: Dict[str, SimulationScenario]
 
 class BatchRebalanceResult(BaseModel):
@@ -62,97 +70,94 @@ class BatchRebalanceResult(BaseModel):
     run_at_utc: str
     base_snapshot_ids: Dict[str, str]
     results: Dict[str, RebalanceResult]
+    comparison_metrics: Dict[str, BatchScenarioMetric]
+    failed_scenarios: Dict[str, str]
+    warnings: List[str]
+
+class BatchScenarioMetric(BaseModel):
+    status: Literal["READY", "BLOCKED", "PENDING_REVIEW"]
+    security_intent_count: int
+    gross_turnover_notional_base: Money
 ```
 
 Validation:
 1. Require at least one scenario.
-2. Enforce scenario name format (`[a-z0-9_\\-]{1,64}`) for stable keys.
-3. Reject duplicate keys after case normalization.
+2. Enforce scenario name format (`[a-z0-9_\\-]{1,64}`).
+3. Enforce maximum `20` scenarios per request.
+
+Design note:
+1. Scenario `options` is intentionally accepted as a loose dict and validated per scenario at runtime.
+2. This enables partial batch success when one scenario has invalid options.
 
 ### 3.2 API and Orchestration (`src/api/main.py`)
 
-Add a batch endpoint while keeping core engine single-run.
-
-```python
-# src/api/main.py
-
-@app.post("/rebalance/analyze", response_model=BatchRebalanceResult)
-def analyze_scenarios(request: BatchRebalanceRequest):
-    batch_id = f"batch_{uuid.uuid4().hex[:8]}"
-    results = {}
-
-    for name in sorted(request.scenarios.keys()):
-        scenario = request.scenarios[name]
-        # Reuse the common data, apply specific options
-        result = run_simulation(
-            portfolio=request.portfolio_snapshot,
-            market_data=request.market_data_snapshot,
-            model=request.model_portfolio,
-            shelf=request.shelf_entries,
-            options=scenario.options,
-            request_hash=f"{batch_id}:{name}"
-        )
-        results[name] = result
-
-    return BatchRebalanceResult(
-        batch_run_id=batch_id,
-        run_at_utc=datetime.utcnow().isoformat(),
-        base_snapshot_ids={
-            "portfolio_snapshot_id": request.portfolio_snapshot.snapshot_id,
-            "market_data_snapshot_id": request.market_data_snapshot.snapshot_id,
-        },
-        results=results
-    )
-
-```
+Implemented endpoint:
+1. `POST /rebalance/analyze`
+2. Deterministic processing by sorted scenario names.
+3. Reuses `run_simulation(...)` for each scenario with `request_hash=f"{batch_id}:{scenario_name}"`.
+4. Per-scenario isolation:
+   1. Invalid options -> `failed_scenarios[name] = "INVALID_OPTIONS: ..."`
+   2. Runtime exception -> `failed_scenarios[name] = "SCENARIO_EXECUTION_ERROR: <Type>"`
+5. Batch warning:
+   1. Add `PARTIAL_BATCH_FAILURE` when any scenario fails.
+6. Batch metadata:
+   1. `base_snapshot_ids.portfolio_snapshot_id` uses `portfolio_snapshot.snapshot_id` fallback to `portfolio_id`.
+   2. `base_snapshot_ids.market_data_snapshot_id` uses `market_data_snapshot.snapshot_id` fallback to `"md"`.
+7. Comparison metrics included per successful scenario:
+   1. `status`
+   2. `security_intent_count`
+   3. `gross_turnover_notional_base`
 
 ---
 
-## 4. Test Plan
+## 4. Test Plan and Implementation Coverage
 
-Add `tests/golden_data/scenario_13_what_if_analysis.json`.
-
-Scenario:
-1. Portfolio holds highly appreciated `Tech_Stock`.
-2. Model implies full exit.
-3. Scenarios:
-   1. `ignore_tax`: no gains limit.
-   2. `tax_safe`: `max_realized_capital_gains = 0`.
-
-Expected:
-1. `ignore_tax` produces large sell and high realized gain.
-2. `tax_safe` produces constrained/no sell and higher residual drift.
-3. Both results share same snapshot IDs and batch ID context.
-
-Add failure-case scenario with one invalid options payload and verify only that scenario fails while others still run.
+Implemented tests:
+1. `tests/api/test_api_rebalance.py`
+   1. Batch success flow.
+   2. Invalid scenario name validation.
+   3. Partial failure for invalid options with one valid scenario succeeding.
+   4. Max-scenario cap enforcement.
+   5. Snapshot ID fallback behavior.
+   6. Deterministic sorted execution ordering.
+   7. Runtime exception isolation.
+   8. Comparison-metric turnover correctness.
+2. `tests/contracts/test_contract_models.py`
+   1. Scenario validation and max-scenario contract checks.
+   2. Snapshot ID fields contract checks.
+3. `tests/golden_data/scenario_13_what_if_analysis.json`
+   1. Single-run golden payload.
+   2. Batch fixture payload.
+4. `tests/golden/test_golden_batch_analysis.py`
+   1. Golden-style assertion of batch partial-failure behavior and comparison metrics.
 
 ---
 
 ## 5. Rollout and Compatibility
 
 1. New endpoint is additive and backward compatible.
-2. Keep existing single-run endpoint unchanged.
-3. Document recommended max scenarios per request to prevent abuse.
+2. Existing single-run endpoint remains unchanged: `POST /rebalance/simulate`.
+3. Per-scenario runs preserve existing status contract (`READY`, `PENDING_REVIEW`, `BLOCKED`).
+4. Determinism remains request-bound; no persistence-backed batch replay is assumed.
 
 ### 5.1 Carry-Forward Requirements from RFC-0001 to RFC-0007A
 
 1. Canonical single-run endpoint remains `POST /rebalance/simulate`.
-2. Batch endpoint follows same route style (`/rebalance/analyze`) and must not introduce alternate `/v1` simulate routes.
-3. Per-scenario runs must preserve existing status and safety contract from current engine.
-4. Baseline assumptions from implemented RFCs (RFC-0007A and RFC-0008) remain in effect for each scenario run.
-5. Do not assume persistence-backed idempotency store for batch replay; deterministic result generation remains request-bound.
+2. Batch endpoint route style remains `/rebalance/analyze` (no alternate `/v1` simulate routes).
+3. Existing engine safety and status semantics are preserved per scenario run.
+4. Baseline assumptions from implemented RFCs (RFC-0007A, RFC-0008, RFC-0012) remain in effect.
 
 ---
 
-## 6. Open Questions
+## 6. Deferred Scope
 
-1. Should scenario execution be strictly sequential for reproducibility or parallel for latency?
-2. Should batch response include normalized comparison metrics table for frontend convenience?
+1. Tax-budget controls and realized gains comparison are deferred to RFC-0009.
+2. Batch response currently provides a turnover proxy, not tax-impact metrics.
 
 ---
 
 ## 7. Status and Reason Code Conventions
 
-1. Per-scenario result status values remain aligned to RFC-0007A: `READY`, `PENDING_REVIEW`, `BLOCKED`.
-2. Batch execution does not define a new scenario status vocabulary.
-3. If needed, batch-level warnings should use upper snake case (for example `PARTIAL_BATCH_FAILURE`) while preserving per-scenario reason codes from underlying RFCs.
+1. Per-scenario statuses remain: `READY`, `PENDING_REVIEW`, `BLOCKED`.
+2. Batch warning vocabulary uses upper snake case, including `PARTIAL_BATCH_FAILURE`.
+3. Per-scenario reason codes remain governed by underlying engine RFCs.

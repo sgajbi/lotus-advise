@@ -2,9 +2,10 @@
 FILE: src/core/models.py
 """
 
+import re
 from decimal import Decimal
 from enum import Enum
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -43,6 +44,7 @@ class CashBalance(BaseModel):
 
 
 class PortfolioSnapshot(BaseModel):
+    snapshot_id: Optional[str] = None
     portfolio_id: str
     base_currency: str
     positions: List[Position] = Field(default_factory=list)
@@ -56,6 +58,7 @@ class Price(BaseModel):
 
 
 class MarketDataSnapshot(BaseModel):
+    snapshot_id: Optional[str] = None
     prices: List[Price] = Field(default_factory=list)
     fx_rates: List[FxRate] = Field(default_factory=list)
 
@@ -286,3 +289,56 @@ class RebalanceResult(BaseModel):
     explanation: Dict[str, Any]
     diagnostics: DiagnosticsData
     lineage: LineageData
+
+
+class SimulationScenario(BaseModel):
+    description: Optional[str] = None
+    options: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BatchRebalanceRequest(BaseModel):
+    MAX_SCENARIOS_PER_REQUEST: ClassVar[int] = 20
+
+    portfolio_snapshot: PortfolioSnapshot
+    market_data_snapshot: MarketDataSnapshot
+    model_portfolio: ModelPortfolio
+    shelf_entries: List[ShelfEntry]
+    scenarios: Dict[str, SimulationScenario]
+
+    @field_validator("scenarios")
+    @classmethod
+    def validate_scenarios(
+        cls, scenarios: Dict[str, SimulationScenario]
+    ) -> Dict[str, SimulationScenario]:
+        if not scenarios:
+            raise ValueError("at least one scenario is required")
+        if len(scenarios) > cls.MAX_SCENARIOS_PER_REQUEST:
+            raise ValueError(f"scenario count exceeds maximum of {cls.MAX_SCENARIOS_PER_REQUEST}")
+
+        pattern = re.compile(r"^[a-z0-9_-]{1,64}$")
+        seen_normalized = set()
+        for scenario_name in scenarios:
+            if not pattern.fullmatch(scenario_name):
+                raise ValueError("scenario names must match regex [a-z0-9_\\-]{1,64}")
+            normalized = scenario_name.lower()
+            if normalized in seen_normalized:
+                raise ValueError("duplicate scenario keys after case normalization")
+            seen_normalized.add(normalized)
+
+        return scenarios
+
+
+class BatchScenarioMetric(BaseModel):
+    status: Literal["READY", "BLOCKED", "PENDING_REVIEW"]
+    security_intent_count: int
+    gross_turnover_notional_base: Money
+
+
+class BatchRebalanceResult(BaseModel):
+    batch_run_id: str
+    run_at_utc: str
+    base_snapshot_ids: Dict[str, str]
+    results: Dict[str, RebalanceResult] = Field(default_factory=dict)
+    comparison_metrics: Dict[str, BatchScenarioMetric] = Field(default_factory=dict)
+    failed_scenarios: Dict[str, str] = Field(default_factory=dict)
+    warnings: List[str] = Field(default_factory=list)
