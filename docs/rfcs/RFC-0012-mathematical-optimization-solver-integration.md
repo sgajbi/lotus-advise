@@ -161,8 +161,9 @@ Expected:
 
 1. Canonical simulate endpoint remains `POST /rebalance/simulate`.
 2. Solver integration must preserve current status contract (`READY`, `PENDING_REVIEW`, `BLOCKED`) and existing safety blocks.
-3. Universe eligibility must include all non-zero held positions (`qty != 0`) before solver default rollout.
-4. Do not assume persistence-backed idempotency store; reproducibility remains input-deterministic within stateless execution.
+3. Universe eligibility already includes all non-zero held positions (`qty != 0`); solver rollout must preserve this behavior.
+4. RFC-0008 group-constraint semantics are already implemented and must be preserved in solver constraints.
+5. Do not assume persistence-backed idempotency store; reproducibility remains input-deterministic within stateless execution.
 
 ---
 

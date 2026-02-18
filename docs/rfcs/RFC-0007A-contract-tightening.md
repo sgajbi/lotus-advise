@@ -2,9 +2,9 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | PARTIALLY IMPLEMENTED |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-16 |
-| **Target Release** | TBD |
+| **Target Release** | Completed |
 | **Doc Location** | docs/rfcs/RFC-0007A-contract-tightening.md |
 
 ---
@@ -26,8 +26,7 @@ Implemented:
 3. Single active simulate route (`src/api/main.py`).
 
 Pending:
-1. `/v1` route versioning is not introduced.
-2. Universe locking still checks `qty > 0` in `_build_universe` (`src/core/engine.py`).
+1. None.
 
 ---
 
@@ -135,7 +134,7 @@ Pydantic discriminator validation enforces intent type shape.
 Target policy is to apply locking for `pos.quantity != 0`.
 
 Current implementation note:
-1. `_build_universe` currently applies locking for held positions using `pos.quantity > 0`.
+1. `_build_universe` applies locking for held positions using `pos.quantity != 0`.
 
 ### 6.2 Negative Holdings
 
@@ -152,8 +151,8 @@ Negative holdings are blocked downstream by safety rule `NO_SHORTING` with reaso
 ## 7. Implementation Plan (Remaining)
 
 1. Keep `/rebalance/simulate` as the stable canonical simulate endpoint across docs, tests, and API.
-2. Update universe locking check from `qty > 0` to `qty != 0`.
-3. Re-run contract and golden tests after route/locking updates.
+2. Keep exactly one canonical route (no `/v1` compatibility alias in this RFC scope).
+3. Re-run contract and golden tests after locking updates.
 
 ---
 

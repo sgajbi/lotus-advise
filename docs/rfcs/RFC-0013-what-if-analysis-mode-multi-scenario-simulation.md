@@ -139,7 +139,8 @@ Add failure-case scenario with one invalid options payload and verify only that 
 1. Canonical single-run endpoint remains `POST /rebalance/simulate`.
 2. Batch endpoint follows same route style (`/rebalance/analyze`) and must not introduce alternate `/v1` simulate routes.
 3. Per-scenario runs must preserve existing status and safety contract from current engine.
-4. Do not assume persistence-backed idempotency store for batch replay; deterministic result generation remains request-bound.
+4. Baseline assumptions from implemented RFCs (RFC-0007A and RFC-0008) remain in effect for each scenario run.
+5. Do not assume persistence-backed idempotency store for batch replay; deterministic result generation remains request-bound.
 
 ---
 

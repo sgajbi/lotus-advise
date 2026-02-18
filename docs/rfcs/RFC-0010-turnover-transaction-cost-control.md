@@ -115,7 +115,7 @@ Add regression case where exact-fit combination exists and verify deterministic 
 
 1. Canonical simulate endpoint remains `POST /rebalance/simulate`.
 2. Turnover selection must preserve existing safety/compliance pass in Stage 5 (`NO_SHORTING`, `INSUFFICIENT_CASH`, reconciliation).
-3. Non-zero holdings locking (`qty != 0`) from RFC-0007A should be completed before production rollout to avoid selecting intents on incompletely locked books.
+3. Non-zero holdings locking (`qty != 0`) from RFC-0007A is already implemented and must be preserved to avoid selecting intents on incompletely locked books.
 
 ---
 

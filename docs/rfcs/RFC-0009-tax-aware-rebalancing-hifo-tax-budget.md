@@ -138,7 +138,8 @@ Add second case where requested sell exceeds budget and verify partial sell with
 
 1. Canonical simulate endpoint remains `POST /rebalance/simulate`.
 2. No-short and oversell safeguards remain mandatory (`NO_SHORTING` / `SELL_EXCEEDS_HOLDINGS`) while applying lot-level sell logic.
-3. Do not assume persistence-backed idempotency store exists; tax-aware behavior must remain deterministic in stateless runs.
+3. Non-zero holdings locking (`qty != 0`) from RFC-0007A is already implemented and must be preserved.
+4. Do not assume persistence-backed idempotency store exists; tax-aware behavior must remain deterministic in stateless runs.
 
 ---
 

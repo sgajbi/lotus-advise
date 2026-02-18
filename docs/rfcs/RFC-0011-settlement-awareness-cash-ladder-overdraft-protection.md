@@ -116,7 +116,7 @@ Add second case with overdraft allowance and verify status changes from `BLOCKED
 
 1. Canonical simulate endpoint remains `POST /rebalance/simulate`.
 2. Settlement ladder checks are additive and must not weaken existing hard-block safety checks (`NO_SHORTING`, `INSUFFICIENT_CASH`, reconciliation mismatch block).
-3. Non-zero holdings locking (`qty != 0`) from RFC-0007A remains a prerequisite for full institutional correctness.
+3. Non-zero holdings locking (`qty != 0`) from RFC-0007A is already implemented and must be preserved.
 
 ---
 
