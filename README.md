@@ -13,11 +13,13 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 ## Implemented RFCs
 
 * RFC-0001 to RFC-0008
+* RFC-0010 (turnover cap control via `options.max_turnover_pct`)
 * RFC-0012 (solver integration, feature-flagged via `options.target_method`)
 * RFC-0013 (what-if batch analysis via `POST /rebalance/analyze`)
 
 Deferred:
 * RFC-0009 tax-aware controls and tax-impact comparison fields
+* RFC-0011 settlement ladder and overdraft protection
 
 ---
 ## Engine Know-How

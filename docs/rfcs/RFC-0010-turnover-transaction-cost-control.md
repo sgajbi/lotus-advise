@@ -2,56 +2,57 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED (Turnover Cap v1; Explicit Cost Model Deferred) |
 | **Created** | 2026-02-17 |
-| **Target Release** | TBD |
+| **Implemented On** | 2026-02-18 |
 | **Doc Location** | docs/rfcs/RFC-0010-turnover-transaction-cost-control.md |
 
 ---
 
 ## 0. Executive Summary
 
-This RFC introduces a turnover budget so the engine can produce best-effort rebalances instead of always forcing full convergence to model targets.
+This RFC adds a deterministic turnover budget to Stage 4 intent selection so rebalances can stop at a configured turnover ceiling instead of always taking the full candidate set.
 
-Key outcomes:
-1. Add a run-level turnover cap (`max_turnover_pct`).
-2. Rank and select trade intents by drift-reduction efficiency.
-3. Return explicit diagnostics for dropped intents.
+Implemented outcomes:
+1. Option-controlled turnover cap (`max_turnover_pct`).
+2. Deterministic intent ranking and subset selection when proposed turnover exceeds budget.
+3. Explicit diagnostics for dropped intents and partial-rebalance warning.
 
 ---
 
 ## 1. Problem Statement
 
-Full rebalances can produce many low-value trades with high implementation cost (commissions, spreads, market impact). The engine needs a deterministic policy to stop after spending a configured turnover budget.
+Full convergence can produce low-value extra trades and higher implementation churn. The engine now supports deterministic “best-effort” execution under a turnover budget.
 
 ---
 
 ## 2. Goals and Non-Goals
 
 ### 2.1 Goals
-1. Add `max_turnover_pct` to options.
-2. Select a subset of candidate intents when proposed turnover exceeds budget.
-3. Preserve deterministic outputs for identical inputs.
-4. Expose dropped intents and reason codes.
+1. Add `max_turnover_pct` to engine options.
+2. Select a deterministic subset of candidate security intents under budget.
+3. Preserve compatibility when option is unset.
+4. Expose dropped intents and warning codes.
 
 ### 2.2 Non-Goals
-1. Partial scaling of a selected intent in this RFC.
-2. Explicit spread/impact model calibration by venue.
+1. Partial sizing of a selected intent.
+2. Explicit spread/impact/commission calibration.
 3. Multi-period turnover planning.
 
 ---
 
-## 3. Proposed Implementation
+## 3. Implemented Design
 
 ### 3.1 Data Model Changes (`src/core/models.py`)
 
+Implemented:
 ```python
 class EngineOptions(BaseModel):
-    max_turnover_pct: Optional[Decimal] = None  # 0 <= value <= 1
+    max_turnover_pct: Optional[Decimal] = None
 
 class DroppedIntent(BaseModel):
     instrument_id: str
-    reason: str  # TURNOVER_LIMIT
+    reason: str
     potential_notional: Money
     score: Decimal
 
@@ -60,76 +61,78 @@ class DiagnosticsData(BaseModel):
 ```
 
 Validation:
-1. Reject `max_turnover_pct < 0` or `> 1`.
+1. `max_turnover_pct` must be within `[0, 1]` when provided.
 
-### 3.2 Intent Selection Logic (`src/core/engine.py`)
+### 3.2 Stage-4 Intent Selection (`src/core/engine.py`)
 
-Apply in Stage 4 after candidate intent generation.
+Implemented in `_apply_turnover_limit(...)`, called after `_generate_intents(...)` and before Stage 5 simulation.
 
 Algorithm:
-1. If `max_turnover_pct` is unset, keep existing behavior.
-2. Compute `budget = portfolio_value_base * max_turnover_pct`.
-3. Compute `proposed = sum(abs(intent.notional_base.amount))`.
-4. If `proposed <= budget`, keep all intents.
-5. Else:
-   1. Score each candidate:
-      1. Primary: absolute drift reduction contributed by intent.
-      2. Secondary tie-break: lower notional first (to improve fit).
-      3. Final tie-break: instrument_id ascending.
-   2. Iterate sorted candidates and include an intent only when `used + notional <= budget`.
-   3. Record excluded intents with reason `TURNOVER_LIMIT`.
-
-Rationale:
-1. Skip-and-continue behavior is required; do not stop on first oversized trade.
-2. This provides a better fill of remaining budget than first-fit stopping.
-
-
+1. If `max_turnover_pct` is `None`, keep existing behavior.
+2. Compute budget:
+   1. `budget = portfolio_value_base * max_turnover_pct`
+3. Compute proposed turnover:
+   1. `proposed = sum(abs(intent.notional_base.amount))`
+4. If proposed is within budget, keep all intents.
+5. Else rank candidate intents by:
+   1. primary: descending score (`abs(notional_base) / portfolio_value_base`)
+   2. secondary: lower absolute notional first
+   3. tertiary: `instrument_id` ascending
+   4. quaternary: `intent_id` ascending
+6. Iterate ranked intents:
+   1. keep if `used + notional <= budget`
+   2. otherwise drop and continue (skip-and-continue)
+7. For each dropped intent, append diagnostics:
+   1. `reason = TURNOVER_LIMIT`
+   2. `potential_notional` in base currency
+   3. computed score
+8. If any dropped intents exist, append warning:
+   1. `PARTIAL_REBALANCE_TURNOVER_LIMIT`
 
 ---
 
-## 4. Test Plan
+## 4. Test Plan and Coverage
 
-Add `tests/golden_data/scenario_10_turnover_cap.json`.
-
-Scenario:
-1. Portfolio value: 100,000 base currency.
-2. Candidate buys: A=10,000, B=10,000, C=2,000.
-3. `max_turnover_pct = 0.15` (budget 15,000).
-
-Expected:
-1. Proposed turnover 22,000 exceeds budget.
-2. Selection uses skip-and-continue.
-3. Final intents include A and C (12,000 total), B dropped.
-4. Diagnostics include dropped B with reason and score.
-
-Add regression case where exact-fit combination exists and verify deterministic selection.
+Implemented tests:
+1. Contract tests (`tests/contracts/test_contract_models.py`)
+   1. `max_turnover_pct` bounds validation.
+   2. diagnostics support for dropped intents.
+2. Engine tests (`tests/engine/test_engine_turnover_control.py`)
+   1. Skip-and-continue selection under cap.
+   2. Exact-fit deterministic combination.
+   3. Backward compatibility when cap is unset.
+3. Golden scenarios:
+   1. `tests/golden_data/scenario_10_turnover_cap.json`
+   2. `tests/golden_data/scenario_10_turnover_exact_fit.json`
 
 ---
 
 ## 5. Rollout and Compatibility
 
-1. Backward compatible with default `max_turnover_pct=None`.
-2. Add response warning `PARTIAL_REBALANCE_TURNOVER_LIMIT` when any intent is dropped.
+1. Backward compatible by default (`max_turnover_pct=None`).
+2. Existing endpoint contracts remain unchanged:
+   1. `POST /rebalance/simulate`
+   2. `POST /rebalance/analyze`
+3. Stage-5 safety/compliance and reconciliation behavior remains intact.
 
 ### 5.1 Carry-Forward Requirements from RFC-0001 to RFC-0007A
 
-1. Canonical simulate endpoint remains `POST /rebalance/simulate`.
-2. Turnover selection must preserve existing safety/compliance pass in Stage 5 (`NO_SHORTING`, `INSUFFICIENT_CASH`, reconciliation).
-3. Non-zero holdings locking (`qty != 0`) from RFC-0007A is already implemented and must be preserved to avoid selecting intents on incompletely locked books.
+1. Canonical single-run endpoint remains `POST /rebalance/simulate`.
+2. Safety checks (`NO_SHORTING`, `INSUFFICIENT_CASH`, reconciliation) remain active post-selection.
+3. Universe locking behavior for non-zero holdings is preserved.
 
 ---
 
-## 6. Open Questions
+## 6. Deferred Scope
 
-1. Should transaction cost estimates be explicit input and merged into scoring now or later?
-2. Should partial intent sizing be allowed under a separate flag in a future RFC?
+1. Explicit transaction-cost model (spread/commission/slippage terms) is deferred to future RFC work.
+2. Partial intent sizing is deferred.
 
 ---
 
 ## 7. Status and Reason Code Conventions
 
-1. Run status values remain aligned to RFC-0007A: `READY`, `PENDING_REVIEW`, `BLOCKED`.
-2. Turnover-limit outcomes remain `READY` when safety checks pass, with warnings/diagnostics attached.
-3. This RFC introduces reason and warning codes:
+1. Run statuses remain `READY`, `PENDING_REVIEW`, `BLOCKED`.
+2. New reason/warning codes:
    1. `TURNOVER_LIMIT` (dropped intent reason)
-   2. `PARTIAL_REBALANCE_TURNOVER_LIMIT` (result warning code)
+   2. `PARTIAL_REBALANCE_TURNOVER_LIMIT` (diagnostic warning)

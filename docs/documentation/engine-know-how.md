@@ -153,6 +153,11 @@ Behavior:
 - Dust suppression:
   - threshold from `options.min_trade_notional`, else `shelf_entry.min_notional`.
   - suppressed intents are written to `diagnostics.suppressed_intents`.
+- Turnover cap selection (`options.max_turnover_pct`):
+  - candidate intents are ranked by drift-reduction score, then lower notional, then instrument id.
+  - skip-and-continue selection is applied against turnover budget.
+  - dropped candidates are written to `diagnostics.dropped_intents` with reason `TURNOVER_LIMIT`.
+  - warning `PARTIAL_REBALANCE_TURNOVER_LIMIT` is added when any intent is dropped.
 
 ### Stage 5: FX + Simulation + Rules + Reconciliation
 
@@ -211,6 +216,7 @@ Implemented and active:
 - `block_on_missing_prices`
 - `block_on_missing_fx`
 - `min_cash_buffer_pct`
+- `max_turnover_pct`
 - `group_constraints`
 
 Present in model but not actively consumed in core engine logic:
@@ -241,12 +247,13 @@ Comparison metrics:
 
 Implemented RFC slices:
 - RFC-0001 to RFC-0008
+- RFC-0010 (turnover cap control)
 - RFC-0012 (solver integration; selectable by `target_method`)
 - RFC-0013 (batch what-if analysis)
 
 Explicitly deferred:
 - RFC-0009 tax-aware controls and tax-impact metrics
-- RFC-0010 turnover/cost controls as explicit optimization terms
+- RFC-0010 explicit transaction cost model terms
 - RFC-0011 settlement ladder and overdraft policy mechanics
 
 ## 9. Practical Examples

@@ -377,3 +377,35 @@ def test_analyze_mixed_outcomes_ready_pending_review_blocked(client):
     assert metrics["ready_case"]["status"] == "READY"
     assert metrics["pending_case"]["status"] == "PENDING_REVIEW"
     assert metrics["blocked_case"]["status"] == "BLOCKED"
+
+
+def test_simulate_turnover_cap_emits_partial_rebalance_warning(client):
+    payload = get_valid_payload()
+    payload["portfolio_snapshot"]["base_currency"] = "USD"
+    payload["portfolio_snapshot"]["cash_balances"] = [{"currency": "USD", "amount": "100000"}]
+    payload["market_data_snapshot"]["prices"] = [
+        {"instrument_id": "A", "price": "100", "currency": "USD"},
+        {"instrument_id": "B", "price": "100", "currency": "USD"},
+        {"instrument_id": "C", "price": "100", "currency": "USD"},
+    ]
+    payload["model_portfolio"]["targets"] = [
+        {"instrument_id": "A", "weight": "0.10"},
+        {"instrument_id": "B", "weight": "0.10"},
+        {"instrument_id": "C", "weight": "0.02"},
+    ]
+    payload["shelf_entries"] = [
+        {"instrument_id": "A", "status": "APPROVED"},
+        {"instrument_id": "B", "status": "APPROVED"},
+        {"instrument_id": "C", "status": "APPROVED"},
+    ]
+    payload["options"]["max_turnover_pct"] = "0.15"
+
+    response = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-turnover-cap"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert "PARTIAL_REBALANCE_TURNOVER_LIMIT" in body["diagnostics"]["warnings"]
+    assert len(body["diagnostics"]["dropped_intents"]) == 1
