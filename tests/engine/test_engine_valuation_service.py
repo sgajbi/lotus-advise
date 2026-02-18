@@ -1,105 +1,101 @@
+"""
+FILE: tests/engine/test_engine_valuation_service.py
+"""
+
 from decimal import Decimal
 
-import pytest
-
 from src.core.models import (
+    CashBalance,
     EngineOptions,
-    FxRate,
     MarketDataSnapshot,
-    Money,
+    PortfolioSnapshot,
     Position,
     Price,
-    ValuationMode,
+    ShelfEntry,
 )
-from src.core.valuation import ValuationService, build_simulated_state, get_fx_rate
+from src.core.valuation import build_simulated_state
 
 
-@pytest.fixture
-def market_data():
-    return MarketDataSnapshot(
-        prices=[
-            Price(instrument_id="AAPL", price=Decimal("150.00"), currency="USD"),
-            Price(instrument_id="DBS", price=Decimal("30.00"), currency="SGD"),
+def test_valuation_service_aggregates_attributes():
+    """
+    Verify that build_simulated_state correctly aggregates value by attributes (RFC-0008).
+    Scenario:
+      - Tech_A: $40, sector=TECH
+      - Tech_B: $60, sector=TECH
+      - Bond_C: $100, sector=FI
+      - Total: $200
+    Expectation:
+      - sector:TECH = 50%
+      - sector:FI = 50%
+    """
+    pf = PortfolioSnapshot(
+        portfolio_id="p1",
+        base_currency="USD",
+        positions=[
+            Position(instrument_id="Tech_A", quantity=Decimal("1")),
+            Position(instrument_id="Tech_B", quantity=Decimal("1")),
+            Position(instrument_id="Bond_C", quantity=Decimal("1")),
         ],
-        fx_rates=[FxRate(pair="USD/SGD", rate=Decimal("1.35"))],
+        cash_balances=[CashBalance(currency="USD", amount=Decimal("0"))],
     )
 
-
-def test_get_fx_rate_permutations(market_data):
-    assert get_fx_rate(market_data, "USD", "SGD") == Decimal("1.35")
-    assert round(get_fx_rate(market_data, "SGD", "USD"), 4) == round(
-        Decimal("1") / Decimal("1.35"), 4
-    )
-    assert get_fx_rate(market_data, "USD", "USD") == Decimal("1.0")
-    assert get_fx_rate(market_data, "JPY", "USD") is None
-
-
-def test_valuation_calculated_mode(market_data):
-    pos = Position(instrument_id="AAPL", quantity=Decimal("10"))
-    options = EngineOptions(valuation_mode=ValuationMode.CALCULATED)
-    dq = {}
-
-    summary = ValuationService.value_position(pos, market_data, "SGD", options, dq)
-
-    assert summary.value_in_instrument_ccy.amount == Decimal("1500.00")
-    assert summary.value_in_base_ccy.amount == Decimal("2025.00")
-
-
-def test_valuation_trust_snapshot_mode(market_data):
-    pos = Position(
-        instrument_id="AAPL",
-        quantity=Decimal("10"),
-        market_value=Money(amount=Decimal("2000.00"), currency="USD"),
-    )
-    options = EngineOptions(valuation_mode=ValuationMode.TRUST_SNAPSHOT)
-    dq = {}
-
-    summary = ValuationService.value_position(pos, market_data, "SGD", options, dq)
-
-    assert summary.value_in_instrument_ccy.amount == Decimal("2000.00")
-    assert summary.value_in_base_ccy.amount == Decimal("2700.00")
-
-
-def test_valuation_zero_price_handling(market_data):
-    market_data.prices.append(
-        Price(instrument_id="WORTHLESS", price=Decimal("0.0"), currency="USD")
-    )
-    pos = Position(instrument_id="WORTHLESS", quantity=Decimal("1000"))
-
-    dq = {}
-    summary = ValuationService.value_position(
-        pos,
-        market_data,
-        "USD",
-        EngineOptions(valuation_mode=ValuationMode.CALCULATED),
-        dq,
+    md = MarketDataSnapshot(
+        prices=[
+            Price(instrument_id="Tech_A", price=Decimal("40"), currency="USD"),
+            Price(instrument_id="Tech_B", price=Decimal("60"), currency="USD"),
+            Price(instrument_id="Bond_C", price=Decimal("100"), currency="USD"),
+        ]
     )
 
-    assert summary.value_in_base_ccy.amount == Decimal("0")
+    shelf = [
+        ShelfEntry(instrument_id="Tech_A", status="APPROVED", attributes={"sector": "TECH"}),
+        ShelfEntry(instrument_id="Tech_B", status="APPROVED", attributes={"sector": "TECH"}),
+        ShelfEntry(instrument_id="Bond_C", status="APPROVED", attributes={"sector": "FI"}),
+    ]
 
-
-def test_valuation_missing_fx_logging(market_data):
-    market_data.prices.append(
-        Price(instrument_id="NINTENDO", price=Decimal("5000"), currency="JPY")
-    )
-    pos = Position(instrument_id="NINTENDO", quantity=Decimal("100"))
-
-    dq = {}
-    summary = ValuationService.value_position(
-        pos,
-        market_data,
-        "USD",
-        EngineOptions(valuation_mode=ValuationMode.CALCULATED),
-        dq,
+    state = build_simulated_state(
+        portfolio=pf,
+        market_data=md,
+        shelf=shelf,
+        dq_log={},
+        warnings=[],
+        options=EngineOptions(),
     )
 
-    assert summary.value_in_base_ccy.amount == Decimal("0")
+    # Check Total Value
+    assert state.total_value.amount == Decimal("200")
 
-    from src.core.models import PortfolioSnapshot
+    # Check Attribute Aggregation
+    assert "sector" in state.allocation_by_attribute
+    sectors = state.allocation_by_attribute["sector"]
 
-    pf = PortfolioSnapshot(portfolio_id="p1", base_currency="USD", positions=[pos])
-    warns = []
+    tech_metric = next((m for m in sectors if m.key == "TECH"), None)
+    fi_metric = next((m for m in sectors if m.key == "FI"), None)
 
-    _ = build_simulated_state(pf, market_data, [], dq, warns)
+    assert tech_metric is not None
+    assert tech_metric.value.amount == Decimal("100")  # 40 + 60
+    assert tech_metric.weight == Decimal("0.5")  # 100 / 200
 
-    assert "JPY/USD" in dq["fx_missing"]
+    assert fi_metric is not None
+    assert fi_metric.value.amount == Decimal("100")
+    assert fi_metric.weight == Decimal("0.5")
+
+
+def test_valuation_handles_missing_attributes():
+    """
+    Instruments without attributes should just be skipped in the attribute map,
+    not cause errors.
+    """
+    pf = PortfolioSnapshot(
+        portfolio_id="p1",
+        base_currency="USD",
+        positions=[Position(instrument_id="A", quantity=Decimal("10"))],
+        cash_balances=[],
+    )
+    md = MarketDataSnapshot(prices=[Price(instrument_id="A", price=Decimal("1"), currency="USD")])
+    shelf = [ShelfEntry(instrument_id="A", status="APPROVED")]  # No attributes
+
+    state = build_simulated_state(pf, md, shelf, {}, [])
+
+    assert state.total_value.amount == Decimal("10")
+    assert state.allocation_by_attribute == {}

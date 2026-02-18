@@ -69,6 +69,7 @@ class ShelfEntry(BaseModel):
     status: Literal["APPROVED", "RESTRICTED", "BANNED", "SUSPENDED", "SELL_ONLY"]
     asset_class: str = "UNKNOWN"
     min_notional: Optional[Money] = None
+    attributes: Dict[str, str] = Field(default_factory=dict)
 
 
 class EngineOptions(BaseModel):
@@ -113,6 +114,7 @@ class SimulatedState(BaseModel):
     allocation_by_asset_class: List[AllocationMetric] = Field(default_factory=list)
     allocation_by_instrument: List[AllocationMetric] = Field(default_factory=list)
     allocation: List[AllocationMetric] = Field(default_factory=list)
+    allocation_by_attribute: Dict[str, List[AllocationMetric]] = Field(default_factory=dict)
 
 
 class ExcludedInstrument(BaseModel):

@@ -144,21 +144,33 @@ def build_simulated_state(
     else:
         total_val_safe = total_val
 
+    # Aggregation containers
+    alloc_class_map: Dict[str, Decimal] = {}
+    alloc_attr_map: Dict[str, Dict[str, Decimal]] = {}
+
     for p in pos_summaries:
         p.weight = p.value_in_base_ccy.amount / total_val_safe
         shelf_entry = next((s for s in shelf if s.instrument_id == p.instrument_id), None)
+
+        # Asset Class Aggregation
         if shelf_entry:
             p.asset_class = shelf_entry.asset_class
+            # Attribute Aggregation
+            for attr_key, attr_val in shelf_entry.attributes.items():
+                if attr_key not in alloc_attr_map:
+                    alloc_attr_map[attr_key] = {}
+                alloc_attr_map[attr_key][attr_val] = (
+                    alloc_attr_map[attr_key].get(attr_val, Decimal("0"))
+                    + p.value_in_base_ccy.amount
+                )
+
+        ac = p.asset_class
+        alloc_class_map[ac] = alloc_class_map.get(ac, Decimal("0")) + p.value_in_base_ccy.amount
 
     alloc_instr = [
         AllocationMetric(key=p.instrument_id, weight=p.weight, value=p.value_in_base_ccy)
         for p in pos_summaries
     ]
-
-    alloc_class_map = {}
-    for p in pos_summaries:
-        ac = p.asset_class
-        alloc_class_map[ac] = alloc_class_map.get(ac, Decimal("0")) + p.value_in_base_ccy.amount
 
     total_cash_val = Decimal("0")
     for cash in portfolio.cash_balances:
@@ -182,11 +194,26 @@ def build_simulated_state(
         for k, v in alloc_class_map.items()
     ]
 
+    # Convert attribute map to model output
+    alloc_by_attr = {}
+    for attr_key, val_map in alloc_attr_map.items():
+        metrics = []
+        for val_key, val_amount in val_map.items():
+            metrics.append(
+                AllocationMetric(
+                    key=val_key,
+                    weight=val_amount / total_val_safe,
+                    value=Money(amount=val_amount, currency=base_ccy),
+                )
+            )
+        alloc_by_attr[attr_key] = metrics
+
     return SimulatedState(
         total_value=Money(amount=total_val, currency=base_ccy),
         cash_balances=portfolio.cash_balances,
         positions=pos_summaries,
         allocation_by_asset_class=alloc_asset_class,
         allocation_by_instrument=alloc_instr,
-        allocation=alloc_instr,  # Deprecated alias, keeping for compat
+        allocation=alloc_instr,
+        allocation_by_attribute=alloc_by_attr,
     )

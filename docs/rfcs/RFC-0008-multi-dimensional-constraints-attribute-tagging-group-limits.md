@@ -64,9 +64,11 @@ class GroupConstraint(BaseModel):
 class EngineOptions(BaseModel):
     # Key format: "<attribute_key>:<attribute_value>", for example "sector:TECH"
     group_constraints: Dict[str, GroupConstraint] = Field(default_factory=dict)
+
 ```
 
 Validation rules:
+
 1. Reject malformed keys without exactly one `:`.
 2. Reject `max_weight < 0` or `max_weight > 1`.
 
@@ -75,17 +77,21 @@ Validation rules:
 Apply group constraints in Stage 3 before single-position max check.
 
 Algorithm (deterministic order by key):
+
 1. Parse each constraint key into `(attr_key, attr_value)`.
 2. Compute `group_weight` from current candidate target weights.
 3. If `group_weight <= max_weight`, continue.
 4. If breached:
-   1. Compute `scale = max_weight / group_weight`.
-   2. Scale all instruments in that group by `scale`.
-   3. Add released weight into `excess_pool`.
+1. Compute `scale = max_weight / group_weight`.
+2. Scale all instruments in that group by `scale`.
+3. Add released weight into `excess_pool`.
+
+
 5. Redistribute `excess_pool` proportionally across eligible instruments not in the breached group, excluding blocked instruments.
 6. Normalize to 1.0 within tolerance.
 
 Tie-break and safety rules:
+
 1. If no eligible destination exists for redistribution, return `BLOCKED` with reason `NO_ELIGIBLE_REDISTRIBUTION_DESTINATION`.
 2. Record diagnostics: breached groups, released weight, redistribution recipients.
 
@@ -97,6 +103,7 @@ Add optional attribute-level breakdown:
 class SimulatedState(BaseModel):
     # Existing fields...
     allocation_by_attribute: Dict[str, List[AllocationMetric]] = Field(default_factory=dict)
+
 ```
 
 This enables direct verification of group-limit compliance from response payloads.
@@ -108,12 +115,14 @@ This enables direct verification of group-limit compliance from response payload
 Add `tests/golden_data/scenario_08_sector_cap.json`.
 
 Scenario:
+
 1. Initial portfolio is 100% cash.
 2. Model targets: `Tech_A=15%`, `Tech_B=15%`, `Bond_C=70%`.
 3. Shelf tags: `Tech_A/Tech_B -> {"sector":"TECH"}`.
 4. Constraint: `sector:TECH <= 20%`.
 
 Expected:
+
 1. `Tech_A + Tech_B == 20%` (scaled from 30%).
 2. `Bond_C == 80%`.
 3. Status `READY`.
@@ -147,5 +156,8 @@ Expected:
 1. Run status values remain aligned to RFC-0007A: `READY`, `PENDING_REVIEW`, `BLOCKED`.
 2. Constraint events are emitted as diagnostics reason codes in upper snake case.
 3. This RFC introduces reason codes:
-   1. `CAPPED_BY_GROUP_LIMIT`
-   2. `NO_ELIGIBLE_REDISTRIBUTION_DESTINATION`
+1. `CAPPED_BY_GROUP_LIMIT`
+2. `NO_ELIGIBLE_REDISTRIBUTION_DESTINATION`
+
+
+ 
