@@ -96,3 +96,5 @@ def test_target_gen_blocks_if_redistribution_impossible():
 
     assert status == "BLOCKED"
     assert "NO_ELIGIBLE_REDISTRIBUTION_DESTINATION" in diag.warnings
+    assert len(diag.group_constraint_events) == 1
+    assert diag.group_constraint_events[0].status == "BLOCKED"

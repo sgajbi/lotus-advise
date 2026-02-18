@@ -8,6 +8,9 @@ import pytest
 from pydantic import ValidationError
 
 from src.core.models import (
+    DiagnosticsData,
+    EngineOptions,
+    GroupConstraint,
     Money,
     ShelfEntry,
     SimulatedState,
@@ -57,3 +60,31 @@ def test_simulated_state_structure():
         allocation_by_attribute={"sector": []},
     )
     assert "sector" in state.allocation_by_attribute
+
+
+def test_group_constraint_max_weight_bounds_validation():
+    EngineOptions(group_constraints={"sector:TECH": GroupConstraint(max_weight=Decimal("0.5"))})
+
+    with pytest.raises(ValidationError):
+        GroupConstraint(max_weight=Decimal("-0.01"))
+    with pytest.raises(ValidationError):
+        GroupConstraint(max_weight=Decimal("1.01"))
+
+
+def test_group_constraint_key_format_validation():
+    with pytest.raises(ValidationError):
+        EngineOptions(group_constraints={"sectorTECH": GroupConstraint(max_weight=Decimal("0.5"))})
+    with pytest.raises(ValidationError):
+        EngineOptions(group_constraints={":TECH": GroupConstraint(max_weight=Decimal("0.5"))})
+    with pytest.raises(ValidationError):
+        EngineOptions(group_constraints={"sector:": GroupConstraint(max_weight=Decimal("0.5"))})
+
+
+def test_diagnostics_supports_group_constraint_events():
+    diag = DiagnosticsData(
+        warnings=[],
+        suppressed_intents=[],
+        group_constraint_events=[],
+        data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+    )
+    assert diag.group_constraint_events == []

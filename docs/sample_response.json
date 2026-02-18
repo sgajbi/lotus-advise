@@ -418,6 +418,7 @@
   "diagnostics": {
     "warnings": [],
     "suppressed_intents": [],
+    "group_constraint_events": [],
     "data_quality": {
       "price_missing": [],
       "fx_missing": [],

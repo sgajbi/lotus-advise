@@ -19,7 +19,8 @@ Unlike traditional engines that crash (HTTP 500) or reject (HTTP 400) on complex
 * **Audit Bundle:** Every response contains the *complete context* needed to reconstruct the decision:
     * `before`: The starting valuation.
     * `target`: The "Why" trace (Model Weight vs. Final Constrained Weight).
-    * `diagnostics`: Specific reasons for blockage (e.g., `price_missing: ["EQ_1"]`).
+    * `diagnostics`: Specific reasons for blockage and constraint events
+      (e.g., `price_missing: ["EQ_1"]`, `group_constraint_events`).
 
 ---
 
@@ -120,7 +121,9 @@ Performs a full rebalance simulation.
 * `market_data_snapshot`: Prices and FX rates.
 * `model_portfolio`: Target weights.
 * `shelf_entries`: Regulatory status of assets.
-* `options`: Constraints (e.g., `suppress_dust_trades`).
+* `options`: Constraints (e.g., `suppress_dust_trades`, `group_constraints`).
+  `group_constraints` keys must use `<attribute_key>:<attribute_value>`.
+  Invalid keys or invalid `max_weight` values return 422.
 
 **Response Status Codes:**
 

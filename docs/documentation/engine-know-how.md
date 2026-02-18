@@ -58,6 +58,7 @@ Function: `_build_universe(...)`
   - Missing shelf entry -> `LOCKED_DUE_TO_MISSING_SHELF`
   - `SUSPENDED` / `BANNED` / `RESTRICTED` -> locked by status
   - Otherwise included with target 0 for sell-down path
+- Universe locking applies to all non-zero holdings (`qty != 0`).
 
 ### Stage 3: Target Generation and Constraints
 
@@ -66,8 +67,14 @@ Function: `_generate_targets(...)`
 - Redistributes sell-only excess into buy-eligible targets when possible.
 - Normalizes if effective target sum exceeds 100%.
 - Applies optional constraints:
+  - `group_constraints` (`<attribute_key>:<attribute_value> -> max_weight`)
   - `single_position_max_weight`
   - `min_cash_buffer_pct`
+- `group_constraints` validation is strict at request/model parse time:
+  - malformed keys are rejected (`422` at API boundary)
+  - `max_weight` must be in `[0, 1]`
+- If a constraint uses an unknown attribute key, diagnostics warning
+  `UNKNOWN_CONSTRAINT_ATTRIBUTE_<key>` is emitted and the constraint is skipped.
 - Builds target trace (`TargetInstrument`) with tags such as:
   - `CAPPED_BY_MAX_WEIGHT`
   - `REDISTRIBUTED_RECIPIENT`
@@ -210,6 +217,7 @@ From `src/core/compliance.py`:
 - `diagnostics`:
   - `warnings`
   - `suppressed_intents`
+  - `group_constraint_events` (breach, released weight, recipients, status)
   - `data_quality`
 - `lineage`
 
@@ -234,6 +242,7 @@ Defined in `EngineOptions` (`src/core/models.py`):
 - `block_on_missing_prices`
 - `block_on_missing_fx`
 - `min_cash_buffer_pct`
+- `group_constraints`
 
 ## 9. Practical Notes for Maintainers
 

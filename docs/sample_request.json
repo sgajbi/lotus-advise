@@ -51,11 +51,28 @@
     ]
   },
   "shelf_entries": [
-    { "instrument_id": "US_TECH", "status": "APPROVED" },
-    { "instrument_id": "EU_BOND", "status": "APPROVED" }
+    {
+      "instrument_id": "US_TECH",
+      "status": "APPROVED",
+      "attributes": {
+        "sector": "TECH"
+      }
+    },
+    {
+      "instrument_id": "EU_BOND",
+      "status": "APPROVED",
+      "attributes": {
+        "sector": "FI"
+      }
+    }
   ],
   "options": {
     "fx_buffer_pct": "0.00",
-    "suppress_dust_trades": false
+    "suppress_dust_trades": false,
+    "group_constraints": {
+      "sector:TECH": {
+        "max_weight": "0.40"
+      }
+    }
   }
 }

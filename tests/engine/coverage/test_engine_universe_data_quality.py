@@ -46,6 +46,17 @@ class TestUniverseAndDataQuality:
         assert excl is not None
         assert "LOCKED_DUE_TO_MISSING_SHELF" in excl.reason_code
 
+    def test_universe_missing_shelf_locked_for_negative_quantity_position(self, base_inputs):
+        pf, mkt, model, shelf = base_inputs
+        pf.positions.append(position("SHORT_GHOST", "-5"))
+        mkt.prices.append(price("SHORT_GHOST", "100", "USD"))
+
+        result = run_simulation(pf, mkt, model, shelf, EngineOptions())
+
+        excl = find_excluded(result, "SHORT_GHOST")
+        assert excl is not None
+        assert "LOCKED_DUE_TO_MISSING_SHELF" in excl.reason_code
+
     def test_blocked_when_model_target_missing_from_shelf(self):
         pf = usd_cash_portfolio("pf_missing_shelf")
         mkt = market_data_snapshot(prices=[price("MODEL_ONLY", "10", "USD")], fx_rates=[])

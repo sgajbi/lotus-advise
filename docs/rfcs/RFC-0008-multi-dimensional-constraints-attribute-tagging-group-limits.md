@@ -2,9 +2,9 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-17 |
-| **Target Release** | TBD |
+| **Target Release** | Completed |
 | **Doc Location** | docs/rfcs/RFC-0008-multi-dimensional-constraints-attribute-tagging-group-limits.md |
 
 ---
@@ -139,7 +139,7 @@ Expected:
 ### 5.1 Carry-Forward Requirements from RFC-0001 to RFC-0007A
 
 1. Canonical simulate endpoint remains `POST /rebalance/simulate`.
-2. This RFC must be implemented after universe-locking semantics are hardened to `qty != 0` (pending from RFC-0007A), because group exposure must account for all non-zero held positions.
+2. Universe-locking semantics use `qty != 0` so group exposure accounts for all non-zero held positions.
 3. Do not assume persistence-backed idempotency store exists; keep behavior compatible with current stateless run flow.
 
 ---

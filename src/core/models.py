@@ -6,7 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ValuationMode(str, Enum):
@@ -75,6 +75,13 @@ class ShelfEntry(BaseModel):
 class GroupConstraint(BaseModel):
     max_weight: Decimal
 
+    @field_validator("max_weight")
+    @classmethod
+    def validate_max_weight(cls, v: Decimal) -> Decimal:
+        if v < Decimal("0") or v > Decimal("1"):
+            raise ValueError("max_weight must be between 0 and 1 inclusive")
+        return v
+
 
 class EngineOptions(BaseModel):
     valuation_mode: ValuationMode = ValuationMode.CALCULATED
@@ -95,6 +102,23 @@ class EngineOptions(BaseModel):
 
     # Key format: "<attribute_key>:<attribute_value>", for example "sector:TECH"
     group_constraints: Dict[str, GroupConstraint] = Field(default_factory=dict)
+
+    @field_validator("group_constraints")
+    @classmethod
+    def validate_group_constraint_keys(
+        cls, v: Dict[str, GroupConstraint]
+    ) -> Dict[str, GroupConstraint]:
+        for key in v:
+            if key.count(":") != 1:
+                raise ValueError(
+                    "group_constraints keys must use format '<attribute_key>:<attribute_value>'"
+                )
+            attr_key, attr_val = key.split(":", 1)
+            if not attr_key or not attr_val:
+                raise ValueError(
+                    "group_constraints keys must use format '<attribute_key>:<attribute_value>'"
+                )
+        return v
 
 
 class AllocationMetric(BaseModel):
@@ -208,9 +232,19 @@ class SuppressedIntent(BaseModel):
     threshold: Money
 
 
+class GroupConstraintEvent(BaseModel):
+    constraint_key: str
+    group_weight_before: Decimal
+    max_weight: Decimal
+    released_weight: Decimal
+    recipients: Dict[str, Decimal] = Field(default_factory=dict)
+    status: Literal["CAPPED", "BLOCKED"]
+
+
 class DiagnosticsData(BaseModel):
     warnings: List[str] = Field(default_factory=list)
     suppressed_intents: List[SuppressedIntent] = Field(default_factory=list)
+    group_constraint_events: List[GroupConstraintEvent] = Field(default_factory=list)
     data_quality: Dict[str, List[str]]
 
 

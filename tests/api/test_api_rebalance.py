@@ -129,3 +129,16 @@ def test_simulate_missing_price_can_continue_when_non_blocking(client):
     body = response.json()
     assert body["status"] in {"READY", "PENDING_REVIEW"}
     assert "EQ_1" in body["diagnostics"]["data_quality"]["price_missing"]
+
+
+def test_simulate_rejects_invalid_group_constraint_key(client):
+    payload = get_valid_payload()
+    payload["options"]["group_constraints"] = {"sectorTECH": {"max_weight": "0.2"}}
+
+    response = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-invalid-group-key"},
+    )
+
+    assert response.status_code == 422

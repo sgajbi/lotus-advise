@@ -13,6 +13,7 @@ from src.core.models import (
     EngineOptions,
     ExcludedInstrument,
     FxSpotIntent,
+    GroupConstraintEvent,
     IntentRationale,
     LineageData,
     Money,
@@ -111,7 +112,7 @@ def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
         sell_list.append(target.instrument_id)
 
     for pos in portfolio.positions:
-        if pos.quantity > 0 and pos.instrument_id not in eligible_targets:
+        if pos.quantity != 0 and pos.instrument_id not in eligible_targets:
             shelf_ent = next((s for s in shelf if s.instrument_id == pos.instrument_id), None)
             curr = next(
                 (p for p in current_val.positions if p.instrument_id == pos.instrument_id), None
@@ -161,6 +162,10 @@ def _apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnos
             diagnostics.warnings.append(f"INVALID_CONSTRAINT_KEY_{constraint_key}")
             continue
 
+        if not any(attr_key in s.attributes for s in shelf):
+            diagnostics.warnings.append(f"UNKNOWN_CONSTRAINT_ATTRIBUTE_{attr_key}")
+            continue
+
         # Identify group members
         group_members = []
         for i_id in eligible_targets:
@@ -191,15 +196,37 @@ def _apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnos
 
         if total_cand_w > Decimal("0"):
             # Redistribute proportionally
+            recipients = {}
             for c in candidates:
                 share = excess * (eligible_targets[c] / total_cand_w)
                 eligible_targets[c] += share
+                recipients[c] = share
 
             diagnostics.warnings.append(f"CAPPED_BY_GROUP_LIMIT_{constraint_key}")
+            diagnostics.group_constraint_events.append(
+                GroupConstraintEvent(
+                    constraint_key=constraint_key,
+                    group_weight_before=current_w,
+                    max_weight=constraint.max_weight,
+                    released_weight=excess,
+                    recipients=recipients,
+                    status="CAPPED",
+                )
+            )
         else:
             # Trap: Cannot redistribute
             diagnostics.warnings.append(f"CAPPED_BY_GROUP_LIMIT_{constraint_key}")
             diagnostics.warnings.append("NO_ELIGIBLE_REDISTRIBUTION_DESTINATION")
+            diagnostics.group_constraint_events.append(
+                GroupConstraintEvent(
+                    constraint_key=constraint_key,
+                    group_weight_before=current_w,
+                    max_weight=constraint.max_weight,
+                    released_weight=excess,
+                    recipients={},
+                    status="BLOCKED",
+                )
+            )
             return "BLOCKED"
 
     return "READY"
@@ -225,6 +252,7 @@ def _generate_targets(
         diagnostics = DiagnosticsData(
             warnings=[],
             suppressed_intents=[],
+            group_constraint_events=[],
             data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
         )
 

@@ -1,5 +1,8 @@
 from decimal import Decimal
 
+import pytest
+from pydantic import ValidationError
+
 from src.core.engine import _apply_group_constraints, _generate_targets, run_simulation
 from src.core.models import DiagnosticsData, EngineOptions, GroupConstraint, ShelfEntry
 from tests.assertions import assert_status
@@ -49,24 +52,13 @@ class TestTargetGeneration:
 
         assert status == "PENDING_REVIEW"
 
-    def test_apply_group_constraints_invalid_key_adds_warning(self):
-        diagnostics = DiagnosticsData(
-            warnings=[],
-            suppressed_intents=[],
-            data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
-        )
-        eligible_targets = {"A": Decimal("0.60")}
-        shelf = [ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"})]
-        options = EngineOptions(
-            group_constraints={"bad_key": GroupConstraint(max_weight=Decimal("0.10"))}
-        )
+    def test_group_constraint_key_validation_rejects_invalid_key(self):
+        with pytest.raises(ValidationError):
+            EngineOptions(
+                group_constraints={"bad_key": GroupConstraint(max_weight=Decimal("0.10"))}
+            )
 
-        status = _apply_group_constraints(eligible_targets, ["A"], shelf, options, diagnostics)
-
-        assert status == "READY"
-        assert "INVALID_CONSTRAINT_KEY_bad_key" in diagnostics.warnings
-
-    def test_apply_group_constraints_ignores_constraint_when_no_group_members(self):
+    def test_apply_group_constraints_warns_when_attribute_key_unknown(self):
         diagnostics = DiagnosticsData(
             warnings=[],
             suppressed_intents=[],
@@ -81,7 +73,32 @@ class TestTargetGeneration:
         status = _apply_group_constraints(eligible_targets, ["A"], shelf, options, diagnostics)
 
         assert status == "READY"
-        assert diagnostics.warnings == []
+        assert "UNKNOWN_CONSTRAINT_ATTRIBUTE_region" in diagnostics.warnings
+
+    def test_apply_group_constraints_tracks_structured_cap_event(self):
+        diagnostics = DiagnosticsData(
+            warnings=[],
+            suppressed_intents=[],
+            data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+        )
+        eligible_targets = {"A": Decimal("0.60"), "B": Decimal("0.40")}
+        shelf = [
+            ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"}),
+            ShelfEntry(instrument_id="B", status="APPROVED", attributes={"sector": "FI"}),
+        ]
+        options = EngineOptions(
+            group_constraints={"sector:TECH": GroupConstraint(max_weight=Decimal("0.20"))}
+        )
+
+        status = _apply_group_constraints(eligible_targets, ["A", "B"], shelf, options, diagnostics)
+
+        assert status == "READY"
+        assert len(diagnostics.group_constraint_events) == 1
+        event = diagnostics.group_constraint_events[0]
+        assert event.constraint_key == "sector:TECH"
+        assert event.status == "CAPPED"
+        assert event.released_weight == Decimal("0.40")
+        assert event.recipients["B"] == Decimal("0.40")
 
     def test_apply_group_constraints_noop_when_within_tolerance(self):
         diagnostics = DiagnosticsData(
@@ -102,6 +119,42 @@ class TestTargetGeneration:
 
         assert status == "READY"
         assert eligible_targets["A"] == Decimal("0.5000")
+        assert diagnostics.warnings == []
+
+    def test_apply_group_constraints_handles_invalid_key_defensively(self):
+        diagnostics = DiagnosticsData(
+            warnings=[],
+            suppressed_intents=[],
+            data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+        )
+        eligible_targets = {"A": Decimal("0.60")}
+        shelf = [ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"})]
+        options = type(
+            "InvalidOpts",
+            (),
+            {"group_constraints": {"bad_key": GroupConstraint(max_weight=Decimal("0.10"))}},
+        )()
+
+        status = _apply_group_constraints(eligible_targets, ["A"], shelf, options, diagnostics)
+
+        assert status == "READY"
+        assert "INVALID_CONSTRAINT_KEY_bad_key" in diagnostics.warnings
+
+    def test_apply_group_constraints_skips_when_group_has_no_matching_value(self):
+        diagnostics = DiagnosticsData(
+            warnings=[],
+            suppressed_intents=[],
+            data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+        )
+        eligible_targets = {"A": Decimal("0.60")}
+        shelf = [ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"})]
+        options = EngineOptions(
+            group_constraints={"sector:HEALTH": GroupConstraint(max_weight=Decimal("0.10"))}
+        )
+
+        status = _apply_group_constraints(eligible_targets, ["A"], shelf, options, diagnostics)
+
+        assert status == "READY"
         assert diagnostics.warnings == []
 
     def test_generate_targets_uses_default_options_when_not_provided(self):

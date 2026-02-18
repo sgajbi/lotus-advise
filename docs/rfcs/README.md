@@ -13,7 +13,7 @@ Standards for all current and future RFCs:
 | RFC-0006A | Pre-Persistence Hardening - Safety, After-State Completeness, Contract Consistency | IMPLEMENTED | RFC-0003, RFC-0005 | `docs/rfcs/RFC-0006A-pre-persistence-safety-afterstate.md` |
 | RFC-0006B | Pre-Persistence Hardening - Rules Configurability, Dependency Fidelity & Scenario Matrix | IMPLEMENTED | RFC-0006A | `docs/rfcs/RFC-0006B-pre-persistence-rules-scenarios-demo.md` |
 | RFC-0007A | Contract Tightening - Canonical Endpoint, Discriminated Intents, Valuation Policy, Universe Locking | PARTIALLY IMPLEMENTED | RFC-0006A, RFC-0006B | `docs/rfcs/RFC-0007A-contract-tightening.md` |
-| RFC-0008 | Multi-Dimensional Constraints (Attribute Tagging and Group Limits) | DRAFT | RFC-0007A | `docs/rfcs/RFC-0008-multi-dimensional-constraints-attribute-tagging-group-limits.md` |
+| RFC-0008 | Multi-Dimensional Constraints (Attribute Tagging and Group Limits) | IMPLEMENTED | RFC-0007A | `docs/rfcs/RFC-0008-multi-dimensional-constraints-attribute-tagging-group-limits.md` |
 | RFC-0009 | Tax-Aware Rebalancing (HIFO and Tax Budget) | DRAFT | RFC-0008 | `docs/rfcs/RFC-0009-tax-aware-rebalancing-hifo-tax-budget.md` |
 | RFC-0010 | Turnover & Transaction Cost Control | DRAFT | RFC-0007A | `docs/rfcs/RFC-0010-turnover-transaction-cost-control.md` |
 | RFC-0011 | Settlement Awareness (Cash Ladder & Overdraft Protection) | DRAFT | RFC-0007A | `docs/rfcs/RFC-0011-settlement-awareness-cash-ladder-overdraft-protection.md` |
