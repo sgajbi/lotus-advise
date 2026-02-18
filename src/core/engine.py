@@ -282,6 +282,7 @@ def _generate_targets(
         diagnostics=diagnostics,
     )
 
+
 def _generate_targets_heuristic(
     model,
     eligible_targets,
