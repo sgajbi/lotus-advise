@@ -72,6 +72,10 @@ class ShelfEntry(BaseModel):
     attributes: Dict[str, str] = Field(default_factory=dict)
 
 
+class GroupConstraint(BaseModel):
+    max_weight: Decimal
+
+
 class EngineOptions(BaseModel):
     valuation_mode: ValuationMode = ValuationMode.CALCULATED
 
@@ -88,6 +92,9 @@ class EngineOptions(BaseModel):
     block_on_missing_prices: bool = True
     block_on_missing_fx: bool = True
     min_cash_buffer_pct: Decimal = Decimal("0.0")
+
+    # Key format: "<attribute_key>:<attribute_value>", for example "sector:TECH"
+    group_constraints: Dict[str, GroupConstraint] = Field(default_factory=dict)
 
 
 class AllocationMetric(BaseModel):

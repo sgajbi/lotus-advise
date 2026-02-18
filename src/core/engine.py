@@ -10,6 +10,7 @@ from src.core.compliance import RuleEngine
 from src.core.models import (
     CashBalance,
     DiagnosticsData,
+    EngineOptions,
     ExcludedInstrument,
     FxSpotIntent,
     IntentRationale,
@@ -140,10 +141,93 @@ def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
     return eligible_targets, excluded, buy_list, sell_list, sell_only_excess
 
 
+def _apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnostics):
+    """
+    RFC-0008: Apply multi-dimensional group constraints.
+    Caps overweight groups and redistributes excess to eligible buyable instruments.
+    """
+    if not options.group_constraints:
+        return "READY"
+
+    # Sort keys for deterministic application order
+    sorted_keys = sorted(options.group_constraints.keys())
+
+    for constraint_key in sorted_keys:
+        constraint = options.group_constraints[constraint_key]
+
+        try:
+            attr_key, attr_val = constraint_key.split(":", 1)
+        except ValueError:
+            diagnostics.warnings.append(f"INVALID_CONSTRAINT_KEY_{constraint_key}")
+            continue
+
+        # Identify group members
+        group_members = []
+        for i_id in eligible_targets:
+            s_ent = next((s for s in shelf if s.instrument_id == i_id), None)
+            if s_ent and s_ent.attributes.get(attr_key) == attr_val:
+                group_members.append(i_id)
+
+        if not group_members:
+            continue
+
+        current_w = sum(eligible_targets[i] for i in group_members)
+
+        # Check tolerance (0.0001) to avoid micro-adjustments
+        if current_w <= constraint.max_weight + Decimal("0.0001"):
+            continue
+
+        # Breach Detected
+        scale = constraint.max_weight / current_w
+        excess = current_w - constraint.max_weight
+
+        # Scale down group members
+        for i_id in group_members:
+            eligible_targets[i_id] *= scale
+
+        # Identify redistribution candidates (Must be in buy_list and NOT in the constrained group)
+        candidates = [i for i in eligible_targets if i in buy_list and i not in group_members]
+        total_cand_w = sum(eligible_targets[c] for c in candidates)
+
+        if total_cand_w > Decimal("0"):
+            # Redistribute proportionally
+            for c in candidates:
+                share = excess * (eligible_targets[c] / total_cand_w)
+                eligible_targets[c] += share
+
+            diagnostics.warnings.append(f"CAPPED_BY_GROUP_LIMIT_{constraint_key}")
+        else:
+            # Trap: Cannot redistribute
+            diagnostics.warnings.append(f"CAPPED_BY_GROUP_LIMIT_{constraint_key}")
+            diagnostics.warnings.append("NO_ELIGIBLE_REDISTRIBUTION_DESTINATION")
+            return "BLOCKED"
+
+    return "READY"
+
+
 def _generate_targets(
-    model, eligible_targets, buy_list, sell_only_excess, options, total_val, base_ccy
+    model,
+    eligible_targets,
+    buy_list,
+    sell_only_excess,
+    shelf=None,
+    options=None,
+    total_val=Decimal("0"),
+    base_ccy="USD",
+    diagnostics=None,
 ):
     """Stage 3: Normalization and Constraints."""
+    if shelf is None:
+        shelf = []
+    if options is None:
+        options = EngineOptions()
+    if diagnostics is None:
+        diagnostics = DiagnosticsData(
+            warnings=[],
+            suppressed_intents=[],
+            data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+        )
+
     status = "READY"
 
     if sell_only_excess > Decimal("0.0"):
@@ -154,6 +238,15 @@ def _generate_targets(
                 eligible_targets[i_id] = w + (sell_only_excess * (w / total_rec))
         else:
             status = "PENDING_REVIEW"
+
+    # --- RFC-0008: Group Constraints Start ---
+    group_status = _apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnostics)
+    if group_status == "BLOCKED":
+        # If blocked by group logic, we stop target generation early but return trace so far?
+        # Actually, the caller handles blocked status by inspecting the return.
+        # We need to ensure we return a status that triggers the block.
+        return [], "BLOCKED"
+    # --- RFC-0008 End ---
 
     total_w = sum(eligible_targets.values())
     if total_w > Decimal("1.0001"):
@@ -205,6 +298,14 @@ def _generate_targets(
     for t in model.targets:
         final_w = eligible_targets.get(t.instrument_id, Decimal("0.0"))
         tags = ["CAPPED_BY_MAX_WEIGHT"] if t.weight > final_w else []
+
+        # Heuristic for group-cap tagging in trace.
+        # We do not track per-instrument delta in this helper.
+        # If diagnostics says we capped a group and this instrument is in it,
+        # we can add a tag.
+        # For strictness, checking if weight reduced is enough?
+        # Let's keep it simple: if final < model, we say capped.
+
         if final_w > t.weight:
             tags.append("REDISTRIBUTED_RECIPIENT")
         trace.append(
@@ -472,21 +573,22 @@ def _check_blocking_dq(dq_log, options):
 def run_simulation(portfolio, market_data, model, shelf, options, request_hash="no_hash"):
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
     dq, warns, suppressed = {"price_missing": [], "fx_missing": [], "shelf_missing": []}, [], []
+    diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
 
-    before = build_simulated_state(portfolio, market_data, shelf, dq, warns, options)
+    before = build_simulated_state(
+        portfolio, market_data, shelf, diag_data.data_quality, diag_data.warnings, options
+    )
     tv = before.total_value.amount
 
     eligible, excl, buy_l, sell_l, s_exc = _build_universe(
-        model, portfolio, shelf, options, dq, before
+        model, portfolio, shelf, options, diag_data.data_quality, before
     )
 
     trace, s3_stat = _generate_targets(
-        model, eligible, buy_l, s_exc, options, tv, portfolio.base_currency
+        model, eligible, buy_l, s_exc, shelf, options, tv, portfolio.base_currency, diag_data
     )
 
-    diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
-
-    if _check_blocking_dq(dq, options) or s3_stat == "BLOCKED":
+    if _check_blocking_dq(diag_data.data_quality, options) or s3_stat == "BLOCKED":
         return _make_blocked_result(
             run_id=run_id,
             portfolio=portfolio,
@@ -500,10 +602,19 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             request_hash=request_hash,
         )
 
-    intents = _generate_intents(portfolio, market_data, trace, shelf, options, tv, dq, suppressed)
+    intents = _generate_intents(
+        portfolio,
+        market_data,
+        trace,
+        shelf,
+        options,
+        tv,
+        diag_data.data_quality,
+        diag_data.suppressed_intents,
+    )
 
-    if _check_blocking_dq(dq, options):
-        diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
+    if _check_blocking_dq(diag_data.data_quality, options):
+        # Re-wrap diagnostics if DQ fails late (though typically caught earlier)
         return _make_blocked_result(
             run_id=run_id,
             portfolio=portfolio,
@@ -516,8 +627,6 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             diagnostics=diag_data,
             request_hash=request_hash,
         )
-
-    diag_data = DiagnosticsData(data_quality=dq, suppressed_intents=suppressed, warnings=warns)
 
     intents, after, rules, f_stat, recon = _generate_fx_and_simulate(
         portfolio, market_data, shelf, intents, options, tv, diag_data

@@ -1,7 +1,7 @@
 from decimal import Decimal
 
-from src.core.engine import _generate_targets, run_simulation
-from src.core.models import EngineOptions
+from src.core.engine import _apply_group_constraints, _generate_targets, run_simulation
+from src.core.models import DiagnosticsData, EngineOptions, GroupConstraint, ShelfEntry
 from tests.assertions import assert_status
 from tests.factories import model_portfolio, position, target
 
@@ -48,3 +48,74 @@ class TestTargetGeneration:
         )
 
         assert status == "PENDING_REVIEW"
+
+    def test_apply_group_constraints_invalid_key_adds_warning(self):
+        diagnostics = DiagnosticsData(
+            warnings=[],
+            suppressed_intents=[],
+            data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+        )
+        eligible_targets = {"A": Decimal("0.60")}
+        shelf = [ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"})]
+        options = EngineOptions(
+            group_constraints={"bad_key": GroupConstraint(max_weight=Decimal("0.10"))}
+        )
+
+        status = _apply_group_constraints(eligible_targets, ["A"], shelf, options, diagnostics)
+
+        assert status == "READY"
+        assert "INVALID_CONSTRAINT_KEY_bad_key" in diagnostics.warnings
+
+    def test_apply_group_constraints_ignores_constraint_when_no_group_members(self):
+        diagnostics = DiagnosticsData(
+            warnings=[],
+            suppressed_intents=[],
+            data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+        )
+        eligible_targets = {"A": Decimal("0.60")}
+        shelf = [ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"})]
+        options = EngineOptions(
+            group_constraints={"region:EMEA": GroupConstraint(max_weight=Decimal("0.10"))}
+        )
+
+        status = _apply_group_constraints(eligible_targets, ["A"], shelf, options, diagnostics)
+
+        assert status == "READY"
+        assert diagnostics.warnings == []
+
+    def test_apply_group_constraints_noop_when_within_tolerance(self):
+        diagnostics = DiagnosticsData(
+            warnings=[],
+            suppressed_intents=[],
+            data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+        )
+        eligible_targets = {"A": Decimal("0.5000"), "B": Decimal("0.5000")}
+        shelf = [
+            ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"}),
+            ShelfEntry(instrument_id="B", status="APPROVED", attributes={"sector": "FIN"}),
+        ]
+        options = EngineOptions(
+            group_constraints={"sector:TECH": GroupConstraint(max_weight=Decimal("0.5000"))}
+        )
+
+        status = _apply_group_constraints(eligible_targets, ["A", "B"], shelf, options, diagnostics)
+
+        assert status == "READY"
+        assert eligible_targets["A"] == Decimal("0.5000")
+        assert diagnostics.warnings == []
+
+    def test_generate_targets_uses_default_options_when_not_provided(self):
+        model = model_portfolio(targets=[target("A", "0.40")])
+        eligible_targets = {"A": Decimal("0.40")}
+
+        trace, status = _generate_targets(
+            model=model,
+            eligible_targets=eligible_targets,
+            buy_list=["A"],
+            sell_only_excess=Decimal("0.0"),
+            total_val=Decimal("100"),
+            base_ccy="USD",
+        )
+
+        assert status == "READY"
+        assert trace[0].instrument_id == "A"
