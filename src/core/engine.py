@@ -499,7 +499,7 @@ def _generate_targets_solver(
         return [], "BLOCKED"
 
     for idx, i_id in enumerate(tradeable_ids):
-        solved_weight = Decimal(str(max(float(w.value[idx]), 0.0)))
+        solved_weight = Decimal(str(max(float(w.value[idx]), 0.0))).quantize(Decimal("0.0001"))
         eligible_targets[i_id] = solved_weight
 
     return _build_target_trace(model, eligible_targets, buy_list, total_val, base_ccy), status
