@@ -4,7 +4,7 @@
 | --- | --- |
 | **Status** | IMPLEMENTED |
 | **Created** | 2026-02-15 |
-| **Target Release** | TBD |
+| **Target Release** | Completed |
 | **Doc Location** | docs/rfcs/RFC-0006B-pre-persistence-rules-scenarios-demo.md |
 
 ---

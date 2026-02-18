@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (Feature-Flagged) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-17 |
 | **Target Release** | 2026-02-18 |
 | **Doc Location** | docs/rfcs/RFC-0009-tax-aware-rebalancing-hifo-tax-budget.md |

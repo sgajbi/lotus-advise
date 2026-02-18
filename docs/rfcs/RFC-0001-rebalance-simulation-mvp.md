@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (With Later RFC Deltas) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-13 |
 | **Target Release** | MVP-1 |
 | **Doc Location** | docs/rfcs/RFC-0001-rebalance-simulation-mvp.md |

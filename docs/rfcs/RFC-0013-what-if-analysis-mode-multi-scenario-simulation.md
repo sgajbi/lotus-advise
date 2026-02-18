@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (Tax-Aware Comparison Deferred to RFC-0009) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-17 |
 | **Implemented On** | 2026-02-18 |
 | **Doc Location** | docs/rfcs/RFC-0013-what-if-analysis-mode-multi-scenario-simulation.md |
@@ -38,7 +38,7 @@ Advisors and PMs need quick comparison across policy choices. Repeating large re
 1. Cross-scenario optimization.
 2. Scenario dependency graphing (scenario B depends on A).
 3. Asynchronous distributed execution in this RFC.
-4. Tax-budget logic and tax-impact metrics (explicitly deferred to RFC-0009).
+4. Batch-level tax-impact comparison metrics (deferred to RFC-0015).
 
 ---
 
@@ -151,8 +151,9 @@ Implemented tests:
 
 ## 6. Deferred Scope
 
-1. Tax-budget controls and realized gains comparison are deferred to RFC-0009.
-2. Batch response currently provides a turnover proxy, not tax-impact metrics.
+1. Tax-budget controls are implemented in RFC-0009.
+2. Batch-level realized gains/tax-impact comparison remains deferred to RFC-0015.
+3. Batch response currently provides a turnover proxy, not tax-impact metrics.
 
 ---
 

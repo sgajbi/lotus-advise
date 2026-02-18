@@ -4,7 +4,7 @@
 | --- | --- |
 | **Status** | IMPLEMENTED |
 | **Created** | 2026-02-14 |
-| **Target Release** | TBD |
+| **Target Release** | Completed |
 | **Doc Location** | docs/rfcs/RFC-0004-institutional-afterstate-holdings-goldens.md |
 
 ---

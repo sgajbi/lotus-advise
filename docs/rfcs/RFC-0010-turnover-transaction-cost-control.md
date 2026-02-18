@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (Turnover Cap v1; Explicit Cost Model Deferred) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-17 |
 | **Implemented On** | 2026-02-18 |
 | **Doc Location** | docs/rfcs/RFC-0010-turnover-transaction-cost-control.md |
@@ -125,8 +125,8 @@ Implemented tests:
 
 ## 6. Deferred Scope
 
-1. Explicit transaction-cost model (spread/commission/slippage terms) is deferred to future RFC work.
-2. Partial intent sizing is deferred.
+1. Explicit transaction-cost model (spread/commission/slippage terms) is deferred to RFC-0015.
+2. Partial intent sizing is deferred to RFC-0015.
 
 ---
 

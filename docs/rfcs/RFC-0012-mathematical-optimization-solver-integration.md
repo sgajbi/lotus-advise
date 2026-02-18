@@ -2,9 +2,9 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (Feature-Flagged) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-17 |
-| **Target Release** | TBD |
+| **Target Release** | Completed |
 | **Doc Location** | docs/rfcs/RFC-0012-mathematical-optimization-solver-integration.md |
 
 ---
