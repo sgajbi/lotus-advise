@@ -8,73 +8,52 @@ import pytest
 from pydantic import ValidationError
 
 from src.core.models import (
-    EngineOptions,
-    FxSpotIntent,
     Money,
-    SecurityTradeIntent,
-    ValuationMode,
+    ShelfEntry,
+    SimulatedState,
 )
 
 
-def test_engine_options_defaults():
-    """RFC-0007A: Validation Mode must default to CALCULATED."""
-    opts = EngineOptions()
-    assert opts.valuation_mode == ValuationMode.CALCULATED
-    assert opts.allow_restricted is False
+def test_money_validation():
+    m = Money(amount=Decimal("100.00"), currency="USD")
+    assert m.amount == Decimal("100.00")
+    assert m.currency == "USD"
+
+    with pytest.raises(ValidationError):
+        Money(amount="invalid", currency="USD")
 
 
-def test_security_trade_intent_valid():
-    """Valid Security Trade."""
-    intent = SecurityTradeIntent(
-        intent_id="oi_1",
+def test_shelf_entry_status_validation():
+    # Valid status
+    s = ShelfEntry(instrument_id="AAPL", status="APPROVED")
+    assert s.status == "APPROVED"
+
+    # Invalid status
+    with pytest.raises(ValidationError):
+        ShelfEntry(instrument_id="AAPL", status="INVALID_STATUS")
+
+
+def test_shelf_entry_attributes():
+    # Test attribute tagging support (RFC-0008)
+    s = ShelfEntry(
         instrument_id="AAPL",
-        side="BUY",
-        quantity=Decimal("10"),
-        notional=Money(amount=Decimal("1500"), currency="USD"),
-        notional_base=Money(amount=Decimal("2000"), currency="SGD"),
+        status="APPROVED",
+        attributes={"sector": "TECH", "region": "US"},
     )
-    assert intent.intent_type == "SECURITY_TRADE"
-    assert intent.instrument_id == "AAPL"
+    assert s.attributes["sector"] == "TECH"
+    assert s.attributes["region"] == "US"
+    assert len(s.attributes) == 2
 
 
-def test_fx_spot_intent_valid():
-    """Valid FX Spot."""
-    intent = FxSpotIntent(
-        intent_id="oi_fx_1",
-        pair="USD/SGD",
-        buy_currency="USD",
-        buy_amount=Decimal("1000"),
-        sell_currency="SGD",
-        sell_amount_estimated=Decimal("1350"),
+def test_simulated_state_structure():
+    # Ensure compatibility with new allocation_by_attribute field
+    state = SimulatedState(
+        total_value=Money(amount=Decimal("100"), currency="USD"),
+        positions=[],
+        cash_balances=[],
+        allocation_by_asset_class=[],
+        allocation_by_instrument=[],
+        allocation=[],
+        allocation_by_attribute={"sector": []},
     )
-    assert intent.intent_type == "FX_SPOT"
-    assert not hasattr(intent, "instrument_id")
-
-
-def test_intent_discrimination():
-    """
-    Ensure Pydantic strictly validates the discriminated union.
-    If we try to pass an FX intent structure as a Security intent, it should fail.
-    """
-    with pytest.raises(ValidationError) as exc:
-        SecurityTradeIntent(
-            intent_id="fail_1",
-            side="BUY",
-            quantity=Decimal("10"),
-        )
-    assert "Field required" in str(exc.value)
-    assert "instrument_id" in str(exc.value)
-
-
-def test_fx_intent_requirements():
-    """FX Intent must have pair and amounts."""
-    with pytest.raises(ValidationError) as exc:
-        FxSpotIntent(
-            intent_id="fail_fx",
-            buy_currency="USD",
-            buy_amount=Decimal("100"),
-            sell_currency="SGD",
-            sell_amount_estimated=Decimal("130"),
-        )
-    assert "Field required" in str(exc.value)
-    assert "pair" in str(exc.value)
+    assert "sector" in state.allocation_by_attribute
