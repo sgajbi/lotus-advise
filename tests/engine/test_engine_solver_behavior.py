@@ -315,3 +315,39 @@ def test_solver_infeasible_emits_locked_group_hint():
     assert trace == []
     assert any(w.startswith("INFEASIBLE_") for w in diagnostics.warnings)
     assert "INFEASIBILITY_HINT_LOCKED_GROUP_WEIGHT_sector:TECH" in diagnostics.warnings
+
+
+@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+def test_compare_target_methods_emits_divergence_warnings_and_payload():
+    pf = portfolio_snapshot(
+        portfolio_id="pf_solver_compare",
+        base_currency="USD",
+        cash_balances=[cash("USD", "1000")],
+    )
+    mkt = market_data_snapshot(
+        prices=[price("Tech_A", "100", "USD"), price("Bond_B", "100", "USD")], fx_rates=[]
+    )
+    model = model_portfolio(targets=[target("Tech_A", "1.0"), target("Bond_B", "0.0")])
+    shelf = [
+        ShelfEntry(instrument_id="Tech_A", status="APPROVED", attributes={"sector": "TECH"}),
+        ShelfEntry(instrument_id="Bond_B", status="APPROVED", attributes={"sector": "FI"}),
+    ]
+    options = EngineOptions(
+        target_method="SOLVER",
+        compare_target_methods=True,
+        cash_band_min_weight=Decimal("0.5"),
+        cash_band_max_weight=Decimal("0.5"),
+        group_constraints={"sector:TECH": GroupConstraint(max_weight=Decimal("0.3"))},
+    )
+
+    result = run_simulation(pf, mkt, model, shelf, options)
+
+    assert result.status == "READY"
+    assert "TARGET_METHOD_STATUS_DIVERGENCE" in result.diagnostics.warnings
+    assert "TARGET_METHOD_WEIGHT_DIVERGENCE" in result.diagnostics.warnings
+    comparison = result.explanation["target_method_comparison"]
+    assert comparison["primary_method"] == "SOLVER"
+    assert comparison["alternate_method"] == "HEURISTIC"
+    assert comparison["primary_status"] == "READY"
+    assert comparison["alternate_status"] == "BLOCKED"
+    assert comparison["differing_instruments"] != []

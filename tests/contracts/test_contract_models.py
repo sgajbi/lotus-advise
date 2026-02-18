@@ -94,3 +94,9 @@ def test_diagnostics_supports_group_constraint_events():
 def test_target_method_defaults_to_heuristic():
     options = EngineOptions()
     assert options.target_method == TargetMethod.HEURISTIC
+
+
+def test_target_method_comparison_options_defaults():
+    options = EngineOptions()
+    assert options.compare_target_methods is False
+    assert options.compare_target_methods_tolerance == Decimal("0.0001")

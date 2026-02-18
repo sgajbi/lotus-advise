@@ -1,6 +1,6 @@
 {
   "scenario_name": "12_solver_infeasible",
-  "description": "Solver mode blocks when hard constraints are jointly infeasible with no filler instrument.",
+  "description": "Solver mode blocks when hard constraints are infeasible with no filler instrument.",
   "inputs": {
     "portfolio_snapshot": {
       "portfolio_id": "pf_12b",
@@ -57,7 +57,8 @@
     "status": "BLOCKED",
     "diagnostics": {
       "warnings": [
-        "INFEASIBLE_INFEASIBLE"
+        "INFEASIBLE_INFEASIBLE",
+        "INFEASIBILITY_HINT_SINGLE_POSITION_CAPACITY"
       ]
     }
   }

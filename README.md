@@ -34,6 +34,7 @@ The core engine (`src/core/engine.py`) processes every request through a strictl
     * `HEURISTIC` (legacy redistribution path), or
     * `SOLVER` (convex optimization via `cvxpy`, RFC-0012).
     Active method is controlled by `options.target_method` (default: `HEURISTIC`).
+    Optional dual-path comparison is available via `options.compare_target_methods`.
 4.  **Intents:** Translates weights to trades, suppressing dust (`min_notional`).
 5.  **Simulation:** Generates FX trades (Hub-and-Spoke) and validates the After-State.
 

@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT (Implementation In Progress) |
+| **Status** | IMPLEMENTED (Feature-Flagged) |
 | **Created** | 2026-02-17 |
 | **Target Release** | TBD |
 | **Doc Location** | docs/rfcs/RFC-0012-mathematical-optimization-solver-integration.md |
@@ -128,7 +128,7 @@ def generate_targets_solver(
 
 Implementation requirements:
 1. Use a fixed solver preference order (for example `OSQP` then `SCS`) for deterministic behavior.
-2. Capture dual infeasibility details when available and map to diagnostics. (Pending)
+2. Capture infeasibility details and map to diagnostics.
 3. Keep legacy heuristic as feature-flag fallback during rollout (`options.target_method`).
 
 ### 3.3 Implementation Progress (2026-02-18)
@@ -144,6 +144,14 @@ Completed:
 6. Extracted solver logic and target trace construction into `src/core/target_generation.py` for modularity.
 7. Added targeted solver behavior coverage tests in `tests/engine/test_engine_solver_behavior.py`.
 8. Upgraded vulnerable web framework dependencies and aligned Pydantic typing for compatibility.
+9. Added infeasibility hint diagnostics for common contradictory constraints:
+   1. `INFEASIBILITY_HINT_CASH_BAND_CONTRADICTION`
+   2. `INFEASIBILITY_HINT_SINGLE_POSITION_CAPACITY`
+   3. `INFEASIBILITY_HINT_LOCKED_GROUP_WEIGHT_<constraint_key>`
+10. Added optional dual-path comparison mode:
+   1. `compare_target_methods`
+   2. `compare_target_methods_tolerance`
+   3. Structured output under `explanation.target_method_comparison`
 
 Verification:
 1. `ruff check .` passes.

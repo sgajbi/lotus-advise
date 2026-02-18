@@ -283,6 +283,68 @@ def _generate_targets(
     )
 
 
+def _to_weight_map(trace):
+    return {t.instrument_id: t.final_weight for t in trace}
+
+
+def _compare_target_generation_methods(
+    *,
+    model,
+    eligible_targets,
+    buy_list,
+    sell_only_excess,
+    shelf,
+    options,
+    total_val,
+    base_ccy,
+    primary_trace,
+    primary_status,
+):
+    primary_method = options.target_method
+    alternate_method = (
+        TargetMethod.SOLVER if primary_method == TargetMethod.HEURISTIC else TargetMethod.HEURISTIC
+    )
+
+    alt_options = options.model_copy(update={"target_method": alternate_method})
+    alt_diag = DiagnosticsData(
+        warnings=[],
+        suppressed_intents=[],
+        group_constraint_events=[],
+        data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+    )
+    alt_trace, alt_status = _generate_targets(
+        model=model,
+        eligible_targets=deepcopy(eligible_targets),
+        buy_list=buy_list,
+        sell_only_excess=sell_only_excess,
+        shelf=shelf,
+        options=alt_options,
+        total_val=total_val,
+        base_ccy=base_ccy,
+        diagnostics=alt_diag,
+    )
+
+    primary_weights = _to_weight_map(primary_trace)
+    alternate_weights = _to_weight_map(alt_trace)
+    tolerance = options.compare_target_methods_tolerance
+    differing_instruments = []
+    for i_id in sorted(set(primary_weights.keys()) | set(alternate_weights.keys())):
+        p = primary_weights.get(i_id, Decimal("0"))
+        a = alternate_weights.get(i_id, Decimal("0"))
+        if abs(p - a) > tolerance:
+            differing_instruments.append(i_id)
+
+    return {
+        "primary_method": primary_method.value,
+        "primary_status": primary_status,
+        "alternate_method": alternate_method.value,
+        "alternate_status": alt_status,
+        "tolerance": str(tolerance),
+        "differing_instruments": differing_instruments,
+        "alternate_warnings": sorted(set(alt_diag.warnings)),
+    }
+
+
 def _generate_targets_heuristic(
     model,
     eligible_targets,
@@ -606,10 +668,32 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
     eligible, excl, buy_l, sell_l, s_exc = _build_universe(
         model, portfolio, shelf, options, diag_data.data_quality, before
     )
+    eligible_before_s3 = deepcopy(eligible)
 
     trace, s3_stat = _generate_targets(
         model, eligible, buy_l, s_exc, shelf, options, tv, portfolio.base_currency, diag_data
     )
+
+    target_method_comparison = None
+    if options.compare_target_methods:
+        target_method_comparison = _compare_target_generation_methods(
+            model=model,
+            eligible_targets=eligible_before_s3,
+            buy_list=buy_l,
+            sell_only_excess=s_exc,
+            shelf=shelf,
+            options=options,
+            total_val=tv,
+            base_ccy=portfolio.base_currency,
+            primary_trace=trace,
+            primary_status=s3_stat,
+        )
+        primary_status = target_method_comparison["primary_status"]
+        alternate_status = target_method_comparison["alternate_status"]
+        if primary_status != alternate_status:
+            diag_data.warnings.append("TARGET_METHOD_STATUS_DIVERGENCE")
+        if target_method_comparison["differing_instruments"]:
+            diag_data.warnings.append("TARGET_METHOD_WEIGHT_DIVERGENCE")
 
     if _check_blocking_dq(diag_data.data_quality, options) or s3_stat == "BLOCKED":
         return _make_blocked_result(
@@ -676,7 +760,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
         reconciliation=recon,
         rule_results=rules,
         diagnostics=diag_data,
-        explanation={"summary": f_stat},
+        explanation={"summary": f_stat, "target_method_comparison": target_method_comparison},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,
             market_data_snapshot_id="md",

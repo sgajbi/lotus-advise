@@ -91,6 +91,8 @@ class GroupConstraint(BaseModel):
 class EngineOptions(BaseModel):
     valuation_mode: ValuationMode = ValuationMode.CALCULATED
     target_method: TargetMethod = TargetMethod.HEURISTIC
+    compare_target_methods: bool = False
+    compare_target_methods_tolerance: Decimal = Decimal("0.0001")
 
     cash_band_min_weight: Decimal = Decimal("0.00")
     cash_band_max_weight: Decimal = Decimal("1.00")
