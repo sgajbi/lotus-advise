@@ -7,7 +7,9 @@ import json
 import os
 
 import pytest
+from fastapi.testclient import TestClient
 
+from src.api.main import app, get_db_session
 from src.core.engine import run_simulation
 from src.core.models import (
     EngineOptions,
@@ -35,6 +37,9 @@ def load_demo_scenario(filename):
         ("03_multi_currency_fx.json", "READY"),
         ("04_safety_sell_only.json", "PENDING_REVIEW"),
         ("05_safety_hard_block_price.json", "BLOCKED"),
+        ("06_tax_aware_hifo.json", "READY"),
+        ("07_settlement_overdraft_block.json", "BLOCKED"),
+        ("08_solver_mode.json", "READY"),
     ],
 )
 def test_demo_scenario_execution(filename, expected_status):
@@ -51,3 +56,24 @@ def test_demo_scenario_execution(filename, expected_status):
     assert result.status == expected_status, (
         f"Scenario {filename} failed. Got {result.status}, expected {expected_status}"
     )
+
+
+async def _override_get_db_session():
+    yield None
+
+
+def test_demo_batch_scenario_execution():
+    data = load_demo_scenario("09_batch_what_if_analysis.json")
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        try:
+            response = client.post("/rebalance/analyze", json=data)
+        finally:
+            app.dependency_overrides = original_overrides
+
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body["results"].keys()) == {"baseline", "tax_budget", "settlement_guard"}
+    assert set(body["comparison_metrics"].keys()) == {"baseline", "tax_budget", "settlement_guard"}
+    assert body["failed_scenarios"] == {}
