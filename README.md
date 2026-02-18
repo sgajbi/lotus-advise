@@ -20,6 +20,13 @@ Deferred:
 * RFC-0009 tax-aware controls and tax-impact comparison fields
 
 ---
+## Engine Know-How
+
+Primary implementation guide:
+* `docs/documentation/engine-know-how.md`
+
+---
+
 
 ## 📖 Core Philosophy: "No-Throw" Architecture
 

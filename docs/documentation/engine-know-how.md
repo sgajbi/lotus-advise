@@ -1,254 +1,317 @@
 # Rebalance Engine Know-How
 
-This guide documents the current implementation under `src/core` and `src/api`.
+This is the implementation-aligned reference for the current engine.
 
-## 1. Contract and Philosophy
+Scope:
+- API behavior in `src/api/main.py`
+- Domain models in `src/core/models.py`
+- Core orchestration in `src/core/engine.py`
+- Valuation in `src/core/valuation.py`
+- Rules in `src/core/compliance.py`
+- Target generation in `src/core/target_generation.py`
 
-- The API endpoint is `POST /rebalance/simulate` in `src/api/main.py`.
-- `Idempotency-Key` header is required by FastAPI validation (missing header returns `422`).
-- Domain outcomes are returned in `RebalanceResult.status`:
-  - `READY`
-  - `PENDING_REVIEW`
-  - `BLOCKED`
-- The engine is stateless for calculation: it computes from request payload only.
+## 1. Current API Surface
 
-Important implementation note:
-- The engine does not currently persist or replay idempotency keys. The key is passed into `lineage.request_hash`.
+### `POST /rebalance/simulate`
 
-## 2. Request Shape (What You Must Send)
+Purpose:
+- Run one rebalance simulation.
 
-`RebalanceRequest` requires:
+Headers:
+- Required: `Idempotency-Key`
+- Optional: `X-Correlation-Id`
+
+Body shape:
 - `portfolio_snapshot`
 - `market_data_snapshot`
 - `model_portfolio`
 - `shelf_entries`
-- `options`
+- `options` (`EngineOptions`)
 
-Core model locations:
-- Request/response models: `src/core/models.py`
-- API request wrapper: `src/api/main.py`
+Response:
+- `RebalanceResult`
+- Domain outcomes are always `READY`, `PENDING_REVIEW`, or `BLOCKED`.
+- Invalid payload/header returns `422`.
 
-## 3. 5-Stage Execution Pipeline
+### `POST /rebalance/analyze`
 
-The orchestration entrypoint is `run_simulation(...)` in `src/core/engine.py`.
+Purpose:
+- Run multiple named scenarios using shared snapshots.
+
+Headers:
+- Optional: `X-Correlation-Id`
+
+Body shape:
+- `portfolio_snapshot`
+- `market_data_snapshot`
+- `model_portfolio`
+- `shelf_entries`
+- `scenarios` as `Dict[str, SimulationScenario]`
+
+Scenario key validation:
+- Regex: `[a-z0-9_\-]{1,64}`
+- At least one scenario required
+- Maximum scenarios: `20`
+
+Response:
+- `BatchRebalanceResult` with:
+  - `batch_run_id`
+  - `run_at_utc` (timezone-aware ISO 8601)
+  - `base_snapshot_ids`
+  - `results` (successful scenarios)
+  - `comparison_metrics` (successful scenarios only)
+  - `failed_scenarios`
+  - `warnings` (`PARTIAL_BATCH_FAILURE` when any scenario fails)
+
+## 2. Request/Response Model Notes
+
+Key model details from `src/core/models.py`:
+- `PortfolioSnapshot.snapshot_id` and `MarketDataSnapshot.snapshot_id` are optional.
+- In single-run lineage:
+  - `lineage.portfolio_snapshot_id` is set from `portfolio_snapshot.portfolio_id`.
+  - `lineage.market_data_snapshot_id` is currently fixed to `"md"`.
+- In batch `base_snapshot_ids`:
+  - portfolio id resolves as `snapshot_id` fallback `portfolio_id`.
+  - market data id resolves as `snapshot_id` fallback `"md"`.
+- `BatchScenarioMetric` includes:
+  - `status`
+  - `security_intent_count`
+  - `gross_turnover_notional_base` (`Money`)
+
+## 3. Single-Run Engine Pipeline
+
+Entrypoint:
+- `run_simulation(...)` in `src/core/engine.py`
 
 ### Stage 1: Valuation
 
-Function: `build_simulated_state(...)` (`src/core/valuation.py`)
+Functions:
+- `build_simulated_state(...)`
+- `ValuationService.value_position(...)`
+- `get_fx_rate(...)`
 
-- Values positions and cash in `portfolio_snapshot.base_currency`.
-- Supports:
-  - `ValuationMode.CALCULATED`: `quantity * market price`
-  - `ValuationMode.TRUST_SNAPSHOT`: uses `position.market_value` when provided
-- Logs data quality issues:
+Behavior:
+- Computes position and cash values in portfolio base currency.
+- Supports `valuation_mode`:
+  - `CALCULATED`
+  - `TRUST_SNAPSHOT` (uses `position.market_value` when provided)
+- Records data quality:
   - `price_missing`
   - `fx_missing`
 
 ### Stage 2: Universe Build
 
-Function: `_build_universe(...)`
+Function:
+- `_build_universe(...)`
 
-- Intersects model targets with shelf permissions.
-- Shelf behavior:
-  - `APPROVED`: buy/sell eligible
-  - `RESTRICTED`: excluded unless `options.allow_restricted=True`
-  - `SELL_ONLY`: target forced to zero for buys; weight tracked as redistribution excess
-  - `BANNED` / `SUSPENDED`: excluded
-- Existing holdings not in model are handled explicitly:
-  - Missing shelf entry -> `LOCKED_DUE_TO_MISSING_SHELF`
-  - `SUSPENDED` / `BANNED` / `RESTRICTED` -> locked by status
-  - Otherwise included with target 0 for sell-down path
-- Universe locking applies to all non-zero holdings (`qty != 0`).
+Shelf semantics:
+- `APPROVED`: buy and sell eligible
+- `RESTRICTED`: excluded unless `allow_restricted=True`
+- `SELL_ONLY`: buy blocked, weight moved to redistribution excess
+- `BANNED` / `SUSPENDED`: excluded
 
-### Stage 3: Target Generation and Constraints
+Existing holdings not in model:
+- Missing shelf -> `LOCKED_DUE_TO_MISSING_SHELF`
+- Suspended/Banned/Restricted -> `LOCKED_DUE_TO_<STATUS>`
+- Otherwise target set to zero for sell-down path
 
-Function: `_generate_targets(...)`
+### Stage 3: Target Generation
 
-- Redistributes sell-only excess into buy-eligible targets when possible.
-- Normalizes if effective target sum exceeds 100%.
-- Applies optional constraints:
-  - `group_constraints` (`<attribute_key>:<attribute_value> -> max_weight`)
-  - `single_position_max_weight`
-  - `min_cash_buffer_pct`
-- `group_constraints` validation is strict at request/model parse time:
-  - malformed keys are rejected (`422` at API boundary)
-  - `max_weight` must be in `[0, 1]`
-- If a constraint uses an unknown attribute key, diagnostics warning
-  `UNKNOWN_CONSTRAINT_ATTRIBUTE_<key>` is emitted and the constraint is skipped.
-- Builds target trace (`TargetInstrument`) with tags such as:
-  - `CAPPED_BY_MAX_WEIGHT`
-  - `REDISTRIBUTED_RECIPIENT`
-  - `IMPLICIT_SELL_TO_ZERO`
-  - `LOCKED_POSITION`
-- Can set stage status to `PENDING_REVIEW` when constraints cannot be fully satisfied.
+Dispatcher:
+- `_generate_targets(...)`
+- Method selected by `options.target_method`:
+  - `HEURISTIC` (default)
+  - `SOLVER` (cvxpy-backed)
+
+Heuristic path:
+- `_generate_targets_heuristic(...)`
+- Handles sell-only redistribution, group constraints, max position, cash buffer.
+
+Solver path:
+- `generate_targets_solver(...)` in `src/core/target_generation.py`
+- Solver order is fixed: `OSQP` then `SCS`
+- On infeasible/solver failures emits warnings:
+  - `SOLVER_ERROR`
+  - `INFEASIBLE_<STATUS>`
+  - infeasibility hints (for known contradiction classes)
+
+Optional dual-path analysis:
+- `compare_target_methods=True` executes primary + alternate methods.
+- Comparison output is in `explanation.target_method_comparison`.
+- Divergence warnings:
+  - `TARGET_METHOD_STATUS_DIVERGENCE`
+  - `TARGET_METHOD_WEIGHT_DIVERGENCE`
 
 ### Stage 4: Intent Generation
 
-Function: `_generate_intents(...)`
+Function:
+- `_generate_intents(...)`
 
-- Converts target drift into `SECURITY_TRADE` intents.
-- Quantity is integer floored from notional/price.
-- Looks up threshold from:
-  - `options.min_trade_notional`, else
-  - `shelf_entry.min_notional`
-- If `options.suppress_dust_trades=True` and below threshold:
-  - no trade intent is emitted
-  - a `SuppressedIntent` is added to diagnostics
+Behavior:
+- Converts target drift to `SECURITY_TRADE` intents.
+- Quantity uses integer floor from notional and price.
+- Dust suppression:
+  - threshold from `options.min_trade_notional`, else `shelf_entry.min_notional`.
+  - suppressed intents are written to `diagnostics.suppressed_intents`.
 
-### Stage 5: FX, Simulation, Rules, Reconciliation
+### Stage 5: FX + Simulation + Rules + Reconciliation
 
-Function: `_generate_fx_and_simulate(...)`
+Function:
+- `_generate_fx_and_simulate(...)`
 
-- Projects post-trade cash balances by currency.
-- Creates `FX_SPOT` intents for:
-  - funding deficits (`FUNDING`)
+Behavior:
+- Projects cash and creates `FX_SPOT` intents for:
+  - funding negative non-base balances (`FUNDING`)
   - sweeping positive non-base balances (`SWEEP`)
-- Adds dependencies from buy security intents to funding FX intents (and same-currency sell dependencies).
-- Applies intents to a simulated portfolio state.
-- Runs post-trade rule engine: `RuleEngine.evaluate(...)` (`src/core/compliance.py`).
-- Performs value reconciliation:
+- Adds dependencies:
+  - buy intents depend on funding FX where needed
+  - buy intents can depend on same-currency sells
+- Applies all intents to simulated after-state.
+- Evaluates rules via `RuleEngine.evaluate(...)`.
+- Runs reconciliation:
   - tolerance = `0.5 + before_total * 0.0005`
-  - mismatch adds hard rule `RECONCILIATION` with reason `VALUE_MISMATCH`
+  - mismatch emits hard `RECONCILIATION` fail with `VALUE_MISMATCH`
 
-## 4. Worked Examples
+## 4. Status Semantics
 
-These examples are aligned with current behavior in `src/core/engine.py`.
+Single-run status:
+- `READY`: no hard fails and no pending stage condition.
+- `PENDING_REVIEW`: soft-rule failure and/or stage-3 pending condition.
+- `BLOCKED`: hard failure or blocking data quality.
 
-### Example A: Valuation in Base Currency (Stage 1)
+Batch status behavior:
+- No batch-level status enum.
+- Each successful scenario has its own status.
+- Failed scenario execution/validation is reported in `failed_scenarios`.
 
-- Base currency: `SGD`
-- Position: `AAPL`, quantity `10`
-- Price: `150 USD`
-- FX: `USD/SGD = 1.35`
-
-Result:
-- Instrument value = `10 * 150 = 1500 USD`
-- Base value = `1500 * 1.35 = 2025 SGD`
-
-### Example B: `SELL_ONLY` Target Redistribution (Stages 2-3)
-
-- Model targets:
-  - `FUND_A = 0.60` (`SELL_ONLY`)
-  - `FUND_B = 0.40` (`APPROVED`)
-- `FUND_A` cannot be bought, so target weight for buy path becomes `0`.
-- Excess `0.60` is redistributed to buy-eligible targets.
-
-Result:
-- `FUND_B` final weight moves toward `1.00` (subject to caps/buffers).
-- Stage status can become `PENDING_REVIEW` if constraints cannot absorb excess cleanly.
-
-### Example C: Single Position Cap (Stage 3)
-
-- Model targets:
-  - `EQ_A = 0.80`
-  - `EQ_B = 0.20`
-- Option: `single_position_max_weight = 0.30`
-
-Result:
-- `EQ_A` capped to `0.30` with tag `CAPPED_BY_MAX_WEIGHT`.
-- Overflow redistributes to other eligible assets where possible.
-- If overflow cannot be fully placed, run status trends to `PENDING_REVIEW`.
-
-### Example D: Dust Suppression (Stage 4)
-
-- Intended trade notional: `100 USD`
-- Threshold: `min_trade_notional = 500 USD`
-- `suppress_dust_trades = true`
-
-Result:
-- No `SECURITY_TRADE` intent emitted.
-- Diagnostics includes one `SuppressedIntent` with reason `BELOW_MIN_NOTIONAL`.
-
-### Example E: FX Funding and Dependencies (Stage 5)
-
-- Buy intent requires `EUR`, but projected `EUR` cash is negative.
-- Engine creates `FX_SPOT` with rationale code `FUNDING`.
-- Buy security intent includes dependency on that FX intent.
-
-Result:
-- Intent ordering is sell trades, then FX, then buy trades.
-- Prevents unfunded buy execution in the simulated sequence.
-
-### Example F: Blocking Data Quality
-
-- Target instrument has no price.
-- `block_on_missing_prices = true` (default).
-
-Result:
-- Status becomes `BLOCKED`.
-- Diagnostics shows `data_quality.price_missing`.
-
-Reference payloads:
-- Request example: `docs/sample_request.json`
-- Response example: `docs/sample_response.json`
-
-## 5. Status Semantics
-
-`READY`
-- No hard-rule failures and no stage-level pending conditions.
-
-`PENDING_REVIEW`
-- No hard-rule failures, but at least one soft fail or stage-3 pending condition exists.
-
-`BLOCKED`
-- Triggered by hard failures, including:
-  - blocking data quality (`price_missing`, `fx_missing`, `shelf_missing` under relevant options)
-  - rule failures like `NO_SHORTING`, `INSUFFICIENT_CASH`, `DATA_QUALITY`
-  - reconciliation mismatch
-
-## 6. Post-Trade Rules (Current Set)
+## 5. Rule Engine (Current Rules)
 
 From `src/core/compliance.py`:
-- `CASH_BAND` (SOFT)
-- `SINGLE_POSITION_MAX` (HARD)
-- `DATA_QUALITY` (HARD)
-- `MIN_TRADE_SIZE` (SOFT informational/pass-style signal)
-- `NO_SHORTING` (HARD)
-- `INSUFFICIENT_CASH` (HARD)
+- `CASH_BAND` (`SOFT`)
+- `SINGLE_POSITION_MAX` (`HARD`)
+- `DATA_QUALITY` (`HARD`)
+- `MIN_TRADE_SIZE` (`SOFT`)
+- `NO_SHORTING` (`HARD`)
+- `INSUFFICIENT_CASH` (`HARD`)
 
-## 7. Diagnostics and Auditability
+## 6. Key Engine Options (Current)
 
-`RebalanceResult` contains:
-- `before` and `after_simulated` states
-- `universe` eligibility/exclusions
-- `target` trace (`model_weight -> final_weight`)
-- `intents` with dependencies
-- `rule_results`
-- `diagnostics`:
-  - `warnings`
-  - `suppressed_intents`
-  - `group_constraint_events` (breach, released weight, recipients, status)
-  - `data_quality`
-- `lineage`
-
-Current implementation details:
-- `lineage.portfolio_snapshot_id` comes from input `portfolio_snapshot.portfolio_id`.
-- `lineage.market_data_snapshot_id` is currently fixed to `"md"`.
-- `correlation_id` in response is currently fixed to `"c_none"` (request header is logged but not propagated).
-
-## 8. Key Engine Options
-
-Defined in `EngineOptions` (`src/core/models.py`):
-
+Implemented and active:
 - `valuation_mode`
+- `target_method`
+- `compare_target_methods`
+- `compare_target_methods_tolerance`
 - `cash_band_min_weight`
 - `cash_band_max_weight`
 - `single_position_max_weight`
 - `min_trade_notional`
 - `allow_restricted`
 - `suppress_dust_trades`
-- `dust_trade_threshold` (present in model; currently not used in engine logic)
 - `fx_buffer_pct`
 - `block_on_missing_prices`
 - `block_on_missing_fx`
 - `min_cash_buffer_pct`
 - `group_constraints`
 
-## 9. Practical Notes for Maintainers
+Present in model but not actively consumed in core engine logic:
+- `dust_trade_threshold`
 
-- If docs or examples show behavior not listed here, verify against:
-  - `src/core/engine.py`
-  - `src/core/valuation.py`
-  - `src/core/compliance.py`
-  - `tests/engine/*` and `tests/api/*`
-- For scenario-based regression, use golden tests under `tests/golden_data/`.
+## 7. Batch Analyze Semantics
+
+Execution:
+- Scenario names are processed in sorted order.
+- Each scenario validates `options` independently using `EngineOptions.model_validate(...)`.
+
+Failure isolation:
+- Invalid options:
+  - `failed_scenarios[name] = "INVALID_OPTIONS: ..."`
+- Runtime exception:
+  - `failed_scenarios[name] = "SCENARIO_EXECUTION_ERROR: <ExceptionType>"`
+- Any failure adds batch warning:
+  - `PARTIAL_BATCH_FAILURE`
+
+Comparison metrics:
+- Computed only for successful scenarios.
+- `gross_turnover_notional_base` is the sum of `notional_base.amount` for `SECURITY_TRADE` intents.
+- A no-trade scenario yields:
+  - `security_intent_count = 0`
+  - `gross_turnover_notional_base.amount = 0`
+
+## 8. Implementation Status Matrix
+
+Implemented RFC slices:
+- RFC-0001 to RFC-0008
+- RFC-0012 (solver integration; selectable by `target_method`)
+- RFC-0013 (batch what-if analysis)
+
+Explicitly deferred:
+- RFC-0009 tax-aware controls and tax-impact metrics
+- RFC-0010 turnover/cost controls as explicit optimization terms
+- RFC-0011 settlement ladder and overdraft policy mechanics
+
+## 9. Practical Examples
+
+### Example A: Single-run simulate
+
+```bash
+curl -X POST "http://127.0.0.1:8000/rebalance/simulate" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: demo-1" \
+  -d @docs/sample_request.json
+```
+
+See:
+- `docs/sample_request.json`
+- `docs/sample_response.json`
+
+### Example B: Batch analyze with one valid and one invalid scenario
+
+```json
+{
+  "portfolio_snapshot": { "...": "shared" },
+  "market_data_snapshot": { "...": "shared" },
+  "model_portfolio": { "...": "shared" },
+  "shelf_entries": [{ "...": "shared" }],
+  "scenarios": {
+    "baseline": { "options": {} },
+    "invalid_case": {
+      "options": {
+        "group_constraints": {
+          "sectorTECH": { "max_weight": "0.2" }
+        }
+      }
+    }
+  }
+}
+```
+
+Expected:
+- `baseline` in `results` and `comparison_metrics`
+- `invalid_case` in `failed_scenarios`
+- `warnings` includes `PARTIAL_BATCH_FAILURE`
+
+Reference tests:
+- `tests/api/test_api_rebalance.py`
+- `tests/golden/test_golden_batch_analysis.py`
+
+### Example C: Zero-turnover batch metric
+
+Reference scenario:
+- `tests/golden_data/scenario_13_zero_turnover_batch.json`
+
+Expected metric:
+- `security_intent_count = 0`
+- `gross_turnover_notional_base.amount = "0"`
+
+## 10. Where Behavior Is Locked by Tests
+
+Primary suites:
+- API contracts: `tests/api/test_api_rebalance.py`
+- Model contracts: `tests/contracts/test_contract_models.py`
+- Golden single-run: `tests/golden/test_golden_scenarios.py`
+- Golden batch: `tests/golden/test_golden_batch_analysis.py`
+- Engine behavior: `tests/engine/`
+
+When changing behavior:
+- Update code, tests, and this document in the same slice.
+- If behavior change is intentional, update or add golden files under `tests/golden_data/`.
