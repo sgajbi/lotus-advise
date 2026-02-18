@@ -52,7 +52,17 @@ cvxpy>=1.4.0
 numpy>=1.26.0
 ```
 
-### 3.2 Target Solver (`src/core/engine.py`)
+Implemented in repository:
+
+```text
+fastapi==0.129.0
+starlette==0.49.1
+pydantic==2.11.9
+cvxpy>=1.4.0
+numpy>=1.26.0
+```
+
+### 3.2 Target Solver (`src/core/target_generation.py`)
 
 Replace target generation with `_solve_targets`.
 
@@ -110,6 +120,25 @@ Implementation requirements:
 1. Use a fixed solver preference order (for example `OSQP` then `SCS`) for deterministic behavior.
 2. Capture dual infeasibility details when available and map to diagnostics.
 3. Keep legacy heuristic as feature-flag fallback during rollout (`options.target_method`).
+
+### 3.4 Implementation Progress (2026-02-18)
+
+Completed:
+1. Added feature flag `EngineOptions.target_method = HEURISTIC | SOLVER` (default `HEURISTIC`).
+2. Implemented solver-backed Stage 3 path with deterministic solver order `OSQP` then `SCS`.
+3. Preserved legacy heuristic path and status contract (`READY`, `PENDING_REVIEW`, `BLOCKED`).
+4. Added reason-code diagnostics for solver failures: `SOLVER_ERROR`, `INFEASIBLE_<STATUS>`.
+5. Added golden scenarios:
+   1. `tests/golden_data/scenario_12_solver_conflict.json`
+   2. `tests/golden_data/scenario_12_solver_infeasible.json`
+6. Extracted solver logic and target trace construction into `src/core/target_generation.py` for modularity.
+7. Added targeted solver behavior coverage tests in `tests/engine/test_engine_solver_behavior.py`.
+8. Upgraded vulnerable web framework dependencies and aligned Pydantic typing for compatibility.
+
+Verification:
+1. `ruff check .` passes.
+2. `pytest -q` passes.
+3. `pip_audit -r requirements.txt` reports no known vulnerabilities.
 
 ### 3.3 Objective and Constraints
 

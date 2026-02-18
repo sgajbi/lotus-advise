@@ -4,7 +4,7 @@ FILE: src/core/models.py
 
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -277,7 +277,7 @@ class RebalanceResult(BaseModel):
     before: SimulatedState
     universe: UniverseData
     target: TargetData
-    intents: List[OrderIntent] = Field(discriminator="intent_type")
+    intents: List[Annotated[OrderIntent, Field(discriminator="intent_type")]]
     after_simulated: SimulatedState
     reconciliation: Optional[Reconciliation] = None
     rule_results: List[RuleResult] = Field(default_factory=list)
