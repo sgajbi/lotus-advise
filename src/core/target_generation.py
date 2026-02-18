@@ -3,9 +3,7 @@ from decimal import Decimal
 from src.core.models import Money, TargetInstrument
 
 
-def _collect_infeasibility_hints(
-    *, tradeable_ids, locked_weight, options, eligible_targets, shelf
-):
+def _collect_infeasibility_hints(*, tradeable_ids, locked_weight, options, eligible_targets, shelf):
     hints = []
 
     invested_min = Decimal("1.0") - options.cash_band_max_weight - locked_weight

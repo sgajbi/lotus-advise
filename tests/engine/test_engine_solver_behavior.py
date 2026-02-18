@@ -318,6 +318,36 @@ def test_solver_infeasible_emits_locked_group_hint():
 
 
 @pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+def test_solver_infeasible_skips_non_matching_group_hint():
+    model = model_portfolio(targets=[target("A", "1.0")])
+    diagnostics = _diag()
+    trace, status = _generate_targets(
+        model=model,
+        eligible_targets={"A": Decimal("1.0")},
+        buy_list=["A"],
+        sell_only_excess=Decimal("0"),
+        shelf=[ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"})],
+        options=EngineOptions(
+            target_method="SOLVER",
+            cash_band_min_weight=Decimal("0.7"),
+            cash_band_max_weight=Decimal("0.1"),
+            group_constraints={"sector:HEALTH": GroupConstraint(max_weight=Decimal("0.2"))},
+        ),
+        total_val=Decimal("1000"),
+        base_ccy="USD",
+        diagnostics=diagnostics,
+    )
+
+    assert status == "BLOCKED"
+    assert trace == []
+    assert "INFEASIBILITY_HINT_CASH_BAND_CONTRADICTION" in diagnostics.warnings
+    assert not any(
+        warning.startswith("INFEASIBILITY_HINT_LOCKED_GROUP_WEIGHT_")
+        for warning in diagnostics.warnings
+    )
+
+
+@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
 def test_compare_target_methods_emits_divergence_warnings_and_payload():
     pf = portfolio_snapshot(
         portfolio_id="pf_solver_compare",
