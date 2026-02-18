@@ -352,3 +352,127 @@ Primary suites:
 When changing behavior:
 - Update code, tests, and this document in the same slice.
 - If behavior change is intentional, update or add golden files under `tests/golden_data/`.
+
+## 11. Feature Catalog (What Exists and How to Enable)
+
+This section is a quick reference for all currently supported engine features.
+
+### 11.1 Always-On Core Features
+
+1. Canonical simulation endpoint
+- What it does: runs full rebalance simulation and returns audit bundle.
+- Where: `POST /rebalance/simulate`.
+- How to enable: always on.
+
+2. Deterministic pipeline execution
+- What it does: fixed stage order (valuation, universe, targets, intents, simulation/rules/reconciliation).
+- How to enable: always on.
+
+3. Shelf status enforcement
+- What it does: enforces `APPROVED`, `RESTRICTED`, `SELL_ONLY`, `SUSPENDED`, `BANNED`.
+- How to enable: always on; `allow_restricted` can relax restricted exclusion.
+
+4. Post-trade safety checks
+- What it does: checks no-shorting, insufficient cash, and reconciliation mismatch hard blocks.
+- How to enable: always on.
+
+5. No-throw domain outcomes
+- What it does: valid payloads return `READY`, `PENDING_REVIEW`, or `BLOCKED` with diagnostics.
+- How to enable: always on.
+
+### 11.2 Configurable Features (Request Options)
+
+1. Valuation policy
+- What it does: controls whether valuation uses computed price/FX or trusted snapshot market values.
+- Option: `options.valuation_mode`.
+- Values: `CALCULATED` (default), `TRUST_SNAPSHOT`.
+
+2. Target generation method
+- What it does: chooses heuristic target generation or solver optimization.
+- Option: `options.target_method`.
+- Values: `HEURISTIC` (default), `SOLVER`.
+
+3. Target method comparison
+- What it does: runs primary and alternate target methods and reports divergence.
+- Option: `options.compare_target_methods=true`.
+- Tolerance option: `options.compare_target_methods_tolerance`.
+
+4. Cash band policy
+- What it does: evaluates soft cash allocation bounds in compliance checks.
+- Options: `options.cash_band_min_weight`, `options.cash_band_max_weight`.
+
+5. Single-position cap
+- What it does: caps concentration and can force `PENDING_REVIEW`.
+- Option: `options.single_position_max_weight`.
+
+6. Minimum trade notional and dust suppression
+- What it does: suppresses micro-trades under configured threshold.
+- Options:
+  - `options.suppress_dust_trades` (default `true`)
+  - `options.min_trade_notional` (request-level threshold)
+  - fallback from `shelf_entry.min_notional`.
+
+7. Missing-data blocking policy
+- What it does: controls whether missing prices/FX are hard-blocking.
+- Options:
+  - `options.block_on_missing_prices` (default `true`)
+  - `options.block_on_missing_fx` (default `true`).
+
+8. FX funding buffer
+- What it does: applies buffer to FX funding amount for negative currency balances.
+- Option: `options.fx_buffer_pct`.
+
+9. Minimum cash buffer in target generation
+- What it does: scales tradeable target weights to preserve required cash.
+- Option: `options.min_cash_buffer_pct`.
+
+10. Group constraints (RFC-0008)
+- What it does: caps attribute groups (for example sector) and redistributes excess.
+- Option: `options.group_constraints`.
+- Key format: `<attribute_key>:<attribute_value>`, for example `sector:TECH`.
+
+11. Turnover cap (RFC-0010)
+- What it does: applies deterministic skip-and-continue selection under turnover budget.
+- Option: `options.max_turnover_pct`.
+- Diagnostics:
+  - dropped intents with `reason=TURNOVER_LIMIT`
+  - warning `PARTIAL_REBALANCE_TURNOVER_LIMIT`.
+
+12. Tax-aware sell allocation (RFC-0009)
+- What it does: uses HIFO lot ordering when lots are available and enforces optional gains budget.
+- Required position data: `position.lots` for lot-aware behavior.
+- Options:
+  - `options.enable_tax_awareness=true`
+  - `options.max_realized_capital_gains` (optional cap).
+- Outputs:
+  - `tax_impact`
+  - `diagnostics.tax_budget_constraint_events`
+  - warning `TAX_BUDGET_LIMIT_REACHED` when budget binds.
+
+13. Settlement-aware cash ladder (RFC-0011)
+- What it does: checks projected cash by settlement day and blocks on overdraft breaches.
+- Options:
+  - `options.enable_settlement_awareness=true`
+  - `options.settlement_horizon_days`
+  - `options.fx_settlement_days`
+  - `options.max_overdraft_by_ccy`.
+- Instrument input: `shelf_entry.settlement_days` (default `2`).
+- Outputs:
+  - `diagnostics.cash_ladder`
+  - `diagnostics.cash_ladder_breaches`
+  - warning `SETTLEMENT_OVERDRAFT_UTILIZED` when overdraft is used but within limit.
+
+### 11.3 Batch Analysis Features
+
+1. Multi-scenario batch simulation (RFC-0013)
+- What it does: runs many named scenarios over shared snapshots in one request.
+- Where: `POST /rebalance/analyze`.
+- How to enable: provide `scenarios` map in request body.
+
+2. Per-scenario options
+- What it does: each scenario can override `EngineOptions` independently.
+- How to enable: set `scenarios.<name>.options`.
+
+3. Batch comparison metrics
+- What it does: returns per-scenario status, security intent count, and turnover proxy.
+- How to enable: always on for successful scenarios.
