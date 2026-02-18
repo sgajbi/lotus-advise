@@ -18,11 +18,13 @@ from src.core.models import (
     ModelTarget,
     Money,
     PortfolioSnapshot,
+    Position,
     Price,
     ShelfEntry,
     SimulatedState,
     SimulationScenario,
     TargetMethod,
+    TaxLot,
 )
 
 
@@ -134,6 +136,8 @@ def test_max_turnover_pct_validation_bounds():
 
 def test_settlement_awareness_options_defaults_and_bounds():
     options = EngineOptions()
+    assert options.enable_tax_awareness is False
+    assert options.max_realized_capital_gains is None
     assert options.enable_settlement_awareness is False
     assert options.settlement_horizon_days == 5
     assert options.fx_settlement_days == 2
@@ -148,6 +152,47 @@ def test_settlement_awareness_options_defaults_and_bounds():
 def test_max_overdraft_by_ccy_rejects_negative_values():
     with pytest.raises(ValidationError):
         EngineOptions(max_overdraft_by_ccy={"USD": Decimal("-1")})
+
+
+def test_tax_lot_quantity_must_match_position_quantity_within_tolerance():
+    Position(
+        instrument_id="EQ_1",
+        quantity=Decimal("100"),
+        lots=[
+            TaxLot(
+                lot_id="L1",
+                quantity=Decimal("50"),
+                unit_cost=Money(amount=Decimal("10"), currency="USD"),
+                purchase_date="2025-01-01",
+            ),
+            TaxLot(
+                lot_id="L2",
+                quantity=Decimal("50"),
+                unit_cost=Money(amount=Decimal("12"), currency="USD"),
+                purchase_date="2025-02-01",
+            ),
+        ],
+    )
+
+    with pytest.raises(ValidationError):
+        Position(
+            instrument_id="EQ_1",
+            quantity=Decimal("100"),
+            lots=[
+                TaxLot(
+                    lot_id="L1",
+                    quantity=Decimal("60"),
+                    unit_cost=Money(amount=Decimal("10"), currency="USD"),
+                    purchase_date="2025-01-01",
+                ),
+                TaxLot(
+                    lot_id="L2",
+                    quantity=Decimal("30"),
+                    unit_cost=Money(amount=Decimal("12"), currency="USD"),
+                    purchase_date="2025-02-01",
+                ),
+            ],
+        )
 
 
 def test_batch_request_requires_at_least_one_scenario():

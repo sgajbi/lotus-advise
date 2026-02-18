@@ -7,7 +7,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ValuationMode(str, Enum):
@@ -34,6 +34,18 @@ class Position(BaseModel):
     instrument_id: str
     quantity: Decimal
     market_value: Optional[Money] = None
+    lots: List["TaxLot"] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_lot_quantity_total(self):
+        if not self.lots:
+            return self
+        total = sum((lot.quantity for lot in self.lots), Decimal("0"))
+        if abs(total - self.quantity) > Decimal("0.0001"):
+            raise ValueError(
+                "sum(lot.quantity) must equal position.quantity within tolerance 0.0001"
+            )
+        return self
 
 
 class CashBalance(BaseModel):
@@ -70,6 +82,13 @@ class ModelTarget(BaseModel):
 
 class ModelPortfolio(BaseModel):
     targets: List[ModelTarget]
+
+
+class TaxLot(BaseModel):
+    lot_id: str
+    quantity: Decimal = Field(ge=0)
+    unit_cost: Money
+    purchase_date: str
 
 
 class ShelfEntry(BaseModel):
@@ -112,6 +131,8 @@ class EngineOptions(BaseModel):
     block_on_missing_fx: bool = True
     min_cash_buffer_pct: Decimal = Decimal("0.0")
     max_turnover_pct: Optional[Decimal] = None
+    enable_tax_awareness: bool = False
+    max_realized_capital_gains: Optional[Decimal] = Field(default=None, ge=0)
     enable_settlement_awareness: bool = False
     settlement_horizon_days: int = Field(default=5, ge=0, le=10)
     fx_settlement_days: int = Field(default=2, ge=0, le=10)
@@ -284,6 +305,13 @@ class GroupConstraintEvent(BaseModel):
     status: Literal["CAPPED", "BLOCKED"]
 
 
+class TaxBudgetConstraintEvent(BaseModel):
+    instrument_id: str
+    requested_quantity: Decimal
+    allowed_quantity: Decimal
+    reason_code: str
+
+
 class CashLadderPoint(BaseModel):
     date_offset: int
     currency: str
@@ -303,6 +331,7 @@ class DiagnosticsData(BaseModel):
     suppressed_intents: List[SuppressedIntent] = Field(default_factory=list)
     dropped_intents: List[DroppedIntent] = Field(default_factory=list)
     group_constraint_events: List[GroupConstraintEvent] = Field(default_factory=list)
+    tax_budget_constraint_events: List[TaxBudgetConstraintEvent] = Field(default_factory=list)
     cash_ladder: List[CashLadderPoint] = Field(default_factory=list)
     cash_ladder_breaches: List[CashLadderBreach] = Field(default_factory=list)
     data_quality: Dict[str, List[str]]
@@ -322,6 +351,13 @@ class Reconciliation(BaseModel):
     status: Literal["OK", "MISMATCH"]
 
 
+class TaxImpact(BaseModel):
+    total_realized_gain: Money
+    total_realized_loss: Money
+    budget_limit: Optional[Money] = None
+    budget_used: Optional[Money] = None
+
+
 class RebalanceResult(BaseModel):
     """The complete, auditable result of a rebalance simulation."""
 
@@ -334,6 +370,7 @@ class RebalanceResult(BaseModel):
     intents: List[Annotated[OrderIntent, Field(discriminator="intent_type")]]
     after_simulated: SimulatedState
     reconciliation: Optional[Reconciliation] = None
+    tax_impact: Optional[TaxImpact] = None
     rule_results: List[RuleResult] = Field(default_factory=list)
     explanation: Dict[str, Any]
     diagnostics: DiagnosticsData
