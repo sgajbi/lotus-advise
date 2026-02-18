@@ -459,3 +459,64 @@ def test_simulate_settlement_awareness_toggle_is_request_scoped(client):
     body = enabled.json()
     assert body["status"] == "BLOCKED"
     assert "OVERDRAFT_ON_T_PLUS_1" in body["diagnostics"]["warnings"]
+
+
+def test_simulate_tax_awareness_toggle_is_request_scoped(client):
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_tax_api",
+            "base_currency": "USD",
+            "positions": [
+                {
+                    "instrument_id": "ABC",
+                    "quantity": "100",
+                    "lots": [
+                        {
+                            "lot_id": "L_LOW",
+                            "quantity": "50",
+                            "unit_cost": {"amount": "10", "currency": "USD"},
+                            "purchase_date": "2024-01-01",
+                        },
+                        {
+                            "lot_id": "L_HIGH",
+                            "quantity": "50",
+                            "unit_cost": {"amount": "100", "currency": "USD"},
+                            "purchase_date": "2024-02-01",
+                        },
+                    ],
+                }
+            ],
+            "cash_balances": [{"currency": "USD", "amount": "0"}],
+        },
+        "market_data_snapshot": {
+            "prices": [{"instrument_id": "ABC", "price": "100", "currency": "USD"}],
+            "fx_rates": [],
+        },
+        "model_portfolio": {"targets": [{"instrument_id": "ABC", "weight": "0.0"}]},
+        "shelf_entries": [{"instrument_id": "ABC", "status": "APPROVED"}],
+        "options": {
+            "enable_tax_awareness": False,
+            "max_realized_capital_gains": "100",
+        },
+    }
+
+    disabled = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-tax-off"},
+    )
+    assert disabled.status_code == 200
+    assert Decimal(disabled.json()["intents"][0]["quantity"]) == Decimal("100")
+    assert disabled.json()["tax_impact"] is None
+
+    payload["options"]["enable_tax_awareness"] = True
+    enabled = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-tax-on"},
+    )
+    assert enabled.status_code == 200
+    body = enabled.json()
+    assert Decimal(body["intents"][0]["quantity"]) < Decimal("100")
+    assert "TAX_BUDGET_LIMIT_REACHED" in body["diagnostics"]["warnings"]
+    assert body["tax_impact"]["budget_used"]["amount"] == "100"
