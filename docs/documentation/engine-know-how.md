@@ -67,12 +67,14 @@ Response:
 
 Key model details from `src/core/models.py`:
 - `PortfolioSnapshot.snapshot_id` and `MarketDataSnapshot.snapshot_id` are optional.
+- `Position.lots` supports optional tax-lot input for tax-aware sell allocation.
 - In single-run lineage:
   - `lineage.portfolio_snapshot_id` is set from `portfolio_snapshot.portfolio_id`.
   - `lineage.market_data_snapshot_id` is currently fixed to `"md"`.
 - In batch `base_snapshot_ids`:
   - portfolio id resolves as `snapshot_id` fallback `portfolio_id`.
   - market data id resolves as `snapshot_id` fallback `"md"`.
+- Single-run response includes optional `tax_impact` when tax-aware mode is enabled.
 - `BatchScenarioMetric` includes:
   - `status`
   - `security_intent_count`
@@ -262,6 +264,7 @@ Failure isolation:
 Comparison metrics:
 - Computed only for successful scenarios.
 - `gross_turnover_notional_base` is the sum of `notional_base.amount` for `SECURITY_TRADE` intents.
+- Batch metrics currently do not include tax-impact comparisons.
 - A no-trade scenario yields:
   - `security_intent_count = 0`
   - `gross_turnover_notional_base.amount = 0`
@@ -277,7 +280,11 @@ Implemented RFC slices:
 - RFC-0013 (batch what-if analysis)
 
 Explicitly deferred:
-- RFC-0010 explicit transaction cost model terms
+- Deferred backlog is consolidated under RFC-0015:
+  - persistence-backed idempotency/run storage
+  - explicit transaction cost model and partial sizing
+  - batch-level tax-impact comparison metrics
+  - advanced tax/settlement policy variants
 
 ## 9. Practical Examples
 
