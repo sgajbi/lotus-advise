@@ -91,6 +91,22 @@ def test_golden_scenario(filename):
     if "diagnostics" in expected:
         if "warnings" in expected["diagnostics"]:
             assert set(result.diagnostics.warnings) == set(expected["diagnostics"]["warnings"])
+        if "dropped_intents" in expected["diagnostics"]:
+            assert len(result.diagnostics.dropped_intents) == len(
+                expected["diagnostics"]["dropped_intents"]
+            )
+            for i, exp_drop in enumerate(expected["diagnostics"]["dropped_intents"]):
+                act_drop = result.diagnostics.dropped_intents[i]
+                assert act_drop.instrument_id == exp_drop["instrument_id"]
+                assert act_drop.reason == exp_drop["reason"]
+                assert act_drop.potential_notional.amount == Decimal(
+                    str(exp_drop["potential_notional"]["amount"])
+                )
+                assert (
+                    act_drop.potential_notional.currency
+                    == exp_drop["potential_notional"]["currency"]
+                )
+                assert act_drop.score == Decimal(str(exp_drop["score"]))
 
     # After Simulated Attributes (RFC-0008 check)
     if "after_simulated" in expected and "allocation_by_attribute" in expected["after_simulated"]:

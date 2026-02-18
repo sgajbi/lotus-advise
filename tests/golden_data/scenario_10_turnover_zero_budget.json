@@ -1,9 +1,9 @@
 {
-  "scenario_name": "10_turnover_exact_fit",
-  "description": "Turnover cap can find exact-fit allocation via skip-and-continue instead of first-stop.",
+  "scenario_name": "10_turnover_zero_budget",
+  "description": "Zero turnover budget drops all candidate security intents deterministically.",
   "inputs": {
     "portfolio_snapshot": {
-      "portfolio_id": "pf_10_exact",
+      "portfolio_id": "pf_10_zero",
       "base_currency": "USD",
       "positions": [],
       "cash_balances": [
@@ -41,11 +41,11 @@
         },
         {
           "instrument_id": "B",
-          "weight": "0.09"
+          "weight": "0.10"
         },
         {
           "instrument_id": "C",
-          "weight": "0.05"
+          "weight": "0.02"
         }
       ]
     },
@@ -67,46 +67,43 @@
       }
     ],
     "options": {
-      "max_turnover_pct": "0.15"
+      "max_turnover_pct": "0"
     }
   },
   "expected_output": {
     "status": "READY",
-    "intents": [
-      {
-        "intent_type": "SECURITY_TRADE",
-        "instrument_id": "A",
-        "side": "BUY",
-        "quantity": "100",
-        "notional": {
-          "amount": "10000",
-          "currency": "USD"
-        }
-      },
-      {
-        "intent_type": "SECURITY_TRADE",
-        "instrument_id": "C",
-        "side": "BUY",
-        "quantity": "50",
-        "notional": {
-          "amount": "5000",
-          "currency": "USD"
-        }
-      }
-    ],
+    "intents": [],
     "diagnostics": {
       "warnings": [
         "PARTIAL_REBALANCE_TURNOVER_LIMIT"
       ],
       "dropped_intents": [
         {
+          "instrument_id": "A",
+          "reason": "TURNOVER_LIMIT",
+          "potential_notional": {
+            "amount": "10000",
+            "currency": "USD"
+          },
+          "score": "0.1"
+        },
+        {
           "instrument_id": "B",
           "reason": "TURNOVER_LIMIT",
           "potential_notional": {
-            "amount": "9000",
+            "amount": "10000",
             "currency": "USD"
           },
-          "score": "0.09"
+          "score": "0.1"
+        },
+        {
+          "instrument_id": "C",
+          "reason": "TURNOVER_LIMIT",
+          "potential_notional": {
+            "amount": "2000",
+            "currency": "USD"
+          },
+          "score": "0.02"
         }
       ]
     }

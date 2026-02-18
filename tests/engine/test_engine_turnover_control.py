@@ -38,9 +38,7 @@ def _turnover_context():
 
 def test_turnover_cap_selects_by_score_with_skip_and_continue():
     pf, mkt, shelf = _turnover_context()
-    model = model_portfolio(
-        targets=[target("A", "0.10"), target("B", "0.10"), target("C", "0.02")]
-    )
+    model = model_portfolio(targets=[target("A", "0.10"), target("B", "0.10"), target("C", "0.02")])
     options = EngineOptions(max_turnover_pct=Decimal("0.15"))
 
     result = run_simulation(pf, mkt, model, shelf, options)
@@ -59,9 +57,7 @@ def test_turnover_cap_selects_by_score_with_skip_and_continue():
 
 def test_turnover_cap_uses_exact_fit_when_available():
     pf, mkt, shelf = _turnover_context()
-    model = model_portfolio(
-        targets=[target("A", "0.10"), target("B", "0.09"), target("C", "0.05")]
-    )
+    model = model_portfolio(targets=[target("A", "0.10"), target("B", "0.09"), target("C", "0.05")])
     options = EngineOptions(max_turnover_pct=Decimal("0.15"))
 
     result = run_simulation(pf, mkt, model, shelf, options)
@@ -74,12 +70,34 @@ def test_turnover_cap_uses_exact_fit_when_available():
 
 def test_turnover_cap_unset_keeps_existing_behavior():
     pf, mkt, shelf = _turnover_context()
-    model = model_portfolio(
-        targets=[target("A", "0.10"), target("B", "0.10"), target("C", "0.02")]
-    )
+    model = model_portfolio(targets=[target("A", "0.10"), target("B", "0.10"), target("C", "0.02")])
 
     result = run_simulation(pf, mkt, model, shelf, EngineOptions())
 
     assert [i.instrument_id for i in security_intents(result)] == ["A", "B", "C"]
     assert result.diagnostics.dropped_intents == []
     assert "PARTIAL_REBALANCE_TURNOVER_LIMIT" not in result.diagnostics.warnings
+
+
+def test_turnover_cap_zero_drops_all_security_intents():
+    pf, mkt, shelf = _turnover_context()
+    model = model_portfolio(targets=[target("A", "0.10"), target("B", "0.10"), target("C", "0.02")])
+    options = EngineOptions(max_turnover_pct=Decimal("0"))
+
+    result = run_simulation(pf, mkt, model, shelf, options)
+
+    assert_status(result, "READY")
+    assert security_intents(result) == []
+    assert [d.instrument_id for d in result.diagnostics.dropped_intents] == ["A", "B", "C"]
+    assert result.diagnostics.warnings.count("PARTIAL_REBALANCE_TURNOVER_LIMIT") == 1
+
+
+def test_turnover_cap_tie_break_is_instrument_id_ascending():
+    pf, mkt, shelf = _turnover_context()
+    model = model_portfolio(targets=[target("A", "0.10"), target("B", "0.10"), target("C", "0.05")])
+    options = EngineOptions(max_turnover_pct=Decimal("0.15"))
+
+    result = run_simulation(pf, mkt, model, shelf, options)
+
+    assert [i.instrument_id for i in security_intents(result)] == ["A", "C"]
+    assert [d.instrument_id for d in result.diagnostics.dropped_intents] == ["B"]

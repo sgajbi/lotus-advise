@@ -97,6 +97,17 @@
     "diagnostics": {
       "warnings": [
         "PARTIAL_REBALANCE_TURNOVER_LIMIT"
+      ],
+      "dropped_intents": [
+        {
+          "instrument_id": "B",
+          "reason": "TURNOVER_LIMIT",
+          "potential_notional": {
+            "amount": "10000",
+            "currency": "USD"
+          },
+          "score": "0.1"
+        }
       ]
     }
   }
