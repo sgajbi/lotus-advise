@@ -38,8 +38,14 @@ def shelf_entry(
     instrument_id: str,
     status: str = "APPROVED",
     asset_class: str = "UNKNOWN",
+    settlement_days: int = 2,
 ) -> ShelfEntry:
-    return ShelfEntry(instrument_id=instrument_id, status=status, asset_class=asset_class)
+    return ShelfEntry(
+        instrument_id=instrument_id,
+        status=status,
+        asset_class=asset_class,
+        settlement_days=settlement_days,
+    )
 
 
 def portfolio_snapshot(

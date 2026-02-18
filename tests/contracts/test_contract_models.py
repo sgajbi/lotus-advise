@@ -132,6 +132,24 @@ def test_max_turnover_pct_validation_bounds():
         EngineOptions(max_turnover_pct=Decimal("1.01"))
 
 
+def test_settlement_awareness_options_defaults_and_bounds():
+    options = EngineOptions()
+    assert options.enable_settlement_awareness is False
+    assert options.settlement_horizon_days == 5
+    assert options.fx_settlement_days == 2
+    assert options.max_overdraft_by_ccy == {}
+
+    with pytest.raises(ValidationError):
+        EngineOptions(settlement_horizon_days=11)
+    with pytest.raises(ValidationError):
+        EngineOptions(fx_settlement_days=-1)
+
+
+def test_max_overdraft_by_ccy_rejects_negative_values():
+    with pytest.raises(ValidationError):
+        EngineOptions(max_overdraft_by_ccy={"USD": Decimal("-1")})
+
+
 def test_batch_request_requires_at_least_one_scenario():
     with pytest.raises(ValidationError):
         BatchRebalanceRequest(

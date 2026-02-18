@@ -76,6 +76,7 @@ class ShelfEntry(BaseModel):
     instrument_id: str
     status: Literal["APPROVED", "RESTRICTED", "BANNED", "SUSPENDED", "SELL_ONLY"]
     asset_class: str = "UNKNOWN"
+    settlement_days: int = Field(default=2, ge=0, le=10)
     min_notional: Optional[Money] = None
     attributes: Dict[str, str] = Field(default_factory=dict)
 
@@ -111,6 +112,10 @@ class EngineOptions(BaseModel):
     block_on_missing_fx: bool = True
     min_cash_buffer_pct: Decimal = Decimal("0.0")
     max_turnover_pct: Optional[Decimal] = None
+    enable_settlement_awareness: bool = False
+    settlement_horizon_days: int = Field(default=5, ge=0, le=10)
+    fx_settlement_days: int = Field(default=2, ge=0, le=10)
+    max_overdraft_by_ccy: Dict[str, Decimal] = Field(default_factory=dict)
 
     # Key format: "<attribute_key>:<attribute_value>", for example "sector:TECH"
     group_constraints: Dict[str, GroupConstraint] = Field(default_factory=dict)
@@ -139,6 +144,16 @@ class EngineOptions(BaseModel):
             return v
         if v < Decimal("0") or v > Decimal("1"):
             raise ValueError("max_turnover_pct must be between 0 and 1 inclusive")
+        return v
+
+    @field_validator("max_overdraft_by_ccy")
+    @classmethod
+    def validate_max_overdraft_by_ccy(cls, v: Dict[str, Decimal]) -> Dict[str, Decimal]:
+        for ccy, amount in v.items():
+            if not ccy:
+                raise ValueError("max_overdraft_by_ccy keys must be non-empty currency codes")
+            if amount < Decimal("0"):
+                raise ValueError("max_overdraft_by_ccy values must be non-negative")
         return v
 
 
@@ -269,11 +284,27 @@ class GroupConstraintEvent(BaseModel):
     status: Literal["CAPPED", "BLOCKED"]
 
 
+class CashLadderPoint(BaseModel):
+    date_offset: int
+    currency: str
+    projected_balance: Decimal
+
+
+class CashLadderBreach(BaseModel):
+    date_offset: int
+    currency: str
+    projected_balance: Decimal
+    allowed_floor: Decimal
+    reason_code: str
+
+
 class DiagnosticsData(BaseModel):
     warnings: List[str] = Field(default_factory=list)
     suppressed_intents: List[SuppressedIntent] = Field(default_factory=list)
     dropped_intents: List[DroppedIntent] = Field(default_factory=list)
     group_constraint_events: List[GroupConstraintEvent] = Field(default_factory=list)
+    cash_ladder: List[CashLadderPoint] = Field(default_factory=list)
+    cash_ladder_breaches: List[CashLadderBreach] = Field(default_factory=list)
     data_quality: Dict[str, List[str]]
 
 
