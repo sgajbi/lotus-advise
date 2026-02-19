@@ -6,8 +6,8 @@ from src.core.dpm_engine import run_simulation
 from src.core.models import (
     EngineOptions,
 )
-from tests.assertions import fx_intents, security_intents
-from tests.factories import (
+from tests.shared.assertions import fx_intents, security_intents
+from tests.shared.factories import (
     cash,
     fx,
     market_data_snapshot,

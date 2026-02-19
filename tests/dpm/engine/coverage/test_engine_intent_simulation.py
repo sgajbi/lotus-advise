@@ -4,9 +4,9 @@ from src.core.dpm_engine import _generate_fx_and_simulate, run_simulation
 from src.core.models import (
     EngineOptions,
 )
-from tests.assertions import security_intents
-from tests.engine.coverage.helpers import empty_diagnostics, usd_cash_portfolio
-from tests.factories import (
+from tests.dpm.engine.coverage.helpers import empty_diagnostics, usd_cash_portfolio
+from tests.shared.assertions import security_intents
+from tests.shared.factories import (
     cash,
     fx,
     market_data_snapshot,

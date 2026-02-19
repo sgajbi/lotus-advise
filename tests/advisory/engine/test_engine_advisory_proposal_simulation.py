@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import EngineOptions, Money, Reconciliation
-from tests.factories import (
+from tests.shared.factories import (
     cash,
     market_data_snapshot,
     portfolio_snapshot,

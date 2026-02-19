@@ -1,7 +1,7 @@
 from src.core.dpm_engine import run_simulation
 from src.core.models import EngineOptions
-from tests.assertions import assert_dq_contains, assert_status, find_excluded
-from tests.factories import (
+from tests.shared.assertions import assert_dq_contains, assert_status, find_excluded
+from tests.shared.factories import (
     cash,
     market_data_snapshot,
     model_portfolio,

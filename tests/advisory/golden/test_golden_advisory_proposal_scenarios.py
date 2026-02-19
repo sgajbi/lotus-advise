@@ -28,7 +28,7 @@ def _load_golden(path):
     ],
 )
 def test_golden_advisory_proposal_scenarios(filename):
-    path = os.path.join(os.path.dirname(__file__), "../../golden_data", filename)
+    path = os.path.join(os.path.dirname(__file__), "../golden_data", filename)
     data = _load_golden(path)
 
     inputs = data["proposal_inputs"]

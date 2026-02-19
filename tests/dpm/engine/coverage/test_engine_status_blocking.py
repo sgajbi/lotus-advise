@@ -2,8 +2,8 @@ from decimal import Decimal
 
 from src.core.dpm_engine import run_simulation
 from src.core.models import EngineOptions, Money, ValuationMode
-from tests.assertions import assert_status
-from tests.factories import position, price, shelf_entry
+from tests.shared.assertions import assert_status
+from tests.shared.factories import position, price, shelf_entry
 
 
 class TestFinalStatusAndBlocking:

@@ -5,7 +5,7 @@ import pytest
 
 from src.core.dpm_engine import _generate_targets, run_simulation
 from src.core.models import DiagnosticsData, EngineOptions, GroupConstraint, ShelfEntry
-from tests.factories import (
+from tests.shared.factories import (
     cash,
     market_data_snapshot,
     model_portfolio,

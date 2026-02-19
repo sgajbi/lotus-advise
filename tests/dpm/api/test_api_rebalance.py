@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app, get_db_session
-from tests.factories import valid_api_payload
+from tests.shared.factories import valid_api_payload
 
 
 async def override_get_db_session():

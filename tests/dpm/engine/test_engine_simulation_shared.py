@@ -12,8 +12,8 @@ from src.core.common.simulation_shared import (
 from src.core.compliance import RuleEngine
 from src.core.models import CashFlowIntent, EngineOptions, FxSpotIntent, SecurityTradeIntent
 from src.core.valuation import build_simulated_state
-from tests.engine.coverage.helpers import empty_diagnostics
-from tests.factories import cash, market_data_snapshot, portfolio_snapshot
+from tests.dpm.engine.coverage.helpers import empty_diagnostics
+from tests.shared.factories import cash, market_data_snapshot, portfolio_snapshot
 
 
 def test_ensure_helpers_create_missing_entries():

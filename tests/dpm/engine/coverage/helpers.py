@@ -1,5 +1,5 @@
 from src.core.models import DiagnosticsData
-from tests.factories import cash, portfolio_snapshot
+from tests.shared.factories import cash, portfolio_snapshot
 
 
 def usd_cash_portfolio(portfolio_id: str, amount: str = "1000"):

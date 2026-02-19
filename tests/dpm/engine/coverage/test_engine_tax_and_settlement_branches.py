@@ -2,8 +2,8 @@ from decimal import Decimal
 
 from src.core.dpm_engine import _apply_turnover_limit, _calculate_turnover_score, run_simulation
 from src.core.models import DiagnosticsData, EngineOptions, Money, SecurityTradeIntent
-from tests.assertions import assert_status, security_intents
-from tests.factories import (
+from tests.shared.assertions import assert_status, security_intents
+from tests.shared.factories import (
     cash,
     fx,
     market_data_snapshot,

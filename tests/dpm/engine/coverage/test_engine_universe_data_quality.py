@@ -3,9 +3,9 @@ from src.core.models import (
     EngineOptions,
 )
 from src.core.valuation import build_simulated_state
-from tests.assertions import assert_dq_contains, assert_status, find_excluded
-from tests.engine.coverage.helpers import usd_cash_portfolio
-from tests.factories import (
+from tests.dpm.engine.coverage.helpers import usd_cash_portfolio
+from tests.shared.assertions import assert_dq_contains, assert_status, find_excluded
+from tests.shared.factories import (
     cash,
     market_data_snapshot,
     model_portfolio,

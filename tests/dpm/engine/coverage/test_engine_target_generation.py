@@ -5,8 +5,8 @@ from pydantic import ValidationError
 
 from src.core.dpm_engine import _apply_group_constraints, _generate_targets, run_simulation
 from src.core.models import DiagnosticsData, EngineOptions, GroupConstraint, ShelfEntry
-from tests.assertions import assert_status
-from tests.factories import model_portfolio, position, target
+from tests.shared.assertions import assert_status
+from tests.shared.factories import model_portfolio, position, target
 
 
 class TestTargetGeneration:

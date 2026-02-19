@@ -4,7 +4,7 @@ from src.core.dpm_engine import run_simulation
 from src.core.models import (
     Money,
 )
-from tests.factories import (
+from tests.shared.factories import (
     cash,
     fx,
     market_data_snapshot,

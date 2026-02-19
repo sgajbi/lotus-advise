@@ -1,6 +1,6 @@
 import pytest
 
-from tests.factories import (
+from tests.shared.factories import (
     cash,
     fx,
     market_data_snapshot,

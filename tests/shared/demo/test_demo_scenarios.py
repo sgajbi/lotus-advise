@@ -19,7 +19,7 @@ from src.core.models import (
     ShelfEntry,
 )
 
-DEMO_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "demo")
+DEMO_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "demo")
 
 
 def load_demo_scenario(filename):
