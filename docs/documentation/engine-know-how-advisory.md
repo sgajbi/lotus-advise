@@ -15,6 +15,7 @@ Implementation scope:
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id` (generated when missing)
 - Output: `ProposalResult` with status `READY | PENDING_REVIEW | BLOCKED`
+- Unhandled errors: `500` with `application/problem+json` payload.
 - Idempotency behavior:
   - same key + same canonical payload: cached response
   - same key + different canonical payload: `409 Conflict`
@@ -31,6 +32,7 @@ Implementation scope:
 3. Apply proposal intents
 - Cash flows can be applied before trades (`proposal_apply_cash_flows_first`).
 - Trades are manually supplied and priced from market data.
+- For notional-driven trades, `notional.currency` must match priced instrument currency; mismatch blocks with `PROPOSAL_INVALID_TRADE_INPUT`.
 - Deterministic ordering:
   - `CASH_FLOW` (as provided)
   - `SECURITY_TRADE` SELL (instrument ascending)
@@ -44,6 +46,7 @@ Implementation scope:
 - Simulates portfolio mutation using shared primitives.
 - Runs standard rule engine (`RuleEngine.evaluate`).
 - Performs proposal reconciliation against expected cash-flow-adjusted total.
+- Derives deterministic `proposal_run_id` from request hash when provided.
 
 ## Advisory Feature Flags
 
@@ -60,6 +63,7 @@ Implementation scope:
 
 - `PROPOSAL_WITHDRAWAL_NEGATIVE_CASH`
 - `PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF`
+- `PROPOSAL_INVALID_TRADE_INPUT`
 - standard safety/data-quality rules continue to apply (`NO_SHORTING`, `INSUFFICIENT_CASH`, etc.)
 
 ## Tests That Lock Advisory Behavior

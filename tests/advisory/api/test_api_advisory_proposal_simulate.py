@@ -110,3 +110,33 @@ def test_advisory_proposal_simulate_returns_cached_response_on_same_payload(clie
     assert first.status_code == 200
     assert second.status_code == 200
     assert first.json() == second.json()
+
+
+def test_advisory_proposal_simulate_unhandled_error_returns_problem_details(monkeypatch):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_5", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    def _raise_unhandled(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("src.api.main.run_proposal_simulation", _raise_unhandled)
+
+    with TestClient(app, raise_server_exceptions=False) as test_client:
+        response = test_client.post(
+            "/rebalance/proposals/simulate",
+            json=payload,
+            headers={"Idempotency-Key": "prop-key-500"},
+        )
+
+    assert response.status_code == 500
+    assert response.headers["content-type"].startswith("application/problem+json")
+    body = response.json()
+    assert body["title"] == "Internal Server Error"
+    assert body["status"] == 500
+    assert body["instance"] == "/rebalance/proposals/simulate"

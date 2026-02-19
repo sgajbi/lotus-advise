@@ -11,7 +11,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from src.core.advisory_engine import run_proposal_simulation
@@ -51,6 +52,22 @@ async def get_db_session():
     """Stub for Database Session (RFC-0005).
     To be replaced with actual AsyncPG session."""
     yield None
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_to_problem_details(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled exception while serving request", exc_info=exc)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        media_type="application/problem+json",
+        content={
+            "type": "about:blank",
+            "title": "Internal Server Error",
+            "status": 500,
+            "detail": "An unexpected error occurred.",
+            "instance": str(request.url.path),
+        },
+    )
 
 
 class RebalanceRequest(BaseModel):
