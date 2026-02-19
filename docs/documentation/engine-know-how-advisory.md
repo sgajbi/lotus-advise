@@ -4,7 +4,12 @@ Implementation scope:
 - API: `src/api/main.py` (`/rebalance/proposals/simulate`)
 - Models: `src/core/models.py`
 - Core orchestration: `src/core/advisory_engine.py` (`run_proposal_simulation`)
+- Advisory modular internals:
+  - `src/core/advisory/ids.py` (deterministic run id generation)
+  - `src/core/advisory/intents.py` (proposal cash/trade intent construction helpers)
+  - `src/core/advisory/funding.py` (RFC-0014B auto-funding planner)
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
+- Shared diagnostics builders: `src/core/common/diagnostics.py`
 - Valuation: `src/core/valuation.py`
 - Rules: `src/core/compliance.py`
 
