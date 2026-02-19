@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from src.core.compliance import RuleEngine
 from src.core.models import (
-    CashBalance,
+    CashFlowIntent,
     CashLadderBreach,
     CashLadderPoint,
     DiagnosticsData,
@@ -20,9 +20,10 @@ from src.core.models import (
     IntentRationale,
     LineageData,
     Money,
-    Position,
+    ProposalResult,
+    ProposedCashFlow,
+    ProposedTrade,
     RebalanceResult,
-    Reconciliation,
     RuleResult,
     SecurityTradeIntent,
     SuppressedIntent,
@@ -33,6 +34,12 @@ from src.core.models import (
     UniverseCoverage,
     UniverseData,
     ValuationMode,
+)
+from src.core.simulation_shared import (
+    apply_security_trade_to_portfolio,
+    build_reconciliation,
+    derive_status_from_rules,
+    ensure_cash_balance,
 )
 from src.core.target_generation import build_target_trace, generate_targets_solver
 from src.core.valuation import build_simulated_state, get_fx_rate
@@ -879,29 +886,12 @@ def _generate_fx_and_simulate(
 
     after = deepcopy(portfolio)
 
-    def g_pos(after_pf, i_id):
-        p = next((x for x in after_pf.positions if x.instrument_id == i_id), None)
-        if not p:
-            p = Position(instrument_id=i_id, quantity=Decimal("0"))
-            after_pf.positions.append(p)
-        return p
-
-    def g_cash(after_pf, ccy):
-        c = next((x for x in after_pf.cash_balances if x.currency == ccy), None)
-        if not c:
-            c = CashBalance(currency=ccy, amount=Decimal("0"))
-            after_pf.cash_balances.append(c)
-        return c
-
     for i in intents:
         if i.intent_type == "SECURITY_TRADE":
-            g_pos(after, i.instrument_id).quantity += i.quantity if i.side == "BUY" else -i.quantity
-            g_cash(after, i.notional.currency).amount += (
-                i.notional.amount if i.side == "SELL" else -i.notional.amount
-            )
+            apply_security_trade_to_portfolio(after, i)
         elif i.intent_type == "FX_SPOT":
-            g_cash(after, i.sell_currency).amount -= i.sell_amount_estimated
-            g_cash(after, i.buy_currency).amount += i.buy_amount
+            ensure_cash_balance(after, i.sell_currency).amount -= i.sell_amount_estimated
+            ensure_cash_balance(after, i.buy_currency).amount += i.buy_amount
 
     after_opts = options.model_copy(update={"valuation_mode": ValuationMode.CALCULATED})
     state = build_simulated_state(
@@ -922,15 +912,11 @@ def _generate_fx_and_simulate(
 
         return intents, state, rules, "BLOCKED", None
 
-    recon_diff = abs(tv_after - total_val_before)
-    tolerance = Decimal("0.5") + (total_val_before * Decimal("0.0005"))
-
-    recon = Reconciliation(
-        before_total_value=Money(amount=total_val_before, currency=portfolio.base_currency),
-        after_total_value=Money(amount=tv_after, currency=portfolio.base_currency),
-        delta=Money(amount=tv_after - total_val_before, currency=portfolio.base_currency),
-        tolerance=Money(amount=tolerance, currency=portfolio.base_currency),
-        status="OK" if recon_diff <= tolerance else "MISMATCH",
+    recon, recon_diff, tolerance = build_reconciliation(
+        before_total=total_val_before,
+        after_total=tv_after,
+        expected_after_total=total_val_before,
+        base_currency=portfolio.base_currency,
     )
 
     if recon.status == "MISMATCH":
@@ -947,12 +933,7 @@ def _generate_fx_and_simulate(
         )
         return intents, state, rules, "BLOCKED", recon
 
-    final_status = "READY"
-    soft_fails = [r for r in rules if r.severity == "SOFT" and r.status == "FAIL"]
-    if soft_fails:
-        final_status = "PENDING_REVIEW"
-
-    return intents, state, rules, final_status, recon
+    return intents, state, rules, derive_status_from_rules(rules), recon
 
 
 def _check_blocking_dq(dq_log, options):
@@ -963,6 +944,250 @@ def _check_blocking_dq(dq_log, options):
     if dq_log.get("fx_missing") and options.block_on_missing_fx:
         return True
     return False
+
+
+def _proposal_apply_cash_flow(after_pf, cash_flow):
+    cash_entry = ensure_cash_balance(after_pf, cash_flow.currency)
+    cash_entry.amount += cash_flow.amount
+
+
+def _proposal_build_security_trade_intent(
+    *,
+    trade,
+    market_data,
+    base_currency,
+    intent_id,
+    dq_log,
+):
+    price_ent = next(
+        (p for p in market_data.prices if p.instrument_id == trade.instrument_id), None
+    )
+    if not price_ent:
+        dq_log["price_missing"].append(trade.instrument_id)
+        return None
+
+    fx_rate = get_fx_rate(market_data, price_ent.currency, base_currency)
+    if fx_rate is None:
+        dq_log["fx_missing"].append(f"{price_ent.currency}/{base_currency}")
+        return None
+
+    if trade.quantity is not None:
+        quantity = trade.quantity
+        notional_amount = quantity * price_ent.price
+    else:
+        notional_amount = trade.notional.amount
+        quantity = notional_amount / price_ent.price
+
+    return SecurityTradeIntent(
+        intent_id=intent_id,
+        side=trade.side,
+        instrument_id=trade.instrument_id,
+        quantity=quantity,
+        notional=Money(amount=notional_amount, currency=price_ent.currency),
+        notional_base=Money(amount=notional_amount * fx_rate, currency=base_currency),
+        rationale=IntentRationale(code="MANUAL_PROPOSAL", message="Advisor proposed trade"),
+        dependencies=[],
+        constraints_applied=[],
+    )
+
+
+def _proposal_apply_security_trade(after_pf, intent):
+    apply_security_trade_to_portfolio(after_pf, intent)
+
+
+def _proposal_expected_cash_delta_base(portfolio, market_data, cash_flows, dq_log):
+    total = Decimal("0")
+    for cash_flow in cash_flows:
+        fx_rate = get_fx_rate(market_data, cash_flow.currency, portfolio.base_currency)
+        if fx_rate is None:
+            dq_log["fx_missing"].append(f"{cash_flow.currency}/{portfolio.base_currency}")
+            continue
+        total += cash_flow.amount * fx_rate
+    return total
+
+
+def run_proposal_simulation(
+    *,
+    portfolio,
+    market_data,
+    shelf,
+    options,
+    proposed_cash_flows,
+    proposed_trades,
+    request_hash="no_hash",
+    idempotency_key=None,
+    correlation_id="c_none",
+):
+    run_id = f"pr_{uuid.uuid4().hex[:8]}"
+    diagnostics = _make_diagnostics_data()
+
+    before = build_simulated_state(
+        portfolio,
+        market_data,
+        shelf,
+        diagnostics.data_quality,
+        diagnostics.warnings,
+        options,
+    )
+    after_portfolio = deepcopy(portfolio)
+
+    intents = []
+    hard_failures = []
+
+    cash_flows = [ProposedCashFlow.model_validate(item) for item in proposed_cash_flows]
+    trades = [ProposedTrade.model_validate(item) for item in proposed_trades]
+
+    if options.proposal_apply_cash_flows_first:
+        for idx, cash_flow in enumerate(cash_flows):
+            _proposal_apply_cash_flow(after_portfolio, cash_flow)
+            intents.append(
+                CashFlowIntent(
+                    intent_id=f"oi_cf_{idx + 1}",
+                    currency=cash_flow.currency,
+                    amount=cash_flow.amount,
+                    description=cash_flow.description,
+                )
+            )
+            if options.proposal_block_negative_cash:
+                cash_entry = next(
+                    (x for x in after_portfolio.cash_balances if x.currency == cash_flow.currency),
+                    None,
+                )
+                if cash_entry is not None and cash_entry.amount < Decimal("0"):
+                    diagnostics.warnings.append("PROPOSAL_WITHDRAWAL_NEGATIVE_CASH")
+                    hard_failures.append("PROPOSAL_WITHDRAWAL_NEGATIVE_CASH")
+
+    shelf_by_instrument = {entry.instrument_id: entry for entry in shelf}
+    security_intents = []
+    for idx, trade in enumerate(trades):
+        shelf_entry = shelf_by_instrument.get(trade.instrument_id)
+        if shelf_entry is None:
+            diagnostics.data_quality["shelf_missing"].append(trade.instrument_id)
+            continue
+
+        if trade.side == "BUY" and shelf_entry.status in {"SELL_ONLY", "BANNED", "SUSPENDED"}:
+            diagnostics.warnings.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
+            hard_failures.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
+            continue
+        if (
+            trade.side == "BUY"
+            and shelf_entry.status == "RESTRICTED"
+            and not options.allow_restricted
+        ):
+            diagnostics.warnings.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
+            hard_failures.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
+            continue
+
+        intent = _proposal_build_security_trade_intent(
+            trade=trade,
+            market_data=market_data,
+            base_currency=portfolio.base_currency,
+            intent_id=f"oi_{idx + 1}",
+            dq_log=diagnostics.data_quality,
+        )
+        if intent is not None:
+            security_intents.append(intent)
+
+    sell_intents = sorted(
+        [intent for intent in security_intents if intent.side == "SELL"],
+        key=lambda intent: intent.instrument_id,
+    )
+    buy_intents = sorted(
+        [intent for intent in security_intents if intent.side == "BUY"],
+        key=lambda intent: intent.instrument_id,
+    )
+
+    ordered_security_intents = sell_intents + buy_intents
+    intents.extend(ordered_security_intents)
+    for trade_intent in ordered_security_intents:
+        _proposal_apply_security_trade(after_portfolio, trade_intent)
+
+    if not options.proposal_apply_cash_flows_first:
+        for idx, cash_flow in enumerate(cash_flows):
+            _proposal_apply_cash_flow(after_portfolio, cash_flow)
+            intents.append(
+                CashFlowIntent(
+                    intent_id=f"oi_cf_{idx + 1}",
+                    currency=cash_flow.currency,
+                    amount=cash_flow.amount,
+                    description=cash_flow.description,
+                )
+            )
+
+    after = build_simulated_state(
+        after_portfolio,
+        market_data,
+        shelf,
+        diagnostics.data_quality,
+        diagnostics.warnings,
+        options.model_copy(update={"valuation_mode": ValuationMode.CALCULATED}),
+    )
+    rule_results = RuleEngine.evaluate(after, options, diagnostics)
+
+    if hard_failures:
+        measured = Decimal(len(hard_failures))
+        rule_results.append(
+            RuleResult(
+                rule_id="PROPOSAL_INPUT_GUARDS",
+                severity="HARD",
+                status="FAIL",
+                measured=measured,
+                threshold={"max": Decimal("0")},
+                reason_code=hard_failures[0],
+                remediation_hint="Adjust proposal cash flows or shelf-ineligible buys.",
+            )
+        )
+
+    final_status = derive_status_from_rules(rule_results)
+
+    expected_delta_base = _proposal_expected_cash_delta_base(
+        portfolio=portfolio,
+        market_data=market_data,
+        cash_flows=cash_flows,
+        dq_log=diagnostics.data_quality,
+    )
+    expected_after_total = before.total_value.amount + expected_delta_base
+    reconciliation, recon_diff, tolerance = build_reconciliation(
+        before_total=before.total_value.amount,
+        after_total=after.total_value.amount,
+        expected_after_total=expected_after_total,
+        base_currency=portfolio.base_currency,
+        use_absolute_scale=True,
+    )
+
+    if reconciliation.status == "MISMATCH":
+        final_status = "BLOCKED"
+        rule_results.append(
+            RuleResult(
+                rule_id="RECONCILIATION",
+                severity="HARD",
+                status="FAIL",
+                measured=recon_diff,
+                threshold={"max": tolerance},
+                reason_code="VALUE_MISMATCH",
+                remediation_hint="Check pricing/FX or proposal inputs.",
+            )
+        )
+
+    return ProposalResult(
+        proposal_run_id=run_id,
+        correlation_id=correlation_id,
+        status=final_status,
+        before=before,
+        intents=intents,
+        after_simulated=after,
+        reconciliation=reconciliation,
+        rule_results=rule_results,
+        diagnostics=diagnostics,
+        explanation={"summary": final_status},
+        lineage=LineageData(
+            portfolio_snapshot_id=portfolio.snapshot_id or portfolio.portfolio_id,
+            market_data_snapshot_id=market_data.snapshot_id or "md",
+            request_hash=request_hash,
+            idempotency_key=idempotency_key,
+            engine_version="0.1.0",
+        ),
+    )
 
 
 def run_simulation(portfolio, market_data, model, shelf, options, request_hash="no_hash"):

@@ -2,16 +2,18 @@
 FILE: src/api/main.py
 """
 
+import hashlib
+import json
 import logging
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, Header, status
+from fastapi import Depends, FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, Field, ValidationError
 
-from src.core.engine import run_simulation
+from src.core.engine import run_proposal_simulation, run_simulation
 from src.core.models import (
     BatchRebalanceRequest,
     BatchRebalanceResult,
@@ -21,6 +23,8 @@ from src.core.models import (
     ModelPortfolio,
     Money,
     PortfolioSnapshot,
+    ProposalResult,
+    ProposalSimulateRequest,
     RebalanceResult,
     ShelfEntry,
 )
@@ -37,6 +41,7 @@ app = FastAPI(
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+PROPOSAL_IDEMPOTENCY_CACHE: Dict[str, Dict[str, Dict]] = {}
 
 
 async def get_db_session():
@@ -145,6 +150,15 @@ ANALYZE_RESPONSE_EXAMPLE = {
     },
 }
 
+PROPOSAL_READY_EXAMPLE = {
+    "summary": "Proposal simulation ready",
+    "value": {
+        "status": "READY",
+        "proposal_run_id": "pr_demo1234",
+        "intents": [],
+    },
+}
+
 
 def _resolve_base_snapshot_ids(request: BatchRebalanceRequest) -> Dict[str, str]:
     return {
@@ -180,6 +194,12 @@ def _build_comparison_metric(
         security_intent_count=len(security_intents),
         gross_turnover_notional_base=Money(amount=turnover_proxy, currency=base_currency),
     )
+
+
+def _hash_canonical_payload(payload: Dict) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return f"sha256:{digest}"
 
 
 @app.post(
@@ -330,3 +350,65 @@ async def analyze_scenarios(
         failed_scenarios=failed_scenarios,
         warnings=warnings,
     )
+
+
+@app.post(
+    "/rebalance/proposals/simulate",
+    response_model=ProposalResult,
+    status_code=status.HTTP_200_OK,
+    summary="Simulate an Advisory Proposal",
+    description=(
+        "Simulates advisor-entered manual trades and cash flows without target generation.\n\n"
+        "Requires `options.enable_proposal_simulation=true`."
+    ),
+    responses={
+        200: {
+            "description": "Proposal simulation completed with domain status in payload.",
+            "content": {"application/json": {"examples": {"ready": PROPOSAL_READY_EXAMPLE}}},
+        },
+        409: {"description": "Idempotency key reused with different request payload."},
+        422: {"description": "Validation error (invalid payload or missing required headers)."},
+    },
+)
+async def simulate_proposal(
+    request: ProposalSimulateRequest,
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
+    correlation_id: Annotated[Optional[str], Header(alias="X-Correlation-Id")] = None,
+    db: Annotated[None, Depends(get_db_session)] = None,
+) -> ProposalResult:
+    if not request.options.enable_proposal_simulation:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true",
+        )
+
+    request_payload = request.model_dump(mode="json")
+    request_hash = _hash_canonical_payload(request_payload)
+
+    existing = PROPOSAL_IDEMPOTENCY_CACHE.get(idempotency_key)
+    if existing and existing["request_hash"] != request_hash:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
+        )
+    if existing:
+        return ProposalResult.model_validate(existing["response"])
+
+    resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+    result = run_proposal_simulation(
+        portfolio=request.portfolio_snapshot,
+        market_data=request.market_data_snapshot,
+        shelf=request.shelf_entries,
+        options=request.options,
+        proposed_cash_flows=request.proposed_cash_flows,
+        proposed_trades=request.proposed_trades,
+        request_hash=request_hash,
+        idempotency_key=idempotency_key,
+        correlation_id=resolved_correlation_id,
+    )
+
+    PROPOSAL_IDEMPOTENCY_CACHE[idempotency_key] = {
+        "request_hash": request_hash,
+        "response": result.model_dump(mode="json"),
+    }
+    return result

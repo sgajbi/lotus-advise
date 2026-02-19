@@ -1,0 +1,72 @@
+"""
+FILE: src/core/simulation_shared.py
+"""
+
+from decimal import Decimal
+
+from src.core.models import CashBalance, Money, Position, Reconciliation
+
+
+def ensure_position(portfolio, instrument_id):
+    position = next(
+        (item for item in portfolio.positions if item.instrument_id == instrument_id), None
+    )
+    if not position:
+        position = Position(instrument_id=instrument_id, quantity=Decimal("0"))
+        portfolio.positions.append(position)
+    return position
+
+
+def ensure_cash_balance(portfolio, currency):
+    cash_balance = next(
+        (item for item in portfolio.cash_balances if item.currency == currency), None
+    )
+    if not cash_balance:
+        cash_balance = CashBalance(currency=currency, amount=Decimal("0"))
+        portfolio.cash_balances.append(cash_balance)
+    return cash_balance
+
+
+def apply_security_trade_to_portfolio(portfolio, intent):
+    position = ensure_position(portfolio, intent.instrument_id)
+    cash_balance = ensure_cash_balance(portfolio, intent.notional.currency)
+
+    if intent.side == "BUY":
+        position.quantity += intent.quantity
+        cash_balance.amount -= intent.notional.amount
+    else:
+        position.quantity -= intent.quantity
+        cash_balance.amount += intent.notional.amount
+
+
+def derive_status_from_rules(rule_results):
+    has_hard_fail = any(rule.severity == "HARD" and rule.status == "FAIL" for rule in rule_results)
+    if has_hard_fail:
+        return "BLOCKED"
+
+    has_soft_fail = any(rule.severity == "SOFT" and rule.status == "FAIL" for rule in rule_results)
+    if has_soft_fail:
+        return "PENDING_REVIEW"
+
+    return "READY"
+
+
+def build_reconciliation(
+    before_total,
+    after_total,
+    expected_after_total,
+    base_currency,
+    *,
+    use_absolute_scale=False,
+):
+    recon_diff = abs(after_total - expected_after_total)
+    scale_value = abs(expected_after_total) if use_absolute_scale else expected_after_total
+    tolerance = Decimal("0.5") + (scale_value * Decimal("0.0005"))
+    reconciliation = Reconciliation(
+        before_total_value=Money(amount=before_total, currency=base_currency),
+        after_total_value=Money(amount=after_total, currency=base_currency),
+        delta=Money(amount=after_total - before_total, currency=base_currency),
+        tolerance=Money(amount=tolerance, currency=base_currency),
+        status="OK" if recon_diff <= tolerance else "MISMATCH",
+    )
+    return reconciliation, recon_diff, tolerance

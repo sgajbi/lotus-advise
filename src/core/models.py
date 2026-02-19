@@ -306,6 +306,21 @@ class EngineOptions(BaseModel):
         description="Enable settlement-time cash ladder overdraft checks.",
         examples=[True],
     )
+    enable_proposal_simulation: bool = Field(
+        default=False,
+        description="Enable advisory proposal simulation endpoint behavior.",
+        examples=[False],
+    )
+    proposal_apply_cash_flows_first: bool = Field(
+        default=True,
+        description="Apply proposal cash flows before manual trade simulation.",
+        examples=[True],
+    )
+    proposal_block_negative_cash: bool = Field(
+        default=True,
+        description="Block proposal when cash-flow withdrawals create negative balances.",
+        examples=[True],
+    )
     settlement_horizon_days: int = Field(
         default=5,
         ge=0,
@@ -511,7 +526,19 @@ class FxSpotIntent(BaseModel):
     )
 
 
+class CashFlowIntent(BaseModel):
+    intent_type: Literal["CASH_FLOW"] = Field(
+        default="CASH_FLOW",
+        description="Intent discriminator.",
+    )
+    intent_id: str = Field(description="Intent identifier unique within run.")
+    currency: str = Field(description="Cash-flow currency code.")
+    amount: Decimal = Field(description="Signed cash-flow amount.")
+    description: Optional[str] = Field(default=None, description="Optional advisor-entered note.")
+
+
 OrderIntent = Union[SecurityTradeIntent, FxSpotIntent]
+ProposalOrderIntent = Union[CashFlowIntent, SecurityTradeIntent]
 
 
 class RuleResult(BaseModel):
@@ -608,6 +635,8 @@ class LineageData(BaseModel):
     portfolio_snapshot_id: str = Field(description="Portfolio snapshot id used by run.")
     market_data_snapshot_id: str = Field(description="Market-data snapshot id used by run.")
     request_hash: str = Field(description="Request hash/idempotency marker used in lineage.")
+    idempotency_key: Optional[str] = Field(default=None, description="Request idempotency key.")
+    engine_version: Optional[str] = Field(default=None, description="Engine version identifier.")
 
 
 class Reconciliation(BaseModel):
@@ -663,6 +692,92 @@ class RebalanceResult(BaseModel):
     )
     tax_impact: Optional[TaxImpact] = Field(
         default=None, description="Tax impact summary when tax-aware enabled."
+    )
+    rule_results: List[RuleResult] = Field(
+        default_factory=list, description="Rule engine evaluations."
+    )
+    explanation: Dict[str, Any] = Field(description="Additional explanatory payload.")
+    diagnostics: DiagnosticsData = Field(description="Diagnostics and warnings for the run.")
+    lineage: LineageData = Field(description="Lineage identifiers and request hash.")
+
+
+class ProposedCashFlow(BaseModel):
+    intent_type: Literal["CASH_FLOW"] = Field(default="CASH_FLOW")
+    currency: str = Field(description="Cash-flow currency code.")
+    amount: Decimal = Field(description="Signed cash-flow amount as decimal string.")
+    description: Optional[str] = Field(default=None)
+
+    @field_validator("amount", mode="before")
+    @classmethod
+    def reject_float_amount(cls, v):
+        if isinstance(v, float):
+            raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: amount must be a decimal string")
+        return v
+
+
+class ProposedTrade(BaseModel):
+    intent_type: Literal["SECURITY_TRADE"] = Field(default="SECURITY_TRADE")
+    side: Literal["BUY", "SELL"] = Field(description="Manual trade side.")
+    instrument_id: str = Field(description="Instrument identifier for manual trade.")
+    quantity: Optional[Decimal] = Field(default=None, gt=0, description="Trade quantity.")
+    notional: Optional[Money] = Field(
+        default=None, description="Trade notional in instrument currency."
+    )
+
+    @field_validator("quantity", mode="before")
+    @classmethod
+    def reject_float_quantity(cls, v):
+        if isinstance(v, float):
+            raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: quantity must be a decimal string")
+        return v
+
+    @field_validator("notional", mode="before")
+    @classmethod
+    def reject_float_notional_amount(cls, v):
+        if isinstance(v, dict) and isinstance(v.get("amount"), float):
+            raise ValueError(
+                "PROPOSAL_INVALID_TRADE_INPUT: notional.amount must be a decimal string"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_quantity_or_notional(self):
+        if self.quantity is None and self.notional is None:
+            raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: quantity or notional is required")
+        if self.notional is not None and self.notional.amount <= Decimal("0"):
+            raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: notional.amount must be greater than 0")
+        return self
+
+
+class ProposalSimulateRequest(BaseModel):
+    portfolio_snapshot: PortfolioSnapshot = Field(
+        description="Current portfolio holdings and cash balances."
+    )
+    market_data_snapshot: MarketDataSnapshot = Field(
+        description="Price and FX snapshot used for proposal simulation."
+    )
+    shelf_entries: List[ShelfEntry] = Field(
+        description="Instrument eligibility and policy metadata."
+    )
+    options: EngineOptions = Field(
+        default_factory=EngineOptions,
+        description="Request-level engine behavior and feature toggles.",
+    )
+    proposed_cash_flows: List[ProposedCashFlow] = Field(default_factory=list)
+    proposed_trades: List[ProposedTrade] = Field(default_factory=list)
+
+
+class ProposalResult(BaseModel):
+    proposal_run_id: str = Field(description="Proposal run identifier.")
+    correlation_id: str = Field(description="Correlation id used by request logging context.")
+    status: Literal["READY", "BLOCKED", "PENDING_REVIEW"] = Field(
+        description="Top-level domain outcome."
+    )
+    before: SimulatedState = Field(description="Before-state valuation snapshot.")
+    intents: List[Annotated[ProposalOrderIntent, Field(discriminator="intent_type")]]
+    after_simulated: SimulatedState = Field(description="After-state simulation snapshot.")
+    reconciliation: Optional[Reconciliation] = Field(
+        default=None, description="Reconciliation output."
     )
     rule_results: List[RuleResult] = Field(
         default_factory=list, description="Rule engine evaluations."
