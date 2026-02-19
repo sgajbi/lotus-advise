@@ -6,6 +6,15 @@ from decimal import Decimal
 
 from src.core.models import CashBalance, Money, Position, Reconciliation
 
+_CURRENCY_MINOR_UNITS = {
+    "BHD": 3,
+    "JPY": 0,
+    "KRW": 0,
+    "KWD": 3,
+    "OMR": 3,
+    "VND": 0,
+}
+
 
 def ensure_position(portfolio, instrument_id):
     position = next(
@@ -37,6 +46,30 @@ def apply_security_trade_to_portfolio(portfolio, intent):
     else:
         position.quantity -= intent.quantity
         cash_balance.amount += intent.notional.amount
+
+
+def apply_fx_spot_to_portfolio(portfolio, intent):
+    ensure_cash_balance(portfolio, intent.sell_currency).amount -= intent.sell_amount_estimated
+    ensure_cash_balance(portfolio, intent.buy_currency).amount += intent.buy_amount
+
+
+def quantize_amount_for_currency(amount: Decimal, currency: str) -> Decimal:
+    digits = _CURRENCY_MINOR_UNITS.get(currency, 2)
+    quantum = Decimal("1") if digits == 0 else Decimal(f"1e-{digits}")
+    return amount.quantize(quantum)
+
+
+def sort_execution_intents(intents):
+    def _sort_key(intent):
+        if intent.intent_type == "CASH_FLOW":
+            return (0, intent.intent_id, "")
+        if intent.intent_type == "SECURITY_TRADE":
+            if intent.side == "SELL":
+                return (1, intent.instrument_id, intent.intent_id)
+            return (3, intent.instrument_id, intent.intent_id)
+        return (2, getattr(intent, "pair", ""), intent.intent_id)
+
+    return sorted(intents, key=_sort_key)
 
 
 def derive_status_from_rules(rule_results):

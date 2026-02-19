@@ -113,6 +113,19 @@ def test_diagnostics_supports_dropped_intents():
     assert diag.dropped_intents == []
 
 
+def test_diagnostics_supports_advisory_funding_fields():
+    diag = DiagnosticsData(
+        warnings=[],
+        suppressed_intents=[],
+        dropped_intents=[],
+        group_constraint_events=[],
+        data_quality={"price_missing": [], "fx_missing": [], "shelf_missing": []},
+    )
+    assert diag.missing_fx_pairs == []
+    assert diag.funding_plan == []
+    assert diag.insufficient_cash == []
+
+
 def test_target_method_defaults_to_heuristic():
     options = EngineOptions()
     assert options.target_method == TargetMethod.HEURISTIC

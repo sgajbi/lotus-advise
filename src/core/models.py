@@ -321,6 +321,26 @@ class EngineOptions(BaseModel):
         description="Block proposal when cash-flow withdrawals create negative balances.",
         examples=[True],
     )
+    auto_funding: bool = Field(
+        default=True,
+        description="Enable advisory auto-funding for foreign-currency proposal buys.",
+        examples=[True],
+    )
+    funding_mode: Literal["AUTO_FX"] = Field(
+        default="AUTO_FX",
+        description="Advisory proposal funding mode.",
+        examples=["AUTO_FX"],
+    )
+    fx_funding_source_currency: Literal["BASE_ONLY", "ANY_CASH"] = Field(
+        default="ANY_CASH",
+        description="Funding source selection policy for generated advisory FX intents.",
+        examples=["ANY_CASH"],
+    )
+    fx_generation_policy: Literal["ONE_FX_PER_CCY"] = Field(
+        default="ONE_FX_PER_CCY",
+        description="FX intent generation policy for advisory auto-funding.",
+        examples=["ONE_FX_PER_CCY"],
+    )
     settlement_horizon_days: int = Field(
         default=5,
         ge=0,
@@ -543,7 +563,7 @@ class CashFlowIntent(BaseModel):
 
 
 OrderIntent = Union[SecurityTradeIntent, FxSpotIntent]
-ProposalOrderIntent = Union[CashFlowIntent, SecurityTradeIntent]
+ProposalOrderIntent = Union[CashFlowIntent, FxSpotIntent, SecurityTradeIntent]
 
 
 class RuleResult(BaseModel):
@@ -605,6 +625,28 @@ class CashLadderBreach(BaseModel):
     reason_code: str = Field(description="Breach reason code.")
 
 
+class FundingPlanEntry(BaseModel):
+    target_currency: str = Field(description="Currency required by advisory BUY intents.")
+    required: Decimal = Field(description="Total required amount in target currency.")
+    available_before_fx: Decimal = Field(
+        description="Available amount in target currency before generated FX."
+    )
+    fx_needed: Decimal = Field(description="Generated FX buy amount needed in target currency.")
+    fx_pair: Optional[str] = Field(
+        default=None,
+        description="Resolved FX pair used for funding, when available.",
+    )
+    funding_currency: Optional[str] = Field(
+        default=None,
+        description="Currency sold to fund target-currency buys.",
+    )
+
+
+class InsufficientCashEntry(BaseModel):
+    currency: str = Field(description="Currency where funding cash deficit is detected.")
+    deficit: Decimal = Field(description="Deficit amount in the funding currency.")
+
+
 class DiagnosticsData(BaseModel):
     warnings: List[str] = Field(default_factory=list, description="Run-level warning codes.")
     suppressed_intents: List[SuppressedIntent] = Field(
@@ -630,6 +672,18 @@ class DiagnosticsData(BaseModel):
     cash_ladder_breaches: List[CashLadderBreach] = Field(
         default_factory=list,
         description="Settlement ladder breaches that trigger blocks.",
+    )
+    missing_fx_pairs: List[str] = Field(
+        default_factory=list,
+        description="Missing FX pairs required for generated funding or proposal valuation.",
+    )
+    funding_plan: List[FundingPlanEntry] = Field(
+        default_factory=list,
+        description="Advisory funding plan details for generated FX intents.",
+    )
+    insufficient_cash: List[InsufficientCashEntry] = Field(
+        default_factory=list,
+        description="Funding deficits that block proposal simulation.",
     )
     data_quality: Dict[str, List[str]] = Field(
         description="Data-quality issue buckets and affected keys."
