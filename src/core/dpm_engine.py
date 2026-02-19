@@ -7,10 +7,11 @@ from copy import deepcopy
 from decimal import Decimal
 
 from src.core.common.simulation_shared import (
+    apply_fx_spot_to_portfolio,
     apply_security_trade_to_portfolio,
     build_reconciliation,
     derive_status_from_rules,
-    ensure_cash_balance,
+    sort_execution_intents,
 )
 from src.core.compliance import RuleEngine
 from src.core.models import (
@@ -845,13 +846,7 @@ def _generate_fx_and_simulate(
             if sell_ids[i.notional.currency] not in i.dependencies:
                 i.dependencies.append(sell_ids[i.notional.currency])
 
-    intents.sort(
-        key=lambda x: (
-            0
-            if (x.intent_type == "SECURITY_TRADE" and x.side == "SELL")
-            else (1 if x.intent_type == "FX_SPOT" else 2)
-        )
-    )
+    intents = sort_execution_intents(intents)
 
     if options.enable_settlement_awareness:
         _build_settlement_ladder(portfolio, shelf, intents, options, diagnostics)
@@ -886,8 +881,7 @@ def _generate_fx_and_simulate(
         if i.intent_type == "SECURITY_TRADE":
             apply_security_trade_to_portfolio(after, i)
         elif i.intent_type == "FX_SPOT":
-            ensure_cash_balance(after, i.sell_currency).amount -= i.sell_amount_estimated
-            ensure_cash_balance(after, i.buy_currency).amount += i.buy_amount
+            apply_fx_spot_to_portfolio(after, i)
 
     after_opts = options.model_copy(update={"valuation_mode": ValuationMode.CALCULATED})
     state = build_simulated_state(

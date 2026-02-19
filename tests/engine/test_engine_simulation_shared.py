@@ -1,14 +1,16 @@
 from decimal import Decimal
 
 from src.core.common.simulation_shared import (
+    apply_fx_spot_to_portfolio,
     apply_security_trade_to_portfolio,
     build_reconciliation,
     derive_status_from_rules,
     ensure_cash_balance,
     ensure_position,
+    sort_execution_intents,
 )
 from src.core.compliance import RuleEngine
-from src.core.models import EngineOptions, SecurityTradeIntent
+from src.core.models import CashFlowIntent, EngineOptions, FxSpotIntent, SecurityTradeIntent
 from src.core.valuation import build_simulated_state
 from tests.engine.coverage.helpers import empty_diagnostics
 from tests.factories import cash, market_data_snapshot, portfolio_snapshot
@@ -77,3 +79,64 @@ def test_build_reconciliation_returns_ok_for_expected_total():
     assert reconciliation.status == "OK"
     assert recon_diff == Decimal("0")
     assert tolerance > Decimal("0")
+
+
+def test_apply_fx_spot_to_portfolio_mutates_both_currencies():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_shared_4",
+        base_currency="USD",
+        cash_balances=[cash("USD", "1000"), cash("EUR", "0")],
+    )
+    intent = FxSpotIntent(
+        intent_id="oi_fx_1",
+        pair="EUR/USD",
+        buy_currency="EUR",
+        buy_amount=Decimal("100"),
+        sell_currency="USD",
+        sell_amount_estimated=Decimal("110"),
+    )
+
+    apply_fx_spot_to_portfolio(portfolio, intent)
+
+    usd_cash = next(c for c in portfolio.cash_balances if c.currency == "USD")
+    eur_cash = next(c for c in portfolio.cash_balances if c.currency == "EUR")
+    assert usd_cash.amount == Decimal("890")
+    assert eur_cash.amount == Decimal("100")
+
+
+def test_sort_execution_intents_orders_cashflow_sell_fx_buy():
+    cash_intent = CashFlowIntent(intent_id="oi_cf_1", currency="USD", amount=Decimal("100"))
+    buy_intent = SecurityTradeIntent(
+        intent_id="oi_buy_1",
+        instrument_id="EQ_B",
+        side="BUY",
+        quantity=Decimal("1"),
+        notional={"amount": Decimal("100"), "currency": "USD"},
+        notional_base={"amount": Decimal("100"), "currency": "USD"},
+    )
+    sell_intent = SecurityTradeIntent(
+        intent_id="oi_sell_1",
+        instrument_id="EQ_A",
+        side="SELL",
+        quantity=Decimal("1"),
+        notional={"amount": Decimal("100"), "currency": "USD"},
+        notional_base={"amount": Decimal("100"), "currency": "USD"},
+    )
+    fx_intent = FxSpotIntent(
+        intent_id="oi_fx_1",
+        pair="EUR/USD",
+        buy_currency="EUR",
+        buy_amount=Decimal("100"),
+        sell_currency="USD",
+        sell_amount_estimated=Decimal("110"),
+    )
+
+    ordered = sort_execution_intents([buy_intent, fx_intent, cash_intent, sell_intent])
+    assert [intent.intent_type for intent in ordered] == [
+        "CASH_FLOW",
+        "SECURITY_TRADE",
+        "FX_SPOT",
+        "SECURITY_TRADE",
+    ]
+    assert ordered[1].side == "SELL"
+    assert ordered[3].side == "BUY"

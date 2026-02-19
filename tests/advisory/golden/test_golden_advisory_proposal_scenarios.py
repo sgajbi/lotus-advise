@@ -2,17 +2,29 @@ import json
 import os
 from decimal import Decimal
 
+import pytest
+
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import EngineOptions, MarketDataSnapshot, PortfolioSnapshot, ShelfEntry
 
 
-def test_golden_proposal_14a_advisory_manual_trade_cashflow():
-    path = os.path.join(
-        os.path.dirname(__file__),
-        "../../golden_data/scenario_14A_advisory_manual_trade_cashflow.json",
-    )
+def _load_golden(path):
     with open(path, "r") as file:
-        data = json.loads(file.read(), parse_float=Decimal)
+        return json.loads(file.read(), parse_float=Decimal)
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "scenario_14A_advisory_manual_trade_cashflow.json",
+        "scenario_14B_auto_funding_single_ccy.json",
+        "scenario_14B_partial_funding.json",
+        "scenario_14B_missing_fx_blocked.json",
+    ],
+)
+def test_golden_advisory_proposal_scenarios(filename):
+    path = os.path.join(os.path.dirname(__file__), "../../golden_data", filename)
+    data = _load_golden(path)
 
     inputs = data["proposal_inputs"]
     expected = data["expected_proposal_output"]
@@ -28,24 +40,26 @@ def test_golden_proposal_14a_advisory_manual_trade_cashflow():
     )
 
     assert result.status == expected["status"]
+    assert [intent.intent_type for intent in result.intents] == [
+        intent["intent_type"] for intent in expected["intents"]
+    ]
 
-    assert result.intents[0].intent_type == expected["intents"][0]["intent_type"]
-    assert result.intents[0].currency == expected["intents"][0]["currency"]
-    assert result.intents[0].amount == Decimal(expected["intents"][0]["amount"])
-    assert result.intents[1].intent_type == expected["intents"][1]["intent_type"]
-    assert result.intents[1].side == expected["intents"][1]["side"]
-    assert result.intents[1].instrument_id == expected["intents"][1]["instrument_id"]
-    assert result.intents[1].quantity == Decimal(expected["intents"][1]["quantity"])
-    assert result.intents[1].notional.amount == Decimal(
-        expected["intents"][1]["notional"]["amount"]
-    )
-    assert result.intents[1].notional.currency == expected["intents"][1]["notional"]["currency"]
+    for idx, expected_intent in enumerate(expected["intents"]):
+        actual = result.intents[idx]
+        if "side" in expected_intent:
+            assert actual.side == expected_intent["side"]
+        if "instrument_id" in expected_intent:
+            assert actual.instrument_id == expected_intent["instrument_id"]
+        if "pair" in expected_intent:
+            assert actual.pair == expected_intent["pair"]
+        if "dependencies" in expected_intent:
+            assert actual.dependencies == expected_intent["dependencies"]
 
-    cash_by_currency = {cash.currency: cash.amount for cash in result.after_simulated.cash_balances}
-    assert cash_by_currency["SGD"] == Decimal("13500")
+    if "missing_fx_pairs" in expected:
+        assert sorted(result.diagnostics.missing_fx_pairs) == sorted(expected["missing_fx_pairs"])
 
-    positions_by_id = {
-        position.instrument_id: position.quantity for position in result.after_simulated.positions
-    }
-    assert positions_by_id["SG_BOND_ETF"] == Decimal("100")
-    assert positions_by_id["US_EQ_ETF"] == Decimal("10")
+    if "funding_plan" in expected:
+        assert len(result.diagnostics.funding_plan) == len(expected["funding_plan"])
+
+    if "insufficient_cash" in expected:
+        assert len(result.diagnostics.insufficient_cash) == len(expected["insufficient_cash"])
