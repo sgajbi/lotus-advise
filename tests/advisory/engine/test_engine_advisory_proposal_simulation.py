@@ -1,7 +1,8 @@
 from decimal import Decimal
+from unittest.mock import patch
 
 from src.core.advisory_engine import run_proposal_simulation
-from src.core.models import EngineOptions
+from src.core.models import EngineOptions, Money, Reconciliation
 from tests.factories import (
     cash,
     market_data_snapshot,
@@ -302,3 +303,338 @@ def test_proposal_simulation_run_id_is_deterministic_for_request_hash():
     )
 
     assert first.proposal_run_id == second.proposal_run_id
+
+
+def test_proposal_simulation_notional_input_path_with_missing_base_fx_allowed():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6a",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("US_EQ", "100", "USD")], fx_rates=[])
+    options = EngineOptions(enable_proposal_simulation=True, block_on_missing_fx=False)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=[shelf_entry("US_EQ", status="APPROVED")],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[
+            {
+                "side": "BUY",
+                "instrument_id": "US_EQ",
+                "notional": {"amount": "200", "currency": "USD"},
+            }
+        ],
+        request_hash="proposal_hash_notional_missing_base_fx",
+    )
+
+    assert result.status == "READY"
+    trade = next(intent for intent in result.intents if intent.intent_type == "SECURITY_TRADE")
+    assert trade.quantity == Decimal("2")
+    assert trade.notional_base is None
+    assert "USD/SGD" in result.diagnostics.data_quality["fx_missing"]
+
+
+def test_proposal_simulation_records_missing_price_non_blocking():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6b",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    options = EngineOptions(enable_proposal_simulation=True, block_on_missing_prices=False)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data_snapshot(prices=[], fx_rates=[]),
+        shelf=[shelf_entry("EQ_404", status="APPROVED")],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "EQ_404", "quantity": "1"}],
+        request_hash="proposal_hash_missing_price_non_block",
+    )
+
+    assert result.status == "READY"
+    assert "EQ_404" in result.diagnostics.data_quality["price_missing"]
+    assert result.intents == []
+
+
+def test_proposal_simulation_records_missing_fx_for_cash_flow_delta():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6c",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    options = EngineOptions(enable_proposal_simulation=True, block_on_missing_fx=False)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data_snapshot(prices=[], fx_rates=[]),
+        shelf=[],
+        options=options,
+        proposed_cash_flows=[{"currency": "EUR", "amount": "100"}],
+        proposed_trades=[],
+        request_hash="proposal_hash_missing_fx_cash_delta",
+    )
+
+    assert result.status == "READY"
+    assert "EUR/USD" in result.diagnostics.data_quality["fx_missing"]
+
+
+def test_proposal_simulation_run_id_uses_random_prefix_without_hash():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6d",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data_snapshot(prices=[], fx_rates=[]),
+        shelf=[],
+        options=EngineOptions(enable_proposal_simulation=True),
+        proposed_cash_flows=[],
+        proposed_trades=[],
+        request_hash="no_hash",
+    )
+
+    assert result.proposal_run_id.startswith("pr_")
+
+
+def test_proposal_simulation_auto_funding_disabled_path_is_exercised():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6e",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("US_EQ", "100", "USD")], fx_rates=[])
+    options = EngineOptions(enable_proposal_simulation=True, auto_funding=False)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=[shelf_entry("US_EQ", status="APPROVED")],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "US_EQ", "quantity": "1"}],
+        request_hash="proposal_hash_no_auto_funding",
+    )
+
+    assert result.status == "READY"
+    assert _intent_types(result) == ["SECURITY_TRADE"]
+
+
+def test_proposal_simulation_base_only_same_target_currency_blocks_if_cash_short():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6f",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "100"), cash("EUR", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("US_EQ", "100", "USD")], fx_rates=[])
+    options = EngineOptions(
+        enable_proposal_simulation=True,
+        fx_funding_source_currency="BASE_ONLY",
+    )
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=[shelf_entry("US_EQ", status="APPROVED")],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "US_EQ", "quantity": "2"}],
+        request_hash="proposal_hash_base_only_same_ccy",
+    )
+
+    assert result.status == "BLOCKED"
+    assert any(
+        rule.reason_code == "PROPOSAL_INSUFFICIENT_FUNDING_CASH" for rule in result.rule_results
+    )
+
+
+def test_proposal_simulation_blocks_negative_cash_withdrawal():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6g",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    options = EngineOptions(enable_proposal_simulation=True, proposal_block_negative_cash=True)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data_snapshot(prices=[], fx_rates=[]),
+        shelf=[],
+        options=options,
+        proposed_cash_flows=[{"currency": "USD", "amount": "-2000"}],
+        proposed_trades=[],
+        request_hash="proposal_hash_negative_withdrawal",
+    )
+
+    assert result.status == "BLOCKED"
+    assert "PROPOSAL_WITHDRAWAL_NEGATIVE_CASH" in result.diagnostics.warnings
+
+
+def test_proposal_simulation_records_missing_shelf_and_blocks():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6h",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("US_EQ", "100", "USD")], fx_rates=[])
+    options = EngineOptions(enable_proposal_simulation=True)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=[],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "US_EQ", "quantity": "1"}],
+        request_hash="proposal_hash_missing_shelf",
+    )
+
+    assert result.status == "BLOCKED"
+    assert "US_EQ" in result.diagnostics.data_quality["shelf_missing"]
+
+
+def test_proposal_simulation_blocks_sell_only_buy():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6i",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("US_EQ", "100", "USD")], fx_rates=[])
+    options = EngineOptions(enable_proposal_simulation=True)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=[shelf_entry("US_EQ", status="SELL_ONLY")],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "US_EQ", "quantity": "1"}],
+        request_hash="proposal_hash_sell_only",
+    )
+
+    assert result.status == "BLOCKED"
+    assert "PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF" in result.diagnostics.warnings
+
+
+def test_proposal_simulation_blocks_restricted_buy_when_not_allowed():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6j",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("US_EQ", "100", "USD")], fx_rates=[])
+    options = EngineOptions(enable_proposal_simulation=True, allow_restricted=False)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=[shelf_entry("US_EQ", status="RESTRICTED")],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "US_EQ", "quantity": "1"}],
+        request_hash="proposal_hash_restricted",
+    )
+
+    assert result.status == "BLOCKED"
+    assert "PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF" in result.diagnostics.warnings
+
+
+def test_proposal_simulation_reconciliation_mismatch_blocks_run():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6k",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("EQ_1", "100", "USD")], fx_rates=[])
+    options = EngineOptions(enable_proposal_simulation=True)
+
+    with patch(
+        "src.core.advisory_engine.build_reconciliation",
+        return_value=(
+            Reconciliation(
+                before_total_value=Money(amount=Decimal("1000"), currency="USD"),
+                after_total_value=Money(amount=Decimal("900"), currency="USD"),
+                delta=Money(amount=Decimal("-100"), currency="USD"),
+                tolerance=Money(amount=Decimal("0"), currency="USD"),
+                status="MISMATCH",
+            ),
+            Decimal("1"),
+            Decimal("0"),
+        ),
+    ):
+        result = run_proposal_simulation(
+            portfolio=portfolio,
+            market_data=market_data,
+            shelf=[shelf_entry("EQ_1", status="APPROVED")],
+            options=options,
+            proposed_cash_flows=[],
+            proposed_trades=[{"side": "BUY", "instrument_id": "EQ_1", "quantity": "1"}],
+            request_hash="proposal_hash_recon_mismatch",
+        )
+
+    assert result.status == "BLOCKED"
+    assert any(rule.rule_id == "RECONCILIATION" for rule in result.rule_results)
+
+
+def test_proposal_simulation_non_blocking_missing_fx_records_data_quality_pair():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6l",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "0"), cash("EUR", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("US_EQ", "100", "USD")], fx_rates=[])
+    options = EngineOptions(enable_proposal_simulation=True, block_on_missing_fx=False)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=[shelf_entry("US_EQ", status="APPROVED")],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "US_EQ", "quantity": "5"}],
+        request_hash="proposal_hash_missing_fx_pair_recorded",
+    )
+
+    assert result.status == "PENDING_REVIEW"
+    assert "USD/EUR" in result.diagnostics.missing_fx_pairs
+    assert "USD/EUR" in result.diagnostics.data_quality["fx_missing"]
+
+
+def test_proposal_simulation_forces_pending_status_when_rule_derivation_returns_ready():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_6m",
+        base_currency="SGD",
+        positions=[],
+        cash_balances=[cash("SGD", "10000")],
+    )
+    market_data = market_data_snapshot(prices=[price("US_EQ", "100", "USD")], fx_rates=[])
+    options = EngineOptions(enable_proposal_simulation=True, block_on_missing_fx=False)
+
+    with patch("src.core.advisory_engine.derive_status_from_rules", return_value="READY"):
+        result = run_proposal_simulation(
+            portfolio=portfolio,
+            market_data=market_data,
+            shelf=[shelf_entry("US_EQ", status="APPROVED")],
+            options=options,
+            proposed_cash_flows=[],
+            proposed_trades=[{"side": "BUY", "instrument_id": "US_EQ", "quantity": "1"}],
+            request_hash="proposal_hash_force_pending",
+        )
+
+    assert result.status == "PENDING_REVIEW"

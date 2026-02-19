@@ -1,285 +1,31 @@
-"""
-FILE: src/core/advisory_engine.py
-"""
-
-import hashlib
-import uuid
 from copy import deepcopy
 from decimal import Decimal
 
+from src.core.advisory.funding import build_auto_funding_plan
+from src.core.advisory.ids import proposal_run_id_from_request_hash
+from src.core.advisory.intents import (
+    apply_proposal_cash_flow,
+    build_proposal_security_trade_intent,
+    expected_cash_delta_base,
+)
+from src.core.common.diagnostics import make_diagnostics_data
 from src.core.common.simulation_shared import (
-    apply_fx_spot_to_portfolio,
     apply_security_trade_to_portfolio,
     build_reconciliation,
     derive_status_from_rules,
-    ensure_cash_balance,
-    quantize_amount_for_currency,
     sort_execution_intents,
 )
 from src.core.compliance import RuleEngine
 from src.core.models import (
     CashFlowIntent,
-    DiagnosticsData,
-    FundingPlanEntry,
-    FxSpotIntent,
-    InsufficientCashEntry,
-    IntentRationale,
     LineageData,
-    Money,
     ProposalResult,
     ProposedCashFlow,
     ProposedTrade,
     RuleResult,
-    SecurityTradeIntent,
     ValuationMode,
 )
-from src.core.valuation import build_simulated_state, get_fx_rate
-
-
-def _make_empty_data_quality_log():
-    return {"price_missing": [], "fx_missing": [], "shelf_missing": []}
-
-
-def _make_diagnostics_data():
-    return DiagnosticsData(
-        warnings=[],
-        suppressed_intents=[],
-        group_constraint_events=[],
-        data_quality=_make_empty_data_quality_log(),
-    )
-
-
-def _record_missing_fx_pair(diagnostics, pair):
-    if pair not in diagnostics.missing_fx_pairs:
-        diagnostics.missing_fx_pairs.append(pair)
-    if pair not in diagnostics.data_quality["fx_missing"]:
-        diagnostics.data_quality["fx_missing"].append(pair)
-
-
-def _proposal_apply_cash_flow(after_pf, cash_flow):
-    cash_entry = ensure_cash_balance(after_pf, cash_flow.currency)
-    cash_entry.amount += cash_flow.amount
-
-
-def _proposal_build_security_trade_intent(
-    *,
-    trade,
-    market_data,
-    base_currency,
-    intent_id,
-    dq_log,
-):
-    price_ent = next(
-        (p for p in market_data.prices if p.instrument_id == trade.instrument_id), None
-    )
-    if not price_ent:
-        dq_log["price_missing"].append(trade.instrument_id)
-        return None, None
-
-    if trade.quantity is not None:
-        quantity = trade.quantity
-        notional_amount = quantity * price_ent.price
-    else:
-        if trade.notional.currency != price_ent.currency:
-            return None, "PROPOSAL_INVALID_TRADE_INPUT"
-        notional_amount = trade.notional.amount
-        quantity = notional_amount / price_ent.price
-
-    notional_base = None
-    fx_rate = get_fx_rate(market_data, price_ent.currency, base_currency)
-    if fx_rate is None:
-        dq_log["fx_missing"].append(f"{price_ent.currency}/{base_currency}")
-    else:
-        notional_base = Money(amount=notional_amount * fx_rate, currency=base_currency)
-
-    return (
-        SecurityTradeIntent(
-            intent_id=intent_id,
-            side=trade.side,
-            instrument_id=trade.instrument_id,
-            quantity=quantity,
-            notional=Money(amount=notional_amount, currency=price_ent.currency),
-            notional_base=notional_base,
-            rationale=IntentRationale(code="MANUAL_PROPOSAL", message="Advisor proposed trade"),
-            dependencies=[],
-            constraints_applied=[],
-        ),
-        None,
-    )
-
-
-def _proposal_expected_cash_delta_base(portfolio, market_data, cash_flows, dq_log):
-    total = Decimal("0")
-    for cash_flow in cash_flows:
-        fx_rate = get_fx_rate(market_data, cash_flow.currency, portfolio.base_currency)
-        if fx_rate is None:
-            dq_log["fx_missing"].append(f"{cash_flow.currency}/{portfolio.base_currency}")
-            continue
-        total += cash_flow.amount * fx_rate
-    return total
-
-
-def _proposal_run_id_from_request_hash(request_hash):
-    if request_hash and request_hash != "no_hash":
-        digest = hashlib.sha256(str(request_hash).encode("utf-8")).hexdigest()[:8]
-        return f"pr_{digest}"
-    return f"pr_{uuid.uuid4().hex[:8]}"
-
-
-def _funding_priority_currencies(*, options, base_currency, target_currency, cash_ledger):
-    if options.fx_funding_source_currency == "BASE_ONLY":
-        if base_currency != target_currency:
-            return [base_currency]
-        return []
-
-    candidates = [base_currency] if base_currency != target_currency else []
-    other = sorted(c for c in cash_ledger.keys() if c not in {base_currency, target_currency})
-    return candidates + other
-
-
-def _build_auto_funding_plan(
-    *,
-    after_portfolio,
-    market_data,
-    options,
-    buy_intents,
-    diagnostics,
-):
-    fx_intents = []
-    fx_by_currency = {}
-    unfunded_currencies = set()
-    hard_failures = []
-    force_pending_review = False
-
-    if not options.auto_funding or options.funding_mode != "AUTO_FX":
-        return (
-            fx_intents,
-            fx_by_currency,
-            unfunded_currencies,
-            hard_failures,
-            force_pending_review,
-        )
-
-    grouped_buys = {}
-    for intent in buy_intents:
-        grouped_buys.setdefault(intent.notional.currency, []).append(intent)
-
-    for target_currency in sorted(grouped_buys.keys()):
-        buys = grouped_buys[target_currency]
-        required = sum((intent.notional.amount for intent in buys), Decimal("0"))
-        available_before_fx = ensure_cash_balance(after_portfolio, target_currency).amount
-        fx_needed = max(Decimal("0"), required - available_before_fx)
-
-        plan = FundingPlanEntry(
-            target_currency=target_currency,
-            required=quantize_amount_for_currency(required, target_currency),
-            available_before_fx=quantize_amount_for_currency(available_before_fx, target_currency),
-            fx_needed=quantize_amount_for_currency(fx_needed, target_currency),
-            fx_pair=None,
-            funding_currency=None,
-        )
-
-        if fx_needed <= Decimal("0"):
-            diagnostics.funding_plan.append(plan)
-            continue
-
-        cash_ledger = {entry.currency: entry.amount for entry in after_portfolio.cash_balances}
-        candidates = _funding_priority_currencies(
-            options=options,
-            base_currency=after_portfolio.base_currency,
-            target_currency=target_currency,
-            cash_ledger=cash_ledger,
-        )
-
-        selected = None
-        smallest_deficit = None
-        for funding_currency in candidates:
-            pair = f"{target_currency}/{funding_currency}"
-            rate = get_fx_rate(market_data, target_currency, funding_currency)
-            if rate is None:
-                _record_missing_fx_pair(diagnostics, pair)
-                continue
-
-            sell_required = quantize_amount_for_currency(
-                fx_needed * rate,
-                funding_currency,
-            )
-            available_funding = ensure_cash_balance(after_portfolio, funding_currency).amount
-
-            if available_funding >= sell_required:
-                selected = {
-                    "pair": pair,
-                    "rate": rate,
-                    "funding_currency": funding_currency,
-                    "sell_required": sell_required,
-                }
-                break
-
-            deficit = sell_required - available_funding
-            if smallest_deficit is None or deficit < smallest_deficit["deficit"]:
-                smallest_deficit = {
-                    "currency": funding_currency,
-                    "deficit": deficit,
-                }
-
-        if selected is None:
-            if diagnostics.missing_fx_pairs and not options.block_on_missing_fx:
-                force_pending_review = True
-                if "PROPOSAL_MISSING_FX_NON_BLOCKING" not in diagnostics.warnings:
-                    diagnostics.warnings.append("PROPOSAL_MISSING_FX_NON_BLOCKING")
-                unfunded_currencies.add(target_currency)
-                diagnostics.funding_plan.append(plan)
-                continue
-
-            if diagnostics.missing_fx_pairs and options.block_on_missing_fx:
-                hard_failures.append("PROPOSAL_MISSING_FX_FOR_FUNDING")
-                unfunded_currencies.add(target_currency)
-                diagnostics.funding_plan.append(plan)
-                continue
-
-            if smallest_deficit is not None:
-                diagnostics.insufficient_cash.append(
-                    InsufficientCashEntry(
-                        currency=smallest_deficit["currency"],
-                        deficit=quantize_amount_for_currency(
-                            smallest_deficit["deficit"],
-                            smallest_deficit["currency"],
-                        ),
-                    )
-                )
-            hard_failures.append("PROPOSAL_INSUFFICIENT_FUNDING_CASH")
-            unfunded_currencies.add(target_currency)
-            diagnostics.funding_plan.append(plan)
-            continue
-
-        fx_intent_id = f"oi_fx_{len(fx_intents) + 1}"
-        fx_buy_amount = quantize_amount_for_currency(fx_needed, target_currency)
-        fx_intent = FxSpotIntent(
-            intent_id=fx_intent_id,
-            pair=selected["pair"],
-            buy_currency=target_currency,
-            buy_amount=fx_buy_amount,
-            sell_currency=selected["funding_currency"],
-            sell_amount_estimated=selected["sell_required"],
-            dependencies=[],
-            rationale=IntentRationale(code="FUNDING", message=f"Fund {target_currency} buys"),
-        )
-
-        apply_fx_spot_to_portfolio(after_portfolio, fx_intent)
-        fx_intents.append(fx_intent)
-        fx_by_currency[target_currency] = fx_intent_id
-
-        plan.fx_pair = selected["pair"]
-        plan.funding_currency = selected["funding_currency"]
-        diagnostics.funding_plan.append(plan)
-
-    return (
-        fx_intents,
-        fx_by_currency,
-        unfunded_currencies,
-        hard_failures,
-        force_pending_review,
-    )
+from src.core.valuation import build_simulated_state
 
 
 def run_proposal_simulation(
@@ -294,8 +40,8 @@ def run_proposal_simulation(
     idempotency_key=None,
     correlation_id="c_none",
 ):
-    run_id = _proposal_run_id_from_request_hash(request_hash)
-    diagnostics = _make_diagnostics_data()
+    run_id = proposal_run_id_from_request_hash(request_hash)
+    diagnostics = make_diagnostics_data()
 
     before = build_simulated_state(
         portfolio,
@@ -315,7 +61,7 @@ def run_proposal_simulation(
 
     cash_flow_intents = []
     for idx, cash_flow in enumerate(cash_flows):
-        _proposal_apply_cash_flow(after_portfolio, cash_flow)
+        apply_proposal_cash_flow(after_portfolio, cash_flow)
         cash_flow_intents.append(
             CashFlowIntent(
                 intent_id=f"oi_cf_{idx + 1}",
@@ -354,7 +100,7 @@ def run_proposal_simulation(
             hard_failures.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
             continue
 
-        intent, error_code = _proposal_build_security_trade_intent(
+        intent, error_code = build_proposal_security_trade_intent(
             trade=trade,
             market_data=market_data,
             base_currency=portfolio.base_currency,
@@ -385,7 +131,7 @@ def run_proposal_simulation(
         unfunded_currencies,
         funding_failures,
         funding_pending,
-    ) = _build_auto_funding_plan(
+    ) = build_auto_funding_plan(
         after_portfolio=after_portfolio,
         market_data=market_data,
         options=options,
@@ -453,7 +199,7 @@ def run_proposal_simulation(
 
     final_status = derive_status_from_rules(rule_results)
 
-    expected_delta_base = _proposal_expected_cash_delta_base(
+    expected_delta_base = expected_cash_delta_base(
         portfolio=portfolio,
         market_data=market_data,
         cash_flows=cash_flows,

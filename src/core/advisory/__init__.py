@@ -1,0 +1,3 @@
+"""
+Advisory simulation package.
+"""
