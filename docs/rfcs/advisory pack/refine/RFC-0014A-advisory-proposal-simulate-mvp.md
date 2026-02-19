@@ -2,12 +2,13 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14A |
 | **Depends On** | RFC-0003 (No-Throw Architecture), RFC-0006A (After-state completeness & safety hardening) |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014A-advisory-proposal-simulate-mvp.md` |
 | **Backward Compatibility** | Not required (new endpoint; app not live) |
+| **Implemented In** | 2026-02-19 |
 
 ---
 

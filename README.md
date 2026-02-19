@@ -19,6 +19,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0012 (solver integration, feature-flagged via `options.target_method`)
 * RFC-0013 (what-if batch analysis via `POST /rebalance/analyze`)
 * RFC-0014A (advisory proposal simulation via `POST /rebalance/proposals/simulate`, feature-flagged via `options.enable_proposal_simulation`)
+* RFC-0014B (advisory proposal auto-funding via generated `FX_SPOT` intents and dependencies)
 * RFC-0014C (advisory drift analytics via inline `reference_model` in `POST /rebalance/proposals/simulate`)
 
 ---

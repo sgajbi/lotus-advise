@@ -2,13 +2,14 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14C |
 | **Depends On** | RFC-0014A (Proposal Simulation), RFC-0006A (After-state completeness) |
 | **Optional Depends On** | RFC-0014B (Auto-funding) — not required for drift math, but improves realism |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014C-drift-analytics.md` |
 | **Backward Compatibility** | Not required |
+| **Implemented In** | 2026-02-19 |
 
 ---
 
@@ -228,17 +229,18 @@ These are not “LLM text”; they are structured facts an advisor UI can render
 
 ## 8. Implementation Plan
 
-1. Add `ReferenceModel` model under `src/domain/` (Pydantic v2, decimals)
-2. Add `DriftAnalyzer` under `src/core/analytics/`:
+1. Add `ReferenceModel` and drift output models under `src/core/models.py` (Pydantic v2, decimals)
+2. Add drift analytics module at `src/core/common/drift_analytics.py`:
 
-   * method: `compute_asset_class_drift(before_alloc, after_alloc, model_targets)`
-   * method: `compute_instrument_drift(before_alloc, after_alloc, model_targets, traded_instruments)`
+   * method: `compute_drift_analysis(...)` with asset-class and optional instrument dimensions
 3. Ensure allocation inputs are taken from:
 
    * `before.allocation_by_asset_class`
    * `after_simulated.allocation_by_asset_class`
      and similarly for instruments.
 4. Add output wiring in proposal response builder
+   * `src/core/advisory_engine.py`
+   * `src/api/main.py`
 5. Add tests + goldens
 
 ---

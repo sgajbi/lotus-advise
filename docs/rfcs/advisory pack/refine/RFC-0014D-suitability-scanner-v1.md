@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | DRAFT (NOT IMPLEMENTED) |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14D |
 | **Depends On** | RFC-0014A (Proposal Simulation), RFC-0006A (After-state completeness & safety) |

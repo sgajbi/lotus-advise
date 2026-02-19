@@ -19,4 +19,8 @@ Standards for all current and future RFCs:
 | RFC-0011 | Settlement Awareness (Cash Ladder & Overdraft Protection) | IMPLEMENTED | RFC-0007A | `docs/rfcs/RFC-0011-settlement-awareness-cash-ladder-overdraft-protection.md` |
 | RFC-0012 | Mathematical Optimization (Solver Integration) | IMPLEMENTED | RFC-0008 | `docs/rfcs/RFC-0012-mathematical-optimization-solver-integration.md` |
 | RFC-0013 | "What-If" Analysis Mode (Multi-Scenario Simulation) | IMPLEMENTED | RFC-0003 | `docs/rfcs/RFC-0013-what-if-analysis-mode-multi-scenario-simulation.md` |
+| RFC-0014A | Advisory Proposal Simulation MVP (Manual Trades + Cash Flows) | IMPLEMENTED | RFC-0003, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014A-advisory-proposal-simulate-mvp.md` |
+| RFC-0014B | Advisory Proposal Auto-Funding (FX Spot Intents + Dependency Graph) | IMPLEMENTED | RFC-0014A, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014B-advisory-proposal-auto-funding.md` |
+| RFC-0014C | Drift Analytics for Advisory Proposals (Before vs After vs Reference Model) | IMPLEMENTED | RFC-0014A, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014C-drift-analytics.md` |
+| RFC-0014D | Suitability Scanner v1 for Advisory Proposals | DRAFT | RFC-0014A, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014D-suitability-scanner-v1.md` |
 | RFC-0015 | Deferred Scope Consolidation and Completion Backlog | DRAFT | RFC-0001..RFC-0013 | `docs/rfcs/RFC-0015-deferred-scope-consolidation-and-completion-backlog.md` |
