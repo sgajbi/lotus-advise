@@ -77,7 +77,12 @@ Implementation scope:
 
 ## Tests That Lock DPM Behavior
 
-- API: `tests/api/test_api_rebalance.py`
-- Engine: `tests/engine/`
-- Goldens: `tests/golden/test_golden_scenarios.py`
-- Batch goldens: `tests/golden/test_golden_batch_analysis.py`
+- API: `tests/dpm/api/test_api_rebalance.py`
+- Engine: `tests/dpm/engine/`
+- Goldens: `tests/dpm/golden/test_golden_scenarios.py`
+- Batch goldens: `tests/dpm/golden/test_golden_batch_analysis.py`
+
+## Deprecation Notes
+
+- `src/core/dpm_engine.py` is a compatibility shim and emits `DeprecationWarning`.
+- Use `src/core/dpm/engine.py` as the stable DPM engine import path.

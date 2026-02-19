@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.artifact_models import ProposalArtifact
-from src.core.advisory.engine import run_proposal_simulation
+from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.dpm.engine import run_simulation
 from src.core.models import (

@@ -5,7 +5,7 @@ Implementation scope:
 - API: `src/api/main.py` (`/rebalance/proposals/artifact`)
 - Models: `src/core/models.py`
 - Artifact models: `src/core/advisory/artifact_models.py`
-- Core orchestration: `src/core/advisory/engine.py` (`run_proposal_simulation`)
+- Core orchestration: `src/core/advisory_engine.py` (`run_proposal_simulation`)
 - Advisory modular internals:
   - `src/core/advisory/ids.py` (deterministic run id generation)
   - `src/core/advisory/intents.py` (proposal cash/trade intent construction helpers)
@@ -149,6 +149,11 @@ Determinism controls:
 - Contract: `tests/advisory/contracts/test_contract_proposal_artifact_models.py`
 - Engine: `tests/advisory/engine/test_engine_advisory_proposal_simulation.py`
 - Engine: `tests/advisory/engine/test_engine_proposal_artifact.py`
-- Engine: `tests/engine/test_engine_workflow_gates.py`
+- Engine: `tests/dpm/engine/test_engine_workflow_gates.py`
 - Proposal golden: `tests/advisory/golden/test_golden_advisory_proposal_scenarios.py`
 - Artifact golden: `tests/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`
+
+## Deprecation Notes
+
+- `src/core/advisory/engine.py` is a compatibility shim and emits `DeprecationWarning`.
+- Use `src/core/advisory_engine.py` as the current stable advisory engine import path.

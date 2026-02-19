@@ -248,11 +248,12 @@ Hashing behavior:
 
 ## 🧪 Regression Testing (Golden Scenarios)
 
-We maintain a set of "Gold Standard" inputs and outputs in `tests/golden_data/`. These ensure that complex math (e.g., redistribution logic) never changes unexpectedly.
+We maintain a set of "Gold Standard" inputs and outputs in `tests/dpm/golden_data/` and
+`tests/advisory/golden_data/`. These ensure that complex math never changes unexpectedly.
 
 Solver-mode golden scenarios (RFC-0012):
-* `tests/golden_data/scenario_12_solver_conflict.json`
-* `tests/golden_data/scenario_12_solver_infeasible.json`
+* `tests/dpm/golden_data/scenario_12_solver_conflict.json`
+* `tests/dpm/golden_data/scenario_12_solver_infeasible.json`
 
 **To Regenerate Golden Files:**
 (Only do this if you have intentionally changed the business logic via an RFC).
