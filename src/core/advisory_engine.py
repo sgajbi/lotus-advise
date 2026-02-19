@@ -9,6 +9,7 @@ from src.core.advisory.intents import (
     expected_cash_delta_base,
 )
 from src.core.common.diagnostics import make_diagnostics_data
+from src.core.common.drift_analytics import compute_drift_analysis
 from src.core.common.simulation_shared import (
     apply_security_trade_to_portfolio,
     build_reconciliation,
@@ -22,6 +23,7 @@ from src.core.models import (
     ProposalResult,
     ProposedCashFlow,
     ProposedTrade,
+    ReferenceModel,
     RuleResult,
     ValuationMode,
 )
@@ -36,6 +38,7 @@ def run_proposal_simulation(
     options,
     proposed_cash_flows,
     proposed_trades,
+    reference_model=None,
     request_hash="no_hash",
     idempotency_key=None,
     correlation_id="c_none",
@@ -58,6 +61,9 @@ def run_proposal_simulation(
 
     cash_flows = [ProposedCashFlow.model_validate(item) for item in proposed_cash_flows]
     trades = [ProposedTrade.model_validate(item) for item in proposed_trades]
+    reference_model_validated = (
+        ReferenceModel.model_validate(reference_model) if reference_model is not None else None
+    )
 
     cash_flow_intents = []
     for idx, cash_flow in enumerate(cash_flows):
@@ -231,6 +237,22 @@ def run_proposal_simulation(
     if force_pending_review and final_status == "READY":
         final_status = "PENDING_REVIEW"
 
+    drift_analysis = None
+    if options.enable_drift_analytics and reference_model_validated is not None:
+        if reference_model_validated.base_currency != portfolio.base_currency:
+            diagnostics.warnings.append("REFERENCE_MODEL_BASE_CURRENCY_MISMATCH")
+        else:
+            traded_instruments = {
+                intent.instrument_id for intent in intents if intent.intent_type == "SECURITY_TRADE"
+            }
+            drift_analysis = compute_drift_analysis(
+                before=before,
+                after=after,
+                reference_model=reference_model_validated,
+                traded_instruments=traded_instruments,
+                options=options,
+            )
+
     return ProposalResult(
         proposal_run_id=run_id,
         correlation_id=correlation_id,
@@ -241,6 +263,7 @@ def run_proposal_simulation(
         reconciliation=reconciliation,
         rule_results=rule_results,
         diagnostics=diagnostics,
+        drift_analysis=drift_analysis,
         explanation={"summary": final_status},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.snapshot_id or portfolio.portfolio_id,

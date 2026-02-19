@@ -150,6 +150,30 @@ class ModelPortfolio(BaseModel):
     targets: List[ModelTarget] = Field(description="List of model target weights.")
 
 
+class ReferenceAssetClassTarget(BaseModel):
+    asset_class: str = Field(description="Reference model asset-class bucket.")
+    weight: Decimal = Field(description="Target weight for the asset-class bucket.")
+
+
+class ReferenceInstrumentTarget(BaseModel):
+    instrument_id: str = Field(description="Reference model instrument identifier.")
+    weight: Decimal = Field(description="Target weight for the instrument bucket.")
+
+
+class ReferenceModel(BaseModel):
+    model_id: str = Field(description="Reference model identifier.")
+    as_of: str = Field(description="Reference model as-of date.")
+    base_currency: str = Field(description="Reference model base currency.")
+    asset_class_targets: List[ReferenceAssetClassTarget] = Field(
+        default_factory=list,
+        description="Reference target weights by asset class.",
+    )
+    instrument_targets: List[ReferenceInstrumentTarget] = Field(
+        default_factory=list,
+        description="Optional reference target weights by instrument.",
+    )
+
+
 class TaxLot(BaseModel):
     lot_id: str = Field(
         description="Unique lot identifier within instrument.", examples=["LOT_001"]
@@ -320,6 +344,30 @@ class EngineOptions(BaseModel):
         default=True,
         description="Block proposal when cash-flow withdrawals create negative balances.",
         examples=[True],
+    )
+    enable_drift_analytics: bool = Field(
+        default=True,
+        description="Enable advisory drift analytics when a reference model is provided.",
+        examples=[True],
+    )
+    enable_instrument_drift: bool = Field(
+        default=True,
+        description="Enable instrument-level drift analytics when reference targets are present.",
+        examples=[True],
+    )
+    drift_top_contributors_limit: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Maximum bucket count in top-contributor and highlight lists.",
+        examples=[5],
+    )
+    drift_unmodeled_exposure_threshold: Decimal = Field(
+        default=Decimal("0.01"),
+        ge=0,
+        le=1,
+        description="Minimum exposure threshold for unmodeled-exposure highlights.",
+        examples=["0.01"],
     )
     auto_funding: bool = Field(
         default=True,
@@ -725,6 +773,85 @@ class TaxImpact(BaseModel):
     budget_used: Optional[Money] = Field(default=None, description="Portion of budget consumed.")
 
 
+class DriftReferenceModelSummary(BaseModel):
+    model_id: str = Field(description="Reference model identifier.")
+    as_of: str = Field(description="Reference model as-of date.")
+    base_currency: str = Field(description="Reference model base currency.")
+
+
+class DriftBucketDetail(BaseModel):
+    bucket: str = Field(description="Drift bucket key.")
+    model_weight: Decimal = Field(description="Reference model weight for the bucket.")
+    portfolio_weight_before: Decimal = Field(
+        description="Before-state portfolio weight for the bucket."
+    )
+    portfolio_weight_after: Decimal = Field(
+        description="After-state portfolio weight for the bucket."
+    )
+    drift_before: Decimal = Field(description="Signed before-state drift for the bucket.")
+    drift_after: Decimal = Field(description="Signed after-state drift for the bucket.")
+    abs_drift_before: Decimal = Field(description="Absolute before-state drift for the bucket.")
+    abs_drift_after: Decimal = Field(description="Absolute after-state drift for the bucket.")
+    improvement: Decimal = Field(description="Positive when absolute drift improves.")
+
+
+class DriftDimensionAnalysis(BaseModel):
+    drift_total_before: Decimal = Field(description="Total drift in before-state.")
+    drift_total_after: Decimal = Field(description="Total drift in after-state.")
+    drift_total_delta: Decimal = Field(
+        description="After minus before drift total. Negative means improvement."
+    )
+    top_contributors_before: List[DriftBucketDetail] = Field(
+        default_factory=list,
+        description="Largest before-state drift contributors.",
+    )
+    buckets: List[DriftBucketDetail] = Field(
+        default_factory=list,
+        description="Deterministic drift details for all buckets.",
+    )
+
+
+class DriftHighlightEntry(BaseModel):
+    bucket: str = Field(description="Highlighted drift bucket.")
+    improvement: Decimal = Field(description="Improvement value for the highlighted bucket.")
+
+
+class DriftUnmodeledExposure(BaseModel):
+    bucket: str = Field(description="Bucket with model weight of zero.")
+    portfolio_weight_before: Decimal = Field(description="Before-state exposure for the bucket.")
+    portfolio_weight_after: Decimal = Field(description="After-state exposure for the bucket.")
+    max_portfolio_weight: Decimal = Field(
+        description="Max of before/after exposure for the bucket."
+    )
+
+
+class DriftHighlights(BaseModel):
+    largest_improvements: List[DriftHighlightEntry] = Field(
+        default_factory=list,
+        description="Buckets with largest positive drift improvements.",
+    )
+    largest_deteriorations: List[DriftHighlightEntry] = Field(
+        default_factory=list,
+        description="Buckets with largest drift deteriorations.",
+    )
+    unmodeled_exposures: List[DriftUnmodeledExposure] = Field(
+        default_factory=list,
+        description="Buckets where model weight is zero and exposure exceeds threshold.",
+    )
+
+
+class DriftAnalysis(BaseModel):
+    reference_model: DriftReferenceModelSummary = Field(
+        description="Reference model identifier details."
+    )
+    asset_class: DriftDimensionAnalysis = Field(description="Asset-class drift analytics.")
+    instrument: Optional[DriftDimensionAnalysis] = Field(
+        default=None,
+        description="Instrument drift analytics when instrument targets are provided.",
+    )
+    highlights: DriftHighlights = Field(description="Deterministic advisory highlights.")
+
+
 class RebalanceResult(BaseModel):
     """The complete, auditable result of a rebalance simulation."""
 
@@ -957,6 +1084,10 @@ class ProposalSimulateRequest(BaseModel):
             ]
         ],
     )
+    reference_model: Optional[ReferenceModel] = Field(
+        default=None,
+        description="Optional reference model used for advisory drift analytics.",
+    )
 
 
 class ProposalResult(BaseModel):
@@ -1015,6 +1146,10 @@ class ProposalResult(BaseModel):
     )
     explanation: Dict[str, Any] = Field(description="Additional explanatory payload.")
     diagnostics: DiagnosticsData = Field(description="Diagnostics and warnings for the run.")
+    drift_analysis: Optional[DriftAnalysis] = Field(
+        default=None,
+        description="Reference-model drift analytics when provided and enabled.",
+    )
     lineage: LineageData = Field(description="Lineage identifiers and request hash.")
 
 

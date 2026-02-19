@@ -494,6 +494,7 @@ def simulate_proposal(
         options=request.options,
         proposed_cash_flows=request.proposed_cash_flows,
         proposed_trades=request.proposed_trades,
+        reference_model=request.reference_model,
         request_hash=request_hash,
         idempotency_key=idempotency_key,
         correlation_id=resolved_correlation_id,
