@@ -239,7 +239,7 @@ These are not “LLM text”; they are structured facts an advisor UI can render
    * `after_simulated.allocation_by_asset_class`
      and similarly for instruments.
 4. Add output wiring in proposal response builder
-   * `src/core/advisory/engine.py`
+   * `src/core/advisory_engine.py`
    * `src/api/main.py`
 5. Add tests + goldens
 
@@ -287,6 +287,13 @@ Each golden asserts:
 * RFC-0014E: Proposal Artifact packaging (client-ready report bundle)
 * RFC-0014F: Workflow gating (PENDING_REVIEW triggers)
 
+
+## Behavior Reference (Implemented)
+
+1. Drift analysis is computed only when a `reference_model` is provided and drift analytics is enabled.
+2. Bucket universes are deterministic unions, so unmodeled exposure is explicitly surfaced instead of hidden.
+3. Drift totals and contributors are produced with stable ordering for repeatable artifacts and reviews.
+4. When no reference model is supplied, drift output is omitted by design rather than inferred.
 
 
 

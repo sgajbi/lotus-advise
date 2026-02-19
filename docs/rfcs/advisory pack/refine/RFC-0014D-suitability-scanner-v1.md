@@ -360,5 +360,12 @@ Each golden asserts:
 * RFC-0014F: Workflow gating as first-class state machine (with persistence later)
 
 
+## Behavior Reference (Implemented)
+
+1. Suitability scanner is deterministic and classifies issues as `NEW`, `PERSISTENT`, or `RESOLVED` by comparing before vs after states.
+2. Scanner output is advisory-focused and complements, rather than replaces, hard/soft rule-engine status decisions.
+3. Governance-related attempted violations are still surfaced as suitability issues even when execution guards block the trade.
+4. `recommended_gate` is derived from new-issue severity and consumed by shared workflow-gate policy.
+
 
 

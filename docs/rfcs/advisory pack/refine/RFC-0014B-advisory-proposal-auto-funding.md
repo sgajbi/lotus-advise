@@ -384,5 +384,13 @@ Each golden must assert:
 ---
 
 
+## Behavior Reference (Implemented)
+
+1. Auto-funding is option-controlled and runs only for BUY currency deficits.
+2. Existing trade-currency cash is consumed before generating FX funding intents.
+3. FX funding intents are generated deterministically and BUY intents carry explicit dependencies on those FX intents.
+4. Missing required FX data follows policy: with blocking enabled the proposal is `BLOCKED`; with non-blocking policy execution intents are constrained and surfaced for review.
+5. Intent ordering remains deterministic: `CASH_FLOW -> SELL -> FX -> BUY`.
+
 
 

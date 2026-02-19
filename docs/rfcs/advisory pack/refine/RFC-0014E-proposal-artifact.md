@@ -383,6 +383,13 @@ Goldens should assert:
 
  
 
+## Behavior Reference (Implemented)
+
+1. Artifact generation reuses proposal simulation outputs, then builds deterministic business sections from those facts.
+2. Hashing uses canonical JSON and excludes volatile fields so equivalent inputs produce stable artifact hashes.
+3. If optional analytics (for example suitability) are unavailable, artifact sections are explicitly marked unavailable instead of silently omitted.
+4. `evidence_bundle` includes reproducibility payloads (inputs + engine outputs) to support audit and replay.
+
 
 
 

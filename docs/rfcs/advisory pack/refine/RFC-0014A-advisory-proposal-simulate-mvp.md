@@ -382,5 +382,13 @@ Scenario:
 ---
  
 
+## Behavior Reference (Implemented)
+
+1. Inputs are simulated in deterministic sequence: cash flows first, then security trades with stable ordering.
+2. Proposal BUYs on disallowed shelf statuses are hard-blocked with proposal-specific diagnostics.
+3. If `proposal_block_negative_cash=true`, withdrawal-driven negative cash is hard-blocked.
+4. Final status is still derived from shared hard/soft rule semantics (`READY`, `PENDING_REVIEW`, `BLOCKED`).
+5. Idempotency behavior is deterministic: same `Idempotency-Key` plus same canonical payload returns cached-equivalent output; same key with different payload returns conflict.
+
 
 

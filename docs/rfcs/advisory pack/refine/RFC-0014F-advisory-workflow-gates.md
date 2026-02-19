@@ -311,4 +311,11 @@ Each asserts:
  
 
 
+## Behavior Reference (Implemented)
+
+1. Workflow gates are derived from deterministic policy evaluation over status, rule outcomes, suitability severity, and key diagnostics.
+2. `BLOCKED` always dominates gate outcomes and routes to input-fix workflow.
+3. Clean feasible proposals route to client-consent or execution-ready based on consent options.
+4. Shared gate vocabulary is applied consistently in advisory simulate, advisory artifact, and DPM simulate responses.
+
 
