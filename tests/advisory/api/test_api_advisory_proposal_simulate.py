@@ -53,6 +53,11 @@ def test_advisory_proposal_simulate_endpoint_success(client):
     assert body["status"] == "READY"
     assert body["intents"][0]["intent_type"] == "CASH_FLOW"
     assert body["correlation_id"].startswith("corr_")
+    assert body["suitability"]["recommended_gate"] in {
+        "NONE",
+        "RISK_REVIEW",
+        "COMPLIANCE_REVIEW",
+    }
 
 
 def test_advisory_proposal_simulate_requires_feature_flag(client):

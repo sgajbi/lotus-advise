@@ -22,6 +22,9 @@ def _load_golden(path):
         "scenario_14B_missing_fx_blocked.json",
         "scenario_14C_drift_asset_class.json",
         "scenario_14C_drift_instrument.json",
+        "scenario_14D_single_position_resolved.json",
+        "scenario_14D_new_issuer_breach.json",
+        "scenario_14D_sell_only_violation.json",
     ],
 )
 def test_golden_advisory_proposal_scenarios(filename):
@@ -98,3 +101,27 @@ def test_golden_advisory_proposal_scenarios(filename):
             ] == [
                 item["bucket"] for item in expected_drift["instrument"]["top_contributors_before"]
             ]
+
+    expected_suitability = expected.get("suitability")
+    if expected_suitability is not None:
+        assert result.suitability is not None
+        assert result.suitability.summary.new_count == expected_suitability["summary"]["new_count"]
+        assert (
+            result.suitability.summary.resolved_count
+            == expected_suitability["summary"]["resolved_count"]
+        )
+        assert (
+            result.suitability.summary.persistent_count
+            == expected_suitability["summary"]["persistent_count"]
+        )
+        assert (
+            result.suitability.summary.highest_severity_new
+            == expected_suitability["summary"]["highest_severity_new"]
+        )
+        assert result.suitability.recommended_gate == expected_suitability["recommended_gate"]
+        assert [item.issue_key for item in result.suitability.issues] == [
+            item["issue_key"] for item in expected_suitability["issues"]
+        ]
+        assert [item.status_change for item in result.suitability.issues] == [
+            item["status_change"] for item in expected_suitability["issues"]
+        ]

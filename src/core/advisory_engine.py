@@ -16,6 +16,7 @@ from src.core.common.simulation_shared import (
     derive_status_from_rules,
     sort_execution_intents,
 )
+from src.core.common.suitability import compute_suitability_result
 from src.core.compliance import RuleEngine
 from src.core.models import (
     CashFlowIntent,
@@ -253,6 +254,18 @@ def run_proposal_simulation(
                 options=options,
             )
 
+    suitability = None
+    if options.enable_suitability_scanner:
+        suitability = compute_suitability_result(
+            before=before,
+            after=after,
+            shelf=shelf,
+            options=options,
+            portfolio_snapshot_id=portfolio.snapshot_id or portfolio.portfolio_id,
+            market_data_snapshot_id=market_data.snapshot_id or "md",
+            proposed_trades=trades,
+        )
+
     return ProposalResult(
         proposal_run_id=run_id,
         correlation_id=correlation_id,
@@ -264,6 +277,7 @@ def run_proposal_simulation(
         rule_results=rule_results,
         diagnostics=diagnostics,
         drift_analysis=drift_analysis,
+        suitability=suitability,
         explanation={"summary": final_status},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.snapshot_id or portfolio.portfolio_id,

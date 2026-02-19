@@ -39,12 +39,16 @@ def shelf_entry(
     status: str = "APPROVED",
     asset_class: str = "UNKNOWN",
     settlement_days: int = 2,
+    issuer_id: str | None = None,
+    liquidity_tier: str | None = None,
 ) -> ShelfEntry:
     return ShelfEntry(
         instrument_id=instrument_id,
         status=status,
         asset_class=asset_class,
         settlement_days=settlement_days,
+        issuer_id=issuer_id,
+        liquidity_tier=liquidity_tier,
     )
 
 

@@ -771,3 +771,70 @@ def test_proposal_simulation_skips_drift_analysis_on_reference_model_currency_mi
 
     assert result.drift_analysis is None
     assert "REFERENCE_MODEL_BASE_CURRENCY_MISMATCH" in result.diagnostics.warnings
+
+
+def test_proposal_simulation_includes_suitability_output_by_default():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_14d_a",
+        base_currency="USD",
+        positions=[position("EQ_A", "10")],
+        cash_balances=[],
+    )
+    market_data = market_data_snapshot(
+        prices=[
+            price("EQ_A", "10", "USD"),
+            price("EQ_B", "10", "USD"),
+        ],
+        fx_rates=[],
+    )
+    shelf = [
+        shelf_entry("EQ_A", status="APPROVED", issuer_id="ISSUER_X", liquidity_tier="L1"),
+        shelf_entry("EQ_B", status="APPROVED", issuer_id="ISSUER_Y", liquidity_tier="L2"),
+    ]
+    options = EngineOptions(
+        enable_proposal_simulation=True,
+        suitability_thresholds={
+            "single_position_max_weight": "0.80",
+            "issuer_max_weight": "1.0",
+            "max_weight_by_liquidity_tier": {},
+            "cash_band_min_weight": "0",
+            "cash_band_max_weight": "1",
+        },
+    )
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "EQ_B", "quantity": "1"}],
+        request_hash="proposal_hash_14d_default_suitability",
+    )
+
+    assert result.suitability is not None
+    assert result.suitability.summary.persistent_count == 1
+    assert result.suitability.issues[0].issue_id == "SUIT_SINGLE_POSITION_MAX"
+    assert result.suitability.recommended_gate == "NONE"
+
+
+def test_proposal_simulation_can_disable_suitability_output():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_14d_b",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    options = EngineOptions(enable_proposal_simulation=True, enable_suitability_scanner=False)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data_snapshot(prices=[], fx_rates=[]),
+        shelf=[],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[],
+        request_hash="proposal_hash_14d_disable_suitability",
+    )
+
+    assert result.suitability is None
