@@ -3,7 +3,7 @@ from importlib.util import find_spec
 
 import pytest
 
-from src.core.engine import _generate_targets, run_simulation
+from src.core.dpm_engine import _generate_targets, run_simulation
 from src.core.models import DiagnosticsData, EngineOptions, GroupConstraint, ShelfEntry
 from tests.factories import (
     cash,

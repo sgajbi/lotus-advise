@@ -2,14 +2,14 @@ import json
 import os
 from decimal import Decimal
 
-from src.core.engine import run_proposal_simulation
+from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import EngineOptions, MarketDataSnapshot, PortfolioSnapshot, ShelfEntry
 
 
 def test_golden_proposal_14a_advisory_manual_trade_cashflow():
     path = os.path.join(
         os.path.dirname(__file__),
-        "../golden_data/scenario_14A_advisory_manual_trade_cashflow.json",
+        "../../golden_data/scenario_14A_advisory_manual_trade_cashflow.json",
     )
     with open(path, "r") as file:
         data = json.loads(file.read(), parse_float=Decimal)

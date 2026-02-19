@@ -2,7 +2,7 @@
 FILE: tests/dependencies/test_dependency_chains.py
 """
 
-from src.core.engine import run_simulation
+from src.core.dpm_engine import run_simulation
 from src.core.models import (
     EngineOptions,
 )

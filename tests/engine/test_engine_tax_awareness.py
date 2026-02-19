@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from src.core.engine import run_simulation
+from src.core.dpm_engine import run_simulation
 from src.core.models import EngineOptions
 from tests.assertions import assert_status, security_intents
 from tests.factories import (

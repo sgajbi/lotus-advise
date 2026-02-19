@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from src.core.engine import _apply_turnover_limit, _calculate_turnover_score, run_simulation
+from src.core.dpm_engine import _apply_turnover_limit, _calculate_turnover_score, run_simulation
 from src.core.models import DiagnosticsData, EngineOptions, Money, SecurityTradeIntent
 from tests.assertions import assert_status, security_intents
 from tests.factories import (

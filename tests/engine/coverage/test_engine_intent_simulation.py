@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from src.core.engine import _generate_fx_and_simulate, run_simulation
+from src.core.dpm_engine import _generate_fx_and_simulate, run_simulation
 from src.core.models import (
     EngineOptions,
 )

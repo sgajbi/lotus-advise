@@ -1,6 +1,6 @@
 import pytest
 
-from src.core.engine import run_simulation
+from src.core.dpm_engine import run_simulation
 from src.core.models import EngineOptions
 from tests.assertions import find_excluded
 from tests.factories import (

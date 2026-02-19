@@ -1,4 +1,4 @@
-from src.core.engine import run_simulation
+from src.core.dpm_engine import run_simulation
 from src.core.models import (
     EngineOptions,
 )

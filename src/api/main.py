@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Dict, List, Optional
@@ -13,7 +14,8 @@ from typing import Annotated, Dict, List, Optional
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, Field, ValidationError
 
-from src.core.engine import run_proposal_simulation, run_simulation
+from src.core.advisory_engine import run_proposal_simulation
+from src.core.dpm_engine import run_simulation
 from src.core.models import (
     BatchRebalanceRequest,
     BatchRebalanceResult,
@@ -41,7 +43,8 @@ app = FastAPI(
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-PROPOSAL_IDEMPOTENCY_CACHE: Dict[str, Dict[str, Dict]] = {}
+MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
+PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict]]" = OrderedDict()
 
 
 async def get_db_session():
@@ -378,7 +381,7 @@ async def simulate_proposal(
 ) -> ProposalResult:
     if not request.options.enable_proposal_simulation:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true",
         )
 
@@ -392,6 +395,7 @@ async def simulate_proposal(
             detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
         )
     if existing:
+        PROPOSAL_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
         return ProposalResult.model_validate(existing["response"])
 
     resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
@@ -411,4 +415,7 @@ async def simulate_proposal(
         "request_hash": request_hash,
         "response": result.model_dump(mode="json"),
     }
+    PROPOSAL_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
+    while len(PROPOSAL_IDEMPOTENCY_CACHE) > MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE:
+        PROPOSAL_IDEMPOTENCY_CACHE.popitem(last=False)
     return result

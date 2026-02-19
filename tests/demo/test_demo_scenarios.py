@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app, get_db_session
-from src.core.engine import run_simulation
+from src.core.dpm_engine import run_simulation
 from src.core.models import (
     EngineOptions,
     MarketDataSnapshot,

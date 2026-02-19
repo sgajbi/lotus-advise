@@ -24,7 +24,8 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 ## Engine Know-How
 
 Primary implementation guide:
-* `docs/documentation/engine-know-how.md`
+* `docs/documentation/engine-know-how-dpm.md`
+* `docs/documentation/engine-know-how-advisory.md`
 
 ---
 
@@ -45,7 +46,7 @@ Unlike traditional engines that crash (HTTP 500) or reject (HTTP 400) on complex
 
 ## 🏗 Architecture: The 5-Stage Pipeline
 
-The core engine (`src/core/engine.py`) processes every request through a strictly ordered, functional pipeline:
+The DPM engine (`src/core/dpm_engine.py`) processes rebalance requests through a strictly ordered, functional pipeline:
 
 1.  **Valuation:** Normalizes all positions to Base Currency (Currency Truth Model).
 2.  **Universe:** Filters Shelf (Banned/Restricted checks).
