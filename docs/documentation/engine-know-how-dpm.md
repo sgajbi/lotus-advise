@@ -4,6 +4,12 @@ Implementation scope:
 - API: `src/api/main.py` (`/rebalance/simulate`, `/rebalance/analyze`)
 - Models: `src/core/models.py`
 - Core orchestration: `src/core/dpm_engine.py` (`run_simulation`)
+- DPM modular internals:
+  - `src/core/dpm/universe.py` (universe construction and shelf filtering)
+  - `src/core/dpm/targets.py` (target generation and group-constraint application)
+  - `src/core/dpm/intents.py` (security intent generation, tax-aware sell controls)
+  - `src/core/dpm/turnover.py` (turnover ranking and budget enforcement)
+  - `src/core/dpm/execution.py` (FX generation, settlement ladder, simulation execution)
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
 - Valuation: `src/core/valuation.py`
 - Rules: `src/core/compliance.py`
