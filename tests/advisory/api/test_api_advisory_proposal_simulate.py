@@ -1,7 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app, get_db_session
+from src.api.main import (
+    MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
+    PROPOSAL_IDEMPOTENCY_CACHE,
+    app,
+    get_db_session,
+)
 
 
 async def override_get_db_session():
@@ -296,3 +301,36 @@ def test_advisory_proposal_artifact_idempotency_conflict_returns_409(client):
     second = client.post("/rebalance/proposals/artifact", json=payload, headers=headers)
     assert second.status_code == 409
     assert "IDEMPOTENCY_KEY_CONFLICT" in second.json()["detail"]
+
+
+def test_advisory_proposal_idempotency_cache_evicts_oldest(monkeypatch, client):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_cache", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+    monkeypatch.setattr("src.api.main.MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE", 1)
+
+    first = client.post(
+        "/rebalance/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-cache-1"},
+    )
+    second = client.post(
+        "/rebalance/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-cache-2"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert len(PROPOSAL_IDEMPOTENCY_CACHE) == 1
+    assert "prop-cache-1" not in PROPOSAL_IDEMPOTENCY_CACHE
+    assert "prop-cache-2" in PROPOSAL_IDEMPOTENCY_CACHE
+    monkeypatch.setattr(
+        "src.api.main.MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE",
+        MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
+    )
