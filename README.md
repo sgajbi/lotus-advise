@@ -19,6 +19,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0012 (solver integration, feature-flagged via `options.target_method`)
 * RFC-0013 (what-if batch analysis via `POST /rebalance/analyze`)
 * RFC-0014A (advisory proposal simulation via `POST /rebalance/proposals/simulate`, feature-flagged via `options.enable_proposal_simulation`)
+* RFC-0014C (advisory drift analytics via inline `reference_model` in `POST /rebalance/proposals/simulate`)
 
 ---
 ## Engine Know-How
@@ -216,6 +217,7 @@ Simulates advisor-entered manual `proposed_cash_flows` and `proposed_trades` wit
   `proposal_block_negative_cash` controls negative-cash withdrawal hard blocking.
 * `proposed_cash_flows`: list of `CASH_FLOW` intents
 * `proposed_trades`: list of `SECURITY_TRADE` intents (requires `quantity` or `notional`)
+* `reference_model` (optional): inline target model for `drift_analysis` output
 
 **Response Status Codes:**
 

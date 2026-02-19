@@ -63,6 +63,10 @@ Implementation scope:
 - `enable_proposal_simulation`
 - `proposal_apply_cash_flows_first`
 - `proposal_block_negative_cash`
+- `enable_drift_analytics`
+- `enable_instrument_drift`
+- `drift_top_contributors_limit`
+- `drift_unmodeled_exposure_threshold`
 - `auto_funding`
 - `funding_mode`
 - `fx_funding_source_currency`
@@ -80,9 +84,11 @@ Implementation scope:
 - `PROPOSAL_INVALID_TRADE_INPUT`
 - `PROPOSAL_MISSING_FX_FOR_FUNDING`
 - `PROPOSAL_INSUFFICIENT_FUNDING_CASH`
+- `REFERENCE_MODEL_BASE_CURRENCY_MISMATCH`
 - `diagnostics.missing_fx_pairs`
 - `diagnostics.funding_plan`
 - `diagnostics.insufficient_cash`
+- `drift_analysis` (when `reference_model` is provided and drift analytics is enabled)
 - standard safety/data-quality rules continue to apply (`NO_SHORTING`, `INSUFFICIENT_CASH`, etc.)
 
 ## Tests That Lock Advisory Behavior

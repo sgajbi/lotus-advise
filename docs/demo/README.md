@@ -42,6 +42,8 @@ curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Ty
 | `11_advisory_auto_funding_single_ccy.json` | **Advisory Auto-Funding (Single CCY)** | `READY` | Generates funding `FX_SPOT` and links BUY dependency. |
 | `12_advisory_partial_funding.json` | **Advisory Partial Funding** | `READY` | Uses existing foreign cash first, then tops up with FX. |
 | `13_advisory_missing_fx_blocked.json` | **Advisory Missing FX (Blocked)** | `BLOCKED` | Blocks advisory proposal when required FX funding pair is missing. |
+| `14_advisory_drift_asset_class.json` | **Advisory Drift Analytics (Asset Class)** | `READY` | Returns `drift_analysis.asset_class` against inline `reference_model`. |
+| `15_advisory_drift_instrument.json` | **Advisory Drift Analytics (Instrument)** | `READY` | Returns both asset-class and instrument drift with unmodeled exposures. |
 
 ## Feature Toggles Demonstrated
 
@@ -69,6 +71,12 @@ curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Ty
 - `13_advisory_missing_fx_blocked.json`:
   - `options.block_on_missing_fx=true`
   - hard block + missing FX diagnostics
+- `14_advisory_drift_asset_class.json`:
+  - `options.enable_drift_analytics=true`
+  - `reference_model.asset_class_targets` controls drift comparison buckets
+- `15_advisory_drift_instrument.json`:
+  - `options.enable_instrument_drift=true`
+  - `reference_model.instrument_targets` enables instrument-level drift output
 
 ## Understanding Output Statuses
 
