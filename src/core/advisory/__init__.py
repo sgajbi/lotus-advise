@@ -1,3 +1,1 @@
-"""
-Advisory simulation package.
-"""
+"""Advisory simulation package."""

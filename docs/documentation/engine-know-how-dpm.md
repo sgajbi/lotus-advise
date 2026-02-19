@@ -3,7 +3,7 @@
 Implementation scope:
 - API: `src/api/main.py` (`/rebalance/simulate`, `/rebalance/analyze`)
 - Models: `src/core/models.py`
-- Core orchestration: `src/core/dpm_engine.py` (`run_simulation`)
+- Core orchestration: `src/core/dpm/engine.py` (`run_simulation`)
 - DPM modular internals:
   - `src/core/dpm/universe.py` (universe construction and shelf filtering)
   - `src/core/dpm/targets.py` (target generation and group-constraint application)

@@ -5,7 +5,7 @@ Implementation scope:
 - API: `src/api/main.py` (`/rebalance/proposals/artifact`)
 - Models: `src/core/models.py`
 - Artifact models: `src/core/advisory/artifact_models.py`
-- Core orchestration: `src/core/advisory_engine.py` (`run_proposal_simulation`)
+- Core orchestration: `src/core/advisory/engine.py` (`run_proposal_simulation`)
 - Advisory modular internals:
   - `src/core/advisory/ids.py` (deterministic run id generation)
   - `src/core/advisory/intents.py` (proposal cash/trade intent construction helpers)

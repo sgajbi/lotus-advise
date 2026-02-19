@@ -239,7 +239,7 @@ These are not “LLM text”; they are structured facts an advisor UI can render
    * `after_simulated.allocation_by_asset_class`
      and similarly for instruments.
 4. Add output wiring in proposal response builder
-   * `src/core/advisory_engine.py`
+   * `src/core/advisory/engine.py`
    * `src/api/main.py`
 5. Add tests + goldens
 

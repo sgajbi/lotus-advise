@@ -51,7 +51,7 @@ Unlike traditional engines that crash (HTTP 500) or reject (HTTP 400) on complex
 
 ## 🏗 Architecture: The 5-Stage Pipeline
 
-The DPM engine (`src/core/dpm_engine.py`) processes rebalance requests through a strictly ordered, functional pipeline:
+The DPM engine (`src/core/dpm/engine.py`) processes rebalance requests through a strictly ordered, functional pipeline:
 
 1.  **Valuation:** Normalizes all positions to Base Currency (Currency Truth Model).
 2.  **Universe:** Filters Shelf (Banned/Restricted checks).
