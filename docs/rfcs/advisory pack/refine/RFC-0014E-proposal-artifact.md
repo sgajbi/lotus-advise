@@ -2,13 +2,14 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14E |
 | **Depends On** | RFC-0014A (Proposal Simulation) |
 | **Strongly Recommended** | RFC-0014B (Auto-Funding), RFC-0014C (Drift Analytics), RFC-0014D (Suitability Scanner) |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014E-proposal-artifact.md` |
 | **Backward Compatibility** | Not required |
+| **Implemented In** | 2026-02-19 |
 
 ---
 
@@ -76,14 +77,14 @@ The Proposal Artifact standardizes these elements in a deterministic structure.
 
 ## 4. API Design
 
-### 4.1 Option A (Recommended): Dedicated artifact endpoint
+### 4.1 Option A (Implemented): Dedicated artifact endpoint
 **Endpoint:** `POST /rebalance/proposals/artifact`
 
 **Request options:**
 - **A1:** Provide `proposal_simulate_request` (same as `/rebalance/proposals/simulate`) and internally call simulation first.
 - **A2:** Provide `proposal_result` (the output of simulate) to avoid re-simulating.
 
-For MVP, choose **A1** (simpler for callers; artifact always matches simulation).
+For MVP, **A1 is implemented** (simpler for callers; artifact always matches simulation).
 
 Headers:
 - `Idempotency-Key` required
@@ -286,12 +287,12 @@ This is the institutional core. It ensures reproducibility:
 
 Rules:
 
-* `artifact_hash` must be computed from canonical JSON serialization of the artifact (excluding volatile timestamps if needed).
+* `artifact_hash` is computed from canonical JSON serialization of the artifact payload excluding volatile fields.
 * Ensure determinism: timestamps may break hash determinism; either:
 
   * exclude created_at from hash, or
   * use a deterministic created_at from request (not recommended)
-    For MVP: **exclude volatile fields from hashing** and document it.
+    For MVP (implemented): **exclude volatile fields from hashing** (`created_at`, `artifact_hash`).
 
 ---
 
@@ -356,12 +357,12 @@ Goldens should assert:
 
 ## 8. Acceptance Criteria (DoD)
 
-* New endpoint `/rebalance/proposals/artifact` returns a deterministic `ProposalArtifact`.
-* Artifact includes: summary, portfolio_impact (before/after/delta), trades_and_funding, assumptions, disclosures placeholders, evidence bundle.
-* If drift and suitability are available, artifact includes those summaries.
-* Evidence bundle enables full reproducibility (inputs + engine outputs included).
-* Artifact hashing is deterministic and documented.
-* Golden tests cover at least one artifact scenario end-to-end.
+* Implemented: `/rebalance/proposals/artifact` returns a deterministic `ProposalArtifact`.
+* Implemented: artifact includes summary, portfolio_impact (before/after/delta), trades_and_funding, assumptions, disclosures placeholders, evidence bundle.
+* Implemented: if suitability is available, artifact includes suitability summary; otherwise section status is `NOT_AVAILABLE`.
+* Implemented: evidence bundle includes full reproducibility payloads (inputs + engine outputs).
+* Implemented: artifact hashing is deterministic and documented (canonical JSON excluding volatile fields).
+* Implemented: golden tests cover multiple artifact scenarios end-to-end.
 
 ---
 

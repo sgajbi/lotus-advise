@@ -127,3 +127,27 @@ def test_demo_advisory_scenarios_via_api(filename, expected_status):
         "18_advisory_suitability_sell_only_violation.json",
     }:
         assert "suitability" in body
+
+
+def test_demo_advisory_artifact_scenario_via_api():
+    data = load_demo_scenario("19_advisory_proposal_artifact.json")
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        PROPOSAL_IDEMPOTENCY_CACHE.clear()
+        try:
+            response = client.post(
+                "/rebalance/proposals/artifact",
+                json=data,
+                headers={"Idempotency-Key": "demo-19-advisory-artifact"},
+            )
+        finally:
+            app.dependency_overrides = original_overrides
+            PROPOSAL_IDEMPOTENCY_CACHE.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "READY"
+    assert body["summary"]["recommended_next_step"] == "CLIENT_CONSENT"
+    assert body["trades_and_funding"]["trade_list"]
+    assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")

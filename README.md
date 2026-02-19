@@ -22,6 +22,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0014B (advisory proposal auto-funding via generated `FX_SPOT` intents and dependencies)
 * RFC-0014C (advisory drift analytics via inline `reference_model` in `POST /rebalance/proposals/simulate`)
 * RFC-0014D (advisory suitability scanner with NEW/RESOLVED/PERSISTENT issue classification and gate recommendation)
+* RFC-0014E (advisory proposal artifact via `POST /rebalance/proposals/artifact` with deterministic evidence hash)
 
 ---
 ## Engine Know-How
@@ -226,6 +227,21 @@ Simulates advisor-entered manual `proposed_cash_flows` and `proposed_trades` wit
 * `200 OK`: domain status returned in payload (`READY`, `PENDING_REVIEW`, `BLOCKED`)
 * `409 Conflict`: same `Idempotency-Key` used with a different canonical request payload
 * `422`: validation/feature-flag errors
+
+### POST `/rebalance/proposals/artifact`
+
+Builds a deterministic advisory proposal package by running proposal simulation and assembling:
+* `summary`
+* `portfolio_impact`
+* `trades_and_funding`
+* `suitability_summary` (`NOT_AVAILABLE` when scanner disabled/unavailable)
+* `assumptions_and_limits`
+* `disclosures`
+* `evidence_bundle` (inputs, proposal output, canonical hashes, engine version)
+
+Hashing behavior:
+* `evidence_bundle.hashes.artifact_hash` is computed from canonical JSON, excluding volatile fields (`created_at`, `artifact_hash`).
+* This keeps hash stability across repeated requests with identical deterministic inputs.
 
 ---
 

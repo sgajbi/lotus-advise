@@ -2,8 +2,6 @@
 FILE: src/api/main.py
 """
 
-import hashlib
-import json
 import logging
 import uuid
 from collections import OrderedDict
@@ -15,7 +13,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
+from src.core.advisory.artifact import build_proposal_artifact
+from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory_engine import run_proposal_simulation
+from src.core.common.canonical import hash_canonical_payload
 from src.core.dpm_engine import run_simulation
 from src.core.models import (
     BatchRebalanceRequest,
@@ -255,12 +256,6 @@ def _build_comparison_metric(
     )
 
 
-def _hash_canonical_payload(payload: Dict) -> str:
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-    return f"sha256:{digest}"
-
-
 @app.post(
     "/rebalance/simulate",
     response_model=RebalanceResult,
@@ -467,6 +462,19 @@ def simulate_proposal(
     ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> ProposalResult:
+    return _simulate_proposal_response(
+        request=request,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
+def _simulate_proposal_response(
+    *,
+    request: ProposalSimulateRequest,
+    idempotency_key: str,
+    correlation_id: Optional[str],
+) -> ProposalResult:
     if not request.options.enable_proposal_simulation:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -474,7 +482,7 @@ def simulate_proposal(
         )
 
     request_payload = request.model_dump(mode="json")
-    request_hash = _hash_canonical_payload(request_payload)
+    request_hash = hash_canonical_payload(request_payload)
 
     existing = PROPOSAL_IDEMPOTENCY_CACHE.get(idempotency_key)
     if existing and existing["request_hash"] != request_hash:
@@ -508,3 +516,52 @@ def simulate_proposal(
     while len(PROPOSAL_IDEMPOTENCY_CACHE) > MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE:
         PROPOSAL_IDEMPOTENCY_CACHE.popitem(last=False)
     return result
+
+
+@app.post(
+    "/rebalance/proposals/artifact",
+    response_model=ProposalArtifact,
+    status_code=status.HTTP_200_OK,
+    summary="Build Advisory Proposal Artifact",
+    description=(
+        "Runs advisory proposal simulation and returns a deterministic "
+        "proposal artifact package.\n\n"
+        "Required header: `Idempotency-Key`.\n"
+        "Optional header: `X-Correlation-Id` (auto-generated when omitted).\n\n"
+        "Requires `options.enable_proposal_simulation=true`."
+    ),
+    responses={
+        200: {"description": "Proposal artifact generated successfully."},
+        409: {
+            "description": "Idempotency key reused with different canonical request hash.",
+            "content": {"application/json": {"examples": {"conflict": PROPOSAL_409_EXAMPLE}}},
+        },
+        422: {"description": "Validation error (invalid payload or missing required headers)."},
+    },
+)
+def build_proposal_artifact_endpoint(
+    request: ProposalSimulateRequest,
+    idempotency_key: Annotated[
+        str,
+        Header(
+            alias="Idempotency-Key",
+            description="Required idempotency key used for dedupe and hash conflict detection.",
+            examples=["proposal-artifact-idem-001"],
+        ),
+    ],
+    correlation_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Correlation-Id",
+            description="Optional trace/correlation identifier propagated to logs and response.",
+            examples=["corr-proposal-artifact-1234"],
+        ),
+    ] = None,
+    db: Annotated[None, Depends(get_db_session)] = None,
+) -> ProposalArtifact:
+    proposal_result = _simulate_proposal_response(
+        request=request,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+    return build_proposal_artifact(request=request, proposal_result=proposal_result)

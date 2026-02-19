@@ -23,6 +23,11 @@ For advisory proposal simulation demos, POST to `/rebalance/proposals/simulate`:
 curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-proposal-01" --data-binary "@docs/demo/10_advisory_proposal_simulate.json"
 ```
 
+For advisory proposal artifact demos, POST to `/rebalance/proposals/artifact`:
+```bash
+curl -X POST "http://127.0.0.1:8000/rebalance/proposals/artifact" -H "Content-Type: application/json" -H "Idempotency-Key: demo-proposal-artifact-01" --data-binary "@docs/demo/19_advisory_proposal_artifact.json"
+```
+
 ---
 
 ## Scenario Index
@@ -47,6 +52,7 @@ curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Ty
 | `16_advisory_suitability_resolved_single_position.json` | **Suitability Resolved Concentration** | `READY` | Returns a `RESOLVED` single-position issue after proposal trades. |
 | `17_advisory_suitability_new_issuer_breach.json` | **Suitability New Issuer Breach** | `READY` | Returns a `NEW` high-severity issuer concentration issue and gate recommendation. |
 | `18_advisory_suitability_sell_only_violation.json` | **Suitability Sell-Only Violation** | `BLOCKED` | Returns a `NEW` governance issue when proposal attempts BUY in `SELL_ONLY`. |
+| `19_advisory_proposal_artifact.json` | **Advisory Proposal Artifact** | `READY` | Returns a deterministic proposal package from `/rebalance/proposals/artifact` with evidence bundle and hash. |
 
 ## Feature Toggles Demonstrated
 
@@ -89,6 +95,10 @@ curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Ty
 - `18_advisory_suitability_sell_only_violation.json`:
   - `options.enable_suitability_scanner=true`
   - governance scan emits `NEW` issue for blocked BUY attempt in `SELL_ONLY`
+- `19_advisory_proposal_artifact.json`:
+  - `POST /rebalance/proposals/artifact`
+  - deterministic `artifact_hash` excludes volatile fields (`created_at`, hash field)
+  - includes `summary`, `portfolio_impact`, `trades_and_funding`, `suitability_summary`, `assumptions_and_limits`, `disclosures`, and `evidence_bundle`
 
 ## Understanding Output Statuses
 

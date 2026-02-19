@@ -183,3 +183,108 @@ def test_advisory_proposal_simulate_returns_drift_analysis_when_reference_model_
     assert response.status_code == 200
     body = response.json()
     assert body["drift_analysis"]["reference_model"]["model_id"] == "mdl_api_14c"
+
+
+def test_advisory_proposal_artifact_endpoint_success(client):
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_prop_api_art_1",
+            "base_currency": "SGD",
+            "positions": [{"instrument_id": "SG_BOND", "quantity": "10"}],
+            "cash_balances": [{"currency": "SGD", "amount": "1000"}],
+        },
+        "market_data_snapshot": {
+            "prices": [
+                {"instrument_id": "SG_BOND", "price": "100", "currency": "SGD"},
+                {"instrument_id": "US_EQ", "price": "100", "currency": "USD"},
+            ],
+            "fx_rates": [{"pair": "USD/SGD", "rate": "1.35"}],
+        },
+        "shelf_entries": [
+            {
+                "instrument_id": "SG_BOND",
+                "status": "APPROVED",
+                "asset_class": "BOND",
+                "issuer_id": "ISS_SG_BOND",
+                "liquidity_tier": "L1",
+            },
+            {
+                "instrument_id": "US_EQ",
+                "status": "APPROVED",
+                "asset_class": "EQUITY",
+                "issuer_id": "ISS_US_EQ",
+                "liquidity_tier": "L1",
+            },
+        ],
+        "options": {
+            "enable_proposal_simulation": True,
+            "suitability_thresholds": {
+                "single_position_max_weight": "1.00",
+                "issuer_max_weight": "1.00",
+                "max_weight_by_liquidity_tier": {},
+                "cash_band_min_weight": "0",
+                "cash_band_max_weight": "1",
+            },
+        },
+        "proposed_cash_flows": [{"currency": "SGD", "amount": "100"}],
+        "proposed_trades": [{"side": "BUY", "instrument_id": "US_EQ", "quantity": "2"}],
+    }
+
+    response = client.post(
+        "/rebalance/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "prop-art-key-1"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["artifact_id"].startswith("pa_")
+    assert body["proposal_run_id"].startswith("pr_")
+    assert body["status"] == "READY"
+    assert body["summary"]["recommended_next_step"] == "CLIENT_CONSENT"
+    assert body["trades_and_funding"]["trade_list"][0]["instrument_id"] == "US_EQ"
+    assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
+
+
+def test_advisory_proposal_artifact_reuses_idempotent_simulation_response(client):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_art_2", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+    headers = {"Idempotency-Key": "prop-art-key-2"}
+
+    first = client.post("/rebalance/proposals/artifact", json=payload, headers=headers)
+    second = client.post("/rebalance/proposals/artifact", json=payload, headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    first_body = first.json()
+    second_body = second.json()
+    assert first_body["proposal_run_id"] == second_body["proposal_run_id"]
+    assert (
+        first_body["evidence_bundle"]["hashes"]["artifact_hash"]
+        == second_body["evidence_bundle"]["hashes"]["artifact_hash"]
+    )
+
+
+def test_advisory_proposal_artifact_idempotency_conflict_returns_409(client):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_art_3", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+    headers = {"Idempotency-Key": "prop-art-key-3"}
+
+    first = client.post("/rebalance/proposals/artifact", json=payload, headers=headers)
+    assert first.status_code == 200
+
+    payload["proposed_cash_flows"] = [{"currency": "USD", "amount": "1"}]
+    second = client.post("/rebalance/proposals/artifact", json=payload, headers=headers)
+    assert second.status_code == 409
+    assert "IDEMPOTENCY_KEY_CONFLICT" in second.json()["detail"]

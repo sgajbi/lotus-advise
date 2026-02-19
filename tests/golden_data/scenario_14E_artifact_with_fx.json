@@ -1,0 +1,73 @@
+{
+  "scenario_name": "14E_artifact_with_fx",
+  "description": "Proposal artifact includes generated FX funding intent.",
+  "proposal_inputs": {
+    "portfolio_snapshot": {
+      "portfolio_id": "pf_14e_fx",
+      "base_currency": "SGD",
+      "positions": [],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "10000"
+        }
+      ]
+    },
+    "market_data_snapshot": {
+      "prices": [
+        {
+          "instrument_id": "US_EQ",
+          "price": "100",
+          "currency": "USD"
+        }
+      ],
+      "fx_rates": [
+        {
+          "pair": "USD/SGD",
+          "rate": "1.35"
+        }
+      ]
+    },
+    "shelf_entries": [
+      {
+        "instrument_id": "US_EQ",
+        "status": "APPROVED",
+        "asset_class": "EQUITY",
+        "issuer_id": "ISS_US_EQ",
+        "liquidity_tier": "L1"
+      }
+    ],
+    "options": {
+      "enable_proposal_simulation": true,
+      "suitability_thresholds": {
+        "single_position_max_weight": "1.00",
+        "issuer_max_weight": "1.00",
+        "max_weight_by_liquidity_tier": {},
+        "cash_band_min_weight": "0",
+        "cash_band_max_weight": "1"
+      }
+    },
+    "proposed_cash_flows": [],
+    "proposed_trades": [
+      {
+        "side": "BUY",
+        "instrument_id": "US_EQ",
+        "quantity": "10"
+      }
+    ]
+  },
+  "expected_artifact_output": {
+    "status": "READY",
+    "recommended_next_step": "CLIENT_CONSENT",
+    "objective_tags": [
+      "RISK_ALIGNMENT"
+    ],
+    "trade_instruments": [
+      "US_EQ"
+    ],
+    "fx_pairs": [
+      "USD/SGD"
+    ],
+    "suitability_status": "AVAILABLE"
+  }
+}

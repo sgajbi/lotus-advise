@@ -2,14 +2,18 @@
 
 Implementation scope:
 - API: `src/api/main.py` (`/rebalance/proposals/simulate`)
+- API: `src/api/main.py` (`/rebalance/proposals/artifact`)
 - Models: `src/core/models.py`
+- Artifact models: `src/core/advisory/artifact_models.py`
 - Core orchestration: `src/core/advisory_engine.py` (`run_proposal_simulation`)
 - Advisory modular internals:
   - `src/core/advisory/ids.py` (deterministic run id generation)
   - `src/core/advisory/intents.py` (proposal cash/trade intent construction helpers)
   - `src/core/advisory/funding.py` (RFC-0014B auto-funding planner)
+  - `src/core/advisory/artifact.py` (RFC-0014E artifact builder)
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
 - Shared diagnostics builders: `src/core/common/diagnostics.py`
+- Shared deterministic canonical serialization/hash: `src/core/common/canonical.py`
 - Shared advisory analytics:
   - `src/core/common/drift_analytics.py` (RFC-0014C drift analytics)
   - `src/core/common/suitability.py` (RFC-0014D suitability scanner)
@@ -27,6 +31,15 @@ Implementation scope:
 - Idempotency behavior:
   - same key + same canonical payload: cached response
   - same key + different canonical payload: `409 Conflict`
+
+### `POST /rebalance/proposals/artifact`
+- Purpose: run proposal simulation and build deterministic advisory proposal package.
+- Required header: `Idempotency-Key`
+- Optional header: `X-Correlation-Id` (generated when missing)
+- Output: `ProposalArtifact`
+- Idempotency behavior:
+  - Uses the same proposal simulation idempotency cache/hash behavior as `/rebalance/proposals/simulate`.
+  - Same key + different canonical payload returns `409 Conflict`.
 
 ## Pipeline (`run_proposal_simulation`)
 
@@ -106,9 +119,30 @@ Implementation scope:
   - `recommended_gate` (`NONE`, `RISK_REVIEW`, `COMPLIANCE_REVIEW`)
 - standard safety/data-quality rules continue to apply (`NO_SHORTING`, `INSUFFICIENT_CASH`, etc.)
 
+## Proposal Artifact (RFC-0014E)
+
+Deterministic sections:
+- `summary`
+- `portfolio_impact`
+- `trades_and_funding`
+- `suitability_summary`
+- `assumptions_and_limits`
+- `disclosures`
+- `evidence_bundle`
+
+Determinism controls:
+- Stable sorting for allocations and FX list.
+- Stable trade ordering inherited from proposal simulation ordering policy.
+- `artifact_hash` from canonical JSON that excludes volatile fields:
+  - `created_at`
+  - `evidence_bundle.hashes.artifact_hash`
+
 ## Tests That Lock Advisory Behavior
 
 - API: `tests/advisory/api/test_api_advisory_proposal_simulate.py`
 - Contract: `tests/advisory/contracts/test_contract_advisory_models.py`
+- Contract: `tests/advisory/contracts/test_contract_proposal_artifact_models.py`
 - Engine: `tests/advisory/engine/test_engine_advisory_proposal_simulation.py`
+- Engine: `tests/advisory/engine/test_engine_proposal_artifact.py`
 - Proposal golden: `tests/advisory/golden/test_golden_advisory_proposal_scenarios.py`
+- Artifact golden: `tests/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`

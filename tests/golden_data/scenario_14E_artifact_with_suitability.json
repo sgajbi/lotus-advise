@@ -1,0 +1,65 @@
+{
+  "scenario_name": "14E_artifact_with_suitability",
+  "description": "Proposal artifact captures suitability-driven compliance review recommendation.",
+  "proposal_inputs": {
+    "portfolio_snapshot": {
+      "portfolio_id": "pf_14e_suitability",
+      "base_currency": "USD",
+      "positions": [],
+      "cash_balances": [
+        {
+          "currency": "USD",
+          "amount": "1000"
+        }
+      ]
+    },
+    "market_data_snapshot": {
+      "prices": [
+        {
+          "instrument_id": "EQ_SO",
+          "price": "100",
+          "currency": "USD"
+        }
+      ],
+      "fx_rates": []
+    },
+    "shelf_entries": [
+      {
+        "instrument_id": "EQ_SO",
+        "status": "SELL_ONLY",
+        "asset_class": "EQUITY",
+        "issuer_id": "ISS_SO",
+        "liquidity_tier": "L2"
+      }
+    ],
+    "options": {
+      "enable_proposal_simulation": true,
+      "enable_suitability_scanner": true,
+      "suitability_thresholds": {
+        "single_position_max_weight": "1.00",
+        "issuer_max_weight": "1.00",
+        "max_weight_by_liquidity_tier": {},
+        "cash_band_min_weight": "0",
+        "cash_band_max_weight": "1"
+      }
+    },
+    "proposed_cash_flows": [],
+    "proposed_trades": [
+      {
+        "side": "BUY",
+        "instrument_id": "EQ_SO",
+        "quantity": "1"
+      }
+    ]
+  },
+  "expected_artifact_output": {
+    "status": "BLOCKED",
+    "recommended_next_step": "COMPLIANCE_REVIEW",
+    "objective_tags": [
+      "PORTFOLIO_MAINTENANCE"
+    ],
+    "trade_instruments": [],
+    "fx_pairs": [],
+    "suitability_status": "AVAILABLE"
+  }
+}

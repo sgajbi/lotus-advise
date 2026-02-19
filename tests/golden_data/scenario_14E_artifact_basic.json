@@ -1,0 +1,89 @@
+{
+  "scenario_name": "14E_artifact_basic",
+  "description": "Proposal artifact for a simple same-currency advisory trade.",
+  "proposal_inputs": {
+    "portfolio_snapshot": {
+      "portfolio_id": "pf_14e_basic",
+      "base_currency": "USD",
+      "positions": [
+        {
+          "instrument_id": "EQ_OLD",
+          "quantity": "10"
+        }
+      ],
+      "cash_balances": [
+        {
+          "currency": "USD",
+          "amount": "1000"
+        }
+      ]
+    },
+    "market_data_snapshot": {
+      "prices": [
+        {
+          "instrument_id": "EQ_OLD",
+          "price": "100",
+          "currency": "USD"
+        },
+        {
+          "instrument_id": "EQ_NEW",
+          "price": "100",
+          "currency": "USD"
+        }
+      ],
+      "fx_rates": []
+    },
+    "shelf_entries": [
+      {
+        "instrument_id": "EQ_OLD",
+        "status": "APPROVED",
+        "asset_class": "EQUITY",
+        "issuer_id": "ISS_OLD",
+        "liquidity_tier": "L1"
+      },
+      {
+        "instrument_id": "EQ_NEW",
+        "status": "APPROVED",
+        "asset_class": "EQUITY",
+        "issuer_id": "ISS_NEW",
+        "liquidity_tier": "L1"
+      }
+    ],
+    "options": {
+      "enable_proposal_simulation": true,
+      "suitability_thresholds": {
+        "single_position_max_weight": "1.00",
+        "issuer_max_weight": "1.00",
+        "max_weight_by_liquidity_tier": {},
+        "cash_band_min_weight": "0",
+        "cash_band_max_weight": "1"
+      }
+    },
+    "proposed_cash_flows": [
+      {
+        "currency": "USD",
+        "amount": "200"
+      }
+    ],
+    "proposed_trades": [
+      {
+        "side": "BUY",
+        "instrument_id": "EQ_NEW",
+        "quantity": "2"
+      }
+    ]
+  },
+  "expected_artifact_output": {
+    "status": "READY",
+    "recommended_next_step": "CLIENT_CONSENT",
+    "objective_tags": [
+      "RISK_ALIGNMENT",
+      "CASH_DEPLOYMENT"
+    ],
+    "trade_instruments": [
+      "EQ_NEW"
+    ],
+    "fx_pairs": [],
+    "suitability_status": "AVAILABLE"
+  }
+}
