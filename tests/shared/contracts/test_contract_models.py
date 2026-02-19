@@ -21,6 +21,7 @@ from src.core.models import (
     PortfolioSnapshot,
     Position,
     Price,
+    ProposedTrade,
     ShelfEntry,
     SimulatedState,
     SimulationScenario,
@@ -324,6 +325,31 @@ def test_suitability_thresholds_validate_cash_band_order():
             suitability_thresholds={
                 "cash_band_min_weight": "0.10",
                 "cash_band_max_weight": "0.05",
+            }
+        )
+
+
+def test_suitability_thresholds_validate_liquidity_tier_values():
+    with pytest.raises(ValidationError):
+        EngineOptions(suitability_thresholds={"max_weight_by_liquidity_tier": {"L4": "1.01"}})
+
+
+def test_proposed_trade_notional_validators_reject_float_and_non_positive():
+    with pytest.raises(ValidationError):
+        ProposedTrade.model_validate(
+            {
+                "side": "BUY",
+                "instrument_id": "EQ_1",
+                "notional": {"amount": 10.5, "currency": "USD"},
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        ProposedTrade.model_validate(
+            {
+                "side": "BUY",
+                "instrument_id": "EQ_1",
+                "notional": {"amount": "0", "currency": "USD"},
             }
         )
 

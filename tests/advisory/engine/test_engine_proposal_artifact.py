@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+
+import src.core.advisory.artifact as artifact_module
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import EngineOptions, ProposalSimulateRequest
@@ -88,3 +91,80 @@ def test_proposal_artifact_marks_suitability_not_available_when_disabled():
 
     assert artifact.suitability_summary.status == "NOT_AVAILABLE"
     assert artifact.suitability_summary.new_issues == 0
+
+
+def test_artifact_helpers_cover_objective_tags_next_steps_and_cash_fallback():
+    same_before_after = SimpleNamespace(
+        allocation_by_instrument=[
+            SimpleNamespace(key="EQ_1", weight=0),
+            SimpleNamespace(key="EQ_2", weight=0),
+        ]
+    )
+    assert (
+        artifact_module._largest_weight_changes(same_before_after, same_before_after, limit=5) == []
+    )
+
+    drift = SimpleNamespace(
+        asset_class=SimpleNamespace(drift_total_before=0.20, drift_total_after=0.10)
+    )
+    request = _build_request()
+    result = SimpleNamespace(
+        intents=[],
+        proposed_cash_flows=[],
+        drift_analysis=drift,
+    )
+    tags = artifact_module._resolve_objective_tags(request=request, result=result)
+    assert "DRIFT_REDUCTION" in tags
+
+    ready_result = SimpleNamespace(gate_decision=None, suitability=None, status="READY")
+    pending_result = SimpleNamespace(gate_decision=None, suitability=None, status="PENDING_REVIEW")
+    compliance_gate = SimpleNamespace(gate="COMPLIANCE_REVIEW_REQUIRED", reasons=[])
+    execution_gate = SimpleNamespace(gate="EXECUTION_READY", reasons=[])
+    unknown_gate = SimpleNamespace(gate="NONE", reasons=[])
+    compliance_suitability = SimpleNamespace(recommended_gate="COMPLIANCE_REVIEW")
+    risk_suitability = SimpleNamespace(recommended_gate="RISK_REVIEW")
+    assert artifact_module._resolve_next_step(ready_result) == "CLIENT_CONSENT"
+    assert artifact_module._resolve_next_step(pending_result) == "RISK_REVIEW"
+    assert artifact_module._resolve_next_step(SimpleNamespace(gate_decision=compliance_gate)) == (
+        "COMPLIANCE_REVIEW"
+    )
+    assert artifact_module._resolve_next_step(SimpleNamespace(gate_decision=execution_gate)) == (
+        "EXECUTION_READY"
+    )
+    assert artifact_module._resolve_next_step(SimpleNamespace(gate_decision=unknown_gate)) == (
+        "RISK_REVIEW"
+    )
+    assert (
+        artifact_module._resolve_next_step(
+            SimpleNamespace(gate_decision=None, suitability=compliance_suitability, status="READY")
+        )
+        == "COMPLIANCE_REVIEW"
+    )
+    assert (
+        artifact_module._resolve_next_step(
+            SimpleNamespace(gate_decision=None, suitability=risk_suitability, status="READY")
+        )
+        == "RISK_REVIEW"
+    )
+    assert (
+        artifact_module._resolve_next_step(
+            SimpleNamespace(gate_decision=None, suitability=None, status="BLOCKED")
+        )
+        == "RISK_REVIEW"
+    )
+
+    state_without_cash = SimpleNamespace(allocation_by_asset_class=[])
+    assert artifact_module._cash_weight(state_without_cash) == 0
+
+
+def test_artifact_takeaways_include_drift_when_available():
+    request = _build_request()
+    result = _simulate(request, "sha256:artifact-drift-takeaway")
+    result.drift_analysis = SimpleNamespace(
+        asset_class=SimpleNamespace(
+            drift_total_before=result.before.allocation_by_asset_class[0].weight,
+            drift_total_after=result.after_simulated.allocation_by_asset_class[0].weight,
+        )
+    )
+    takeaways = artifact_module._build_takeaways(request=request, result=result)
+    assert any(t.code == "DRIFT" for t in takeaways)

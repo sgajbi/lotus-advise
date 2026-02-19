@@ -71,3 +71,16 @@ def test_workflow_gate_execution_ready_for_clean_dpm():
     )
     assert gate.gate == "EXECUTION_READY"
     assert gate.recommended_next_step == "EXECUTE"
+
+
+def test_workflow_gate_execution_ready_when_client_consent_already_obtained():
+    gate = evaluate_gate_decision(
+        status="READY",
+        rule_results=[],
+        suitability=None,
+        diagnostics=SimpleNamespace(data_quality={"price_missing": [], "fx_missing": []}),
+        options=EngineOptions(client_consent_already_obtained=True),
+        default_requires_client_consent=True,
+    )
+    assert gate.gate == "EXECUTION_READY"
+    assert gate.recommended_next_step == "EXECUTE"

@@ -47,8 +47,6 @@ def generate_intents(
     def apply_tax_budget_sell_limit(position, requested_qty, sell_price, price_ccy, base_rate):
         nonlocal total_realized_gain_base, total_realized_loss_base, tax_budget_used_base
 
-        if requested_qty <= Decimal("0"):
-            return requested_qty
         if not options.enable_tax_awareness:
             return requested_qty
 

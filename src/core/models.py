@@ -1489,14 +1489,9 @@ class BatchRebalanceRequest(BaseModel):
             raise ValueError(f"scenario count exceeds maximum of {cls.MAX_SCENARIOS_PER_REQUEST}")
 
         pattern = re.compile(r"^[a-z0-9_-]{1,64}$")
-        seen_normalized = set()
         for scenario_name in scenarios:
             if not pattern.fullmatch(scenario_name):
                 raise ValueError("scenario names must match regex [a-z0-9_\\-]{1,64}")
-            normalized = scenario_name.lower()
-            if normalized in seen_normalized:
-                raise ValueError("duplicate scenario keys after case normalization")
-            seen_normalized.add(normalized)
 
         return scenarios
 

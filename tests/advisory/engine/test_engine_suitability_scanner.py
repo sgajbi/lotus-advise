@@ -206,3 +206,100 @@ def test_suitability_emits_data_quality_issues_with_configured_severity_and_orde
     assert result.issues[0].severity == "HIGH"
     assert result.issues[0].issue_key == "DQ|MISSING_ISSUER|EQ_A"
     assert result.issues[1].issue_key == "DQ|MISSING_LIQUIDITY_TIER|EQ_A"
+
+
+def test_suitability_covers_governance_liquidity_and_missing_shelf_paths():
+    before = _state(instrument_weights={}, cash_weight="1.0")
+    after = _state(
+        instrument_weights={
+            "EQ_BANNED": "0.10",
+            "EQ_SUSPENDED": "0.10",
+            "EQ_RESTRICTED": "0.10",
+            "EQ_L4": "0.20",
+            "EQ_MISSING_SHELF": "0.05",
+        },
+        cash_weight="0.45",
+    )
+    options = EngineOptions(
+        allow_restricted=True,
+        suitability_thresholds={
+            "single_position_max_weight": "1.00",
+            "issuer_max_weight": "1.00",
+            "max_weight_by_liquidity_tier": {"L4": "0.10"},
+            "cash_band_min_weight": "0",
+            "cash_band_max_weight": "1",
+            "data_quality_issue_severity": "LOW",
+        },
+    )
+
+    result = compute_suitability_result(
+        before=before,
+        after=after,
+        shelf=[
+            ShelfEntry(
+                instrument_id="EQ_BANNED",
+                status="BANNED",
+                issuer_id="ISS_B",
+                liquidity_tier="L1",
+            ),
+            ShelfEntry(
+                instrument_id="EQ_SUSPENDED",
+                status="SUSPENDED",
+                issuer_id="ISS_S",
+                liquidity_tier="L1",
+            ),
+            ShelfEntry(
+                instrument_id="EQ_RESTRICTED",
+                status="RESTRICTED",
+                issuer_id="ISS_R",
+                liquidity_tier="L1",
+            ),
+            ShelfEntry(
+                instrument_id="EQ_L4",
+                status="APPROVED",
+                issuer_id="ISS_L4",
+                liquidity_tier="L4",
+            ),
+        ],
+        options=options,
+        portfolio_snapshot_id="pf_2",
+        market_data_snapshot_id="md_2",
+        proposed_trades=[
+            {"side": "BUY", "instrument_id": "EQ_RESTRICTED"},
+            {"side": "BUY"},
+        ],
+    )
+
+    issue_ids = {issue.issue_id for issue in result.issues}
+    assert "SUIT_DATA_QUALITY" in issue_ids
+    assert "SUIT_LIQUIDITY_MAX" in issue_ids
+    assert "SUIT_GOVERNANCE_BANNED" in issue_ids
+    assert "SUIT_GOVERNANCE_SUSPENDED" in issue_ids
+    assert "SUIT_GOVERNANCE_RESTRICTED_INCREASE" in issue_ids
+
+
+def test_suitability_sets_highest_new_severity_to_low_when_only_low_issues_exist():
+    before = _state(instrument_weights={}, cash_weight="1.0")
+    after = _state(instrument_weights={"EQ_MISSING_ONLY": "0.01"}, cash_weight="0.99")
+    options = EngineOptions(
+        suitability_thresholds={
+            "single_position_max_weight": "1.00",
+            "issuer_max_weight": "1.00",
+            "max_weight_by_liquidity_tier": {},
+            "cash_band_min_weight": "0",
+            "cash_band_max_weight": "1",
+            "data_quality_issue_severity": "LOW",
+        }
+    )
+
+    result = compute_suitability_result(
+        before=before,
+        after=after,
+        shelf=[],
+        options=options,
+        portfolio_snapshot_id="pf_3",
+        market_data_snapshot_id="md_3",
+    )
+
+    assert result.summary.new_count >= 1
+    assert result.summary.highest_severity_new == "LOW"
