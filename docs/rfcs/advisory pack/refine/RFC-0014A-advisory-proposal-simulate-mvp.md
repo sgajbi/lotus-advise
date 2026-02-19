@@ -348,7 +348,7 @@ Reuses existing safety reason codes from rebalance:
 
 ### 9.2 Golden scenario (new)
 
-Add: `tests/golden_data/scenario_14A_advisory_manual_trade_cashflow.json`
+Add: `tests/advisory/golden_data/scenario_14A_advisory_manual_trade_cashflow.json`
 
 Scenario:
 

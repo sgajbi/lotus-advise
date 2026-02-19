@@ -113,7 +113,7 @@ Implemented endpoint:
 ## 4. Test Plan and Implementation Coverage
 
 Implemented tests:
-1. `tests/api/test_api_rebalance.py`
+1. `tests/dpm/api/test_api_rebalance.py`
    1. Batch success flow.
    2. Invalid scenario name validation.
    3. Partial failure for invalid options with one valid scenario succeeding.
@@ -122,13 +122,13 @@ Implemented tests:
    6. Deterministic sorted execution ordering.
    7. Runtime exception isolation.
    8. Comparison-metric turnover correctness.
-2. `tests/contracts/test_contract_models.py`
+2. `tests/shared/contracts/test_contract_models.py`
    1. Scenario validation and max-scenario contract checks.
    2. Snapshot ID fields contract checks.
-3. `tests/golden_data/scenario_13_what_if_analysis.json`
+3. `tests/dpm/golden_data/scenario_13_what_if_analysis.json`
    1. Single-run golden payload.
    2. Batch fixture payload.
-4. `tests/golden/test_golden_batch_analysis.py`
+4. `tests/dpm/golden/test_golden_batch_analysis.py`
    1. Golden-style assertion of batch partial-failure behavior and comparison metrics.
 
 ---

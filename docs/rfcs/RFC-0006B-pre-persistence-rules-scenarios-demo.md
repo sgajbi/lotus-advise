@@ -53,7 +53,7 @@ Despite recent hardening (RFC-0006A), the engine remains rigid and difficult to 
 * **Determinism:** Generate at most one consolidated FX intent per currency pair per run (Hub-and-Spoke model).
 
 ### 2.3 Golden Scenario Matrix (The 300 Series)
-Implement a robust suite (`tests/golden_data/GOLDEN_3xx_*.json`) covering:
+Implement a robust suite (`tests/dpm/golden_data/GOLDEN_3xx_*.json`) covering:
 * **301:** Drift Rebalance (Sell Overweight / Buy Underweight, same currency).
 * **302:** Sell-to-Fund (Cash insufficient; Sell must precede Buy).
 * **303:** Multi-Currency + FX Funding.
@@ -93,7 +93,7 @@ class EngineOptions(BaseModel):
 
 ### 3.2 Dependency Logic Update
 
-In `src/core/engine.py` -> `_generate_fx_and_simulate`:
+In `src/core/dpm/engine.py` -> `_generate_fx_and_simulate`:
 
 1. Identify net cash flow per currency.
 2. Generate required FX intents.

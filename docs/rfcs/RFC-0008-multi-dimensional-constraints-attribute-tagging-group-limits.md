@@ -72,7 +72,7 @@ Validation rules:
 1. Reject malformed keys without exactly one `:`.
 2. Reject `max_weight < 0` or `max_weight > 1`.
 
-### 3.2 Target-Generation Logic (`src/core/engine.py`)
+### 3.2 Target-Generation Logic (`src/core/dpm/engine.py`)
 
 Apply group constraints in Stage 3 before single-position max check.
 
@@ -112,7 +112,7 @@ This enables direct verification of group-limit compliance from response payload
 
 ## 4. Test Plan
 
-Add `tests/golden_data/scenario_08_sector_cap.json`.
+Add `tests/dpm/golden_data/scenario_08_sector_cap.json`.
 
 Scenario:
 
