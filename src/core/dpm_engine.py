@@ -6,6 +6,7 @@ import uuid
 from copy import deepcopy
 from decimal import Decimal
 
+from src.core.common.diagnostics import make_diagnostics_data
 from src.core.common.simulation_shared import (
     apply_fx_spot_to_portfolio,
     apply_security_trade_to_portfolio,
@@ -14,13 +15,17 @@ from src.core.common.simulation_shared import (
     sort_execution_intents,
 )
 from src.core.compliance import RuleEngine
+from src.core.dpm.turnover import (
+    apply_turnover_limit as apply_turnover_limit_impl,
+)
+from src.core.dpm.turnover import (
+    calculate_turnover_score as calculate_turnover_score_impl,
+)
+from src.core.dpm.universe import build_universe as build_universe_impl
 from src.core.models import (
     CashLadderBreach,
     CashLadderPoint,
-    DiagnosticsData,
-    DroppedIntent,
     EngineOptions,
-    ExcludedInstrument,
     FxSpotIntent,
     GroupConstraintEvent,
     IntentRationale,
@@ -42,23 +47,8 @@ from src.core.target_generation import build_target_trace, generate_targets_solv
 from src.core.valuation import build_simulated_state, get_fx_rate
 
 
-def _make_empty_data_quality_log():
-    return {"price_missing": [], "fx_missing": [], "shelf_missing": []}
-
-
-def _make_diagnostics_data():
-    return DiagnosticsData(
-        warnings=[],
-        suppressed_intents=[],
-        group_constraint_events=[],
-        data_quality=_make_empty_data_quality_log(),
-    )
-
-
 def _calculate_turnover_score(intent, portfolio_value_base):
-    if portfolio_value_base <= Decimal("0"):
-        return Decimal("0")
-    return abs(intent.notional_base.amount) / portfolio_value_base
+    return calculate_turnover_score_impl(intent, portfolio_value_base)
 
 
 def _apply_turnover_limit(
@@ -68,47 +58,13 @@ def _apply_turnover_limit(
     base_currency,
     diagnostics,
 ):
-    if options.max_turnover_pct is None:
-        return intents
-
-    budget = portfolio_value_base * options.max_turnover_pct
-    proposed = sum(abs(intent.notional_base.amount) for intent in intents)
-    if proposed <= budget:
-        return intents
-
-    ranked = sorted(
-        intents,
-        key=lambda intent: (
-            -_calculate_turnover_score(intent, portfolio_value_base),
-            abs(intent.notional_base.amount),
-            intent.instrument_id,
-            intent.intent_id,
-        ),
+    return apply_turnover_limit_impl(
+        intents=intents,
+        options=options,
+        portfolio_value_base=portfolio_value_base,
+        base_currency=base_currency,
+        diagnostics=diagnostics,
     )
-
-    selected = []
-    used = Decimal("0")
-    for intent in ranked:
-        notional_abs = abs(intent.notional_base.amount)
-        score = _calculate_turnover_score(intent, portfolio_value_base)
-        if used + notional_abs <= budget:
-            selected.append(intent)
-            used += notional_abs
-            continue
-
-        diagnostics.dropped_intents.append(
-            DroppedIntent(
-                instrument_id=intent.instrument_id,
-                reason="TURNOVER_LIMIT",
-                potential_notional=Money(amount=notional_abs, currency=base_currency),
-                score=score,
-            )
-        )
-
-    if diagnostics.dropped_intents:
-        diagnostics.warnings.append("PARTIAL_REBALANCE_TURNOVER_LIMIT")
-
-    return selected
 
 
 def _make_blocked_result(
@@ -151,74 +107,7 @@ def _make_blocked_result(
 
 
 def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
-    """Stage 2: Filter targets and handle implicit locking/sells."""
-    eligible_targets, excluded = {}, []
-    buy_list, sell_list = [], []
-    sell_only_excess = Decimal("0.0")
-
-    for target in model.targets:
-        shelf_ent = next((s for s in shelf if s.instrument_id == target.instrument_id), None)
-        if not shelf_ent:
-            dq_log["shelf_missing"].append(target.instrument_id)
-            continue
-        if shelf_ent.status in ["BANNED", "SUSPENDED"]:
-            excluded.append(
-                ExcludedInstrument(
-                    instrument_id=target.instrument_id,
-                    reason_code=f"SHELF_STATUS_{shelf_ent.status}",
-                )
-            )
-            continue
-        if shelf_ent.status == "RESTRICTED" and not options.allow_restricted:
-            excluded.append(
-                ExcludedInstrument(
-                    instrument_id=target.instrument_id, reason_code="SHELF_STATUS_RESTRICTED"
-                )
-            )
-            continue
-        if shelf_ent.status == "SELL_ONLY":
-            sell_only_excess += target.weight
-            eligible_targets[target.instrument_id] = Decimal("0.0")
-            sell_list.append(target.instrument_id)
-            excluded.append(
-                ExcludedInstrument(
-                    instrument_id=target.instrument_id, reason_code="SHELF_STATUS_SELL_ONLY"
-                )
-            )
-            continue
-        eligible_targets[target.instrument_id] = target.weight
-        buy_list.append(target.instrument_id)
-        sell_list.append(target.instrument_id)
-
-    for pos in portfolio.positions:
-        if pos.quantity != 0 and pos.instrument_id not in eligible_targets:
-            shelf_ent = next((s for s in shelf if s.instrument_id == pos.instrument_id), None)
-            curr = next(
-                (p for p in current_val.positions if p.instrument_id == pos.instrument_id), None
-            )
-            if not shelf_ent:
-                if curr:
-                    eligible_targets[pos.instrument_id] = curr.weight
-                    excluded.append(
-                        ExcludedInstrument(
-                            instrument_id=pos.instrument_id,
-                            reason_code="LOCKED_DUE_TO_MISSING_SHELF",
-                        )
-                    )
-            elif shelf_ent.status in ["SUSPENDED", "BANNED", "RESTRICTED"]:
-                if curr:
-                    eligible_targets[pos.instrument_id] = curr.weight
-                    excluded.append(
-                        ExcludedInstrument(
-                            instrument_id=pos.instrument_id,
-                            reason_code=f"LOCKED_DUE_TO_{shelf_ent.status}",
-                        )
-                    )
-            else:
-                eligible_targets[pos.instrument_id] = Decimal("0.0")
-                sell_list.append(pos.instrument_id)
-
-    return eligible_targets, excluded, buy_list, sell_list, sell_only_excess
+    return build_universe_impl(model, portfolio, shelf, options, dq_log, current_val)
 
 
 def _apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnostics):
@@ -328,7 +217,7 @@ def _generate_targets(
     if options is None:
         options = EngineOptions()
     if diagnostics is None:
-        diagnostics = _make_diagnostics_data()
+        diagnostics = make_diagnostics_data()
 
     if options.target_method == TargetMethod.SOLVER:
         return generate_targets_solver(
@@ -379,7 +268,7 @@ def _compare_target_generation_methods(
     )
 
     alt_options = options.model_copy(update={"target_method": alternate_method})
-    alt_diag = _make_diagnostics_data()
+    alt_diag = make_diagnostics_data()
     alt_trace, alt_status = _generate_targets(
         model=model,
         eligible_targets=deepcopy(eligible_targets),
@@ -938,7 +827,7 @@ def _check_blocking_dq(dq_log, options):
 
 def run_simulation(portfolio, market_data, model, shelf, options, request_hash="no_hash"):
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
-    diag_data = _make_diagnostics_data()
+    diag_data = make_diagnostics_data()
 
     before = build_simulated_state(
         portfolio, market_data, shelf, diag_data.data_quality, diag_data.warnings, options
