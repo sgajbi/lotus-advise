@@ -18,6 +18,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0011 (settlement ladder & overdraft protection, feature-flagged via `options.enable_settlement_awareness`)
 * RFC-0012 (solver integration, feature-flagged via `options.target_method`)
 * RFC-0013 (what-if batch analysis via `POST /rebalance/analyze`)
+* RFC-0014A (advisory proposal simulation via `POST /rebalance/proposals/simulate`, feature-flagged via `options.enable_proposal_simulation`)
 
 ---
 ## Engine Know-How
@@ -193,6 +194,33 @@ Runs multiple named what-if scenarios in one call using shared snapshots.
 
 Notes:
 * Batch comparison metrics currently expose turnover proxy only; tax-impact aggregation is not included in batch metrics.
+
+### POST `/rebalance/proposals/simulate`
+
+Simulates advisor-entered manual `proposed_cash_flows` and `proposed_trades` without model targeting.
+
+**Headers:**
+
+* `Idempotency-Key` (Required)
+* `X-Correlation-Id` (Optional, auto-generated if missing)
+
+**Request Body:**
+
+* `portfolio_snapshot`
+* `market_data_snapshot`
+* `shelf_entries`
+* `options`:
+  `enable_proposal_simulation` must be `true` to activate this endpoint.
+  `proposal_apply_cash_flows_first` controls whether cash flows apply before manual trades.
+  `proposal_block_negative_cash` controls negative-cash withdrawal hard blocking.
+* `proposed_cash_flows`: list of `CASH_FLOW` intents
+* `proposed_trades`: list of `SECURITY_TRADE` intents (requires `quantity` or `notional`)
+
+**Response Status Codes:**
+
+* `200 OK`: domain status returned in payload (`READY`, `PENDING_REVIEW`, `BLOCKED`)
+* `409 Conflict`: same `Idempotency-Key` used with a different canonical request payload
+* `422`: validation/feature-flag errors
 
 ---
 

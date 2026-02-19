@@ -18,6 +18,11 @@ For batch what-if demos, POST to `/rebalance/analyze`:
 curl -X POST "http://127.0.0.1:8000/rebalance/analyze" -H "Content-Type: application/json" --data-binary "@docs/demo/09_batch_what_if_analysis.json"
 ```
 
+For advisory proposal simulation demos, POST to `/rebalance/proposals/simulate`:
+```bash
+curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-proposal-01" --data-binary "@docs/demo/10_advisory_proposal_simulate.json"
+```
+
 ---
 
 ## Scenario Index
@@ -33,6 +38,7 @@ curl -X POST "http://127.0.0.1:8000/rebalance/analyze" -H "Content-Type: applica
 | `07_settlement_overdraft_block.json` | **Settlement Overdraft Block** | `BLOCKED` | Settlement-day cash ladder blocks run on projected overdraft. |
 | `08_solver_mode.json` | **Solver Target Generation** | `READY` | Runs Stage-3 target generation in solver mode (`target_method=SOLVER`). |
 | `09_batch_what_if_analysis.json` | **Batch What-If Analysis** | Mixed by scenario | Runs baseline/tax/settlement scenarios in one `/rebalance/analyze` call. |
+| `10_advisory_proposal_simulate.json` | **Advisory Proposal Simulation** | `READY` | Simulates manual cash flows and manual trades in `/rebalance/proposals/simulate`. |
 
 ## Feature Toggles Demonstrated
 
@@ -46,6 +52,10 @@ curl -X POST "http://127.0.0.1:8000/rebalance/analyze" -H "Content-Type: applica
   - `options.target_method=SOLVER`
 - `09_batch_what_if_analysis.json`:
   - `scenarios.<name>.options` for per-scenario configuration in batch mode.
+- `10_advisory_proposal_simulate.json`:
+  - `options.enable_proposal_simulation=true`
+  - `options.proposal_apply_cash_flows_first=true`
+  - `options.proposal_block_negative_cash=true`
 
 ## Understanding Output Statuses
 

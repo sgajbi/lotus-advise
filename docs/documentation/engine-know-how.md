@@ -6,6 +6,7 @@ Scope:
 - API behavior in `src/api/main.py`
 - Domain models in `src/core/models.py`
 - Core orchestration in `src/core/engine.py`
+- Shared simulation primitives in `src/core/simulation_shared.py`
 - Valuation in `src/core/valuation.py`
 - Rules in `src/core/compliance.py`
 - Target generation in `src/core/target_generation.py`
@@ -62,6 +63,23 @@ Response:
   - `comparison_metrics` (successful scenarios only)
   - `failed_scenarios`
   - `warnings` (`PARTIAL_BATCH_FAILURE` when any scenario fails)
+
+### `POST /rebalance/proposals/simulate`
+
+Purpose:
+- Run advisory proposal simulation using manual cash flows and manual trades.
+
+Headers:
+- Required: `Idempotency-Key`
+- Optional: `X-Correlation-Id`
+
+Body shape:
+- `portfolio_snapshot`
+- `market_data_snapshot`
+- `shelf_entries`
+- `options`
+- `proposed_cash_flows`
+- `proposed_trades`
 
 ## 2. Request/Response Model Notes
 
@@ -461,6 +479,13 @@ This section is a quick reference for all currently supported engine features.
   - `diagnostics.cash_ladder`
   - `diagnostics.cash_ladder_breaches`
   - warning `SETTLEMENT_OVERDRAFT_UTILIZED` when overdraft is used but within limit.
+
+14. Advisory proposal simulation controls (RFC-0014A)
+- What it does: enables proposal endpoint behavior and cash-flow ordering/guards.
+- Options:
+  - `options.enable_proposal_simulation`
+  - `options.proposal_apply_cash_flows_first`
+  - `options.proposal_block_negative_cash`
 
 ### 11.3 Batch Analysis Features
 
