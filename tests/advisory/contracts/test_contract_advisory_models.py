@@ -29,9 +29,14 @@ def test_advisory_engine_options_defaults():
     assert options.proposal_apply_cash_flows_first is True
     assert options.proposal_block_negative_cash is True
     assert options.enable_drift_analytics is True
+    assert options.enable_suitability_scanner is True
     assert options.enable_instrument_drift is True
     assert options.drift_top_contributors_limit == 5
     assert options.drift_unmodeled_exposure_threshold == Decimal("0.01")
+    assert options.suitability_thresholds.single_position_max_weight == Decimal("0.10")
+    assert options.suitability_thresholds.issuer_max_weight == Decimal("0.20")
+    assert options.suitability_thresholds.cash_band_min_weight == Decimal("0.01")
+    assert options.suitability_thresholds.cash_band_max_weight == Decimal("0.05")
     assert options.auto_funding is True
     assert options.funding_mode == "AUTO_FX"
     assert options.fx_funding_source_currency == "ANY_CASH"

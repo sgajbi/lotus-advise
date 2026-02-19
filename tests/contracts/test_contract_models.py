@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.core.models import (
+    AllocationMetric,
     BatchRebalanceRequest,
     BatchScenarioMetric,
     DiagnosticsData,
@@ -307,3 +308,28 @@ def test_batch_scenario_metric_rejects_invalid_status():
             security_intent_count=1,
             gross_turnover_notional_base=Money(amount=Decimal("10"), currency="USD"),
         )
+
+
+def test_suitability_thresholds_validate_liquidity_tier_keys():
+    with pytest.raises(ValidationError):
+        EngineOptions(suitability_thresholds={"max_weight_by_liquidity_tier": {"L9": "0.10"}})
+
+
+def test_suitability_thresholds_validate_cash_band_order():
+    with pytest.raises(ValidationError):
+        EngineOptions(
+            suitability_thresholds={
+                "cash_band_min_weight": "0.10",
+                "cash_band_max_weight": "0.05",
+            }
+        )
+
+
+def test_allocation_metric_weight_serialization_is_quantized():
+    metric = AllocationMetric(
+        key="EQ_1",
+        weight=Decimal("0.6666666666666666666666666667"),
+        value=Money(amount=Decimal("100"), currency="USD"),
+    )
+    payload = metric.model_dump(mode="json")
+    assert payload["weight"] == "0.6667"

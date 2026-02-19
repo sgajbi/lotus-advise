@@ -7,7 +7,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_serializer, field_validator, model_validator
 
 
 class ValuationMode(str, Enum):
@@ -18,6 +18,10 @@ class ValuationMode(str, Enum):
 class TargetMethod(str, Enum):
     HEURISTIC = "HEURISTIC"
     SOLVER = "SOLVER"
+
+
+def _quantize_ratio(value: Decimal) -> Decimal:
+    return value.quantize(Decimal("0.0001"))
 
 
 class Money(BaseModel):
@@ -191,6 +195,16 @@ class ShelfEntry(BaseModel):
     asset_class: str = Field(
         default="UNKNOWN", description="Asset-class label for aggregation/reporting."
     )
+    issuer_id: Optional[str] = Field(
+        default=None,
+        description="Issuer identifier used for concentration analytics and suitability checks.",
+        examples=["ISSUER_TECH_1"],
+    )
+    liquidity_tier: Optional[Literal["L1", "L2", "L3", "L4", "L5"]] = Field(
+        default=None,
+        description="Liquidity tier label used for suitability liquidity exposure checks.",
+        examples=["L1", "L4"],
+    )
     settlement_days: int = Field(
         default=2,
         ge=0,
@@ -218,6 +232,66 @@ class GroupConstraint(BaseModel):
         if v < Decimal("0") or v > Decimal("1"):
             raise ValueError("max_weight must be between 0 and 1 inclusive")
         return v
+
+
+class SuitabilityThresholds(BaseModel):
+    single_position_max_weight: Decimal = Field(
+        default=Decimal("0.10"),
+        ge=0,
+        le=1,
+        description="Maximum advisory suitability weight per single instrument.",
+        examples=["0.10"],
+    )
+    issuer_max_weight: Decimal = Field(
+        default=Decimal("0.20"),
+        ge=0,
+        le=1,
+        description="Maximum advisory suitability aggregate weight per issuer.",
+        examples=["0.20"],
+    )
+    max_weight_by_liquidity_tier: Dict[str, Decimal] = Field(
+        default_factory=lambda: {"L4": Decimal("0.10"), "L5": Decimal("0.05")},
+        description=(
+            "Maximum advisory suitability aggregate weight by liquidity tier, "
+            "for example {'L4': '0.10', 'L5': '0.05'}."
+        ),
+        examples=[{"L4": "0.10", "L5": "0.05"}],
+    )
+    cash_band_min_weight: Decimal = Field(
+        default=Decimal("0.01"),
+        ge=0,
+        le=1,
+        description="Minimum advisory suitability cash weight.",
+        examples=["0.01"],
+    )
+    cash_band_max_weight: Decimal = Field(
+        default=Decimal("0.05"),
+        ge=0,
+        le=1,
+        description="Maximum advisory suitability cash weight.",
+        examples=["0.05"],
+    )
+    data_quality_issue_severity: Literal["LOW", "MEDIUM", "HIGH"] = Field(
+        default="MEDIUM",
+        description="Severity used for suitability data-quality issues.",
+        examples=["MEDIUM"],
+    )
+
+    @field_validator("max_weight_by_liquidity_tier")
+    @classmethod
+    def validate_max_weight_by_liquidity_tier(cls, v: Dict[str, Decimal]) -> Dict[str, Decimal]:
+        for tier, value in v.items():
+            if tier not in {"L1", "L2", "L3", "L4", "L5"}:
+                raise ValueError("liquidity tier keys must be one of L1, L2, L3, L4, L5")
+            if value < Decimal("0") or value > Decimal("1"):
+                raise ValueError("liquidity-tier max weights must be between 0 and 1 inclusive")
+        return v
+
+    @model_validator(mode="after")
+    def validate_cash_band(self):
+        if self.cash_band_min_weight > self.cash_band_max_weight:
+            raise ValueError("suitability cash band min cannot exceed max")
+        return self
 
 
 class EngineOptions(BaseModel):
@@ -350,6 +424,15 @@ class EngineOptions(BaseModel):
         description="Enable advisory drift analytics when a reference model is provided.",
         examples=[True],
     )
+    enable_suitability_scanner: bool = Field(
+        default=True,
+        description="Enable advisory suitability scanner output in proposal simulation results.",
+        examples=[True],
+    )
+    suitability_thresholds: SuitabilityThresholds = Field(
+        default_factory=SuitabilityThresholds,
+        description="Threshold settings used by advisory suitability scanner checks.",
+    )
     enable_instrument_drift: bool = Field(
         default=True,
         description="Enable instrument-level drift analytics when reference targets are present.",
@@ -458,6 +541,10 @@ class AllocationMetric(BaseModel):
     weight: Decimal = Field(description="Weight of the bucket in portfolio total value.")
     value: Money = Field(description="Monetary value of the bucket.")
 
+    @field_serializer("weight")
+    def serialize_weight(self, value: Decimal) -> Decimal:
+        return _quantize_ratio(value)
+
 
 class PositionSummary(BaseModel):
     instrument_id: str = Field(description="Instrument identifier.")
@@ -468,6 +555,10 @@ class PositionSummary(BaseModel):
     value_in_instrument_ccy: Money = Field(description="Position value in instrument currency.")
     value_in_base_ccy: Money = Field(description="Position value converted to base currency.")
     weight: Decimal = Field(description="Portfolio weight in base currency terms.")
+
+    @field_serializer("weight")
+    def serialize_weight(self, value: Decimal) -> Decimal:
+        return _quantize_ratio(value)
 
 
 class SimulatedState(BaseModel):
@@ -852,6 +943,100 @@ class DriftAnalysis(BaseModel):
     highlights: DriftHighlights = Field(description="Deterministic advisory highlights.")
 
 
+class SuitabilityEvidenceSnapshotIds(BaseModel):
+    portfolio_snapshot_id: str = Field(
+        description="Portfolio snapshot id used as evidence source.",
+        examples=["pf_advisory_01"],
+    )
+    market_data_snapshot_id: str = Field(
+        description="Market-data snapshot id used as evidence source.",
+        examples=["md_2026_02_19"],
+    )
+
+
+class SuitabilityEvidence(BaseModel):
+    as_of: str = Field(
+        description="Suitability evidence as-of identifier derived from request snapshots.",
+        examples=["md_2026_02_19"],
+    )
+    snapshot_ids: SuitabilityEvidenceSnapshotIds = Field(
+        description="Snapshot identifiers used by suitability checks."
+    )
+
+
+class SuitabilityIssue(BaseModel):
+    issue_id: str = Field(
+        description="Stable suitability issue identifier.",
+        examples=["SUIT_SINGLE_POSITION_MAX"],
+    )
+    issue_key: str = Field(
+        description="Deterministic issue key used for before/after classification.",
+        examples=["SINGLE_POSITION_MAX|US_EQ_ETF"],
+    )
+    dimension: Literal[
+        "CONCENTRATION",
+        "ISSUER",
+        "LIQUIDITY",
+        "GOVERNANCE",
+        "CASH",
+        "DATA_QUALITY",
+    ] = Field(
+        description="Suitability issue dimension.",
+        examples=["CONCENTRATION"],
+    )
+    severity: Literal["LOW", "MEDIUM", "HIGH"] = Field(
+        description="Advisory suitability severity level.",
+        examples=["HIGH"],
+    )
+    status_change: Literal["NEW", "RESOLVED", "PERSISTENT"] = Field(
+        description="Before/after suitability state transition class.",
+        examples=["NEW"],
+    )
+    summary: str = Field(
+        description="Short suitability issue narrative.",
+        examples=["Single position exceeds 10% cap."],
+    )
+    details: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Deterministic suitability measurement details encoded as strings.",
+        examples=[
+            {
+                "threshold": "0.10",
+                "measured_before": "0.12",
+                "measured_after": "0.09",
+                "instrument_id": "US_EQ_ETF",
+            }
+        ],
+    )
+    evidence: SuitabilityEvidence = Field(description="Evidence lineage for this issue.")
+
+
+class SuitabilitySummary(BaseModel):
+    new_count: int = Field(description="Count of NEW suitability issues.", examples=[1])
+    resolved_count: int = Field(description="Count of RESOLVED suitability issues.", examples=[2])
+    persistent_count: int = Field(
+        description="Count of PERSISTENT suitability issues.",
+        examples=[3],
+    )
+    highest_severity_new: Optional[Literal["LOW", "MEDIUM", "HIGH"]] = Field(
+        default=None,
+        description="Highest severity among NEW issues, when present.",
+        examples=["HIGH"],
+    )
+
+
+class SuitabilityResult(BaseModel):
+    summary: SuitabilitySummary = Field(description="Suitability issue summary counts.")
+    issues: List[SuitabilityIssue] = Field(
+        default_factory=list,
+        description="Deterministic ordered suitability issue list.",
+    )
+    recommended_gate: Literal["NONE", "RISK_REVIEW", "COMPLIANCE_REVIEW"] = Field(
+        description="Advisory gate recommendation derived from NEW issue severities.",
+        examples=["COMPLIANCE_REVIEW"],
+    )
+
+
 class RebalanceResult(BaseModel):
     """The complete, auditable result of a rebalance simulation."""
 
@@ -1149,6 +1334,10 @@ class ProposalResult(BaseModel):
     drift_analysis: Optional[DriftAnalysis] = Field(
         default=None,
         description="Reference-model drift analytics when provided and enabled.",
+    )
+    suitability: Optional[SuitabilityResult] = Field(
+        default=None,
+        description="Advisory suitability scanner output with NEW/RESOLVED/PERSISTENT issues.",
     )
     lineage: LineageData = Field(description="Lineage identifiers and request hash.")
 
