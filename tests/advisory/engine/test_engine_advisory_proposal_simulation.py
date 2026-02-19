@@ -177,6 +177,73 @@ def test_proposal_simulation_supports_notional_input_path():
     assert result.status == "READY"
 
 
+def test_proposal_simulation_blocks_notional_currency_mismatch():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_5b",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("EQ_1", "100", "USD")], fx_rates=[])
+    shelf = [shelf_entry("EQ_1", status="APPROVED")]
+    options = EngineOptions(enable_proposal_simulation=True)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[
+            {
+                "side": "BUY",
+                "instrument_id": "EQ_1",
+                "notional": {"amount": "200", "currency": "EUR"},
+            }
+        ],
+        request_hash="proposal_hash_notional_currency_mismatch",
+    )
+
+    assert result.status == "BLOCKED"
+    assert result.intents == []
+    assert "PROPOSAL_INVALID_TRADE_INPUT" in result.diagnostics.warnings
+
+
+def test_proposal_simulation_run_id_is_deterministic_for_request_hash():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_5c",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("EQ_1", "100", "USD")], fx_rates=[])
+    shelf = [shelf_entry("EQ_1", status="APPROVED")]
+    options = EngineOptions(enable_proposal_simulation=True)
+    proposed_trades = [{"side": "BUY", "instrument_id": "EQ_1", "quantity": "1"}]
+    request_hash = "sha256:deterministic-hash"
+
+    first = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=proposed_trades,
+        request_hash=request_hash,
+    )
+    second = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=proposed_trades,
+        request_hash=request_hash,
+    )
+
+    assert first.proposal_run_id == second.proposal_run_id
+
+
 def test_proposal_simulation_records_missing_price_data_quality():
     portfolio = portfolio_snapshot(
         portfolio_id="pf_prop_6",

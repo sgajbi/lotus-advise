@@ -2,6 +2,7 @@
 FILE: src/core/advisory_engine.py
 """
 
+import hashlib
 import uuid
 from copy import deepcopy
 from decimal import Decimal
@@ -60,30 +61,35 @@ def _proposal_build_security_trade_intent(
     )
     if not price_ent:
         dq_log["price_missing"].append(trade.instrument_id)
-        return None
+        return None, None
 
     fx_rate = get_fx_rate(market_data, price_ent.currency, base_currency)
     if fx_rate is None:
         dq_log["fx_missing"].append(f"{price_ent.currency}/{base_currency}")
-        return None
+        return None, None
 
     if trade.quantity is not None:
         quantity = trade.quantity
         notional_amount = quantity * price_ent.price
     else:
+        if trade.notional.currency != price_ent.currency:
+            return None, "PROPOSAL_INVALID_TRADE_INPUT"
         notional_amount = trade.notional.amount
         quantity = notional_amount / price_ent.price
 
-    return SecurityTradeIntent(
-        intent_id=intent_id,
-        side=trade.side,
-        instrument_id=trade.instrument_id,
-        quantity=quantity,
-        notional=Money(amount=notional_amount, currency=price_ent.currency),
-        notional_base=Money(amount=notional_amount * fx_rate, currency=base_currency),
-        rationale=IntentRationale(code="MANUAL_PROPOSAL", message="Advisor proposed trade"),
-        dependencies=[],
-        constraints_applied=[],
+    return (
+        SecurityTradeIntent(
+            intent_id=intent_id,
+            side=trade.side,
+            instrument_id=trade.instrument_id,
+            quantity=quantity,
+            notional=Money(amount=notional_amount, currency=price_ent.currency),
+            notional_base=Money(amount=notional_amount * fx_rate, currency=base_currency),
+            rationale=IntentRationale(code="MANUAL_PROPOSAL", message="Advisor proposed trade"),
+            dependencies=[],
+            constraints_applied=[],
+        ),
+        None,
     )
 
 
@@ -98,6 +104,13 @@ def _proposal_expected_cash_delta_base(portfolio, market_data, cash_flows, dq_lo
     return total
 
 
+def _proposal_run_id_from_request_hash(request_hash):
+    if request_hash and request_hash != "no_hash":
+        digest = hashlib.sha256(str(request_hash).encode("utf-8")).hexdigest()[:8]
+        return f"pr_{digest}"
+    return f"pr_{uuid.uuid4().hex[:8]}"
+
+
 def run_proposal_simulation(
     *,
     portfolio,
@@ -110,7 +123,7 @@ def run_proposal_simulation(
     idempotency_key=None,
     correlation_id="c_none",
 ):
-    run_id = f"pr_{uuid.uuid4().hex[:8]}"
+    run_id = _proposal_run_id_from_request_hash(request_hash)
     diagnostics = _make_diagnostics_data()
 
     before = build_simulated_state(
@@ -170,13 +183,16 @@ def run_proposal_simulation(
             hard_failures.append("PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF")
             continue
 
-        intent = _proposal_build_security_trade_intent(
+        intent, error_code = _proposal_build_security_trade_intent(
             trade=trade,
             market_data=market_data,
             base_currency=portfolio.base_currency,
             intent_id=f"oi_{idx + 1}",
             dq_log=diagnostics.data_quality,
         )
+        if error_code:
+            diagnostics.warnings.append(error_code)
+            hard_failures.append(error_code)
         if intent is not None:
             security_intents.append(intent)
 
