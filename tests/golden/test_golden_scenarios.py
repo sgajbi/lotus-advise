@@ -10,7 +10,7 @@ from typing import Any, Dict
 
 import pytest
 
-from src.core.engine import run_simulation
+from src.core.dpm_engine import run_simulation
 from src.core.models import (
     EngineOptions,
     MarketDataSnapshot,
@@ -27,14 +27,24 @@ def load_golden_file(filename: str) -> Dict[str, Any]:
 
 
 GOLDEN_DIR = os.path.join(os.path.dirname(__file__), "../golden_data")
-SCENARIOS = sorted(os.path.basename(p) for p in glob.glob(os.path.join(GOLDEN_DIR, "*.json")))
+
+
+def _is_rebalance_golden_fixture(path: str) -> bool:
+    with open(path, "r") as file:
+        data = json.loads(file.read())
+    return "inputs" in data
+
+
+SCENARIOS = sorted(
+    os.path.basename(path)
+    for path in glob.glob(os.path.join(GOLDEN_DIR, "*.json"))
+    if _is_rebalance_golden_fixture(path)
+)
 
 
 @pytest.mark.parametrize("filename", SCENARIOS)
 def test_golden_scenario(filename):
     data = load_golden_file(filename)
-    if "inputs" not in data:
-        pytest.skip("Scenario file is not a rebalance golden fixture.")
     inputs = data["inputs"]
     expected = data.get("expected_output") or data.get("expected_outputs")
     assert expected is not None, f"Missing expected output block in {filename}"
