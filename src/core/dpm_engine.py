@@ -17,6 +17,18 @@ from src.core.dpm.execution import (
 from src.core.dpm.execution import (
     generate_fx_and_simulate as generate_fx_and_simulate_impl,
 )
+from src.core.dpm.targets import (
+    apply_group_constraints as apply_group_constraints_impl,
+)
+from src.core.dpm.targets import (
+    compare_target_generation_methods as compare_target_generation_methods_impl,
+)
+from src.core.dpm.targets import (
+    generate_targets as generate_targets_impl,
+)
+from src.core.dpm.targets import (
+    generate_targets_heuristic as generate_targets_heuristic_impl,
+)
 from src.core.dpm.turnover import (
     apply_turnover_limit as apply_turnover_limit_impl,
 )
@@ -25,8 +37,6 @@ from src.core.dpm.turnover import (
 )
 from src.core.dpm.universe import build_universe as build_universe_impl
 from src.core.models import (
-    EngineOptions,
-    GroupConstraintEvent,
     IntentRationale,
     LineageData,
     Money,
@@ -34,13 +44,11 @@ from src.core.models import (
     SecurityTradeIntent,
     SuppressedIntent,
     TargetData,
-    TargetMethod,
     TaxBudgetConstraintEvent,
     TaxImpact,
     UniverseCoverage,
     UniverseData,
 )
-from src.core.target_generation import build_target_trace, generate_targets_solver
 from src.core.valuation import build_simulated_state, get_fx_rate
 
 
@@ -108,93 +116,7 @@ def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
 
 
 def _apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnostics):
-    """
-    RFC-0008: Apply multi-dimensional group constraints.
-    Caps overweight groups and redistributes excess to eligible buyable instruments.
-    """
-    if not options.group_constraints:
-        return "READY"
-
-    # Sort keys for deterministic application order
-    sorted_keys = sorted(options.group_constraints.keys())
-
-    for constraint_key in sorted_keys:
-        constraint = options.group_constraints[constraint_key]
-
-        try:
-            attr_key, attr_val = constraint_key.split(":", 1)
-        except ValueError:
-            diagnostics.warnings.append(f"INVALID_CONSTRAINT_KEY_{constraint_key}")
-            continue
-
-        if not any(attr_key in s.attributes for s in shelf):
-            diagnostics.warnings.append(f"UNKNOWN_CONSTRAINT_ATTRIBUTE_{attr_key}")
-            continue
-
-        # Identify group members
-        group_members = []
-        for i_id in eligible_targets:
-            s_ent = next((s for s in shelf if s.instrument_id == i_id), None)
-            if s_ent and s_ent.attributes.get(attr_key) == attr_val:
-                group_members.append(i_id)
-
-        if not group_members:
-            continue
-
-        current_w = sum(eligible_targets[i] for i in group_members)
-
-        # Check tolerance (0.0001) to avoid micro-adjustments
-        if current_w <= constraint.max_weight + Decimal("0.0001"):
-            continue
-
-        # Breach Detected
-        scale = constraint.max_weight / current_w
-        excess = current_w - constraint.max_weight
-
-        # Scale down group members
-        for i_id in group_members:
-            eligible_targets[i_id] *= scale
-
-        # Identify redistribution candidates (Must be in buy_list and NOT in the constrained group)
-        candidates = [i for i in eligible_targets if i in buy_list and i not in group_members]
-        total_cand_w = sum(eligible_targets[c] for c in candidates)
-
-        if total_cand_w > Decimal("0"):
-            # Redistribute proportionally
-            recipients = {}
-            for c in candidates:
-                share = excess * (eligible_targets[c] / total_cand_w)
-                eligible_targets[c] += share
-                recipients[c] = share
-
-            diagnostics.warnings.append(f"CAPPED_BY_GROUP_LIMIT_{constraint_key}")
-            diagnostics.group_constraint_events.append(
-                GroupConstraintEvent(
-                    constraint_key=constraint_key,
-                    group_weight_before=current_w,
-                    max_weight=constraint.max_weight,
-                    released_weight=excess,
-                    recipients=recipients,
-                    status="CAPPED",
-                )
-            )
-        else:
-            # Trap: Cannot redistribute
-            diagnostics.warnings.append(f"CAPPED_BY_GROUP_LIMIT_{constraint_key}")
-            diagnostics.warnings.append("NO_ELIGIBLE_REDISTRIBUTION_DESTINATION")
-            diagnostics.group_constraint_events.append(
-                GroupConstraintEvent(
-                    constraint_key=constraint_key,
-                    group_weight_before=current_w,
-                    max_weight=constraint.max_weight,
-                    released_weight=excess,
-                    recipients={},
-                    status="BLOCKED",
-                )
-            )
-            return "BLOCKED"
-
-    return "READY"
+    return apply_group_constraints_impl(eligible_targets, buy_list, shelf, options, diagnostics)
 
 
 def _generate_targets(
@@ -208,28 +130,7 @@ def _generate_targets(
     base_ccy="USD",
     diagnostics=None,
 ):
-    """Stage 3: Normalization and Constraints."""
-    if shelf is None:
-        shelf = []
-    if options is None:
-        options = EngineOptions()
-    if diagnostics is None:
-        diagnostics = make_diagnostics_data()
-
-    if options.target_method == TargetMethod.SOLVER:
-        return generate_targets_solver(
-            model=model,
-            eligible_targets=eligible_targets,
-            buy_list=buy_list,
-            sell_only_excess=sell_only_excess,
-            shelf=shelf,
-            options=options,
-            total_val=total_val,
-            base_ccy=base_ccy,
-            diagnostics=diagnostics,
-        )
-
-    return _generate_targets_heuristic(
+    return generate_targets_impl(
         model=model,
         eligible_targets=eligible_targets,
         buy_list=buy_list,
@@ -259,44 +160,18 @@ def _compare_target_generation_methods(
     primary_trace,
     primary_status,
 ):
-    primary_method = options.target_method
-    alternate_method = (
-        TargetMethod.SOLVER if primary_method == TargetMethod.HEURISTIC else TargetMethod.HEURISTIC
-    )
-
-    alt_options = options.model_copy(update={"target_method": alternate_method})
-    alt_diag = make_diagnostics_data()
-    alt_trace, alt_status = _generate_targets(
+    return compare_target_generation_methods_impl(
         model=model,
-        eligible_targets=deepcopy(eligible_targets),
+        eligible_targets=eligible_targets,
         buy_list=buy_list,
         sell_only_excess=sell_only_excess,
         shelf=shelf,
-        options=alt_options,
+        options=options,
         total_val=total_val,
         base_ccy=base_ccy,
-        diagnostics=alt_diag,
+        primary_trace=primary_trace,
+        primary_status=primary_status,
     )
-
-    primary_weights = _to_weight_map(primary_trace)
-    alternate_weights = _to_weight_map(alt_trace)
-    tolerance = options.compare_target_methods_tolerance
-    differing_instruments = []
-    for i_id in sorted(set(primary_weights.keys()) | set(alternate_weights.keys())):
-        p = primary_weights.get(i_id, Decimal("0"))
-        a = alternate_weights.get(i_id, Decimal("0"))
-        if abs(p - a) > tolerance:
-            differing_instruments.append(i_id)
-
-    return {
-        "primary_method": primary_method.value,
-        "primary_status": primary_status,
-        "alternate_method": alternate_method.value,
-        "alternate_status": alt_status,
-        "tolerance": str(tolerance),
-        "differing_instruments": differing_instruments,
-        "alternate_warnings": sorted(set(alt_diag.warnings)),
-    }
 
 
 def _generate_targets_heuristic(
@@ -310,69 +185,17 @@ def _generate_targets_heuristic(
     base_ccy,
     diagnostics,
 ):
-    """Legacy Stage 3 heuristic implementation."""
-    status = "READY"
-
-    if sell_only_excess > Decimal("0.0"):
-        recs = {k: v for k, v in eligible_targets.items() if k in buy_list}
-        total_rec = sum(recs.values())
-        if total_rec > Decimal("0.0"):
-            for i_id, w in recs.items():
-                eligible_targets[i_id] = w + (sell_only_excess * (w / total_rec))
-        else:
-            status = "PENDING_REVIEW"
-
-    group_status = _apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnostics)
-    if group_status == "BLOCKED":
-        return [], "BLOCKED"
-
-    total_w = sum(eligible_targets.values())
-    if total_w > Decimal("1.0001"):
-        tradeable_keys = [k for k in eligible_targets if k in buy_list]
-        locked_w = sum(v for k, v in eligible_targets.items() if k not in buy_list)
-        available_space = max(Decimal("0.0"), Decimal("1.0") - locked_w)
-        if locked_w > Decimal("1.0"):
-            status = "PENDING_REVIEW"
-        tradeable_w = sum(eligible_targets[k] for k in tradeable_keys)
-        if tradeable_w > available_space:
-            if tradeable_w > Decimal("0.0"):
-                scale = available_space / tradeable_w
-                for k in tradeable_keys:
-                    eligible_targets[k] *= scale
-            status = "PENDING_REVIEW"
-
-    if options.single_position_max_weight is not None:
-        max_w = options.single_position_max_weight
-        excess = sum(max(Decimal("0.0"), w - max_w) for w in eligible_targets.values())
-        for i_id in eligible_targets:
-            eligible_targets[i_id] = min(eligible_targets[i_id], max_w)
-        if excess > Decimal("0.0"):
-            cands = {k: v for k, v in eligible_targets.items() if k in buy_list and v < max_w}
-            total_cand = sum(cands.values())
-            if total_cand > Decimal("0.0"):
-                rem = excess
-                for i_id, w in cands.items():
-                    share = min(rem * (w / total_cand), max_w - w)
-                    eligible_targets[i_id] += share
-                    rem -= share
-                if rem > Decimal("0.001"):
-                    status = "PENDING_REVIEW"
-            else:
-                status = "PENDING_REVIEW"
-
-    if options.min_cash_buffer_pct > Decimal("0.0"):
-        tw = sum(v for k, v in eligible_targets.items() if k in buy_list)
-        lw = sum(v for k, v in eligible_targets.items() if k not in buy_list)
-        allowed = max(Decimal("0.0"), Decimal("1.0") - options.min_cash_buffer_pct - lw)
-        if tw > allowed:
-            if tw > Decimal("0.0"):
-                scale = allowed / tw
-                for k in eligible_targets:
-                    if k in buy_list:
-                        eligible_targets[k] *= scale
-            status = "PENDING_REVIEW"
-
-    return build_target_trace(model, eligible_targets, buy_list, total_val, base_ccy), status
+    return generate_targets_heuristic_impl(
+        model=model,
+        eligible_targets=eligible_targets,
+        buy_list=buy_list,
+        sell_only_excess=sell_only_excess,
+        shelf=shelf,
+        options=options,
+        total_val=total_val,
+        base_ccy=base_ccy,
+        diagnostics=diagnostics,
+    )
 
 
 def _generate_intents(
