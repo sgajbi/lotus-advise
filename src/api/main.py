@@ -290,7 +290,7 @@ def _hash_canonical_payload(payload: Dict) -> str:
         },
     },
 )
-async def simulate_rebalance(
+def simulate_rebalance(
     request: RebalanceRequest,
     idempotency_key: Annotated[
         str,
@@ -351,7 +351,7 @@ async def simulate_rebalance(
         },
     },
 )
-async def analyze_scenarios(
+def analyze_scenarios(
     request: Annotated[
         BatchRebalanceRequest,
         Field(description="Shared snapshots plus scenario map of option overrides."),
@@ -447,7 +447,7 @@ async def analyze_scenarios(
         422: {"description": "Validation error (invalid payload or missing required headers)."},
     },
 )
-async def simulate_proposal(
+def simulate_proposal(
     request: ProposalSimulateRequest,
     idempotency_key: Annotated[
         str,
