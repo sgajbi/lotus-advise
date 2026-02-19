@@ -28,6 +28,10 @@ def test_advisory_engine_options_defaults():
     assert options.enable_proposal_simulation is False
     assert options.proposal_apply_cash_flows_first is True
     assert options.proposal_block_negative_cash is True
+    assert options.enable_drift_analytics is True
+    assert options.enable_instrument_drift is True
+    assert options.drift_top_contributors_limit == 5
+    assert options.drift_unmodeled_exposure_threshold == Decimal("0.01")
     assert options.auto_funding is True
     assert options.funding_mode == "AUTO_FX"
     assert options.fx_funding_source_currency == "ANY_CASH"
@@ -64,11 +68,18 @@ def test_advisory_proposal_request_shape():
         portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
         market_data_snapshot=MarketDataSnapshot(prices=[], fx_rates=[]),
         shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
+        reference_model={
+            "model_id": "mdl_1",
+            "as_of": "2026-02-18",
+            "base_currency": "USD",
+            "asset_class_targets": [{"asset_class": "CASH", "weight": "1.0"}],
+        },
         proposed_cash_flows=[ProposedCashFlow(currency="USD", amount=Decimal("100"))],
         proposed_trades=[ProposedTrade(side="BUY", instrument_id="EQ_1", quantity=Decimal("1"))],
     )
     assert request.proposed_cash_flows[0].intent_type == "CASH_FLOW"
     assert request.proposed_trades[0].intent_type == "SECURITY_TRADE"
+    assert request.reference_model.model_id == "mdl_1"
 
 
 def test_advisory_proposal_result_accepts_fx_spot_intents():

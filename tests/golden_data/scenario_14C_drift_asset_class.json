@@ -1,0 +1,122 @@
+{
+  "scenario_name": "14C_drift_asset_class",
+  "description": "Advisory proposal returns asset-class drift analytics against a reference model.",
+  "proposal_inputs": {
+    "portfolio_snapshot": {
+      "portfolio_id": "pf_14c_1",
+      "base_currency": "USD",
+      "positions": [
+        {
+          "instrument_id": "EQ_OLD",
+          "quantity": "7"
+        },
+        {
+          "instrument_id": "BD_OLD",
+          "quantity": "2"
+        }
+      ],
+      "cash_balances": [
+        {
+          "currency": "USD",
+          "amount": "100"
+        }
+      ]
+    },
+    "market_data_snapshot": {
+      "prices": [
+        {
+          "instrument_id": "EQ_OLD",
+          "price": "100",
+          "currency": "USD"
+        },
+        {
+          "instrument_id": "BD_OLD",
+          "price": "100",
+          "currency": "USD"
+        },
+        {
+          "instrument_id": "EQ_NEW",
+          "price": "100",
+          "currency": "USD"
+        }
+      ],
+      "fx_rates": []
+    },
+    "shelf_entries": [
+      {
+        "instrument_id": "EQ_OLD",
+        "status": "APPROVED",
+        "asset_class": "EQUITY"
+      },
+      {
+        "instrument_id": "BD_OLD",
+        "status": "APPROVED",
+        "asset_class": "FIXED_INCOME"
+      },
+      {
+        "instrument_id": "EQ_NEW",
+        "status": "APPROVED",
+        "asset_class": "EQUITY"
+      }
+    ],
+    "options": {
+      "enable_proposal_simulation": true
+    },
+    "proposed_cash_flows": [],
+    "proposed_trades": [
+      {
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
+        "instrument_id": "EQ_NEW",
+        "quantity": "1"
+      }
+    ],
+    "reference_model": {
+      "model_id": "mdl_14c_asset",
+      "as_of": "2026-02-18",
+      "base_currency": "USD",
+      "asset_class_targets": [
+        {
+          "asset_class": "EQUITY",
+          "weight": "0.60"
+        },
+        {
+          "asset_class": "FIXED_INCOME",
+          "weight": "0.35"
+        },
+        {
+          "asset_class": "CASH",
+          "weight": "0.05"
+        }
+      ]
+    }
+  },
+  "expected_proposal_output": {
+    "status": "READY",
+    "intents": [
+      {
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
+        "instrument_id": "EQ_NEW"
+      }
+    ],
+    "drift_analysis": {
+      "asset_class": {
+        "drift_total_before": "0.15",
+        "drift_total_after": "0.20",
+        "drift_total_delta": "0.05",
+        "top_contributors_before": [
+          {
+            "bucket": "FIXED_INCOME"
+          },
+          {
+            "bucket": "EQUITY"
+          },
+          {
+            "bucket": "CASH"
+          }
+        ]
+      }
+    }
+  }
+}

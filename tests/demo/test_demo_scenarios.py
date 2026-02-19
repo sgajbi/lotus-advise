@@ -86,6 +86,8 @@ def test_demo_batch_scenario_execution():
         ("11_advisory_auto_funding_single_ccy.json", "READY"),
         ("12_advisory_partial_funding.json", "READY"),
         ("13_advisory_missing_fx_blocked.json", "BLOCKED"),
+        ("14_advisory_drift_asset_class.json", "READY"),
+        ("15_advisory_drift_instrument.json", "READY"),
     ],
 )
 def test_demo_advisory_scenarios_via_api(filename, expected_status):
@@ -114,3 +116,5 @@ def test_demo_advisory_scenarios_via_api(filename, expected_status):
             "SECURITY_TRADE",
         ]
         assert body["intents"][1]["dependencies"] == [body["intents"][0]["intent_id"]]
+    if filename in {"14_advisory_drift_asset_class.json", "15_advisory_drift_instrument.json"}:
+        assert "drift_analysis" in body

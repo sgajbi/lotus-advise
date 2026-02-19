@@ -638,3 +638,136 @@ def test_proposal_simulation_forces_pending_status_when_rule_derivation_returns_
         )
 
     assert result.status == "PENDING_REVIEW"
+
+
+def test_proposal_simulation_adds_drift_analysis_with_reference_model():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_14c_a",
+        base_currency="USD",
+        positions=[position("EQ_OLD", "7"), position("BD_OLD", "2")],
+        cash_balances=[cash("USD", "100")],
+    )
+    market_data = market_data_snapshot(
+        prices=[
+            price("EQ_OLD", "100", "USD"),
+            price("BD_OLD", "100", "USD"),
+            price("EQ_NEW", "100", "USD"),
+        ],
+        fx_rates=[],
+    )
+    shelf = [
+        shelf_entry("EQ_OLD", status="APPROVED", asset_class="EQUITY"),
+        shelf_entry("BD_OLD", status="APPROVED", asset_class="FIXED_INCOME"),
+        shelf_entry("EQ_NEW", status="APPROVED", asset_class="EQUITY"),
+    ]
+    options = EngineOptions(enable_proposal_simulation=True)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "1"}],
+        reference_model={
+            "model_id": "mdl_14c_1",
+            "as_of": "2026-02-18",
+            "base_currency": "USD",
+            "asset_class_targets": [
+                {"asset_class": "EQUITY", "weight": "0.60"},
+                {"asset_class": "FIXED_INCOME", "weight": "0.35"},
+                {"asset_class": "CASH", "weight": "0.05"},
+            ],
+        },
+        request_hash="proposal_hash_14c_asset",
+    )
+
+    assert result.status == "READY"
+    assert result.drift_analysis is not None
+    assert result.drift_analysis.reference_model.model_id == "mdl_14c_1"
+    assert result.drift_analysis.asset_class.drift_total_before == Decimal("0.15")
+    assert result.drift_analysis.asset_class.drift_total_after == Decimal("0.20")
+    assert result.drift_analysis.instrument is None
+
+
+def test_proposal_simulation_adds_instrument_drift_when_targets_present():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_14c_b",
+        base_currency="USD",
+        positions=[position("EQ_A", "7"), position("EQ_B", "2")],
+        cash_balances=[cash("USD", "100")],
+    )
+    market_data = market_data_snapshot(
+        prices=[
+            price("EQ_A", "100", "USD"),
+            price("EQ_B", "100", "USD"),
+            price("EQ_C", "100", "USD"),
+        ],
+        fx_rates=[],
+    )
+    shelf = [
+        shelf_entry("EQ_A", status="APPROVED", asset_class="EQUITY"),
+        shelf_entry("EQ_B", status="APPROVED", asset_class="EQUITY"),
+        shelf_entry("EQ_C", status="APPROVED", asset_class="EQUITY"),
+    ]
+    options = EngineOptions(enable_proposal_simulation=True, enable_instrument_drift=True)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[{"side": "BUY", "instrument_id": "EQ_C", "quantity": "1"}],
+        reference_model={
+            "model_id": "mdl_14c_2",
+            "as_of": "2026-02-18",
+            "base_currency": "USD",
+            "asset_class_targets": [
+                {"asset_class": "EQUITY", "weight": "0.95"},
+                {"asset_class": "CASH", "weight": "0.05"},
+            ],
+            "instrument_targets": [
+                {"instrument_id": "EQ_A", "weight": "0.40"},
+                {"instrument_id": "EQ_B", "weight": "0.60"},
+            ],
+        },
+        request_hash="proposal_hash_14c_instrument",
+    )
+
+    assert result.status == "READY"
+    assert result.drift_analysis is not None
+    assert result.drift_analysis.instrument is not None
+    assert any(
+        highlight.bucket == "EQ_C"
+        for highlight in result.drift_analysis.highlights.unmodeled_exposures
+    )
+
+
+def test_proposal_simulation_skips_drift_analysis_on_reference_model_currency_mismatch():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_14c_c",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    options = EngineOptions(enable_proposal_simulation=True)
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data_snapshot(prices=[], fx_rates=[]),
+        shelf=[],
+        options=options,
+        proposed_cash_flows=[],
+        proposed_trades=[],
+        reference_model={
+            "model_id": "mdl_14c_3",
+            "as_of": "2026-02-18",
+            "base_currency": "SGD",
+            "asset_class_targets": [{"asset_class": "CASH", "weight": "1.0"}],
+        },
+        request_hash="proposal_hash_14c_currency_mismatch",
+    )
+
+    assert result.drift_analysis is None
+    assert "REFERENCE_MODEL_BASE_CURRENCY_MISMATCH" in result.diagnostics.warnings

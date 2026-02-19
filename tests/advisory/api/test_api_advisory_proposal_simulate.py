@@ -140,3 +140,41 @@ def test_advisory_proposal_simulate_unhandled_error_returns_problem_details(monk
     assert body["title"] == "Internal Server Error"
     assert body["status"] == 500
     assert body["instance"] == "/rebalance/proposals/simulate"
+
+
+def test_advisory_proposal_simulate_returns_drift_analysis_when_reference_model_provided(client):
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_prop_api_14c",
+            "base_currency": "USD",
+            "positions": [{"instrument_id": "EQ_1", "quantity": "10"}],
+            "cash_balances": [{"currency": "USD", "amount": "0"}],
+        },
+        "market_data_snapshot": {
+            "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+            "fx_rates": [],
+        },
+        "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED", "asset_class": "EQUITY"}],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+        "reference_model": {
+            "model_id": "mdl_api_14c",
+            "as_of": "2026-02-18",
+            "base_currency": "USD",
+            "asset_class_targets": [
+                {"asset_class": "EQUITY", "weight": "0.9"},
+                {"asset_class": "CASH", "weight": "0.1"},
+            ],
+        },
+    }
+
+    response = client.post(
+        "/rebalance/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-14c"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["drift_analysis"]["reference_model"]["model_id"] == "mdl_api_14c"

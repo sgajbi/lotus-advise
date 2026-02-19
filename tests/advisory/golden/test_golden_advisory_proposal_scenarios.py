@@ -20,6 +20,8 @@ def _load_golden(path):
         "scenario_14B_auto_funding_single_ccy.json",
         "scenario_14B_partial_funding.json",
         "scenario_14B_missing_fx_blocked.json",
+        "scenario_14C_drift_asset_class.json",
+        "scenario_14C_drift_instrument.json",
     ],
 )
 def test_golden_advisory_proposal_scenarios(filename):
@@ -36,6 +38,7 @@ def test_golden_advisory_proposal_scenarios(filename):
         options=EngineOptions(**inputs["options"]),
         proposed_cash_flows=inputs["proposed_cash_flows"],
         proposed_trades=inputs["proposed_trades"],
+        reference_model=inputs.get("reference_model"),
         request_hash="golden_proposal_test",
     )
 
@@ -63,3 +66,35 @@ def test_golden_advisory_proposal_scenarios(filename):
 
     if "insufficient_cash" in expected:
         assert len(result.diagnostics.insufficient_cash) == len(expected["insufficient_cash"])
+
+    expected_drift = expected.get("drift_analysis")
+    if expected_drift is not None:
+        assert result.drift_analysis is not None
+        assert result.drift_analysis.asset_class.drift_total_before == Decimal(
+            expected_drift["asset_class"]["drift_total_before"]
+        )
+        assert result.drift_analysis.asset_class.drift_total_after == Decimal(
+            expected_drift["asset_class"]["drift_total_after"]
+        )
+        assert result.drift_analysis.asset_class.drift_total_delta == Decimal(
+            expected_drift["asset_class"]["drift_total_delta"]
+        )
+        assert [
+            item.bucket for item in result.drift_analysis.asset_class.top_contributors_before
+        ] == [item["bucket"] for item in expected_drift["asset_class"]["top_contributors_before"]]
+        if "instrument" in expected_drift:
+            assert result.drift_analysis.instrument is not None
+            assert result.drift_analysis.instrument.drift_total_before == Decimal(
+                expected_drift["instrument"]["drift_total_before"]
+            )
+            assert result.drift_analysis.instrument.drift_total_after == Decimal(
+                expected_drift["instrument"]["drift_total_after"]
+            )
+            assert result.drift_analysis.instrument.drift_total_delta == Decimal(
+                expected_drift["instrument"]["drift_total_delta"]
+            )
+            assert [
+                item.bucket for item in result.drift_analysis.instrument.top_contributors_before
+            ] == [
+                item["bucket"] for item in expected_drift["instrument"]["top_contributors_before"]
+            ]
