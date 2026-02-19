@@ -1,0 +1,108 @@
+{
+  "scenario_name": "14A_advisory_manual_trade_cashflow",
+  "description": "Advisory proposal simulation with cash deposit then manual buy.",
+  "proposal_inputs": {
+    "portfolio_snapshot": {
+      "portfolio_id": "pf_14a",
+      "base_currency": "SGD",
+      "positions": [
+        {
+          "instrument_id": "SG_BOND_ETF",
+          "quantity": "100"
+        }
+      ],
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "5000"
+        }
+      ]
+    },
+    "market_data_snapshot": {
+      "prices": [
+        {
+          "instrument_id": "SG_BOND_ETF",
+          "price": "100",
+          "currency": "SGD"
+        },
+        {
+          "instrument_id": "US_EQ_ETF",
+          "price": "150",
+          "currency": "SGD"
+        }
+      ],
+      "fx_rates": []
+    },
+    "shelf_entries": [
+      {
+        "instrument_id": "SG_BOND_ETF",
+        "status": "APPROVED",
+        "asset_class": "BOND"
+      },
+      {
+        "instrument_id": "US_EQ_ETF",
+        "status": "APPROVED",
+        "asset_class": "EQUITY"
+      }
+    ],
+    "options": {
+      "enable_proposal_simulation": true,
+      "block_on_missing_prices": true,
+      "block_on_missing_fx": true
+    },
+    "proposed_cash_flows": [
+      {
+        "intent_type": "CASH_FLOW",
+        "currency": "SGD",
+        "amount": "10000",
+        "description": "Client top-up"
+      }
+    ],
+    "proposed_trades": [
+      {
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
+        "instrument_id": "US_EQ_ETF",
+        "quantity": "10"
+      }
+    ]
+  },
+  "expected_proposal_output": {
+    "status": "READY",
+    "intents": [
+      {
+        "intent_type": "CASH_FLOW",
+        "currency": "SGD",
+        "amount": "10000"
+      },
+      {
+        "intent_type": "SECURITY_TRADE",
+        "side": "BUY",
+        "instrument_id": "US_EQ_ETF",
+        "quantity": "10",
+        "notional": {
+          "amount": "1500",
+          "currency": "SGD"
+        }
+      }
+    ],
+    "after_simulated": {
+      "cash_balances": [
+        {
+          "currency": "SGD",
+          "amount": "13500"
+        }
+      ],
+      "positions": [
+        {
+          "instrument_id": "SG_BOND_ETF",
+          "quantity": "100"
+        },
+        {
+          "instrument_id": "US_EQ_ETF",
+          "quantity": "10"
+        }
+      ]
+    }
+  }
+}

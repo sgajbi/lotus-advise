@@ -33,6 +33,8 @@ SCENARIOS = sorted(os.path.basename(p) for p in glob.glob(os.path.join(GOLDEN_DI
 @pytest.mark.parametrize("filename", SCENARIOS)
 def test_golden_scenario(filename):
     data = load_golden_file(filename)
+    if "inputs" not in data:
+        pytest.skip("Scenario file is not a rebalance golden fixture.")
     inputs = data["inputs"]
     expected = data.get("expected_output") or data.get("expected_outputs")
     assert expected is not None, f"Missing expected output block in {filename}"
