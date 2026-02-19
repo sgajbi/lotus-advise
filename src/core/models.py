@@ -784,6 +784,10 @@ class ProposedTrade(BaseModel):
     def validate_quantity_or_notional(self):
         if self.quantity is None and self.notional is None:
             raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: quantity or notional is required")
+        if self.quantity is not None and self.notional is not None:
+            raise ValueError(
+                "PROPOSAL_INVALID_TRADE_INPUT: provide either quantity or notional, not both"
+            )
         if self.notional is not None and self.notional.amount <= Decimal("0"):
             raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: notional.amount must be greater than 0")
         return self

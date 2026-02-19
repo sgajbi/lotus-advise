@@ -26,6 +26,16 @@ def test_advisory_proposed_trade_requires_quantity_or_notional():
         ProposedTrade(side="BUY", instrument_id="EQ_1")
 
 
+def test_advisory_proposed_trade_rejects_quantity_and_notional_together():
+    with pytest.raises(ValidationError):
+        ProposedTrade(
+            side="BUY",
+            instrument_id="EQ_1",
+            quantity=Decimal("1"),
+            notional={"amount": "100", "currency": "USD"},
+        )
+
+
 def test_advisory_proposed_trade_rejects_float_quantity():
     with pytest.raises(ValidationError):
         ProposedTrade(side="BUY", instrument_id="EQ_1", quantity=1.25)
