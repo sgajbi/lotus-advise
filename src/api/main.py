@@ -158,8 +158,47 @@ PROPOSAL_READY_EXAMPLE = {
     "value": {
         "status": "READY",
         "proposal_run_id": "pr_demo1234",
-        "intents": [],
+        "correlation_id": "corr_demo1234",
+        "intents": [
+            {"intent_type": "CASH_FLOW", "currency": "USD", "amount": "2000.00"},
+            {
+                "intent_type": "SECURITY_TRADE",
+                "side": "BUY",
+                "instrument_id": "EQ_GROWTH",
+                "quantity": "40",
+            },
+        ],
+        "diagnostics": {"warnings": [], "data_quality": {"price_missing": [], "fx_missing": []}},
     },
+}
+
+PROPOSAL_PENDING_EXAMPLE = {
+    "summary": "Proposal simulation pending review",
+    "value": {
+        "status": "PENDING_REVIEW",
+        "proposal_run_id": "pr_demo5678",
+        "correlation_id": "corr_demo5678",
+        "diagnostics": {"warnings": [], "data_quality": {"price_missing": [], "fx_missing": []}},
+        "rule_results": [{"rule_id": "CASH_BAND", "severity": "SOFT", "status": "FAIL"}],
+    },
+}
+
+PROPOSAL_BLOCKED_EXAMPLE = {
+    "summary": "Proposal simulation blocked",
+    "value": {
+        "status": "BLOCKED",
+        "proposal_run_id": "pr_demo9999",
+        "correlation_id": "corr_demo9999",
+        "diagnostics": {
+            "warnings": ["PROPOSAL_WITHDRAWAL_NEGATIVE_CASH"],
+            "data_quality": {"price_missing": [], "fx_missing": []},
+        },
+    },
+}
+
+PROPOSAL_409_EXAMPLE = {
+    "summary": "Idempotency hash conflict",
+    "value": {"detail": "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"},
 }
 
 
@@ -361,22 +400,54 @@ async def analyze_scenarios(
     status_code=status.HTTP_200_OK,
     summary="Simulate an Advisory Proposal",
     description=(
-        "Simulates advisor-entered manual trades and cash flows without target generation.\n\n"
+        "Runs deterministic advisory proposal simulation from advisor-entered cash flows "
+        "and manual security trades.\n\n"
+        "Processing order:\n"
+        "1) Cash flows (if `proposal_apply_cash_flows_first=true`)\n"
+        "2) Manual security sells (instrument ascending)\n"
+        "3) Manual security buys (instrument ascending)\n\n"
+        "Required header: `Idempotency-Key`.\n"
+        "Optional header: `X-Correlation-Id` (auto-generated when omitted).\n\n"
         "Requires `options.enable_proposal_simulation=true`."
     ),
     responses={
         200: {
             "description": "Proposal simulation completed with domain status in payload.",
-            "content": {"application/json": {"examples": {"ready": PROPOSAL_READY_EXAMPLE}}},
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "ready": PROPOSAL_READY_EXAMPLE,
+                        "pending_review": PROPOSAL_PENDING_EXAMPLE,
+                        "blocked": PROPOSAL_BLOCKED_EXAMPLE,
+                    }
+                }
+            },
         },
-        409: {"description": "Idempotency key reused with different request payload."},
+        409: {
+            "description": "Idempotency key reused with different canonical request hash.",
+            "content": {"application/json": {"examples": {"conflict": PROPOSAL_409_EXAMPLE}}},
+        },
         422: {"description": "Validation error (invalid payload or missing required headers)."},
     },
 )
 async def simulate_proposal(
     request: ProposalSimulateRequest,
-    idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
-    correlation_id: Annotated[Optional[str], Header(alias="X-Correlation-Id")] = None,
+    idempotency_key: Annotated[
+        str,
+        Header(
+            alias="Idempotency-Key",
+            description="Required idempotency key used for dedupe and hash conflict detection.",
+            examples=["proposal-idem-001"],
+        ),
+    ],
+    correlation_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Correlation-Id",
+            description="Optional trace/correlation identifier propagated to logs and response.",
+            examples=["corr-proposal-1234"],
+        ),
+    ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> ProposalResult:
     if not request.options.enable_proposal_simulation:

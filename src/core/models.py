@@ -530,11 +530,16 @@ class CashFlowIntent(BaseModel):
     intent_type: Literal["CASH_FLOW"] = Field(
         default="CASH_FLOW",
         description="Intent discriminator.",
+        examples=["CASH_FLOW"],
     )
-    intent_id: str = Field(description="Intent identifier unique within run.")
-    currency: str = Field(description="Cash-flow currency code.")
-    amount: Decimal = Field(description="Signed cash-flow amount.")
-    description: Optional[str] = Field(default=None, description="Optional advisor-entered note.")
+    intent_id: str = Field(description="Intent identifier unique within run.", examples=["oi_cf_1"])
+    currency: str = Field(description="Cash-flow currency code.", examples=["USD"])
+    amount: Decimal = Field(description="Signed cash-flow amount.", examples=["2000.00"])
+    description: Optional[str] = Field(
+        default=None,
+        description="Optional advisor-entered note.",
+        examples=["Client top-up"],
+    )
 
 
 OrderIntent = Union[SecurityTradeIntent, FxSpotIntent]
@@ -635,8 +640,16 @@ class LineageData(BaseModel):
     portfolio_snapshot_id: str = Field(description="Portfolio snapshot id used by run.")
     market_data_snapshot_id: str = Field(description="Market-data snapshot id used by run.")
     request_hash: str = Field(description="Request hash/idempotency marker used in lineage.")
-    idempotency_key: Optional[str] = Field(default=None, description="Request idempotency key.")
-    engine_version: Optional[str] = Field(default=None, description="Engine version identifier.")
+    idempotency_key: Optional[str] = Field(
+        default=None,
+        description="Request idempotency key.",
+        examples=["proposal-idem-001"],
+    )
+    engine_version: Optional[str] = Field(
+        default=None,
+        description="Engine version identifier.",
+        examples=["0.1.0"],
+    )
 
 
 class Reconciliation(BaseModel):
@@ -702,10 +715,21 @@ class RebalanceResult(BaseModel):
 
 
 class ProposedCashFlow(BaseModel):
-    intent_type: Literal["CASH_FLOW"] = Field(default="CASH_FLOW")
-    currency: str = Field(description="Cash-flow currency code.")
-    amount: Decimal = Field(description="Signed cash-flow amount as decimal string.")
-    description: Optional[str] = Field(default=None)
+    intent_type: Literal["CASH_FLOW"] = Field(
+        default="CASH_FLOW",
+        description="Intent discriminator for advisory cash-flow proposals.",
+        examples=["CASH_FLOW"],
+    )
+    currency: str = Field(description="Cash-flow currency code.", examples=["USD"])
+    amount: Decimal = Field(
+        description="Signed cash-flow amount as decimal string.",
+        examples=["2000.00", "-500.00"],
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="Optional advisor-entered narrative for this cash flow.",
+        examples=["Client deposit before switch"],
+    )
 
     @field_validator("amount", mode="before")
     @classmethod
@@ -716,12 +740,28 @@ class ProposedCashFlow(BaseModel):
 
 
 class ProposedTrade(BaseModel):
-    intent_type: Literal["SECURITY_TRADE"] = Field(default="SECURITY_TRADE")
-    side: Literal["BUY", "SELL"] = Field(description="Manual trade side.")
-    instrument_id: str = Field(description="Instrument identifier for manual trade.")
-    quantity: Optional[Decimal] = Field(default=None, gt=0, description="Trade quantity.")
+    intent_type: Literal["SECURITY_TRADE"] = Field(
+        default="SECURITY_TRADE",
+        description="Intent discriminator for advisory security trades.",
+        examples=["SECURITY_TRADE"],
+    )
+    side: Literal["BUY", "SELL"] = Field(description="Manual trade side.", examples=["BUY"])
+    instrument_id: str = Field(
+        description="Instrument identifier for manual trade.",
+        examples=["EQ_GROWTH"],
+    )
+    quantity: Optional[Decimal] = Field(
+        default=None,
+        gt=0,
+        description="Trade quantity. Required when `notional` is not provided.",
+        examples=["40"],
+    )
     notional: Optional[Money] = Field(
-        default=None, description="Trade notional in instrument currency."
+        default=None,
+        description=(
+            "Trade notional in instrument currency. Required when `quantity` is not provided."
+        ),
+        examples=[{"amount": "2000.00", "currency": "USD"}],
     )
 
     @field_validator("quantity", mode="before")
@@ -750,31 +790,164 @@ class ProposedTrade(BaseModel):
 
 
 class ProposalSimulateRequest(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [{"instrument_id": "EQ_LEGACY", "quantity": "100"}],
+                    "cash_balances": [{"currency": "USD", "amount": "5000.00"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [
+                        {"instrument_id": "EQ_LEGACY", "price": "100.00", "currency": "USD"},
+                        {"instrument_id": "EQ_GROWTH", "price": "50.00", "currency": "USD"},
+                    ],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [
+                    {"instrument_id": "EQ_LEGACY", "status": "APPROVED"},
+                    {"instrument_id": "EQ_GROWTH", "status": "APPROVED"},
+                ],
+                "options": {
+                    "enable_proposal_simulation": True,
+                    "proposal_apply_cash_flows_first": True,
+                    "proposal_block_negative_cash": True,
+                    "block_on_missing_prices": True,
+                    "block_on_missing_fx": True,
+                },
+                "proposed_cash_flows": [
+                    {
+                        "intent_type": "CASH_FLOW",
+                        "currency": "USD",
+                        "amount": "2000.00",
+                        "description": "Client top-up",
+                    }
+                ],
+                "proposed_trades": [
+                    {
+                        "intent_type": "SECURITY_TRADE",
+                        "side": "BUY",
+                        "instrument_id": "EQ_GROWTH",
+                        "quantity": "40",
+                    }
+                ],
+            }
+        }
+    }
+
     portfolio_snapshot: PortfolioSnapshot = Field(
-        description="Current portfolio holdings and cash balances."
+        description="Current portfolio holdings and cash balances.",
+        examples=[
+            {
+                "portfolio_id": "pf_advisory_01",
+                "base_currency": "USD",
+                "positions": [{"instrument_id": "EQ_LEGACY", "quantity": "100"}],
+                "cash_balances": [{"currency": "USD", "amount": "5000.00"}],
+            }
+        ],
     )
     market_data_snapshot: MarketDataSnapshot = Field(
-        description="Price and FX snapshot used for proposal simulation."
+        description="Price and FX snapshot used for proposal simulation.",
+        examples=[
+            {
+                "prices": [
+                    {"instrument_id": "EQ_LEGACY", "price": "100.00", "currency": "USD"},
+                    {"instrument_id": "EQ_GROWTH", "price": "50.00", "currency": "USD"},
+                ],
+                "fx_rates": [],
+            }
+        ],
     )
     shelf_entries: List[ShelfEntry] = Field(
-        description="Instrument eligibility and policy metadata."
+        description="Instrument eligibility and policy metadata.",
+        examples=[
+            [
+                {"instrument_id": "EQ_LEGACY", "status": "APPROVED"},
+                {"instrument_id": "EQ_GROWTH", "status": "APPROVED"},
+            ]
+        ],
     )
     options: EngineOptions = Field(
         default_factory=EngineOptions,
         description="Request-level engine behavior and feature toggles.",
+        examples=[
+            {
+                "enable_proposal_simulation": True,
+                "proposal_apply_cash_flows_first": True,
+                "proposal_block_negative_cash": True,
+            }
+        ],
     )
-    proposed_cash_flows: List[ProposedCashFlow] = Field(default_factory=list)
-    proposed_trades: List[ProposedTrade] = Field(default_factory=list)
+    proposed_cash_flows: List[ProposedCashFlow] = Field(
+        default_factory=list,
+        description="Advisor-entered cash flow instructions.",
+        examples=[[{"intent_type": "CASH_FLOW", "currency": "USD", "amount": "2000.00"}]],
+    )
+    proposed_trades: List[ProposedTrade] = Field(
+        default_factory=list,
+        description="Advisor-entered manual security trade instructions.",
+        examples=[
+            [
+                {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_GROWTH",
+                    "quantity": "40",
+                }
+            ]
+        ],
+    )
 
 
 class ProposalResult(BaseModel):
-    proposal_run_id: str = Field(description="Proposal run identifier.")
-    correlation_id: str = Field(description="Correlation id used by request logging context.")
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "proposal_run_id": "pr_abc12345",
+                "correlation_id": "corr_123abc",
+                "status": "READY",
+                "intents": [],
+                "diagnostics": {
+                    "warnings": [],
+                    "data_quality": {"price_missing": [], "fx_missing": []},
+                },
+                "lineage": {"request_hash": "sha256:...", "idempotency_key": "idem-1"},
+            }
+        }
+    }
+
+    proposal_run_id: str = Field(description="Proposal run identifier.", examples=["pr_abc12345"])
+    correlation_id: str = Field(
+        description="Correlation id used by request logging context.",
+        examples=["corr_123abc"],
+    )
     status: Literal["READY", "BLOCKED", "PENDING_REVIEW"] = Field(
-        description="Top-level domain outcome."
+        description="Top-level domain outcome.",
+        examples=["READY"],
     )
     before: SimulatedState = Field(description="Before-state valuation snapshot.")
-    intents: List[Annotated[ProposalOrderIntent, Field(discriminator="intent_type")]]
+    intents: List[Annotated[ProposalOrderIntent, Field(discriminator="intent_type")]] = Field(
+        description="Deterministically ordered proposal intents applied during simulation.",
+        examples=[
+            [
+                {
+                    "intent_type": "CASH_FLOW",
+                    "intent_id": "oi_cf_1",
+                    "currency": "USD",
+                    "amount": "2000.00",
+                },
+                {
+                    "intent_type": "SECURITY_TRADE",
+                    "intent_id": "oi_1",
+                    "side": "BUY",
+                    "instrument_id": "EQ_GROWTH",
+                    "quantity": "40",
+                },
+            ]
+        ],
+    )
     after_simulated: SimulatedState = Field(description="After-state simulation snapshot.")
     reconciliation: Optional[Reconciliation] = Field(
         default=None, description="Reconciliation output."
