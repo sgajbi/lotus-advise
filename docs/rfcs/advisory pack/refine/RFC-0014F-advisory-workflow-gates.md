@@ -2,13 +2,14 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14F |
 | **Depends On** | RFC-0014A (Proposal Simulation) |
 | **Strongly Recommended** | RFC-0014D (Suitability Scanner), RFC-0014E (Proposal Artifact) |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014F-advisory-workflow-gates.md` |
 | **Backward Compatibility** | Not required |
+| **Implemented In** | 2026-02-19 |
 
 ---
 
@@ -29,6 +30,7 @@ This is a stateless “workflow brain” that interprets:
 and returns a consistent **GateDecision** block in both:
 - `/rebalance/proposals/simulate` response
 - `/rebalance/proposals/artifact` (if implemented)
+ - `/rebalance/simulate` response (shared DPM vocabulary)
 
 ---
 
@@ -50,6 +52,7 @@ Without explicit gates, UIs and downstream systems must infer workflow from raw 
 ### 2.1 In Scope
 - Define `GateDecision` schema and deterministic evaluation logic.
 - Add `gate_decision` to proposal simulation result and proposal artifact.
+- Add `gate_decision` to DPM rebalance simulation result for shared workflow semantics.
 - Define mapping rules from:
   - rule_results (HARD/FAIL, SOFT/FAIL)
   - suitability summary (new issues and severities)
@@ -240,20 +243,27 @@ If RFC-0014E implemented:
 * include the same `gate_decision` in `summary.recommended_next_step`
 * include full block in artifact top-level to support workflow routing
 
+### 7.3 DPM simulate response
+
+Add `gate_decision` to DPM `/rebalance/simulate` response with shared semantics:
+- clean discretionary runs default to `EXECUTION_READY` unless consent policy is enabled
+- blocked and pending-review flows map to deterministic workflow gates
+
 ---
 
 ## 8. Implementation Plan
 
-1. Create `GateDecisionEngine` under `src/core/workflow/`
-2. Implement:
-
-   * `evaluate(status, rule_results, suitability, diagnostics, options) -> GateDecision`
-3. Add deterministic sorting of reasons.
-4. Wire it into:
-
-   * proposal simulate response builder
-   * proposal artifact builder (if present)
-5. Add unit tests and goldens.
+1. Implement shared gate evaluator in `src/core/common/workflow_gates.py`.
+2. Add `GateDecision` contracts in `src/core/models.py`.
+3. Add engine options:
+   * `enable_workflow_gates`
+   * `workflow_requires_client_consent`
+   * `client_consent_already_obtained`
+4. Wire into:
+   * advisory simulate (`ProposalResult.gate_decision`)
+   * advisory artifact (`ProposalArtifact.gate_decision`)
+   * DPM simulate (`RebalanceResult.gate_decision`)
+5. Add unit/API/contract coverage.
 
 ---
 
@@ -286,10 +296,10 @@ Each asserts:
 
 ## 10. Acceptance Criteria (DoD)
 
-* Responses include `gate_decision` with stable schema.
-* Gate policy is deterministic and test-covered.
-* Gate reasons are standardized and sorted deterministically.
-* Goldens cover all primary gate paths.
+* Implemented: responses include `gate_decision` with stable schema.
+* Implemented: deterministic gate policy with test coverage.
+* Implemented: standardized reason codes and deterministic sorting.
+* Implemented: advisory artifact and simulate include gate decision; DPM simulate includes shared gate decision.
 
 ---
 

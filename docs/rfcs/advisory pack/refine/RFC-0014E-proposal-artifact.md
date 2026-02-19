@@ -110,6 +110,7 @@ This is acceptable, but tends to bloat the simulate response. Prefer Option A.
   "correlation_id": "corr_...",
   "created_at": "2026-02-18T09:12:00Z",
   "status": "READY|PENDING_REVIEW|BLOCKED",
+  "gate_decision": { ... },
 
   "summary": { ... },
   "portfolio_impact": { ... },
@@ -230,6 +231,14 @@ Rules:
 If scanner not present:
 
 * omit this section or set `{ "status": "NOT_AVAILABLE" }`.
+
+### 5.5B `gate_decision` (if RFC-0014F present)
+
+When workflow gates are enabled, include deterministic workflow routing payload:
+- `gate`
+- `recommended_next_step`
+- `reasons[]`
+- `summary`
 
 ### 5.6 `assumptions_and_limits`
 

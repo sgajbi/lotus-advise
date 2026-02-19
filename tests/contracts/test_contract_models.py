@@ -136,6 +136,9 @@ def test_target_method_comparison_options_defaults():
     options = EngineOptions()
     assert options.compare_target_methods is False
     assert options.compare_target_methods_tolerance == Decimal("0.0001")
+    assert options.enable_workflow_gates is True
+    assert options.workflow_requires_client_consent is False
+    assert options.client_consent_already_obtained is False
 
 
 def test_max_turnover_pct_validation_bounds():

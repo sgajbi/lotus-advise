@@ -26,6 +26,9 @@ from src.core.models import (
 def test_advisory_engine_options_defaults():
     options = EngineOptions()
     assert options.enable_proposal_simulation is False
+    assert options.enable_workflow_gates is True
+    assert options.workflow_requires_client_consent is False
+    assert options.client_consent_already_obtained is False
     assert options.proposal_apply_cash_flows_first is True
     assert options.proposal_block_negative_cash is True
     assert options.enable_drift_analytics is True

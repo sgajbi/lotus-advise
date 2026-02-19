@@ -49,6 +49,14 @@ def test_simulate_endpoint_success(client):
     assert "after_simulated" in data
     assert "rule_results" in data
     assert "diagnostics" in data
+    assert data["gate_decision"]["gate"] in {
+        "BLOCKED",
+        "RISK_REVIEW_REQUIRED",
+        "COMPLIANCE_REVIEW_REQUIRED",
+        "CLIENT_CONSENT_REQUIRED",
+        "EXECUTION_READY",
+        "NONE",
+    }
 
 
 def test_simulate_missing_idempotency_key_422(client):

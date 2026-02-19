@@ -11,6 +11,7 @@ Implementation scope:
   - `src/core/dpm/turnover.py` (turnover ranking and budget enforcement)
   - `src/core/dpm/execution.py` (FX generation, settlement ladder, simulation execution)
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
+- Shared workflow gate evaluator: `src/core/common/workflow_gates.py`
 - Valuation: `src/core/valuation.py`
 - Rules: `src/core/compliance.py`
 - Target generation: `src/core/target_generation.py`
@@ -21,7 +22,7 @@ Implementation scope:
 - Purpose: deterministic rebalance simulation.
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id`
-- Output: `RebalanceResult` with status `READY | PENDING_REVIEW | BLOCKED`
+- Output: `RebalanceResult` with status `READY | PENDING_REVIEW | BLOCKED` and `gate_decision`
 
 ### `POST /rebalance/analyze`
 - Purpose: multi-scenario what-if analysis using shared snapshots.
@@ -69,6 +70,9 @@ Implementation scope:
 - `settlement_horizon_days`
 - `fx_settlement_days`
 - `max_overdraft_by_ccy`
+- `enable_workflow_gates`
+- `workflow_requires_client_consent`
+- `client_consent_already_obtained`
 - plus shared controls (`valuation_mode`, cash bands, dust/min-notional, data quality blocking)
 
 ## Tests That Lock DPM Behavior

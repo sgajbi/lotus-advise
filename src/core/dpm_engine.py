@@ -7,6 +7,7 @@ from copy import deepcopy
 from decimal import Decimal
 
 from src.core.common.diagnostics import make_diagnostics_data
+from src.core.common.workflow_gates import evaluate_gate_decision
 from src.core.compliance import RuleEngine
 from src.core.dpm.execution import (
     build_settlement_ladder as build_settlement_ladder_impl,
@@ -80,6 +81,17 @@ def _make_blocked_result(
     request_hash,
 ):
     """Create a consistent blocked response payload."""
+    rule_results = RuleEngine.evaluate(before, options, diagnostics)
+    gate_decision = None
+    if options.enable_workflow_gates:
+        gate_decision = evaluate_gate_decision(
+            status="BLOCKED",
+            rule_results=rule_results,
+            suitability=None,
+            diagnostics=diagnostics,
+            options=options,
+            default_requires_client_consent=False,
+        )
     return RebalanceResult(
         rebalance_run_id=run_id,
         correlation_id="c_none",
@@ -95,8 +107,9 @@ def _make_blocked_result(
         target=TargetData(target_id=f"t_{run_id}", strategy={}, targets=trace),
         intents=[],
         after_simulated=before,
-        rule_results=RuleEngine.evaluate(before, options, diagnostics),
+        rule_results=rule_results,
         diagnostics=diagnostics,
+        gate_decision=gate_decision,
         explanation={"summary": "Blocked"},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,
@@ -311,6 +324,16 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
 
     if s3_stat == "PENDING_REVIEW" and f_stat == "READY":
         f_stat = "PENDING_REVIEW"
+    gate_decision = None
+    if options.enable_workflow_gates:
+        gate_decision = evaluate_gate_decision(
+            status=f_stat,
+            rule_results=rules,
+            suitability=None,
+            diagnostics=diag_data,
+            options=options,
+            default_requires_client_consent=False,
+        )
 
     return RebalanceResult(
         rebalance_run_id=run_id,
@@ -331,6 +354,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
         tax_impact=tax_impact,
         rule_results=rules,
         diagnostics=diag_data,
+        gate_decision=gate_decision,
         explanation={"summary": f_stat, "target_method_comparison": target_method_comparison},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.portfolio_id,

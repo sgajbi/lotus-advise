@@ -17,6 +17,7 @@ from src.core.common.simulation_shared import (
     sort_execution_intents,
 )
 from src.core.common.suitability import compute_suitability_result
+from src.core.common.workflow_gates import evaluate_gate_decision
 from src.core.compliance import RuleEngine
 from src.core.models import (
     CashFlowIntent,
@@ -265,6 +266,16 @@ def run_proposal_simulation(
             market_data_snapshot_id=market_data.snapshot_id or "md",
             proposed_trades=trades,
         )
+    gate_decision = None
+    if options.enable_workflow_gates:
+        gate_decision = evaluate_gate_decision(
+            status=final_status,
+            rule_results=rule_results,
+            suitability=suitability,
+            diagnostics=diagnostics,
+            options=options,
+            default_requires_client_consent=True,
+        )
 
     return ProposalResult(
         proposal_run_id=run_id,
@@ -278,6 +289,7 @@ def run_proposal_simulation(
         diagnostics=diagnostics,
         drift_analysis=drift_analysis,
         suitability=suitability,
+        gate_decision=gate_decision,
         explanation={"summary": final_status},
         lineage=LineageData(
             portfolio_snapshot_id=portfolio.snapshot_id or portfolio.portfolio_id,

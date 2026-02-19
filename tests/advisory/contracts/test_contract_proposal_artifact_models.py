@@ -23,7 +23,7 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactTradeRationale,
     ProposalArtifactTradesAndFunding,
 )
-from src.core.models import Money
+from src.core.models import GateDecision, GateDecisionSummary, Money
 
 
 def test_proposal_artifact_contract_shape():
@@ -38,6 +38,17 @@ def test_proposal_artifact_contract_shape():
         correlation_id="corr_1",
         created_at="2026-02-19T12:00:00+00:00",
         status="READY",
+        gate_decision=GateDecision(
+            gate="CLIENT_CONSENT_REQUIRED",
+            recommended_next_step="REQUEST_CLIENT_CONSENT",
+            reasons=[],
+            summary=GateDecisionSummary(
+                hard_fail_count=0,
+                soft_fail_count=0,
+                new_high_suitability_count=0,
+                new_medium_suitability_count=0,
+            ),
+        ),
         summary=ProposalArtifactSummary(
             title="Proposal for pf_1",
             objective_tags=["PORTFOLIO_MAINTENANCE"],

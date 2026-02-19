@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from src.core.models import Money, SuitabilityIssue
+from src.core.models import GateDecision, Money, SuitabilityIssue
 
 
 class ProposalArtifactSummaryNote(BaseModel):
@@ -35,11 +35,15 @@ class ProposalArtifactSummary(BaseModel):
         default_factory=list,
         description="Structured advisor note placeholders.",
     )
-    recommended_next_step: Literal["CLIENT_CONSENT", "RISK_REVIEW", "COMPLIANCE_REVIEW", "NONE"] = (
-        Field(
-            description="Deterministic post-simulation workflow recommendation.",
-            examples=["CLIENT_CONSENT"],
-        )
+    recommended_next_step: Literal[
+        "CLIENT_CONSENT",
+        "RISK_REVIEW",
+        "COMPLIANCE_REVIEW",
+        "EXECUTION_READY",
+        "NONE",
+    ] = Field(
+        description="Deterministic post-simulation workflow recommendation.",
+        examples=["CLIENT_CONSENT"],
     )
     key_takeaways: List[ProposalArtifactTakeaway] = Field(
         default_factory=list,
@@ -356,6 +360,9 @@ class ProposalArtifact(BaseModel):
     status: Literal["READY", "PENDING_REVIEW", "BLOCKED"] = Field(
         description="Top-level artifact domain status copied from proposal output.",
         examples=["READY"],
+    )
+    gate_decision: GateDecision = Field(
+        description="Deterministic workflow gate decision copied from proposal simulation output."
     )
     summary: ProposalArtifactSummary = Field(description="Artifact summary section.")
     portfolio_impact: ProposalArtifactPortfolioImpact = Field(

@@ -14,6 +14,7 @@ Implementation scope:
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
 - Shared diagnostics builders: `src/core/common/diagnostics.py`
 - Shared deterministic canonical serialization/hash: `src/core/common/canonical.py`
+- Shared workflow gate evaluator: `src/core/common/workflow_gates.py`
 - Shared advisory analytics:
   - `src/core/common/drift_analytics.py` (RFC-0014C drift analytics)
   - `src/core/common/suitability.py` (RFC-0014D suitability scanner)
@@ -77,6 +78,9 @@ Implementation scope:
 ## Advisory Feature Flags
 
 - `enable_proposal_simulation`
+- `enable_workflow_gates`
+- `workflow_requires_client_consent`
+- `client_consent_already_obtained`
 - `proposal_apply_cash_flows_first`
 - `proposal_block_negative_cash`
 - `enable_drift_analytics`
@@ -122,6 +126,7 @@ Implementation scope:
 ## Proposal Artifact (RFC-0014E)
 
 Deterministic sections:
+- `gate_decision`
 - `summary`
 - `portfolio_impact`
 - `trades_and_funding`
@@ -144,5 +149,6 @@ Determinism controls:
 - Contract: `tests/advisory/contracts/test_contract_proposal_artifact_models.py`
 - Engine: `tests/advisory/engine/test_engine_advisory_proposal_simulation.py`
 - Engine: `tests/advisory/engine/test_engine_proposal_artifact.py`
+- Engine: `tests/engine/test_engine_workflow_gates.py`
 - Proposal golden: `tests/advisory/golden/test_golden_advisory_proposal_scenarios.py`
 - Artifact golden: `tests/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`

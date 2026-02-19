@@ -27,6 +27,7 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactWeightChange,
 )
 from src.core.common.canonical import hash_canonical_payload, strip_keys
+from src.core.common.workflow_gates import evaluate_gate_decision
 
 _ZERO = Decimal("0")
 
@@ -104,6 +105,22 @@ def _resolve_objective_tags(*, request, result):
 
 
 def _resolve_next_step(result):
+    if result.gate_decision is not None:
+        if result.gate_decision.gate == "BLOCKED":
+            has_high_suitability = any(
+                reason.source == "SUITABILITY" and reason.severity == "HIGH"
+                for reason in result.gate_decision.reasons
+            )
+            return "COMPLIANCE_REVIEW" if has_high_suitability else "RISK_REVIEW"
+        if result.gate_decision.gate == "COMPLIANCE_REVIEW_REQUIRED":
+            return "COMPLIANCE_REVIEW"
+        if result.gate_decision.gate == "RISK_REVIEW_REQUIRED":
+            return "RISK_REVIEW"
+        if result.gate_decision.gate == "CLIENT_CONSENT_REQUIRED":
+            return "CLIENT_CONSENT"
+        if result.gate_decision.gate == "EXECUTION_READY":
+            return "EXECUTION_READY"
+        return "RISK_REVIEW"
     if result.suitability is not None:
         if result.suitability.recommended_gate == "COMPLIANCE_REVIEW":
             return "COMPLIANCE_REVIEW"
@@ -300,6 +317,17 @@ def build_proposal_artifact(*, request, proposal_result, created_at: str | None 
     )
 
     artifact = ProposalArtifact(
+        gate_decision=(
+            proposal_result.gate_decision
+            or evaluate_gate_decision(
+                status=proposal_result.status,
+                rule_results=proposal_result.rule_results,
+                suitability=proposal_result.suitability,
+                diagnostics=proposal_result.diagnostics,
+                options=request.options,
+                default_requires_client_consent=True,
+            )
+        ),
         artifact_id=proposal_result.proposal_run_id.replace("pr_", "pa_", 1),
         proposal_run_id=proposal_result.proposal_run_id,
         correlation_id=proposal_result.correlation_id,

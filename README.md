@@ -23,6 +23,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0014C (advisory drift analytics via inline `reference_model` in `POST /rebalance/proposals/simulate`)
 * RFC-0014D (advisory suitability scanner with NEW/RESOLVED/PERSISTENT issue classification and gate recommendation)
 * RFC-0014E (advisory proposal artifact via `POST /rebalance/proposals/artifact` with deterministic evidence hash)
+* Shared workflow gate decision semantics (deterministic `gate_decision` block in DPM/advisory outputs, configurable through `EngineOptions`)
 
 ---
 ## Engine Know-How

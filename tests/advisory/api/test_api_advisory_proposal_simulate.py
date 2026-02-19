@@ -58,6 +58,13 @@ def test_advisory_proposal_simulate_endpoint_success(client):
         "RISK_REVIEW",
         "COMPLIANCE_REVIEW",
     }
+    assert body["gate_decision"]["gate"] in {
+        "BLOCKED",
+        "RISK_REVIEW_REQUIRED",
+        "COMPLIANCE_REVIEW_REQUIRED",
+        "CLIENT_CONSENT_REQUIRED",
+        "EXECUTION_READY",
+    }
 
 
 def test_advisory_proposal_simulate_requires_feature_flag(client):
@@ -241,6 +248,7 @@ def test_advisory_proposal_artifact_endpoint_success(client):
     assert body["proposal_run_id"].startswith("pr_")
     assert body["status"] == "READY"
     assert body["summary"]["recommended_next_step"] == "CLIENT_CONSENT"
+    assert body["gate_decision"]["gate"] == "CLIENT_CONSENT_REQUIRED"
     assert body["trades_and_funding"]["trade_list"][0]["instrument_id"] == "US_EQ"
     assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
 
