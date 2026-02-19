@@ -62,12 +62,12 @@ def quantize_amount_for_currency(amount: Decimal, currency: str) -> Decimal:
 def sort_execution_intents(intents):
     def _sort_key(intent):
         if intent.intent_type == "CASH_FLOW":
-            return (0, intent.intent_id, "")
+            return 0
         if intent.intent_type == "SECURITY_TRADE":
             if intent.side == "SELL":
-                return (1, intent.instrument_id, intent.intent_id)
-            return (3, intent.instrument_id, intent.intent_id)
-        return (2, getattr(intent, "pair", ""), intent.intent_id)
+                return 1
+            return 3
+        return 2
 
     return sorted(intents, key=_sort_key)
 

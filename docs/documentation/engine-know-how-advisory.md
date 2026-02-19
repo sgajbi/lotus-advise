@@ -33,9 +33,14 @@ Implementation scope:
 - Cash flows can be applied before trades (`proposal_apply_cash_flows_first`).
 - Trades are manually supplied and priced from market data.
 - For notional-driven trades, `notional.currency` must match priced instrument currency; mismatch blocks with `PROPOSAL_INVALID_TRADE_INPUT`.
+- RFC-0014B auto-funding:
+  - Build funding plan per BUY currency.
+  - Generate `FX_SPOT` intents for deficits using `BASE_ONLY` or `ANY_CASH` policy.
+  - Apply deterministic dependencies from BUY intents to generated FX intent ids.
 - Deterministic ordering:
   - `CASH_FLOW` (as provided)
   - `SECURITY_TRADE` SELL (instrument ascending)
+  - `FX_SPOT` (pair ascending)
   - `SECURITY_TRADE` BUY (instrument ascending)
 
 4. Safety and shelf guards
@@ -53,6 +58,10 @@ Implementation scope:
 - `enable_proposal_simulation`
 - `proposal_apply_cash_flows_first`
 - `proposal_block_negative_cash`
+- `auto_funding`
+- `funding_mode`
+- `fx_funding_source_currency`
+- `fx_generation_policy`
 - plus shared controls:
   - `block_on_missing_prices`
   - `block_on_missing_fx`
@@ -64,6 +73,11 @@ Implementation scope:
 - `PROPOSAL_WITHDRAWAL_NEGATIVE_CASH`
 - `PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF`
 - `PROPOSAL_INVALID_TRADE_INPUT`
+- `PROPOSAL_MISSING_FX_FOR_FUNDING`
+- `PROPOSAL_INSUFFICIENT_FUNDING_CASH`
+- `diagnostics.missing_fx_pairs`
+- `diagnostics.funding_plan`
+- `diagnostics.insufficient_cash`
 - standard safety/data-quality rules continue to apply (`NO_SHORTING`, `INSUFFICIENT_CASH`, etc.)
 
 ## Tests That Lock Advisory Behavior

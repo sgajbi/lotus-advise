@@ -407,6 +407,7 @@ def run_proposal_simulation(
         apply_security_trade_to_portfolio(after_portfolio, buy_intent)
         executable_buy_intents.append(buy_intent)
 
+    fx_intents = sorted(fx_intents, key=lambda intent: intent.pair)
     intents = sort_execution_intents(
         cash_flow_intents + sell_intents + fx_intents + executable_buy_intents
     )

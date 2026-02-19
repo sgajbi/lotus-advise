@@ -39,6 +39,9 @@ curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Ty
 | `08_solver_mode.json` | **Solver Target Generation** | `READY` | Runs Stage-3 target generation in solver mode (`target_method=SOLVER`). |
 | `09_batch_what_if_analysis.json` | **Batch What-If Analysis** | Mixed by scenario | Runs baseline/tax/settlement scenarios in one `/rebalance/analyze` call. |
 | `10_advisory_proposal_simulate.json` | **Advisory Proposal Simulation** | `READY` | Simulates manual cash flows and manual trades in `/rebalance/proposals/simulate`. |
+| `11_advisory_auto_funding_single_ccy.json` | **Advisory Auto-Funding (Single CCY)** | `READY` | Generates funding `FX_SPOT` and links BUY dependency. |
+| `12_advisory_partial_funding.json` | **Advisory Partial Funding** | `READY` | Uses existing foreign cash first, then tops up with FX. |
+| `13_advisory_missing_fx_blocked.json` | **Advisory Missing FX (Blocked)** | `BLOCKED` | Blocks advisory proposal when required FX funding pair is missing. |
 
 ## Feature Toggles Demonstrated
 
@@ -56,6 +59,16 @@ curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Ty
   - `options.enable_proposal_simulation=true`
   - `options.proposal_apply_cash_flows_first=true`
   - `options.proposal_block_negative_cash=true`
+- `11_advisory_auto_funding_single_ccy.json`:
+  - `options.auto_funding=true`
+  - `options.funding_mode=AUTO_FX`
+  - `options.fx_generation_policy=ONE_FX_PER_CCY`
+- `12_advisory_partial_funding.json`:
+  - `options.auto_funding=true`
+  - existing foreign cash + FX top-up behavior
+- `13_advisory_missing_fx_blocked.json`:
+  - `options.block_on_missing_fx=true`
+  - hard block + missing FX diagnostics
 
 ## Understanding Output Statuses
 

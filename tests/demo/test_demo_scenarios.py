@@ -9,7 +9,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import app, get_db_session
+from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app, get_db_session
 from src.core.dpm_engine import run_simulation
 from src.core.models import (
     EngineOptions,
@@ -77,3 +77,40 @@ def test_demo_batch_scenario_execution():
     assert set(body["results"].keys()) == {"baseline", "tax_budget", "settlement_guard"}
     assert set(body["comparison_metrics"].keys()) == {"baseline", "tax_budget", "settlement_guard"}
     assert body["failed_scenarios"] == {}
+
+
+@pytest.mark.parametrize(
+    "filename, expected_status",
+    [
+        ("10_advisory_proposal_simulate.json", "READY"),
+        ("11_advisory_auto_funding_single_ccy.json", "READY"),
+        ("12_advisory_partial_funding.json", "READY"),
+        ("13_advisory_missing_fx_blocked.json", "BLOCKED"),
+    ],
+)
+def test_demo_advisory_scenarios_via_api(filename, expected_status):
+    data = load_demo_scenario(filename)
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        PROPOSAL_IDEMPOTENCY_CACHE.clear()
+        try:
+            response = client.post(
+                "/rebalance/proposals/simulate",
+                json=data,
+                headers={"Idempotency-Key": f"demo-{filename}"},
+            )
+        finally:
+            app.dependency_overrides = original_overrides
+            PROPOSAL_IDEMPOTENCY_CACHE.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == expected_status
+
+    if filename in {"11_advisory_auto_funding_single_ccy.json", "12_advisory_partial_funding.json"}:
+        assert [intent["intent_type"] for intent in body["intents"]] == [
+            "FX_SPOT",
+            "SECURITY_TRADE",
+        ]
+        assert body["intents"][1]["dependencies"] == [body["intents"][0]["intent_id"]]

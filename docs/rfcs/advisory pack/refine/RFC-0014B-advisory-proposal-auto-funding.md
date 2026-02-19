@@ -121,6 +121,11 @@ Deterministic funding-currency order for `ANY_CASH`:
 1. base currency
 2. other currencies sorted lexicographically by currency code (excluding target `CCY`)
 
+> Implementation alignment note (current project slice):
+> With `fx_generation_policy=ONE_FX_PER_CCY`, the engine selects a **single** funding currency
+> per target currency using the deterministic order above. If no single source can fully fund
+> the deficit, the proposal is blocked as insufficient funding.
+
 ### 4.3 FX generation policy
 
 `fx_generation_policy=ONE_FX_PER_CCY`:
@@ -253,6 +258,9 @@ Add structured diagnostics sections:
 
   * `status=PENDING_REVIEW`
   * and rule result `DATA_QUALITY` FAIL (or WARNING, depending on your rule taxonomy)
+
+Current implementation marks missing non-blocking funding FX as `PENDING_REVIEW` and skips
+execution-intent generation for affected BUYs in the simulated executable plan.
 
 ---
 
