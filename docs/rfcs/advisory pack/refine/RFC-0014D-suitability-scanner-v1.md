@@ -2,13 +2,14 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT (NOT IMPLEMENTED) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14D |
 | **Depends On** | RFC-0014A (Proposal Simulation), RFC-0006A (After-state completeness & safety) |
 | **Optional Depends On** | RFC-0014B (Auto-funding), RFC-0014C (Drift analytics) |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014D-suitability-scanner-v1.md` |
 | **Backward Compatibility** | Not required |
+| **Implemented In** | 2026-02-19 |
 
 ---
 
@@ -198,6 +199,10 @@ Use shelf status for each instrument:
 * If **SELL_ONLY** and portfolio weight increases in after-state => issue HIGH (proposal violates sell-only)
 * If **RESTRICTED** and increases and `allow_restricted=false` => issue HIGH (proposal violates restriction)
 * If **RESTRICTED** and increases and allow is true => issue MEDIUM with disclosure (“restricted allowed”)
+
+Implementation alignment note:
+- Advisory execution guards can block disallowed BUYs before they change after-state holdings.  
+- Suitability scanner therefore also emits governance issues for attempted BUYs in `SELL_ONLY` and `RESTRICTED` instruments so NEW violations remain visible in blocked proposals.
 
 ### 6.5 Cash Band (Suitability View)
 

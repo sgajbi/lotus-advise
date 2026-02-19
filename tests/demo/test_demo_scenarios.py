@@ -88,6 +88,9 @@ def test_demo_batch_scenario_execution():
         ("13_advisory_missing_fx_blocked.json", "BLOCKED"),
         ("14_advisory_drift_asset_class.json", "READY"),
         ("15_advisory_drift_instrument.json", "READY"),
+        ("16_advisory_suitability_resolved_single_position.json", "READY"),
+        ("17_advisory_suitability_new_issuer_breach.json", "READY"),
+        ("18_advisory_suitability_sell_only_violation.json", "BLOCKED"),
     ],
 )
 def test_demo_advisory_scenarios_via_api(filename, expected_status):
@@ -118,3 +121,9 @@ def test_demo_advisory_scenarios_via_api(filename, expected_status):
         assert body["intents"][1]["dependencies"] == [body["intents"][0]["intent_id"]]
     if filename in {"14_advisory_drift_asset_class.json", "15_advisory_drift_instrument.json"}:
         assert "drift_analysis" in body
+    if filename in {
+        "16_advisory_suitability_resolved_single_position.json",
+        "17_advisory_suitability_new_issuer_breach.json",
+        "18_advisory_suitability_sell_only_violation.json",
+    }:
+        assert "suitability" in body

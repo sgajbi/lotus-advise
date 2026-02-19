@@ -21,6 +21,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0014A (advisory proposal simulation via `POST /rebalance/proposals/simulate`, feature-flagged via `options.enable_proposal_simulation`)
 * RFC-0014B (advisory proposal auto-funding via generated `FX_SPOT` intents and dependencies)
 * RFC-0014C (advisory drift analytics via inline `reference_model` in `POST /rebalance/proposals/simulate`)
+* RFC-0014D (advisory suitability scanner with NEW/RESOLVED/PERSISTENT issue classification and gate recommendation)
 
 ---
 ## Engine Know-How

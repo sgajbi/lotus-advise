@@ -10,6 +10,9 @@ Implementation scope:
   - `src/core/advisory/funding.py` (RFC-0014B auto-funding planner)
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
 - Shared diagnostics builders: `src/core/common/diagnostics.py`
+- Shared advisory analytics:
+  - `src/core/common/drift_analytics.py` (RFC-0014C drift analytics)
+  - `src/core/common/suitability.py` (RFC-0014D suitability scanner)
 - Valuation: `src/core/valuation.py`
 - Rules: `src/core/compliance.py`
 
@@ -64,6 +67,14 @@ Implementation scope:
 - `proposal_apply_cash_flows_first`
 - `proposal_block_negative_cash`
 - `enable_drift_analytics`
+- `enable_suitability_scanner`
+- `suitability_thresholds`:
+  - `single_position_max_weight`
+  - `issuer_max_weight`
+  - `max_weight_by_liquidity_tier`
+  - `cash_band_min_weight`
+  - `cash_band_max_weight`
+  - `data_quality_issue_severity`
 - `enable_instrument_drift`
 - `drift_top_contributors_limit`
 - `drift_unmodeled_exposure_threshold`
@@ -89,6 +100,10 @@ Implementation scope:
 - `diagnostics.funding_plan`
 - `diagnostics.insufficient_cash`
 - `drift_analysis` (when `reference_model` is provided and drift analytics is enabled)
+- `suitability`:
+  - `summary` (`new_count`, `resolved_count`, `persistent_count`, `highest_severity_new`)
+  - deterministic ordered `issues` classified as `NEW`, `PERSISTENT`, `RESOLVED`
+  - `recommended_gate` (`NONE`, `RISK_REVIEW`, `COMPLIANCE_REVIEW`)
 - standard safety/data-quality rules continue to apply (`NO_SHORTING`, `INSUFFICIENT_CASH`, etc.)
 
 ## Tests That Lock Advisory Behavior
