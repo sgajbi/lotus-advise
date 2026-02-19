@@ -159,5 +159,29 @@ Expected:
 1. `CAPPED_BY_GROUP_LIMIT`
 2. `NO_ELIGIBLE_REDISTRIBUTION_DESTINATION`
 
+---
+
+## 8. Behavior Reference (Implemented)
+
+### 8.1 Group Cap Enforcement
+
+1. The engine computes provisional target weights first.
+2. Each configured group limit is evaluated in deterministic key order.
+3. If a group exceeds its cap, all members of that group are scaled down proportionally.
+4. Released weight is redistributed to eligible instruments outside breached groups.
+
+### 8.2 Redistributed Weight Safety
+
+1. Redistribution excludes blocked or ineligible instruments.
+2. If there is no valid destination for released weight, the run is blocked with
+   `NO_ELIGIBLE_REDISTRIBUTION_DESTINATION`.
+3. Final target weights are normalized with tolerance-aware precision handling.
+
+### 8.3 Observable Output for BA and Control Teams
+
+1. Group-cap effects are visible through diagnostics reason codes.
+2. Allocation breakdowns remain auditable in the simulated after-state outputs.
+3. Status contract remains unchanged (`READY`, `PENDING_REVIEW`, `BLOCKED`), so no
+   downstream status integration changes are required.
 
  

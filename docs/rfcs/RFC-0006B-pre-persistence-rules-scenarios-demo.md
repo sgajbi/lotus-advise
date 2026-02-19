@@ -125,5 +125,25 @@ The `docs/demo/` directory will be reorganized:
 3. **Regression:** All 12 `GOLDEN_3xx` scenarios pass in `pytest` with exact JSON matching.
 4. **Cleanliness:** No hard-coded `0.05` or `0.10` constants remain in `src/core/compliance.py` or `engine.py`.
 
-```
- 
+## 5. Behavior Reference (Implemented)
+
+### 5.1 Rules Configurability in Runtime
+
+1. Request `options` are the first-level source of truth for rule thresholds.
+2. If an option is omitted, model defaults apply.
+3. Rule outputs are always present for the core set, even if a rule is passing.
+4. This guarantees stable response shape for downstream consumers.
+
+### 5.2 FX Dependency Fidelity
+
+1. When a buy requires non-base currency funding, the engine creates `FX_SPOT` intents as needed.
+2. The dependent buy intent includes the relevant FX intent id in `dependencies`.
+3. Dependency ordering is deterministic and stable for the same payload.
+4. If required FX data is unavailable and blocking is enabled, status is `BLOCKED`.
+
+### 5.3 Demo and Golden Behavior Guarantees
+
+1. Golden 300-series scenarios are used as behavioral contracts, not only smoke tests.
+2. A scenario that should block must consistently block with expected reason codes.
+3. A scenario that should pass must preserve deterministic intent ordering and diagnostics.
+4. Demo JSON files are aligned to these contracts so business walkthroughs match API behavior.

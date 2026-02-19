@@ -79,3 +79,29 @@ The Rule Engine must run *after* the simulation step.
     * Intent application & FX simulation inside `engine.py`.
 2.  **Safety Logic:** Implement negative quantity checks and total value reconciliation.
 3.  **Golden Suite:** Update golden scenarios to reflect the new strict rule outputs.
+
+---
+
+## 5. Behavior Reference (Implemented)
+
+### 5.1 Rule Severity to Final Status
+
+1. If any `HARD` rule fails, final status is `BLOCKED`.
+2. If no `HARD` rule fails but at least one `SOFT` rule fails, final status is `PENDING_REVIEW`.
+3. If all hard and soft rules pass, final status is `READY`.
+4. `INFO` rules never downgrade status and are emitted for transparency.
+
+### 5.2 Reconciliation Behavior
+
+1. Engine computes before and after total portfolio value in base currency.
+2. A tolerance is applied for rounding and FX precision.
+3. If absolute delta exceeds tolerance:
+   1. Reason `RECONCILIATION_MISMATCH` is emitted.
+   2. Final status is forced to `BLOCKED`.
+4. Reconciliation is applied after intents are simulated and rules are evaluated.
+
+### 5.3 Holdings Safety Behavior
+
+1. Any sell instruction that would push quantity below zero is blocked by safety checks.
+2. Buy attempts on unsupported shelf statuses (for example `SELL_ONLY` and `SUSPENDED`) are blocked.
+3. Safety breaches are treated as hard-fail outcomes and therefore return `BLOCKED`.

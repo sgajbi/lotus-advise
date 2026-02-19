@@ -157,3 +157,28 @@ Add second case where requested sell exceeds budget and verify partial sell with
 2. Tax constraints should not introduce custom status variants; use diagnostics reason codes instead.
 3. This RFC introduces reason code:
    1. `TAX_BUDGET_LIMIT_REACHED`
+
+---
+
+## 8. Behavior Reference (Implemented)
+
+### 8.1 Lot Selection Behavior
+
+1. Tax-aware lot selection is applied only when lot data exists and tax-awareness is enabled.
+2. Lots are prioritized by HIFO ordering to reduce realized gains where possible.
+3. If lots are absent, legacy quantity-based behavior remains available for backward compatibility.
+
+### 8.2 Tax Budget Behavior
+
+1. The engine tracks cumulative realized gains while generating sell intents.
+2. If applying full sell quantity would exceed configured gain budget:
+   1. sell quantity is constrained,
+   2. residual drift is accepted,
+   3. reason `TAX_BUDGET_LIMIT_REACHED` is emitted.
+3. Loss-making sells do not consume gain budget and can proceed.
+
+### 8.3 Output Interpretation for Business and BA Readers
+
+1. `tax_impact` summarizes realized gains/losses and budget usage.
+2. Diagnostics explain when and why tax budget changed trade sizing.
+3. Final run status still follows the shared status contract and is not replaced by tax-specific states.

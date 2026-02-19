@@ -136,3 +136,27 @@ Implemented tests:
 2. New reason/warning codes:
    1. `TURNOVER_LIMIT` (dropped intent reason)
    2. `PARTIAL_REBALANCE_TURNOVER_LIMIT` (diagnostic warning)
+
+---
+
+## 8. Behavior Reference (Implemented)
+
+### 8.1 Budget Application Behavior
+
+1. If `max_turnover_pct` is not set, all eligible intents proceed (legacy behavior).
+2. If set, turnover budget is computed from current portfolio base value.
+3. If proposed turnover is above budget, deterministic subset selection is applied.
+
+### 8.2 Deterministic Selection Behavior
+
+1. Candidate intents are ranked using documented tie-break rules.
+2. The engine uses skip-and-continue inclusion under budget.
+3. Kept intents are executed; dropped intents are recorded with notional and score.
+4. This can result in intentionally partial convergence by design.
+
+### 8.3 Status and Diagnostics Behavior
+
+1. Dropped intents produce `TURNOVER_LIMIT` reason entries in diagnostics.
+2. Partial selection adds warning `PARTIAL_REBALANCE_TURNOVER_LIMIT`.
+3. Turnover logic alone does not force `BLOCKED`; final status still depends on
+   downstream hard and soft rule outcomes.
