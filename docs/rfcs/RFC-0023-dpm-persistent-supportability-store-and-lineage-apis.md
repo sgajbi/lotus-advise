@@ -162,5 +162,16 @@ No new business run statuses. Investigation responses use explicit technical sta
       - adds workflow decision aggregates:
         - `workflow_action_counts`
         - `workflow_reason_code_counts`
+- Implemented (slice 12):
+  - Lineage API query hardening:
+    - `GET /rebalance/lineage/{entity_id}`
+      - optional filters:
+        - `edge_type`
+        - `from`
+        - `to`
+      - pagination:
+        - `limit`
+        - `cursor`
+      - response now includes `next_cursor`
 - Follow-on:
   - Enterprise managed SQL backend profiles (for example PostgreSQL) are tracked in RFC-0024.

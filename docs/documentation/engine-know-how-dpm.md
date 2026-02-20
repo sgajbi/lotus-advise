@@ -122,6 +122,19 @@ Implementation scope:
   - `selected_policy_pack_source`
   - `items`
 
+### `GET /rebalance/policies/catalog/{policy_pack_id}`
+- Purpose: retrieve one policy-pack definition by identifier.
+
+### `PUT /rebalance/policies/catalog/{policy_pack_id}`
+- Purpose: create or update one policy-pack definition by identifier.
+- Feature flag:
+  - `DPM_POLICY_PACK_ADMIN_APIS_ENABLED` (default `false`)
+
+### `DELETE /rebalance/policies/catalog/{policy_pack_id}`
+- Purpose: delete one policy-pack definition by identifier.
+- Feature flag:
+  - `DPM_POLICY_PACK_ADMIN_APIS_ENABLED` (default `false`)
+
 Swagger contract quality:
 - Policy-pack and supportability DTOs are contract-tested for field-level `description` and `examples`.
 - Policy endpoints are contract-tested as response-only (`GET` without request body).
@@ -188,6 +201,13 @@ Swagger contract quality:
 
 ### `GET /rebalance/lineage/{entity_id}`
 - Purpose: retrieve supportability lineage edges for entity ids (correlation, idempotency, run, operation).
+- Filters:
+  - `edge_type`
+  - `from`
+  - `to`
+- Pagination:
+  - `limit`
+  - `cursor`
 
 ### `GET /rebalance/idempotency/{idempotency_key}/history`
 - Purpose: retrieve append-only idempotency key mapping history across recorded runs.
@@ -298,6 +318,9 @@ Swagger contract quality:
   - `DPM_POLICY_PACKS_ENABLED` (default `false`)
   - `DPM_DEFAULT_POLICY_PACK_ID`
   - `DPM_POLICY_PACK_CATALOG_JSON` (JSON map of policy-pack definitions)
+  - `DPM_POLICY_PACK_CATALOG_BACKEND` (`ENV_JSON` | `POSTGRES`, default `ENV_JSON`)
+  - `DPM_POLICY_PACK_POSTGRES_DSN` (fallbacks to `DPM_SUPPORTABILITY_POSTGRES_DSN`)
+  - `DPM_POLICY_PACK_ADMIN_APIS_ENABLED` (default `false`)
   - `DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED` (default `false`)
   - `DPM_TENANT_POLICY_PACK_MAP_JSON` (JSON map: `tenant_id -> policy_pack_id`)
 

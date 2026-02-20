@@ -149,6 +149,8 @@ DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES
 DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability
 PROPOSAL_STORE_BACKEND=POSTGRES
 PROPOSAL_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability
+DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES
+DPM_POLICY_PACK_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability
 ```
 
 Note:

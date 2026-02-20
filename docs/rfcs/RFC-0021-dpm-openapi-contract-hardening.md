@@ -56,6 +56,16 @@ Phase-1 implemented:
     - `GET /rebalance/policies/catalog`
   - execute endpoint contract shape (`POST /rebalance/operations/{operation_id}/execute`)
   - artifact endpoint contract shape (`GET /rebalance/runs/{rebalance_run_id}/artifact`)
+Phase-2 implemented:
+- Extended DPM OpenAPI contract assertions for policy-pack management APIs:
+  - `GET /rebalance/policies/catalog/{policy_pack_id}`
+  - `PUT /rebalance/policies/catalog/{policy_pack_id}`
+  - `DELETE /rebalance/policies/catalog/{policy_pack_id}`
+- Added schema metadata assertions for:
+  - `DpmPolicyPackUpsertRequest`
+  - `DpmPolicyPackMutationResponse`
+- Updated schema assertions to support request/response split model naming patterns
+  (`-Input` / `-Output`) while preserving strict docs coverage checks.
 
 ### 4.3 Configurability
 

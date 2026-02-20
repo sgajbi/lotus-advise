@@ -1,0 +1,73 @@
+# RFC-0025: PostgreSQL-Only Production Mode Cutover
+
+| Metadata | Details |
+| --- | --- |
+| **Status** | PROPOSED |
+| **Created** | 2026-02-20 |
+| **Depends On** | RFC-0023, RFC-0024 |
+| **Doc Location** | `docs/rfcs/RFC-0025-postgres-only-production-mode-cutover.md` |
+
+## 1. Executive Summary
+
+Define a staged production cutover plan where DPM/advisory persistence uses PostgreSQL-only
+backends in non-dev environments, while preserving in-memory/SQLite paths for local workflows.
+
+## 2. Problem Statement
+
+Multiple persistence modes remain available in all environments. This increases operational
+variance and incident complexity in production.
+
+## 3. Goals and Non-Goals
+
+### 3.1 Goals
+
+- Enforce Postgres-only persistence in production profiles.
+- Preserve local development ergonomics with in-memory/SQLite.
+- Provide explicit, reversible rollout gates.
+
+### 3.2 Non-Goals
+
+- Remove in-memory/SQLite codepaths from repository layer immediately.
+- Change public API contracts.
+
+## 4. Proposed Design
+
+### 4.1 Environment Policy
+
+- Add runtime mode switch:
+  - `APP_PERSISTENCE_PROFILE` (`LOCAL` | `PRODUCTION`)
+- In `PRODUCTION`:
+  - `DPM_SUPPORTABILITY_STORE_BACKEND` must be `POSTGRES`
+  - `PROPOSAL_STORE_BACKEND` must be `POSTGRES`
+  - policy-pack catalog backend (when enabled) must be `POSTGRES`
+
+### 4.2 Guardrails
+
+- Startup validation fails fast with explicit reason codes when policy is violated.
+- Existing migration checks and advisory lock controls from RFC-0024 remain mandatory.
+
+### 4.3 Rollout Strategy
+
+1. Shadow validation in CI and non-prod.
+2. Enable `APP_PERSISTENCE_PROFILE=PRODUCTION` in non-prod.
+3. Cut over production once error budgets remain healthy.
+4. Keep `LOCAL` profile as default in local/dev docs.
+
+## 5. Test Plan
+
+- Unit tests for persistence-profile guardrails.
+- API startup tests for explicit failure reason codes.
+- CI profile running with production mode + Postgres migration smoke.
+
+## 6. Rollout/Compatibility
+
+- Additive and feature-flagged.
+- No external API behavior changes.
+- Local dev profile remains unchanged.
+
+## 7. Status and Reason Code Conventions
+
+- Proposed startup reason codes:
+  - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`

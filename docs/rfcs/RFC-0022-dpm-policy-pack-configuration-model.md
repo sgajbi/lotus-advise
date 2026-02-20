@@ -179,5 +179,19 @@ Policy pack selection must not alter run status vocabulary semantics.
       (with env fallback from `DPM_IDEMPOTENCY_REPLAY_ENABLED`)
   - Applied on:
     - `POST /rebalance/simulate`
-- Pending:
-  - no additional policy dimensions in current RFC scope.
+- Implemented (slice 11):
+  - Durable catalog backend support:
+    - `DPM_POLICY_PACK_CATALOG_BACKEND` (`ENV_JSON` | `POSTGRES`)
+    - `DPM_POLICY_PACK_POSTGRES_DSN` (falls back to `DPM_SUPPORTABILITY_POSTGRES_DSN`)
+  - Added Postgres policy-pack repository adapter and schema migration:
+    - `src/infrastructure/dpm_policy_packs/postgres.py`
+    - `src/infrastructure/postgres_migrations/dpm/0002_policy_pack_catalog.sql`
+  - `GET /rebalance/policies/catalog` and runtime policy resolution now read from configured
+    catalog backend.
+- Implemented (slice 12):
+  - Policy-pack supportability/admin APIs (feature-flagged):
+    - `GET /rebalance/policies/catalog/{policy_pack_id}`
+    - `PUT /rebalance/policies/catalog/{policy_pack_id}`
+    - `DELETE /rebalance/policies/catalog/{policy_pack_id}`
+  - Feature flag:
+    - `DPM_POLICY_PACK_ADMIN_APIS_ENABLED` (default `false`)
