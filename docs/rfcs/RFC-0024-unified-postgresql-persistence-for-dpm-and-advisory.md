@@ -148,10 +148,19 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - `dpm_run_artifacts`
   - Added repository unit coverage using fake Postgres connection semantics to validate
     deterministic SQL adapter behavior without external DB dependency.
+- Implemented (slice 5):
+  - Added concrete Postgres supportability repository operations for:
+    - idempotency mapping CRUD
+    - idempotency history append/list
+    - async operation create/update/get/list
+    - async operation TTL purge
+  - Added table bootstrap for:
+    - `dpm_run_idempotency`
+    - `dpm_run_idempotency_history`
+    - `dpm_async_operations`
+  - Added deterministic unit coverage for filters, cursor behavior, and purge semantics.
 - Next slice:
   - implement remaining Postgres repository operations:
-    - idempotency mappings/history
-    - async operations
     - workflow decisions
     - lineage edges
     - supportability summary and retention purge
