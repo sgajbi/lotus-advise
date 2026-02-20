@@ -320,6 +320,7 @@ def simulate_rebalance(
         shelf=request.shelf_entries,
         options=request.options,
         request_hash=idempotency_key,
+        correlation_id=correlation_id or "c_none",
     )
 
     if result.status == "BLOCKED":
@@ -378,6 +379,11 @@ def analyze_scenarios(
             continue
 
         try:
+            scenario_correlation_id = (
+                f"{correlation_id}:{scenario_name}"
+                if correlation_id
+                else f"{batch_id}:{scenario_name}"
+            )
             scenario_result = run_simulation(
                 portfolio=request.portfolio_snapshot,
                 market_data=request.market_data_snapshot,
@@ -385,6 +391,7 @@ def analyze_scenarios(
                 shelf=request.shelf_entries,
                 options=options,
                 request_hash=f"{batch_id}:{scenario_name}",
+                correlation_id=scenario_correlation_id,
             )
             results[scenario_name] = scenario_result
             comparison_metrics[scenario_name] = _build_comparison_metric(

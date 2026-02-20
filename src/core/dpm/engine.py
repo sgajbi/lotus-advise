@@ -77,6 +77,7 @@ def _make_blocked_result(
     options,
     diagnostics,
     request_hash,
+    correlation_id,
 ):
     """Create a consistent blocked response payload."""
     rule_results = RuleEngine.evaluate(before, options, diagnostics)
@@ -92,7 +93,7 @@ def _make_blocked_result(
         )
     return RebalanceResult(
         rebalance_run_id=run_id,
-        correlation_id="c_none",
+        correlation_id=correlation_id,
         status="BLOCKED",
         before=before,
         universe=UniverseData(
@@ -228,7 +229,15 @@ def _check_blocking_dq(dq_log, options):
     return check_blocking_dq_impl(dq_log, options)
 
 
-def run_simulation(portfolio, market_data, model, shelf, options, request_hash="no_hash"):
+def run_simulation(
+    portfolio,
+    market_data,
+    model,
+    shelf,
+    options,
+    request_hash="no_hash",
+    correlation_id="c_none",
+):
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
     diag_data = make_diagnostics_data()
 
@@ -279,6 +288,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             options=options,
             diagnostics=diag_data,
             request_hash=request_hash,
+            correlation_id=correlation_id,
         )
 
     intents, tax_impact = _generate_intents(
@@ -306,6 +316,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
             options=options,
             diagnostics=diag_data,
             request_hash=request_hash,
+            correlation_id=correlation_id,
         )
 
     intents = _apply_turnover_limit(
@@ -335,7 +346,7 @@ def run_simulation(portfolio, market_data, model, shelf, options, request_hash="
 
     return RebalanceResult(
         rebalance_run_id=run_id,
-        correlation_id="c_none",
+        correlation_id=correlation_id,
         status=f_stat,
         before=before,
         universe=UniverseData(

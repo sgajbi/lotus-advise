@@ -45,6 +45,7 @@ def test_simulate_endpoint_success(client):
     data = response.json()
     assert data["status"] == "READY"
     assert data["rebalance_run_id"].startswith("rr_")
+    assert data["correlation_id"] == "corr-1"
     assert "before" in data
     assert "after_simulated" in data
     assert "rule_results" in data
@@ -76,6 +77,17 @@ def test_simulate_payload_validation_error_422(client):
     response = client.post("/rebalance/simulate", json=payload, headers=headers)
     assert response.status_code == 422
     assert "detail" in response.json()
+
+
+def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):
+    payload = get_valid_payload()
+    response = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-corr-none"},
+    )
+    assert response.status_code == 200
+    assert response.json()["correlation_id"] == "c_none"
 
 
 def test_simulate_rfc7807_domain_error_mapping(client):
@@ -183,6 +195,8 @@ def test_analyze_endpoint_success(client):
 
     for scenario_result in body["results"].values():
         assert scenario_result["lineage"]["request_hash"].startswith(body["batch_run_id"])
+    assert body["results"]["baseline"]["correlation_id"] == "corr-batch-1:baseline"
+    assert body["results"]["position_cap"]["correlation_id"] == "corr-batch-1:position_cap"
     for metrics in body["comparison_metrics"].values():
         assert metrics["status"] in {"READY", "PENDING_REVIEW", "BLOCKED"}
         assert isinstance(metrics["security_intent_count"], int)

@@ -24,11 +24,17 @@ Implementation scope:
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id`
 - Output: `RebalanceResult` with status `READY | PENDING_REVIEW | BLOCKED` and `gate_decision`
+- Correlation behavior:
+  - response `correlation_id` echoes request `X-Correlation-Id` when provided
+  - otherwise defaults to `c_none`
 
 ### `POST /rebalance/analyze`
 - Purpose: multi-scenario what-if analysis using shared snapshots.
 - Optional header: `X-Correlation-Id`
 - Output: `BatchRebalanceResult` with scenario-level results/metrics/failures.
+- Scenario correlation behavior:
+  - when `X-Correlation-Id` is provided, each scenario result uses `{header}:{scenario_name}`
+  - when omitted, each scenario result uses `{batch_run_id}:{scenario_name}`
 
 ## Pipeline (`run_simulation`)
 
