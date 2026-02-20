@@ -10,6 +10,8 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
+      - DPM_SUPPORTABILITY_STORE_BACKEND=${DPM_SUPPORTABILITY_STORE_BACKEND:-IN_MEMORY}
+      - DPM_SUPPORTABILITY_POSTGRES_DSN=${DPM_SUPPORTABILITY_POSTGRES_DSN:-}
     healthcheck:
       test:
         [
@@ -27,3 +29,25 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  postgres:
+    image: postgres:17.6
+    profiles: ["postgres"]
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=dpm_supportability
+      - POSTGRES_USER=dpm
+      - POSTGRES_PASSWORD=dpm
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dpm -d dpm_supportability"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - dpm-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  dpm-postgres-data:

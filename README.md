@@ -135,6 +135,24 @@ docker-compose logs -f
 
 ```
 
+### Optional Postgres Profile (RFC-0024 rollout)
+
+```bash
+# Start API + Postgres profile
+docker-compose --profile postgres up -d --build
+```
+
+Environment variables for Postgres supportability backend:
+
+```bash
+DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES
+DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability
+```
+
+Note:
+* Postgres backend wiring is currently a scaffold. When enabled today, supportability endpoints
+  return explicit `503` details until repository operations are fully implemented.
+
 ### Accessing the Container
 
 * **API Root:** `http://localhost:8000`

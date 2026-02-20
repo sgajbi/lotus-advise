@@ -128,5 +128,14 @@ Current state is split between in-memory adapters (advisory and default DPM) and
   - API guardrail:
     - supportability endpoints map backend initialization errors to HTTP `503` with explicit
       detail codes (for example DSN/driver issues).
+- Implemented (slice 3):
+  - Added pinned runtime dependency:
+    - `psycopg[binary]==3.3.3`
+  - Added Docker Compose Postgres runtime profile:
+    - `docker-compose --profile postgres up -d --build`
+    - `postgres:17.6` with healthcheck and persistent named volume.
+  - Added deployment documentation for:
+    - `DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES`
+    - `DPM_SUPPORTABILITY_POSTGRES_DSN=...`
 - Next slice:
   - implement concrete PostgreSQL DPM supportability repository adapter with repository parity tests.
