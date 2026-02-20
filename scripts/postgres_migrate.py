@@ -1,8 +1,12 @@
 import argparse
 import os
+import sys
 from importlib.util import find_spec
+from pathlib import Path
 
-from src.infrastructure.postgres_migrations import apply_postgres_migrations
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 
 def main() -> int:
@@ -31,6 +35,8 @@ def main() -> int:
         raise RuntimeError("POSTGRES_MIGRATION_DRIVER_MISSING")
     import psycopg
     from psycopg.rows import dict_row
+
+    from src.infrastructure.postgres_migrations import apply_postgres_migrations
 
     targets = _resolve_targets(args.target, args.dpm_dsn, args.proposals_dsn)
     for namespace, dsn in targets:

@@ -23,15 +23,16 @@ class _FakeConnection:
         self.schema_migrations: dict[tuple[str, str], str] = {}
         self.applied_statements: list[str] = []
         self.commit_count = 0
+        self.rollback_count = 0
         self.lock_calls: list[int] = []
         self.unlock_calls: list[int] = []
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
-        if sql == "SELECT pg_advisory_lock(%s)":
+        if sql == "SELECT pg_advisory_lock(%s::bigint)":
             self.lock_calls.append(int(args[0]))
             return _FakeCursor()
-        if sql == "SELECT pg_advisory_unlock(%s)":
+        if sql == "SELECT pg_advisory_unlock(%s::bigint)":
             self.unlock_calls.append(int(args[0]))
             return _FakeCursor()
         if sql.startswith("CREATE TABLE IF NOT EXISTS schema_migrations"):
@@ -53,6 +54,9 @@ class _FakeConnection:
     def commit(self):
         self.commit_count += 1
 
+    def rollback(self):
+        self.rollback_count += 1
+
 
 def test_apply_postgres_migrations_is_forward_only_and_idempotent():
     connection = _FakeConnection()
@@ -60,7 +64,7 @@ def test_apply_postgres_migrations_is_forward_only_and_idempotent():
     apply_postgres_migrations(connection=connection, namespace="dpm")
     first_count = len(connection.applied_statements)
     assert first_count > 0
-    assert ("dpm", "0001") in connection.schema_migrations
+    assert ("dpm", "dpm:0001") in connection.schema_migrations
     assert connection.commit_count == 1
     assert connection.lock_calls == [_migration_lock_key(namespace="dpm")]
     assert connection.unlock_calls == [_migration_lock_key(namespace="dpm")]
@@ -82,6 +86,7 @@ def test_apply_postgres_migrations_detects_checksum_mismatch(monkeypatch, tmp_pa
     with pytest.raises(RuntimeError) as exc:
         apply_postgres_migrations(connection=connection, namespace="custom")
     assert str(exc.value) == "POSTGRES_MIGRATION_CHECKSUM_MISMATCH:custom:0001"
+    assert connection.rollback_count == 1
     assert connection.lock_calls == [_migration_lock_key(namespace="custom")]
     assert connection.unlock_calls == [_migration_lock_key(namespace="custom")]
 

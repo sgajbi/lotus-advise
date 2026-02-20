@@ -44,9 +44,9 @@ class _FakeConnection:
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
-        if sql == "SELECT pg_advisory_lock(%s)":
+        if sql == "SELECT pg_advisory_lock(%s::bigint)":
             return _FakeCursor(None)
-        if sql == "SELECT pg_advisory_unlock(%s)":
+        if sql == "SELECT pg_advisory_unlock(%s::bigint)":
             return _FakeCursor(None)
         if sql.startswith("CREATE TABLE"):
             return _FakeCursor(None)
@@ -382,6 +382,9 @@ class _FakeConnection:
 
     def commit(self):
         self.commits += 1
+
+    def rollback(self):
+        return None
 
     def close(self):
         return None

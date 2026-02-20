@@ -36,9 +36,9 @@ class _FakeConnection:
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
-        if sql == "SELECT pg_advisory_lock(%s)":
+        if sql == "SELECT pg_advisory_lock(%s::bigint)":
             return _FakeCursor()
-        if sql == "SELECT pg_advisory_unlock(%s)":
+        if sql == "SELECT pg_advisory_unlock(%s::bigint)":
             return _FakeCursor()
         if sql.startswith("CREATE TABLE"):
             return _FakeCursor()
@@ -200,6 +200,9 @@ class _FakeConnection:
         raise AssertionError(f"Unhandled SQL in fake connection: {sql}")
 
     def commit(self):
+        return None
+
+    def rollback(self):
         return None
 
     def close(self):

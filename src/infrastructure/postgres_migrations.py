@@ -15,11 +15,14 @@ class PostgresMigration:
 
 def apply_postgres_migrations(*, connection, namespace: str) -> None:
     lock_key = _migration_lock_key(namespace=namespace)
-    connection.execute("SELECT pg_advisory_lock(%s)", (lock_key,))
+    connection.execute("SELECT pg_advisory_lock(%s::bigint)", (lock_key,))
     try:
         _apply_migrations_locked(connection=connection, namespace=namespace)
+    except Exception:
+        connection.rollback()
+        raise
     finally:
-        connection.execute("SELECT pg_advisory_unlock(%s)", (lock_key,))
+        connection.execute("SELECT pg_advisory_unlock(%s::bigint)", (lock_key,))
 
 
 def _apply_migrations_locked(*, connection, namespace: str) -> None:
@@ -43,7 +46,17 @@ def _apply_migrations_locked(*, connection, namespace: str) -> None:
         """,
         (namespace,),
     ).fetchall()
-    applied = {str(row["version"]): str(row["checksum"]) for row in rows}
+    applied: dict[str, str] = {}
+    for row in rows:
+        version = _extract_namespace_version(
+            namespace=namespace,
+            stored_version=str(row["version"]),
+        )
+        checksum = str(row["checksum"])
+        existing_checksum = applied.get(version)
+        if existing_checksum is not None and existing_checksum != checksum:
+            raise RuntimeError(f"POSTGRES_MIGRATION_CHECKSUM_MISMATCH:{namespace}:{version}")
+        applied[version] = checksum
     for migration in migrations:
         existing_checksum = applied.get(migration.version)
         if existing_checksum is not None:
@@ -64,7 +77,7 @@ def _apply_migrations_locked(*, connection, namespace: str) -> None:
             ) VALUES (%s, %s, %s, %s)
             """,
             (
-                migration.version,
+                _stored_version(namespace=namespace, version=migration.version),
                 namespace,
                 migration.checksum,
                 datetime.now(timezone.utc).isoformat(),
@@ -102,4 +115,15 @@ def _load_migrations(*, namespace: str) -> list[PostgresMigration]:
 
 def _migration_lock_key(*, namespace: str) -> int:
     digest = hashlib.sha256(namespace.encode("utf-8")).digest()[:8]
-    return int.from_bytes(digest, byteorder="big", signed=False)
+    return int.from_bytes(digest, byteorder="big", signed=True)
+
+
+def _stored_version(*, namespace: str, version: str) -> str:
+    return f"{namespace}:{version}"
+
+
+def _extract_namespace_version(*, namespace: str, stored_version: str) -> str:
+    prefix = f"{namespace}:"
+    if stored_version.startswith(prefix):
+        return stored_version[len(prefix) :]
+    return stored_version
