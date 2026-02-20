@@ -224,6 +224,7 @@ Runtime toggles:
 * `DPM_ASYNC_OPERATIONS_ENABLED` (`true` by default)
 * `DPM_ASYNC_OPERATIONS_TTL_SECONDS` (`86400` by default)
 * `DPM_ASYNC_EXECUTION_MODE` (`INLINE` or `ACCEPT_ONLY`, default `INLINE`)
+* `DPM_ASYNC_MANUAL_EXECUTION_ENABLED` (`true` by default)
 
 ### POST `/rebalance/proposals/simulate`
 

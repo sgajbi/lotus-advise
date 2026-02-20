@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
@@ -27,7 +27,12 @@ from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.dpm.engine import run_simulation
-from src.core.dpm_runs import DpmAsyncAcceptedResponse
+from src.core.dpm_runs import (
+    DpmAsyncAcceptedResponse,
+    DpmAsyncOperationStatusResponse,
+    DpmRunNotFoundError,
+    DpmRunSupportService,
+)
 from src.core.models import (
     BatchRebalanceRequest,
     BatchRebalanceResult,
@@ -307,6 +312,10 @@ def _resolve_async_execution_mode() -> str:
     return "INLINE"
 
 
+def _async_manual_execution_enabled() -> bool:
+    return _env_flag("DPM_ASYNC_MANUAL_EXECUTION_ENABLED", True)
+
+
 def _to_invalid_options_error(exc: ValidationError) -> str:
     first_error = exc.errors()[0]
     return f"INVALID_OPTIONS: {first_error.get('msg', 'validation failed')}"
@@ -528,29 +537,59 @@ def analyze_scenarios_async(
             detail="DPM_ASYNC_OPERATIONS_DISABLED",
         )
     service = get_dpm_run_support_service()
-    accepted = service.submit_analyze_async(correlation_id=correlation_id)
+    accepted = service.submit_analyze_async(
+        correlation_id=correlation_id,
+        request_json=request.model_dump(mode="json"),
+    )
     if response is not None:
         response.headers["X-Correlation-Id"] = accepted.correlation_id
     if _resolve_async_execution_mode() == "ACCEPT_ONLY":
         return accepted
-    service.mark_operation_running(operation_id=accepted.operation_id)
-    try:
-        result = _execute_batch_analysis(request=request, correlation_id=accepted.correlation_id)
-        service.complete_operation_success(
-            operation_id=accepted.operation_id,
-            result_json=result.model_dump(mode="json"),
-        )
-    except Exception as exc:
-        logger.exception(
-            "Asynchronous batch analysis failed. OperationID=%s",
-            accepted.operation_id,
-        )
-        service.complete_operation_failure(
-            operation_id=accepted.operation_id,
-            code=type(exc).__name__,
-            message=str(exc),
-        )
+    _run_analyze_async_operation(operation_id=accepted.operation_id, service=service)
     return accepted
+
+
+@app.post(
+    "/rebalance/operations/{operation_id}/execute",
+    response_model=DpmAsyncOperationStatusResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["DPM Run Supportability"],
+    summary="Execute Pending DPM Async Operation",
+    description=(
+        "Executes one pending asynchronous DPM analyze operation. "
+        "Intended for orchestrated `ACCEPT_ONLY` mode flows."
+    ),
+    responses={
+        200: {"description": "Operation execution completed; returns terminal status payload."},
+        404: {"description": "Operation not found or manual execution disabled."},
+        409: {"description": "Operation is not in executable pending state."},
+    },
+)
+def execute_dpm_async_operation(
+    operation_id: Annotated[
+        str,
+        Path(description="Asynchronous operation identifier.", examples=["dop_001"]),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)],
+) -> DpmAsyncOperationStatusResponse:
+    if not _env_flag("DPM_ASYNC_OPERATIONS_ENABLED", True):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_ASYNC_OPERATIONS_DISABLED",
+        )
+    if not _async_manual_execution_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_ASYNC_MANUAL_EXECUTION_DISABLED",
+        )
+    try:
+        _run_analyze_async_operation(operation_id=operation_id, service=service)
+    except DpmRunNotFoundError as exc:
+        detail = str(exc)
+        if detail == "DPM_ASYNC_OPERATION_NOT_EXECUTABLE":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail) from exc
+    return service.get_async_operation(operation_id=operation_id)
 
 
 def _execute_batch_analysis(
@@ -616,6 +655,29 @@ def _execute_batch_analysis(
         failed_scenarios=failed_scenarios,
         warnings=warnings,
     )
+
+
+def _run_analyze_async_operation(*, operation_id: str, service: DpmRunSupportService) -> None:
+    request_json, operation_correlation_id = service.prepare_analyze_operation_execution(
+        operation_id=operation_id
+    )
+    try:
+        batch_request = BatchRebalanceRequest.model_validate(request_json)
+        result = _execute_batch_analysis(
+            request=batch_request,
+            correlation_id=operation_correlation_id,
+        )
+        service.complete_operation_success(
+            operation_id=operation_id,
+            result_json=result.model_dump(mode="json"),
+        )
+    except Exception as exc:
+        logger.exception("Asynchronous batch analysis failed. OperationID=%s", operation_id)
+        service.complete_operation_failure(
+            operation_id=operation_id,
+            code=type(exc).__name__,
+            message=str(exc),
+        )
 
 
 @app.post(

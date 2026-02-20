@@ -123,6 +123,10 @@ class DpmAsyncAcceptedResponse(BaseModel):
         description="Relative API path for operation status retrieval.",
         examples=["/rebalance/operations/dop_001"],
     )
+    execute_url: str = Field(
+        description="Relative API path to manually execute pending operation.",
+        examples=["/rebalance/operations/dop_001/execute"],
+    )
 
 
 class DpmAsyncError(BaseModel):
@@ -219,6 +223,11 @@ class DpmAsyncOperationRecord(BaseModel):
         default=None,
         description="Internal serialized failure payload.",
         examples=[{"code": "RuntimeError", "message": "boom"}],
+    )
+    request_json: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Internal request payload snapshot for deferred execution.",
+        examples=[{"scenarios": {"baseline": {"options": {}}}}],
     )
 
 

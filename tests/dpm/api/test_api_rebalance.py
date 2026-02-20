@@ -226,7 +226,10 @@ def test_dpm_async_operation_lookup_not_found_and_disabled(client, monkeypatch):
 
 def test_dpm_async_operation_lookup_by_id_and_correlation(client):
     service = get_dpm_run_support_service()
-    accepted = service.submit_analyze_async(correlation_id="corr-dpm-async-support-1")
+    accepted = service.submit_analyze_async(
+        correlation_id="corr-dpm-async-support-1",
+        request_json={"scenarios": {"baseline": {"options": {}}}},
+    )
 
     by_operation = client.get(f"/rebalance/operations/{accepted.operation_id}")
     assert by_operation.status_code == 200
@@ -249,6 +252,7 @@ def test_dpm_async_operation_ttl_expiry_by_id_and_correlation(client, monkeypatc
     service = get_dpm_run_support_service()
     accepted = service.submit_analyze_async(
         correlation_id="corr-dpm-async-ttl-expired",
+        request_json={"scenarios": {"baseline": {"options": {}}}},
         created_at=datetime.now(timezone.utc) - timedelta(seconds=10),
     )
 
@@ -403,6 +407,10 @@ def test_analyze_async_accept_and_lookup_succeeded(client):
     assert accepted_body["operation_type"] == "ANALYZE_SCENARIOS"
     assert accepted_body["status"] == "PENDING"
     assert accepted_body["correlation_id"] == "corr-batch-async-1"
+    assert (
+        accepted_body["execute_url"]
+        == f"/rebalance/operations/{accepted_body['operation_id']}/execute"
+    )
     assert accepted.headers["X-Correlation-Id"] == "corr-batch-async-1"
     operation_id = accepted_body["operation_id"]
 
@@ -496,6 +504,50 @@ def test_analyze_async_accept_only_mode_keeps_operation_pending(client, monkeypa
     assert by_correlation.json()["status"] == "PENDING"
 
 
+def test_analyze_async_accept_only_mode_can_be_executed_manually(client, monkeypatch):
+    monkeypatch.setenv("DPM_ASYNC_EXECUTION_MODE", "ACCEPT_ONLY")
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+
+    accepted = client.post(
+        "/rebalance/analyze/async",
+        json=payload,
+        headers={"X-Correlation-Id": "corr-batch-async-manual"},
+    )
+    assert accepted.status_code == 202
+    operation_id = accepted.json()["operation_id"]
+
+    executed = client.post(f"/rebalance/operations/{operation_id}/execute")
+    assert executed.status_code == 200
+    executed_body = executed.json()
+    assert executed_body["operation_id"] == operation_id
+    assert executed_body["status"] == "SUCCEEDED"
+    assert executed_body["result"]["batch_run_id"].startswith("batch_")
+
+
+def test_analyze_async_manual_execute_not_found_not_executable_and_disabled(client, monkeypatch):
+    missing = client.post("/rebalance/operations/dop_missing/execute")
+    assert missing.status_code == 404
+    assert missing.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_FOUND"
+
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+    accepted = client.post("/rebalance/analyze/async", json=payload)
+    assert accepted.status_code == 202
+    operation_id = accepted.json()["operation_id"]
+
+    non_executable = client.post(f"/rebalance/operations/{operation_id}/execute")
+    assert non_executable.status_code == 409
+    assert non_executable.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_EXECUTABLE"
+
+    monkeypatch.setenv("DPM_ASYNC_MANUAL_EXECUTION_ENABLED", "false")
+    disabled = client.post(f"/rebalance/operations/{operation_id}/execute")
+    assert disabled.status_code == 404
+    assert disabled.json()["detail"] == "DPM_ASYNC_MANUAL_EXECUTION_DISABLED"
+
+
 def test_analyze_async_invalid_execution_mode_falls_back_to_inline(client, monkeypatch):
     monkeypatch.setenv("DPM_ASYNC_EXECUTION_MODE", "INVALID_MODE")
     payload = get_valid_payload()
@@ -579,6 +631,11 @@ def test_openapi_async_analyze_documents_correlation_header(client):
     assert "X-Correlation-Id" in response_headers
     assert response_headers["X-Correlation-Id"]["description"]
     assert response_headers["X-Correlation-Id"]["schema"]["type"] == "string"
+    accepted_schema = openapi["components"]["schemas"]["DpmAsyncAcceptedResponse"]
+    assert "execute_url" in accepted_schema["properties"]
+    assert accepted_schema["properties"]["execute_url"]["description"]
+    assert accepted_schema["properties"]["execute_url"]["examples"]
+    assert "/rebalance/operations/{operation_id}/execute" in openapi["paths"]
 
 
 def test_analyze_rejects_invalid_scenario_name(client):

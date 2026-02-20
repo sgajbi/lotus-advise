@@ -13,6 +13,7 @@ Add asynchronous operation APIs for long-running DPM workloads, starting with ba
 - `POST /rebalance/analyze/async`
 - `GET /rebalance/operations/{operation_id}`
 - `GET /rebalance/operations/by-correlation/{correlation_id}`
+- `POST /rebalance/operations/{operation_id}/execute`
 
 ## 2. Problem Statement
 
@@ -44,10 +45,13 @@ Large what-if batches can be slow and are currently synchronous, which creates t
   - Returns `202 Accepted` with operation resource.
   - Uses request `X-Correlation-Id` when provided; otherwise generates one.
   - Echoes resolved `X-Correlation-Id` in response header.
+  - Includes `execute_url` in accepted payload for deferred execution workflows.
 - `GET /rebalance/operations/{operation_id}`
   - Returns operation state and, once complete, normalized result/error envelope.
 - `GET /rebalance/operations/by-correlation/{correlation_id}`
   - Deterministic lookup for support teams and orchestrators.
+- `POST /rebalance/operations/{operation_id}/execute`
+  - Executes pending operation for `ACCEPT_ONLY` flows and returns updated status payload.
 
 ### 4.2 Storage and Compatibility
 
@@ -84,6 +88,8 @@ Implemented in current codebase:
   - `DPM_ASYNC_EXECUTION_MODE=INLINE` (default, execute immediately)
   - `DPM_ASYNC_EXECUTION_MODE=ACCEPT_ONLY` (accept and persist `PENDING`; execution deferred)
   - Invalid execution mode values fall back to `INLINE`.
+- Manual execute toggle:
+  - `DPM_ASYNC_MANUAL_EXECUTION_ENABLED` (default `true`)
 
 Deferred to later slices:
 - Worker/queue-backed execution mode.

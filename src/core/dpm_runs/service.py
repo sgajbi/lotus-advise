@@ -94,6 +94,7 @@ class DpmRunSupportService:
         self,
         *,
         correlation_id: Optional[str],
+        request_json: dict,
         created_at: Optional[datetime] = None,
     ) -> DpmAsyncAcceptedResponse:
         self._cleanup_expired_operations()
@@ -109,6 +110,7 @@ class DpmRunSupportService:
             finished_at=None,
             result_json=None,
             error_json=None,
+            request_json=request_json,
         )
         self._repository.create_operation(operation)
         return self._to_async_accepted(operation)
@@ -160,6 +162,18 @@ class DpmRunSupportService:
             raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
         return self._to_async_status(operation)
 
+    def prepare_analyze_operation_execution(self, *, operation_id: str) -> tuple[dict, str]:
+        self._cleanup_expired_operations()
+        operation = self._repository.get_operation(operation_id=operation_id)
+        if operation is None:
+            raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
+        if operation.status != "PENDING" or operation.request_json is None:
+            raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_EXECUTABLE")
+        operation.status = "RUNNING"
+        operation.started_at = _utc_now()
+        self._repository.update_operation(operation)
+        return operation.request_json, operation.correlation_id
+
     def _to_lookup_response(self, run: DpmRunRecord) -> DpmRunLookupResponse:
         return DpmRunLookupResponse(
             rebalance_run_id=run.rebalance_run_id,
@@ -179,6 +193,7 @@ class DpmRunSupportService:
             correlation_id=operation.correlation_id,
             created_at=operation.created_at.isoformat(),
             status_url=f"/rebalance/operations/{operation.operation_id}",
+            execute_url=f"/rebalance/operations/{operation.operation_id}/execute",
         )
 
     def _to_async_status(

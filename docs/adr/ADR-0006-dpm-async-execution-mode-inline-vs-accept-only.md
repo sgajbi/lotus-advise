@@ -15,6 +15,8 @@ Introduce runtime configuration:
 - `DPM_ASYNC_EXECUTION_MODE`
   - `INLINE` (default): accept operation and execute immediately in the API process.
   - `ACCEPT_ONLY`: accept operation and persist status as `PENDING`; no inline execution.
+- `DPM_ASYNC_MANUAL_EXECUTION_ENABLED`
+  - Enables `POST /rebalance/operations/{operation_id}/execute` for deferred execution flows.
 
 Fallback behavior:
 - Invalid values default to `INLINE` to preserve backward-compatible behavior.
