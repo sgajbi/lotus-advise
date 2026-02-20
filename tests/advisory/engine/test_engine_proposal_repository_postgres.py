@@ -2,10 +2,12 @@ from datetime import datetime, timezone
 
 import src.infrastructure.proposals.postgres as postgres_module
 from src.core.proposals.models import (
+    ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalRecord,
     ProposalVersionRecord,
+    ProposalWorkflowEventRecord,
 )
 from src.infrastructure.proposals.postgres import PostgresProposalRepository
 
@@ -28,6 +30,8 @@ class _FakeConnection:
         self.operations = {}
         self.proposals = {}
         self.versions = {}
+        self.events = {}
+        self.approvals = {}
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
@@ -140,6 +144,42 @@ class _FakeConnection:
             rows = [row for (pid, _), row in self.versions.items() if pid == proposal_id]
             rows = sorted(rows, key=lambda row: row["version_no"], reverse=True)
             return _FakeCursor(rows[0] if rows else None)
+        if "INSERT INTO proposal_workflow_events" in sql:
+            self.events[args[0]] = {
+                "event_id": args[0],
+                "proposal_id": args[1],
+                "event_type": args[2],
+                "from_state": args[3],
+                "to_state": args[4],
+                "actor_id": args[5],
+                "occurred_at": args[6],
+                "reason_json": args[7],
+                "related_version_no": args[8],
+            }
+            return _FakeCursor()
+        if (
+            "FROM proposal_workflow_events" in sql
+            and "ORDER BY occurred_at ASC, event_id ASC" in sql
+        ):
+            rows = [row for row in self.events.values() if row["proposal_id"] == args[0]]
+            rows = sorted(rows, key=lambda row: (row["occurred_at"], row["event_id"]))
+            return _FakeCursor(rows=rows)
+        if "INSERT INTO proposal_approvals" in sql:
+            self.approvals[args[0]] = {
+                "approval_id": args[0],
+                "proposal_id": args[1],
+                "approval_type": args[2],
+                "approved": args[3],
+                "actor_id": args[4],
+                "occurred_at": args[5],
+                "details_json": args[6],
+                "related_version_no": args[7],
+            }
+            return _FakeCursor()
+        if "FROM proposal_approvals" in sql and "ORDER BY occurred_at ASC, approval_id ASC" in sql:
+            rows = [row for row in self.approvals.values() if row["proposal_id"] == args[0]]
+            rows = sorted(rows, key=lambda row: (row["occurred_at"], row["approval_id"]))
+            return _FakeCursor(rows=rows)
         raise AssertionError(f"Unhandled SQL in fake connection: {sql}")
 
     def commit(self):
@@ -248,18 +288,6 @@ def test_postgres_repository_create_update_and_lookup_operation(monkeypatch):
     assert by_correlation is not None
     assert by_correlation.operation_id == "pop_001"
     assert by_correlation.status == "SUCCEEDED"
-
-
-def test_postgres_repository_unimplemented_methods_report_stable_error(monkeypatch):
-    repository, _ = _build_repository(monkeypatch)
-    try:
-        repository.append_event(event=None)
-    except RuntimeError as exc:
-        assert str(exc) == "PROPOSAL_POSTGRES_NOT_IMPLEMENTED"
-    else:
-        raise AssertionError(
-            "Expected PROPOSAL_POSTGRES_NOT_IMPLEMENTED for missing parity methods"
-        )
 
 
 def test_postgres_repository_proposal_create_update_get_and_list(monkeypatch):
@@ -400,3 +428,113 @@ def test_postgres_repository_version_create_get_and_current(monkeypatch):
 
     empty_current = repository.get_current_version(proposal_id="pp_missing")
     assert empty_current is None
+
+
+def test_postgres_repository_workflow_events_and_approvals_roundtrip(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    first_at = datetime.now(timezone.utc)
+    second_at = datetime.now(timezone.utc)
+
+    first_event = ProposalWorkflowEventRecord(
+        event_id="pwe_001",
+        proposal_id="pp_001",
+        event_type="CREATED",
+        from_state=None,
+        to_state="DRAFT",
+        actor_id="advisor_1",
+        occurred_at=first_at,
+        reason_json={"comment": "created"},
+        related_version_no=1,
+    )
+    second_event = ProposalWorkflowEventRecord(
+        event_id="pwe_002",
+        proposal_id="pp_001",
+        event_type="SUBMITTED_FOR_RISK_REVIEW",
+        from_state="DRAFT",
+        to_state="RISK_REVIEW",
+        actor_id="advisor_1",
+        occurred_at=second_at,
+        reason_json={"comment": "submit"},
+        related_version_no=1,
+    )
+    repository.append_event(first_event)
+    repository.append_event(second_event)
+
+    events = repository.list_events(proposal_id="pp_001")
+    assert [event.event_id for event in events] == ["pwe_001", "pwe_002"]
+    assert events[1].to_state == "RISK_REVIEW"
+    assert events[1].reason_json == {"comment": "submit"}
+
+    approval_at = datetime.now(timezone.utc)
+    approval = ProposalApprovalRecordData(
+        approval_id="pap_001",
+        proposal_id="pp_001",
+        approval_type="RISK",
+        approved=True,
+        actor_id="risk_officer_1",
+        occurred_at=approval_at,
+        details_json={"ticket_id": "risk-42"},
+        related_version_no=1,
+    )
+    repository.create_approval(approval)
+    approvals = repository.list_approvals(proposal_id="pp_001")
+    assert len(approvals) == 1
+    assert approvals[0].approval_id == "pap_001"
+    assert approvals[0].details_json == {"ticket_id": "risk-42"}
+
+
+def test_postgres_repository_transition_proposal_writes_all_records(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    now = datetime.now(timezone.utc)
+    proposal = ProposalRecord(
+        proposal_id="pp_002",
+        portfolio_id="pf_repo",
+        mandate_id="mandate_1",
+        jurisdiction="SG",
+        created_by="advisor_a",
+        created_at=now,
+        last_event_at=now,
+        current_state="RISK_REVIEW",
+        current_version_no=1,
+        title="Needs Risk Signoff",
+        advisor_notes="priority",
+    )
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_010",
+        proposal_id="pp_002",
+        event_type="SUBMITTED_FOR_RISK_REVIEW",
+        from_state="DRAFT",
+        to_state="RISK_REVIEW",
+        actor_id="advisor_a",
+        occurred_at=now,
+        reason_json={"comment": "submitted"},
+        related_version_no=1,
+    )
+    approval = ProposalApprovalRecordData(
+        approval_id="pap_010",
+        proposal_id="pp_002",
+        approval_type="RISK",
+        approved=True,
+        actor_id="risk_1",
+        occurred_at=now,
+        details_json={"ticket_id": "risk-010"},
+        related_version_no=1,
+    )
+
+    result = repository.transition_proposal(proposal=proposal, event=event, approval=approval)
+    assert result.proposal.proposal_id == "pp_002"
+    assert result.event.event_id == "pwe_010"
+    assert result.approval is not None
+    assert result.approval.approval_id == "pap_010"
+
+    stored_proposal = repository.get_proposal(proposal_id="pp_002")
+    assert stored_proposal is not None
+    assert stored_proposal.current_state == "RISK_REVIEW"
+    stored_event_ids = [
+        stored_event.event_id for stored_event in repository.list_events(proposal_id="pp_002")
+    ]
+    assert stored_event_ids == ["pwe_010"]
+    assert [
+        stored_approval.approval_id
+        for stored_approval in repository.list_approvals(proposal_id="pp_002")
+    ] == ["pap_010"]

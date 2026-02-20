@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 13) |
+| **Status** | IN PROGRESS (SLICE 14) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -255,5 +255,23 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - proposal create/update/get/list behavior
     - version create/get/current behavior
     - cursor paging and invalid-cursor semantics
+- Implemented (slice 14):
+  - Added advisory Postgres repository lifecycle parity for workflow and approvals:
+    - workflow events:
+      - `append_event`
+      - `list_events`
+    - approvals:
+      - `create_approval`
+      - `list_approvals`
+    - transactional lifecycle transition:
+      - `transition_proposal` (proposal upsert + event append + optional approval write)
+  - Added advisory Postgres table bootstrap for:
+    - `proposal_workflow_events`
+    - `proposal_approvals`
+  - Added repository unit coverage for:
+    - workflow event roundtrip and ordering behavior
+    - approval roundtrip behavior
+    - transition persistence semantics across proposal/event/approval records
 - Next slice:
-  - advisory Postgres repository CRUD parity implementation and repository contract tests.
+  - advisory Postgres live integration contract tests (docker-gated) and manual runtime
+    verification in uvicorn and Docker profiles.

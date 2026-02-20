@@ -5,10 +5,13 @@ from importlib.util import find_spec
 from typing import Optional
 
 from src.core.proposals.models import (
+    ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalRecord,
+    ProposalTransitionResult,
     ProposalVersionRecord,
+    ProposalWorkflowEventRecord,
 )
 
 
@@ -125,10 +128,14 @@ class PostgresProposalRepository:
         return _to_operation(row)
 
     def create_proposal(self, proposal: ProposalRecord) -> None:
-        self._upsert_proposal(proposal)
+        with closing(self._connect()) as connection:
+            self._upsert_proposal(connection=connection, proposal=proposal)
+            connection.commit()
 
     def update_proposal(self, proposal: ProposalRecord) -> None:
-        self._upsert_proposal(proposal)
+        with closing(self._connect()) as connection:
+            self._upsert_proposal(connection=connection, proposal=proposal)
+            connection.commit()
 
     def get_proposal(self, *, proposal_id: str) -> Optional[ProposalRecord]:
         query = """
@@ -311,8 +318,74 @@ class PostgresProposalRepository:
             row = connection.execute(query, (proposal_id,)).fetchone()
         return _to_version(row)
 
-    def __getattr__(self, _name: str):
-        raise RuntimeError("PROPOSAL_POSTGRES_NOT_IMPLEMENTED")
+    def append_event(self, event: ProposalWorkflowEventRecord) -> None:
+        with closing(self._connect()) as connection:
+            self._insert_event(connection=connection, event=event)
+            connection.commit()
+
+    def list_events(self, *, proposal_id: str) -> list[ProposalWorkflowEventRecord]:
+        query = """
+            SELECT
+                event_id,
+                proposal_id,
+                event_type,
+                from_state,
+                to_state,
+                actor_id,
+                occurred_at,
+                reason_json,
+                related_version_no
+            FROM proposal_workflow_events
+            WHERE proposal_id = %s
+            ORDER BY occurred_at ASC, event_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (proposal_id,)).fetchall()
+        return [_to_event(row) for row in rows]
+
+    def create_approval(self, approval: ProposalApprovalRecordData) -> None:
+        with closing(self._connect()) as connection:
+            self._insert_approval(connection=connection, approval=approval)
+            connection.commit()
+
+    def list_approvals(self, *, proposal_id: str) -> list[ProposalApprovalRecordData]:
+        query = """
+            SELECT
+                approval_id,
+                proposal_id,
+                approval_type,
+                approved,
+                actor_id,
+                occurred_at,
+                details_json,
+                related_version_no
+            FROM proposal_approvals
+            WHERE proposal_id = %s
+            ORDER BY occurred_at ASC, approval_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (proposal_id,)).fetchall()
+        return [_to_approval(row) for row in rows]
+
+    def transition_proposal(
+        self,
+        *,
+        proposal: ProposalRecord,
+        event: ProposalWorkflowEventRecord,
+        approval: Optional[ProposalApprovalRecordData],
+    ) -> ProposalTransitionResult:
+        with closing(self._connect()) as connection:
+            self._insert_event(connection=connection, event=event)
+            if approval is not None:
+                self._insert_approval(connection=connection, approval=approval)
+            self._upsert_proposal(connection=connection, proposal=proposal)
+            connection.commit()
+
+        return ProposalTransitionResult(
+            proposal=proposal,
+            event=event,
+            approval=approval,
+        )
 
     def _connect(self):
         psycopg, dict_row = _import_psycopg()
@@ -385,6 +458,35 @@ class PostgresProposalRepository:
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS proposal_workflow_events (
+                    event_id TEXT PRIMARY KEY,
+                    proposal_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    from_state TEXT NULL,
+                    to_state TEXT NOT NULL,
+                    actor_id TEXT NOT NULL,
+                    occurred_at TEXT NOT NULL,
+                    reason_json TEXT NOT NULL,
+                    related_version_no INTEGER NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS proposal_approvals (
+                    approval_id TEXT PRIMARY KEY,
+                    proposal_id TEXT NOT NULL,
+                    approval_type TEXT NOT NULL,
+                    approved BOOLEAN NOT NULL,
+                    actor_id TEXT NOT NULL,
+                    occurred_at TEXT NOT NULL,
+                    details_json TEXT NOT NULL,
+                    related_version_no INTEGER NULL
+                )
+                """
+            )
             connection.commit()
 
     def _upsert_operation(self, operation: ProposalAsyncOperationRecord) -> None:
@@ -436,7 +538,7 @@ class PostgresProposalRepository:
             )
             connection.commit()
 
-    def _upsert_proposal(self, proposal: ProposalRecord) -> None:
+    def _upsert_proposal(self, *, connection, proposal: ProposalRecord) -> None:
         query = """
             INSERT INTO proposal_records (
                 proposal_id,
@@ -463,24 +565,95 @@ class PostgresProposalRepository:
                 title=excluded.title,
                 advisor_notes=excluded.advisor_notes
         """
-        with closing(self._connect()) as connection:
-            connection.execute(
-                query,
-                (
-                    proposal.proposal_id,
-                    proposal.portfolio_id,
-                    proposal.mandate_id,
-                    proposal.jurisdiction,
-                    proposal.created_by,
-                    proposal.created_at.isoformat(),
-                    proposal.last_event_at.isoformat(),
-                    proposal.current_state,
-                    proposal.current_version_no,
-                    proposal.title,
-                    proposal.advisor_notes,
-                ),
-            )
-            connection.commit()
+        connection.execute(
+            query,
+            (
+                proposal.proposal_id,
+                proposal.portfolio_id,
+                proposal.mandate_id,
+                proposal.jurisdiction,
+                proposal.created_by,
+                proposal.created_at.isoformat(),
+                proposal.last_event_at.isoformat(),
+                proposal.current_state,
+                proposal.current_version_no,
+                proposal.title,
+                proposal.advisor_notes,
+            ),
+        )
+
+    def _insert_event(self, *, connection, event: ProposalWorkflowEventRecord) -> None:
+        query = """
+            INSERT INTO proposal_workflow_events (
+                event_id,
+                proposal_id,
+                event_type,
+                from_state,
+                to_state,
+                actor_id,
+                occurred_at,
+                reason_json,
+                related_version_no
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (event_id) DO UPDATE SET
+                proposal_id=excluded.proposal_id,
+                event_type=excluded.event_type,
+                from_state=excluded.from_state,
+                to_state=excluded.to_state,
+                actor_id=excluded.actor_id,
+                occurred_at=excluded.occurred_at,
+                reason_json=excluded.reason_json,
+                related_version_no=excluded.related_version_no
+        """
+        connection.execute(
+            query,
+            (
+                event.event_id,
+                event.proposal_id,
+                event.event_type,
+                event.from_state,
+                event.to_state,
+                event.actor_id,
+                event.occurred_at.isoformat(),
+                _json_dump(event.reason_json),
+                event.related_version_no,
+            ),
+        )
+
+    def _insert_approval(self, *, connection, approval: ProposalApprovalRecordData) -> None:
+        query = """
+            INSERT INTO proposal_approvals (
+                approval_id,
+                proposal_id,
+                approval_type,
+                approved,
+                actor_id,
+                occurred_at,
+                details_json,
+                related_version_no
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (approval_id) DO UPDATE SET
+                proposal_id=excluded.proposal_id,
+                approval_type=excluded.approval_type,
+                approved=excluded.approved,
+                actor_id=excluded.actor_id,
+                occurred_at=excluded.occurred_at,
+                details_json=excluded.details_json,
+                related_version_no=excluded.related_version_no
+        """
+        connection.execute(
+            query,
+            (
+                approval.approval_id,
+                approval.proposal_id,
+                approval.approval_type,
+                approval.approved,
+                approval.actor_id,
+                approval.occurred_at.isoformat(),
+                _json_dump(approval.details_json),
+                approval.related_version_no,
+            ),
+        )
 
 
 def _import_psycopg():
@@ -571,4 +744,31 @@ def _to_version(row) -> Optional[ProposalVersionRecord]:
         artifact_json=json.loads(row["artifact_json"]),
         evidence_bundle_json=json.loads(row["evidence_bundle_json"]),
         gate_decision_json=_optional_load_json(row["gate_decision_json"]),
+    )
+
+
+def _to_event(row) -> ProposalWorkflowEventRecord:
+    return ProposalWorkflowEventRecord(
+        event_id=row["event_id"],
+        proposal_id=row["proposal_id"],
+        event_type=row["event_type"],
+        from_state=row["from_state"],
+        to_state=row["to_state"],
+        actor_id=row["actor_id"],
+        occurred_at=datetime.fromisoformat(row["occurred_at"]),
+        reason_json=json.loads(row["reason_json"]),
+        related_version_no=row["related_version_no"],
+    )
+
+
+def _to_approval(row) -> ProposalApprovalRecordData:
+    return ProposalApprovalRecordData(
+        approval_id=row["approval_id"],
+        proposal_id=row["proposal_id"],
+        approval_type=row["approval_type"],
+        approved=bool(row["approved"]),
+        actor_id=row["actor_id"],
+        occurred_at=datetime.fromisoformat(row["occurred_at"]),
+        details_json=json.loads(row["details_json"]),
+        related_version_no=row["related_version_no"],
     )
