@@ -43,6 +43,7 @@ DPM exposes run diagnostics but lacks explicit workflow gate state transitions a
 - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history`
 - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history`
 - `GET /rebalance/workflow/decisions`
+- `GET /rebalance/workflow/decisions/by-correlation/{correlation_id}`
   - filtered supportability listing across runs:
     - `rebalance_run_id`
     - `action`
@@ -101,6 +102,7 @@ Additive APIs and storage. When disabled, existing run semantics and responses r
   - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history`
   - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history`
   - `GET /rebalance/workflow/decisions`
+  - `GET /rebalance/workflow/decisions/by-correlation/{correlation_id}`
   - Feature flags:
     - `DPM_WORKFLOW_ENABLED` (default `false`)
     - `DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES` (CSV, default `PENDING_REVIEW`)

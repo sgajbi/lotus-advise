@@ -212,6 +212,12 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `POST /rebalance/runs/{rebalance_run_id}/workflow/actions` with `APPROVE` returns `200`.
     - `GET /rebalance/workflow/decisions?actor_id=reviewer_manual_uvicorn&action=APPROVE&limit=10`
       returns `200` with one matching decision.
+    - `GET /rebalance/workflow/decisions/by-correlation/corr-manual-wf-uvicorn`
+      returns `200` with decision history for the resolved run.
+  - Uvicorn runtime (`DPM_WORKFLOW_ENABLED=true`, `http://127.0.0.1:8033`):
+    - `POST /rebalance/simulate` + one workflow `APPROVE` action succeeded.
+    - `GET /rebalance/workflow/decisions/by-correlation/corr-manual-wf-corr-uvicorn`
+      returns `200` with `run_id=rr_b5a85230` and one decision.
   - Uvicorn (`DPM_WORKFLOW_ENABLED=true`, `http://127.0.0.1:8001`):
     - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow` returns `200`.
     - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow` returns `200`.
@@ -248,5 +254,12 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `POST /rebalance/runs/{rebalance_run_id}/workflow/actions` with `APPROVE` returns `200`.
     - `GET /rebalance/workflow/decisions?actor_id=reviewer_manual_docker&action=APPROVE&limit=10`
       returns `200` with one matching decision.
+    - `GET /rebalance/workflow/decisions/by-correlation/corr-manual-wf-docker`
+      returns `200` with decision history for the resolved run.
+  - Container runtime (`dpm-rebalance-engine:latest` with `-e DPM_WORKFLOW_ENABLED=true`,
+    published on `http://127.0.0.1:8034`):
+    - `POST /rebalance/simulate` + one workflow `APPROVE` action succeeded.
+    - `GET /rebalance/workflow/decisions/by-correlation/corr-manual-wf-corr-docker`
+      returns `200` with `run_id=rr_7d3afe35` and one decision.
     - `GET /rebalance/workflow/decisions?limit=20` returns workflow decisions across runs.
     - `GET /rebalance/workflow/decisions?actor_id=...&action=...&limit=...` returns filtered rows.

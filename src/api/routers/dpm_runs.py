@@ -902,6 +902,33 @@ def list_dpm_workflow_decisions(
 
 
 @router.get(
+    "/rebalance/workflow/decisions/by-correlation/{correlation_id}",
+    response_model=DpmRunWorkflowHistoryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Workflow Decisions by Correlation Id",
+    description=(
+        "Returns append-only workflow decision history for the run resolved by correlation id."
+    ),
+)
+def get_dpm_workflow_decisions_by_correlation(
+    correlation_id: Annotated[
+        str,
+        Path(
+            description="Correlation identifier used on run submission.",
+            examples=["corr-1234-abcd"],
+        ),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunWorkflowHistoryResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.get_workflow_history_by_correlation(correlation_id=correlation_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
     "/rebalance/runs/{rebalance_run_id}/workflow",
     response_model=DpmRunWorkflowResponse,
     status_code=status.HTTP_200_OK,

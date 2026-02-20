@@ -276,6 +276,13 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     actual_params = {param["name"] for param in workflow_decisions["parameters"]}
     assert expected_params.issubset(actual_params)
 
+    workflow_decisions_by_correlation = openapi["paths"][
+        "/rebalance/workflow/decisions/by-correlation/{correlation_id}"
+    ]["get"]
+    assert workflow_decisions_by_correlation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"].endswith("/DpmRunWorkflowHistoryResponse")
+
     support_bundle_by_idempotency = openapi["paths"][
         "/rebalance/runs/idempotency/{idempotency_key}/support-bundle"
     ]["get"]

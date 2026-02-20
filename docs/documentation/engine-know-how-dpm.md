@@ -168,6 +168,9 @@ Implementation scope:
   - `limit`
   - `cursor`
 
+### `GET /rebalance/workflow/decisions/by-correlation/{correlation_id}`
+- Purpose: retrieve workflow decision history when only correlation id is available in incident context.
+
 ## Pipeline (`run_simulation`)
 
 1. Valuation

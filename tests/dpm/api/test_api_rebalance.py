@@ -747,6 +747,11 @@ def test_dpm_workflow_router_not_found_mappings(client, monkeypatch):
     )
     assert history_by_correlation.status_code == 404
     assert history_by_correlation.json()["detail"] == "DPM_RUN_NOT_FOUND"
+    decisions_by_correlation = client.get(
+        "/rebalance/workflow/decisions/by-correlation/corr_missing"
+    )
+    assert decisions_by_correlation.status_code == 404
+    assert decisions_by_correlation.json()["detail"] == "DPM_RUN_NOT_FOUND"
 
     history_by_idempotency = client.get("/rebalance/runs/idempotency/idem_missing/workflow/history")
     assert history_by_idempotency.status_code == 404
@@ -791,6 +796,18 @@ def test_dpm_workflow_action_router_exception_mappings(client, monkeypatch):
     assert transition.status_code == 409
     assert transition.json()["detail"] == "DPM_WORKFLOW_INVALID_TRANSITION"
 
+    with patch.object(
+        dpm_runs_router.DpmRunSupportService,
+        "apply_workflow_action_by_correlation",
+        side_effect=DpmWorkflowDisabledError("DPM_WORKFLOW_DISABLED"),
+    ):
+        disabled_by_correlation = client.post(
+            "/rebalance/runs/by-correlation/corr_missing/workflow/actions",
+            json=payload,
+        )
+    assert disabled_by_correlation.status_code == 404
+    assert disabled_by_correlation.json()["detail"] == "DPM_WORKFLOW_DISABLED"
+
     missing_idempotency = client.post(
         "/rebalance/runs/idempotency/idem_missing/workflow/actions",
         json=payload,
@@ -809,6 +826,18 @@ def test_dpm_workflow_action_router_exception_mappings(client, monkeypatch):
         )
     assert disabled_idem.status_code == 404
     assert disabled_idem.json()["detail"] == "DPM_WORKFLOW_DISABLED"
+
+    with patch.object(
+        dpm_runs_router.DpmRunSupportService,
+        "apply_workflow_action_by_idempotency",
+        side_effect=DpmWorkflowTransitionError("DPM_WORKFLOW_INVALID_TRANSITION"),
+    ):
+        transition_idem = client.post(
+            "/rebalance/runs/idempotency/idem_any/workflow/actions",
+            json=payload,
+        )
+    assert transition_idem.status_code == 409
+    assert transition_idem.json()["detail"] == "DPM_WORKFLOW_INVALID_TRANSITION"
 
 
 def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):
@@ -1648,6 +1677,14 @@ def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, mo
     assert history_by_idempotency_body["run_id"] == run_id
     assert len(history_by_idempotency_body["decisions"]) == 4
 
+    workflow_decisions_by_correlation = client.get(
+        "/rebalance/workflow/decisions/by-correlation/corr-workflow-1"
+    )
+    assert workflow_decisions_by_correlation.status_code == 200
+    workflow_decisions_by_correlation_body = workflow_decisions_by_correlation.json()
+    assert workflow_decisions_by_correlation_body["run_id"] == run_id
+    assert len(workflow_decisions_by_correlation_body["decisions"]) == 4
+
     invalid = client.post(
         f"/rebalance/runs/{run_id}/workflow/actions",
         json={
@@ -1747,6 +1784,11 @@ def test_dpm_run_workflow_endpoints_disabled_and_not_required_behavior(client, m
     disabled = client.get(f"/rebalance/runs/{run_id}/workflow")
     assert disabled.status_code == 404
     assert disabled.json()["detail"] == "DPM_WORKFLOW_DISABLED"
+    decision_lookup_disabled = client.get(
+        "/rebalance/workflow/decisions/by-correlation/corr-missing"
+    )
+    assert decision_lookup_disabled.status_code == 404
+    assert decision_lookup_disabled.json()["detail"] == "DPM_WORKFLOW_DISABLED"
 
     monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
     reset_dpm_run_support_service_for_tests()

@@ -67,6 +67,7 @@ curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow/hi
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-correlation/<correlation_id>/workflow/history"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/idempotency/<idempotency_key>/workflow/history"
 curl -X GET "http://127.0.0.1:8000/rebalance/workflow/decisions?action=APPROVE&actor_id=reviewer_001&limit=20"
+curl -X GET "http://127.0.0.1:8000/rebalance/workflow/decisions/by-correlation/<correlation_id>"
 ```
 
 For advisory proposal simulation demos, POST to `/rebalance/proposals/simulate`:
