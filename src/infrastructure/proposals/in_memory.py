@@ -5,6 +5,7 @@ from typing import Optional
 
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
+    ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalRecord,
     ProposalTransitionResult,
@@ -22,6 +23,8 @@ class InMemoryProposalRepository(ProposalRepository):
         self._events: dict[str, list[ProposalWorkflowEventRecord]] = {}
         self._approvals: dict[str, list[ProposalApprovalRecordData]] = {}
         self._idempotency: dict[str, ProposalIdempotencyRecord] = {}
+        self._operations: dict[str, ProposalAsyncOperationRecord] = {}
+        self._operation_by_correlation: dict[str, str] = {}
 
     def get_idempotency(self, *, idempotency_key: str) -> Optional[ProposalIdempotencyRecord]:
         with self._lock:
@@ -31,6 +34,31 @@ class InMemoryProposalRepository(ProposalRepository):
     def save_idempotency(self, record: ProposalIdempotencyRecord) -> None:
         with self._lock:
             self._idempotency[record.idempotency_key] = deepcopy(record)
+
+    def create_operation(self, operation: ProposalAsyncOperationRecord) -> None:
+        with self._lock:
+            self._operations[operation.operation_id] = deepcopy(operation)
+            self._operation_by_correlation[operation.correlation_id] = operation.operation_id
+
+    def update_operation(self, operation: ProposalAsyncOperationRecord) -> None:
+        with self._lock:
+            self._operations[operation.operation_id] = deepcopy(operation)
+            self._operation_by_correlation[operation.correlation_id] = operation.operation_id
+
+    def get_operation(self, *, operation_id: str) -> Optional[ProposalAsyncOperationRecord]:
+        with self._lock:
+            operation = self._operations.get(operation_id)
+            return deepcopy(operation) if operation is not None else None
+
+    def get_operation_by_correlation(
+        self, *, correlation_id: str
+    ) -> Optional[ProposalAsyncOperationRecord]:
+        with self._lock:
+            operation_id = self._operation_by_correlation.get(correlation_id)
+            if operation_id is None:
+                return None
+            operation = self._operations.get(operation_id)
+            return deepcopy(operation) if operation is not None else None
 
     def create_proposal(self, proposal: ProposalRecord) -> None:
         with self._lock:

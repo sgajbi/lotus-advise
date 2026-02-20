@@ -410,3 +410,81 @@ def test_support_endpoints_return_404_when_support_apis_disabled(monkeypatch):
         timeline = client.get(f"/rebalance/proposals/{proposal_id}/workflow-events")
         assert timeline.status_code == 404
         assert timeline.json()["detail"] == "PROPOSAL_SUPPORT_APIS_DISABLED"
+
+
+def test_async_create_and_lookup_by_operation_and_correlation():
+    with TestClient(app) as client:
+        payload = _base_create_payload()
+        accepted = client.post(
+            "/rebalance/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-1",
+                "X-Correlation-Id": "corr-async-create-1",
+            },
+        )
+        assert accepted.status_code == 202
+        accepted_body = accepted.json()
+        assert accepted_body["operation_type"] == "CREATE_PROPOSAL"
+        assert accepted_body["correlation_id"] == "corr-async-create-1"
+
+        operation_id = accepted_body["operation_id"]
+        by_operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+        assert by_operation.status_code == 200
+        op_body = by_operation.json()
+        assert op_body["status"] == "SUCCEEDED"
+        assert op_body["result"]["proposal"]["proposal_id"].startswith("pp_")
+
+        by_correlation = client.get(
+            "/rebalance/proposals/operations/by-correlation/corr-async-create-1"
+        )
+        assert by_correlation.status_code == 200
+        assert by_correlation.json()["operation_id"] == operation_id
+
+
+def test_async_create_version_and_lookup():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-async-version-base")
+        proposal_id = created["proposal"]["proposal_id"]
+        payload = {
+            "created_by": "advisor_2",
+            "simulate_request": _base_create_payload()["simulate_request"],
+        }
+        payload["simulate_request"]["proposed_trades"] = [
+            {"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "4"}
+        ]
+        accepted = client.post(
+            f"/rebalance/proposals/{proposal_id}/versions/async",
+            json=payload,
+            headers={"X-Correlation-Id": "corr-async-version-1"},
+        )
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+        assert operation.status_code == 200
+        body = operation.json()
+        assert body["operation_type"] == "CREATE_PROPOSAL_VERSION"
+        assert body["status"] == "SUCCEEDED"
+        assert body["result"]["proposal"]["current_version_no"] == 2
+
+
+def test_async_operation_endpoints_return_404_when_disabled(monkeypatch):
+    monkeypatch.setenv("PROPOSAL_ASYNC_OPERATIONS_ENABLED", "false")
+    reset_proposal_workflow_service_for_tests()
+    with TestClient(app) as client:
+        payload = _base_create_payload()
+        response = client.post(
+            "/rebalance/proposals/async",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-async-disabled"},
+        )
+        assert response.status_code == 404
+        assert response.json()["detail"] == "PROPOSAL_ASYNC_OPERATIONS_DISABLED"
+
+
+def test_async_operation_lookup_returns_404_for_missing_operation():
+    with TestClient(app) as client:
+        missing = client.get("/rebalance/proposals/operations/pop_missing")
+        assert missing.status_code == 404
+        assert missing.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"

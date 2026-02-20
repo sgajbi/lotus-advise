@@ -1,6 +1,8 @@
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalsResponse,
+    ProposalAsyncAcceptedResponse,
+    ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalDetailResponse,
@@ -28,6 +30,8 @@ from src.core.proposals.service import (
 
 __all__ = [
     "ProposalApprovalRecord",
+    "ProposalAsyncAcceptedResponse",
+    "ProposalAsyncOperationStatusResponse",
     "ProposalApprovalsResponse",
     "ProposalCreateRequest",
     "ProposalCreateResponse",

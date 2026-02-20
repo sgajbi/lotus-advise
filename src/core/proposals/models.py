@@ -35,6 +35,8 @@ ProposalWorkflowEventType = Literal[
 
 ProposalApprovalType = Literal["RISK", "COMPLIANCE", "CLIENT_CONSENT"]
 ProposalCreationStatus = Literal["READY", "PENDING_REVIEW", "BLOCKED"]
+ProposalAsyncOperationType = Literal["CREATE_PROPOSAL", "CREATE_PROPOSAL_VERSION"]
+ProposalAsyncOperationStatus = Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]
 
 
 class ProposalCreateMetadata(BaseModel):
@@ -393,6 +395,99 @@ class ProposalIdempotencyLookupResponse(BaseModel):
     )
 
 
+class ProposalAsyncAcceptedResponse(BaseModel):
+    operation_id: str = Field(
+        description="Asynchronous operation identifier.",
+        examples=["pop_001"],
+    )
+    operation_type: ProposalAsyncOperationType = Field(
+        description="Operation type queued for asynchronous execution.",
+        examples=["CREATE_PROPOSAL"],
+    )
+    status: ProposalAsyncOperationStatus = Field(
+        description="Initial operation status.",
+        examples=["PENDING"],
+    )
+    correlation_id: str = Field(
+        description="Correlation id used to trace asynchronous execution.",
+        examples=["corr-proposal-async-001"],
+    )
+    created_at: str = Field(
+        description="UTC ISO8601 timestamp when operation was accepted.",
+        examples=["2026-02-20T10:00:00+00:00"],
+    )
+    status_url: str = Field(
+        description="Relative API path for operation status retrieval.",
+        examples=["/rebalance/proposals/operations/pop_001"],
+    )
+
+
+class ProposalAsyncError(BaseModel):
+    code: str = Field(
+        description="Stable operation error code.",
+        examples=["PROPOSAL_NOT_FOUND"],
+    )
+    message: str = Field(
+        description="Human-readable operation error message.",
+        examples=["PROPOSAL_NOT_FOUND"],
+    )
+
+
+class ProposalAsyncOperationStatusResponse(BaseModel):
+    operation_id: str = Field(
+        description="Asynchronous operation identifier.",
+        examples=["pop_001"],
+    )
+    operation_type: ProposalAsyncOperationType = Field(
+        description="Operation type.",
+        examples=["CREATE_PROPOSAL_VERSION"],
+    )
+    status: ProposalAsyncOperationStatus = Field(
+        description="Current operation status.",
+        examples=["SUCCEEDED"],
+    )
+    correlation_id: str = Field(
+        description="Correlation id associated with this operation.",
+        examples=["corr-proposal-async-001"],
+    )
+    idempotency_key: Optional[str] = Field(
+        default=None,
+        description="Idempotency key associated with operation when relevant.",
+        examples=["proposal-create-idem-001"],
+    )
+    proposal_id: Optional[str] = Field(
+        default=None,
+        description="Proposal identifier scope for the operation when applicable.",
+        examples=["pp_001"],
+    )
+    created_by: str = Field(
+        description="Actor id that submitted the asynchronous operation.",
+        examples=["advisor_123"],
+    )
+    created_at: str = Field(
+        description="UTC ISO8601 timestamp when operation was accepted.",
+        examples=["2026-02-20T10:00:00+00:00"],
+    )
+    started_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp when execution started.",
+        examples=["2026-02-20T10:00:01+00:00"],
+    )
+    finished_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp when execution finished.",
+        examples=["2026-02-20T10:00:02+00:00"],
+    )
+    result: Optional[ProposalCreateResponse] = Field(
+        default=None,
+        description="Successful operation result payload when status is SUCCEEDED.",
+    )
+    error: Optional[ProposalAsyncError] = Field(
+        default=None,
+        description="Failure details when status is FAILED.",
+    )
+
+
 class ProposalStateTransitionRequest(BaseModel):
     event_type: ProposalWorkflowEventType = Field(
         description="Workflow event to apply on current proposal state.",
@@ -602,4 +697,57 @@ class ProposalTransitionResult(BaseModel):
         default=None,
         description="Internal approval record persisted in transition when applicable.",
         examples=[{"approval_id": "pap_001", "approval_type": "CLIENT_CONSENT"}],
+    )
+
+
+class ProposalAsyncOperationRecord(BaseModel):
+    operation_id: str = Field(
+        description="Internal async operation identifier.", examples=["pop_001"]
+    )
+    operation_type: ProposalAsyncOperationType = Field(
+        description="Internal async operation type.",
+        examples=["CREATE_PROPOSAL"],
+    )
+    status: ProposalAsyncOperationStatus = Field(
+        description="Internal async operation status.",
+        examples=["PENDING"],
+    )
+    correlation_id: str = Field(
+        description="Internal correlation id.",
+        examples=["corr-proposal-async-001"],
+    )
+    idempotency_key: Optional[str] = Field(
+        default=None,
+        description="Internal idempotency key for create operations.",
+        examples=["proposal-create-idem-001"],
+    )
+    proposal_id: Optional[str] = Field(
+        default=None,
+        description="Internal proposal identifier scope.",
+        examples=["pp_001"],
+    )
+    created_by: str = Field(description="Internal submitting actor id.", examples=["advisor_123"])
+    created_at: datetime = Field(
+        description="Internal operation acceptance timestamp.",
+        examples=["2026-02-20T10:00:00+00:00"],
+    )
+    started_at: Optional[datetime] = Field(
+        default=None,
+        description="Internal operation start timestamp.",
+        examples=["2026-02-20T10:00:01+00:00"],
+    )
+    finished_at: Optional[datetime] = Field(
+        default=None,
+        description="Internal operation completion timestamp.",
+        examples=["2026-02-20T10:00:02+00:00"],
+    )
+    result_json: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Internal serialized successful result payload.",
+        examples=[{"proposal": {"proposal_id": "pp_001"}}],
+    )
+    error_json: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Internal serialized failure payload.",
+        examples=[{"code": "PROPOSAL_NOT_FOUND", "message": "PROPOSAL_NOT_FOUND"}],
     )

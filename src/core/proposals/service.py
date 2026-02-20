@@ -10,6 +10,9 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
     ProposalApprovalsResponse,
+    ProposalAsyncAcceptedResponse,
+    ProposalAsyncOperationRecord,
+    ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalDetailResponse,
@@ -176,6 +179,62 @@ class ProposalWorkflowService:
             proposal=proposal, version=version, latest_event=created_event
         )
 
+    def submit_create_proposal_async(
+        self,
+        *,
+        payload: ProposalCreateRequest,
+        idempotency_key: str,
+        correlation_id: Optional[str],
+    ) -> ProposalAsyncAcceptedResponse:
+        resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+        operation = ProposalAsyncOperationRecord(
+            operation_id=f"pop_{uuid.uuid4().hex[:12]}",
+            operation_type="CREATE_PROPOSAL",
+            status="PENDING",
+            correlation_id=resolved_correlation_id,
+            idempotency_key=idempotency_key,
+            proposal_id=None,
+            created_by=payload.created_by,
+            created_at=_utc_now(),
+            started_at=None,
+            finished_at=None,
+            result_json=None,
+            error_json=None,
+        )
+        self._repository.create_operation(operation)
+        return self._to_async_accepted(operation)
+
+    def execute_create_proposal_async(
+        self,
+        *,
+        operation_id: str,
+        payload: ProposalCreateRequest,
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> None:
+        operation = self._repository.get_operation(operation_id=operation_id)
+        if operation is None:
+            return
+        operation.status = "RUNNING"
+        operation.started_at = _utc_now()
+        self._repository.update_operation(operation)
+        try:
+            response = self.create_proposal(
+                payload=payload,
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+            )
+            operation.status = "SUCCEEDED"
+            operation.proposal_id = response.proposal.proposal_id
+            operation.result_json = response.model_dump(mode="json")
+            operation.error_json = None
+        except ProposalLifecycleError as exc:
+            operation.status = "FAILED"
+            operation.error_json = {"code": type(exc).__name__, "message": str(exc)}
+            operation.result_json = None
+        operation.finished_at = _utc_now()
+        self._repository.update_operation(operation)
+
     def get_proposal(
         self, *, proposal_id: str, include_evidence: bool = True
     ) -> ProposalDetailResponse:
@@ -280,6 +339,20 @@ class ProposalWorkflowService:
             created_at=record.created_at.isoformat(),
         )
 
+    def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
+        operation = self._repository.get_operation(operation_id=operation_id)
+        if operation is None:
+            raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
+        return self._to_async_status(operation)
+
+    def get_async_operation_by_correlation(
+        self, *, correlation_id: str
+    ) -> ProposalAsyncOperationStatusResponse:
+        operation = self._repository.get_operation_by_correlation(correlation_id=correlation_id)
+        if operation is None:
+            raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
+        return self._to_async_status(operation)
+
     def get_version(
         self,
         *,
@@ -353,6 +426,62 @@ class ProposalWorkflowService:
         self._repository.create_version(version)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return self._to_create_response(proposal=proposal, version=version, latest_event=event)
+
+    def submit_create_version_async(
+        self,
+        *,
+        proposal_id: str,
+        payload: ProposalVersionRequest,
+        correlation_id: Optional[str],
+    ) -> ProposalAsyncAcceptedResponse:
+        resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+        operation = ProposalAsyncOperationRecord(
+            operation_id=f"pop_{uuid.uuid4().hex[:12]}",
+            operation_type="CREATE_PROPOSAL_VERSION",
+            status="PENDING",
+            correlation_id=resolved_correlation_id,
+            idempotency_key=None,
+            proposal_id=proposal_id,
+            created_by=payload.created_by,
+            created_at=_utc_now(),
+            started_at=None,
+            finished_at=None,
+            result_json=None,
+            error_json=None,
+        )
+        self._repository.create_operation(operation)
+        return self._to_async_accepted(operation)
+
+    def execute_create_version_async(
+        self,
+        *,
+        operation_id: str,
+        proposal_id: str,
+        payload: ProposalVersionRequest,
+        correlation_id: str,
+    ) -> None:
+        operation = self._repository.get_operation(operation_id=operation_id)
+        if operation is None:
+            return
+        operation.status = "RUNNING"
+        operation.started_at = _utc_now()
+        self._repository.update_operation(operation)
+        try:
+            response = self.create_version(
+                proposal_id=proposal_id,
+                payload=payload,
+                correlation_id=correlation_id,
+            )
+            operation.status = "SUCCEEDED"
+            operation.proposal_id = response.proposal.proposal_id
+            operation.result_json = response.model_dump(mode="json")
+            operation.error_json = None
+        except ProposalLifecycleError as exc:
+            operation.status = "FAILED"
+            operation.error_json = {"code": type(exc).__name__, "message": str(exc)}
+            operation.result_json = None
+        operation.finished_at = _utc_now()
+        self._repository.update_operation(operation)
 
     def transition_state(
         self,
@@ -557,6 +686,40 @@ class ProposalWorkflowService:
                 if proposal_result.gate_decision is not None
                 else None
             ),
+        )
+
+    def _to_async_accepted(
+        self, operation: ProposalAsyncOperationRecord
+    ) -> ProposalAsyncAcceptedResponse:
+        return ProposalAsyncAcceptedResponse(
+            operation_id=operation.operation_id,
+            operation_type=operation.operation_type,
+            status=operation.status,
+            correlation_id=operation.correlation_id,
+            created_at=operation.created_at.isoformat(),
+            status_url=f"/rebalance/proposals/operations/{operation.operation_id}",
+        )
+
+    def _to_async_status(
+        self, operation: ProposalAsyncOperationRecord
+    ) -> ProposalAsyncOperationStatusResponse:
+        return ProposalAsyncOperationStatusResponse(
+            operation_id=operation.operation_id,
+            operation_type=operation.operation_type,
+            status=operation.status,
+            correlation_id=operation.correlation_id,
+            idempotency_key=operation.idempotency_key,
+            proposal_id=operation.proposal_id,
+            created_by=operation.created_by,
+            created_at=operation.created_at.isoformat(),
+            started_at=(operation.started_at.isoformat() if operation.started_at else None),
+            finished_at=(operation.finished_at.isoformat() if operation.finished_at else None),
+            result=(
+                ProposalCreateResponse.model_validate(operation.result_json)
+                if operation.result_json is not None
+                else None
+            ),
+            error=operation.error_json,
         )
 
     def _run_simulation(

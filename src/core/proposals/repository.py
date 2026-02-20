@@ -3,6 +3,7 @@ from typing import Optional, Protocol
 
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
+    ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalRecord,
     ProposalTransitionResult,
@@ -15,6 +16,16 @@ class ProposalRepository(Protocol):
     def get_idempotency(self, *, idempotency_key: str) -> Optional[ProposalIdempotencyRecord]: ...
 
     def save_idempotency(self, record: ProposalIdempotencyRecord) -> None: ...
+
+    def create_operation(self, operation: ProposalAsyncOperationRecord) -> None: ...
+
+    def update_operation(self, operation: ProposalAsyncOperationRecord) -> None: ...
+
+    def get_operation(self, *, operation_id: str) -> Optional[ProposalAsyncOperationRecord]: ...
+
+    def get_operation_by_correlation(
+        self, *, correlation_id: str
+    ) -> Optional[ProposalAsyncOperationRecord]: ...
 
     def create_proposal(self, proposal: ProposalRecord) -> None: ...
 

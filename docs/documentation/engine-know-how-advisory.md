@@ -59,6 +59,12 @@ Implementation scope:
   - same key + same canonical request: returns same proposal/version
   - same key + different canonical request: `409 Conflict`
 
+### `POST /rebalance/proposals/async`
+- Purpose: accept proposal create for asynchronous execution.
+- Required header: `Idempotency-Key`
+- Optional header: `X-Correlation-Id`
+- Output: async operation reference (`operation_id`, `status_url`).
+
 ### `GET /rebalance/proposals/{proposal_id}`
 - Purpose: read proposal summary + current version + last gate decision.
 - Query: `include_evidence=true|false` (defaults true)
@@ -83,9 +89,20 @@ Implementation scope:
 ### `GET /rebalance/proposals/idempotency/{idempotency_key}`
 - Purpose: resolve idempotency-key mappings during retry and incident investigations.
 
+### `GET /rebalance/proposals/operations/{operation_id}`
+- Purpose: retrieve asynchronous operation status and terminal result/error payload.
+
+### `GET /rebalance/proposals/operations/by-correlation/{correlation_id}`
+- Purpose: retrieve latest asynchronous operation by correlation id.
+
 ### `POST /rebalance/proposals/{proposal_id}/versions`
 - Purpose: create immutable version `N+1` for existing proposal.
 - Guard: same `portfolio_id` as aggregate unless `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION=true`.
+
+### `POST /rebalance/proposals/{proposal_id}/versions/async`
+- Purpose: accept proposal version create for asynchronous execution.
+- Optional header: `X-Correlation-Id`
+- Output: async operation reference (`operation_id`, `status_url`).
 
 ### `POST /rebalance/proposals/{proposal_id}/transitions`
 - Purpose: apply one workflow transition.
@@ -173,6 +190,7 @@ Lifecycle runtime config (env):
 - `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION` (default `false`)
 - `PROPOSAL_REQUIRE_SIMULATION_FLAG` (default `true`)
 - `PROPOSAL_SUPPORT_APIS_ENABLED` (default `true`)
+- `PROPOSAL_ASYNC_OPERATIONS_ENABLED` (default `true`)
 
 Swagger contract quality:
 - Lifecycle request/response models include explicit attribute-level `description` and `examples`.
