@@ -14,6 +14,11 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, Resp
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
+from src.api.routers.dpm_policy_packs import (
+    load_dpm_policy_pack_catalog,
+    resolve_dpm_policy_pack,
+)
+from src.api.routers.dpm_policy_packs import router as dpm_policy_pack_router
 from src.api.routers.dpm_runs import (
     get_dpm_run_support_service,
     record_dpm_run_for_support,
@@ -28,15 +33,10 @@ from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.dpm.engine import run_simulation
 from src.core.dpm.policy_packs import (
-    DpmEffectivePolicyPackResolution,
-    DpmPolicyPackCatalogResponse,
     apply_policy_pack_to_engine_options,
-    parse_policy_pack_catalog,
-    resolve_effective_policy_pack,
     resolve_policy_pack_definition,
     resolve_policy_pack_replay_enabled,
 )
-from src.core.dpm.tenant_policy_packs import build_tenant_policy_pack_resolver
 from src.core.dpm_runs import (
     DpmAsyncAcceptedResponse,
     DpmAsyncOperationStatusResponse,
@@ -99,6 +99,7 @@ PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict]]" = OrderedDict()
 
 app.include_router(proposal_lifecycle_router)
 app.include_router(dpm_run_support_router)
+app.include_router(dpm_policy_pack_router)
 
 
 async def get_db_session():
@@ -326,33 +327,6 @@ def _async_manual_execution_enabled() -> bool:
     return _env_flag("DPM_ASYNC_MANUAL_EXECUTION_ENABLED", True)
 
 
-def _resolve_dpm_policy_pack(
-    *,
-    request_policy_pack_id: Optional[str],
-    tenant_default_policy_pack_id: Optional[str] = None,
-    tenant_id: Optional[str] = None,
-) -> DpmEffectivePolicyPackResolution:
-    resolved_tenant_default_policy_pack_id = tenant_default_policy_pack_id
-    if resolved_tenant_default_policy_pack_id is None:
-        tenant_policy_pack_resolver = build_tenant_policy_pack_resolver(
-            enabled=_env_flag("DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED", False),
-            mapping_json=os.getenv("DPM_TENANT_POLICY_PACK_MAP_JSON"),
-        )
-        resolved_tenant_default_policy_pack_id = tenant_policy_pack_resolver.resolve(
-            tenant_id=tenant_id
-        )
-    return resolve_effective_policy_pack(
-        policy_packs_enabled=_env_flag("DPM_POLICY_PACKS_ENABLED", False),
-        request_policy_pack_id=request_policy_pack_id,
-        tenant_default_policy_pack_id=resolved_tenant_default_policy_pack_id,
-        global_default_policy_pack_id=os.getenv("DPM_DEFAULT_POLICY_PACK_ID"),
-    )
-
-
-def _load_dpm_policy_pack_catalog():
-    return parse_policy_pack_catalog(os.getenv("DPM_POLICY_PACK_CATALOG_JSON"))
-
-
 def _to_invalid_options_error(exc: ValidationError) -> str:
     first_error = exc.errors()[0]
     return f"INVALID_OPTIONS: {first_error.get('msg', 'validation failed')}"
@@ -377,108 +351,6 @@ def _build_comparison_metric(
         status=scenario_result.status,
         security_intent_count=len(security_intents),
         gross_turnover_notional_base=Money(amount=turnover_proxy, currency=base_currency),
-    )
-
-
-@app.get(
-    "/rebalance/policies/effective",
-    response_model=DpmEffectivePolicyPackResolution,
-    status_code=status.HTTP_200_OK,
-    tags=["DPM Run Supportability"],
-    summary="Resolve Effective DPM Policy Pack",
-    description=(
-        "Returns the effective DPM policy-pack resolution using configured precedence "
-        "(request, tenant default, global default). This endpoint is read-only and "
-        "intended for supportability and integration diagnostics."
-    ),
-)
-def get_effective_dpm_policy_pack(
-    request_policy_pack_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Policy-Pack-Id",
-            description="Optional request-scoped policy-pack identifier.",
-            examples=["dpm_standard_v1"],
-        ),
-    ] = None,
-    tenant_default_policy_pack_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Tenant-Policy-Pack-Id",
-            description="Optional tenant-default policy-pack identifier from upstream context.",
-            examples=["dpm_tenant_default_v1"],
-        ),
-    ] = None,
-    tenant_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Tenant-Id",
-            description="Optional tenant identifier used for tenant policy-pack default lookup.",
-            examples=["tenant_001"],
-        ),
-    ] = None,
-) -> DpmEffectivePolicyPackResolution:
-    return _resolve_dpm_policy_pack(
-        request_policy_pack_id=request_policy_pack_id,
-        tenant_default_policy_pack_id=tenant_default_policy_pack_id,
-        tenant_id=tenant_id,
-    )
-
-
-@app.get(
-    "/rebalance/policies/catalog",
-    response_model=DpmPolicyPackCatalogResponse,
-    status_code=status.HTTP_200_OK,
-    tags=["DPM Run Supportability"],
-    summary="List DPM Policy Pack Catalog",
-    description=(
-        "Returns the currently configured DPM policy-pack catalog and the effective "
-        "selection context for optional request and tenant headers."
-    ),
-)
-def get_dpm_policy_pack_catalog(
-    request_policy_pack_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Policy-Pack-Id",
-            description="Optional request-scoped policy-pack identifier.",
-            examples=["dpm_standard_v1"],
-        ),
-    ] = None,
-    tenant_default_policy_pack_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Tenant-Policy-Pack-Id",
-            description="Optional tenant-default policy-pack identifier from upstream context.",
-            examples=["dpm_tenant_default_v1"],
-        ),
-    ] = None,
-    tenant_id: Annotated[
-        Optional[str],
-        Header(
-            alias="X-Tenant-Id",
-            description="Optional tenant identifier used for tenant policy-pack default lookup.",
-            examples=["tenant_001"],
-        ),
-    ] = None,
-) -> DpmPolicyPackCatalogResponse:
-    resolution = _resolve_dpm_policy_pack(
-        request_policy_pack_id=request_policy_pack_id,
-        tenant_default_policy_pack_id=tenant_default_policy_pack_id,
-        tenant_id=tenant_id,
-    )
-    catalog = _load_dpm_policy_pack_catalog()
-    items = sorted(catalog.values(), key=lambda item: item.policy_pack_id)
-    selected_policy_pack_id = resolution.selected_policy_pack_id
-    return DpmPolicyPackCatalogResponse(
-        enabled=resolution.enabled,
-        total=len(items),
-        selected_policy_pack_id=selected_policy_pack_id,
-        selected_policy_pack_present=(
-            selected_policy_pack_id is not None and selected_policy_pack_id in catalog
-        ),
-        selected_policy_pack_source=resolution.source,
-        items=items,
     )
 
 
@@ -562,13 +434,13 @@ def simulate_rebalance(
     max_size = _env_int("DPM_IDEMPOTENCY_CACHE_MAX_SIZE", DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE)
     request_payload = request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
-    policy_pack = _resolve_dpm_policy_pack(
+    policy_pack = resolve_dpm_policy_pack(
         request_policy_pack_id=policy_pack_id,
         tenant_id=tenant_id,
     )
     policy_pack_definition = resolve_policy_pack_definition(
         resolution=policy_pack,
-        catalog=_load_dpm_policy_pack_catalog(),
+        catalog=load_dpm_policy_pack_catalog(),
     )
     effective_options = apply_policy_pack_to_engine_options(
         options=request.options,
@@ -678,7 +550,7 @@ def analyze_scenarios(
     ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> BatchRebalanceResult:
-    policy_pack = _resolve_dpm_policy_pack(
+    policy_pack = resolve_dpm_policy_pack(
         request_policy_pack_id=policy_pack_id,
         tenant_id=tenant_id,
     )
@@ -774,7 +646,7 @@ def analyze_scenarios_async(
             detail="DPM_ASYNC_OPERATIONS_DISABLED",
         )
     service = get_dpm_run_support_service()
-    policy_pack = _resolve_dpm_policy_pack(
+    policy_pack = resolve_dpm_policy_pack(
         request_policy_pack_id=policy_pack_id,
         tenant_id=tenant_id,
     )
@@ -861,14 +733,14 @@ def _execute_batch_analysis(
     comparison_metrics = {}
     failed_scenarios = {}
     warnings = []
-    policy_resolution = _resolve_dpm_policy_pack(
+    policy_resolution = resolve_dpm_policy_pack(
         request_policy_pack_id=request_policy_pack_id,
         tenant_default_policy_pack_id=tenant_default_policy_pack_id,
         tenant_id=tenant_id,
     )
     policy_definition = resolve_policy_pack_definition(
         resolution=policy_resolution,
-        catalog=_load_dpm_policy_pack_catalog(),
+        catalog=load_dpm_policy_pack_catalog(),
     )
 
     for scenario_name in sorted(request.scenarios.keys()):
