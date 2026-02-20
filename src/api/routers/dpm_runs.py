@@ -109,7 +109,13 @@ def get_dpm_run_support_service() -> DpmRunSupportService:
     global _REPOSITORY
     global _SERVICE
     if _REPOSITORY is None:
-        _REPOSITORY = _build_repository()
+        try:
+            _REPOSITORY = _build_repository()
+        except RuntimeError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
     if _SERVICE is None:
         _SERVICE = DpmRunSupportService(
             repository=_REPOSITORY,
@@ -150,7 +156,7 @@ def record_dpm_run_for_support(
 def reset_dpm_run_support_service_for_tests() -> None:
     global _REPOSITORY
     global _SERVICE
-    _REPOSITORY = _build_repository()
+    _REPOSITORY = None
     _SERVICE = None
 
 

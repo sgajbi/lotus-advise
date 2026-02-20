@@ -465,6 +465,25 @@ def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
     assert artifact_mode_fallback.json()["detail"] == "DPM_RUN_NOT_FOUND"
 
 
+def test_dpm_support_repository_backend_init_errors_return_503(client, monkeypatch):
+    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
+    monkeypatch.delenv("DPM_SUPPORTABILITY_POSTGRES_DSN", raising=False)
+    reset_dpm_run_support_service_for_tests()
+
+    missing_dsn = client.get("/rebalance/runs?limit=1")
+    assert missing_dsn.status_code == 503
+    assert missing_dsn.json()["detail"] == "DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED"
+
+    monkeypatch.setenv(
+        "DPM_SUPPORTABILITY_POSTGRES_DSN",
+        "postgresql://user:pass@localhost:5432/dpm",
+    )
+    reset_dpm_run_support_service_for_tests()
+    missing_driver = client.get("/rebalance/runs?limit=1")
+    assert missing_driver.status_code == 503
+    assert missing_driver.json()["detail"] == "DPM_SUPPORTABILITY_POSTGRES_DRIVER_MISSING"
+
+
 def test_dpm_async_operation_lookup_not_found_and_disabled(client, monkeypatch):
     missing = client.get("/rebalance/operations/dop_missing")
     assert missing.status_code == 404

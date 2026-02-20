@@ -125,5 +125,8 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - missing `psycopg` dependency raises `DPM_SUPPORTABILITY_POSTGRES_DRIVER_MISSING`
   - Unimplemented operations currently fail explicitly with:
     - `DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED`
+  - API guardrail:
+    - supportability endpoints map backend initialization errors to HTTP `503` with explicit
+      detail codes (for example DSN/driver issues).
 - Next slice:
   - implement concrete PostgreSQL DPM supportability repository adapter with repository parity tests.
