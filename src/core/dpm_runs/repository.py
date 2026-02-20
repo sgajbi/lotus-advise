@@ -51,6 +51,18 @@ class DpmRunRepository(Protocol):
         self, *, correlation_id: str
     ) -> Optional[DpmAsyncOperationRecord]: ...
 
+    def list_operations(
+        self,
+        *,
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        operation_type: Optional[str],
+        status: Optional[str],
+        correlation_id: Optional[str],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmAsyncOperationRecord], Optional[str]]: ...
+
     def purge_expired_operations(self, *, ttl_seconds: int, now: datetime) -> int: ...
 
     def append_workflow_decision(self, decision: DpmRunWorkflowDecisionRecord) -> None: ...

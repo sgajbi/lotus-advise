@@ -125,6 +125,46 @@ class InMemoryDpmRunRepository(DpmRunRepository):
             operation = self._operations.get(operation_id)
             return deepcopy(operation) if operation is not None else None
 
+    def list_operations(
+        self,
+        *,
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        operation_type: Optional[str],
+        status: Optional[str],
+        correlation_id: Optional[str],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmAsyncOperationRecord], Optional[str]]:
+        with self._lock:
+            rows = list(self._operations.values())
+            if created_from is not None:
+                rows = [row for row in rows if row.created_at >= created_from]
+            if created_to is not None:
+                rows = [row for row in rows if row.created_at <= created_to]
+            if operation_type is not None:
+                rows = [row for row in rows if row.operation_type == operation_type]
+            if status is not None:
+                rows = [row for row in rows if row.status == status]
+            if correlation_id is not None:
+                rows = [row for row in rows if row.correlation_id == correlation_id]
+            rows = sorted(
+                rows,
+                key=lambda item: (item.created_at, item.operation_id),
+                reverse=True,
+            )
+            if cursor is not None:
+                cursor_index = next(
+                    (index for index, row in enumerate(rows) if row.operation_id == cursor),
+                    None,
+                )
+                if cursor_index is None:
+                    return [], None
+                rows = rows[cursor_index + 1 :]
+            page = rows[:limit]
+            next_cursor = page[-1].operation_id if len(rows) > limit else None
+            return [deepcopy(row) for row in page], next_cursor
+
     def purge_expired_operations(self, *, ttl_seconds: int, now: datetime) -> int:
         with self._lock:
             cutoff = now.astimezone(timezone.utc) - timedelta(seconds=ttl_seconds)

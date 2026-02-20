@@ -40,6 +40,18 @@ Implementation scope:
   - when `X-Correlation-Id` is provided, each scenario result uses `{header}:{scenario_name}`
   - when omitted, each scenario result uses `{batch_run_id}:{scenario_name}`
 
+### `GET /rebalance/operations`
+- Purpose: list asynchronous operations for supportability investigations.
+- Filters:
+  - `from` (created-at lower bound)
+  - `to` (created-at upper bound)
+  - `operation_type`
+  - `status`
+  - `correlation_id`
+- Pagination:
+  - `limit`
+  - `cursor`
+
 ### `GET /rebalance/runs/{rebalance_run_id}`
 - Purpose: retrieve one DPM run with full result payload and lineage metadata for support investigations.
 

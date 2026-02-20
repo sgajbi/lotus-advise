@@ -159,6 +159,74 @@ def test_repository_async_operations_and_ttl_contract(repository):
     assert repository.get_operation(operation_id="dop_repo_1") is None
 
 
+def test_repository_list_operations_filter_and_cursor_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    repository.create_operation(
+        DpmAsyncOperationRecord(
+            operation_id="dop_repo_list_1",
+            operation_type="ANALYZE_SCENARIOS",
+            status="SUCCEEDED",
+            correlation_id="corr_repo_list_1",
+            created_at=now,
+            started_at=now + timedelta(seconds=1),
+            finished_at=now + timedelta(seconds=2),
+            result_json={"ok": True},
+            error_json=None,
+            request_json=None,
+        )
+    )
+    repository.create_operation(
+        DpmAsyncOperationRecord(
+            operation_id="dop_repo_list_2",
+            operation_type="ANALYZE_SCENARIOS",
+            status="PENDING",
+            correlation_id="corr_repo_list_2",
+            created_at=now + timedelta(minutes=1),
+            started_at=None,
+            finished_at=None,
+            result_json=None,
+            error_json=None,
+            request_json={"scenarios": {"baseline": {"options": {}}}},
+        )
+    )
+
+    pending, pending_cursor = repository.list_operations(
+        created_from=None,
+        created_to=None,
+        operation_type=None,
+        status="PENDING",
+        correlation_id=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [operation.operation_id for operation in pending] == ["dop_repo_list_2"]
+    assert pending_cursor is None
+
+    page_one, cursor = repository.list_operations(
+        created_from=None,
+        created_to=None,
+        operation_type="ANALYZE_SCENARIOS",
+        status=None,
+        correlation_id=None,
+        limit=1,
+        cursor=None,
+    )
+    assert [operation.operation_id for operation in page_one] == ["dop_repo_list_2"]
+    assert cursor == "dop_repo_list_2"
+
+    page_two, cursor_two = repository.list_operations(
+        created_from=None,
+        created_to=None,
+        operation_type="ANALYZE_SCENARIOS",
+        status=None,
+        correlation_id=None,
+        limit=1,
+        cursor=cursor,
+    )
+    assert [operation.operation_id for operation in page_two] == ["dop_repo_list_1"]
+    assert cursor_two is None
+
+
 def test_repository_workflow_decision_contract(repository):
     now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
     decision_one = DpmRunWorkflowDecisionRecord(

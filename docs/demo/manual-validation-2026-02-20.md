@@ -66,7 +66,20 @@ Demo pack validation passed for http://127.0.0.1:8000
   - Result payload contains expected partial-batch warning and failed scenario diagnostics:
     - `warnings = ["PARTIAL_BATCH_FAILURE"]`
     - `failed_scenarios = {"invalid_options": "..."}`
-- No contract or runtime mismatches observed between uvicorn and Docker paths.
+  - No contract or runtime mismatches observed between uvicorn and Docker paths.
+  - Async operation listing validation:
+    - `GET /rebalance/operations?status=SUCCEEDED&operation_type=ANALYZE_SCENARIOS&limit=...`
+      returns filtered operation rows.
+    - Cursor pagination check:
+      - `GET /rebalance/operations?limit=1` returns `next_cursor`.
+      - `GET /rebalance/operations?limit=1&cursor={next_cursor}` returns next row.
+  - Additional manual listing checks:
+    - Uvicorn (`DPM_ASYNC_EXECUTION_MODE=ACCEPT_ONLY`, `http://127.0.0.1:8017`):
+      - `GET /rebalance/operations?operation_type=ANALYZE_SCENARIOS&status=PENDING&limit=10`
+        returns expected pending operations.
+      - cursor pagination over operations returns deterministic next row.
+    - Container (`DPM_ASYNC_EXECUTION_MODE=ACCEPT_ONLY`, `http://127.0.0.1:8018`):
+      - filtered listing and cursor pagination produce expected operation rows.
 - SQLite supportability backend validation:
   - Uvicorn run (`DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`) on `http://127.0.0.1:8001`:
     - `POST /rebalance/simulate` succeeded (`200`).

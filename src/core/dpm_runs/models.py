@@ -304,6 +304,69 @@ class DpmAsyncOperationStatusResponse(BaseModel):
     )
 
 
+class DpmAsyncOperationListItemResponse(BaseModel):
+    operation_id: str = Field(
+        description="Asynchronous operation identifier.",
+        examples=["dop_001"],
+    )
+    operation_type: DpmAsyncOperationType = Field(
+        description="Operation type.",
+        examples=["ANALYZE_SCENARIOS"],
+    )
+    status: DpmAsyncOperationStatus = Field(
+        description="Current operation status.",
+        examples=["SUCCEEDED"],
+    )
+    correlation_id: str = Field(
+        description="Correlation id associated with this operation.",
+        examples=["corr-dpm-async-001"],
+    )
+    is_executable: bool = Field(
+        description="Whether this operation is currently executable via manual execute endpoint.",
+        examples=[False],
+    )
+    created_at: str = Field(
+        description="Operation acceptance timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    started_at: Optional[str] = Field(
+        default=None,
+        description="Operation start timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:01+00:00"],
+    )
+    finished_at: Optional[str] = Field(
+        default=None,
+        description="Operation completion timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:02+00:00"],
+    )
+
+
+class DpmAsyncOperationListResponse(BaseModel):
+    items: list[DpmAsyncOperationListItemResponse] = Field(
+        default_factory=list,
+        description="Filtered async operation rows ordered by creation timestamp descending.",
+        examples=[
+            [
+                {
+                    "operation_id": "dop_001",
+                    "operation_type": "ANALYZE_SCENARIOS",
+                    "status": "SUCCEEDED",
+                    "correlation_id": "corr-dpm-async-001",
+                    "is_executable": False,
+                    "created_at": "2026-02-20T12:00:00+00:00",
+                    "started_at": "2026-02-20T12:00:01+00:00",
+                    "finished_at": "2026-02-20T12:00:02+00:00",
+                }
+            ]
+        ],
+    )
+    next_cursor: Optional[str] = Field(
+        default=None,
+        description="Opaque cursor for retrieving the next result page.",
+        examples=["dop_001"],
+    )
+
+
 class DpmAsyncOperationRecord(BaseModel):
     operation_id: str = Field(
         description="Internal async operation identifier.",

@@ -85,6 +85,20 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(async_status_schema, "result")
     _assert_property_has_docs(async_status_schema, "error")
 
+    async_list_schema = schemas["DpmAsyncOperationListResponse"]
+    _assert_property_has_docs(async_list_schema, "items")
+    _assert_property_has_docs(async_list_schema, "next_cursor")
+
+    async_list_item_schema = schemas["DpmAsyncOperationListItemResponse"]
+    _assert_property_has_docs(async_list_item_schema, "operation_id")
+    _assert_property_has_docs(async_list_item_schema, "operation_type")
+    _assert_property_has_docs(async_list_item_schema, "status")
+    _assert_property_has_docs(async_list_item_schema, "correlation_id")
+    _assert_property_has_docs(async_list_item_schema, "is_executable")
+    _assert_property_has_docs(async_list_item_schema, "created_at")
+    _assert_property_has_docs(async_list_item_schema, "started_at")
+    _assert_property_has_docs(async_list_item_schema, "finished_at")
+
     artifact_schema = schemas["DpmRunArtifactResponse"]
     _assert_property_has_docs(artifact_schema, "artifact_id")
     _assert_property_has_docs(artifact_schema, "artifact_version")
@@ -136,6 +150,22 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
         "$ref"
     ].endswith("/DpmAsyncAcceptedResponse")
     assert "X-Correlation-Id" in analyze_async["responses"]["202"]["headers"]
+
+    list_operations = openapi["paths"]["/rebalance/operations"]["get"]
+    assert list_operations["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmAsyncOperationListResponse")
+    expected_params = {
+        "from",
+        "to",
+        "operation_type",
+        "status",
+        "correlation_id",
+        "limit",
+        "cursor",
+    }
+    actual_params = {param["name"] for param in list_operations["parameters"]}
+    assert expected_params.issubset(actual_params)
 
     execute_async = openapi["paths"]["/rebalance/operations/{operation_id}/execute"]["post"]
     assert "requestBody" not in execute_async

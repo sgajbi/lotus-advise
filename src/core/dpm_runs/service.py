@@ -5,6 +5,8 @@ from typing import Optional
 from src.core.dpm_runs.artifact import build_dpm_run_artifact
 from src.core.dpm_runs.models import (
     DpmAsyncAcceptedResponse,
+    DpmAsyncOperationListItemResponse,
+    DpmAsyncOperationListResponse,
     DpmAsyncOperationRecord,
     DpmAsyncOperationStatusResponse,
     DpmLineageEdgeRecord,
@@ -243,6 +245,54 @@ class DpmRunSupportService:
             created_at=operation.created_at,
         )
         return self._to_async_accepted(operation)
+
+    def list_async_operations(
+        self,
+        *,
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        operation_type: Optional[str],
+        status: Optional[str],
+        correlation_id: Optional[str],
+        limit: int,
+        cursor: Optional[str],
+    ) -> DpmAsyncOperationListResponse:
+        self._cleanup_expired_operations()
+        operations, next_cursor = self._repository.list_operations(
+            created_from=created_from,
+            created_to=created_to,
+            operation_type=operation_type,
+            status=status,
+            correlation_id=correlation_id,
+            limit=limit,
+            cursor=cursor,
+        )
+        return DpmAsyncOperationListResponse(
+            items=[
+                DpmAsyncOperationListItemResponse(
+                    operation_id=operation.operation_id,
+                    operation_type=operation.operation_type,
+                    status=operation.status,
+                    correlation_id=operation.correlation_id,
+                    is_executable=(
+                        operation.status == "PENDING" and operation.request_json is not None
+                    ),
+                    created_at=operation.created_at.isoformat(),
+                    started_at=(
+                        operation.started_at.isoformat()
+                        if operation.started_at is not None
+                        else None
+                    ),
+                    finished_at=(
+                        operation.finished_at.isoformat()
+                        if operation.finished_at is not None
+                        else None
+                    ),
+                )
+                for operation in operations
+            ],
+            next_cursor=next_cursor,
+        )
 
     def get_lineage(self, *, entity_id: str) -> DpmLineageResponse:
         self._cleanup_expired_supportability()

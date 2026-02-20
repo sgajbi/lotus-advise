@@ -21,6 +21,7 @@ curl -X POST "http://127.0.0.1:8000/rebalance/analyze" -H "Content-Type: applica
 For asynchronous batch what-if demos, POST to `/rebalance/analyze/async` and retrieve operation status:
 ```bash
 curl -X POST "http://127.0.0.1:8000/rebalance/analyze/async" -H "Content-Type: application/json" -H "X-Correlation-Id: demo-corr-26-async" --data-binary "@docs/demo/26_dpm_async_batch_analysis.json"
+curl -X GET "http://127.0.0.1:8000/rebalance/operations?status=SUCCEEDED&operation_type=ANALYZE_SCENARIOS&limit=20"
 curl -X GET "http://127.0.0.1:8000/rebalance/operations/by-correlation/demo-corr-26-async"
 ```
 

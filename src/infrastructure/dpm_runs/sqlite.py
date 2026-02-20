@@ -289,6 +289,68 @@ class SqliteDpmRunRepository(DpmRunRepository):
             row = connection.execute(query, (correlation_id,)).fetchone()
         return self._to_operation(row)
 
+    def list_operations(
+        self,
+        *,
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        operation_type: Optional[str],
+        status: Optional[str],
+        correlation_id: Optional[str],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmAsyncOperationRecord], Optional[str]]:
+        where_clauses = []
+        args: list[str] = []
+        if created_from is not None:
+            where_clauses.append("created_at >= ?")
+            args.append(created_from.isoformat())
+        if created_to is not None:
+            where_clauses.append("created_at <= ?")
+            args.append(created_to.isoformat())
+        if operation_type is not None:
+            where_clauses.append("operation_type = ?")
+            args.append(operation_type)
+        if status is not None:
+            where_clauses.append("status = ?")
+            args.append(status)
+        if correlation_id is not None:
+            where_clauses.append("correlation_id = ?")
+            args.append(correlation_id)
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        query = f"""
+            SELECT
+                operation_id,
+                operation_type,
+                status,
+                correlation_id,
+                created_at,
+                started_at,
+                finished_at,
+                result_json,
+                error_json,
+                request_json
+            FROM dpm_async_operations
+            {where_sql}
+            ORDER BY created_at DESC, operation_id DESC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, tuple(args)).fetchall()
+        operations = [self._to_operation(row) for row in rows]
+        operations = [operation for operation in operations if operation is not None]
+        if cursor is not None:
+            cursor_index = next(
+                (index for index, row in enumerate(operations) if row.operation_id == cursor),
+                None,
+            )
+            if cursor_index is None:
+                return [], None
+            operations = operations[cursor_index + 1 :]
+        page = operations[:limit]
+        next_cursor = page[-1].operation_id if len(operations) > limit else None
+        return page, next_cursor
+
     def purge_expired_operations(self, *, ttl_seconds: int, now: datetime) -> int:
         cutoff = now.astimezone(timezone.utc) - timedelta(seconds=ttl_seconds)
         query = """

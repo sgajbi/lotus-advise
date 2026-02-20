@@ -105,5 +105,10 @@ No new business run statuses. Investigation responses use explicit technical sta
   - Retention policy:
     - `DPM_SUPPORTABILITY_RETENTION_DAYS`
   - Automatic purge of expired supportability run records and derived mappings/edges.
+- Implemented (slice 6):
+  - Async operation listing API:
+    - `GET /rebalance/operations`
+      - filters: `from`, `to`, `operation_type`, `status`, `correlation_id`
+      - pagination: `limit`, `cursor`
 - Pending:
   - SQL backend beyond SQLite (enterprise managed database deployment profile).

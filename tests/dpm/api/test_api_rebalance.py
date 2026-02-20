@@ -460,6 +460,43 @@ def test_dpm_async_operation_lookup_by_id_and_correlation(client):
     assert by_correlation.json()["operation_id"] == accepted.operation_id
 
 
+def test_dpm_async_operation_list_filters_and_cursor(client):
+    service = get_dpm_run_support_service()
+    one = service.submit_analyze_async(
+        correlation_id="corr-dpm-ops-list-1",
+        request_json={"scenarios": {"baseline": {"options": {}}}},
+    )
+    two = service.submit_analyze_async(
+        correlation_id="corr-dpm-ops-list-2",
+        request_json={"scenarios": {"baseline": {"options": {}}}},
+    )
+
+    pending = client.get("/rebalance/operations?status=PENDING&limit=10")
+    assert pending.status_code == 200
+    pending_body = pending.json()
+    assert any(item["operation_id"] == one.operation_id for item in pending_body["items"])
+    assert any(item["operation_id"] == two.operation_id for item in pending_body["items"])
+    assert all(item["status"] == "PENDING" for item in pending_body["items"])
+
+    by_correlation = client.get("/rebalance/operations?correlation_id=corr-dpm-ops-list-1&limit=10")
+    assert by_correlation.status_code == 200
+    correlation_body = by_correlation.json()
+    assert len(correlation_body["items"]) == 1
+    assert correlation_body["items"][0]["operation_id"] == one.operation_id
+    assert correlation_body["items"][0]["is_executable"] is True
+
+    page_one = client.get("/rebalance/operations?limit=1")
+    assert page_one.status_code == 200
+    page_one_body = page_one.json()
+    assert len(page_one_body["items"]) == 1
+    assert page_one_body["next_cursor"] is not None
+    page_two = client.get(f"/rebalance/operations?limit=1&cursor={page_one_body['next_cursor']}")
+    assert page_two.status_code == 200
+    page_two_body = page_two.json()
+    assert len(page_two_body["items"]) == 1
+    assert page_one_body["items"][0]["operation_id"] != page_two_body["items"][0]["operation_id"]
+
+
 def test_dpm_async_operation_ttl_expiry_by_id_and_correlation(client, monkeypatch):
     monkeypatch.setenv("DPM_ASYNC_OPERATIONS_TTL_SECONDS", "1")
     reset_dpm_run_support_service_for_tests()

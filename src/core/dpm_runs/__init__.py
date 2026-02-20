@@ -1,11 +1,12 @@
 from src.core.dpm_runs.models import (
     DpmAsyncAcceptedResponse,
+    DpmAsyncOperationListResponse,
     DpmAsyncOperationStatusResponse,
     DpmLineageResponse,
     DpmRunArtifactResponse,
-    DpmRunListResponse,
     DpmRunIdempotencyHistoryResponse,
     DpmRunIdempotencyLookupResponse,
+    DpmRunListResponse,
     DpmRunLookupResponse,
     DpmRunWorkflowActionRequest,
     DpmRunWorkflowHistoryResponse,
@@ -21,6 +22,7 @@ from src.core.dpm_runs.service import (
 
 __all__ = [
     "DpmAsyncAcceptedResponse",
+    "DpmAsyncOperationListResponse",
     "DpmAsyncOperationStatusResponse",
     "DpmLineageResponse",
     "DpmRunArtifactResponse",
