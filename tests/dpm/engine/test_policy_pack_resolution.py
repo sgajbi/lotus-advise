@@ -5,6 +5,7 @@ from src.core.dpm.policy_packs import (
     parse_policy_pack_catalog,
     resolve_effective_policy_pack,
     resolve_policy_pack_definition,
+    resolve_policy_pack_replay_enabled,
 )
 from src.core.models import EngineOptions
 
@@ -201,6 +202,43 @@ def test_policy_pack_apply_workflow_overrides():
     assert effective_options.enable_workflow_gates is False
     assert effective_options.workflow_requires_client_consent is True
     assert effective_options.client_consent_already_obtained is True
+
+
+def test_policy_pack_resolve_replay_enabled_override_and_fallback():
+    catalog = parse_policy_pack_catalog(
+        '{"dpm_standard_v1":{"idempotency_policy":{"replay_enabled":false}}}'
+    )
+    resolution = resolve_effective_policy_pack(
+        policy_packs_enabled=True,
+        request_policy_pack_id="dpm_standard_v1",
+        tenant_default_policy_pack_id=None,
+        global_default_policy_pack_id=None,
+    )
+    selected = resolve_policy_pack_definition(resolution=resolution, catalog=catalog)
+    assert (
+        resolve_policy_pack_replay_enabled(default_replay_enabled=True, policy_pack=selected)
+        is False
+    )
+
+    no_override_catalog = parse_policy_pack_catalog('{"dpm_standard_v1":{"version":"1"}}')
+    selected_no_override = resolve_policy_pack_definition(
+        resolution=resolution,
+        catalog=no_override_catalog,
+    )
+    assert (
+        resolve_policy_pack_replay_enabled(
+            default_replay_enabled=True,
+            policy_pack=selected_no_override,
+        )
+        is True
+    )
+    assert (
+        resolve_policy_pack_replay_enabled(
+            default_replay_enabled=False,
+            policy_pack=None,
+        )
+        is False
+    )
 
 
 def test_policy_pack_catalog_parse_invalid_json_and_shape():

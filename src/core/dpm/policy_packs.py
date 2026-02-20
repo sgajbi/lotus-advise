@@ -95,6 +95,14 @@ class DpmPolicyPackWorkflowPolicy(BaseModel):
     )
 
 
+class DpmPolicyPackIdempotencyPolicy(BaseModel):
+    replay_enabled: Optional[bool] = Field(
+        default=None,
+        description="Optional override for idempotent replay behavior on simulate endpoint.",
+        examples=[True],
+    )
+
+
 class DpmPolicyPackDefinition(BaseModel):
     policy_pack_id: str = Field(
         description="Unique policy-pack identifier.",
@@ -123,6 +131,10 @@ class DpmPolicyPackDefinition(BaseModel):
     workflow_policy: DpmPolicyPackWorkflowPolicy = Field(
         default_factory=DpmPolicyPackWorkflowPolicy,
         description="Workflow policy overrides for selected policy-pack.",
+    )
+    idempotency_policy: DpmPolicyPackIdempotencyPolicy = Field(
+        default_factory=DpmPolicyPackIdempotencyPolicy,
+        description="Idempotency policy overrides for selected policy-pack.",
     )
 
 
@@ -165,6 +177,7 @@ class DpmPolicyPackCatalogResponse(BaseModel):
                     "settlement_policy": {"enable_settlement_awareness": False},
                     "constraint_policy": {"single_position_max_weight": "0.25"},
                     "workflow_policy": {"enable_workflow_gates": True},
+                    "idempotency_policy": {"replay_enabled": True},
                 }
             ]
         ],
@@ -249,6 +262,7 @@ def parse_policy_pack_catalog(catalog_json: Optional[str]) -> dict[str, DpmPolic
             "settlement_policy": definition.get("settlement_policy") or {},
             "constraint_policy": definition.get("constraint_policy") or {},
             "workflow_policy": definition.get("workflow_policy") or {},
+            "idempotency_policy": definition.get("idempotency_policy") or {},
         }
         try:
             parsed = DpmPolicyPackDefinition.model_validate(payload)
@@ -307,3 +321,15 @@ def apply_policy_pack_to_engine_options(
     if not updates:
         return options
     return options.model_copy(update=updates)
+
+
+def resolve_policy_pack_replay_enabled(
+    *,
+    default_replay_enabled: bool,
+    policy_pack: Optional[DpmPolicyPackDefinition],
+) -> bool:
+    if policy_pack is None:
+        return default_replay_enabled
+    if policy_pack.idempotency_policy.replay_enabled is None:
+        return default_replay_enabled
+    return policy_pack.idempotency_policy.replay_enabled
