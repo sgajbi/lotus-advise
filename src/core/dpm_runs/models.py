@@ -1,9 +1,12 @@
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel, Field
 
 from src.core.models import RebalanceResult
+
+DpmAsyncOperationType = Literal["ANALYZE_SCENARIOS"]
+DpmAsyncOperationStatus = Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]
 
 
 class DpmRunRecord(BaseModel):
@@ -92,4 +95,128 @@ class DpmRunIdempotencyLookupResponse(BaseModel):
     created_at: str = Field(
         description="Idempotency mapping timestamp (UTC ISO8601).",
         examples=["2026-02-20T12:00:00+00:00"],
+    )
+
+
+class DpmAsyncAcceptedResponse(BaseModel):
+    operation_id: str = Field(
+        description="Asynchronous operation identifier.",
+        examples=["dop_001"],
+    )
+    operation_type: DpmAsyncOperationType = Field(
+        description="Operation type accepted for asynchronous execution.",
+        examples=["ANALYZE_SCENARIOS"],
+    )
+    status: DpmAsyncOperationStatus = Field(
+        description="Initial operation status.",
+        examples=["PENDING"],
+    )
+    correlation_id: str = Field(
+        description="Correlation id assigned to asynchronous operation.",
+        examples=["corr-dpm-async-001"],
+    )
+    created_at: str = Field(
+        description="Operation acceptance timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    status_url: str = Field(
+        description="Relative API path for operation status retrieval.",
+        examples=["/rebalance/operations/dop_001"],
+    )
+
+
+class DpmAsyncError(BaseModel):
+    code: str = Field(
+        description="Stable operation error code.",
+        examples=["SCENARIO_EXECUTION_ERROR"],
+    )
+    message: str = Field(
+        description="Human-readable operation error message.",
+        examples=["SCENARIO_EXECUTION_ERROR: RuntimeError"],
+    )
+
+
+class DpmAsyncOperationStatusResponse(BaseModel):
+    operation_id: str = Field(
+        description="Asynchronous operation identifier.",
+        examples=["dop_001"],
+    )
+    operation_type: DpmAsyncOperationType = Field(
+        description="Operation type.",
+        examples=["ANALYZE_SCENARIOS"],
+    )
+    status: DpmAsyncOperationStatus = Field(
+        description="Current operation status.",
+        examples=["SUCCEEDED"],
+    )
+    correlation_id: str = Field(
+        description="Correlation id associated with this operation.",
+        examples=["corr-dpm-async-001"],
+    )
+    created_at: str = Field(
+        description="Operation acceptance timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    started_at: Optional[str] = Field(
+        default=None,
+        description="Operation start timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:01+00:00"],
+    )
+    finished_at: Optional[str] = Field(
+        default=None,
+        description="Operation completion timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:02+00:00"],
+    )
+    result: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Successful operation result payload when status is SUCCEEDED.",
+        examples=[{"batch_run_id": "batch_abc12345", "results": {}}],
+    )
+    error: Optional[DpmAsyncError] = Field(
+        default=None,
+        description="Failure details when status is FAILED.",
+        examples=[{"code": "RuntimeError", "message": "boom"}],
+    )
+
+
+class DpmAsyncOperationRecord(BaseModel):
+    operation_id: str = Field(
+        description="Internal async operation identifier.",
+        examples=["dop_001"],
+    )
+    operation_type: DpmAsyncOperationType = Field(
+        description="Internal async operation type.",
+        examples=["ANALYZE_SCENARIOS"],
+    )
+    status: DpmAsyncOperationStatus = Field(
+        description="Internal async operation status.",
+        examples=["PENDING"],
+    )
+    correlation_id: str = Field(
+        description="Internal operation correlation id.",
+        examples=["corr-dpm-async-001"],
+    )
+    created_at: datetime = Field(
+        description="Internal operation creation timestamp.",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    started_at: Optional[datetime] = Field(
+        default=None,
+        description="Internal operation start timestamp.",
+        examples=["2026-02-20T12:00:01+00:00"],
+    )
+    finished_at: Optional[datetime] = Field(
+        default=None,
+        description="Internal operation completion timestamp.",
+        examples=["2026-02-20T12:00:02+00:00"],
+    )
+    result_json: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Internal serialized success payload.",
+        examples=[{"batch_run_id": "batch_abc12345"}],
+    )
+    error_json: Optional[Dict[str, str]] = Field(
+        default=None,
+        description="Internal serialized failure payload.",
+        examples=[{"code": "RuntimeError", "message": "boom"}],
     )

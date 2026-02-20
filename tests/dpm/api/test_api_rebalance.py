@@ -12,7 +12,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import DPM_IDEMPOTENCY_CACHE, app, get_db_session
-from src.api.routers.dpm_runs import reset_dpm_run_support_service_for_tests
+from src.api.routers.dpm_runs import (
+    get_dpm_run_support_service,
+    reset_dpm_run_support_service_for_tests,
+)
 from tests.shared.factories import valid_api_payload
 
 
@@ -168,6 +171,40 @@ def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
     disabled = client.get("/rebalance/runs/rr_missing")
     assert disabled.status_code == 404
     assert disabled.json()["detail"] == "DPM_SUPPORT_APIS_DISABLED"
+
+
+def test_dpm_async_operation_lookup_not_found_and_disabled(client, monkeypatch):
+    missing = client.get("/rebalance/operations/dop_missing")
+    assert missing.status_code == 404
+    assert missing.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_FOUND"
+
+    missing_by_corr = client.get("/rebalance/operations/by-correlation/corr-missing")
+    assert missing_by_corr.status_code == 404
+    assert missing_by_corr.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_FOUND"
+
+    monkeypatch.setenv("DPM_ASYNC_OPERATIONS_ENABLED", "false")
+    disabled = client.get("/rebalance/operations/dop_missing")
+    assert disabled.status_code == 404
+    assert disabled.json()["detail"] == "DPM_ASYNC_OPERATIONS_DISABLED"
+
+
+def test_dpm_async_operation_lookup_by_id_and_correlation(client):
+    service = get_dpm_run_support_service()
+    accepted = service.submit_analyze_async(correlation_id="corr-dpm-async-support-1")
+
+    by_operation = client.get(f"/rebalance/operations/{accepted.operation_id}")
+    assert by_operation.status_code == 200
+    by_operation_body = by_operation.json()
+    assert by_operation_body["operation_id"] == accepted.operation_id
+    assert by_operation_body["operation_type"] == "ANALYZE_SCENARIOS"
+    assert by_operation_body["status"] == "PENDING"
+    assert by_operation_body["correlation_id"] == "corr-dpm-async-support-1"
+    assert by_operation_body["result"] is None
+    assert by_operation_body["error"] is None
+
+    by_correlation = client.get("/rebalance/operations/by-correlation/corr-dpm-async-support-1")
+    assert by_correlation.status_code == 200
+    assert by_correlation.json()["operation_id"] == accepted.operation_id
 
 
 def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):

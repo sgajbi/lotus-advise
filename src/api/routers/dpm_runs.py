@@ -4,6 +4,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 
 from src.core.dpm_runs import (
+    DpmAsyncOperationStatusResponse,
     DpmRunIdempotencyLookupResponse,
     DpmRunLookupResponse,
     DpmRunNotFoundError,
@@ -30,6 +31,14 @@ def _assert_support_apis_enabled() -> None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_SUPPORT_APIS_DISABLED",
+        )
+
+
+def _assert_async_operations_enabled() -> None:
+    if not _env_flag("DPM_ASYNC_OPERATIONS_ENABLED", True):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_ASYNC_OPERATIONS_DISABLED",
         )
 
 
@@ -128,5 +137,49 @@ def get_run_by_run_id(
     _assert_support_apis_enabled()
     try:
         return service.get_run(rebalance_run_id=rebalance_run_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/operations/{operation_id}",
+    response_model=DpmAsyncOperationStatusResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Async Operation",
+    description="Returns asynchronous operation status and terminal result/error payload.",
+)
+def get_dpm_async_operation(
+    operation_id: Annotated[
+        str,
+        Path(description="Asynchronous operation identifier.", examples=["dop_001"]),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmAsyncOperationStatusResponse:
+    _assert_support_apis_enabled()
+    _assert_async_operations_enabled()
+    try:
+        return service.get_async_operation(operation_id=operation_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/operations/by-correlation/{correlation_id}",
+    response_model=DpmAsyncOperationStatusResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Async Operation by Correlation Id",
+    description="Returns asynchronous operation associated with correlation id.",
+)
+def get_dpm_async_operation_by_correlation(
+    correlation_id: Annotated[
+        str,
+        Path(description="Correlation identifier associated with async operation."),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmAsyncOperationStatusResponse:
+    _assert_support_apis_enabled()
+    _assert_async_operations_enabled()
+    try:
+        return service.get_async_operation_by_correlation(correlation_id=correlation_id)
     except DpmRunNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

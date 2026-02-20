@@ -1,6 +1,10 @@
 from typing import Optional, Protocol
 
-from src.core.dpm_runs.models import DpmRunIdempotencyRecord, DpmRunRecord
+from src.core.dpm_runs.models import (
+    DpmAsyncOperationRecord,
+    DpmRunIdempotencyRecord,
+    DpmRunRecord,
+)
 
 
 class DpmRunRepository(Protocol):
@@ -15,3 +19,13 @@ class DpmRunRepository(Protocol):
     def get_idempotency_mapping(
         self, *, idempotency_key: str
     ) -> Optional[DpmRunIdempotencyRecord]: ...
+
+    def create_operation(self, operation: DpmAsyncOperationRecord) -> None: ...
+
+    def update_operation(self, operation: DpmAsyncOperationRecord) -> None: ...
+
+    def get_operation(self, *, operation_id: str) -> Optional[DpmAsyncOperationRecord]: ...
+
+    def get_operation_by_correlation(
+        self, *, correlation_id: str
+    ) -> Optional[DpmAsyncOperationRecord]: ...
