@@ -23,6 +23,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0014C (advisory drift analytics via inline `reference_model` in `POST /rebalance/proposals/simulate`)
 * RFC-0014D (advisory suitability scanner with NEW/RESOLVED/PERSISTENT issue classification and gate recommendation)
 * RFC-0014E (advisory proposal artifact via `POST /rebalance/proposals/artifact` with deterministic evidence hash)
+* RFC-0014G (advisory proposal persistence and workflow lifecycle via `/rebalance/proposals` endpoint family, in-memory adapter with repository port)
 * Shared workflow gate decision semantics (deterministic `gate_decision` block in DPM/advisory outputs, configurable through `EngineOptions`)
 
 ---
@@ -104,6 +105,11 @@ python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=100
 # Linting & Formatting
 ruff check .
 ruff format .
+
+# Dependency security/freshness checks
+python scripts/dependency_health_check.py --requirements requirements.txt
+# Optional strict mode (fails if any package is outdated)
+python scripts/dependency_health_check.py --requirements requirements.txt --fail-on-outdated
 
 ```
 
@@ -243,6 +249,23 @@ Builds a deterministic advisory proposal package by running proposal simulation 
 Hashing behavior:
 * `evidence_bundle.hashes.artifact_hash` is computed from canonical JSON, excluding volatile fields (`created_at`, `artifact_hash`).
 * This keeps hash stability across repeated requests with identical deterministic inputs.
+
+### Proposal Persistence and Lifecycle Endpoints
+
+* `POST /rebalance/proposals`: create persisted proposal aggregate + immutable version, idempotent by `Idempotency-Key` and canonical request hash.
+* `GET /rebalance/proposals/{proposal_id}`: read proposal + current version (`include_evidence` query supported).
+* `GET /rebalance/proposals`: list proposals with filters and cursor pagination.
+* `GET /rebalance/proposals/{proposal_id}/versions/{version_no}`: read specific immutable version.
+* `POST /rebalance/proposals/{proposal_id}/versions`: create version `N+1` by rerunning simulation+artifact.
+* `POST /rebalance/proposals/{proposal_id}/transitions`: apply workflow transition with optimistic `expected_state`.
+* `POST /rebalance/proposals/{proposal_id}/approvals`: record structured approval/consent and workflow event.
+
+Lifecycle runtime configuration (environment variables):
+* `PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED` (`true` by default)
+* `PROPOSAL_STORE_EVIDENCE_BUNDLE` (`true` by default)
+* `PROPOSAL_REQUIRE_EXPECTED_STATE` (`true` by default)
+* `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION` (`false` by default)
+* `PROPOSAL_REQUIRE_SIMULATION_FLAG` (`true` by default)
 
 ---
 

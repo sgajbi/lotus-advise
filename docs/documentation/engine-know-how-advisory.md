@@ -210,6 +210,10 @@ Determinism controls:
 - Proposal golden: `tests/advisory/golden/test_golden_advisory_proposal_scenarios.py`
 - Artifact golden: `tests/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`
 
+Dependency quality gate:
+- `scripts/dependency_health_check.py --requirements requirements.txt`
+- CI runs this check before lint/test to enforce vulnerability visibility.
+
 ## Deprecation Notes
 
 - `src/core/advisory/engine.py` is a compatibility shim and emits `DeprecationWarning`.
