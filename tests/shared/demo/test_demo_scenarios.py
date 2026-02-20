@@ -212,6 +212,99 @@ def test_demo_dpm_idempotency_history_supportability_via_api(monkeypatch):
     assert body["history"][1]["correlation_id"] == "demo-corr-30-idem-history-2"
 
 
+def test_demo_dpm_policy_pack_supportability_diagnostics_via_api():
+    data = load_demo_scenario("31_dpm_policy_pack_supportability_diagnostics.json")
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        try:
+            simulate = client.post(
+                "/rebalance/simulate",
+                json=data,
+                headers={
+                    "Idempotency-Key": "demo-31-policy-pack",
+                    "X-Policy-Pack-Id": "dpm_standard_v1",
+                    "X-Tenant-Policy-Pack-Id": "dpm_tenant_default_v1",
+                    "X-Tenant-Id": "tenant_001",
+                },
+            )
+            assert simulate.status_code == 200
+
+            effective = client.get(
+                "/rebalance/policies/effective",
+                headers={
+                    "X-Policy-Pack-Id": "dpm_standard_v1",
+                    "X-Tenant-Policy-Pack-Id": "dpm_tenant_default_v1",
+                    "X-Tenant-Id": "tenant_001",
+                },
+            )
+            catalog = client.get(
+                "/rebalance/policies/catalog",
+                headers={
+                    "X-Policy-Pack-Id": "dpm_standard_v1",
+                    "X-Tenant-Policy-Pack-Id": "dpm_tenant_default_v1",
+                    "X-Tenant-Id": "tenant_001",
+                },
+            )
+        finally:
+            app.dependency_overrides = original_overrides
+
+    assert effective.status_code == 200
+    assert catalog.status_code == 200
+    effective_body = effective.json()
+    assert set({"enabled", "selected_policy_pack_id", "source"}).issubset(effective_body.keys())
+    catalog_body = catalog.json()
+    assert set(
+        {
+            "enabled",
+            "total",
+            "selected_policy_pack_id",
+            "selected_policy_pack_present",
+            "selected_policy_pack_source",
+            "items",
+        }
+    ).issubset(catalog_body.keys())
+
+
+def test_demo_dpm_supportability_summary_metrics_via_api():
+    data = load_demo_scenario("32_dpm_supportability_summary_metrics.json")
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        try:
+            simulate = client.post(
+                "/rebalance/simulate",
+                json=data,
+                headers={
+                    "Idempotency-Key": "demo-32-support-summary",
+                    "X-Correlation-Id": "demo-corr-32-support-summary",
+                },
+            )
+            assert simulate.status_code == 200
+
+            summary = client.get("/rebalance/supportability/summary")
+        finally:
+            app.dependency_overrides = original_overrides
+
+    assert summary.status_code == 200
+    body = summary.json()
+    assert set(
+        {
+            "store_backend",
+            "retention_days",
+            "run_count",
+            "operation_count",
+            "operation_status_counts",
+            "run_status_counts",
+            "workflow_decision_count",
+            "workflow_action_counts",
+            "workflow_reason_code_counts",
+            "lineage_edge_count",
+        }
+    ).issubset(body.keys())
+    assert body["run_count"] >= 1
+
+
 @pytest.mark.parametrize(
     "filename, expected_status",
     [

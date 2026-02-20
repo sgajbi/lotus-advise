@@ -1,5 +1,6 @@
 import argparse
 import json
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +46,15 @@ def _run_scenario(
 
 def run_demo_pack(base_url: str) -> None:
     timeout = httpx.Timeout(30.0)
+    run_token = uuid.uuid4().hex[:8]
+    corr_27 = f"live-corr-27-supportability-{run_token}"
+    idem_27 = f"live-demo-27-supportability-{run_token}"
+    corr_29 = f"live-corr-29-workflow-disabled-{run_token}"
+    idem_29 = f"live-demo-29-workflow-disabled-{run_token}"
+    idem_31 = f"live-demo-31-policy-pack-{run_token}"
+    corr_32 = f"live-corr-32-support-summary-{run_token}"
+    idem_32 = f"live-demo-32-support-summary-{run_token}"
+    lifecycle_idem_20 = f"live-demo-lifecycle-20-{run_token}"
     with httpx.Client(base_url=base_url, timeout=timeout) as client:
         # DPM single-run demos
         dpm_files = [
@@ -90,8 +100,8 @@ def run_demo_pack(base_url: str) -> None:
             expected_http=200,
             payload_file="27_dpm_supportability_artifact_flow.json",
             headers={
-                "Idempotency-Key": "live-demo-27-supportability",
-                "X-Correlation-Id": "live-corr-27-supportability",
+                "Idempotency-Key": idem_27,
+                "X-Correlation-Id": corr_27,
             },
         )
         run_id = supportability["rebalance_run_id"]
@@ -109,7 +119,7 @@ def run_demo_pack(base_url: str) -> None:
             client,
             name="27_get_run_by_correlation",
             method="GET",
-            path="/rebalance/runs/by-correlation/live-corr-27-supportability",
+            path=f"/rebalance/runs/by-correlation/{corr_27}",
             expected_http=200,
         )
         _assert(by_correlation["rebalance_run_id"] == run_id, "27: correlation lookup mismatch")
@@ -118,7 +128,7 @@ def run_demo_pack(base_url: str) -> None:
             client,
             name="27_get_run_by_idempotency",
             method="GET",
-            path="/rebalance/runs/idempotency/live-demo-27-supportability",
+            path=f"/rebalance/runs/idempotency/{idem_27}",
             expected_http=200,
         )
         _assert(by_idempotency["rebalance_run_id"] == run_id, "27: idempotency lookup mismatch")
@@ -214,8 +224,8 @@ def run_demo_pack(base_url: str) -> None:
             expected_http=200,
             payload_file="29_dpm_workflow_gate_disabled_contract.json",
             headers={
-                "Idempotency-Key": "live-demo-29-workflow-disabled",
-                "X-Correlation-Id": "live-corr-29-workflow-disabled",
+                "Idempotency-Key": idem_29,
+                "X-Correlation-Id": corr_29,
             },
         )
         workflow_run_id = workflow_disabled["rebalance_run_id"]
@@ -238,6 +248,100 @@ def run_demo_pack(base_url: str) -> None:
         _assert(
             workflow_disabled_history.json().get("detail") == "DPM_WORKFLOW_DISABLED",
             "29: unexpected workflow history disabled detail",
+        )
+
+        policy_headers = {
+            "X-Policy-Pack-Id": "dpm_standard_v1",
+            "X-Tenant-Policy-Pack-Id": "dpm_tenant_default_v1",
+            "X-Tenant-Id": "tenant_001",
+        }
+        policy_simulate = _run_scenario(
+            client,
+            name="31_dpm_policy_pack_supportability_diagnostics.json",
+            method="POST",
+            path="/rebalance/simulate",
+            expected_http=200,
+            payload_file="31_dpm_policy_pack_supportability_diagnostics.json",
+            headers={
+                "Idempotency-Key": idem_31,
+                **policy_headers,
+            },
+        )
+        _assert(
+            policy_simulate.get("status") in {"READY", "PENDING_REVIEW", "BLOCKED"},
+            "31: simulate status must be valid domain status",
+        )
+
+        effective_policy = _run_scenario(
+            client,
+            name="31_get_effective_policy_pack",
+            method="GET",
+            path="/rebalance/policies/effective",
+            expected_http=200,
+            headers=policy_headers,
+        )
+        _assert(
+            {"enabled", "selected_policy_pack_id", "source"}.issubset(effective_policy.keys()),
+            "31: effective policy response missing expected fields",
+        )
+
+        catalog = _run_scenario(
+            client,
+            name="31_get_policy_catalog",
+            method="GET",
+            path="/rebalance/policies/catalog",
+            expected_http=200,
+            headers=policy_headers,
+        )
+        _assert(
+            {
+                "enabled",
+                "total",
+                "selected_policy_pack_id",
+                "selected_policy_pack_present",
+                "selected_policy_pack_source",
+                "items",
+            }.issubset(catalog.keys()),
+            "31: policy catalog response missing expected fields",
+        )
+
+        _run_scenario(
+            client,
+            name="32_dpm_supportability_summary_metrics.json",
+            method="POST",
+            path="/rebalance/simulate",
+            expected_http=200,
+            payload_file="32_dpm_supportability_summary_metrics.json",
+            headers={
+                "Idempotency-Key": idem_32,
+                "X-Correlation-Id": corr_32,
+            },
+        )
+        support_summary = _run_scenario(
+            client,
+            name="32_get_supportability_summary",
+            method="GET",
+            path="/rebalance/supportability/summary",
+            expected_http=200,
+        )
+        _assert(
+            {
+                "store_backend",
+                "retention_days",
+                "run_count",
+                "operation_count",
+                "operation_status_counts",
+                "run_status_counts",
+                "workflow_decision_count",
+                "workflow_action_counts",
+                "workflow_reason_code_counts",
+                "lineage_edge_count",
+            }.issubset(support_summary.keys()),
+            "32: supportability summary response missing expected fields",
+        )
+        _assert(
+            support_summary.get("run_count", 0) >= 1,
+            "32: supportability summary should include at least one run",
         )
 
         # Advisory simulate demos
@@ -293,7 +397,7 @@ def run_demo_pack(base_url: str) -> None:
             path="/rebalance/proposals",
             expected_http=200,
             payload_file="20_advisory_proposal_persist_create.json",
-            headers={"Idempotency-Key": "live-demo-lifecycle-20"},
+            headers={"Idempotency-Key": lifecycle_idem_20},
         )
         proposal_id = create["proposal"]["proposal_id"]
         _assert(create["proposal"]["current_state"] == "DRAFT", "20: unexpected lifecycle state")
