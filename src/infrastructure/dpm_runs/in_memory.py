@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from threading import Lock
@@ -218,6 +219,21 @@ class InMemoryDpmRunRepository(DpmRunRepository):
                 operation_status_counts[operation.status] = (
                     operation_status_counts.get(operation.status, 0) + 1
                 )
+            workflow_decision_count = sum(
+                len(decisions) for decisions in self._workflow_decisions.values()
+            )
+            unique_lineage_edge_keys = {
+                (
+                    edge.source_entity_id,
+                    edge.edge_type,
+                    edge.target_entity_id,
+                    edge.created_at.isoformat(),
+                    json.dumps(edge.metadata_json, sort_keys=True, separators=(",", ":")),
+                )
+                for edges in self._lineage_edges_by_entity.values()
+                for edge in edges
+            }
+            lineage_edge_count = len(unique_lineage_edge_keys)
 
             run_created_values = [run.created_at for run in runs]
             operation_created_values = [operation.created_at for operation in operations]
@@ -226,6 +242,8 @@ class InMemoryDpmRunRepository(DpmRunRepository):
                 operation_count=len(operations),
                 operation_status_counts=operation_status_counts,
                 run_status_counts=run_status_counts,
+                workflow_decision_count=workflow_decision_count,
+                lineage_edge_count=lineage_edge_count,
                 oldest_run_created_at=min(run_created_values) if run_created_values else None,
                 newest_run_created_at=max(run_created_values) if run_created_values else None,
                 oldest_operation_created_at=(

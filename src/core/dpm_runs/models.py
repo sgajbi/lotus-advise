@@ -152,6 +152,14 @@ class DpmSupportabilitySummaryData(BaseModel):
         description="Count of persisted runs grouped by business run status.",
         examples=[{"READY": 120, "PENDING_REVIEW": 6, "BLOCKED": 2}],
     )
+    workflow_decision_count: int = Field(
+        description="Total persisted workflow decision records.",
+        examples=[16],
+    )
+    lineage_edge_count: int = Field(
+        description="Total persisted lineage edge records.",
+        examples=[260],
+    )
     oldest_run_created_at: Optional[datetime] = Field(
         default=None,
         description="Oldest persisted run creation timestamp (UTC).",
@@ -200,6 +208,14 @@ class DpmSupportabilitySummaryResponse(BaseModel):
         default_factory=dict,
         description="Count of persisted runs grouped by business run status.",
         examples=[{"READY": 120, "PENDING_REVIEW": 6, "BLOCKED": 2}],
+    )
+    workflow_decision_count: int = Field(
+        description="Total persisted workflow decision records.",
+        examples=[16],
+    )
+    lineage_edge_count: int = Field(
+        description="Total persisted lineage edge records.",
+        examples=[260],
     )
     oldest_run_created_at: Optional[str] = Field(
         default=None,

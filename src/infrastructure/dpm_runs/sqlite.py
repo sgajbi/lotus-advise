@@ -497,11 +497,17 @@ class SqliteDpmRunRepository(DpmRunRepository):
             SELECT result_json
             FROM dpm_runs
         """
+        workflow_decision_count_query = (
+            "SELECT COUNT(*) AS workflow_decision_count FROM dpm_workflow_decisions"
+        )
+        lineage_edge_count_query = "SELECT COUNT(*) AS lineage_edge_count FROM dpm_lineage_edges"
         with closing(self._connect()) as connection:
             run_row = connection.execute(run_query).fetchone()
             operation_row = connection.execute(operation_query).fetchone()
             status_rows = connection.execute(operation_status_query).fetchall()
             run_rows = connection.execute(run_status_query).fetchall()
+            workflow_row = connection.execute(workflow_decision_count_query).fetchone()
+            lineage_row = connection.execute(lineage_edge_count_query).fetchone()
 
         operation_status_counts = {
             row["status"]: int(row["status_count"])
@@ -518,6 +524,8 @@ class SqliteDpmRunRepository(DpmRunRepository):
             operation_count=int(operation_row["operation_count"]),
             operation_status_counts=operation_status_counts,
             run_status_counts=run_status_counts,
+            workflow_decision_count=int(workflow_row["workflow_decision_count"]),
+            lineage_edge_count=int(lineage_row["lineage_edge_count"]),
             oldest_run_created_at=_optional_datetime(run_row["oldest_run_created_at"]),
             newest_run_created_at=_optional_datetime(run_row["newest_run_created_at"]),
             oldest_operation_created_at=_optional_datetime(

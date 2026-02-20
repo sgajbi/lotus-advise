@@ -543,6 +543,8 @@ def test_dpm_supportability_summary_endpoint(client):
     assert body["operation_count"] == 1
     assert body["run_status_counts"] == {"READY": 1}
     assert body["operation_status_counts"] == {"PENDING": 1}
+    assert body["workflow_decision_count"] == 0
+    assert body["lineage_edge_count"] == 3
     assert body["oldest_run_created_at"] is not None
     assert body["newest_run_created_at"] is not None
     assert body["oldest_operation_created_at"] is not None

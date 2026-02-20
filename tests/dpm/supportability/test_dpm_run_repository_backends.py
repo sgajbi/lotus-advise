@@ -234,6 +234,8 @@ def test_repository_supportability_summary_contract(repository):
     assert empty_summary.operation_count == 0
     assert empty_summary.operation_status_counts == {}
     assert empty_summary.run_status_counts == {}
+    assert empty_summary.workflow_decision_count == 0
+    assert empty_summary.lineage_edge_count == 0
     assert empty_summary.oldest_run_created_at is None
     assert empty_summary.newest_run_created_at is None
     assert empty_summary.oldest_operation_created_at is None
@@ -289,12 +291,35 @@ def test_repository_supportability_summary_contract(repository):
             request_json=None,
         )
     )
+    repository.append_workflow_decision(
+        DpmRunWorkflowDecisionRecord(
+            decision_id="dwd_repo_summary_1",
+            run_id="rr_repo_summary_1",
+            action="APPROVE",
+            reason_code="REVIEW_APPROVED",
+            comment=None,
+            actor_id="ops_summary_1",
+            decided_at=now + timedelta(minutes=3),
+            correlation_id="corr_repo_summary_wf_1",
+        )
+    )
+    repository.append_lineage_edge(
+        DpmLineageEdgeRecord(
+            source_entity_id="corr_repo_summary_1",
+            edge_type="CORRELATION_TO_RUN",
+            target_entity_id="rr_repo_summary_1",
+            created_at=now + timedelta(minutes=4),
+            metadata_json={"request_hash": "sha256:req-summary-1"},
+        )
+    )
 
     summary = repository.get_supportability_summary()
     assert summary.run_count == 2
     assert summary.operation_count == 2
     assert summary.operation_status_counts == {"PENDING": 1, "SUCCEEDED": 1}
     assert summary.run_status_counts == {"READY": 1, "BLOCKED": 1}
+    assert summary.workflow_decision_count == 1
+    assert summary.lineage_edge_count == 1
     assert summary.oldest_run_created_at == now
     assert summary.newest_run_created_at == now + timedelta(minutes=1)
     assert summary.oldest_operation_created_at == now + timedelta(seconds=1)
