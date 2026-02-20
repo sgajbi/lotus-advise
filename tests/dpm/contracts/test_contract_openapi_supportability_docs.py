@@ -172,6 +172,44 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(policy_catalog_schema, "selected_policy_pack_source")
     _assert_property_has_docs(policy_catalog_schema, "items")
 
+    policy_resolution_schema = schemas["DpmEffectivePolicyPackResolution"]
+    _assert_property_has_docs(policy_resolution_schema, "enabled")
+    _assert_property_has_docs(policy_resolution_schema, "selected_policy_pack_id")
+    _assert_property_has_docs(policy_resolution_schema, "source")
+
+    policy_definition_schema = schemas["DpmPolicyPackDefinition"]
+    _assert_property_has_docs(policy_definition_schema, "policy_pack_id")
+    _assert_property_has_docs(policy_definition_schema, "version")
+    _assert_property_has_docs(policy_definition_schema, "turnover_policy")
+    _assert_property_has_docs(policy_definition_schema, "tax_policy")
+    _assert_property_has_docs(policy_definition_schema, "settlement_policy")
+    _assert_property_has_docs(policy_definition_schema, "constraint_policy")
+    _assert_property_has_docs(policy_definition_schema, "workflow_policy")
+    _assert_property_has_docs(policy_definition_schema, "idempotency_policy")
+
+    turnover_policy_schema = schemas["DpmPolicyPackTurnoverPolicy"]
+    _assert_property_has_docs(turnover_policy_schema, "max_turnover_pct")
+
+    tax_policy_schema = schemas["DpmPolicyPackTaxPolicy"]
+    _assert_property_has_docs(tax_policy_schema, "enable_tax_awareness")
+    _assert_property_has_docs(tax_policy_schema, "max_realized_capital_gains")
+
+    settlement_policy_schema = schemas["DpmPolicyPackSettlementPolicy"]
+    _assert_property_has_docs(settlement_policy_schema, "enable_settlement_awareness")
+    _assert_property_has_docs(settlement_policy_schema, "settlement_horizon_days")
+
+    constraint_policy_schema = schemas["DpmPolicyPackConstraintPolicy"]
+    _assert_property_has_docs(constraint_policy_schema, "single_position_max_weight")
+    _assert_property_has_docs(constraint_policy_schema, "group_constraints")
+
+    workflow_policy_schema = schemas["DpmPolicyPackWorkflowPolicy"]
+    _assert_property_has_docs(workflow_policy_schema, "enable_workflow_gates")
+    _assert_property_has_docs(workflow_policy_schema, "workflow_requires_client_consent")
+    _assert_property_has_docs(workflow_policy_schema, "client_consent_already_obtained")
+
+    idempotency_policy_schema = schemas["DpmPolicyPackIdempotencyPolicy"]
+    _assert_property_has_docs(idempotency_policy_schema, "replay_enabled")
+
 
 def test_dpm_async_and_supportability_endpoints_use_expected_request_response_contracts():
     _guard_strict_validation()
@@ -191,7 +229,24 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert "X-Policy-Pack-Id" in header_names
     assert "X-Tenant-Id" in header_names
 
+    simulate = openapi["paths"]["/rebalance/simulate"]["post"]
+    assert simulate["requestBody"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/RebalanceRequest"
+    )
+    assert simulate["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/RebalanceResult"
+    )
+
+    analyze = openapi["paths"]["/rebalance/analyze"]["post"]
+    assert analyze["requestBody"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/BatchRebalanceRequest"
+    )
+    assert analyze["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/BatchRebalanceResult"
+    )
+
     effective_policy = openapi["paths"]["/rebalance/policies/effective"]["get"]
+    assert "requestBody" not in effective_policy
     assert effective_policy["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/DpmEffectivePolicyPackResolution")
@@ -201,6 +256,7 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert "X-Tenant-Id" in policy_params
 
     policy_catalog = openapi["paths"]["/rebalance/policies/catalog"]["get"]
+    assert "requestBody" not in policy_catalog
     assert policy_catalog["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/DpmPolicyPackCatalogResponse")
