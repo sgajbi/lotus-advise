@@ -295,9 +295,7 @@ class ProposalWorkflowService:
         return ProposalApprovalsResponse(
             proposal_id=proposal_id,
             approvals=[
-                self._to_approval(approval)
-                for approval in approvals
-                if approval is not None
+                self._to_approval(approval) for approval in approvals if approval is not None
             ],
         )
 
@@ -325,9 +323,7 @@ class ProposalWorkflowService:
 
         return ProposalLineageResponse(proposal=self._to_summary(proposal), versions=versions)
 
-    def get_idempotency_lookup(
-        self, *, idempotency_key: str
-    ) -> ProposalIdempotencyLookupResponse:
+    def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
         record = self._repository.get_idempotency(idempotency_key=idempotency_key)
         if record is None:
             raise ProposalNotFoundError("PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND")

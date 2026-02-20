@@ -158,8 +158,7 @@ def create_proposal_async(
         Header(
             alias="X-Correlation-Id",
             description=(
-                "Optional correlation id for asynchronous tracking. "
-                "Generated when omitted."
+                "Optional correlation id for asynchronous tracking. Generated when omitted."
             ),
             examples=["corr-proposal-create-async-001"],
         ),
@@ -359,8 +358,7 @@ def create_proposal_version_async(
         Header(
             alias="X-Correlation-Id",
             description=(
-                "Optional correlation id for asynchronous tracking. "
-                "Generated when omitted."
+                "Optional correlation id for asynchronous tracking. Generated when omitted."
             ),
             examples=["corr-proposal-version-async-001"],
         ),

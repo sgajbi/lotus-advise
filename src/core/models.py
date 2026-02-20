@@ -584,9 +584,7 @@ class EngineOptions(BaseModel):
     @field_validator("max_overdraft_by_ccy")
     @classmethod
     def validate_max_overdraft_by_ccy(cls, v: Dict[str, Decimal]) -> Dict[str, Decimal]:
-        return _validate_non_negative_amounts_by_currency(
-            v, field_name="max_overdraft_by_ccy"
-        )
+        return _validate_non_negative_amounts_by_currency(v, field_name="max_overdraft_by_ccy")
 
 
 class AllocationMetric(BaseModel):
