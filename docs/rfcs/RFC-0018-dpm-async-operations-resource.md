@@ -83,6 +83,7 @@ Implemented in current codebase:
 - Execution mode:
   - `DPM_ASYNC_EXECUTION_MODE=INLINE` (default, execute immediately)
   - `DPM_ASYNC_EXECUTION_MODE=ACCEPT_ONLY` (accept and persist `PENDING`; execution deferred)
+  - Invalid execution mode values fall back to `INLINE`.
 
 Deferred to later slices:
 - Worker/queue-backed execution mode.
