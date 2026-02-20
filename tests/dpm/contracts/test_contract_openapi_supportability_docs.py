@@ -151,6 +151,26 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
         "$ref"
     ].endswith("/DpmRunWorkflowResponse")
 
+    workflow_actions_by_correlation = openapi["paths"][
+        "/rebalance/runs/by-correlation/{correlation_id}/workflow/actions"
+    ]["post"]
+    assert workflow_actions_by_correlation["requestBody"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmRunWorkflowActionRequest")
+    assert workflow_actions_by_correlation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"].endswith("/DpmRunWorkflowResponse")
+
+    workflow_actions_by_idempotency = openapi["paths"][
+        "/rebalance/runs/idempotency/{idempotency_key}/workflow/actions"
+    ]["post"]
+    assert workflow_actions_by_idempotency["requestBody"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmRunWorkflowActionRequest")
+    assert workflow_actions_by_idempotency["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"].endswith("/DpmRunWorkflowResponse")
+
     workflow_history = openapi["paths"]["/rebalance/runs/{rebalance_run_id}/workflow/history"][
         "get"
     ]
@@ -161,13 +181,13 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     workflow_history_by_correlation = openapi["paths"][
         "/rebalance/runs/by-correlation/{correlation_id}/workflow/history"
     ]["get"]
-    assert workflow_history_by_correlation["responses"]["200"]["content"][
-        "application/json"
-    ]["schema"]["$ref"].endswith("/DpmRunWorkflowHistoryResponse")
+    assert workflow_history_by_correlation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"].endswith("/DpmRunWorkflowHistoryResponse")
 
     workflow_history_by_idempotency = openapi["paths"][
         "/rebalance/runs/idempotency/{idempotency_key}/workflow/history"
     ]["get"]
-    assert workflow_history_by_idempotency["responses"]["200"]["content"][
-        "application/json"
-    ]["schema"]["$ref"].endswith("/DpmRunWorkflowHistoryResponse")
+    assert workflow_history_by_idempotency["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"].endswith("/DpmRunWorkflowHistoryResponse")

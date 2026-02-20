@@ -166,6 +166,42 @@ def test_workflow_rejects_invalid_transition_for_approved_run():
         )
 
 
+def test_workflow_actions_by_correlation_and_idempotency_resolve_same_run():
+    service = _build_service(workflow_enabled=True, required_statuses={"PENDING_REVIEW"})
+    result = _simulate_result(pending_review=True)
+    service.record_run(
+        result=result,
+        request_hash="sha256:test",
+        portfolio_id="pf_test",
+        idempotency_key="idem-workflow-actions-1",
+    )
+
+    by_correlation = service.apply_workflow_action_by_correlation(
+        correlation_id="corr-test",
+        action="REQUEST_CHANGES",
+        reason_code="MORE_DETAIL",
+        comment="Please provide context",
+        actor_id="reviewer_1",
+        action_correlation_id="corr-action-1",
+    )
+    assert by_correlation.run_id == result.rebalance_run_id
+    assert by_correlation.latest_decision is not None
+    assert by_correlation.latest_decision.correlation_id == "corr-action-1"
+
+    by_idempotency = service.apply_workflow_action_by_idempotency(
+        idempotency_key="idem-workflow-actions-1",
+        action="APPROVE",
+        reason_code="REVIEW_APPROVED",
+        comment=None,
+        actor_id="reviewer_2",
+        action_correlation_id="corr-action-2",
+    )
+    assert by_idempotency.run_id == result.rebalance_run_id
+    assert by_idempotency.workflow_status == "APPROVED"
+    assert by_idempotency.latest_decision is not None
+    assert by_idempotency.latest_decision.correlation_id == "corr-action-2"
+
+
 def test_workflow_blocks_actions_when_run_status_not_configured_for_review():
     service = _build_service(workflow_enabled=True, required_statuses={"PENDING_REVIEW"})
     result = _simulate_result(pending_review=False)

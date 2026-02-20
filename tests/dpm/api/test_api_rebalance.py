@@ -1030,6 +1030,22 @@ def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, mo
     assert request_changes_body["latest_decision"]["action"] == "REQUEST_CHANGES"
     assert request_changes_body["latest_decision"]["correlation_id"] == "corr-workflow-2"
 
+    request_changes_by_correlation = client.post(
+        "/rebalance/runs/by-correlation/corr-workflow-1/workflow/actions",
+        json={
+            "action": "REQUEST_CHANGES",
+            "reason_code": "NEEDS_ONE_MORE_FIX",
+            "comment": "Resolve minor note",
+            "actor_id": "reviewer_1",
+        },
+        headers={"X-Correlation-Id": "corr-workflow-2b"},
+    )
+    assert request_changes_by_correlation.status_code == 200
+    assert (
+        request_changes_by_correlation.json()["latest_decision"]["correlation_id"]
+        == "corr-workflow-2b"
+    )
+
     approved = client.post(
         f"/rebalance/runs/{run_id}/workflow/actions",
         json={
@@ -1046,13 +1062,31 @@ def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, mo
     assert approved_body["latest_decision"]["action"] == "APPROVE"
     assert approved_body["latest_decision"]["actor_id"] == "reviewer_2"
 
+    rejected_by_idempotency = client.post(
+        "/rebalance/runs/idempotency/test-key-workflow-1/workflow/actions",
+        json={
+            "action": "REJECT",
+            "reason_code": "POLICY_BREACH_REJECTED",
+            "comment": "Rejected for control reasons",
+            "actor_id": "reviewer_3",
+        },
+        headers={"X-Correlation-Id": "corr-workflow-4"},
+    )
+    assert rejected_by_idempotency.status_code == 200
+    rejected_body = rejected_by_idempotency.json()
+    assert rejected_body["workflow_status"] == "REJECTED"
+    assert rejected_body["latest_decision"]["action"] == "REJECT"
+    assert rejected_body["latest_decision"]["correlation_id"] == "corr-workflow-4"
+
     history = client.get(f"/rebalance/runs/{run_id}/workflow/history")
     assert history.status_code == 200
     history_body = history.json()
     assert history_body["run_id"] == run_id
-    assert len(history_body["decisions"]) == 2
+    assert len(history_body["decisions"]) == 4
     assert history_body["decisions"][0]["action"] == "REQUEST_CHANGES"
-    assert history_body["decisions"][1]["action"] == "APPROVE"
+    assert history_body["decisions"][1]["action"] == "REQUEST_CHANGES"
+    assert history_body["decisions"][2]["action"] == "APPROVE"
+    assert history_body["decisions"][3]["action"] == "REJECT"
 
     history_by_correlation = client.get(
         "/rebalance/runs/by-correlation/corr-workflow-1/workflow/history"
@@ -1060,19 +1094,19 @@ def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, mo
     assert history_by_correlation.status_code == 200
     history_by_correlation_body = history_by_correlation.json()
     assert history_by_correlation_body["run_id"] == run_id
-    assert len(history_by_correlation_body["decisions"]) == 2
+    assert len(history_by_correlation_body["decisions"]) == 4
     history_by_idempotency = client.get(
         "/rebalance/runs/idempotency/test-key-workflow-1/workflow/history"
     )
     assert history_by_idempotency.status_code == 200
     history_by_idempotency_body = history_by_idempotency.json()
     assert history_by_idempotency_body["run_id"] == run_id
-    assert len(history_by_idempotency_body["decisions"]) == 2
+    assert len(history_by_idempotency_body["decisions"]) == 4
 
     invalid = client.post(
         f"/rebalance/runs/{run_id}/workflow/actions",
         json={
-            "action": "APPROVE",
+            "action": "REJECT",
             "reason_code": "REVIEW_APPROVED",
             "comment": None,
             "actor_id": "reviewer_2",
@@ -1123,3 +1157,25 @@ def test_dpm_run_workflow_endpoints_disabled_and_not_required_behavior(client, m
     missing_by_idempotency = client.get("/rebalance/runs/idempotency/idem-missing/workflow")
     assert missing_by_idempotency.status_code == 404
     assert missing_by_idempotency.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"
+    missing_action_by_correlation = client.post(
+        "/rebalance/runs/by-correlation/corr-missing/workflow/actions",
+        json={
+            "action": "APPROVE",
+            "reason_code": "REVIEW_APPROVED",
+            "comment": None,
+            "actor_id": "reviewer_1",
+        },
+    )
+    assert missing_action_by_correlation.status_code == 404
+    assert missing_action_by_correlation.json()["detail"] == "DPM_RUN_NOT_FOUND"
+    missing_action_by_idempotency = client.post(
+        "/rebalance/runs/idempotency/idem-missing/workflow/actions",
+        json={
+            "action": "APPROVE",
+            "reason_code": "REVIEW_APPROVED",
+            "comment": None,
+            "actor_id": "reviewer_1",
+        },
+    )
+    assert missing_action_by_idempotency.status_code == 404
+    assert missing_action_by_idempotency.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"

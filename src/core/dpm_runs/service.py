@@ -277,6 +277,46 @@ class DpmRunSupportService:
             latest_decision=self._to_workflow_decision_response(decision),
         )
 
+    def apply_workflow_action_by_correlation(
+        self,
+        *,
+        correlation_id: str,
+        action: DpmWorkflowActionType,
+        reason_code: str,
+        comment: Optional[str],
+        actor_id: str,
+        action_correlation_id: str,
+    ) -> DpmRunWorkflowResponse:
+        run = self._get_required_run_by_correlation(correlation_id=correlation_id)
+        return self.apply_workflow_action(
+            rebalance_run_id=run.rebalance_run_id,
+            action=action,
+            reason_code=reason_code,
+            comment=comment,
+            actor_id=actor_id,
+            correlation_id=action_correlation_id,
+        )
+
+    def apply_workflow_action_by_idempotency(
+        self,
+        *,
+        idempotency_key: str,
+        action: DpmWorkflowActionType,
+        reason_code: str,
+        comment: Optional[str],
+        actor_id: str,
+        action_correlation_id: str,
+    ) -> DpmRunWorkflowResponse:
+        mapping = self._get_required_idempotency_mapping(idempotency_key=idempotency_key)
+        return self.apply_workflow_action(
+            rebalance_run_id=mapping.rebalance_run_id,
+            action=action,
+            reason_code=reason_code,
+            comment=comment,
+            actor_id=actor_id,
+            correlation_id=action_correlation_id,
+        )
+
     def _to_lookup_response(self, run: DpmRunRecord) -> DpmRunLookupResponse:
         return DpmRunLookupResponse(
             rebalance_run_id=run.rebalance_run_id,
@@ -333,9 +373,7 @@ class DpmRunSupportService:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
         return run
 
-    def _get_required_idempotency_mapping(
-        self, *, idempotency_key: str
-    ) -> DpmRunIdempotencyRecord:
+    def _get_required_idempotency_mapping(self, *, idempotency_key: str) -> DpmRunIdempotencyRecord:
         mapping = self._repository.get_idempotency_mapping(idempotency_key=idempotency_key)
         if mapping is None:
             raise DpmRunNotFoundError("DPM_IDEMPOTENCY_KEY_NOT_FOUND")

@@ -375,6 +375,96 @@ def apply_dpm_run_workflow_action(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
+@router.post(
+    "/rebalance/runs/by-correlation/{correlation_id}/workflow/actions",
+    response_model=DpmRunWorkflowResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Apply DPM Run Workflow Action by Correlation Id",
+    description=(
+        "Applies one workflow action for run resolved by correlation id and returns updated "
+        "workflow state."
+    ),
+)
+def apply_dpm_run_workflow_action_by_correlation(
+    correlation_id: Annotated[
+        str,
+        Path(description="Correlation identifier used on run submission."),
+    ],
+    payload: DpmRunWorkflowActionRequest,
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    action_correlation_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Correlation-Id",
+            description="Optional correlation id for workflow action request tracing.",
+            examples=["corr-workflow-action-001"],
+        ),
+    ] = None,
+) -> DpmRunWorkflowResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.apply_workflow_action_by_correlation(
+            correlation_id=correlation_id,
+            action=payload.action,
+            reason_code=payload.reason_code,
+            comment=payload.comment,
+            actor_id=payload.actor_id,
+            action_correlation_id=action_correlation_id or "c_none",
+        )
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DpmWorkflowDisabledError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DpmWorkflowTransitionError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.post(
+    "/rebalance/runs/idempotency/{idempotency_key}/workflow/actions",
+    response_model=DpmRunWorkflowResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Apply DPM Run Workflow Action by Idempotency Key",
+    description=(
+        "Applies one workflow action for run resolved by idempotency key mapping and returns "
+        "updated workflow state."
+    ),
+)
+def apply_dpm_run_workflow_action_by_idempotency(
+    idempotency_key: Annotated[
+        str,
+        Path(description="Idempotency key supplied to `/rebalance/simulate`."),
+    ],
+    payload: DpmRunWorkflowActionRequest,
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    action_correlation_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Correlation-Id",
+            description="Optional correlation id for workflow action request tracing.",
+            examples=["corr-workflow-action-002"],
+        ),
+    ] = None,
+) -> DpmRunWorkflowResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.apply_workflow_action_by_idempotency(
+            idempotency_key=idempotency_key,
+            action=payload.action,
+            reason_code=payload.reason_code,
+            comment=payload.comment,
+            actor_id=payload.actor_id,
+            action_correlation_id=action_correlation_id or "c_none",
+        )
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DpmWorkflowDisabledError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DpmWorkflowTransitionError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
 @router.get(
     "/rebalance/runs/{rebalance_run_id}/workflow/history",
     response_model=DpmRunWorkflowHistoryResponse,

@@ -61,6 +61,12 @@ Implementation scope:
 ### `POST /rebalance/runs/{rebalance_run_id}/workflow/actions`
 - Purpose: apply one workflow action (`APPROVE`, `REJECT`, `REQUEST_CHANGES`) with actor/reason trace.
 
+### `POST /rebalance/runs/by-correlation/{correlation_id}/workflow/actions`
+- Purpose: apply one workflow action when only run correlation id is known.
+
+### `POST /rebalance/runs/idempotency/{idempotency_key}/workflow/actions`
+- Purpose: apply one workflow action when only idempotency key is known.
+
 ### `GET /rebalance/runs/{rebalance_run_id}/workflow/history`
 - Purpose: retrieve append-only workflow decision history for audit and investigation.
 

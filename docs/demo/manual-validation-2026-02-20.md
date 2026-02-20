@@ -90,6 +90,11 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow` returns `200`.
     - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history` returns `200`.
     - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history` returns `200`.
+    - `POST /rebalance/runs/by-correlation/{correlation_id}/workflow/actions` returns `200`.
+    - `POST /rebalance/runs/idempotency/{idempotency_key}/workflow/actions` returns `200`.
+    - Sequential action check:
+      - correlation-based `REQUEST_CHANGES` keeps workflow in `PENDING_REVIEW`
+      - idempotency-based `APPROVE` transitions workflow to `APPROVED`
     - Workflow action and history are consistent between run-id and correlation-id endpoints.
     - Idempotency-key workflow retrieval without prior action returns:
       - `workflow_status=PENDING_REVIEW`
@@ -100,6 +105,11 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow` returns `200`.
     - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history` returns `200`.
     - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history` returns `200`.
+    - `POST /rebalance/runs/by-correlation/{correlation_id}/workflow/actions` returns `200`.
+    - `POST /rebalance/runs/idempotency/{idempotency_key}/workflow/actions` returns `200`.
+    - Sequential action check:
+      - correlation-based `REQUEST_CHANGES` keeps workflow in `PENDING_REVIEW`
+      - idempotency-based `APPROVE` transitions workflow to `APPROVED`
     - Idempotency-key workflow retrieval without prior action returns:
       - `workflow_status=PENDING_REVIEW`
       - history `decisions=[]`

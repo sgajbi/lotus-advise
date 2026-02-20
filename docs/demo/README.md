@@ -38,6 +38,8 @@ curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-correlation/<correlation_id>/workflow"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/idempotency/<idempotency_key>/workflow"
 curl -X POST "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow/actions" -H "Content-Type: application/json" -H "X-Correlation-Id: demo-corr-workflow-1" --data-binary '{"action":"APPROVE","reason_code":"REVIEW_APPROVED","actor_id":"reviewer_001"}'
+curl -X POST "http://127.0.0.1:8000/rebalance/runs/by-correlation/<correlation_id>/workflow/actions" -H "Content-Type: application/json" -H "X-Correlation-Id: demo-corr-workflow-2" --data-binary '{"action":"REQUEST_CHANGES","reason_code":"NEEDS_DETAIL","actor_id":"reviewer_001"}'
+curl -X POST "http://127.0.0.1:8000/rebalance/runs/idempotency/<idempotency_key>/workflow/actions" -H "Content-Type: application/json" -H "X-Correlation-Id: demo-corr-workflow-3" --data-binary '{"action":"REJECT","reason_code":"POLICY_REJECTED","actor_id":"reviewer_001"}'
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow/history"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-correlation/<correlation_id>/workflow/history"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/idempotency/<idempotency_key>/workflow/history"
