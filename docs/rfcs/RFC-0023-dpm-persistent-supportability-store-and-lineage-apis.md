@@ -115,7 +115,7 @@ No new business run statuses. Investigation responses use explicit technical sta
 - Implemented (slice 7):
   - Supportability summary API:
     - `GET /rebalance/supportability/summary`
-      - returns run count, async operation count, operation status distribution, and created-at bounds.
+      - returns run count, async operation count, run/operation status distributions, and created-at bounds.
   - Feature flag:
     - `DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED` (default `true`)
 - Pending:

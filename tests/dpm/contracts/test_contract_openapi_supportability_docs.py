@@ -105,6 +105,7 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(supportability_summary_schema, "run_count")
     _assert_property_has_docs(supportability_summary_schema, "operation_count")
     _assert_property_has_docs(supportability_summary_schema, "operation_status_counts")
+    _assert_property_has_docs(supportability_summary_schema, "run_status_counts")
     _assert_property_has_docs(supportability_summary_schema, "oldest_run_created_at")
     _assert_property_has_docs(supportability_summary_schema, "newest_run_created_at")
     _assert_property_has_docs(supportability_summary_schema, "oldest_operation_created_at")

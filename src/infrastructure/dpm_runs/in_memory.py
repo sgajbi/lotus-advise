@@ -209,6 +209,11 @@ class InMemoryDpmRunRepository(DpmRunRepository):
             runs = list(self._runs.values())
             operations = list(self._operations.values())
             operation_status_counts: dict[str, int] = {}
+            run_status_counts: dict[str, int] = {}
+            for run in runs:
+                status = str(run.result_json.get("status", ""))
+                if status:
+                    run_status_counts[status] = run_status_counts.get(status, 0) + 1
             for operation in operations:
                 operation_status_counts[operation.status] = (
                     operation_status_counts.get(operation.status, 0) + 1
@@ -220,6 +225,7 @@ class InMemoryDpmRunRepository(DpmRunRepository):
                 run_count=len(runs),
                 operation_count=len(operations),
                 operation_status_counts=operation_status_counts,
+                run_status_counts=run_status_counts,
                 oldest_run_created_at=min(run_created_values) if run_created_values else None,
                 newest_run_created_at=max(run_created_values) if run_created_values else None,
                 oldest_operation_created_at=(

@@ -493,20 +493,31 @@ class SqliteDpmRunRepository(DpmRunRepository):
             FROM dpm_async_operations
             GROUP BY status
         """
+        run_status_query = """
+            SELECT result_json
+            FROM dpm_runs
+        """
         with closing(self._connect()) as connection:
             run_row = connection.execute(run_query).fetchone()
             operation_row = connection.execute(operation_query).fetchone()
             status_rows = connection.execute(operation_status_query).fetchall()
+            run_rows = connection.execute(run_status_query).fetchall()
 
         operation_status_counts = {
             row["status"]: int(row["status_count"])
             for row in status_rows
             if row["status"] is not None
         }
+        run_status_counts: dict[str, int] = {}
+        for row in run_rows:
+            status = str(json.loads(row["result_json"]).get("status", ""))
+            if status:
+                run_status_counts[status] = run_status_counts.get(status, 0) + 1
         return DpmSupportabilitySummaryData(
             run_count=int(run_row["run_count"]),
             operation_count=int(operation_row["operation_count"]),
             operation_status_counts=operation_status_counts,
+            run_status_counts=run_status_counts,
             oldest_run_created_at=_optional_datetime(run_row["oldest_run_created_at"]),
             newest_run_created_at=_optional_datetime(run_row["newest_run_created_at"]),
             oldest_operation_created_at=_optional_datetime(

@@ -57,6 +57,7 @@ Implementation scope:
 - Output:
   - configured store backend and retention policy
   - run and async operation totals
+  - run status distribution
   - async operation status distribution
   - oldest/newest created-at timestamps for runs and operations
 

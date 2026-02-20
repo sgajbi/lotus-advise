@@ -334,6 +334,7 @@ class DpmRunSupportService:
             run_count=summary.run_count,
             operation_count=summary.operation_count,
             operation_status_counts=summary.operation_status_counts,
+            run_status_counts=summary.run_status_counts,
             oldest_run_created_at=(
                 summary.oldest_run_created_at.isoformat()
                 if summary.oldest_run_created_at is not None

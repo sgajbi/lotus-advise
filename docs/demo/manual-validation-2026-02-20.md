@@ -87,12 +87,14 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `store_backend=IN_MEMORY`
       - `run_count=1`
       - `operation_count=0`
+      - `run_status_counts={"READY":1}`
   - Docker runtime (`http://127.0.0.1:8000`):
     - `POST /rebalance/simulate` returns `status=READY`.
     - `GET /rebalance/supportability/summary` returns `200` with:
       - `store_backend=IN_MEMORY`
       - `run_count=1`
       - `operation_count=0`
+      - `run_status_counts={"READY":1}`
 - SQLite supportability backend validation:
   - Uvicorn run (`DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`) on `http://127.0.0.1:8001`:
     - `POST /rebalance/simulate` succeeded (`200`).

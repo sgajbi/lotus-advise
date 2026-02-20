@@ -147,6 +147,11 @@ class DpmSupportabilitySummaryData(BaseModel):
         description="Count of async operations grouped by status.",
         examples=[{"PENDING": 2, "RUNNING": 1, "SUCCEEDED": 38, "FAILED": 1}],
     )
+    run_status_counts: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of persisted runs grouped by business run status.",
+        examples=[{"READY": 120, "PENDING_REVIEW": 6, "BLOCKED": 2}],
+    )
     oldest_run_created_at: Optional[datetime] = Field(
         default=None,
         description="Oldest persisted run creation timestamp (UTC).",
@@ -190,6 +195,11 @@ class DpmSupportabilitySummaryResponse(BaseModel):
         default_factory=dict,
         description="Count of async operations grouped by status.",
         examples=[{"PENDING": 2, "RUNNING": 1, "SUCCEEDED": 38, "FAILED": 1}],
+    )
+    run_status_counts: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of persisted runs grouped by business run status.",
+        examples=[{"READY": 120, "PENDING_REVIEW": 6, "BLOCKED": 2}],
     )
     oldest_run_created_at: Optional[str] = Field(
         default=None,
