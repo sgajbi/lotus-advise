@@ -25,7 +25,7 @@ Standards for all current and future RFCs:
 | RFC-0014D | Suitability Scanner v1 for Advisory Proposals | IMPLEMENTED | RFC-0014A, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014D-suitability-scanner-v1.md` |
 | RFC-0014E | Advisory Proposal Artifact | IMPLEMENTED | RFC-0014A, RFC-0014B, RFC-0014C, RFC-0014D | `docs/rfcs/advisory pack/refine/RFC-0014E-proposal-artifact.md` |
 | RFC-0014G | Proposal Persistence and Workflow Lifecycle | IMPLEMENTED (MVP IN-MEMORY ADAPTER) | RFC-0014A, RFC-0014E, RFC-0014F | `docs/rfcs/advisory pack/refine/RFC-0014G-proposal-persistence-workflow-lifecycle.md` |
-| RFC-0015 | Deferred Scope Consolidation and Completion Backlog | DRAFT | RFC-0001..RFC-0013 | `docs/rfcs/RFC-0015-deferred-scope-consolidation-and-completion-backlog.md` |
+| RFC-0015 | Deferred Scope Consolidation and Completion Backlog | SUPERSEDED (TRIAGED) | RFC-0001..RFC-0013 | `docs/rfcs/RFC-0015-deferred-scope-consolidation-and-completion-backlog.md` |
 | RFC-0016 | DPM Idempotency Replay Contract for `/rebalance/simulate` | IMPLEMENTED | RFC-0001, RFC-0002, RFC-0007A | `docs/rfcs/RFC-0016-dpm-idempotency-replay-contract.md` |
 | RFC-0017 | DPM Run Supportability APIs (Run, Correlation, Idempotency Lookup) | IMPLEMENTED | RFC-0001, RFC-0002, RFC-0016 | `docs/rfcs/RFC-0017-dpm-run-supportability-apis.md` |
 | RFC-0018 | DPM Async Operations Resource | IMPLEMENTED | RFC-0013, RFC-0016, RFC-0017 | `docs/rfcs/RFC-0018-dpm-async-operations-resource.md` |
