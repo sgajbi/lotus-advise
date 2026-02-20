@@ -79,7 +79,9 @@ Implemented in current codebase:
   - `DPM_ASYNC_OPERATIONS_ENABLED`
 - TTL cleanup enforcement for async operation records:
   - `DPM_ASYNC_OPERATIONS_TTL_SECONDS`
-- Inline execution mode for phase-2 delivery.
+- Execution mode:
+  - `DPM_ASYNC_EXECUTION_MODE=INLINE` (default, execute immediately)
+  - `DPM_ASYNC_EXECUTION_MODE=ACCEPT_ONLY` (accept and persist `PENDING`; execution deferred)
 
 Deferred to later slices:
 - Worker/queue-backed execution mode.

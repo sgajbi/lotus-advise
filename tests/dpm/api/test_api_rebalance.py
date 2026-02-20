@@ -454,6 +454,54 @@ def test_analyze_async_disabled_returns_404(client, monkeypatch):
     assert response.json()["detail"] == "DPM_ASYNC_OPERATIONS_DISABLED"
 
 
+def test_analyze_async_accept_only_mode_keeps_operation_pending(client, monkeypatch):
+    monkeypatch.setenv("DPM_ASYNC_EXECUTION_MODE", "ACCEPT_ONLY")
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+
+    accepted = client.post(
+        "/rebalance/analyze/async",
+        json=payload,
+        headers={"X-Correlation-Id": "corr-batch-async-accept-only"},
+    )
+    assert accepted.status_code == 202
+    operation_id = accepted.json()["operation_id"]
+
+    operation = client.get(f"/rebalance/operations/{operation_id}")
+    assert operation.status_code == 200
+    operation_body = operation.json()
+    assert operation_body["status"] == "PENDING"
+    assert operation_body["started_at"] is None
+    assert operation_body["finished_at"] is None
+    assert operation_body["result"] is None
+    assert operation_body["error"] is None
+
+    by_correlation = client.get("/rebalance/operations/by-correlation/corr-batch-async-accept-only")
+    assert by_correlation.status_code == 200
+    assert by_correlation.json()["operation_id"] == operation_id
+    assert by_correlation.json()["status"] == "PENDING"
+
+
+def test_analyze_async_invalid_execution_mode_falls_back_to_inline(client, monkeypatch):
+    monkeypatch.setenv("DPM_ASYNC_EXECUTION_MODE", "INVALID_MODE")
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+
+    accepted = client.post(
+        "/rebalance/analyze/async",
+        json=payload,
+        headers={"X-Correlation-Id": "corr-batch-async-inline-fallback"},
+    )
+    assert accepted.status_code == 202
+    operation_id = accepted.json()["operation_id"]
+
+    operation = client.get(f"/rebalance/operations/{operation_id}")
+    assert operation.status_code == 200
+    assert operation.json()["status"] == "SUCCEEDED"
+
+
 def test_dpm_artifact_openapi_schema_has_descriptions_and_examples(client):
     openapi = client.get("/openapi.json").json()
     schema = openapi["components"]["schemas"]["DpmRunArtifactResponse"]

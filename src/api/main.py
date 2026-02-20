@@ -299,6 +299,14 @@ def _env_int(name: str, default: int) -> int:
     return parsed if parsed >= 1 else default
 
 
+def _resolve_async_execution_mode() -> str:
+    value = os.getenv("DPM_ASYNC_EXECUTION_MODE", "INLINE")
+    normalized = value.strip().upper()
+    if normalized in {"INLINE", "ACCEPT_ONLY"}:
+        return normalized
+    return "INLINE"
+
+
 def _to_invalid_options_error(exc: ValidationError) -> str:
     first_error = exc.errors()[0]
     return f"INVALID_OPTIONS: {first_error.get('msg', 'validation failed')}"
@@ -471,6 +479,7 @@ def analyze_scenarios(
     summary="Analyze Multiple Rebalance Scenarios Asynchronously",
     description=(
         "Accepts named what-if scenarios for asynchronous execution.\n\n"
+        "Execution mode is controlled by `DPM_ASYNC_EXECUTION_MODE` (`INLINE` or `ACCEPT_ONLY`).\n"
         "Use `GET /rebalance/operations/{operation_id}` or "
         "`GET /rebalance/operations/by-correlation/{correlation_id}` for status/result retrieval."
     ),
@@ -507,6 +516,8 @@ def analyze_scenarios_async(
         )
     service = get_dpm_run_support_service()
     accepted = service.submit_analyze_async(correlation_id=correlation_id)
+    if _resolve_async_execution_mode() == "ACCEPT_ONLY":
+        return accepted
     service.mark_operation_running(operation_id=accepted.operation_id)
     try:
         result = _execute_batch_analysis(request=request, correlation_id=accepted.correlation_id)
