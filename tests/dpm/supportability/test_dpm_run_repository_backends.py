@@ -409,6 +409,8 @@ def test_repository_supportability_summary_contract(repository):
     assert empty_summary.operation_status_counts == {}
     assert empty_summary.run_status_counts == {}
     assert empty_summary.workflow_decision_count == 0
+    assert empty_summary.workflow_action_counts == {}
+    assert empty_summary.workflow_reason_code_counts == {}
     assert empty_summary.lineage_edge_count == 0
     assert empty_summary.oldest_run_created_at is None
     assert empty_summary.newest_run_created_at is None
@@ -493,6 +495,8 @@ def test_repository_supportability_summary_contract(repository):
     assert summary.operation_status_counts == {"PENDING": 1, "SUCCEEDED": 1}
     assert summary.run_status_counts == {"READY": 1, "BLOCKED": 1}
     assert summary.workflow_decision_count == 1
+    assert summary.workflow_action_counts == {"APPROVE": 1}
+    assert summary.workflow_reason_code_counts == {"REVIEW_APPROVED": 1}
     assert summary.lineage_edge_count == 1
     assert summary.oldest_run_created_at == now
     assert summary.newest_run_created_at == now + timedelta(minutes=1)

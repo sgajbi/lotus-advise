@@ -568,6 +568,8 @@ def test_dpm_supportability_summary_endpoint(client):
     assert body["run_status_counts"] == {"READY": 1}
     assert body["operation_status_counts"] == {"PENDING": 1}
     assert body["workflow_decision_count"] == 0
+    assert body["workflow_action_counts"] == {}
+    assert body["workflow_reason_code_counts"] == {}
     assert body["lineage_edge_count"] == 3
     assert body["oldest_run_created_at"] is not None
     assert body["newest_run_created_at"] is not None
@@ -580,6 +582,40 @@ def test_dpm_supportability_summary_endpoint_disabled(client, monkeypatch):
     response = client.get("/rebalance/supportability/summary")
     assert response.status_code == 404
     assert response.json()["detail"] == "DPM_SUPPORTABILITY_SUMMARY_APIS_DISABLED"
+
+
+def test_dpm_supportability_summary_includes_workflow_aggregates(client, monkeypatch):
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+    payload = get_valid_payload()
+    payload["options"]["single_position_max_weight"] = "0.5"
+    simulate = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={
+            "Idempotency-Key": "test-key-support-summary-workflow-1",
+            "X-Correlation-Id": "corr-support-summary-workflow-1",
+        },
+    )
+    assert simulate.status_code == 200
+    run_id = simulate.json()["rebalance_run_id"]
+
+    action = client.post(
+        f"/rebalance/runs/{run_id}/workflow/actions",
+        json={
+            "action": "APPROVE",
+            "reason_code": "REVIEW_APPROVED",
+            "actor_id": "reviewer_summary",
+        },
+        headers={"X-Correlation-Id": "corr-support-summary-workflow-action-1"},
+    )
+    assert action.status_code == 200
+
+    response = client.get("/rebalance/supportability/summary")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workflow_decision_count"] == 1
+    assert body["workflow_action_counts"] == {"APPROVE": 1}
+    assert body["workflow_reason_code_counts"] == {"REVIEW_APPROVED": 1}
 
 
 def test_dpm_run_support_bundle_endpoint(client):

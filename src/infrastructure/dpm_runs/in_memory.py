@@ -276,6 +276,16 @@ class InMemoryDpmRunRepository(DpmRunRepository):
             workflow_decision_count = sum(
                 len(decisions) for decisions in self._workflow_decisions.values()
             )
+            workflow_action_counts: dict[str, int] = {}
+            workflow_reason_code_counts: dict[str, int] = {}
+            for decisions in self._workflow_decisions.values():
+                for decision in decisions:
+                    workflow_action_counts[decision.action] = (
+                        workflow_action_counts.get(decision.action, 0) + 1
+                    )
+                    workflow_reason_code_counts[decision.reason_code] = (
+                        workflow_reason_code_counts.get(decision.reason_code, 0) + 1
+                    )
             unique_lineage_edge_keys = {
                 (
                     edge.source_entity_id,
@@ -297,6 +307,8 @@ class InMemoryDpmRunRepository(DpmRunRepository):
                 operation_status_counts=operation_status_counts,
                 run_status_counts=run_status_counts,
                 workflow_decision_count=workflow_decision_count,
+                workflow_action_counts=workflow_action_counts,
+                workflow_reason_code_counts=workflow_reason_code_counts,
                 lineage_edge_count=lineage_edge_count,
                 oldest_run_created_at=min(run_created_values) if run_created_values else None,
                 newest_run_created_at=max(run_created_values) if run_created_values else None,

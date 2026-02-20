@@ -58,6 +58,7 @@ Implementation scope:
   - configured store backend and retention policy
   - run and async operation totals
   - workflow decision and lineage edge totals
+  - workflow decision aggregate counts by action and reason code
   - run status distribution
   - async operation status distribution
   - oldest/newest created-at timestamps for runs and operations

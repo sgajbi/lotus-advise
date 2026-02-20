@@ -347,6 +347,8 @@ class DpmRunSupportService:
             operation_status_counts=summary.operation_status_counts,
             run_status_counts=summary.run_status_counts,
             workflow_decision_count=summary.workflow_decision_count,
+            workflow_action_counts=summary.workflow_action_counts,
+            workflow_reason_code_counts=summary.workflow_reason_code_counts,
             lineage_edge_count=summary.lineage_edge_count,
             oldest_run_created_at=(
                 summary.oldest_run_created_at.isoformat()

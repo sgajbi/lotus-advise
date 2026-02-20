@@ -155,5 +155,11 @@ No new business run statuses. Investigation responses use explicit technical sta
   - Workflow decision lookup extension:
     - `GET /rebalance/workflow/decisions/by-correlation/{correlation_id}`
       - resolves run by correlation id and returns append-only workflow decision history.
+- Implemented (slice 11):
+  - Supportability summary metric extension:
+    - `GET /rebalance/supportability/summary`
+      - adds workflow decision aggregates:
+        - `workflow_action_counts`
+        - `workflow_reason_code_counts`
 - Pending:
   - SQL backend beyond SQLite (enterprise managed database deployment profile).

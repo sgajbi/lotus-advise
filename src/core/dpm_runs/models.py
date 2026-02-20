@@ -156,6 +156,16 @@ class DpmSupportabilitySummaryData(BaseModel):
         description="Total persisted workflow decision records.",
         examples=[16],
     )
+    workflow_action_counts: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of workflow decisions grouped by action type.",
+        examples=[{"APPROVE": 10, "REJECT": 2, "REQUEST_CHANGES": 4}],
+    )
+    workflow_reason_code_counts: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of workflow decisions grouped by reason code.",
+        examples=[{"REVIEW_APPROVED": 10, "POLICY_REJECTED": 2, "NEEDS_DETAIL": 4}],
+    )
     lineage_edge_count: int = Field(
         description="Total persisted lineage edge records.",
         examples=[260],
@@ -212,6 +222,16 @@ class DpmSupportabilitySummaryResponse(BaseModel):
     workflow_decision_count: int = Field(
         description="Total persisted workflow decision records.",
         examples=[16],
+    )
+    workflow_action_counts: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of workflow decisions grouped by action type.",
+        examples=[{"APPROVE": 10, "REJECT": 2, "REQUEST_CHANGES": 4}],
+    )
+    workflow_reason_code_counts: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of workflow decisions grouped by reason code.",
+        examples=[{"REVIEW_APPROVED": 10, "POLICY_REJECTED": 2, "NEEDS_DETAIL": 4}],
     )
     lineage_edge_count: int = Field(
         description="Total persisted lineage edge records.",

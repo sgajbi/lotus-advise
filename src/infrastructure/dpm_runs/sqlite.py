@@ -597,6 +597,16 @@ class SqliteDpmRunRepository(DpmRunRepository):
         workflow_decision_count_query = (
             "SELECT COUNT(*) AS workflow_decision_count FROM dpm_workflow_decisions"
         )
+        workflow_action_counts_query = """
+            SELECT action, COUNT(*) AS action_count
+            FROM dpm_workflow_decisions
+            GROUP BY action
+        """
+        workflow_reason_code_counts_query = """
+            SELECT reason_code, COUNT(*) AS reason_code_count
+            FROM dpm_workflow_decisions
+            GROUP BY reason_code
+        """
         lineage_edge_count_query = "SELECT COUNT(*) AS lineage_edge_count FROM dpm_lineage_edges"
         with closing(self._connect()) as connection:
             run_row = connection.execute(run_query).fetchone()
@@ -604,6 +614,10 @@ class SqliteDpmRunRepository(DpmRunRepository):
             status_rows = connection.execute(operation_status_query).fetchall()
             run_rows = connection.execute(run_status_query).fetchall()
             workflow_row = connection.execute(workflow_decision_count_query).fetchone()
+            workflow_action_rows = connection.execute(workflow_action_counts_query).fetchall()
+            workflow_reason_code_rows = connection.execute(
+                workflow_reason_code_counts_query
+            ).fetchall()
             lineage_row = connection.execute(lineage_edge_count_query).fetchone()
 
         operation_status_counts = {
@@ -616,12 +630,24 @@ class SqliteDpmRunRepository(DpmRunRepository):
             status = str(json.loads(row["result_json"]).get("status", ""))
             if status:
                 run_status_counts[status] = run_status_counts.get(status, 0) + 1
+        workflow_action_counts = {
+            row["action"]: int(row["action_count"])
+            for row in workflow_action_rows
+            if row["action"] is not None
+        }
+        workflow_reason_code_counts = {
+            row["reason_code"]: int(row["reason_code_count"])
+            for row in workflow_reason_code_rows
+            if row["reason_code"] is not None
+        }
         return DpmSupportabilitySummaryData(
             run_count=int(run_row["run_count"]),
             operation_count=int(operation_row["operation_count"]),
             operation_status_counts=operation_status_counts,
             run_status_counts=run_status_counts,
             workflow_decision_count=int(workflow_row["workflow_decision_count"]),
+            workflow_action_counts=workflow_action_counts,
+            workflow_reason_code_counts=workflow_reason_code_counts,
             lineage_edge_count=int(lineage_row["lineage_edge_count"]),
             oldest_run_created_at=_optional_datetime(run_row["oldest_run_created_at"]),
             newest_run_created_at=_optional_datetime(run_row["newest_run_created_at"]),

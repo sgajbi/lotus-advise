@@ -99,6 +99,16 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `run_status_counts={"READY":1}`
       - `workflow_decision_count=0`
       - `lineage_edge_count=2`
+  - Uvicorn runtime (`DPM_WORKFLOW_ENABLED=true`, `http://127.0.0.1:8035`):
+    - `POST /rebalance/simulate` with pending-review candidate payload and one workflow `APPROVE` action.
+    - `GET /rebalance/supportability/summary` returns:
+      - `workflow_action_counts={"APPROVE":1}`
+      - `workflow_reason_code_counts={"REVIEW_APPROVED":1}`
+  - Container runtime (`DPM_WORKFLOW_ENABLED=true`, `http://127.0.0.1:8036`):
+    - `POST /rebalance/simulate` with pending-review candidate payload and one workflow `APPROVE` action.
+    - `GET /rebalance/supportability/summary` returns:
+      - `workflow_action_counts={"APPROVE":1}`
+      - `workflow_reason_code_counts={"REVIEW_APPROVED":1}`
 - Run support bundle API validation:
   - Uvicorn runtime (`http://127.0.0.1:8022`):
     - `POST /rebalance/simulate` returns `status=READY`.
