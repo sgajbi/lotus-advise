@@ -13,6 +13,7 @@ from src.core.dpm_runs.models import (
     DpmRunWorkflowHistoryResponse,
     DpmRunWorkflowResponse,
     DpmSupportabilitySummaryResponse,
+    DpmWorkflowDecisionListResponse,
 )
 from src.core.dpm_runs.repository import DpmRunRepository
 from src.core.dpm_runs.service import (
@@ -35,6 +36,7 @@ __all__ = [
     "DpmRunSupportBundleResponse",
     "DpmRunWorkflowActionRequest",
     "DpmSupportabilitySummaryResponse",
+    "DpmWorkflowDecisionListResponse",
     "DpmRunWorkflowHistoryResponse",
     "DpmRunWorkflowResponse",
     "DpmRunNotFoundError",

@@ -531,6 +531,73 @@ def test_repository_workflow_decision_contract(repository):
     assert decisions[1].action == "APPROVE"
 
 
+def test_repository_list_workflow_decisions_filtered_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    repository.append_workflow_decision(
+        DpmRunWorkflowDecisionRecord(
+            decision_id="dwd_repo_filter_1",
+            run_id="rr_repo_filter_1",
+            action="REQUEST_CHANGES",
+            reason_code="NEEDS_DETAIL",
+            comment="Needs more context",
+            actor_id="ops_filter_1",
+            decided_at=now,
+            correlation_id="corr_repo_filter_1",
+        )
+    )
+    repository.append_workflow_decision(
+        DpmRunWorkflowDecisionRecord(
+            decision_id="dwd_repo_filter_2",
+            run_id="rr_repo_filter_2",
+            action="APPROVE",
+            reason_code="REVIEW_APPROVED",
+            comment=None,
+            actor_id="ops_filter_2",
+            decided_at=now + timedelta(seconds=1),
+            correlation_id="corr_repo_filter_2",
+        )
+    )
+
+    by_actor, actor_cursor = repository.list_workflow_decisions_filtered(
+        rebalance_run_id=None,
+        action=None,
+        actor_id="ops_filter_2",
+        reason_code=None,
+        decided_from=None,
+        decided_to=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [decision.decision_id for decision in by_actor] == ["dwd_repo_filter_2"]
+    assert actor_cursor is None
+
+    page_one, cursor = repository.list_workflow_decisions_filtered(
+        rebalance_run_id=None,
+        action=None,
+        actor_id=None,
+        reason_code=None,
+        decided_from=None,
+        decided_to=None,
+        limit=1,
+        cursor=None,
+    )
+    assert [decision.decision_id for decision in page_one] == ["dwd_repo_filter_2"]
+    assert cursor == "dwd_repo_filter_2"
+
+    page_two, cursor_two = repository.list_workflow_decisions_filtered(
+        rebalance_run_id=None,
+        action=None,
+        actor_id=None,
+        reason_code=None,
+        decided_from=None,
+        decided_to=None,
+        limit=1,
+        cursor=cursor,
+    )
+    assert [decision.decision_id for decision in page_two] == ["dwd_repo_filter_1"]
+    assert cursor_two is None
+
+
 def test_repository_lineage_edge_contract(repository):
     now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
     edge = DpmLineageEdgeRecord(

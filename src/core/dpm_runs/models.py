@@ -683,6 +683,32 @@ class DpmRunWorkflowHistoryResponse(BaseModel):
     )
 
 
+class DpmWorkflowDecisionListResponse(BaseModel):
+    items: list[DpmRunWorkflowDecisionResponse] = Field(
+        default_factory=list,
+        description="Filtered workflow decisions ordered by decision timestamp descending.",
+        examples=[
+            [
+                {
+                    "decision_id": "dwd_001",
+                    "run_id": "rr_abc12345",
+                    "action": "APPROVE",
+                    "reason_code": "REVIEW_APPROVED",
+                    "comment": "Checks passed after review.",
+                    "actor_id": "reviewer_001",
+                    "decided_at": "2026-02-20T12:00:00+00:00",
+                    "correlation_id": "corr-workflow-001",
+                }
+            ]
+        ],
+    )
+    next_cursor: Optional[str] = Field(
+        default=None,
+        description="Opaque cursor for retrieving the next result page.",
+        examples=["dwd_001"],
+    )
+
+
 class DpmRunWorkflowActionRequest(BaseModel):
     action: DpmWorkflowActionType = Field(
         description="Workflow action to apply to run review lifecycle.",

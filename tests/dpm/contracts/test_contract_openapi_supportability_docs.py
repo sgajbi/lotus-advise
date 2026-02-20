@@ -154,6 +154,10 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(workflow_history_schema, "run_id")
     _assert_property_has_docs(workflow_history_schema, "decisions")
 
+    workflow_list_schema = schemas["DpmWorkflowDecisionListResponse"]
+    _assert_property_has_docs(workflow_list_schema, "items")
+    _assert_property_has_docs(workflow_list_schema, "next_cursor")
+
     lineage_schema = schemas["DpmLineageResponse"]
     _assert_property_has_docs(lineage_schema, "entity_id")
     _assert_property_has_docs(lineage_schema, "edges")
@@ -253,6 +257,23 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
         "include_idempotency_history",
     }
     actual_params = {param["name"] for param in support_bundle_by_correlation["parameters"]}
+    assert expected_params.issubset(actual_params)
+
+    workflow_decisions = openapi["paths"]["/rebalance/workflow/decisions"]["get"]
+    assert workflow_decisions["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmWorkflowDecisionListResponse")
+    expected_params = {
+        "rebalance_run_id",
+        "action",
+        "actor_id",
+        "reason_code",
+        "from",
+        "to",
+        "limit",
+        "cursor",
+    }
+    actual_params = {param["name"] for param in workflow_decisions["parameters"]}
     assert expected_params.issubset(actual_params)
 
     support_bundle_by_idempotency = openapi["paths"][

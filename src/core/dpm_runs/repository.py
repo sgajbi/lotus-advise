@@ -74,6 +74,18 @@ class DpmRunRepository(Protocol):
     def list_workflow_decisions(
         self, *, rebalance_run_id: str
     ) -> list[DpmRunWorkflowDecisionRecord]: ...
+    def list_workflow_decisions_filtered(
+        self,
+        *,
+        rebalance_run_id: Optional[str],
+        action: Optional[str],
+        actor_id: Optional[str],
+        reason_code: Optional[str],
+        decided_from: Optional[datetime],
+        decided_to: Optional[datetime],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmRunWorkflowDecisionRecord], Optional[str]]: ...
 
     def append_lineage_edge(self, edge: DpmLineageEdgeRecord) -> None: ...
 

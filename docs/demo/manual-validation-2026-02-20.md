@@ -207,6 +207,11 @@ Demo pack validation passed for http://127.0.0.1:8000
   - `GET /rebalance/runs/{rebalance_run_id}/workflow/history` returns `404` with
     `DPM_WORKFLOW_DISABLED` under default config.
 - Additional workflow-enabled supportability checks validated:
+  - Uvicorn runtime (`DPM_WORKFLOW_ENABLED=true`, `http://127.0.0.1:8032`):
+    - `POST /rebalance/simulate` returns `200` for workflow-review candidate payload.
+    - `POST /rebalance/runs/{rebalance_run_id}/workflow/actions` with `APPROVE` returns `200`.
+    - `GET /rebalance/workflow/decisions?actor_id=reviewer_manual_uvicorn&action=APPROVE&limit=10`
+      returns `200` with one matching decision.
   - Uvicorn (`DPM_WORKFLOW_ENABLED=true`, `http://127.0.0.1:8001`):
     - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow` returns `200`.
     - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow` returns `200`.
@@ -221,6 +226,8 @@ Demo pack validation passed for http://127.0.0.1:8000
     - Idempotency-key workflow retrieval without prior action returns:
       - `workflow_status=PENDING_REVIEW`
       - history `decisions=[]`
+    - `GET /rebalance/workflow/decisions?limit=20` returns workflow decisions across runs.
+    - `GET /rebalance/workflow/decisions?actor_id=...&action=...&limit=...` returns filtered rows.
   - Container runtime (`dpm-rebalance-engine:latest` with `-e DPM_WORKFLOW_ENABLED=true`,
     published on `http://127.0.0.1:8002`):
     - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow` returns `200`.
@@ -235,3 +242,11 @@ Demo pack validation passed for http://127.0.0.1:8000
     - Idempotency-key workflow retrieval without prior action returns:
       - `workflow_status=PENDING_REVIEW`
       - history `decisions=[]`
+  - Container runtime (`dpm-rebalance-engine:latest` with `-e DPM_WORKFLOW_ENABLED=true`,
+    published on `http://127.0.0.1:8031`):
+    - `POST /rebalance/simulate` returns `200`.
+    - `POST /rebalance/runs/{rebalance_run_id}/workflow/actions` with `APPROVE` returns `200`.
+    - `GET /rebalance/workflow/decisions?actor_id=reviewer_manual_docker&action=APPROVE&limit=10`
+      returns `200` with one matching decision.
+    - `GET /rebalance/workflow/decisions?limit=20` returns workflow decisions across runs.
+    - `GET /rebalance/workflow/decisions?actor_id=...&action=...&limit=...` returns filtered rows.

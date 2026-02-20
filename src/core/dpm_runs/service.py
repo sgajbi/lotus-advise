@@ -30,6 +30,7 @@ from src.core.dpm_runs.models import (
     DpmSupportabilitySummaryData,
     DpmSupportabilitySummaryResponse,
     DpmWorkflowActionType,
+    DpmWorkflowDecisionListResponse,
     DpmWorkflowStatus,
 )
 from src.core.dpm_runs.repository import DpmRunRepository
@@ -607,6 +608,34 @@ class DpmRunSupportService:
         self._cleanup_expired_supportability()
         mapping = self._get_required_idempotency_mapping(idempotency_key=idempotency_key)
         return self.get_workflow_history(rebalance_run_id=mapping.rebalance_run_id)
+
+    def list_workflow_decisions(
+        self,
+        *,
+        rebalance_run_id: Optional[str],
+        action: Optional[DpmWorkflowActionType],
+        actor_id: Optional[str],
+        reason_code: Optional[str],
+        decided_from: Optional[datetime],
+        decided_to: Optional[datetime],
+        limit: int,
+        cursor: Optional[str],
+    ) -> DpmWorkflowDecisionListResponse:
+        self._cleanup_expired_supportability()
+        decisions, next_cursor = self._repository.list_workflow_decisions_filtered(
+            rebalance_run_id=rebalance_run_id,
+            action=action,
+            actor_id=actor_id,
+            reason_code=reason_code,
+            decided_from=decided_from,
+            decided_to=decided_to,
+            limit=limit,
+            cursor=cursor,
+        )
+        return DpmWorkflowDecisionListResponse(
+            items=[self._to_workflow_decision_response(decision) for decision in decisions],
+            next_cursor=next_cursor,
+        )
 
     def apply_workflow_action(
         self,

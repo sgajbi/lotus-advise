@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN_PROGRESS |
+| **Status** | IMPLEMENTED (PHASE 1 - WORKFLOW API + PERSISTENCE) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0017, RFC-0019 |
 | **Doc Location** | `docs/rfcs/RFC-0020-dpm-workflow-gate-api-and-persistence.md` |
@@ -42,6 +42,16 @@ DPM exposes run diagnostics but lacks explicit workflow gate state transitions a
 - `GET /rebalance/runs/{run_id}/workflow/history`
 - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history`
 - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history`
+- `GET /rebalance/workflow/decisions`
+  - filtered supportability listing across runs:
+    - `rebalance_run_id`
+    - `action`
+    - `actor_id`
+    - `reason_code`
+    - `from`
+    - `to`
+    - `limit`
+    - `cursor`
 
 ### 4.2 Domain Model
 
@@ -80,7 +90,7 @@ Additive APIs and storage. When disabled, existing run semantics and responses r
 
 ## 8. Implementation Status
 
-- Implemented (in-memory):
+- Implemented:
   - `GET /rebalance/runs/{run_id}/workflow`
   - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow`
   - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow`
@@ -90,8 +100,12 @@ Additive APIs and storage. When disabled, existing run semantics and responses r
   - `GET /rebalance/runs/{run_id}/workflow/history`
   - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history`
   - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history`
+  - `GET /rebalance/workflow/decisions`
   - Feature flags:
     - `DPM_WORKFLOW_ENABLED` (default `false`)
     - `DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES` (CSV, default `PENDING_REVIEW`)
+  - Persistence backends:
+    - in-memory
+    - SQLite
 - Pending:
-  - Persistent database-backed repository integration (covered in RFC-0023 scope).
+  - Managed enterprise database profile integration (tracked by RFC-0023 follow-up scope).

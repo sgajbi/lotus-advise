@@ -1661,6 +1661,79 @@ def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, mo
     assert invalid.json()["detail"] == "DPM_WORKFLOW_INVALID_TRANSITION"
 
 
+def test_dpm_workflow_decision_list_endpoint_filters_and_cursor(client, monkeypatch):
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+    payload = get_valid_payload()
+    payload["options"]["single_position_max_weight"] = "0.5"
+    simulate = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={
+            "Idempotency-Key": "test-key-workflow-list-1",
+            "X-Correlation-Id": "corr-workflow-list-1",
+        },
+    )
+    assert simulate.status_code == 200
+    run_id = simulate.json()["rebalance_run_id"]
+
+    action_one = client.post(
+        f"/rebalance/runs/{run_id}/workflow/actions",
+        json={
+            "action": "REQUEST_CHANGES",
+            "reason_code": "REQUIRES_ADVISOR_NOTE",
+            "comment": "Need additional detail",
+            "actor_id": "reviewer_list_1",
+        },
+        headers={"X-Correlation-Id": "corr-workflow-list-2"},
+    )
+    assert action_one.status_code == 200
+    action_two = client.post(
+        f"/rebalance/runs/{run_id}/workflow/actions",
+        json={
+            "action": "APPROVE",
+            "reason_code": "REVIEW_APPROVED",
+            "comment": None,
+            "actor_id": "reviewer_list_2",
+        },
+        headers={"X-Correlation-Id": "corr-workflow-list-3"},
+    )
+    assert action_two.status_code == 200
+
+    all_rows = client.get("/rebalance/workflow/decisions?limit=10")
+    assert all_rows.status_code == 200
+    all_body = all_rows.json()
+    assert len(all_body["items"]) >= 2
+    assert (
+        all_body["items"][0]["decision_id"] == action_two.json()["latest_decision"]["decision_id"]
+    )
+    assert (
+        all_body["items"][1]["decision_id"] == action_one.json()["latest_decision"]["decision_id"]
+    )
+
+    by_actor = client.get("/rebalance/workflow/decisions?actor_id=reviewer_list_2&limit=10")
+    assert by_actor.status_code == 200
+    by_actor_body = by_actor.json()
+    assert [item["actor_id"] for item in by_actor_body["items"]] == ["reviewer_list_2"]
+
+    by_run = client.get(f"/rebalance/workflow/decisions?rebalance_run_id={run_id}&limit=10")
+    assert by_run.status_code == 200
+    assert len(by_run.json()["items"]) == 2
+
+    page_one = client.get("/rebalance/workflow/decisions?limit=1")
+    assert page_one.status_code == 200
+    page_one_body = page_one.json()
+    assert len(page_one_body["items"]) == 1
+    assert page_one_body["next_cursor"] is not None
+
+    page_two = client.get(
+        f"/rebalance/workflow/decisions?limit=1&cursor={page_one_body['next_cursor']}"
+    )
+    assert page_two.status_code == 200
+    page_two_body = page_two.json()
+    assert len(page_two_body["items"]) == 1
+    assert page_two_body["items"][0]["decision_id"] != page_one_body["items"][0]["decision_id"]
+
+
 def test_dpm_run_workflow_endpoints_disabled_and_not_required_behavior(client, monkeypatch):
     payload = get_valid_payload()
     simulate = client.post(
@@ -1724,3 +1797,9 @@ def test_dpm_run_workflow_endpoints_disabled_and_not_required_behavior(client, m
     )
     assert missing_action_by_idempotency.status_code == 404
     assert missing_action_by_idempotency.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"
+
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "false")
+    reset_dpm_run_support_service_for_tests()
+    workflow_decision_list_disabled = client.get("/rebalance/workflow/decisions?limit=10")
+    assert workflow_decision_list_disabled.status_code == 404
+    assert workflow_decision_list_disabled.json()["detail"] == "DPM_WORKFLOW_DISABLED"

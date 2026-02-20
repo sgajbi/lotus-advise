@@ -44,6 +44,7 @@ In-memory supportability works for local/runtime diagnostics but is insufficient
 - `GET /rebalance/runs?from=...&to=...&status=...&request_hash=...&portfolio_id=...`
 - `GET /rebalance/runs/by-request-hash/{request_hash}`
 - `GET /rebalance/supportability/summary`
+- `GET /rebalance/workflow/decisions?rebalance_run_id=...&action=...&actor_id=...&reason_code=...&from=...&to=...`
 - `GET /rebalance/runs/{rebalance_run_id}/support-bundle`
 - `GET /rebalance/runs/by-correlation/{correlation_id}/support-bundle`
 - `GET /rebalance/runs/idempotency/{idempotency_key}/support-bundle`
@@ -142,5 +143,12 @@ No new business run statuses. Investigation responses use explicit technical sta
         - `include_idempotency_history`
   - Feature flag:
     - `DPM_SUPPORT_BUNDLE_APIS_ENABLED` (default `true`)
+- Implemented (slice 9):
+  - Workflow decision listing API:
+    - `GET /rebalance/workflow/decisions`
+      - filters: `rebalance_run_id`, `action`, `actor_id`, `reason_code`, `from`, `to`
+      - pagination: `limit`, `cursor`
+  - Repository parity:
+    - in-memory and SQLite implementations for filtered workflow decision listing.
 - Pending:
   - SQL backend beyond SQLite (enterprise managed database deployment profile).

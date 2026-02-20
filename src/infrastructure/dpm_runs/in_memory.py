@@ -203,6 +203,49 @@ class InMemoryDpmRunRepository(DpmRunRepository):
             decisions = self._workflow_decisions.get(rebalance_run_id, [])
             return [deepcopy(decision) for decision in decisions]
 
+    def list_workflow_decisions_filtered(
+        self,
+        *,
+        rebalance_run_id: Optional[str],
+        action: Optional[str],
+        actor_id: Optional[str],
+        reason_code: Optional[str],
+        decided_from: Optional[datetime],
+        decided_to: Optional[datetime],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmRunWorkflowDecisionRecord], Optional[str]]:
+        with self._lock:
+            rows = [
+                decision
+                for decisions in self._workflow_decisions.values()
+                for decision in decisions
+            ]
+            if rebalance_run_id is not None:
+                rows = [row for row in rows if row.run_id == rebalance_run_id]
+            if action is not None:
+                rows = [row for row in rows if row.action == action]
+            if actor_id is not None:
+                rows = [row for row in rows if row.actor_id == actor_id]
+            if reason_code is not None:
+                rows = [row for row in rows if row.reason_code == reason_code]
+            if decided_from is not None:
+                rows = [row for row in rows if row.decided_at >= decided_from]
+            if decided_to is not None:
+                rows = [row for row in rows if row.decided_at <= decided_to]
+            rows = sorted(rows, key=lambda row: (row.decided_at, row.decision_id), reverse=True)
+            if cursor is not None:
+                cursor_index = next(
+                    (index for index, row in enumerate(rows) if row.decision_id == cursor),
+                    None,
+                )
+                if cursor_index is None:
+                    return [], None
+                rows = rows[cursor_index + 1 :]
+            page = rows[:limit]
+            next_cursor = page[-1].decision_id if len(rows) > limit else None
+            return [deepcopy(row) for row in page], next_cursor
+
     def append_lineage_edge(self, edge: DpmLineageEdgeRecord) -> None:
         with self._lock:
             source_edges = self._lineage_edges_by_entity.setdefault(edge.source_entity_id, [])

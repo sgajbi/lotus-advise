@@ -20,9 +20,11 @@ from src.core.dpm_runs import (
     DpmRunWorkflowHistoryResponse,
     DpmRunWorkflowResponse,
     DpmSupportabilitySummaryResponse,
+    DpmWorkflowDecisionListResponse,
     DpmWorkflowDisabledError,
     DpmWorkflowTransitionError,
 )
+from src.core.dpm_runs.models import DpmWorkflowActionType
 from src.core.models import RebalanceResult
 from src.infrastructure.dpm_runs import InMemoryDpmRunRepository, SqliteDpmRunRepository
 
@@ -810,6 +812,93 @@ def get_dpm_lineage(
     _assert_support_apis_enabled()
     _assert_lineage_apis_enabled()
     return service.get_lineage(entity_id=entity_id)
+
+
+@router.get(
+    "/rebalance/workflow/decisions",
+    response_model=DpmWorkflowDecisionListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List DPM Workflow Decisions",
+    description=(
+        "Returns paginated workflow decisions across runs with optional filters for "
+        "supportability investigations."
+    ),
+)
+def list_dpm_workflow_decisions(
+    rebalance_run_id: Annotated[
+        Optional[str],
+        Query(
+            description="Optional DPM run id filter.",
+            examples=["rr_abc12345"],
+        ),
+    ] = None,
+    action: Annotated[
+        Optional[DpmWorkflowActionType],
+        Query(
+            description="Optional workflow action filter.",
+            examples=["APPROVE"],
+        ),
+    ] = None,
+    actor_id: Annotated[
+        Optional[str],
+        Query(
+            description="Optional reviewer actor id filter.",
+            examples=["reviewer_001"],
+        ),
+    ] = None,
+    reason_code: Annotated[
+        Optional[str],
+        Query(
+            description="Optional uppercase reason code filter.",
+            examples=["REVIEW_APPROVED"],
+        ),
+    ] = None,
+    decided_from: Annotated[
+        Optional[datetime],
+        Query(
+            alias="from",
+            description="Decision timestamp lower bound (UTC ISO8601).",
+            examples=["2026-02-20T00:00:00Z"],
+        ),
+    ] = None,
+    decided_to: Annotated[
+        Optional[datetime],
+        Query(
+            alias="to",
+            description="Decision timestamp upper bound (UTC ISO8601).",
+            examples=["2026-02-20T23:59:59Z"],
+        ),
+    ] = None,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=200,
+            description="Maximum number of rows returned in one page.",
+            examples=[50],
+        ),
+    ] = 50,
+    cursor: Annotated[
+        Optional[str],
+        Query(
+            description="Opaque cursor value returned by previous page.",
+            examples=["dwd_001"],
+        ),
+    ] = None,
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmWorkflowDecisionListResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    return service.list_workflow_decisions(
+        rebalance_run_id=rebalance_run_id,
+        action=action,
+        actor_id=actor_id,
+        reason_code=reason_code,
+        decided_from=decided_from,
+        decided_to=decided_to,
+        limit=limit,
+        cursor=cursor,
+    )
 
 
 @router.get(

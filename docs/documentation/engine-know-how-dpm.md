@@ -155,6 +155,19 @@ Implementation scope:
 ### `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history`
 - Purpose: retrieve workflow decision history when only idempotency key is known.
 
+### `GET /rebalance/workflow/decisions`
+- Purpose: list workflow decisions across runs for supportability investigations.
+- Filters:
+  - `rebalance_run_id`
+  - `action`
+  - `actor_id`
+  - `reason_code`
+  - `from` (decision timestamp lower bound)
+  - `to` (decision timestamp upper bound)
+- Pagination:
+  - `limit`
+  - `cursor`
+
 ## Pipeline (`run_simulation`)
 
 1. Valuation
