@@ -334,6 +334,72 @@ def test_analyze_endpoint_success(client):
         )
 
 
+def test_analyze_async_accept_and_lookup_succeeded(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+
+    accepted = client.post(
+        "/rebalance/analyze/async",
+        json=payload,
+        headers={"X-Correlation-Id": "corr-batch-async-1"},
+    )
+    assert accepted.status_code == 202
+    accepted_body = accepted.json()
+    assert accepted_body["operation_type"] == "ANALYZE_SCENARIOS"
+    assert accepted_body["status"] == "PENDING"
+    assert accepted_body["correlation_id"] == "corr-batch-async-1"
+    operation_id = accepted_body["operation_id"]
+
+    by_operation = client.get(f"/rebalance/operations/{operation_id}")
+    assert by_operation.status_code == 200
+    by_operation_body = by_operation.json()
+    assert by_operation_body["status"] == "SUCCEEDED"
+    assert by_operation_body["correlation_id"] == "corr-batch-async-1"
+    assert by_operation_body["result"]["batch_run_id"].startswith("batch_")
+    assert set(by_operation_body["result"]["results"].keys()) == {"baseline"}
+    assert by_operation_body["error"] is None
+
+    by_correlation = client.get("/rebalance/operations/by-correlation/corr-batch-async-1")
+    assert by_correlation.status_code == 200
+    assert by_correlation.json()["operation_id"] == operation_id
+    assert by_correlation.json()["status"] == "SUCCEEDED"
+
+
+def test_analyze_async_failure_is_captured_in_operation_status(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+
+    with patch("src.api.main._execute_batch_analysis", side_effect=RuntimeError("boom")):
+        accepted = client.post(
+            "/rebalance/analyze/async",
+            json=payload,
+            headers={"X-Correlation-Id": "corr-batch-async-failure"},
+        )
+
+    assert accepted.status_code == 202
+    operation_id = accepted.json()["operation_id"]
+    operation = client.get(f"/rebalance/operations/{operation_id}")
+    assert operation.status_code == 200
+    operation_body = operation.json()
+    assert operation_body["status"] == "FAILED"
+    assert operation_body["result"] is None
+    assert operation_body["error"]["code"] == "RuntimeError"
+    assert operation_body["error"]["message"] == "boom"
+
+
+def test_analyze_async_disabled_returns_404(client, monkeypatch):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+    monkeypatch.setenv("DPM_ASYNC_OPERATIONS_ENABLED", "false")
+
+    response = client.post("/rebalance/analyze/async", json=payload)
+    assert response.status_code == 404
+    assert response.json()["detail"] == "DPM_ASYNC_OPERATIONS_DISABLED"
+
+
 def test_analyze_rejects_invalid_scenario_name(client):
     payload = get_valid_payload()
     payload.pop("options")

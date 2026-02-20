@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from src.api.routers.dpm_runs import (
+    get_dpm_run_support_service,
     record_dpm_run_for_support,
 )
 from src.api.routers.dpm_runs import (
@@ -26,6 +27,7 @@ from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.dpm.engine import run_simulation
+from src.core.dpm_runs import DpmAsyncAcceptedResponse
 from src.core.models import (
     BatchRebalanceRequest,
     BatchRebalanceResult,
@@ -185,6 +187,17 @@ ANALYZE_RESPONSE_EXAMPLE = {
         "comparison_metrics": {},
         "failed_scenarios": {},
         "warnings": [],
+    },
+}
+ANALYZE_ASYNC_ACCEPTED_EXAMPLE = {
+    "summary": "Async batch accepted",
+    "value": {
+        "operation_id": "dop_abc12345",
+        "operation_type": "ANALYZE_SCENARIOS",
+        "status": "PENDING",
+        "correlation_id": "corr-batch-async-1",
+        "created_at": "2026-02-20T12:00:00+00:00",
+        "status_url": "/rebalance/operations/dop_abc12345",
     },
 }
 
@@ -423,10 +436,77 @@ def analyze_scenarios(
     correlation_id: Annotated[Optional[str], Header(alias="X-Correlation-Id")] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> BatchRebalanceResult:
-    """
-    Batch scenario orchestration endpoint.
-    Reuses single-run simulation with shared snapshots and per-scenario options.
-    """
+    return _execute_batch_analysis(request=request, correlation_id=correlation_id)
+
+
+@app.post(
+    "/rebalance/analyze/async",
+    response_model=DpmAsyncAcceptedResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Analyze Multiple Rebalance Scenarios Asynchronously",
+    description=(
+        "Accepts named what-if scenarios for asynchronous execution.\n\n"
+        "Use `GET /rebalance/operations/{operation_id}` or "
+        "`GET /rebalance/operations/by-correlation/{correlation_id}` for status/result retrieval."
+    ),
+    responses={
+        202: {
+            "description": "Async batch accepted.",
+            "content": {
+                "application/json": {"examples": {"accepted": ANALYZE_ASYNC_ACCEPTED_EXAMPLE}}
+            },
+        },
+        404: {"description": "Async operations disabled by configuration."},
+        422: {"description": "Validation error (invalid shared payload or scenario key format)."},
+    },
+)
+def analyze_scenarios_async(
+    request: Annotated[
+        BatchRebalanceRequest,
+        Field(description="Shared snapshots plus scenario map of option overrides."),
+    ],
+    correlation_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Correlation-Id",
+            description="Optional correlation identifier for async tracking and lookup.",
+            examples=["corr-batch-async-1"],
+        ),
+    ] = None,
+    db: Annotated[None, Depends(get_db_session)] = None,
+) -> DpmAsyncAcceptedResponse:
+    if not _env_flag("DPM_ASYNC_OPERATIONS_ENABLED", True):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_ASYNC_OPERATIONS_DISABLED",
+        )
+    service = get_dpm_run_support_service()
+    accepted = service.submit_analyze_async(correlation_id=correlation_id)
+    service.mark_operation_running(operation_id=accepted.operation_id)
+    try:
+        result = _execute_batch_analysis(request=request, correlation_id=accepted.correlation_id)
+        service.complete_operation_success(
+            operation_id=accepted.operation_id,
+            result_json=result.model_dump(mode="json"),
+        )
+    except Exception as exc:
+        logger.exception(
+            "Asynchronous batch analysis failed. OperationID=%s",
+            accepted.operation_id,
+        )
+        service.complete_operation_failure(
+            operation_id=accepted.operation_id,
+            code=type(exc).__name__,
+            message=str(exc),
+        )
+    return accepted
+
+
+def _execute_batch_analysis(
+    *,
+    request: BatchRebalanceRequest,
+    correlation_id: Optional[str],
+) -> BatchRebalanceResult:
     batch_id = f"batch_{uuid.uuid4().hex[:8]}"
     logger.info(f"Analyzing scenario batch. CID={correlation_id} BatchID={batch_id}")
 
