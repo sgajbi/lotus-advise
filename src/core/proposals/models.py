@@ -367,8 +367,7 @@ class ProposalSupportabilityConfigResponse(BaseModel):
     )
     require_proposal_simulation_flag: bool = Field(
         description=(
-            "Whether proposal simulation requests require "
-            "options.enable_proposal_simulation=true."
+            "Whether proposal simulation requests require options.enable_proposal_simulation=true."
         ),
         examples=[True],
     )

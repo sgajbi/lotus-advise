@@ -4,7 +4,12 @@ from datetime import datetime
 from importlib.util import find_spec
 from typing import Optional
 
-from src.core.proposals.models import ProposalAsyncOperationRecord, ProposalIdempotencyRecord
+from src.core.proposals.models import (
+    ProposalAsyncOperationRecord,
+    ProposalIdempotencyRecord,
+    ProposalRecord,
+    ProposalVersionRecord,
+)
 
 
 class PostgresProposalRepository:
@@ -119,6 +124,193 @@ class PostgresProposalRepository:
             row = connection.execute(query, (correlation_id,)).fetchone()
         return _to_operation(row)
 
+    def create_proposal(self, proposal: ProposalRecord) -> None:
+        self._upsert_proposal(proposal)
+
+    def update_proposal(self, proposal: ProposalRecord) -> None:
+        self._upsert_proposal(proposal)
+
+    def get_proposal(self, *, proposal_id: str) -> Optional[ProposalRecord]:
+        query = """
+            SELECT
+                proposal_id,
+                portfolio_id,
+                mandate_id,
+                jurisdiction,
+                created_by,
+                created_at,
+                last_event_at,
+                current_state,
+                current_version_no,
+                title,
+                advisor_notes
+            FROM proposal_records
+            WHERE proposal_id = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (proposal_id,)).fetchone()
+        return _to_proposal(row)
+
+    def list_proposals(
+        self,
+        *,
+        portfolio_id: Optional[str],
+        state: Optional[str],
+        created_by: Optional[str],
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[ProposalRecord], Optional[str]]:
+        where_clauses = []
+        args: list[str] = []
+        if portfolio_id is not None:
+            where_clauses.append("portfolio_id = %s")
+            args.append(portfolio_id)
+        if state is not None:
+            where_clauses.append("current_state = %s")
+            args.append(state)
+        if created_by is not None:
+            where_clauses.append("created_by = %s")
+            args.append(created_by)
+        if created_from is not None:
+            where_clauses.append("created_at >= %s")
+            args.append(created_from.isoformat())
+        if created_to is not None:
+            where_clauses.append("created_at <= %s")
+            args.append(created_to.isoformat())
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        query = f"""
+            SELECT
+                proposal_id,
+                portfolio_id,
+                mandate_id,
+                jurisdiction,
+                created_by,
+                created_at,
+                last_event_at,
+                current_state,
+                current_version_no,
+                title,
+                advisor_notes
+            FROM proposal_records
+            {where_sql}
+            ORDER BY created_at DESC, proposal_id DESC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, tuple(args)).fetchall()
+        proposals = [_to_proposal(row) for row in rows]
+        proposals = [proposal for proposal in proposals if proposal is not None]
+        if cursor:
+            cursor_index = next(
+                (
+                    index
+                    for index, proposal in enumerate(proposals)
+                    if proposal.proposal_id == cursor
+                ),
+                None,
+            )
+            if cursor_index is None:
+                return [], None
+            proposals = proposals[cursor_index + 1 :]
+        page = proposals[:limit]
+        next_cursor = page[-1].proposal_id if len(proposals) > limit else None
+        return page, next_cursor
+
+    def create_version(self, version: ProposalVersionRecord) -> None:
+        query = """
+            INSERT INTO proposal_versions (
+                proposal_version_id,
+                proposal_id,
+                version_no,
+                created_at,
+                request_hash,
+                artifact_hash,
+                simulation_hash,
+                status_at_creation,
+                proposal_result_json,
+                artifact_json,
+                evidence_bundle_json,
+                gate_decision_json
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (proposal_id, version_no) DO UPDATE SET
+                proposal_version_id=excluded.proposal_version_id,
+                created_at=excluded.created_at,
+                request_hash=excluded.request_hash,
+                artifact_hash=excluded.artifact_hash,
+                simulation_hash=excluded.simulation_hash,
+                status_at_creation=excluded.status_at_creation,
+                proposal_result_json=excluded.proposal_result_json,
+                artifact_json=excluded.artifact_json,
+                evidence_bundle_json=excluded.evidence_bundle_json,
+                gate_decision_json=excluded.gate_decision_json
+        """
+        with closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    version.proposal_version_id,
+                    version.proposal_id,
+                    version.version_no,
+                    version.created_at.isoformat(),
+                    version.request_hash,
+                    version.artifact_hash,
+                    version.simulation_hash,
+                    version.status_at_creation,
+                    _json_dump(version.proposal_result_json),
+                    _json_dump(version.artifact_json),
+                    _json_dump(version.evidence_bundle_json),
+                    _optional_json(version.gate_decision_json),
+                ),
+            )
+            connection.commit()
+
+    def get_version(self, *, proposal_id: str, version_no: int) -> Optional[ProposalVersionRecord]:
+        query = """
+            SELECT
+                proposal_version_id,
+                proposal_id,
+                version_no,
+                created_at,
+                request_hash,
+                artifact_hash,
+                simulation_hash,
+                status_at_creation,
+                proposal_result_json,
+                artifact_json,
+                evidence_bundle_json,
+                gate_decision_json
+            FROM proposal_versions
+            WHERE proposal_id = %s AND version_no = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (proposal_id, version_no)).fetchone()
+        return _to_version(row)
+
+    def get_current_version(self, *, proposal_id: str) -> Optional[ProposalVersionRecord]:
+        query = """
+            SELECT
+                proposal_version_id,
+                proposal_id,
+                version_no,
+                created_at,
+                request_hash,
+                artifact_hash,
+                simulation_hash,
+                status_at_creation,
+                proposal_result_json,
+                artifact_json,
+                evidence_bundle_json,
+                gate_decision_json
+            FROM proposal_versions
+            WHERE proposal_id = %s
+            ORDER BY version_no DESC
+            LIMIT 1
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (proposal_id,)).fetchone()
+        return _to_version(row)
+
     def __getattr__(self, _name: str):
         raise RuntimeError("PROPOSAL_POSTGRES_NOT_IMPLEMENTED")
 
@@ -154,6 +346,42 @@ class PostgresProposalRepository:
                     finished_at TEXT NULL,
                     result_json TEXT NULL,
                     error_json TEXT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS proposal_records (
+                    proposal_id TEXT PRIMARY KEY,
+                    portfolio_id TEXT NOT NULL,
+                    mandate_id TEXT NULL,
+                    jurisdiction TEXT NULL,
+                    created_by TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    last_event_at TEXT NOT NULL,
+                    current_state TEXT NOT NULL,
+                    current_version_no INTEGER NOT NULL,
+                    title TEXT NULL,
+                    advisor_notes TEXT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS proposal_versions (
+                    proposal_version_id TEXT NOT NULL,
+                    proposal_id TEXT NOT NULL,
+                    version_no INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    request_hash TEXT NOT NULL,
+                    artifact_hash TEXT NOT NULL,
+                    simulation_hash TEXT NOT NULL,
+                    status_at_creation TEXT NOT NULL,
+                    proposal_result_json TEXT NOT NULL,
+                    artifact_json TEXT NOT NULL,
+                    evidence_bundle_json TEXT NOT NULL,
+                    gate_decision_json TEXT NULL,
+                    PRIMARY KEY (proposal_id, version_no)
                 )
                 """
             )
@@ -208,6 +436,52 @@ class PostgresProposalRepository:
             )
             connection.commit()
 
+    def _upsert_proposal(self, proposal: ProposalRecord) -> None:
+        query = """
+            INSERT INTO proposal_records (
+                proposal_id,
+                portfolio_id,
+                mandate_id,
+                jurisdiction,
+                created_by,
+                created_at,
+                last_event_at,
+                current_state,
+                current_version_no,
+                title,
+                advisor_notes
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (proposal_id) DO UPDATE SET
+                portfolio_id=excluded.portfolio_id,
+                mandate_id=excluded.mandate_id,
+                jurisdiction=excluded.jurisdiction,
+                created_by=excluded.created_by,
+                created_at=excluded.created_at,
+                last_event_at=excluded.last_event_at,
+                current_state=excluded.current_state,
+                current_version_no=excluded.current_version_no,
+                title=excluded.title,
+                advisor_notes=excluded.advisor_notes
+        """
+        with closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    proposal.proposal_id,
+                    proposal.portfolio_id,
+                    proposal.mandate_id,
+                    proposal.jurisdiction,
+                    proposal.created_by,
+                    proposal.created_at.isoformat(),
+                    proposal.last_event_at.isoformat(),
+                    proposal.current_state,
+                    proposal.current_version_no,
+                    proposal.title,
+                    proposal.advisor_notes,
+                ),
+            )
+            connection.commit()
+
 
 def _import_psycopg():
     import psycopg
@@ -225,6 +499,10 @@ def _optional_iso(value: Optional[datetime]) -> Optional[str]:
 def _optional_json(value: Optional[dict]) -> Optional[str]:
     if value is None:
         return None
+    return _json_dump(value)
+
+
+def _json_dump(value: dict) -> str:
     return json.dumps(value, separators=(",", ":"), sort_keys=True)
 
 
@@ -257,3 +535,40 @@ def _optional_load_json(value: Optional[str]) -> Optional[dict]:
     if value is None:
         return None
     return json.loads(value)
+
+
+def _to_proposal(row) -> Optional[ProposalRecord]:
+    if row is None:
+        return None
+    return ProposalRecord(
+        proposal_id=row["proposal_id"],
+        portfolio_id=row["portfolio_id"],
+        mandate_id=row["mandate_id"],
+        jurisdiction=row["jurisdiction"],
+        created_by=row["created_by"],
+        created_at=datetime.fromisoformat(row["created_at"]),
+        last_event_at=datetime.fromisoformat(row["last_event_at"]),
+        current_state=row["current_state"],
+        current_version_no=int(row["current_version_no"]),
+        title=row["title"],
+        advisor_notes=row["advisor_notes"],
+    )
+
+
+def _to_version(row) -> Optional[ProposalVersionRecord]:
+    if row is None:
+        return None
+    return ProposalVersionRecord(
+        proposal_version_id=row["proposal_version_id"],
+        proposal_id=row["proposal_id"],
+        version_no=int(row["version_no"]),
+        created_at=datetime.fromisoformat(row["created_at"]),
+        request_hash=row["request_hash"],
+        artifact_hash=row["artifact_hash"],
+        simulation_hash=row["simulation_hash"],
+        status_at_creation=row["status_at_creation"],
+        proposal_result_json=json.loads(row["proposal_result_json"]),
+        artifact_json=json.loads(row["artifact_json"]),
+        evidence_bundle_json=json.loads(row["evidence_bundle_json"]),
+        gate_decision_json=_optional_load_json(row["gate_decision_json"]),
+    )

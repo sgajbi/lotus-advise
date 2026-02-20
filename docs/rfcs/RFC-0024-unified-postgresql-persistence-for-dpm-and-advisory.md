@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 12) |
+| **Status** | IN PROGRESS (SLICE 13) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -237,5 +237,23 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - `proposal_async_operations`
   - Added repository unit coverage for roundtrips, updates, correlation lookup, and stable
     unimplemented-method guardrail behavior.
+- Implemented (slice 13):
+  - Added advisory Postgres repository parity for proposal aggregate and version persistence:
+    - proposal aggregate:
+      - `create_proposal`
+      - `update_proposal`
+      - `get_proposal`
+      - `list_proposals` (filters + deterministic cursor paging)
+    - immutable versions:
+      - `create_version`
+      - `get_version`
+      - `get_current_version`
+  - Added advisory Postgres table bootstrap for:
+    - `proposal_records`
+    - `proposal_versions`
+  - Added repository unit coverage for:
+    - proposal create/update/get/list behavior
+    - version create/get/current behavior
+    - cursor paging and invalid-cursor semantics
 - Next slice:
   - advisory Postgres repository CRUD parity implementation and repository contract tests.
