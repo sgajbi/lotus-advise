@@ -32,10 +32,23 @@ class _FakeConnection:
         self.versions = {}
         self.events = {}
         self.approvals = {}
+        self.schema_migrations = {}
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
         if sql.startswith("CREATE TABLE"):
+            return _FakeCursor()
+        if "FROM schema_migrations" in sql:
+            namespace = args[0]
+            rows = [
+                {"version": version, "checksum": checksum}
+                for (stored_namespace, version), checksum in self.schema_migrations.items()
+                if stored_namespace == namespace
+            ]
+            rows = sorted(rows, key=lambda row: row["version"])
+            return _FakeCursor(rows=rows)
+        if "INSERT INTO schema_migrations" in sql:
+            self.schema_migrations[(args[1], args[0])] = args[2]
             return _FakeCursor()
         if "INSERT INTO proposal_idempotency" in sql:
             self.idempotency[args[0]] = {

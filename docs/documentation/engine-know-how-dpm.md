@@ -305,6 +305,21 @@ Dependency policy note:
 - `link_buy_to_same_currency_sell_dependency=null` defaults to `true` in DPM.
 - when `false`, BUY security intents no longer depend on same-currency SELL intents.
 
+## PostgreSQL Migration Tooling
+
+- Forward-only Postgres migrations are applied from versioned SQL files:
+  - `src/infrastructure/postgres_migrations/dpm/`
+  - `src/infrastructure/postgres_migrations/proposals/`
+- Migration history is tracked in `schema_migrations`.
+- Migration checksums are enforced to prevent edited-in-place migration drift.
+- Manual migration command:
+  - `python scripts/postgres_migrate.py --target dpm`
+  - `python scripts/postgres_migrate.py --target proposals`
+  - `python scripts/postgres_migrate.py --target all`
+- DSN configuration sources:
+  - `--dpm-dsn` / `DPM_SUPPORTABILITY_POSTGRES_DSN`
+  - `--proposals-dsn` / `PROPOSAL_POSTGRES_DSN`
+
 ## Tests That Lock DPM Behavior
 
 - API: `tests/dpm/api/test_api_rebalance.py`

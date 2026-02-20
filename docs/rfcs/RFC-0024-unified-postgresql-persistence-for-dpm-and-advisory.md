@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 15) |
+| **Status** | IN PROGRESS (SLICE 16) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -287,5 +287,27 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - uvicorn with advisory Postgres backend enabled
     - Docker Compose with advisory + DPM Postgres backends enabled
     - full demo pack validation succeeded in both runtime modes.
+- Implemented (slice 16):
+  - Added shared forward-only PostgreSQL migration runner:
+    - `src/infrastructure/postgres_migrations.py`
+    - migration history table:
+      - `schema_migrations(version, namespace, checksum, applied_at)`
+    - checksum guardrail:
+      - raises `POSTGRES_MIGRATION_CHECKSUM_MISMATCH:{namespace}:{version}` when applied
+        migration content diverges from checked-in SQL.
+  - Added versioned baseline SQL migration files:
+    - `src/infrastructure/postgres_migrations/dpm/0001_baseline.sql`
+    - `src/infrastructure/postgres_migrations/proposals/0001_baseline.sql`
+  - Updated repository initialization to run migrations instead of inline table bootstrap:
+    - `PostgresDpmRunRepository._init_db`
+    - `PostgresProposalRepository._init_db`
+  - Added migration tooling script:
+    - `scripts/postgres_migrate.py`
+    - supports `--target dpm|proposals|all` and DSN injection via args/env.
+  - Added migration unit coverage:
+    - idempotent/forward-only apply behavior
+    - checksum mismatch guardrail
+    - compatibility with existing Postgres repository scaffold tests.
 - Next slice:
-  - schema migration discipline and rollout tooling (forward-only migration workflows).
+  - production rollout runbook: startup sequencing, migration lock strategy, and CI migration
+    smoke checks against live Postgres profile.
