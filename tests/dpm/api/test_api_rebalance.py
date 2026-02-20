@@ -558,6 +558,64 @@ def test_dpm_supportability_summary_endpoint_disabled(client, monkeypatch):
     assert response.json()["detail"] == "DPM_SUPPORTABILITY_SUMMARY_APIS_DISABLED"
 
 
+def test_dpm_run_support_bundle_endpoint(client):
+    payload = get_valid_payload()
+    simulate = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={
+            "Idempotency-Key": "test-key-support-bundle-1",
+            "X-Correlation-Id": "corr-support-bundle-1",
+        },
+    )
+    assert simulate.status_code == 200
+    run_id = simulate.json()["rebalance_run_id"]
+
+    service = get_dpm_run_support_service()
+    accepted = service.submit_analyze_async(
+        correlation_id="corr-support-bundle-1",
+        request_json={"scenarios": {"baseline": {"options": {}}}},
+    )
+
+    response = client.get(f"/rebalance/runs/{run_id}/support-bundle")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["run"]["rebalance_run_id"] == run_id
+    assert body["run"]["correlation_id"] == "corr-support-bundle-1"
+    assert body["artifact"] is not None
+    assert body["artifact"]["rebalance_run_id"] == run_id
+    assert body["async_operation"] is not None
+    assert body["async_operation"]["operation_id"] == accepted.operation_id
+    assert body["workflow_history"]["run_id"] == run_id
+    assert body["workflow_history"]["decisions"] == []
+    assert body["lineage"]["entity_id"] == run_id
+    assert len(body["lineage"]["edges"]) == 2
+    assert body["idempotency_history"] is not None
+    assert body["idempotency_history"]["idempotency_key"] == "test-key-support-bundle-1"
+    assert len(body["idempotency_history"]["history"]) == 1
+
+    compact = client.get(
+        f"/rebalance/runs/{run_id}/support-bundle"
+        "?include_artifact=false&include_async_operation=false&include_idempotency_history=false"
+    )
+    assert compact.status_code == 200
+    compact_body = compact.json()
+    assert compact_body["artifact"] is None
+    assert compact_body["async_operation"] is None
+    assert compact_body["idempotency_history"] is None
+
+
+def test_dpm_run_support_bundle_endpoint_disabled_and_not_found(client, monkeypatch):
+    missing = client.get("/rebalance/runs/rr_missing/support-bundle")
+    assert missing.status_code == 404
+    assert missing.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
+    monkeypatch.setenv("DPM_SUPPORT_BUNDLE_APIS_ENABLED", "false")
+    disabled = client.get("/rebalance/runs/rr_missing/support-bundle")
+    assert disabled.status_code == 404
+    assert disabled.json()["detail"] == "DPM_SUPPORT_BUNDLE_APIS_DISABLED"
+
+
 def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):
     payload = get_valid_payload()
     response = client.post(

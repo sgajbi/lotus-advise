@@ -99,6 +99,21 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `run_status_counts={"READY":1}`
       - `workflow_decision_count=0`
       - `lineage_edge_count=2`
+- Run support bundle API validation:
+  - Uvicorn runtime (`http://127.0.0.1:8022`):
+    - `POST /rebalance/simulate` returns `status=READY`.
+    - `GET /rebalance/runs/{rebalance_run_id}/support-bundle` returns `200` with:
+      - `run.rebalance_run_id` matching created run id
+      - `artifact` populated
+      - `lineage.edges` count = `2`
+      - `workflow_history.decisions` count = `0`
+  - Docker runtime (`http://127.0.0.1:8000`):
+    - `POST /rebalance/simulate` returns `status=READY`.
+    - `GET /rebalance/runs/{rebalance_run_id}/support-bundle` returns `200` with:
+      - `run.rebalance_run_id` matching created run id
+      - `artifact` populated
+      - `lineage.edges` count = `2`
+      - `workflow_history.decisions` count = `0`
 - SQLite supportability backend validation:
   - Uvicorn run (`DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`) on `http://127.0.0.1:8001`:
     - `POST /rebalance/simulate` succeeded (`200`).

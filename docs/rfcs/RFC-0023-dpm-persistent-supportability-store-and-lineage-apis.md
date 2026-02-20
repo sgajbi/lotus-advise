@@ -43,6 +43,7 @@ In-memory supportability works for local/runtime diagnostics but is insufficient
 
 - `GET /rebalance/runs?from=...&to=...&status=...&portfolio_id=...`
 - `GET /rebalance/supportability/summary`
+- `GET /rebalance/runs/{rebalance_run_id}/support-bundle`
 - `GET /rebalance/lineage/{entity_id}`
 - `GET /rebalance/idempotency/{idempotency_key}/history`
 
@@ -51,6 +52,7 @@ In-memory supportability works for local/runtime diagnostics but is insufficient
 - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQL`)
 - `DPM_SUPPORTABILITY_RETENTION_DAYS`
 - `DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED` (default `true`)
+- `DPM_SUPPORT_BUNDLE_APIS_ENABLED` (default `true`)
 - `DPM_LINEAGE_APIS_ENABLED` (default `false`)
 - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
 
@@ -119,5 +121,16 @@ No new business run statuses. Investigation responses use explicit technical sta
         run/operation status distributions, and created-at bounds.
   - Feature flag:
     - `DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED` (default `true`)
+- Implemented (slice 8):
+  - Run support bundle API:
+    - `GET /rebalance/runs/{rebalance_run_id}/support-bundle`
+      - aggregates run payload, lineage, workflow history, optional artifact,
+        optional async operation by correlation, and optional idempotency history.
+      - query toggles:
+        - `include_artifact`
+        - `include_async_operation`
+        - `include_idempotency_history`
+  - Feature flag:
+    - `DPM_SUPPORT_BUNDLE_APIS_ENABLED` (default `true`)
 - Pending:
   - SQL backend beyond SQLite (enterprise managed database deployment profile).

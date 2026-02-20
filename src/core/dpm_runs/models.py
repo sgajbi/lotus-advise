@@ -239,6 +239,35 @@ class DpmSupportabilitySummaryResponse(BaseModel):
     )
 
 
+class DpmRunSupportBundleResponse(BaseModel):
+    run: DpmRunLookupResponse = Field(
+        description="Primary persisted run payload and metadata for investigation.",
+    )
+    artifact: Optional["DpmRunArtifactResponse"] = Field(
+        default=None,
+        description="Deterministic run artifact payload when included.",
+        examples=[None],
+    )
+    async_operation: Optional["DpmAsyncOperationStatusResponse"] = Field(
+        default=None,
+        description="Latest async operation mapped by run correlation id when available.",
+        examples=[None],
+    )
+    workflow_history: "DpmRunWorkflowHistoryResponse" = Field(
+        description="Append-only workflow decision history for the run.",
+    )
+    lineage: "DpmLineageResponse" = Field(
+        description="Lineage edges that reference the run id.",
+    )
+    idempotency_history: Optional["DpmRunIdempotencyHistoryResponse"] = Field(
+        default=None,
+        description=(
+            "Append-only idempotency mapping history for run idempotency key when available."
+        ),
+        examples=[None],
+    )
+
+
 class DpmRunIdempotencyLookupResponse(BaseModel):
     idempotency_key: str = Field(
         description="Idempotency key supplied on simulation request.",

@@ -113,6 +113,14 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(supportability_summary_schema, "oldest_operation_created_at")
     _assert_property_has_docs(supportability_summary_schema, "newest_operation_created_at")
 
+    support_bundle_schema = schemas["DpmRunSupportBundleResponse"]
+    _assert_property_has_docs(support_bundle_schema, "run")
+    _assert_property_has_docs(support_bundle_schema, "artifact")
+    _assert_property_has_docs(support_bundle_schema, "async_operation")
+    _assert_property_has_docs(support_bundle_schema, "workflow_history")
+    _assert_property_has_docs(support_bundle_schema, "lineage")
+    _assert_property_has_docs(support_bundle_schema, "idempotency_history")
+
     artifact_schema = schemas["DpmRunArtifactResponse"]
     _assert_property_has_docs(artifact_schema, "artifact_id")
     _assert_property_has_docs(artifact_schema, "artifact_version")
@@ -204,6 +212,19 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert supportability_summary["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/DpmSupportabilitySummaryResponse")
+
+    support_bundle = openapi["paths"]["/rebalance/runs/{rebalance_run_id}/support-bundle"]["get"]
+    assert support_bundle["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmRunSupportBundleResponse")
+    expected_params = {
+        "rebalance_run_id",
+        "include_artifact",
+        "include_async_operation",
+        "include_idempotency_history",
+    }
+    actual_params = {param["name"] for param in support_bundle["parameters"]}
+    assert expected_params.issubset(actual_params)
 
     lineage = openapi["paths"]["/rebalance/lineage/{entity_id}"]["get"]
     assert lineage["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(

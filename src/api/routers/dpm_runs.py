@@ -14,6 +14,7 @@ from src.core.dpm_runs import (
     DpmRunListResponse,
     DpmRunLookupResponse,
     DpmRunNotFoundError,
+    DpmRunSupportBundleResponse,
     DpmRunSupportService,
     DpmRunWorkflowActionRequest,
     DpmRunWorkflowHistoryResponse,
@@ -121,6 +122,14 @@ def _assert_supportability_summary_apis_enabled() -> None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_SUPPORTABILITY_SUMMARY_APIS_DISABLED",
+        )
+
+
+def _assert_support_bundle_apis_enabled() -> None:
+    if not _env_flag("DPM_SUPPORT_BUNDLE_APIS_ENABLED", True):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_SUPPORT_BUNDLE_APIS_DISABLED",
         )
 
 
@@ -368,6 +377,60 @@ def get_run_by_run_id(
     _assert_support_apis_enabled()
     try:
         return service.get_run(rebalance_run_id=rebalance_run_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/runs/{rebalance_run_id}/support-bundle",
+    response_model=DpmRunSupportBundleResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Support Bundle",
+    description=(
+        "Returns an aggregated supportability bundle for one run, including run payload, "
+        "lineage, workflow history, optional deterministic artifact, and optional mapped async "
+        "operation/idempotency history."
+    ),
+)
+def get_dpm_run_support_bundle(
+    rebalance_run_id: Annotated[
+        str,
+        Path(description="DPM run identifier.", examples=["rr_abc12345"]),
+    ],
+    include_artifact: Annotated[
+        bool,
+        Query(
+            description="Whether to include deterministic run artifact payload in response.",
+            examples=[True],
+        ),
+    ] = True,
+    include_async_operation: Annotated[
+        bool,
+        Query(
+            description="Whether to include async operation mapped by run correlation id.",
+            examples=[True],
+        ),
+    ] = True,
+    include_idempotency_history: Annotated[
+        bool,
+        Query(
+            description=(
+                "Whether to include idempotency mapping history when run has idempotency key."
+            ),
+            examples=[True],
+        ),
+    ] = True,
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunSupportBundleResponse:
+    _assert_support_apis_enabled()
+    _assert_support_bundle_apis_enabled()
+    try:
+        return service.get_run_support_bundle(
+            rebalance_run_id=rebalance_run_id,
+            include_artifact=include_artifact,
+            include_async_operation=include_async_operation,
+            include_idempotency_history=include_idempotency_history,
+        )
     except DpmRunNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 

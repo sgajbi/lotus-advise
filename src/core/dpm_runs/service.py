@@ -22,6 +22,7 @@ from src.core.dpm_runs.models import (
     DpmRunListResponse,
     DpmRunLookupResponse,
     DpmRunRecord,
+    DpmRunSupportBundleResponse,
     DpmRunWorkflowDecisionRecord,
     DpmRunWorkflowDecisionResponse,
     DpmRunWorkflowHistoryResponse,
@@ -357,6 +358,94 @@ class DpmRunSupportService:
                 if summary.newest_operation_created_at is not None
                 else None
             ),
+        )
+
+    def get_run_support_bundle(
+        self,
+        *,
+        rebalance_run_id: str,
+        include_artifact: bool,
+        include_async_operation: bool,
+        include_idempotency_history: bool,
+    ) -> DpmRunSupportBundleResponse:
+        self._cleanup_expired_operations()
+        self._cleanup_expired_supportability()
+        run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
+        if run is None:
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+
+        artifact = build_dpm_run_artifact(run=run) if include_artifact else None
+        async_operation = None
+        if include_async_operation:
+            operation = self._repository.get_operation_by_correlation(
+                correlation_id=run.correlation_id
+            )
+            if operation is not None:
+                async_operation = self._to_async_status(operation)
+
+        idempotency_history = None
+        if include_idempotency_history and run.idempotency_key is not None:
+            history = self._repository.list_idempotency_history(idempotency_key=run.idempotency_key)
+            ordered_history = sorted(
+                history,
+                key=lambda item: (
+                    item.created_at,
+                    item.rebalance_run_id,
+                    item.correlation_id,
+                    item.request_hash,
+                ),
+            )
+            idempotency_history = DpmRunIdempotencyHistoryResponse(
+                idempotency_key=run.idempotency_key,
+                history=[
+                    DpmRunIdempotencyHistoryItem(
+                        rebalance_run_id=item.rebalance_run_id,
+                        correlation_id=item.correlation_id,
+                        request_hash=item.request_hash,
+                        created_at=item.created_at.isoformat(),
+                    )
+                    for item in ordered_history
+                ],
+            )
+
+        decisions = self._repository.list_workflow_decisions(rebalance_run_id=rebalance_run_id)
+        decisions = sorted(decisions, key=lambda item: item.decided_at)
+        workflow_history = DpmRunWorkflowHistoryResponse(
+            run_id=rebalance_run_id,
+            decisions=[self._to_workflow_decision_response(decision) for decision in decisions],
+        )
+
+        edges = self._repository.list_lineage_edges(entity_id=rebalance_run_id)
+        edges = sorted(
+            edges,
+            key=lambda edge: (
+                edge.created_at,
+                edge.source_entity_id,
+                edge.edge_type,
+                edge.target_entity_id,
+            ),
+        )
+        lineage = DpmLineageResponse(
+            entity_id=rebalance_run_id,
+            edges=[
+                DpmLineageEdgeResponse(
+                    source_entity_id=edge.source_entity_id,
+                    edge_type=edge.edge_type,
+                    target_entity_id=edge.target_entity_id,
+                    created_at=edge.created_at.isoformat(),
+                    metadata=edge.metadata_json,
+                )
+                for edge in edges
+            ],
+        )
+
+        return DpmRunSupportBundleResponse(
+            run=self._to_lookup_response(run),
+            artifact=artifact,
+            async_operation=async_operation,
+            workflow_history=workflow_history,
+            lineage=lineage,
+            idempotency_history=idempotency_history,
         )
 
     def mark_operation_running(self, *, operation_id: str) -> None:

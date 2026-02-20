@@ -65,6 +65,20 @@ Implementation scope:
 ### `GET /rebalance/runs/{rebalance_run_id}`
 - Purpose: retrieve one DPM run with full result payload and lineage metadata for support investigations.
 
+### `GET /rebalance/runs/{rebalance_run_id}/support-bundle`
+- Purpose: retrieve one aggregated supportability bundle so investigations can run from one payload.
+- Includes:
+  - run payload (`run`)
+  - workflow decision history (`workflow_history`)
+  - lineage edges for run id (`lineage`)
+  - optional deterministic run artifact (`artifact`)
+  - optional async operation mapped by run correlation (`async_operation`)
+  - optional idempotency mapping history (`idempotency_history`)
+- Query options:
+  - `include_artifact`
+  - `include_async_operation`
+  - `include_idempotency_history`
+
 ### `GET /rebalance/runs`
 - Purpose: list DPM runs for supportability investigations.
 - Filters:
@@ -169,6 +183,7 @@ Implementation scope:
   - `DPM_SUPPORTABILITY_SQLITE_PATH` (used when backend is `SQLITE`)
   - `DPM_SUPPORTABILITY_RETENTION_DAYS` (default `0`, disabled when `0`)
   - `DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED` (default `true`)
+  - `DPM_SUPPORT_BUNDLE_APIS_ENABLED` (default `true`)
   - `DPM_LINEAGE_APIS_ENABLED` (default `false`)
   - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
   - `DPM_WORKFLOW_ENABLED` (default `false`)
