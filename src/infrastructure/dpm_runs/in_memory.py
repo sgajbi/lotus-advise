@@ -3,7 +3,12 @@ from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import Optional
 
-from src.core.dpm_runs.models import DpmAsyncOperationRecord, DpmRunIdempotencyRecord, DpmRunRecord
+from src.core.dpm_runs.models import (
+    DpmAsyncOperationRecord,
+    DpmRunIdempotencyRecord,
+    DpmRunRecord,
+    DpmRunWorkflowDecisionRecord,
+)
 from src.core.dpm_runs.repository import DpmRunRepository
 
 
@@ -15,6 +20,7 @@ class InMemoryDpmRunRepository(DpmRunRepository):
         self._idempotency: dict[str, DpmRunIdempotencyRecord] = {}
         self._operations: dict[str, DpmAsyncOperationRecord] = {}
         self._operation_by_correlation: dict[str, str] = {}
+        self._workflow_decisions: dict[str, list[DpmRunWorkflowDecisionRecord]] = {}
 
     def save_run(self, run: DpmRunRecord) -> None:
         with self._lock:
@@ -80,3 +86,15 @@ class InMemoryDpmRunRepository(DpmRunRepository):
                         self._operation_by_correlation.pop(operation.correlation_id, None)
                     removed += 1
             return removed
+
+    def append_workflow_decision(self, decision: DpmRunWorkflowDecisionRecord) -> None:
+        with self._lock:
+            decisions = self._workflow_decisions.setdefault(decision.run_id, [])
+            decisions.append(deepcopy(decision))
+
+    def list_workflow_decisions(
+        self, *, rebalance_run_id: str
+    ) -> list[DpmRunWorkflowDecisionRecord]:
+        with self._lock:
+            decisions = self._workflow_decisions.get(rebalance_run_id, [])
+            return [deepcopy(decision) for decision in decisions]

@@ -5,6 +5,7 @@ from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
+    DpmRunWorkflowDecisionRecord,
 )
 
 
@@ -32,3 +33,9 @@ class DpmRunRepository(Protocol):
     ) -> Optional[DpmAsyncOperationRecord]: ...
 
     def purge_expired_operations(self, *, ttl_seconds: int, now: datetime) -> int: ...
+
+    def append_workflow_decision(self, decision: DpmRunWorkflowDecisionRecord) -> None: ...
+
+    def list_workflow_decisions(
+        self, *, rebalance_run_id: str
+    ) -> list[DpmRunWorkflowDecisionRecord]: ...

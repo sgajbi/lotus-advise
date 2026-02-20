@@ -12,6 +12,12 @@ from src.core.dpm_runs.models import (
     DpmRunIdempotencyRecord,
     DpmRunLookupResponse,
     DpmRunRecord,
+    DpmRunWorkflowDecisionRecord,
+    DpmRunWorkflowDecisionResponse,
+    DpmRunWorkflowHistoryResponse,
+    DpmRunWorkflowResponse,
+    DpmWorkflowActionType,
+    DpmWorkflowStatus,
 )
 from src.core.dpm_runs.repository import DpmRunRepository
 from src.core.models import RebalanceResult
@@ -21,15 +27,31 @@ class DpmRunNotFoundError(Exception):
     pass
 
 
+class DpmWorkflowDisabledError(Exception):
+    pass
+
+
+class DpmWorkflowTransitionError(Exception):
+    pass
+
+
 class DpmRunSupportService:
     def __init__(
         self,
         *,
         repository: DpmRunRepository,
         async_operation_ttl_seconds: int = 86400,
+        workflow_enabled: bool = False,
+        workflow_requires_review_for_statuses: Optional[set[str]] = None,
     ) -> None:
         self._repository = repository
         self._async_operation_ttl_seconds = max(1, async_operation_ttl_seconds)
+        self._workflow_enabled = workflow_enabled
+        self._workflow_requires_review_for_statuses = {
+            value.strip()
+            for value in (workflow_requires_review_for_statuses or {"PENDING_REVIEW"})
+            if value.strip()
+        }
 
     def record_run(
         self,
@@ -174,6 +196,87 @@ class DpmRunSupportService:
         self._repository.update_operation(operation)
         return operation.request_json, operation.correlation_id
 
+    def get_workflow(self, *, rebalance_run_id: str) -> DpmRunWorkflowResponse:
+        run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
+        if run is None:
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        latest_decision = self._latest_workflow_decision(rebalance_run_id=rebalance_run_id)
+        workflow_status = self._resolve_workflow_status(
+            run_status=str(run.result_json.get("status", "")),
+            latest_decision=latest_decision,
+        )
+        return DpmRunWorkflowResponse(
+            run_id=run.rebalance_run_id,
+            run_status=str(run.result_json.get("status", "")),
+            workflow_status=workflow_status,
+            requires_review=self._workflow_required_for_run_status(
+                run_status=str(run.result_json.get("status", ""))
+            ),
+            latest_decision=(
+                self._to_workflow_decision_response(latest_decision)
+                if latest_decision is not None
+                else None
+            ),
+        )
+
+    def get_workflow_history(self, *, rebalance_run_id: str) -> DpmRunWorkflowHistoryResponse:
+        run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
+        if run is None:
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        decisions = self._repository.list_workflow_decisions(rebalance_run_id=rebalance_run_id)
+        decisions = sorted(decisions, key=lambda item: item.decided_at)
+        return DpmRunWorkflowHistoryResponse(
+            run_id=rebalance_run_id,
+            decisions=[self._to_workflow_decision_response(decision) for decision in decisions],
+        )
+
+    def apply_workflow_action(
+        self,
+        *,
+        rebalance_run_id: str,
+        action: DpmWorkflowActionType,
+        reason_code: str,
+        comment: Optional[str],
+        actor_id: str,
+        correlation_id: str,
+    ) -> DpmRunWorkflowResponse:
+        if not self._workflow_enabled:
+            raise DpmWorkflowDisabledError("DPM_WORKFLOW_DISABLED")
+        run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
+        if run is None:
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        run_status = str(run.result_json.get("status", ""))
+        if not self._workflow_required_for_run_status(run_status=run_status):
+            raise DpmWorkflowTransitionError("DPM_WORKFLOW_NOT_REQUIRED_FOR_RUN_STATUS")
+
+        latest_decision = self._latest_workflow_decision(rebalance_run_id=rebalance_run_id)
+        current_status = self._resolve_workflow_status(
+            run_status=run_status,
+            latest_decision=latest_decision,
+        )
+        next_status = _resolve_workflow_transition(current_status=current_status, action=action)
+        if next_status is None:
+            raise DpmWorkflowTransitionError("DPM_WORKFLOW_INVALID_TRANSITION")
+
+        decision = DpmRunWorkflowDecisionRecord(
+            decision_id=f"dwd_{uuid.uuid4().hex[:12]}",
+            run_id=rebalance_run_id,
+            action=action,
+            reason_code=reason_code,
+            comment=comment,
+            actor_id=actor_id,
+            decided_at=_utc_now(),
+            correlation_id=correlation_id,
+        )
+        self._repository.append_workflow_decision(decision)
+        return DpmRunWorkflowResponse(
+            run_id=rebalance_run_id,
+            run_status=run_status,
+            workflow_status=next_status,
+            requires_review=True,
+            latest_decision=self._to_workflow_decision_response(decision),
+        )
+
     def _to_lookup_response(self, run: DpmRunRecord) -> DpmRunLookupResponse:
         return DpmRunLookupResponse(
             rebalance_run_id=run.rebalance_run_id,
@@ -218,6 +321,69 @@ class DpmRunSupportService:
             now=_utc_now(),
         )
 
+    def _latest_workflow_decision(
+        self, *, rebalance_run_id: str
+    ) -> Optional[DpmRunWorkflowDecisionRecord]:
+        decisions = self._repository.list_workflow_decisions(rebalance_run_id=rebalance_run_id)
+        if not decisions:
+            return None
+        return max(decisions, key=lambda item: item.decided_at)
+
+    def _workflow_required_for_run_status(self, *, run_status: str) -> bool:
+        return self._workflow_enabled and run_status in self._workflow_requires_review_for_statuses
+
+    def _resolve_workflow_status(
+        self,
+        *,
+        run_status: str,
+        latest_decision: Optional[DpmRunWorkflowDecisionRecord],
+    ) -> DpmWorkflowStatus:
+        if not self._workflow_required_for_run_status(run_status=run_status):
+            return "NOT_REQUIRED"
+        if latest_decision is None:
+            return "PENDING_REVIEW"
+        return _status_for_action(latest_decision.action)
+
+    def _to_workflow_decision_response(
+        self, decision: DpmRunWorkflowDecisionRecord
+    ) -> DpmRunWorkflowDecisionResponse:
+        return DpmRunWorkflowDecisionResponse(
+            decision_id=decision.decision_id,
+            run_id=decision.run_id,
+            action=decision.action,
+            reason_code=decision.reason_code,
+            comment=decision.comment,
+            actor_id=decision.actor_id,
+            decided_at=decision.decided_at.isoformat(),
+            correlation_id=decision.correlation_id,
+        )
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _status_for_action(action: DpmWorkflowActionType) -> DpmWorkflowStatus:
+    if action == "APPROVE":
+        return "APPROVED"
+    if action == "REJECT":
+        return "REJECTED"
+    return "PENDING_REVIEW"
+
+
+_VALID_WORKFLOW_TRANSITIONS: dict[
+    tuple[DpmWorkflowStatus, DpmWorkflowActionType], DpmWorkflowStatus
+] = {
+    ("PENDING_REVIEW", "APPROVE"): "APPROVED",
+    ("PENDING_REVIEW", "REJECT"): "REJECTED",
+    ("PENDING_REVIEW", "REQUEST_CHANGES"): "PENDING_REVIEW",
+    ("APPROVED", "REQUEST_CHANGES"): "PENDING_REVIEW",
+    ("APPROVED", "REJECT"): "REJECTED",
+    ("REJECTED", "REQUEST_CHANGES"): "PENDING_REVIEW",
+}
+
+
+def _resolve_workflow_transition(
+    *, current_status: DpmWorkflowStatus, action: DpmWorkflowActionType
+) -> Optional[DpmWorkflowStatus]:
+    return _VALID_WORKFLOW_TRANSITIONS.get((current_status, action))

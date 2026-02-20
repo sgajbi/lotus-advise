@@ -7,6 +7,8 @@ from src.core.models import RebalanceResult
 
 DpmAsyncOperationType = Literal["ANALYZE_SCENARIOS"]
 DpmAsyncOperationStatus = Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]
+DpmWorkflowStatus = Literal["NOT_REQUIRED", "PENDING_REVIEW", "APPROVED", "REJECTED"]
+DpmWorkflowActionType = Literal["APPROVE", "REJECT", "REQUEST_CHANGES"]
 
 
 class DpmRunRecord(BaseModel):
@@ -232,6 +234,113 @@ class DpmAsyncOperationRecord(BaseModel):
         default=None,
         description="Internal request payload snapshot for deferred execution.",
         examples=[{"scenarios": {"baseline": {"options": {}}}}],
+    )
+
+
+class DpmRunWorkflowDecisionRecord(BaseModel):
+    decision_id: str = Field(
+        description="Workflow decision identifier.",
+        examples=["dwd_001"],
+    )
+    run_id: str = Field(
+        description="DPM run identifier associated with workflow decision.",
+        examples=["rr_abc12345"],
+    )
+    action: DpmWorkflowActionType = Field(
+        description="Workflow action applied by reviewer.",
+        examples=["APPROVE"],
+    )
+    reason_code: str = Field(
+        pattern=r"^[A-Z][A-Z0-9_]*$",
+        description="Stable uppercase snake case reason code for the decision.",
+        examples=["REVIEW_APPROVED"],
+    )
+    comment: Optional[str] = Field(
+        default=None,
+        description="Optional free-text reviewer comment.",
+        examples=["Checks passed after review."],
+    )
+    actor_id: str = Field(
+        description="Actor id of reviewer taking workflow action.",
+        examples=["reviewer_001"],
+    )
+    decided_at: datetime = Field(
+        description="Workflow decision timestamp (UTC).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    correlation_id: str = Field(
+        description="Correlation id captured for workflow action tracing.",
+        examples=["corr-workflow-001"],
+    )
+
+
+class DpmRunWorkflowDecisionResponse(BaseModel):
+    decision_id: str = Field(
+        description="Workflow decision identifier.",
+        examples=["dwd_001"],
+    )
+    run_id: str = Field(
+        description="DPM run identifier associated with workflow decision.",
+        examples=["rr_abc12345"],
+    )
+    action: DpmWorkflowActionType = Field(
+        description="Workflow action applied by reviewer.",
+        examples=["APPROVE"],
+    )
+    reason_code: str = Field(
+        description="Stable uppercase snake case reason code for the decision.",
+        examples=["REVIEW_APPROVED"],
+    )
+    comment: Optional[str] = Field(
+        default=None,
+        description="Optional free-text reviewer comment.",
+        examples=["Checks passed after review."],
+    )
+    actor_id: str = Field(
+        description="Actor id of reviewer taking workflow action.",
+        examples=["reviewer_001"],
+    )
+    decided_at: str = Field(
+        description="Workflow decision timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    correlation_id: str = Field(
+        description="Correlation id captured for workflow action tracing.",
+        examples=["corr-workflow-001"],
+    )
+
+
+class DpmRunWorkflowResponse(BaseModel):
+    run_id: str = Field(
+        description="DPM run identifier.",
+        examples=["rr_abc12345"],
+    )
+    run_status: str = Field(
+        description="Business run status retained from run output.",
+        examples=["PENDING_REVIEW"],
+    )
+    workflow_status: DpmWorkflowStatus = Field(
+        description="Current workflow state for reviewer gate decisions.",
+        examples=["PENDING_REVIEW"],
+    )
+    requires_review: bool = Field(
+        description="Whether workflow review is required for this run by policy configuration.",
+        examples=[True],
+    )
+    latest_decision: Optional[DpmRunWorkflowDecisionResponse] = Field(
+        default=None,
+        description="Most recent workflow decision when available.",
+    )
+
+
+class DpmRunWorkflowHistoryResponse(BaseModel):
+    run_id: str = Field(
+        description="DPM run identifier.",
+        examples=["rr_abc12345"],
+    )
+    decisions: list[DpmRunWorkflowDecisionResponse] = Field(
+        default_factory=list,
+        description="Append-only workflow decisions ordered by decision timestamp ascending.",
     )
 
 
