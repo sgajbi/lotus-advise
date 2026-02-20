@@ -44,13 +44,35 @@ from src.core.models import (
 )
 
 app = FastAPI(
-    title="DPM Rebalance Engine",
+    title="Private Banking Rebalance API",
     version="0.1.0",
     description=(
         "Deterministic rebalance simulation service.\n\n"
         "Domain outcomes for valid payloads are returned in response body status: "
         "`READY`, `PENDING_REVIEW`, or `BLOCKED`."
     ),
+    openapi_tags=[
+        {
+            "name": "DPM Simulation",
+            "description": "Core deterministic DPM simulation endpoints.",
+        },
+        {
+            "name": "DPM What-If Analysis",
+            "description": "Batch scenario analysis endpoints (sync and async).",
+        },
+        {
+            "name": "DPM Run Supportability",
+            "description": "Run, operation, idempotency, and artifact retrieval endpoints.",
+        },
+        {
+            "name": "Advisory Simulation",
+            "description": "Advisory proposal simulation and artifact endpoints.",
+        },
+        {
+            "name": "Advisory Proposal Lifecycle",
+            "description": "Advisory proposal persistence, workflow, and support endpoints.",
+        },
+    ],
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -308,6 +330,7 @@ def _build_comparison_metric(
     "/rebalance/simulate",
     response_model=RebalanceResult,
     status_code=status.HTTP_200_OK,
+    tags=["DPM Simulation"],
     summary="Simulate a Portfolio Rebalance",
     description=(
         "Runs one deterministic rebalance simulation.\n\n"
@@ -411,6 +434,7 @@ def simulate_rebalance(
     "/rebalance/analyze",
     response_model=BatchRebalanceResult,
     status_code=status.HTTP_200_OK,
+    tags=["DPM What-If Analysis"],
     summary="Analyze Multiple Rebalance Scenarios",
     description=(
         "Runs multiple named what-if scenarios using shared snapshots.\n\n"
@@ -443,6 +467,7 @@ def analyze_scenarios(
     "/rebalance/analyze/async",
     response_model=DpmAsyncAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    tags=["DPM What-If Analysis"],
     summary="Analyze Multiple Rebalance Scenarios Asynchronously",
     description=(
         "Accepts named what-if scenarios for asynchronous execution.\n\n"
@@ -571,6 +596,7 @@ def _execute_batch_analysis(
     "/rebalance/proposals/simulate",
     response_model=ProposalResult,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Simulation"],
     summary="Simulate an Advisory Proposal",
     description=(
         "Runs deterministic advisory proposal simulation from advisor-entered cash flows "
@@ -683,6 +709,7 @@ def _simulate_proposal_response(
     "/rebalance/proposals/artifact",
     response_model=ProposalArtifact,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Simulation"],
     summary="Build Advisory Proposal Artifact",
     description=(
         "Runs advisory proposal simulation and returns a deterministic "

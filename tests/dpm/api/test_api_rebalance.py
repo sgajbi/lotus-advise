@@ -460,6 +460,25 @@ def test_dpm_artifact_openapi_schema_has_descriptions_and_examples(client):
         assert prop.get("examples") or prop.get("$ref")
 
 
+def test_openapi_title_and_tag_grouping(client):
+    openapi = client.get("/openapi.json").json()
+    assert openapi["info"]["title"] == "Private Banking Rebalance API"
+
+    tags = {tag["name"] for tag in openapi.get("tags", [])}
+    assert "DPM Simulation" in tags
+    assert "DPM What-If Analysis" in tags
+    assert "DPM Run Supportability" in tags
+    assert "Advisory Simulation" in tags
+    assert "Advisory Proposal Lifecycle" in tags
+
+    assert openapi["paths"]["/rebalance/simulate"]["post"]["tags"] == ["DPM Simulation"]
+    assert openapi["paths"]["/rebalance/analyze"]["post"]["tags"] == ["DPM What-If Analysis"]
+    assert openapi["paths"]["/rebalance/analyze/async"]["post"]["tags"] == ["DPM What-If Analysis"]
+    assert openapi["paths"]["/rebalance/proposals/simulate"]["post"]["tags"] == [
+        "Advisory Simulation"
+    ]
+
+
 def test_analyze_rejects_invalid_scenario_name(client):
     payload = get_valid_payload()
     payload.pop("options")
