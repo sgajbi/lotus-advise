@@ -44,6 +44,41 @@ class InMemoryDpmRunRepository(DpmRunRepository):
             run = self._runs.get(run_id)
             return deepcopy(run) if run is not None else None
 
+    def list_runs(
+        self,
+        *,
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        status: Optional[str],
+        portfolio_id: Optional[str],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmRunRecord], Optional[str]]:
+        with self._lock:
+            rows = list(self._runs.values())
+            if created_from is not None:
+                rows = [row for row in rows if row.created_at >= created_from]
+            if created_to is not None:
+                rows = [row for row in rows if row.created_at <= created_to]
+            if status is not None:
+                rows = [row for row in rows if str(row.result_json.get("status", "")) == status]
+            if portfolio_id is not None:
+                rows = [row for row in rows if row.portfolio_id == portfolio_id]
+            rows = sorted(
+                rows, key=lambda item: (item.created_at, item.rebalance_run_id), reverse=True
+            )
+            if cursor is not None:
+                cursor_index = next(
+                    (index for index, row in enumerate(rows) if row.rebalance_run_id == cursor),
+                    None,
+                )
+                if cursor_index is None:
+                    return [], None
+                rows = rows[cursor_index + 1 :]
+            page = rows[:limit]
+            next_cursor = page[-1].rebalance_run_id if len(rows) > limit else None
+            return [deepcopy(row) for row in page], next_cursor
+
     def save_idempotency_mapping(self, record: DpmRunIdempotencyRecord) -> None:
         with self._lock:
             self._idempotency[record.idempotency_key] = deepcopy(record)

@@ -1,7 +1,8 @@
 import os
+from datetime import datetime
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, status
 
 from src.core.dpm_runs import (
     DpmAsyncOperationStatusResponse,
@@ -9,6 +10,7 @@ from src.core.dpm_runs import (
     DpmRunArtifactResponse,
     DpmRunIdempotencyHistoryResponse,
     DpmRunIdempotencyLookupResponse,
+    DpmRunListResponse,
     DpmRunLookupResponse,
     DpmRunNotFoundError,
     DpmRunSupportService,
@@ -151,6 +153,76 @@ def reset_dpm_run_support_service_for_tests() -> None:
     global _SERVICE
     _REPOSITORY = _build_repository()
     _SERVICE = None
+
+
+@router.get(
+    "/rebalance/runs",
+    response_model=DpmRunListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List DPM Runs",
+    description=(
+        "Returns paginated DPM runs filtered by creation time range, run status, and portfolio id."
+    ),
+)
+def list_runs(
+    created_from: Annotated[
+        Optional[datetime],
+        Query(
+            alias="from",
+            description="Run creation lower bound timestamp (UTC ISO8601).",
+            examples=["2026-02-20T00:00:00Z"],
+        ),
+    ] = None,
+    created_to: Annotated[
+        Optional[datetime],
+        Query(
+            alias="to",
+            description="Run creation upper bound timestamp (UTC ISO8601).",
+            examples=["2026-02-20T23:59:59Z"],
+        ),
+    ] = None,
+    status_filter: Annotated[
+        Optional[str],
+        Query(
+            alias="status",
+            description="Optional run status filter.",
+            examples=["READY"],
+        ),
+    ] = None,
+    portfolio_id: Annotated[
+        Optional[str],
+        Query(
+            description="Optional portfolio identifier filter.",
+            examples=["pf_123"],
+        ),
+    ] = None,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=200,
+            description="Maximum number of rows returned in one page.",
+            examples=[50],
+        ),
+    ] = 50,
+    cursor: Annotated[
+        Optional[str],
+        Query(
+            description="Opaque cursor value returned by previous page.",
+            examples=["rr_abc12345"],
+        ),
+    ] = None,
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunListResponse:
+    _assert_support_apis_enabled()
+    return service.list_runs(
+        created_from=created_from,
+        created_to=created_to,
+        status=status_filter,
+        portfolio_id=portfolio_id,
+        limit=limit,
+        cursor=cursor,
+    )
 
 
 @router.get(

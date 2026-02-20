@@ -96,5 +96,12 @@ No new business run statuses. Investigation responses use explicit technical sta
     - SQLite
   - Feature flag:
     - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
+- Implemented (slice 4):
+  - Run listing API:
+    - `GET /rebalance/runs`
+      - filters: `from`, `to`, `status`, `portfolio_id`
+      - pagination: `limit`, `cursor`
 - Pending:
   - SQL backend beyond SQLite (enterprise managed database deployment profile).
+  - Retention policy:
+    - `DPM_SUPPORTABILITY_RETENTION_DAYS`

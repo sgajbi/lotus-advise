@@ -18,6 +18,17 @@ class DpmRunRepository(Protocol):
 
     def get_run_by_correlation(self, *, correlation_id: str) -> Optional[DpmRunRecord]: ...
 
+    def list_runs(
+        self,
+        *,
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        status: Optional[str],
+        portfolio_id: Optional[str],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmRunRecord], Optional[str]]: ...
+
     def save_idempotency_mapping(self, record: DpmRunIdempotencyRecord) -> None: ...
 
     def get_idempotency_mapping(

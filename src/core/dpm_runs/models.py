@@ -82,6 +82,57 @@ class DpmRunLookupResponse(BaseModel):
     )
 
 
+class DpmRunListItemResponse(BaseModel):
+    rebalance_run_id: str = Field(description="DPM run identifier.", examples=["rr_abc12345"])
+    correlation_id: str = Field(
+        description="Correlation identifier associated with the run.",
+        examples=["corr-1234-abcd"],
+    )
+    request_hash: str = Field(
+        description="Canonical request hash associated with this run.",
+        examples=["sha256:abc123"],
+    )
+    idempotency_key: Optional[str] = Field(
+        default=None,
+        description="Idempotency key associated with this run when available.",
+        examples=["demo-idem-001"],
+    )
+    portfolio_id: str = Field(description="Portfolio identifier.", examples=["pf_123"])
+    status: str = Field(
+        description="Business run status from persisted run result.",
+        examples=["READY"],
+    )
+    created_at: str = Field(
+        description="Run creation timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+
+
+class DpmRunListResponse(BaseModel):
+    items: list[DpmRunListItemResponse] = Field(
+        default_factory=list,
+        description="Filtered run rows ordered by created timestamp descending.",
+        examples=[
+            [
+                {
+                    "rebalance_run_id": "rr_abc12345",
+                    "correlation_id": "corr-1234-abcd",
+                    "request_hash": "sha256:abc123",
+                    "idempotency_key": "demo-idem-001",
+                    "portfolio_id": "pf_123",
+                    "status": "READY",
+                    "created_at": "2026-02-20T12:00:00+00:00",
+                }
+            ]
+        ],
+    )
+    next_cursor: Optional[str] = Field(
+        default=None,
+        description="Opaque cursor for retrieving the next result page.",
+        examples=["rr_abc12345"],
+    )
+
+
 class DpmRunIdempotencyLookupResponse(BaseModel):
     idempotency_key: str = Field(
         description="Idempotency key supplied on simulation request.",

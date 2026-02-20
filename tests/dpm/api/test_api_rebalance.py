@@ -207,6 +207,60 @@ def test_dpm_supportability_sqlite_backend_selection(client, monkeypatch):
         assert by_idempotency.json()["rebalance_run_id"] == body["rebalance_run_id"]
 
 
+def test_dpm_support_runs_list_filters_and_cursor(client):
+    payload = get_valid_payload()
+    first = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-runs-list-1", "X-Correlation-Id": "corr-runs-list-1"},
+    )
+    assert first.status_code == 200
+    first_body = first.json()
+
+    payload["options"]["single_position_max_weight"] = "0.50"
+    second = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-runs-list-2", "X-Correlation-Id": "corr-runs-list-2"},
+    )
+    assert second.status_code == 200
+    second_body = second.json()
+
+    all_rows = client.get("/rebalance/runs?limit=10")
+    assert all_rows.status_code == 200
+    all_body = all_rows.json()
+    ids = [item["rebalance_run_id"] for item in all_body["items"]]
+    assert second_body["rebalance_run_id"] in ids
+    assert first_body["rebalance_run_id"] in ids
+
+    ready_rows = client.get("/rebalance/runs?status=READY&limit=10")
+    assert ready_rows.status_code == 200
+    ready_body = ready_rows.json()
+    assert len(ready_body["items"]) >= 1
+    assert all(item["status"] == "READY" for item in ready_body["items"])
+
+    portfolio_rows = client.get(
+        f"/rebalance/runs?portfolio_id={payload['portfolio_snapshot']['portfolio_id']}&limit=10"
+    )
+    assert portfolio_rows.status_code == 200
+    assert len(portfolio_rows.json()["items"]) >= 2
+
+    page_one = client.get("/rebalance/runs?limit=1")
+    assert page_one.status_code == 200
+    page_one_body = page_one.json()
+    assert len(page_one_body["items"]) == 1
+    assert page_one_body["next_cursor"] is not None
+
+    page_two = client.get(f"/rebalance/runs?limit=1&cursor={page_one_body['next_cursor']}")
+    assert page_two.status_code == 200
+    page_two_body = page_two.json()
+    assert len(page_two_body["items"]) == 1
+    assert (
+        page_two_body["items"][0]["rebalance_run_id"]
+        != page_one_body["items"][0]["rebalance_run_id"]
+    )
+
+
 def test_dpm_lineage_api_disabled_and_enabled(client, monkeypatch):
     payload = get_valid_payload()
     simulate = client.post(

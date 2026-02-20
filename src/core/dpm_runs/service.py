@@ -16,6 +16,8 @@ from src.core.dpm_runs.models import (
     DpmRunIdempotencyHistoryResponse,
     DpmRunIdempotencyLookupResponse,
     DpmRunIdempotencyRecord,
+    DpmRunListItemResponse,
+    DpmRunListResponse,
     DpmRunLookupResponse,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
@@ -123,6 +125,40 @@ class DpmRunSupportService:
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
         return self._to_lookup_response(run)
+
+    def list_runs(
+        self,
+        *,
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        status: Optional[str],
+        portfolio_id: Optional[str],
+        limit: int,
+        cursor: Optional[str],
+    ) -> DpmRunListResponse:
+        rows, next_cursor = self._repository.list_runs(
+            created_from=created_from,
+            created_to=created_to,
+            status=status,
+            portfolio_id=portfolio_id,
+            limit=limit,
+            cursor=cursor,
+        )
+        return DpmRunListResponse(
+            items=[
+                DpmRunListItemResponse(
+                    rebalance_run_id=row.rebalance_run_id,
+                    correlation_id=row.correlation_id,
+                    request_hash=row.request_hash,
+                    idempotency_key=row.idempotency_key,
+                    portfolio_id=row.portfolio_id,
+                    status=str(row.result_json.get("status", "")),
+                    created_at=row.created_at.isoformat(),
+                )
+                for row in rows
+            ],
+            next_cursor=next_cursor,
+        )
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> DpmRunIdempotencyLookupResponse:
         record = self._repository.get_idempotency_mapping(idempotency_key=idempotency_key)

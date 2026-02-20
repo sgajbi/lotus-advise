@@ -91,6 +91,60 @@ class SqliteDpmRunRepository(DpmRunRepository):
             row = connection.execute(query, (correlation_id,)).fetchone()
         return self._to_run(row)
 
+    def list_runs(
+        self,
+        *,
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        status: Optional[str],
+        portfolio_id: Optional[str],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmRunRecord], Optional[str]]:
+        where_clauses = []
+        args: list[str] = []
+        if created_from is not None:
+            where_clauses.append("created_at >= ?")
+            args.append(created_from.isoformat())
+        if created_to is not None:
+            where_clauses.append("created_at <= ?")
+            args.append(created_to.isoformat())
+        if portfolio_id is not None:
+            where_clauses.append("portfolio_id = ?")
+            args.append(portfolio_id)
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        query = f"""
+            SELECT
+                rebalance_run_id,
+                correlation_id,
+                request_hash,
+                idempotency_key,
+                portfolio_id,
+                created_at,
+                result_json
+            FROM dpm_runs
+            {where_sql}
+            ORDER BY created_at DESC, rebalance_run_id DESC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, tuple(args)).fetchall()
+        runs = [self._to_run(row) for row in rows]
+        runs = [run for run in runs if run is not None]
+        if status is not None:
+            runs = [run for run in runs if str(run.result_json.get("status", "")) == status]
+        if cursor is not None:
+            cursor_index = next(
+                (index for index, row in enumerate(runs) if row.rebalance_run_id == cursor),
+                None,
+            )
+            if cursor_index is None:
+                return [], None
+            runs = runs[cursor_index + 1 :]
+        page = runs[:limit]
+        next_cursor = page[-1].rebalance_run_id if len(runs) > limit else None
+        return page, next_cursor
+
     def save_idempotency_mapping(self, record: DpmRunIdempotencyRecord) -> None:
         query = """
             INSERT INTO dpm_run_idempotency (

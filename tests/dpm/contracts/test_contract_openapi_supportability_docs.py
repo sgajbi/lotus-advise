@@ -37,6 +37,19 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(run_lookup_schema, "created_at")
     _assert_property_has_docs(run_lookup_schema, "result")
 
+    run_list_schema = schemas["DpmRunListResponse"]
+    _assert_property_has_docs(run_list_schema, "items")
+    _assert_property_has_docs(run_list_schema, "next_cursor")
+
+    run_list_item_schema = schemas["DpmRunListItemResponse"]
+    _assert_property_has_docs(run_list_item_schema, "rebalance_run_id")
+    _assert_property_has_docs(run_list_item_schema, "correlation_id")
+    _assert_property_has_docs(run_list_item_schema, "request_hash")
+    _assert_property_has_docs(run_list_item_schema, "idempotency_key")
+    _assert_property_has_docs(run_list_item_schema, "portfolio_id")
+    _assert_property_has_docs(run_list_item_schema, "status")
+    _assert_property_has_docs(run_list_item_schema, "created_at")
+
     idempotency_schema = schemas["DpmRunIdempotencyLookupResponse"]
     _assert_property_has_docs(idempotency_schema, "idempotency_key")
     _assert_property_has_docs(idempotency_schema, "request_hash")
@@ -134,6 +147,11 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert run_artifact["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/DpmRunArtifactResponse")
+
+    list_runs = openapi["paths"]["/rebalance/runs"]["get"]
+    assert list_runs["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/DpmRunListResponse"
+    )
 
     lineage = openapi["paths"]["/rebalance/lineage/{entity_id}"]["get"]
     assert lineage["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(

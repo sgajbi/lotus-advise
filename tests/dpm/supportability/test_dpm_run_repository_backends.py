@@ -60,6 +60,65 @@ def test_repository_run_and_idempotency_contract(repository):
     assert stored_idem.rebalance_run_id == "rr_repo_1"
 
 
+def test_repository_list_runs_filter_and_cursor_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_list_1",
+            correlation_id="corr_repo_list_1",
+            request_hash="sha256:req-list-1",
+            idempotency_key="idem_repo_list_1",
+            portfolio_id="pf_repo_list_1",
+            created_at=now,
+            result_json={"rebalance_run_id": "rr_repo_list_1", "status": "READY"},
+        )
+    )
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_list_2",
+            correlation_id="corr_repo_list_2",
+            request_hash="sha256:req-list-2",
+            idempotency_key=None,
+            portfolio_id="pf_repo_list_2",
+            created_at=now + timedelta(minutes=1),
+            result_json={"rebalance_run_id": "rr_repo_list_2", "status": "BLOCKED"},
+        )
+    )
+
+    ready_rows, ready_cursor = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status="READY",
+        portfolio_id=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in ready_rows] == ["rr_repo_list_1"]
+    assert ready_cursor is None
+
+    page_one, cursor = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status=None,
+        portfolio_id=None,
+        limit=1,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in page_one] == ["rr_repo_list_2"]
+    assert cursor == "rr_repo_list_2"
+
+    page_two, cursor_two = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status=None,
+        portfolio_id=None,
+        limit=1,
+        cursor=cursor,
+    )
+    assert [row.rebalance_run_id for row in page_two] == ["rr_repo_list_1"]
+    assert cursor_two is None
+
+
 def test_repository_async_operations_and_ttl_contract(repository):
     now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
     operation = DpmAsyncOperationRecord(

@@ -43,6 +43,17 @@ Implementation scope:
 ### `GET /rebalance/runs/{rebalance_run_id}`
 - Purpose: retrieve one DPM run with full result payload and lineage metadata for support investigations.
 
+### `GET /rebalance/runs`
+- Purpose: list DPM runs for supportability investigations.
+- Filters:
+  - `from` (created-at lower bound)
+  - `to` (created-at upper bound)
+  - `status` (`READY`, `PENDING_REVIEW`, `BLOCKED`)
+  - `portfolio_id`
+- Pagination:
+  - `limit`
+  - `cursor`
+
 ### `GET /rebalance/runs/by-correlation/{correlation_id}`
 - Purpose: retrieve latest DPM run mapped to correlation id.
 
