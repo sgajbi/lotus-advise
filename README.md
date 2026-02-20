@@ -221,6 +221,8 @@ Notes:
 Runtime toggles:
 * `DPM_SUPPORT_APIS_ENABLED` (`true` by default)
 * `DPM_ARTIFACTS_ENABLED` (`true` by default)
+* `DPM_ASYNC_OPERATIONS_ENABLED` (`true` by default)
+* `DPM_ASYNC_OPERATIONS_TTL_SECONDS` (`86400` by default)
 
 ### POST `/rebalance/proposals/simulate`
 

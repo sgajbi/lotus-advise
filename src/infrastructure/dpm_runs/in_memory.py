@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import Optional
 
@@ -66,3 +67,16 @@ class InMemoryDpmRunRepository(DpmRunRepository):
                 return None
             operation = self._operations.get(operation_id)
             return deepcopy(operation) if operation is not None else None
+
+    def purge_expired_operations(self, *, ttl_seconds: int, now: datetime) -> int:
+        with self._lock:
+            cutoff = now.astimezone(timezone.utc) - timedelta(seconds=ttl_seconds)
+            removed = 0
+            for operation_id, operation in list(self._operations.items()):
+                anchor = operation.finished_at or operation.created_at
+                if anchor < cutoff:
+                    self._operations.pop(operation_id, None)
+                    if self._operation_by_correlation.get(operation.correlation_id) == operation_id:
+                        self._operation_by_correlation.pop(operation.correlation_id, None)
+                    removed += 1
+            return removed

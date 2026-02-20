@@ -4,7 +4,7 @@ FILE: tests/api/test_api_rebalance.py
 
 import asyncio
 import inspect
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -241,6 +241,24 @@ def test_dpm_async_operation_lookup_by_id_and_correlation(client):
     by_correlation = client.get("/rebalance/operations/by-correlation/corr-dpm-async-support-1")
     assert by_correlation.status_code == 200
     assert by_correlation.json()["operation_id"] == accepted.operation_id
+
+
+def test_dpm_async_operation_ttl_expiry_by_id_and_correlation(client, monkeypatch):
+    monkeypatch.setenv("DPM_ASYNC_OPERATIONS_TTL_SECONDS", "1")
+    reset_dpm_run_support_service_for_tests()
+    service = get_dpm_run_support_service()
+    accepted = service.submit_analyze_async(
+        correlation_id="corr-dpm-async-ttl-expired",
+        created_at=datetime.now(timezone.utc) - timedelta(seconds=10),
+    )
+
+    by_operation = client.get(f"/rebalance/operations/{accepted.operation_id}")
+    assert by_operation.status_code == 404
+    assert by_operation.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_FOUND"
+
+    by_correlation = client.get("/rebalance/operations/by-correlation/corr-dpm-async-ttl-expired")
+    assert by_correlation.status_code == 404
+    assert by_correlation.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_FOUND"
 
 
 def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):

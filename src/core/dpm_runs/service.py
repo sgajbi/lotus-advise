@@ -22,8 +22,14 @@ class DpmRunNotFoundError(Exception):
 
 
 class DpmRunSupportService:
-    def __init__(self, *, repository: DpmRunRepository) -> None:
+    def __init__(
+        self,
+        *,
+        repository: DpmRunRepository,
+        async_operation_ttl_seconds: int = 86400,
+    ) -> None:
         self._repository = repository
+        self._async_operation_ttl_seconds = max(1, async_operation_ttl_seconds)
 
     def record_run(
         self,
@@ -84,8 +90,14 @@ class DpmRunSupportService:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
         return build_dpm_run_artifact(run=run)
 
-    def submit_analyze_async(self, *, correlation_id: Optional[str]) -> DpmAsyncAcceptedResponse:
-        now = _utc_now()
+    def submit_analyze_async(
+        self,
+        *,
+        correlation_id: Optional[str],
+        created_at: Optional[datetime] = None,
+    ) -> DpmAsyncAcceptedResponse:
+        self._cleanup_expired_operations()
+        now = created_at or _utc_now()
         resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
         operation = DpmAsyncOperationRecord(
             operation_id=f"dop_{uuid.uuid4().hex[:12]}",
@@ -102,6 +114,7 @@ class DpmRunSupportService:
         return self._to_async_accepted(operation)
 
     def mark_operation_running(self, *, operation_id: str) -> None:
+        self._cleanup_expired_operations()
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
             raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
@@ -110,6 +123,7 @@ class DpmRunSupportService:
         self._repository.update_operation(operation)
 
     def complete_operation_success(self, *, operation_id: str, result_json: dict) -> None:
+        self._cleanup_expired_operations()
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
             raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
@@ -120,6 +134,7 @@ class DpmRunSupportService:
         self._repository.update_operation(operation)
 
     def complete_operation_failure(self, *, operation_id: str, code: str, message: str) -> None:
+        self._cleanup_expired_operations()
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
             raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
@@ -130,6 +145,7 @@ class DpmRunSupportService:
         self._repository.update_operation(operation)
 
     def get_async_operation(self, *, operation_id: str) -> DpmAsyncOperationStatusResponse:
+        self._cleanup_expired_operations()
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
             raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
@@ -138,6 +154,7 @@ class DpmRunSupportService:
     def get_async_operation_by_correlation(
         self, *, correlation_id: str
     ) -> DpmAsyncOperationStatusResponse:
+        self._cleanup_expired_operations()
         operation = self._repository.get_operation_by_correlation(correlation_id=correlation_id)
         if operation is None:
             raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
@@ -177,6 +194,12 @@ class DpmRunSupportService:
             finished_at=(operation.finished_at.isoformat() if operation.finished_at else None),
             result=operation.result_json,
             error=operation.error_json,
+        )
+
+    def _cleanup_expired_operations(self) -> None:
+        self._repository.purge_expired_operations(
+            ttl_seconds=self._async_operation_ttl_seconds,
+            now=_utc_now(),
         )
 
 

@@ -27,6 +27,17 @@ def _env_flag(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed >= 1 else default
+
+
 def _assert_support_apis_enabled() -> None:
     if not _env_flag("DPM_SUPPORT_APIS_ENABLED", True):
         raise HTTPException(
@@ -54,7 +65,13 @@ def _assert_artifacts_enabled() -> None:
 def get_dpm_run_support_service() -> DpmRunSupportService:
     global _SERVICE
     if _SERVICE is None:
-        _SERVICE = DpmRunSupportService(repository=_REPOSITORY)
+        _SERVICE = DpmRunSupportService(
+            repository=_REPOSITORY,
+            async_operation_ttl_seconds=_env_int(
+                "DPM_ASYNC_OPERATIONS_TTL_SECONDS",
+                86400,
+            ),
+        )
     return _SERVICE
 
 

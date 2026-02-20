@@ -77,10 +77,11 @@ Implemented in current codebase:
   - `PENDING -> RUNNING -> SUCCEEDED | FAILED`
 - Feature flag:
   - `DPM_ASYNC_OPERATIONS_ENABLED`
-- Inline execution mode for phase-1 delivery.
+- TTL cleanup enforcement for async operation records:
+  - `DPM_ASYNC_OPERATIONS_TTL_SECONDS`
+- Inline execution mode for phase-2 delivery.
 
 Deferred to later slices:
-- TTL cleanup enforcement for operation records.
 - Worker/queue-backed execution mode.
 
 ## 7. Status and Reason Code Conventions
