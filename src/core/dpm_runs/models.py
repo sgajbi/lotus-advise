@@ -818,6 +818,11 @@ class DpmLineageResponse(BaseModel):
             ]
         ],
     )
+    next_cursor: Optional[str] = Field(
+        default=None,
+        description="Cursor for the next lineage page when additional rows are available.",
+        examples=["2026-02-20T12:00:00+00:00|rr_abc12345"],
+    )
 
 
 class DpmRunArtifactHashes(BaseModel):

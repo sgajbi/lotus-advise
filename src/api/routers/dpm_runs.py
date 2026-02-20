@@ -775,11 +775,57 @@ def get_dpm_lineage(
             examples=["corr-1234-abcd"],
         ),
     ],
+    edge_type: Annotated[
+        Optional[str],
+        Query(
+            description="Optional lineage edge-type filter.",
+            examples=["CORRELATION_TO_RUN"],
+        ),
+    ] = None,
+    created_from: Annotated[
+        Optional[datetime],
+        Query(
+            alias="from",
+            description="Lineage edge creation lower bound timestamp (UTC ISO8601).",
+            examples=["2026-02-20T00:00:00Z"],
+        ),
+    ] = None,
+    created_to: Annotated[
+        Optional[datetime],
+        Query(
+            alias="to",
+            description="Lineage edge creation upper bound timestamp (UTC ISO8601).",
+            examples=["2026-02-20T23:59:59Z"],
+        ),
+    ] = None,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=200,
+            description="Maximum number of lineage edges returned in one page.",
+            examples=[50],
+        ),
+    ] = 50,
+    cursor: Annotated[
+        Optional[str],
+        Query(
+            description="Opaque lineage cursor returned by previous page.",
+            examples=["2026-02-20T12:00:00+00:00|corr-1234|CORRELATION_TO_RUN|rr_abc12345"],
+        ),
+    ] = None,
     service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
 ) -> DpmLineageResponse:
     _assert_support_apis_enabled()
     _assert_lineage_apis_enabled()
-    return service.get_lineage(entity_id=entity_id)
+    return service.get_lineage_filtered(
+        entity_id=entity_id,
+        edge_type=edge_type,
+        created_from=created_from,
+        created_to=created_to,
+        limit=limit,
+        cursor=cursor,
+    )
 
 
 @router.get(

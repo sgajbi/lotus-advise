@@ -346,6 +346,62 @@ class DpmRunSupportService:
                 )
                 for edge in edges
             ],
+            next_cursor=None,
+        )
+
+    def get_lineage_filtered(
+        self,
+        *,
+        entity_id: str,
+        edge_type: Optional[str],
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        limit: int,
+        cursor: Optional[str],
+    ) -> DpmLineageResponse:
+        self._cleanup_expired_supportability()
+        edges = self._repository.list_lineage_edges(entity_id=entity_id)
+        edges = sorted(
+            edges,
+            key=lambda edge: (
+                edge.created_at,
+                edge.source_entity_id,
+                edge.edge_type,
+                edge.target_entity_id,
+            ),
+        )
+        if edge_type is not None:
+            edges = [edge for edge in edges if edge.edge_type == edge_type]
+        if created_from is not None:
+            edges = [edge for edge in edges if edge.created_at >= created_from]
+        if created_to is not None:
+            edges = [edge for edge in edges if edge.created_at <= created_to]
+
+        if cursor is not None:
+            cursor_index = next(
+                (index for index, row in enumerate(edges) if _lineage_cursor(row) == cursor),
+                None,
+            )
+            if cursor_index is None:
+                edges = []
+            else:
+                edges = edges[cursor_index + 1 :]
+
+        page = edges[:limit]
+        next_cursor = _lineage_cursor(page[-1]) if len(edges) > limit else None
+        return DpmLineageResponse(
+            entity_id=entity_id,
+            edges=[
+                DpmLineageEdgeResponse(
+                    source_entity_id=edge.source_entity_id,
+                    edge_type=edge.edge_type,
+                    target_entity_id=edge.target_entity_id,
+                    created_at=edge.created_at.isoformat(),
+                    metadata=edge.metadata_json,
+                )
+                for edge in page
+            ],
+            next_cursor=next_cursor,
         )
 
     def get_supportability_summary(
@@ -865,3 +921,10 @@ class DpmRunSupportService:
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _lineage_cursor(edge: DpmLineageEdgeRecord) -> str:
+    return (
+        f"{edge.created_at.isoformat()}|{edge.source_entity_id}|"
+        f"{edge.edge_type}|{edge.target_entity_id}"
+    )
