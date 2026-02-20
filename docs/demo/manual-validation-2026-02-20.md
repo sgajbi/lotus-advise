@@ -80,6 +80,19 @@ Demo pack validation passed for http://127.0.0.1:8000
       - cursor pagination over operations returns deterministic next row.
     - Container (`DPM_ASYNC_EXECUTION_MODE=ACCEPT_ONLY`, `http://127.0.0.1:8018`):
       - filtered listing and cursor pagination produce expected operation rows.
+- Supportability summary API validation:
+  - Uvicorn runtime (`http://127.0.0.1:8019`):
+    - `POST /rebalance/simulate` returns `status=READY`.
+    - `GET /rebalance/supportability/summary` returns `200` with:
+      - `store_backend=IN_MEMORY`
+      - `run_count=1`
+      - `operation_count=0`
+  - Docker runtime (`http://127.0.0.1:8000`):
+    - `POST /rebalance/simulate` returns `status=READY`.
+    - `GET /rebalance/supportability/summary` returns `200` with:
+      - `store_backend=IN_MEMORY`
+      - `run_count=1`
+      - `operation_count=0`
 - SQLite supportability backend validation:
   - Uvicorn run (`DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`) on `http://127.0.0.1:8001`:
     - `POST /rebalance/simulate` succeeded (`200`).

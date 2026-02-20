@@ -133,6 +133,86 @@ class DpmRunListResponse(BaseModel):
     )
 
 
+class DpmSupportabilitySummaryData(BaseModel):
+    run_count: int = Field(
+        description="Total persisted supportability run records.",
+        examples=[128],
+    )
+    operation_count: int = Field(
+        description="Total persisted async operation records.",
+        examples=[42],
+    )
+    operation_status_counts: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of async operations grouped by status.",
+        examples=[{"PENDING": 2, "RUNNING": 1, "SUCCEEDED": 38, "FAILED": 1}],
+    )
+    oldest_run_created_at: Optional[datetime] = Field(
+        default=None,
+        description="Oldest persisted run creation timestamp (UTC).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    newest_run_created_at: Optional[datetime] = Field(
+        default=None,
+        description="Newest persisted run creation timestamp (UTC).",
+        examples=["2026-02-20T12:10:00+00:00"],
+    )
+    oldest_operation_created_at: Optional[datetime] = Field(
+        default=None,
+        description="Oldest persisted operation creation timestamp (UTC).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    newest_operation_created_at: Optional[datetime] = Field(
+        default=None,
+        description="Newest persisted operation creation timestamp (UTC).",
+        examples=["2026-02-20T12:10:00+00:00"],
+    )
+
+
+class DpmSupportabilitySummaryResponse(BaseModel):
+    store_backend: str = Field(
+        description="Configured supportability storage backend.",
+        examples=["SQLITE"],
+    )
+    retention_days: int = Field(
+        description="Configured supportability retention window in days (0 means disabled).",
+        examples=[30],
+    )
+    run_count: int = Field(
+        description="Total persisted supportability run records.",
+        examples=[128],
+    )
+    operation_count: int = Field(
+        description="Total persisted async operation records.",
+        examples=[42],
+    )
+    operation_status_counts: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of async operations grouped by status.",
+        examples=[{"PENDING": 2, "RUNNING": 1, "SUCCEEDED": 38, "FAILED": 1}],
+    )
+    oldest_run_created_at: Optional[str] = Field(
+        default=None,
+        description="Oldest persisted run creation timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    newest_run_created_at: Optional[str] = Field(
+        default=None,
+        description="Newest persisted run creation timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:10:00+00:00"],
+    )
+    oldest_operation_created_at: Optional[str] = Field(
+        default=None,
+        description="Oldest persisted operation creation timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    newest_operation_created_at: Optional[str] = Field(
+        default=None,
+        description="Newest persisted operation creation timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:10:00+00:00"],
+    )
+
+
 class DpmRunIdempotencyLookupResponse(BaseModel):
     idempotency_key: str = Field(
         description="Idempotency key supplied on simulation request.",

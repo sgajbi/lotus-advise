@@ -227,6 +227,78 @@ def test_repository_list_operations_filter_and_cursor_contract(repository):
     assert cursor_two is None
 
 
+def test_repository_supportability_summary_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    empty_summary = repository.get_supportability_summary()
+    assert empty_summary.run_count == 0
+    assert empty_summary.operation_count == 0
+    assert empty_summary.operation_status_counts == {}
+    assert empty_summary.oldest_run_created_at is None
+    assert empty_summary.newest_run_created_at is None
+    assert empty_summary.oldest_operation_created_at is None
+    assert empty_summary.newest_operation_created_at is None
+
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_summary_1",
+            correlation_id="corr_repo_summary_1",
+            request_hash="sha256:req-summary-1",
+            idempotency_key="idem_repo_summary_1",
+            portfolio_id="pf_repo_summary_1",
+            created_at=now,
+            result_json={"rebalance_run_id": "rr_repo_summary_1", "status": "READY"},
+        )
+    )
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_summary_2",
+            correlation_id="corr_repo_summary_2",
+            request_hash="sha256:req-summary-2",
+            idempotency_key=None,
+            portfolio_id="pf_repo_summary_2",
+            created_at=now + timedelta(minutes=1),
+            result_json={"rebalance_run_id": "rr_repo_summary_2", "status": "BLOCKED"},
+        )
+    )
+    repository.create_operation(
+        DpmAsyncOperationRecord(
+            operation_id="dop_repo_summary_1",
+            operation_type="ANALYZE_SCENARIOS",
+            status="PENDING",
+            correlation_id="corr_repo_summary_op_1",
+            created_at=now + timedelta(seconds=1),
+            started_at=None,
+            finished_at=None,
+            result_json=None,
+            error_json=None,
+            request_json={"scenarios": {"baseline": {"options": {}}}},
+        )
+    )
+    repository.create_operation(
+        DpmAsyncOperationRecord(
+            operation_id="dop_repo_summary_2",
+            operation_type="ANALYZE_SCENARIOS",
+            status="SUCCEEDED",
+            correlation_id="corr_repo_summary_op_2",
+            created_at=now + timedelta(minutes=2),
+            started_at=now + timedelta(minutes=2, seconds=1),
+            finished_at=now + timedelta(minutes=2, seconds=2),
+            result_json={"ok": True},
+            error_json=None,
+            request_json=None,
+        )
+    )
+
+    summary = repository.get_supportability_summary()
+    assert summary.run_count == 2
+    assert summary.operation_count == 2
+    assert summary.operation_status_counts == {"PENDING": 1, "SUCCEEDED": 1}
+    assert summary.oldest_run_created_at == now
+    assert summary.newest_run_created_at == now + timedelta(minutes=1)
+    assert summary.oldest_operation_created_at == now + timedelta(seconds=1)
+    assert summary.newest_operation_created_at == now + timedelta(minutes=2)
+
+
 def test_repository_workflow_decision_contract(repository):
     now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
     decision_one = DpmRunWorkflowDecisionRecord(

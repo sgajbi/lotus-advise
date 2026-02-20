@@ -26,6 +26,8 @@ from src.core.dpm_runs.models import (
     DpmRunWorkflowDecisionResponse,
     DpmRunWorkflowHistoryResponse,
     DpmRunWorkflowResponse,
+    DpmSupportabilitySummaryData,
+    DpmSupportabilitySummaryResponse,
     DpmWorkflowActionType,
     DpmWorkflowStatus,
 )
@@ -318,6 +320,40 @@ class DpmRunSupportService:
                 )
                 for edge in edges
             ],
+        )
+
+    def get_supportability_summary(
+        self, *, store_backend: str, retention_days: int
+    ) -> DpmSupportabilitySummaryResponse:
+        self._cleanup_expired_operations()
+        self._cleanup_expired_supportability()
+        summary: DpmSupportabilitySummaryData = self._repository.get_supportability_summary()
+        return DpmSupportabilitySummaryResponse(
+            store_backend=store_backend,
+            retention_days=retention_days,
+            run_count=summary.run_count,
+            operation_count=summary.operation_count,
+            operation_status_counts=summary.operation_status_counts,
+            oldest_run_created_at=(
+                summary.oldest_run_created_at.isoformat()
+                if summary.oldest_run_created_at is not None
+                else None
+            ),
+            newest_run_created_at=(
+                summary.newest_run_created_at.isoformat()
+                if summary.newest_run_created_at is not None
+                else None
+            ),
+            oldest_operation_created_at=(
+                summary.oldest_operation_created_at.isoformat()
+                if summary.oldest_operation_created_at is not None
+                else None
+            ),
+            newest_operation_created_at=(
+                summary.newest_operation_created_at.isoformat()
+                if summary.newest_operation_created_at is not None
+                else None
+            ),
         )
 
     def mark_operation_running(self, *, operation_id: str) -> None:

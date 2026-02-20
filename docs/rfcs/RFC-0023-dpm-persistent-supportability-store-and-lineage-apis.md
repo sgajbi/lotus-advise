@@ -42,6 +42,7 @@ In-memory supportability works for local/runtime diagnostics but is insufficient
 ### 4.2 API Surface
 
 - `GET /rebalance/runs?from=...&to=...&status=...&portfolio_id=...`
+- `GET /rebalance/supportability/summary`
 - `GET /rebalance/lineage/{entity_id}`
 - `GET /rebalance/idempotency/{idempotency_key}/history`
 
@@ -49,6 +50,7 @@ In-memory supportability works for local/runtime diagnostics but is insufficient
 
 - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQL`)
 - `DPM_SUPPORTABILITY_RETENTION_DAYS`
+- `DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED` (default `true`)
 - `DPM_LINEAGE_APIS_ENABLED` (default `false`)
 - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
 
@@ -110,5 +112,11 @@ No new business run statuses. Investigation responses use explicit technical sta
     - `GET /rebalance/operations`
       - filters: `from`, `to`, `operation_type`, `status`, `correlation_id`
       - pagination: `limit`, `cursor`
+- Implemented (slice 7):
+  - Supportability summary API:
+    - `GET /rebalance/supportability/summary`
+      - returns run count, async operation count, operation status distribution, and created-at bounds.
+  - Feature flag:
+    - `DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED` (default `true`)
 - Pending:
   - SQL backend beyond SQLite (enterprise managed database deployment profile).

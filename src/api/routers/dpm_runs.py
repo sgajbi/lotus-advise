@@ -18,6 +18,7 @@ from src.core.dpm_runs import (
     DpmRunWorkflowActionRequest,
     DpmRunWorkflowHistoryResponse,
     DpmRunWorkflowResponse,
+    DpmSupportabilitySummaryResponse,
     DpmWorkflowDisabledError,
     DpmWorkflowTransitionError,
 )
@@ -115,9 +116,21 @@ def _assert_idempotency_history_apis_enabled() -> None:
         )
 
 
-def _build_repository():
+def _assert_supportability_summary_apis_enabled() -> None:
+    if not _env_flag("DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED", True):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_SUPPORTABILITY_SUMMARY_APIS_DISABLED",
+        )
+
+
+def _supportability_store_backend_name() -> str:
     backend = os.getenv("DPM_SUPPORTABILITY_STORE_BACKEND", "IN_MEMORY").strip().upper()
-    if backend == "SQLITE":
+    return "SQLITE" if backend == "SQLITE" else "IN_MEMORY"
+
+
+def _build_repository():
+    if _supportability_store_backend_name() == "SQLITE":
         sqlite_path = os.getenv("DPM_SUPPORTABILITY_SQLITE_PATH", ".data/dpm_supportability.db")
         return SqliteDpmRunRepository(database_path=sqlite_path)
     return InMemoryDpmRunRepository()
@@ -238,6 +251,27 @@ def list_runs(
         portfolio_id=portfolio_id,
         limit=limit,
         cursor=cursor,
+    )
+
+
+@router.get(
+    "/rebalance/supportability/summary",
+    response_model=DpmSupportabilitySummaryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Supportability Summary",
+    description=(
+        "Returns supportability storage summary metrics (runs, operations, status counts, "
+        "and temporal bounds) for operational investigation without direct database access."
+    ),
+)
+def get_dpm_supportability_summary(
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmSupportabilitySummaryResponse:
+    _assert_support_apis_enabled()
+    _assert_supportability_summary_apis_enabled()
+    return service.get_supportability_summary(
+        store_backend=_supportability_store_backend_name(),
+        retention_days=_env_non_negative_int("DPM_SUPPORTABILITY_RETENTION_DAYS", 0),
     )
 
 

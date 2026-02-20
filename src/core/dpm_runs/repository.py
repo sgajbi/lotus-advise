@@ -8,6 +8,7 @@ from src.core.dpm_runs.models import (
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
+    DpmSupportabilitySummaryData,
 )
 
 
@@ -74,5 +75,7 @@ class DpmRunRepository(Protocol):
     def append_lineage_edge(self, edge: DpmLineageEdgeRecord) -> None: ...
 
     def list_lineage_edges(self, *, entity_id: str) -> list[DpmLineageEdgeRecord]: ...
+
+    def get_supportability_summary(self) -> DpmSupportabilitySummaryData: ...
 
     def purge_expired_runs(self, *, retention_days: int, now: datetime) -> int: ...

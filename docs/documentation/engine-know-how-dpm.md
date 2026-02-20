@@ -52,6 +52,14 @@ Implementation scope:
   - `limit`
   - `cursor`
 
+### `GET /rebalance/supportability/summary`
+- Purpose: return operational supportability summary metrics without direct data store access.
+- Output:
+  - configured store backend and retention policy
+  - run and async operation totals
+  - async operation status distribution
+  - oldest/newest created-at timestamps for runs and operations
+
 ### `GET /rebalance/runs/{rebalance_run_id}`
 - Purpose: retrieve one DPM run with full result payload and lineage metadata for support investigations.
 
@@ -158,6 +166,7 @@ Implementation scope:
   - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQLITE`, default `IN_MEMORY`)
   - `DPM_SUPPORTABILITY_SQLITE_PATH` (used when backend is `SQLITE`)
   - `DPM_SUPPORTABILITY_RETENTION_DAYS` (default `0`, disabled when `0`)
+  - `DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED` (default `true`)
   - `DPM_LINEAGE_APIS_ENABLED` (default `false`)
   - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
   - `DPM_WORKFLOW_ENABLED` (default `false`)

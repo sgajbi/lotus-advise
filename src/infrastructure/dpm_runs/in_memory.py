@@ -10,6 +10,7 @@ from src.core.dpm_runs.models import (
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
+    DpmSupportabilitySummaryData,
 )
 from src.core.dpm_runs.repository import DpmRunRepository
 
@@ -202,6 +203,32 @@ class InMemoryDpmRunRepository(DpmRunRepository):
         with self._lock:
             edges = self._lineage_edges_by_entity.get(entity_id, [])
             return [deepcopy(edge) for edge in edges]
+
+    def get_supportability_summary(self) -> DpmSupportabilitySummaryData:
+        with self._lock:
+            runs = list(self._runs.values())
+            operations = list(self._operations.values())
+            operation_status_counts: dict[str, int] = {}
+            for operation in operations:
+                operation_status_counts[operation.status] = (
+                    operation_status_counts.get(operation.status, 0) + 1
+                )
+
+            run_created_values = [run.created_at for run in runs]
+            operation_created_values = [operation.created_at for operation in operations]
+            return DpmSupportabilitySummaryData(
+                run_count=len(runs),
+                operation_count=len(operations),
+                operation_status_counts=operation_status_counts,
+                oldest_run_created_at=min(run_created_values) if run_created_values else None,
+                newest_run_created_at=max(run_created_values) if run_created_values else None,
+                oldest_operation_created_at=(
+                    min(operation_created_values) if operation_created_values else None
+                ),
+                newest_operation_created_at=(
+                    max(operation_created_values) if operation_created_values else None
+                ),
+            )
 
     def purge_expired_runs(self, *, retention_days: int, now: datetime) -> int:
         with self._lock:

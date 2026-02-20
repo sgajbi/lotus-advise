@@ -99,6 +99,17 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(async_list_item_schema, "started_at")
     _assert_property_has_docs(async_list_item_schema, "finished_at")
 
+    supportability_summary_schema = schemas["DpmSupportabilitySummaryResponse"]
+    _assert_property_has_docs(supportability_summary_schema, "store_backend")
+    _assert_property_has_docs(supportability_summary_schema, "retention_days")
+    _assert_property_has_docs(supportability_summary_schema, "run_count")
+    _assert_property_has_docs(supportability_summary_schema, "operation_count")
+    _assert_property_has_docs(supportability_summary_schema, "operation_status_counts")
+    _assert_property_has_docs(supportability_summary_schema, "oldest_run_created_at")
+    _assert_property_has_docs(supportability_summary_schema, "newest_run_created_at")
+    _assert_property_has_docs(supportability_summary_schema, "oldest_operation_created_at")
+    _assert_property_has_docs(supportability_summary_schema, "newest_operation_created_at")
+
     artifact_schema = schemas["DpmRunArtifactResponse"]
     _assert_property_has_docs(artifact_schema, "artifact_id")
     _assert_property_has_docs(artifact_schema, "artifact_version")
@@ -185,6 +196,11 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     expected_params = {"from", "to", "status", "portfolio_id", "limit", "cursor"}
     actual_params = {param["name"] for param in list_runs["parameters"]}
     assert expected_params.issubset(actual_params)
+
+    supportability_summary = openapi["paths"]["/rebalance/supportability/summary"]["get"]
+    assert supportability_summary["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmSupportabilitySummaryResponse")
 
     lineage = openapi["paths"]["/rebalance/lineage/{entity_id}"]["get"]
     assert lineage["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(

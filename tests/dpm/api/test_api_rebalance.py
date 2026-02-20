@@ -516,6 +516,45 @@ def test_dpm_async_operation_ttl_expiry_by_id_and_correlation(client, monkeypatc
     assert by_correlation.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_FOUND"
 
 
+def test_dpm_supportability_summary_endpoint(client):
+    payload = get_valid_payload()
+    simulate = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={
+            "Idempotency-Key": "test-key-support-summary-1",
+            "X-Correlation-Id": "corr-support-summary-run-1",
+        },
+    )
+    assert simulate.status_code == 200
+
+    service = get_dpm_run_support_service()
+    service.submit_analyze_async(
+        correlation_id="corr-support-summary-op-1",
+        request_json={"scenarios": {"baseline": {"options": {}}}},
+    )
+
+    response = client.get("/rebalance/supportability/summary")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["store_backend"] == "IN_MEMORY"
+    assert body["retention_days"] == 0
+    assert body["run_count"] == 1
+    assert body["operation_count"] == 1
+    assert body["operation_status_counts"] == {"PENDING": 1}
+    assert body["oldest_run_created_at"] is not None
+    assert body["newest_run_created_at"] is not None
+    assert body["oldest_operation_created_at"] is not None
+    assert body["newest_operation_created_at"] is not None
+
+
+def test_dpm_supportability_summary_endpoint_disabled(client, monkeypatch):
+    monkeypatch.setenv("DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED", "false")
+    response = client.get("/rebalance/supportability/summary")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "DPM_SUPPORTABILITY_SUMMARY_APIS_DISABLED"
+
+
 def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):
     payload = get_valid_payload()
     response = client.post(

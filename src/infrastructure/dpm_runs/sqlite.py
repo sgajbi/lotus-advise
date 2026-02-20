@@ -13,6 +13,7 @@ from src.core.dpm_runs.models import (
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
+    DpmSupportabilitySummaryData,
 )
 from src.core.dpm_runs.repository import DpmRunRepository
 
@@ -471,6 +472,50 @@ class SqliteDpmRunRepository(DpmRunRepository):
             )
             for row in rows
         ]
+
+    def get_supportability_summary(self) -> DpmSupportabilitySummaryData:
+        run_query = """
+            SELECT
+                COUNT(*) AS run_count,
+                MIN(created_at) AS oldest_run_created_at,
+                MAX(created_at) AS newest_run_created_at
+            FROM dpm_runs
+        """
+        operation_query = """
+            SELECT
+                COUNT(*) AS operation_count,
+                MIN(created_at) AS oldest_operation_created_at,
+                MAX(created_at) AS newest_operation_created_at
+            FROM dpm_async_operations
+        """
+        operation_status_query = """
+            SELECT status, COUNT(*) AS status_count
+            FROM dpm_async_operations
+            GROUP BY status
+        """
+        with closing(self._connect()) as connection:
+            run_row = connection.execute(run_query).fetchone()
+            operation_row = connection.execute(operation_query).fetchone()
+            status_rows = connection.execute(operation_status_query).fetchall()
+
+        operation_status_counts = {
+            row["status"]: int(row["status_count"])
+            for row in status_rows
+            if row["status"] is not None
+        }
+        return DpmSupportabilitySummaryData(
+            run_count=int(run_row["run_count"]),
+            operation_count=int(operation_row["operation_count"]),
+            operation_status_counts=operation_status_counts,
+            oldest_run_created_at=_optional_datetime(run_row["oldest_run_created_at"]),
+            newest_run_created_at=_optional_datetime(run_row["newest_run_created_at"]),
+            oldest_operation_created_at=_optional_datetime(
+                operation_row["oldest_operation_created_at"]
+            ),
+            newest_operation_created_at=_optional_datetime(
+                operation_row["newest_operation_created_at"]
+            ),
+        )
 
     def purge_expired_runs(self, *, retention_days: int, now: datetime) -> int:
         if retention_days < 1:
