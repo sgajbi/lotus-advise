@@ -118,5 +118,12 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - missing DSN raises `DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED`
     - placeholder backend mode currently raises `DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED`
   - Existing default behavior remains unchanged (`IN_MEMORY` by default, `SQL`/`SQLITE` path unchanged).
+- Implemented (slice 2):
+  - Added `PostgresDpmRunRepository` backend scaffold and factory wiring for DPM supportability.
+  - Initialization guardrails:
+    - missing DSN raises `DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED`
+    - missing `psycopg` dependency raises `DPM_SUPPORTABILITY_POSTGRES_DRIVER_MISSING`
+  - Unimplemented operations currently fail explicitly with:
+    - `DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED`
 - Next slice:
   - implement concrete PostgreSQL DPM supportability repository adapter with repository parity tests.

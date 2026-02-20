@@ -92,6 +92,6 @@ def test_build_repository_postgres_not_implemented(monkeypatch):
     try:
         dpm_runs_config.build_repository()
     except RuntimeError as exc:
-        assert str(exc) == "DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED"
+        assert str(exc) == "DPM_SUPPORTABILITY_POSTGRES_DRIVER_MISSING"
     else:
-        raise AssertionError("Expected RuntimeError for Postgres backend placeholder")
+        raise AssertionError("Expected RuntimeError for missing Postgres driver")

@@ -1,6 +1,10 @@
 import os
 
-from src.infrastructure.dpm_runs import InMemoryDpmRunRepository, SqliteDpmRunRepository
+from src.infrastructure.dpm_runs import (
+    InMemoryDpmRunRepository,
+    PostgresDpmRunRepository,
+    SqliteDpmRunRepository,
+)
 
 
 def env_flag(name: str, default: bool) -> bool:
@@ -71,5 +75,5 @@ def build_repository():
         dsn = supportability_postgres_dsn()
         if not dsn:
             raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED")
-        raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED")
+        return PostgresDpmRunRepository(dsn=dsn)
     return InMemoryDpmRunRepository()

@@ -24,6 +24,7 @@ Introduce backend selection for DPM supportability repository:
 - `DPM_SUPPORTABILITY_POSTGRES_DSN`
   - DSN used when backend is `POSTGRES`
   - empty/missing DSN is rejected
+  - `psycopg` driver must be installed for `POSTGRES` backend initialization
 
 Repository interface remains unchanged so services and API contracts are storage-agnostic.
 
