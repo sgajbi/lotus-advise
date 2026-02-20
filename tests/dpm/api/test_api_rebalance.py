@@ -558,6 +558,29 @@ def test_openapi_title_and_tag_grouping(client):
     ]
 
 
+def test_openapi_async_analyze_documents_correlation_header(client):
+    openapi = client.get("/openapi.json").json()
+    analyze_async = openapi["paths"]["/rebalance/analyze/async"]["post"]
+
+    request_header = next(
+        parameter
+        for parameter in analyze_async["parameters"]
+        if parameter["name"] == "X-Correlation-Id"
+    )
+    assert request_header["in"] == "header"
+    assert request_header["description"]
+    schema = request_header["schema"]
+    if "type" in schema:
+        assert schema["type"] == "string"
+    else:
+        assert any(item.get("type") == "string" for item in schema.get("anyOf", []))
+
+    response_headers = analyze_async["responses"]["202"]["headers"]
+    assert "X-Correlation-Id" in response_headers
+    assert response_headers["X-Correlation-Id"]["description"]
+    assert response_headers["X-Correlation-Id"]["schema"]["type"] == "string"
+
+
 def test_analyze_rejects_invalid_scenario_name(client):
     payload = get_valid_payload()
     payload.pop("options")

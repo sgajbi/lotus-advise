@@ -486,6 +486,18 @@ def analyze_scenarios(
     responses={
         202: {
             "description": "Async batch accepted.",
+            "headers": {
+                "X-Correlation-Id": {
+                    "description": (
+                        "Resolved correlation id for this asynchronous operation "
+                        "(client-provided or generated)."
+                    ),
+                    "schema": {
+                        "type": "string",
+                        "examples": ["corr-batch-async-1"],
+                    },
+                }
+            },
             "content": {
                 "application/json": {"examples": {"accepted": ANALYZE_ASYNC_ACCEPTED_EXAMPLE}}
             },
