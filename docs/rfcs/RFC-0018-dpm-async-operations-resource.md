@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED (PHASE 1 - INLINE EXECUTION) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0013, RFC-0016, RFC-0017 |
 | **Doc Location** | `docs/rfcs/RFC-0018-dpm-async-operations-resource.md` |
@@ -42,7 +42,7 @@ Large what-if batches can be slow and are currently synchronous, which creates t
 
 - `POST /rebalance/analyze/async`
   - Returns `202 Accepted` with operation resource.
-  - Echoes `X-Correlation-ID` on both request and response.
+  - Uses request `X-Correlation-Id` when provided; otherwise generates one.
 - `GET /rebalance/operations/{operation_id}`
   - Returns operation state and, once complete, normalized result/error envelope.
 - `GET /rebalance/operations/by-correlation/{correlation_id}`
@@ -65,6 +65,23 @@ Large what-if batches can be slow and are currently synchronous, which creates t
 ## 6. Rollout
 
 Additive only; synchronous APIs remain canonical and supported.
+
+## 6.1 Implementation Status (2026-02-20)
+
+Implemented in current codebase:
+- Asynchronous API surface:
+  - `POST /rebalance/analyze/async`
+  - `GET /rebalance/operations/{operation_id}`
+  - `GET /rebalance/operations/by-correlation/{correlation_id}`
+- Operation lifecycle persistence in DPM supportability repository:
+  - `PENDING -> RUNNING -> SUCCEEDED | FAILED`
+- Feature flag:
+  - `DPM_ASYNC_OPERATIONS_ENABLED`
+- Inline execution mode for phase-1 delivery.
+
+Deferred to later slices:
+- TTL cleanup enforcement for operation records.
+- Worker/queue-backed execution mode.
 
 ## 7. Status and Reason Code Conventions
 
