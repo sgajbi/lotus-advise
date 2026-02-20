@@ -12,6 +12,7 @@ Coverage includes:
 - DPM simulate demos (`01`-`08`)
 - DPM batch analyze demo (`09`)
 - DPM async batch analyze demo (`26`)
+- DPM supportability + deterministic artifact flow demo (`27`)
 - Advisory simulate demos (`10`-`18`)
 - Advisory artifact demo (`19`)
 - Advisory lifecycle flow demos (`20`-`25`)
@@ -64,3 +65,10 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `warnings = ["PARTIAL_BATCH_FAILURE"]`
     - `failed_scenarios = {"invalid_options": "..."}`
 - No contract or runtime mismatches observed between uvicorn and Docker paths.
+- Supportability and artifact scenario `27_dpm_supportability_artifact_flow.json` validated:
+  - `POST /rebalance/simulate` with idempotency + correlation headers succeeds.
+  - `GET /rebalance/runs/{rebalance_run_id}` returns run payload and metadata.
+  - `GET /rebalance/runs/by-correlation/{correlation_id}` returns mapped run.
+  - `GET /rebalance/runs/idempotency/{idempotency_key}` returns mapped run id.
+  - `GET /rebalance/runs/{rebalance_run_id}/artifact` returns deterministic artifact payload.
+  - Repeated artifact retrieval returns identical `evidence.hashes.artifact_hash`.

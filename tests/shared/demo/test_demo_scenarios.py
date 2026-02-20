@@ -104,6 +104,48 @@ def test_demo_async_batch_scenario_execution():
     assert set(operation_body["result"]["results"].keys()) == {"baseline"}
 
 
+def test_demo_dpm_supportability_artifact_flow_via_api():
+    data = load_demo_scenario("27_dpm_supportability_artifact_flow.json")
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        try:
+            simulate = client.post(
+                "/rebalance/simulate",
+                json=data,
+                headers={
+                    "Idempotency-Key": "demo-27-supportability",
+                    "X-Correlation-Id": "demo-corr-27-supportability",
+                },
+            )
+            assert simulate.status_code == 200
+            run_id = simulate.json()["rebalance_run_id"]
+
+            by_run = client.get(f"/rebalance/runs/{run_id}")
+            by_correlation = client.get(
+                "/rebalance/runs/by-correlation/demo-corr-27-supportability"
+            )
+            by_idempotency = client.get("/rebalance/runs/idempotency/demo-27-supportability")
+            artifact_one = client.get(f"/rebalance/runs/{run_id}/artifact")
+            artifact_two = client.get(f"/rebalance/runs/{run_id}/artifact")
+        finally:
+            app.dependency_overrides = original_overrides
+
+    assert by_run.status_code == 200
+    assert by_correlation.status_code == 200
+    assert by_idempotency.status_code == 200
+    assert artifact_one.status_code == 200
+    assert artifact_two.status_code == 200
+    assert by_run.json()["rebalance_run_id"] == run_id
+    assert by_correlation.json()["rebalance_run_id"] == run_id
+    assert by_idempotency.json()["rebalance_run_id"] == run_id
+    assert artifact_one.json()["rebalance_run_id"] == run_id
+    assert (
+        artifact_one.json()["evidence"]["hashes"]["artifact_hash"]
+        == artifact_two.json()["evidence"]["hashes"]["artifact_hash"]
+    )
+
+
 @pytest.mark.parametrize(
     "filename, expected_status",
     [

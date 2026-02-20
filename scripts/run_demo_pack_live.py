@@ -82,6 +82,67 @@ def run_demo_pack(base_url: str) -> None:
                 f"{file_name}: unexpected status {body.get('status')}",
             )
 
+        supportability = _run_scenario(
+            client,
+            name="27_dpm_supportability_artifact_flow.json",
+            method="POST",
+            path="/rebalance/simulate",
+            expected_http=200,
+            payload_file="27_dpm_supportability_artifact_flow.json",
+            headers={
+                "Idempotency-Key": "live-demo-27-supportability",
+                "X-Correlation-Id": "live-corr-27-supportability",
+            },
+        )
+        run_id = supportability["rebalance_run_id"]
+
+        by_run = _run_scenario(
+            client,
+            name="27_get_run",
+            method="GET",
+            path=f"/rebalance/runs/{run_id}",
+            expected_http=200,
+        )
+        _assert(by_run["rebalance_run_id"] == run_id, "27: run lookup mismatch")
+
+        by_correlation = _run_scenario(
+            client,
+            name="27_get_run_by_correlation",
+            method="GET",
+            path="/rebalance/runs/by-correlation/live-corr-27-supportability",
+            expected_http=200,
+        )
+        _assert(by_correlation["rebalance_run_id"] == run_id, "27: correlation lookup mismatch")
+
+        by_idempotency = _run_scenario(
+            client,
+            name="27_get_run_by_idempotency",
+            method="GET",
+            path="/rebalance/runs/idempotency/live-demo-27-supportability",
+            expected_http=200,
+        )
+        _assert(by_idempotency["rebalance_run_id"] == run_id, "27: idempotency lookup mismatch")
+
+        artifact_one = _run_scenario(
+            client,
+            name="27_get_artifact_one",
+            method="GET",
+            path=f"/rebalance/runs/{run_id}/artifact",
+            expected_http=200,
+        )
+        artifact_two = _run_scenario(
+            client,
+            name="27_get_artifact_two",
+            method="GET",
+            path=f"/rebalance/runs/{run_id}/artifact",
+            expected_http=200,
+        )
+        _assert(
+            artifact_one["evidence"]["hashes"]["artifact_hash"]
+            == artifact_two["evidence"]["hashes"]["artifact_hash"],
+            "27: artifact hash not deterministic",
+        )
+
         # Batch demo
         batch = _run_scenario(
             client,

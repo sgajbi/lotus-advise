@@ -24,6 +24,14 @@ curl -X POST "http://127.0.0.1:8000/rebalance/analyze/async" -H "Content-Type: a
 curl -X GET "http://127.0.0.1:8000/rebalance/operations/by-correlation/demo-corr-26-async"
 ```
 
+For DPM supportability and deterministic artifact retrieval flow:
+```bash
+curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-27-supportability" -H "X-Correlation-Id: demo-corr-27-supportability" --data-binary "@docs/demo/27_dpm_supportability_artifact_flow.json"
+curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-correlation/demo-corr-27-supportability"
+curl -X GET "http://127.0.0.1:8000/rebalance/runs/idempotency/demo-27-supportability"
+curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/artifact"
+```
+
 For advisory proposal simulation demos, POST to `/rebalance/proposals/simulate`:
 ```bash
 curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-proposal-01" --data-binary "@docs/demo/10_advisory_proposal_simulate.json"
@@ -77,6 +85,7 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
 | `24_advisory_proposal_approval_compliance.json` | **Proposal Compliance Approval** | `AWAITING_CLIENT_CONSENT` lifecycle state | Records compliance approval and advances lifecycle. |
 | `25_advisory_proposal_transition_executed.json` | **Proposal Execution Transition** | `EXECUTED` lifecycle state | Records execution confirmation transition from execution-ready state. |
 | `26_dpm_async_batch_analysis.json` | **DPM Async Batch Analysis** | Async operation `SUCCEEDED` with partial-failure warning | Demonstrates `/rebalance/analyze/async` acceptance + operation lookup with `failed_scenarios` diagnostics. |
+| `27_dpm_supportability_artifact_flow.json` | **DPM Supportability + Artifact Flow** | `READY` run + deterministic artifact hash | Demonstrates run lookup by run id/correlation/idempotency and deterministic retrieval from `/rebalance/runs/{rebalance_run_id}/artifact`. |
 
 ## Feature Toggles Demonstrated
 
@@ -94,6 +103,12 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
   - `POST /rebalance/analyze/async` for async batch acceptance
   - `GET /rebalance/operations/{operation_id}` and `/by-correlation/{correlation_id}` for operation retrieval
   - partial-failure batch behavior (`warnings=["PARTIAL_BATCH_FAILURE"]`) with successful operation completion
+- `27_dpm_supportability_artifact_flow.json`:
+  - `POST /rebalance/simulate` with idempotency and correlation headers
+  - `GET /rebalance/runs/{rebalance_run_id}`
+  - `GET /rebalance/runs/by-correlation/{correlation_id}`
+  - `GET /rebalance/runs/idempotency/{idempotency_key}`
+  - `GET /rebalance/runs/{rebalance_run_id}/artifact` with deterministic artifact hash on repeated retrieval
 - `10_advisory_proposal_simulate.json`:
   - `options.enable_proposal_simulation=true`
   - `options.proposal_apply_cash_flows_first=true`
