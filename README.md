@@ -21,6 +21,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0016 (DPM idempotency replay and conflict contract for `POST /rebalance/simulate` with canonical request hash validation)
 * RFC-0017 (DPM supportability APIs for run lookup by run id, correlation id, and idempotency key)
 * RFC-0018 (DPM async operations phase-1 via `POST /rebalance/analyze/async` with operation lookup by id/correlation)
+* RFC-0019 (DPM run artifact phase-1 via `GET /rebalance/runs/{rebalance_run_id}/artifact` with deterministic artifact hashing)
 * RFC-0014A (advisory proposal simulation via `POST /rebalance/proposals/simulate`, feature-flagged via `options.enable_proposal_simulation`)
 * RFC-0014B (advisory proposal auto-funding via generated `FX_SPOT` intents and dependencies)
 * RFC-0014C (advisory drift analytics via inline `reference_model` in `POST /rebalance/proposals/simulate`)
@@ -209,6 +210,17 @@ Runs multiple named what-if scenarios in one call using shared snapshots.
 
 Notes:
 * Batch comparison metrics currently expose turnover proxy only; tax-impact aggregation is not included in batch metrics.
+
+### DPM Run Supportability and Artifact Endpoints
+
+* `GET /rebalance/runs/{rebalance_run_id}`: retrieve persisted run payload and metadata.
+* `GET /rebalance/runs/by-correlation/{correlation_id}`: lookup latest run by correlation id.
+* `GET /rebalance/runs/idempotency/{idempotency_key}`: lookup idempotency mapping to run id.
+* `GET /rebalance/runs/{rebalance_run_id}/artifact`: retrieve deterministic run artifact for business/support workflows.
+
+Runtime toggles:
+* `DPM_SUPPORT_APIS_ENABLED` (`true` by default)
+* `DPM_ARTIFACTS_ENABLED` (`true` by default)
 
 ### POST `/rebalance/proposals/simulate`
 
