@@ -23,8 +23,8 @@ Implementation scope:
 - Purpose: deterministic rebalance simulation.
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id`
-- Optional header: `X-Policy-Pack-Id` (resolution-only in current slice; no behavior change)
-  - When policy packs are enabled and cataloged, selected pack can override `max_turnover_pct`.
+- Optional header: `X-Policy-Pack-Id` (selected pack may override configured engine options)
+  - Current policy transformation: `max_turnover_pct`.
 - Output: `RebalanceResult` with status `READY | PENDING_REVIEW | BLOCKED` and `gate_decision`
 - Correlation behavior:
   - response `correlation_id` echoes request `X-Correlation-Id` when provided
@@ -37,8 +37,8 @@ Implementation scope:
 ### `POST /rebalance/analyze`
 - Purpose: multi-scenario what-if analysis using shared snapshots.
 - Optional header: `X-Correlation-Id`
-- Optional header: `X-Policy-Pack-Id` (resolution-only in current slice; no behavior change)
-  - When policy packs are enabled and cataloged, selected pack can override `max_turnover_pct`.
+- Optional header: `X-Policy-Pack-Id` (selected pack may override configured engine options)
+  - Current policy transformation: `max_turnover_pct`.
 - Output: `BatchRebalanceResult` with scenario-level results/metrics/failures.
 - Scenario correlation behavior:
   - when `X-Correlation-Id` is provided, each scenario result uses `{header}:{scenario_name}`
@@ -76,6 +76,19 @@ Implementation scope:
   - `enabled`
   - `selected_policy_pack_id`
   - `source`
+
+### `GET /rebalance/policies/catalog`
+- Purpose: inspect configured policy-pack definitions and effective selection context for supportability.
+- Optional headers:
+  - `X-Policy-Pack-Id`
+  - `X-Tenant-Policy-Pack-Id`
+- Output:
+  - `enabled`
+  - `total`
+  - `selected_policy_pack_id`
+  - `selected_policy_pack_present`
+  - `selected_policy_pack_source`
+  - `items`
 
 ### `GET /rebalance/runs/{rebalance_run_id}`
 - Purpose: retrieve one DPM run with full result payload and lineage metadata for support investigations.

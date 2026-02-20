@@ -29,6 +29,7 @@ from src.core.common.canonical import hash_canonical_payload
 from src.core.dpm.engine import run_simulation
 from src.core.dpm.policy_packs import (
     DpmEffectivePolicyPackResolution,
+    DpmPolicyPackCatalogResponse,
     apply_policy_pack_to_engine_options,
     parse_policy_pack_catalog,
     resolve_effective_policy_pack,
@@ -400,6 +401,54 @@ def get_effective_dpm_policy_pack(
     return _resolve_dpm_policy_pack(
         request_policy_pack_id=request_policy_pack_id,
         tenant_default_policy_pack_id=tenant_default_policy_pack_id,
+    )
+
+
+@app.get(
+    "/rebalance/policies/catalog",
+    response_model=DpmPolicyPackCatalogResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["DPM Run Supportability"],
+    summary="List DPM Policy Pack Catalog",
+    description=(
+        "Returns the currently configured DPM policy-pack catalog and the effective "
+        "selection context for optional request and tenant headers."
+    ),
+)
+def get_dpm_policy_pack_catalog(
+    request_policy_pack_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Policy-Pack-Id",
+            description="Optional request-scoped policy-pack identifier.",
+            examples=["dpm_standard_v1"],
+        ),
+    ] = None,
+    tenant_default_policy_pack_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Tenant-Policy-Pack-Id",
+            description="Optional tenant-default policy-pack identifier from upstream context.",
+            examples=["dpm_tenant_default_v1"],
+        ),
+    ] = None,
+) -> DpmPolicyPackCatalogResponse:
+    resolution = _resolve_dpm_policy_pack(
+        request_policy_pack_id=request_policy_pack_id,
+        tenant_default_policy_pack_id=tenant_default_policy_pack_id,
+    )
+    catalog = _load_dpm_policy_pack_catalog()
+    items = sorted(catalog.values(), key=lambda item: item.policy_pack_id)
+    selected_policy_pack_id = resolution.selected_policy_pack_id
+    return DpmPolicyPackCatalogResponse(
+        enabled=resolution.enabled,
+        total=len(items),
+        selected_policy_pack_id=selected_policy_pack_id,
+        selected_policy_pack_present=(
+            selected_policy_pack_id is not None and selected_policy_pack_id in catalog
+        ),
+        selected_policy_pack_source=resolution.source,
+        items=items,
     )
 
 

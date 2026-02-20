@@ -164,6 +164,14 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(lineage_schema, "entity_id")
     _assert_property_has_docs(lineage_schema, "edges")
 
+    policy_catalog_schema = schemas["DpmPolicyPackCatalogResponse"]
+    _assert_property_has_docs(policy_catalog_schema, "enabled")
+    _assert_property_has_docs(policy_catalog_schema, "total")
+    _assert_property_has_docs(policy_catalog_schema, "selected_policy_pack_id")
+    _assert_property_has_docs(policy_catalog_schema, "selected_policy_pack_present")
+    _assert_property_has_docs(policy_catalog_schema, "selected_policy_pack_source")
+    _assert_property_has_docs(policy_catalog_schema, "items")
+
 
 def test_dpm_async_and_supportability_endpoints_use_expected_request_response_contracts():
     _guard_strict_validation()
@@ -189,6 +197,14 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     policy_params = {param["name"] for param in effective_policy["parameters"]}
     assert "X-Policy-Pack-Id" in policy_params
     assert "X-Tenant-Policy-Pack-Id" in policy_params
+
+    policy_catalog = openapi["paths"]["/rebalance/policies/catalog"]["get"]
+    assert policy_catalog["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmPolicyPackCatalogResponse")
+    policy_catalog_params = {param["name"] for param in policy_catalog["parameters"]}
+    assert "X-Policy-Pack-Id" in policy_catalog_params
+    assert "X-Tenant-Policy-Pack-Id" in policy_catalog_params
 
     list_operations = openapi["paths"]["/rebalance/operations"]["get"]
     assert list_operations["responses"]["200"]["content"]["application/json"]["schema"][

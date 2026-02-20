@@ -1206,6 +1206,54 @@ def test_effective_policy_pack_endpoint_resolution_precedence(client, monkeypatc
     }
 
 
+def test_policy_pack_catalog_endpoint_returns_resolution_and_items(client, monkeypatch):
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "global_pack")
+    monkeypatch.setenv(
+        "DPM_POLICY_PACK_CATALOG_JSON",
+        (
+            '{"dpm_request_pack":{"version":"2","turnover_policy":{"max_turnover_pct":"0.03"}},'
+            '"global_pack":{"version":"1"}}'
+        ),
+    )
+
+    response = client.get(
+        "/rebalance/policies/catalog",
+        headers={
+            "X-Policy-Pack-Id": "dpm_request_pack",
+            "X-Tenant-Policy-Pack-Id": "tenant_pack",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["enabled"] is True
+    assert body["total"] == 2
+    assert body["selected_policy_pack_id"] == "dpm_request_pack"
+    assert body["selected_policy_pack_present"] is True
+    assert body["selected_policy_pack_source"] == "REQUEST"
+    assert [item["policy_pack_id"] for item in body["items"]] == ["dpm_request_pack", "global_pack"]
+    assert body["items"][0]["version"] == "2"
+    assert body["items"][0]["turnover_policy"]["max_turnover_pct"] == "0.03"
+
+
+def test_policy_pack_catalog_endpoint_selected_not_present(client, monkeypatch):
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "global_pack")
+    monkeypatch.setenv("DPM_POLICY_PACK_CATALOG_JSON", '{"global_pack":{"version":"1"}}')
+
+    response = client.get(
+        "/rebalance/policies/catalog",
+        headers={"X-Policy-Pack-Id": "unknown_pack"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["selected_policy_pack_id"] == "unknown_pack"
+    assert body["selected_policy_pack_present"] is False
+    assert body["selected_policy_pack_source"] == "REQUEST"
+
+
 def test_analyze_async_accept_only_mode_keeps_operation_pending(client, monkeypatch):
     monkeypatch.setenv("DPM_ASYNC_EXECUTION_MODE", "ACCEPT_ONLY")
     payload = get_valid_payload()
@@ -1339,6 +1387,9 @@ def test_openapi_title_and_tag_grouping(client):
     assert openapi["paths"]["/rebalance/analyze"]["post"]["tags"] == ["DPM What-If Analysis"]
     assert openapi["paths"]["/rebalance/analyze/async"]["post"]["tags"] == ["DPM What-If Analysis"]
     assert openapi["paths"]["/rebalance/policies/effective"]["get"]["tags"] == [
+        "DPM Run Supportability"
+    ]
+    assert openapi["paths"]["/rebalance/policies/catalog"]["get"]["tags"] == [
         "DPM Run Supportability"
     ]
     assert openapi["paths"]["/rebalance/proposals/simulate"]["post"]["tags"] == [

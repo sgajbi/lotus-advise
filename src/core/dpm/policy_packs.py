@@ -48,6 +48,47 @@ class DpmPolicyPackDefinition(BaseModel):
     )
 
 
+class DpmPolicyPackCatalogResponse(BaseModel):
+    enabled: bool = Field(
+        description="Whether policy-pack resolution is enabled in this runtime.",
+        examples=[True],
+    )
+    total: int = Field(
+        description="Total number of policy-pack definitions currently available in the catalog.",
+        examples=[3],
+    )
+    selected_policy_pack_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "Resolved policy-pack identifier for the provided request context, "
+            "when one is selected."
+        ),
+        examples=["dpm_standard_v1"],
+    )
+    selected_policy_pack_present: bool = Field(
+        description=(
+            "Whether the resolved policy-pack identifier exists in the current policy-pack catalog."
+        ),
+        examples=[True],
+    )
+    selected_policy_pack_source: DpmPolicyPackSource = Field(
+        description="Resolution source selected by precedence policy.",
+        examples=["REQUEST"],
+    )
+    items: list[DpmPolicyPackDefinition] = Field(
+        description="Catalog entries keyed by policy-pack identifier.",
+        examples=[
+            [
+                {
+                    "policy_pack_id": "dpm_standard_v1",
+                    "version": "1",
+                    "turnover_policy": {"max_turnover_pct": "0.10"},
+                }
+            ]
+        ],
+    )
+
+
 def resolve_effective_policy_pack(
     *,
     policy_packs_enabled: bool,

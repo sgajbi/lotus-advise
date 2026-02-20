@@ -293,3 +293,14 @@ Demo pack validation passed for http://127.0.0.1:8000
     - same call and response semantics verified.
     - `GET /rebalance/workflow/decisions?limit=20` returns workflow decisions across runs.
     - `GET /rebalance/workflow/decisions?actor_id=...&action=...&limit=...` returns filtered rows.
+- Policy-pack catalog supportability endpoint validation (RFC-0022 slice 4):
+  - Docker runtime (`http://127.0.0.1:8000`):
+    - `GET /rebalance/policies/catalog` with:
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      - `X-Tenant-Policy-Pack-Id=dpm_tenant_default_v1`
+      returns `200` with:
+      - `enabled=false`
+      - `total=0`
+      - `selected_policy_pack_source=DISABLED`
+  - Uvicorn runtime (`http://127.0.0.1:8002`):
+    - same call and response semantics verified.

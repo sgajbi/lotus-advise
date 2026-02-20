@@ -3,6 +3,7 @@
 from src.core.dpm.engine import run_simulation
 from src.core.dpm.policy_packs import (
     DpmEffectivePolicyPackResolution,
+    DpmPolicyPackCatalogResponse,
     DpmPolicyPackDefinition,
     apply_policy_pack_to_engine_options,
     parse_policy_pack_catalog,
@@ -13,6 +14,7 @@ from src.core.dpm.policy_packs import (
 __all__ = [
     "run_simulation",
     "DpmEffectivePolicyPackResolution",
+    "DpmPolicyPackCatalogResponse",
     "DpmPolicyPackDefinition",
     "apply_policy_pack_to_engine_options",
     "parse_policy_pack_catalog",

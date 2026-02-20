@@ -107,6 +107,16 @@ Policy pack selection must not alter run status vocabulary semantics.
     - `POST /rebalance/simulate`
     - `POST /rebalance/analyze`
     - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
+- Implemented (slice 4):
+  - Supportability catalog endpoint:
+    - `GET /rebalance/policies/catalog`
+      - optional headers:
+        - `X-Policy-Pack-Id`
+        - `X-Tenant-Policy-Pack-Id`
+      - response includes:
+        - effective selection context (`selected_policy_pack_id`, `selected_policy_pack_source`)
+        - catalog presence flag for selected id (`selected_policy_pack_present`)
+        - catalog entries (`items`) and count (`total`)
 - Pending:
   - tenant-level policy resolution adapter integration.
   - additional policy dimensions beyond turnover (tax, settlement, constraints, workflow, idempotency).
