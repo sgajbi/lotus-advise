@@ -35,6 +35,7 @@ curl -X GET "http://127.0.0.1:8000/rebalance/runs/idempotency/demo-27-supportabi
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/support-bundle"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-correlation/<correlation_id>/support-bundle"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/idempotency/<idempotency_key>/support-bundle"
+curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-operation/<operation_id>/support-bundle"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/support-bundle?include_artifact=false&include_async_operation=false&include_idempotency_history=false"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/artifact"
 ```
@@ -146,6 +147,7 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
   - `GET /rebalance/runs/{rebalance_run_id}/support-bundle`
   - `GET /rebalance/runs/by-correlation/{correlation_id}/support-bundle`
   - `GET /rebalance/runs/idempotency/{idempotency_key}/support-bundle`
+  - `GET /rebalance/runs/by-operation/{operation_id}/support-bundle`
   - `GET /rebalance/runs/by-correlation/{correlation_id}`
   - `GET /rebalance/runs/idempotency/{idempotency_key}`
   - `GET /rebalance/runs/{rebalance_run_id}/artifact` with deterministic artifact hash on repeated retrieval

@@ -654,6 +654,39 @@ def test_dpm_run_support_bundle_endpoint_by_correlation_and_idempotency(client):
     assert missing_by_idempotency.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"
 
 
+def test_dpm_run_support_bundle_endpoint_by_operation(client):
+    payload = get_valid_payload()
+    simulate = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={
+            "Idempotency-Key": "test-key-support-bundle-3",
+            "X-Correlation-Id": "corr-support-bundle-3",
+        },
+    )
+    assert simulate.status_code == 200
+    run_id = simulate.json()["rebalance_run_id"]
+
+    service = get_dpm_run_support_service()
+    accepted = service.submit_analyze_async(
+        correlation_id="corr-support-bundle-3",
+        request_json={"scenarios": {"baseline": {"options": {}}}},
+    )
+
+    by_operation = client.get(
+        f"/rebalance/runs/by-operation/{accepted.operation_id}/support-bundle"
+    )
+    assert by_operation.status_code == 200
+    by_operation_body = by_operation.json()
+    assert by_operation_body["run"]["rebalance_run_id"] == run_id
+    assert by_operation_body["async_operation"] is not None
+    assert by_operation_body["async_operation"]["operation_id"] == accepted.operation_id
+
+    missing = client.get("/rebalance/runs/by-operation/dop_missing/support-bundle")
+    assert missing.status_code == 404
+    assert missing.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_FOUND"
+
+
 def test_dpm_run_support_bundle_endpoint_disabled_and_not_found(client, monkeypatch):
     missing = client.get("/rebalance/runs/rr_missing/support-bundle")
     assert missing.status_code == 404

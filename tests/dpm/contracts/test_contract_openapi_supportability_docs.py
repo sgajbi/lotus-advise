@@ -257,6 +257,22 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     actual_params = {param["name"] for param in support_bundle_by_idempotency["parameters"]}
     assert expected_params.issubset(actual_params)
 
+    support_bundle_by_operation = openapi["paths"][
+        "/rebalance/runs/by-operation/{operation_id}/support-bundle"
+    ]["get"]
+    operation_schema_ref = support_bundle_by_operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assert operation_schema_ref.endswith("/DpmRunSupportBundleResponse")
+    expected_params = {
+        "operation_id",
+        "include_artifact",
+        "include_async_operation",
+        "include_idempotency_history",
+    }
+    actual_params = {param["name"] for param in support_bundle_by_operation["parameters"]}
+    assert expected_params.issubset(actual_params)
+
     lineage = openapi["paths"]["/rebalance/lineage/{entity_id}"]["get"]
     assert lineage["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
         "/DpmLineageResponse"

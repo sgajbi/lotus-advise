@@ -93,6 +93,13 @@ Implementation scope:
   - `include_async_operation`
   - `include_idempotency_history`
 
+### `GET /rebalance/runs/by-operation/{operation_id}/support-bundle`
+- Purpose: retrieve the same supportability bundle when asynchronous operation id is available.
+- Query options:
+  - `include_artifact`
+  - `include_async_operation`
+  - `include_idempotency_history`
+
 ### `GET /rebalance/runs`
 - Purpose: list DPM runs for supportability investigations.
 - Filters:

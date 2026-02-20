@@ -480,6 +480,26 @@ class DpmRunSupportService:
             include_idempotency_history=include_idempotency_history,
         )
 
+    def get_run_support_bundle_by_operation(
+        self,
+        *,
+        operation_id: str,
+        include_artifact: bool,
+        include_async_operation: bool,
+        include_idempotency_history: bool,
+    ) -> DpmRunSupportBundleResponse:
+        operation = self._repository.get_operation(operation_id=operation_id)
+        if operation is None:
+            raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
+        return self.get_run_support_bundle(
+            rebalance_run_id=self._get_required_run_by_correlation(
+                correlation_id=operation.correlation_id
+            ).rebalance_run_id,
+            include_artifact=include_artifact,
+            include_async_operation=include_async_operation,
+            include_idempotency_history=include_idempotency_history,
+        )
+
     def mark_operation_running(self, *, operation_id: str) -> None:
         self._cleanup_expired_operations()
         operation = self._repository.get_operation(operation_id=operation_id)

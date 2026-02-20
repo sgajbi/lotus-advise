@@ -112,6 +112,8 @@ Demo pack validation passed for http://127.0.0.1:8000
         with run id matching simulate response.
       - `GET /rebalance/runs/idempotency/{idempotency_key}/support-bundle` returns `200`
         with run id matching simulate response.
+      - `GET /rebalance/runs/by-operation/{operation_id}/support-bundle` returns `200`
+        with run id matching simulate response after async operation creation.
   - Docker runtime (`http://127.0.0.1:8000`):
     - `POST /rebalance/simulate` returns `status=READY`.
     - `GET /rebalance/runs/{rebalance_run_id}/support-bundle` returns `200` with:
@@ -124,6 +126,8 @@ Demo pack validation passed for http://127.0.0.1:8000
         with run id matching simulate response.
       - `GET /rebalance/runs/idempotency/{idempotency_key}/support-bundle` returns `200`
         with run id matching simulate response.
+      - `GET /rebalance/runs/by-operation/{operation_id}/support-bundle` returns `200`
+        with run id matching simulate response after async operation creation.
 - SQLite supportability backend validation:
   - Uvicorn run (`DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`) on `http://127.0.0.1:8001`:
     - `POST /rebalance/simulate` succeeded (`200`).
