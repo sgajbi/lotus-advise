@@ -95,6 +95,19 @@ def _assert_artifacts_enabled() -> None:
         )
 
 
+def _artifact_store_mode() -> str:
+    mode = os.getenv("DPM_ARTIFACT_STORE_MODE", "DERIVED").strip().upper()
+    return "PERSISTED" if mode == "PERSISTED" else "DERIVED"
+
+
+def _assert_artifact_store_mode_supported() -> None:
+    if _artifact_store_mode() == "PERSISTED":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="DPM_ARTIFACT_STORE_MODE_NOT_SUPPORTED",
+        )
+
+
 def _assert_workflow_enabled() -> None:
     if not _env_flag("DPM_WORKFLOW_ENABLED", False):
         raise HTTPException(
@@ -656,6 +669,7 @@ def get_run_artifact_by_run_id(
 ) -> DpmRunArtifactResponse:
     _assert_support_apis_enabled()
     _assert_artifacts_enabled()
+    _assert_artifact_store_mode_supported()
     try:
         return service.get_run_artifact(rebalance_run_id=rebalance_run_id)
     except DpmRunNotFoundError as exc:

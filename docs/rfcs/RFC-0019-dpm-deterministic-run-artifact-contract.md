@@ -62,6 +62,10 @@ Implemented in current codebase:
 - Artifact hash from canonical payload for repeatable retrieval.
 - Feature flag:
   - `DPM_ARTIFACTS_ENABLED`
+- Artifact store mode contract:
+  - `DPM_ARTIFACT_STORE_MODE=DERIVED` (default)
+  - Invalid mode values fall back to `DERIVED`.
+  - `DPM_ARTIFACT_STORE_MODE=PERSISTED` is rejected with `DPM_ARTIFACT_STORE_MODE_NOT_SUPPORTED` until persisted artifact backend is implemented.
 
 Deferred:
 - Persisted artifact backend mode.

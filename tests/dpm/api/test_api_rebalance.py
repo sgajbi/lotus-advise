@@ -445,6 +445,17 @@ def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
     assert artifact_disabled.status_code == 404
     assert artifact_disabled.json()["detail"] == "DPM_ARTIFACTS_DISABLED"
 
+    monkeypatch.setenv("DPM_ARTIFACTS_ENABLED", "true")
+    monkeypatch.setenv("DPM_ARTIFACT_STORE_MODE", "PERSISTED")
+    artifact_mode_unsupported = client.get("/rebalance/runs/rr_missing/artifact")
+    assert artifact_mode_unsupported.status_code == 503
+    assert artifact_mode_unsupported.json()["detail"] == "DPM_ARTIFACT_STORE_MODE_NOT_SUPPORTED"
+
+    monkeypatch.setenv("DPM_ARTIFACT_STORE_MODE", "UNKNOWN_MODE")
+    artifact_mode_fallback = client.get("/rebalance/runs/rr_missing/artifact")
+    assert artifact_mode_fallback.status_code == 404
+    assert artifact_mode_fallback.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
 
 def test_dpm_async_operation_lookup_not_found_and_disabled(client, monkeypatch):
     missing = client.get("/rebalance/operations/dop_missing")
