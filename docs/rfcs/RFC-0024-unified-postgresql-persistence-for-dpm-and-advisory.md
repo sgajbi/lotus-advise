@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 11) |
+| **Status** | IN PROGRESS (SLICE 12) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -222,5 +222,20 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - backend initialization error code (when not ready)
     - lifecycle/support/async and behavior toggles
   - Added API coverage for default and backend-error diagnostic responses.
+- Implemented (slice 12):
+  - Added first advisory Postgres repository parity subset:
+    - idempotency mapping
+      - `get_idempotency`
+      - `save_idempotency`
+    - async operation persistence and lookups
+      - `create_operation`
+      - `update_operation`
+      - `get_operation`
+      - `get_operation_by_correlation`
+  - Added advisory Postgres table bootstrap for:
+    - `proposal_idempotency`
+    - `proposal_async_operations`
+  - Added repository unit coverage for roundtrips, updates, correlation lookup, and stable
+    unimplemented-method guardrail behavior.
 - Next slice:
   - advisory Postgres repository CRUD parity implementation and repository contract tests.

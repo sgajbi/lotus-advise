@@ -44,6 +44,7 @@ def test_build_repository_postgres_not_implemented(monkeypatch):
         "PROPOSAL_POSTGRES_DSN",
         "postgresql://user:pass@localhost:5432/proposals",
     )
+
     def _raise_not_implemented(**_kwargs):
         raise RuntimeError("PROPOSAL_POSTGRES_NOT_IMPLEMENTED")
 
