@@ -35,8 +35,10 @@ curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/artifact"
 For DPM workflow supportability endpoints (enabled only when `DPM_WORKFLOW_ENABLED=true`):
 ```bash
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow"
+curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-correlation/<correlation_id>/workflow"
 curl -X POST "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow/actions" -H "Content-Type: application/json" -H "X-Correlation-Id: demo-corr-workflow-1" --data-binary '{"action":"APPROVE","reason_code":"REVIEW_APPROVED","actor_id":"reviewer_001"}'
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow/history"
+curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-correlation/<correlation_id>/workflow/history"
 ```
 
 For advisory proposal simulation demos, POST to `/rebalance/proposals/simulate`:

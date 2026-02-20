@@ -197,38 +197,31 @@ class DpmRunSupportService:
         return operation.request_json, operation.correlation_id
 
     def get_workflow(self, *, rebalance_run_id: str) -> DpmRunWorkflowResponse:
-        run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
+        run = self._get_required_run(rebalance_run_id=rebalance_run_id)
+        return self._to_workflow_response(run=run)
+
+    def get_workflow_by_correlation(self, *, correlation_id: str) -> DpmRunWorkflowResponse:
+        run = self._repository.get_run_by_correlation(correlation_id=correlation_id)
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
-        latest_decision = self._latest_workflow_decision(rebalance_run_id=rebalance_run_id)
-        workflow_status = self._resolve_workflow_status(
-            run_status=str(run.result_json.get("status", "")),
-            latest_decision=latest_decision,
-        )
-        return DpmRunWorkflowResponse(
-            run_id=run.rebalance_run_id,
-            run_status=str(run.result_json.get("status", "")),
-            workflow_status=workflow_status,
-            requires_review=self._workflow_required_for_run_status(
-                run_status=str(run.result_json.get("status", ""))
-            ),
-            latest_decision=(
-                self._to_workflow_decision_response(latest_decision)
-                if latest_decision is not None
-                else None
-            ),
-        )
+        return self._to_workflow_response(run=run)
 
     def get_workflow_history(self, *, rebalance_run_id: str) -> DpmRunWorkflowHistoryResponse:
-        run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
-        if run is None:
-            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        self._get_required_run(rebalance_run_id=rebalance_run_id)
         decisions = self._repository.list_workflow_decisions(rebalance_run_id=rebalance_run_id)
         decisions = sorted(decisions, key=lambda item: item.decided_at)
         return DpmRunWorkflowHistoryResponse(
             run_id=rebalance_run_id,
             decisions=[self._to_workflow_decision_response(decision) for decision in decisions],
         )
+
+    def get_workflow_history_by_correlation(
+        self, *, correlation_id: str
+    ) -> DpmRunWorkflowHistoryResponse:
+        run = self._repository.get_run_by_correlation(correlation_id=correlation_id)
+        if run is None:
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        return self.get_workflow_history(rebalance_run_id=run.rebalance_run_id)
 
     def apply_workflow_action(
         self,
@@ -319,6 +312,31 @@ class DpmRunSupportService:
         self._repository.purge_expired_operations(
             ttl_seconds=self._async_operation_ttl_seconds,
             now=_utc_now(),
+        )
+
+    def _get_required_run(self, *, rebalance_run_id: str) -> DpmRunRecord:
+        run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
+        if run is None:
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        return run
+
+    def _to_workflow_response(self, *, run: DpmRunRecord) -> DpmRunWorkflowResponse:
+        run_status = str(run.result_json.get("status", ""))
+        latest_decision = self._latest_workflow_decision(rebalance_run_id=run.rebalance_run_id)
+        workflow_status = self._resolve_workflow_status(
+            run_status=run_status,
+            latest_decision=latest_decision,
+        )
+        return DpmRunWorkflowResponse(
+            run_id=run.rebalance_run_id,
+            run_status=run_status,
+            workflow_status=workflow_status,
+            requires_review=self._workflow_required_for_run_status(run_status=run_status),
+            latest_decision=(
+                self._to_workflow_decision_response(latest_decision)
+                if latest_decision is not None
+                else None
+            ),
         )
 
     def _latest_workflow_decision(

@@ -1007,6 +1007,10 @@ def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, mo
     assert workflow_body["requires_review"] is True
     assert workflow_body["latest_decision"] is None
 
+    workflow_by_correlation = client.get("/rebalance/runs/by-correlation/corr-workflow-1/workflow")
+    assert workflow_by_correlation.status_code == 200
+    assert workflow_by_correlation.json()["run_id"] == run_id
+
     request_changes = client.post(
         f"/rebalance/runs/{run_id}/workflow/actions",
         json={
@@ -1046,6 +1050,14 @@ def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, mo
     assert len(history_body["decisions"]) == 2
     assert history_body["decisions"][0]["action"] == "REQUEST_CHANGES"
     assert history_body["decisions"][1]["action"] == "APPROVE"
+
+    history_by_correlation = client.get(
+        "/rebalance/runs/by-correlation/corr-workflow-1/workflow/history"
+    )
+    assert history_by_correlation.status_code == 200
+    history_by_correlation_body = history_by_correlation.json()
+    assert history_by_correlation_body["run_id"] == run_id
+    assert len(history_by_correlation_body["decisions"]) == 2
 
     invalid = client.post(
         f"/rebalance/runs/{run_id}/workflow/actions",
@@ -1094,3 +1106,7 @@ def test_dpm_run_workflow_endpoints_disabled_and_not_required_behavior(client, m
     )
     assert not_required.status_code == 409
     assert not_required.json()["detail"] == "DPM_WORKFLOW_NOT_REQUIRED_FOR_RUN_STATUS"
+
+    missing_by_correlation = client.get("/rebalance/runs/by-correlation/corr-missing/workflow")
+    assert missing_by_correlation.status_code == 404
+    assert missing_by_correlation.json()["detail"] == "DPM_RUN_NOT_FOUND"

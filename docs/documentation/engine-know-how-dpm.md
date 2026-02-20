@@ -52,11 +52,17 @@ Implementation scope:
 ### `GET /rebalance/runs/{rebalance_run_id}/workflow`
 - Purpose: retrieve workflow gate status and latest reviewer decision for a run.
 
+### `GET /rebalance/runs/by-correlation/{correlation_id}/workflow`
+- Purpose: retrieve workflow gate status when only correlation id is known.
+
 ### `POST /rebalance/runs/{rebalance_run_id}/workflow/actions`
 - Purpose: apply one workflow action (`APPROVE`, `REJECT`, `REQUEST_CHANGES`) with actor/reason trace.
 
 ### `GET /rebalance/runs/{rebalance_run_id}/workflow/history`
 - Purpose: retrieve append-only workflow decision history for audit and investigation.
+
+### `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history`
+- Purpose: retrieve workflow decision history when only correlation id is known.
 
 ## Pipeline (`run_simulation`)
 

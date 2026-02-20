@@ -126,6 +126,13 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
         "/DpmRunWorkflowResponse"
     )
 
+    workflow_by_correlation = openapi["paths"][
+        "/rebalance/runs/by-correlation/{correlation_id}/workflow"
+    ]["get"]
+    assert workflow_by_correlation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmRunWorkflowResponse")
+
     workflow_actions = openapi["paths"]["/rebalance/runs/{rebalance_run_id}/workflow/actions"][
         "post"
     ]
@@ -143,3 +150,10 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert workflow_history["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/DpmRunWorkflowHistoryResponse")
+
+    workflow_history_by_correlation = openapi["paths"][
+        "/rebalance/runs/by-correlation/{correlation_id}/workflow/history"
+    ]["get"]
+    assert workflow_history_by_correlation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"].endswith("/DpmRunWorkflowHistoryResponse")

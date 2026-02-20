@@ -286,6 +286,28 @@ def get_dpm_run_workflow(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
+@router.get(
+    "/rebalance/runs/by-correlation/{correlation_id}/workflow",
+    response_model=DpmRunWorkflowResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Workflow State by Correlation Id",
+    description="Returns workflow gate state for run resolved by correlation id.",
+)
+def get_dpm_run_workflow_by_correlation(
+    correlation_id: Annotated[
+        str,
+        Path(description="Correlation identifier used on run submission."),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunWorkflowResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.get_workflow_by_correlation(correlation_id=correlation_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
 @router.post(
     "/rebalance/runs/{rebalance_run_id}/workflow/actions",
     response_model=DpmRunWorkflowResponse,
@@ -351,5 +373,27 @@ def get_dpm_run_workflow_history(
     _assert_workflow_enabled()
     try:
         return service.get_workflow_history(rebalance_run_id=rebalance_run_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/runs/by-correlation/{correlation_id}/workflow/history",
+    response_model=DpmRunWorkflowHistoryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Workflow History by Correlation Id",
+    description="Returns workflow decision history for run resolved by correlation id.",
+)
+def get_dpm_run_workflow_history_by_correlation(
+    correlation_id: Annotated[
+        str,
+        Path(description="Correlation identifier used on run submission."),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunWorkflowHistoryResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.get_workflow_history_by_correlation(correlation_id=correlation_id)
     except DpmRunNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

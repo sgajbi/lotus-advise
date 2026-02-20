@@ -84,3 +84,12 @@ Demo pack validation passed for http://127.0.0.1:8000
     `DPM_WORKFLOW_DISABLED` under default config.
   - `GET /rebalance/runs/{rebalance_run_id}/workflow/history` returns `404` with
     `DPM_WORKFLOW_DISABLED` under default config.
+- Additional workflow-enabled supportability checks validated:
+  - Uvicorn (`DPM_WORKFLOW_ENABLED=true`, `http://127.0.0.1:8001`):
+    - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow` returns `200`.
+    - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history` returns `200`.
+    - Workflow action and history are consistent between run-id and correlation-id endpoints.
+  - Container runtime (`dpm-rebalance-engine:latest` with `-e DPM_WORKFLOW_ENABLED=true`,
+    published on `http://127.0.0.1:8002`):
+    - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow` returns `200`.
+    - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history` returns `200`.

@@ -88,6 +88,10 @@ def test_workflow_transitions_and_history_for_pending_review_run():
     assert initial.requires_review is True
     assert initial.latest_decision is None
 
+    initial_by_correlation = service.get_workflow_by_correlation(correlation_id="corr-test")
+    assert initial_by_correlation.run_id == result.rebalance_run_id
+    assert initial_by_correlation.workflow_status == "PENDING_REVIEW"
+
     request_changes = service.apply_workflow_action(
         rebalance_run_id=result.rebalance_run_id,
         action="REQUEST_CHANGES",
@@ -119,6 +123,10 @@ def test_workflow_transitions_and_history_for_pending_review_run():
     assert len(history.decisions) == 2
     assert history.decisions[0].action == "REQUEST_CHANGES"
     assert history.decisions[1].action == "APPROVE"
+
+    history_by_correlation = service.get_workflow_history_by_correlation(correlation_id="corr-test")
+    assert history_by_correlation.run_id == result.rebalance_run_id
+    assert len(history_by_correlation.decisions) == 2
 
 
 def test_workflow_rejects_invalid_transition_for_approved_run():
@@ -187,3 +195,9 @@ def test_workflow_apis_raise_not_found_for_unknown_run():
 
     with pytest.raises(DpmRunNotFoundError, match="DPM_RUN_NOT_FOUND"):
         service.get_workflow_history(rebalance_run_id="rr_missing")
+
+    with pytest.raises(DpmRunNotFoundError, match="DPM_RUN_NOT_FOUND"):
+        service.get_workflow_by_correlation(correlation_id="corr-missing")
+
+    with pytest.raises(DpmRunNotFoundError, match="DPM_RUN_NOT_FOUND"):
+        service.get_workflow_history_by_correlation(correlation_id="corr-missing")
