@@ -23,4 +23,6 @@ Standards for all current and future RFCs:
 | RFC-0014B | Advisory Proposal Auto-Funding (FX Spot Intents + Dependency Graph) | IMPLEMENTED | RFC-0014A, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014B-advisory-proposal-auto-funding.md` |
 | RFC-0014C | Drift Analytics for Advisory Proposals (Before vs After vs Reference Model) | IMPLEMENTED | RFC-0014A, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014C-drift-analytics.md` |
 | RFC-0014D | Suitability Scanner v1 for Advisory Proposals | IMPLEMENTED | RFC-0014A, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014D-suitability-scanner-v1.md` |
+| RFC-0014E | Advisory Proposal Artifact | IMPLEMENTED | RFC-0014A, RFC-0014B, RFC-0014C, RFC-0014D | `docs/rfcs/advisory pack/refine/RFC-0014E-proposal-artifact.md` |
+| RFC-0014G | Proposal Persistence and Workflow Lifecycle | IMPLEMENTED (MVP IN-MEMORY ADAPTER) | RFC-0014A, RFC-0014E, RFC-0014F | `docs/rfcs/advisory pack/refine/RFC-0014G-proposal-persistence-workflow-lifecycle.md` |
 | RFC-0015 | Deferred Scope Consolidation and Completion Backlog | DRAFT | RFC-0001..RFC-0013 | `docs/rfcs/RFC-0015-deferred-scope-consolidation-and-completion-backlog.md` |

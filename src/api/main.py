@@ -13,6 +13,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
+from src.api.routers.proposals import router as proposal_lifecycle_router
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory_engine import run_proposal_simulation
@@ -47,6 +48,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
 PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict]]" = OrderedDict()
+
+app.include_router(proposal_lifecycle_router)
 
 
 async def get_db_session():
