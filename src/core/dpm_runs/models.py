@@ -195,7 +195,7 @@ class DpmSupportabilitySummaryData(BaseModel):
 class DpmSupportabilitySummaryResponse(BaseModel):
     store_backend: str = Field(
         description="Configured supportability storage backend.",
-        examples=["SQLITE"],
+        examples=["SQL"],
     )
     retention_days: int = Field(
         description="Configured supportability retention window in days (0 means disabled).",

@@ -193,11 +193,17 @@ def test_dpm_support_apis_lookup_by_run_correlation_and_idempotency(client):
     )
 
 
-def test_dpm_supportability_sqlite_backend_selection(client, monkeypatch):
+@pytest.mark.parametrize(
+    ("backend_value", "path_env_var"),
+    [("SQLITE", "DPM_SUPPORTABILITY_SQLITE_PATH"), ("SQL", "DPM_SUPPORTABILITY_SQL_PATH")],
+)
+def test_dpm_supportability_sql_backend_selection(
+    client, monkeypatch, backend_value, path_env_var
+):
     with TemporaryDirectory() as tmp_dir:
         sqlite_path = str(Path(tmp_dir) / "dpm_supportability.sqlite")
-        monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "SQLITE")
-        monkeypatch.setenv("DPM_SUPPORTABILITY_SQLITE_PATH", sqlite_path)
+        monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", backend_value)
+        monkeypatch.setenv(path_env_var, sqlite_path)
         reset_dpm_run_support_service_for_tests()
 
         payload = get_valid_payload()
@@ -216,6 +222,10 @@ def test_dpm_supportability_sqlite_backend_selection(client, monkeypatch):
         by_idempotency = client.get("/rebalance/runs/idempotency/test-key-support-sqlite")
         assert by_idempotency.status_code == 200
         assert by_idempotency.json()["rebalance_run_id"] == body["rebalance_run_id"]
+
+        summary = client.get("/rebalance/supportability/summary")
+        assert summary.status_code == 200
+        assert summary.json()["store_backend"] == "SQL"
 
 
 def test_dpm_support_runs_list_filters_and_cursor(client):

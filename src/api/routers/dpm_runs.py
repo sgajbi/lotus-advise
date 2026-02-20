@@ -150,12 +150,15 @@ def _assert_support_bundle_apis_enabled() -> None:
 
 def _supportability_store_backend_name() -> str:
     backend = os.getenv("DPM_SUPPORTABILITY_STORE_BACKEND", "IN_MEMORY").strip().upper()
-    return "SQLITE" if backend == "SQLITE" else "IN_MEMORY"
+    return "SQL" if backend in {"SQL", "SQLITE"} else "IN_MEMORY"
 
 
 def _build_repository():
-    if _supportability_store_backend_name() == "SQLITE":
-        sqlite_path = os.getenv("DPM_SUPPORTABILITY_SQLITE_PATH", ".data/dpm_supportability.db")
+    if _supportability_store_backend_name() == "SQL":
+        sqlite_path = os.getenv(
+            "DPM_SUPPORTABILITY_SQL_PATH",
+            os.getenv("DPM_SUPPORTABILITY_SQLITE_PATH", ".data/dpm_supportability.db"),
+        )
         return SqliteDpmRunRepository(database_path=sqlite_path)
     return InMemoryDpmRunRepository()
 
