@@ -27,3 +27,4 @@ Standards for all current and future RFCs:
 | RFC-0014G | Proposal Persistence and Workflow Lifecycle | IMPLEMENTED (MVP IN-MEMORY ADAPTER) | RFC-0014A, RFC-0014E, RFC-0014F | `docs/rfcs/advisory pack/refine/RFC-0014G-proposal-persistence-workflow-lifecycle.md` |
 | RFC-0015 | Deferred Scope Consolidation and Completion Backlog | DRAFT | RFC-0001..RFC-0013 | `docs/rfcs/RFC-0015-deferred-scope-consolidation-and-completion-backlog.md` |
 | RFC-0016 | DPM Idempotency Replay Contract for `/rebalance/simulate` | IMPLEMENTED | RFC-0001, RFC-0002, RFC-0007A | `docs/rfcs/RFC-0016-dpm-idempotency-replay-contract.md` |
+| RFC-0017 | DPM Run Supportability APIs (Run, Correlation, Idempotency Lookup) | DRAFT | RFC-0001, RFC-0002, RFC-0016 | `docs/rfcs/RFC-0017-dpm-run-supportability-apis.md` |
