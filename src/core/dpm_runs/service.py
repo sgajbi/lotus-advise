@@ -203,6 +203,7 @@ class DpmRunSupportService:
             operation_id=operation.operation_id,
             operation_type=operation.operation_type,
             status=operation.status,
+            is_executable=(operation.status == "PENDING" and operation.request_json is not None),
             correlation_id=operation.correlation_id,
             created_at=operation.created_at.isoformat(),
             started_at=(operation.started_at.isoformat() if operation.started_at else None),

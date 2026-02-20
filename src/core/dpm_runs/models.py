@@ -153,6 +153,10 @@ class DpmAsyncOperationStatusResponse(BaseModel):
         description="Current operation status.",
         examples=["SUCCEEDED"],
     )
+    is_executable: bool = Field(
+        description="Whether this operation is currently executable by manual execute endpoint.",
+        examples=[False],
+    )
     correlation_id: str = Field(
         description="Correlation id associated with this operation.",
         examples=["corr-dpm-async-001"],

@@ -237,6 +237,7 @@ def test_dpm_async_operation_lookup_by_id_and_correlation(client):
     assert by_operation_body["operation_id"] == accepted.operation_id
     assert by_operation_body["operation_type"] == "ANALYZE_SCENARIOS"
     assert by_operation_body["status"] == "PENDING"
+    assert by_operation_body["is_executable"] is True
     assert by_operation_body["correlation_id"] == "corr-dpm-async-support-1"
     assert by_operation_body["result"] is None
     assert by_operation_body["error"] is None
@@ -418,6 +419,7 @@ def test_analyze_async_accept_and_lookup_succeeded(client):
     assert by_operation.status_code == 200
     by_operation_body = by_operation.json()
     assert by_operation_body["status"] == "SUCCEEDED"
+    assert by_operation_body["is_executable"] is False
     assert by_operation_body["correlation_id"] == "corr-batch-async-1"
     assert by_operation_body["result"]["batch_run_id"].startswith("batch_")
     assert set(by_operation_body["result"]["results"].keys()) == {"baseline"}
@@ -493,6 +495,7 @@ def test_analyze_async_accept_only_mode_keeps_operation_pending(client, monkeypa
     assert operation.status_code == 200
     operation_body = operation.json()
     assert operation_body["status"] == "PENDING"
+    assert operation_body["is_executable"] is True
     assert operation_body["started_at"] is None
     assert operation_body["finished_at"] is None
     assert operation_body["result"] is None
@@ -523,6 +526,7 @@ def test_analyze_async_accept_only_mode_can_be_executed_manually(client, monkeyp
     executed_body = executed.json()
     assert executed_body["operation_id"] == operation_id
     assert executed_body["status"] == "SUCCEEDED"
+    assert executed_body["is_executable"] is False
     assert executed_body["result"]["batch_run_id"].startswith("batch_")
 
 
@@ -635,6 +639,10 @@ def test_openapi_async_analyze_documents_correlation_header(client):
     assert "execute_url" in accepted_schema["properties"]
     assert accepted_schema["properties"]["execute_url"]["description"]
     assert accepted_schema["properties"]["execute_url"]["examples"]
+    async_status_schema = openapi["components"]["schemas"]["DpmAsyncOperationStatusResponse"]
+    assert "is_executable" in async_status_schema["properties"]
+    assert async_status_schema["properties"]["is_executable"]["description"]
+    assert async_status_schema["properties"]["is_executable"]["examples"]
     assert "/rebalance/operations/{operation_id}/execute" in openapi["paths"]
 
 

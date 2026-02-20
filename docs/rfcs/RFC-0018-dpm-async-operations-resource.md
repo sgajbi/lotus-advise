@@ -47,7 +47,7 @@ Large what-if batches can be slow and are currently synchronous, which creates t
   - Echoes resolved `X-Correlation-Id` in response header.
   - Includes `execute_url` in accepted payload for deferred execution workflows.
 - `GET /rebalance/operations/{operation_id}`
-  - Returns operation state and, once complete, normalized result/error envelope.
+  - Returns operation state, `is_executable` signal, and once complete, normalized result/error envelope.
 - `GET /rebalance/operations/by-correlation/{correlation_id}`
   - Deterministic lookup for support teams and orchestrators.
 - `POST /rebalance/operations/{operation_id}/execute`
