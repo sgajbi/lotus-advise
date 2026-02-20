@@ -54,6 +54,10 @@ Phase-1 implemented:
 
 - `DPM_STRICT_OPENAPI_VALIDATION` (default `true` in CI, configurable locally)
 
+Phase-1 implemented:
+- DPM contract test suite reads `DPM_STRICT_OPENAPI_VALIDATION`.
+- When set to `false`, strict DPM OpenAPI contract tests are skipped for local iteration.
+
 ## 5. Test Plan
 
 - OpenAPI generation test for each DPM route family.
