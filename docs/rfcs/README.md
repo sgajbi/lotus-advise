@@ -33,5 +33,5 @@ Standards for all current and future RFCs:
 | RFC-0020 | DPM Workflow Gate API and Persistence | IMPLEMENTED | RFC-0017, RFC-0019 | `docs/rfcs/RFC-0020-dpm-workflow-gate-api-and-persistence.md` |
 | RFC-0021 | DPM OpenAPI Contract Hardening and Separation of Request/Response Models | IMPLEMENTED | RFC-0007A, RFC-0016, RFC-0017 | `docs/rfcs/RFC-0021-dpm-openapi-contract-hardening.md` |
 | RFC-0022 | DPM Policy Pack Configuration Model | IMPLEMENTED | RFC-0008, RFC-0010, RFC-0011, RFC-0016 | `docs/rfcs/RFC-0022-dpm-policy-pack-configuration-model.md` |
-| RFC-0023 | DPM Persistent Supportability Store and Lineage APIs | IN_PROGRESS | RFC-0017, RFC-0018, RFC-0019 | `docs/rfcs/RFC-0023-dpm-persistent-supportability-store-and-lineage-apis.md` |
+| RFC-0023 | DPM Persistent Supportability Store and Lineage APIs | IMPLEMENTED | RFC-0017, RFC-0018, RFC-0019 | `docs/rfcs/RFC-0023-dpm-persistent-supportability-store-and-lineage-apis.md` |
 | RFC-0024 | Unified PostgreSQL Persistence for DPM and Advisory | DRAFT | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |

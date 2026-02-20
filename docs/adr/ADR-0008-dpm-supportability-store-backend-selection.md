@@ -14,9 +14,12 @@ Introduce backend selection for DPM supportability repository:
 
 - `DPM_SUPPORTABILITY_STORE_BACKEND`
   - `IN_MEMORY` (default)
-  - `SQLITE`
+  - `SQL` (SQLite-backed in current implementation)
+  - `SQLITE` (backward-compatible alias of `SQL`)
+- `DPM_SUPPORTABILITY_SQL_PATH`
+  - file path used when backend is `SQL` (preferred)
 - `DPM_SUPPORTABILITY_SQLITE_PATH`
-  - file path used when backend is `SQLITE`
+  - backward-compatible file path alias
 
 Repository interface remains unchanged so services and API contracts are storage-agnostic.
 

@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN_PROGRESS |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0017, RFC-0018, RFC-0019 |
 | **Doc Location** | `docs/rfcs/RFC-0023-dpm-persistent-supportability-store-and-lineage-apis.md` |
@@ -55,7 +55,7 @@ In-memory supportability works for local/runtime diagnostics but is insufficient
 
 ### 4.3 Configurability
 
-- `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQL`)
+- `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQL`, with `SQLITE` as backward-compatible alias)
 - `DPM_SUPPORTABILITY_RETENTION_DAYS`
 - `DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED` (default `true`)
 - `DPM_SUPPORT_BUNDLE_APIS_ENABLED` (default `true`)
@@ -81,8 +81,9 @@ No new business run statuses. Investigation responses use explicit technical sta
 
 - Implemented (slice 1):
   - Repository backend selection:
-    - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQLITE`)
-    - `DPM_SUPPORTABILITY_SQLITE_PATH` (SQLite database file path)
+    - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQL`, `SQLITE` alias supported)
+    - `DPM_SUPPORTABILITY_SQL_PATH` (preferred SQL backend database file path)
+    - `DPM_SUPPORTABILITY_SQLITE_PATH` (backward-compatible path alias)
   - SQLite repository adapter for DPM supportability records:
     - runs
     - idempotency mappings
@@ -161,5 +162,5 @@ No new business run statuses. Investigation responses use explicit technical sta
       - adds workflow decision aggregates:
         - `workflow_action_counts`
         - `workflow_reason_code_counts`
-- Pending:
-  - SQL backend beyond SQLite (enterprise managed database deployment profile).
+- Follow-on:
+  - Enterprise managed SQL backend profiles (for example PostgreSQL) are tracked in RFC-0024.
