@@ -47,6 +47,8 @@ def artifact_store_mode() -> str:
 
 def supportability_store_backend_name() -> str:
     backend = os.getenv("DPM_SUPPORTABILITY_STORE_BACKEND", "IN_MEMORY").strip().upper()
+    if backend == "POSTGRES":
+        return "POSTGRES"
     return "SQL" if backend in {"SQL", "SQLITE"} else "IN_MEMORY"
 
 
@@ -57,7 +59,17 @@ def supportability_sql_path() -> str:
     )
 
 
+def supportability_postgres_dsn() -> str:
+    return os.getenv("DPM_SUPPORTABILITY_POSTGRES_DSN", "").strip()
+
+
 def build_repository():
-    if supportability_store_backend_name() == "SQL":
+    backend = supportability_store_backend_name()
+    if backend == "SQL":
         return SqliteDpmRunRepository(database_path=supportability_sql_path())
+    if backend == "POSTGRES":
+        dsn = supportability_postgres_dsn()
+        if not dsn:
+            raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED")
+        raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED")
     return InMemoryDpmRunRepository()

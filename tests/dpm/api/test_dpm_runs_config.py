@@ -14,6 +14,9 @@ def test_supportability_backend_aliases_and_defaults(monkeypatch):
     monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "unknown")
     assert dpm_runs_config.supportability_store_backend_name() == "IN_MEMORY"
 
+    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
+    assert dpm_runs_config.supportability_store_backend_name() == "POSTGRES"
+
 
 def test_supportability_sql_path_prefers_new_env_var(monkeypatch):
     monkeypatch.delenv("DPM_SUPPORTABILITY_SQL_PATH", raising=False)
@@ -25,6 +28,17 @@ def test_supportability_sql_path_prefers_new_env_var(monkeypatch):
 
     monkeypatch.setenv("DPM_SUPPORTABILITY_SQL_PATH", "preferred.sqlite")
     assert dpm_runs_config.supportability_sql_path() == "preferred.sqlite"
+
+
+def test_supportability_postgres_dsn(monkeypatch):
+    monkeypatch.delenv("DPM_SUPPORTABILITY_POSTGRES_DSN", raising=False)
+    assert dpm_runs_config.supportability_postgres_dsn() == ""
+
+    monkeypatch.setenv("DPM_SUPPORTABILITY_POSTGRES_DSN", "postgresql://user:pass@localhost:5432/dpm")
+    assert (
+        dpm_runs_config.supportability_postgres_dsn()
+        == "postgresql://user:pass@localhost:5432/dpm"
+    )
 
 
 def test_artifact_store_mode_fallback(monkeypatch):
@@ -54,3 +68,30 @@ def test_env_parsers(monkeypatch):
 
     monkeypatch.setenv("DPM_TEST_CSV", "A, B ,,C")
     assert dpm_runs_config.env_csv_set("DPM_TEST_CSV", {"X"}) == {"A", "B", "C"}
+
+
+def test_build_repository_postgres_requires_dsn(monkeypatch):
+    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
+    monkeypatch.delenv("DPM_SUPPORTABILITY_POSTGRES_DSN", raising=False)
+
+    try:
+        dpm_runs_config.build_repository()
+    except RuntimeError as exc:
+        assert str(exc) == "DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED"
+    else:
+        raise AssertionError("Expected RuntimeError for missing Postgres DSN")
+
+
+def test_build_repository_postgres_not_implemented(monkeypatch):
+    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv(
+        "DPM_SUPPORTABILITY_POSTGRES_DSN",
+        "postgresql://user:pass@localhost:5432/dpm",
+    )
+
+    try:
+        dpm_runs_config.build_repository()
+    except RuntimeError as exc:
+        assert str(exc) == "DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED"
+    else:
+        raise AssertionError("Expected RuntimeError for Postgres backend placeholder")

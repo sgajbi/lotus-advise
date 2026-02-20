@@ -16,10 +16,14 @@ Introduce backend selection for DPM supportability repository:
   - `IN_MEMORY` (default)
   - `SQL` (SQLite-backed in current implementation)
   - `SQLITE` (backward-compatible alias of `SQL`)
+  - `POSTGRES` (reserved rollout profile; requires explicit DSN)
 - `DPM_SUPPORTABILITY_SQL_PATH`
   - file path used when backend is `SQL` (preferred)
 - `DPM_SUPPORTABILITY_SQLITE_PATH`
   - backward-compatible file path alias
+- `DPM_SUPPORTABILITY_POSTGRES_DSN`
+  - DSN used when backend is `POSTGRES`
+  - empty/missing DSN is rejected
 
 Repository interface remains unchanged so services and API contracts are storage-agnostic.
 
