@@ -11,7 +11,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import app, get_db_session
+from src.api.main import DPM_IDEMPOTENCY_CACHE, app, get_db_session
 from tests.shared.factories import valid_api_payload
 
 
@@ -23,7 +23,9 @@ async def override_get_db_session():
 def override_db_dependency():
     original_overrides = dict(app.dependency_overrides)
     app.dependency_overrides[get_db_session] = override_get_db_session
+    DPM_IDEMPOTENCY_CACHE.clear()
     yield
+    DPM_IDEMPOTENCY_CACHE.clear()
     app.dependency_overrides = original_overrides
 
 
@@ -77,6 +79,45 @@ def test_simulate_payload_validation_error_422(client):
     response = client.post("/rebalance/simulate", json=payload, headers=headers)
     assert response.status_code == 422
     assert "detail" in response.json()
+
+
+def test_simulate_idempotency_replay_returns_same_payload(client):
+    payload = get_valid_payload()
+    headers = {"Idempotency-Key": "test-key-idem-replay", "X-Correlation-Id": "corr-idem-replay"}
+
+    first = client.post("/rebalance/simulate", json=payload, headers=headers)
+    second = client.post("/rebalance/simulate", json=payload, headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == second.json()
+
+
+def test_simulate_idempotency_conflict_returns_409(client):
+    payload = get_valid_payload()
+    headers = {"Idempotency-Key": "test-key-idem-conflict"}
+
+    first = client.post("/rebalance/simulate", json=payload, headers=headers)
+    assert first.status_code == 200
+
+    changed = get_valid_payload()
+    changed["options"]["max_turnover_pct"] = "0.05"
+    conflict = client.post("/rebalance/simulate", json=changed, headers=headers)
+    assert conflict.status_code == 409
+    assert conflict.json()["detail"] == "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
+
+
+def test_simulate_idempotency_replay_can_be_disabled(client, monkeypatch):
+    monkeypatch.setenv("DPM_IDEMPOTENCY_REPLAY_ENABLED", "false")
+    payload = get_valid_payload()
+    headers = {"Idempotency-Key": "test-key-idem-disabled"}
+
+    first = client.post("/rebalance/simulate", json=payload, headers=headers)
+    second = client.post("/rebalance/simulate", json=payload, headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["rebalance_run_id"] != second.json()["rebalance_run_id"]
 
 
 def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):

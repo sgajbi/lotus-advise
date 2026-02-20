@@ -3,6 +3,7 @@ FILE: src/api/main.py
 """
 
 import logging
+import os
 import uuid
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -46,6 +47,8 @@ app = FastAPI(
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+DPM_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict]]" = OrderedDict()
+DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE = 1000
 MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
 PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict]]" = OrderedDict()
 
@@ -137,6 +140,10 @@ SIMULATE_BLOCKED_EXAMPLE = {
         "rebalance_run_id": "rr_demo9999",
         "diagnostics": {"warnings": ["OVERDRAFT_ON_T_PLUS_1"]},
     },
+}
+SIMULATE_409_EXAMPLE = {
+    "summary": "Idempotency hash conflict",
+    "value": {"detail": "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"},
 }
 
 BATCH_EXAMPLE = {
@@ -232,6 +239,24 @@ def _resolve_base_snapshot_ids(request: BatchRebalanceRequest) -> Dict[str, str]
     }
 
 
+def _env_flag(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed >= 1 else default
+
+
 def _to_invalid_options_error(exc: ValidationError) -> str:
     first_error = exc.errors()[0]
     return f"INVALID_OPTIONS: {first_error.get('msg', 'validation failed')}"
@@ -286,6 +311,10 @@ def _build_comparison_metric(
         422: {
             "description": "Validation error (invalid payload or missing required headers).",
         },
+        409: {
+            "description": "Idempotency key reused with different canonical request hash.",
+            "content": {"application/json": {"examples": {"conflict": SIMULATE_409_EXAMPLE}}},
+        },
     },
 )
 def simulate_rebalance(
@@ -308,10 +337,23 @@ def simulate_rebalance(
     ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> RebalanceResult:
-    """
-    Core calculation endpoint. Stateless domain logic.
-    """
+    """Core DPM simulation endpoint with optional idempotent replay semantics."""
     logger.info(f"Simulating rebalance. CID={correlation_id} Idempotency={idempotency_key}")
+    replay_enabled = _env_flag("DPM_IDEMPOTENCY_REPLAY_ENABLED", True)
+    max_size = _env_int("DPM_IDEMPOTENCY_CACHE_MAX_SIZE", DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE)
+    request_payload = request.model_dump(mode="json")
+    request_hash = hash_canonical_payload(request_payload)
+
+    if replay_enabled:
+        existing = DPM_IDEMPOTENCY_CACHE.get(idempotency_key)
+        if existing and existing["request_hash"] != request_hash:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
+            )
+        if existing:
+            DPM_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
+            return RebalanceResult.model_validate(existing["response"])
 
     result = run_simulation(
         portfolio=request.portfolio_snapshot,
@@ -319,9 +361,18 @@ def simulate_rebalance(
         model=request.model_portfolio,
         shelf=request.shelf_entries,
         options=request.options,
-        request_hash=idempotency_key,
+        request_hash=request_hash,
         correlation_id=correlation_id or "c_none",
     )
+
+    if replay_enabled:
+        DPM_IDEMPOTENCY_CACHE[idempotency_key] = {
+            "request_hash": request_hash,
+            "response": result.model_dump(mode="json"),
+        }
+        DPM_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
+        while len(DPM_IDEMPOTENCY_CACHE) > max_size:
+            DPM_IDEMPOTENCY_CACHE.popitem(last=False)
 
     if result.status == "BLOCKED":
         logger.warning(f"Run blocked. Diagnostics: {result.diagnostics}")
