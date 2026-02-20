@@ -75,5 +75,10 @@ def build_repository():
         dsn = supportability_postgres_dsn()
         if not dsn:
             raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED")
-        return PostgresDpmRunRepository(dsn=dsn)
+        try:
+            return PostgresDpmRunRepository(dsn=dsn)
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_CONNECTION_FAILED") from exc
     return InMemoryDpmRunRepository()

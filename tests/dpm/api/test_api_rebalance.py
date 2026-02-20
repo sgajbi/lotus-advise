@@ -481,7 +481,7 @@ def test_dpm_support_repository_backend_init_errors_return_503(client, monkeypat
     reset_dpm_run_support_service_for_tests()
     missing_driver = client.get("/rebalance/runs?limit=1")
     assert missing_driver.status_code == 503
-    assert missing_driver.json()["detail"] == "DPM_SUPPORTABILITY_POSTGRES_DRIVER_MISSING"
+    assert missing_driver.json()["detail"] == "DPM_SUPPORTABILITY_POSTGRES_CONNECTION_FAILED"
 
 
 def test_dpm_async_operation_lookup_not_found_and_disabled(client, monkeypatch):

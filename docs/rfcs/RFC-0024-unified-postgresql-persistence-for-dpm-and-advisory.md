@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 1) |
+| **Status** | IN PROGRESS (SLICE 8) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -182,6 +182,16 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - run listing filters (`from`, `to`, `status`, `request_hash`, `portfolio_id`)
     - run listing cursor paging and invalid cursor behavior
     - correlation/request-hash lookup semantics
+- Implemented (slice 8):
+  - Added live Postgres repository integration contract tests (docker-gated) covering:
+    - run persistence, lookups, filters, cursor pagination, and artifact retrieval
+    - idempotency mapping/history, workflow decisions, lineage edges, and summary aggregation
+    - async operation pagination/TTL purge and run retention cascade purge semantics
+  - Test runtime guard:
+    - tests run only when `DPM_POSTGRES_INTEGRATION_DSN` is set.
+  - Manual runtime validation completed on `2026-02-20`:
+    - uvicorn with `POSTGRES` backend
+    - Docker container runtime with `POSTGRES` backend
+    - simulate -> run lookup by correlation -> supportability summary flow validated.
 - Next slice:
-  - implement remaining Postgres repository operations:
-    - add live Postgres integration contract tests (docker profile) for repository parity.
+  - advisory Postgres repository parity implementation and contract tests.

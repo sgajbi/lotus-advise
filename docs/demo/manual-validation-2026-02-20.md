@@ -327,6 +327,36 @@ Demo pack validation passed for http://127.0.0.1:8000
     - same call and response semantics verified.
     - `GET /rebalance/workflow/decisions?limit=20` returns workflow decisions across runs.
     - `GET /rebalance/workflow/decisions?actor_id=...&action=...&limit=...` returns filtered rows.
+- Live Postgres repository contract validation (RFC-0024 slice 8):
+  - Precondition:
+    - `docker-compose --profile postgres up -d postgres`
+    - `DPM_POSTGRES_INTEGRATION_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability`
+  - Executed:
+    - `uv run pytest tests/dpm/supportability/test_dpm_postgres_repository_integration.py -q`
+  - Observed:
+    - `3 passed in 4.75s`
+    - run persistence/lookup/filter/cursor behavior matched repository contract
+    - artifact persistence/retrieval remained deterministic
+    - idempotency/workflow/lineage summary counters persisted and were queryable
+    - async TTL purge and run retention cascade purge semantics were enforced
+- Live Postgres API validation for supportability flow (RFC-0024 slice 8):
+  - Uvicorn runtime (`http://127.0.0.1:8041`) with:
+    - `DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES`
+    - `DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability`
+    validated:
+    - `POST /rebalance/simulate` returns `status=READY`
+    - `GET /rebalance/runs/by-correlation/{correlation_id}` returns the same `rebalance_run_id`
+    - `GET /rebalance/supportability/summary` returns:
+      - `store_backend=POSTGRES`
+      - `run_count=1`
+  - Docker runtime (`http://127.0.0.1:8003`) with:
+    - `docker run ... -e DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES -e DPM_SUPPORTABILITY_POSTGRES_DSN=...`
+    validated:
+    - `POST /rebalance/simulate` returns `status=READY`
+    - `GET /rebalance/runs/by-correlation/{correlation_id}` returns the same `rebalance_run_id`
+    - `GET /rebalance/supportability/summary` returns:
+      - `store_backend=POSTGRES`
+      - `run_count=2` (includes previously persisted uvicorn validation run)
 - Policy-pack catalog supportability endpoint validation (RFC-0022 slice 4):
   - Docker runtime (`http://127.0.0.1:8000`):
     - `GET /rebalance/policies/catalog` with:

@@ -34,10 +34,11 @@ def test_supportability_postgres_dsn(monkeypatch):
     monkeypatch.delenv("DPM_SUPPORTABILITY_POSTGRES_DSN", raising=False)
     assert dpm_runs_config.supportability_postgres_dsn() == ""
 
-    monkeypatch.setenv("DPM_SUPPORTABILITY_POSTGRES_DSN", "postgresql://user:pass@localhost:5432/dpm")
+    monkeypatch.setenv(
+        "DPM_SUPPORTABILITY_POSTGRES_DSN", "postgresql://user:pass@localhost:5432/dpm"
+    )
     assert (
-        dpm_runs_config.supportability_postgres_dsn()
-        == "postgresql://user:pass@localhost:5432/dpm"
+        dpm_runs_config.supportability_postgres_dsn() == "postgresql://user:pass@localhost:5432/dpm"
     )
 
 
@@ -82,11 +83,19 @@ def test_build_repository_postgres_requires_dsn(monkeypatch):
         raise AssertionError("Expected RuntimeError for missing Postgres DSN")
 
 
-def test_build_repository_postgres_not_implemented(monkeypatch):
+def test_build_repository_postgres_driver_error_passthrough(monkeypatch):
     monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
     monkeypatch.setenv(
         "DPM_SUPPORTABILITY_POSTGRES_DSN",
         "postgresql://user:pass@localhost:5432/dpm",
+    )
+    def _raise_driver_error(**_kwargs):
+        raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_DRIVER_MISSING")
+
+    monkeypatch.setattr(
+        dpm_runs_config,
+        "PostgresDpmRunRepository",
+        _raise_driver_error,
     )
 
     try:
@@ -94,4 +103,27 @@ def test_build_repository_postgres_not_implemented(monkeypatch):
     except RuntimeError as exc:
         assert str(exc) == "DPM_SUPPORTABILITY_POSTGRES_DRIVER_MISSING"
     else:
-        raise AssertionError("Expected RuntimeError for missing Postgres driver")
+        raise AssertionError("Expected RuntimeError passthrough for Postgres init runtime error")
+
+
+def test_build_repository_postgres_connection_failure_mapped(monkeypatch):
+    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv(
+        "DPM_SUPPORTABILITY_POSTGRES_DSN",
+        "postgresql://user:pass@localhost:5432/dpm",
+    )
+    def _raise_connection_error(**_kwargs):
+        raise ValueError("connection broken")
+
+    monkeypatch.setattr(
+        dpm_runs_config,
+        "PostgresDpmRunRepository",
+        _raise_connection_error,
+    )
+
+    try:
+        dpm_runs_config.build_repository()
+    except RuntimeError as exc:
+        assert str(exc) == "DPM_SUPPORTABILITY_POSTGRES_CONNECTION_FAILED"
+    else:
+        raise AssertionError("Expected RuntimeError for Postgres connection failure")
