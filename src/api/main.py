@@ -35,6 +35,7 @@ from src.core.dpm.policy_packs import (
     resolve_effective_policy_pack,
     resolve_policy_pack_definition,
 )
+from src.core.dpm.tenant_policy_packs import build_tenant_policy_pack_resolver
 from src.core.dpm_runs import (
     DpmAsyncAcceptedResponse,
     DpmAsyncOperationStatusResponse,
@@ -328,11 +329,21 @@ def _resolve_dpm_policy_pack(
     *,
     request_policy_pack_id: Optional[str],
     tenant_default_policy_pack_id: Optional[str] = None,
+    tenant_id: Optional[str] = None,
 ) -> DpmEffectivePolicyPackResolution:
+    resolved_tenant_default_policy_pack_id = tenant_default_policy_pack_id
+    if resolved_tenant_default_policy_pack_id is None:
+        tenant_policy_pack_resolver = build_tenant_policy_pack_resolver(
+            enabled=_env_flag("DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED", False),
+            mapping_json=os.getenv("DPM_TENANT_POLICY_PACK_MAP_JSON"),
+        )
+        resolved_tenant_default_policy_pack_id = tenant_policy_pack_resolver.resolve(
+            tenant_id=tenant_id
+        )
     return resolve_effective_policy_pack(
         policy_packs_enabled=_env_flag("DPM_POLICY_PACKS_ENABLED", False),
         request_policy_pack_id=request_policy_pack_id,
-        tenant_default_policy_pack_id=tenant_default_policy_pack_id,
+        tenant_default_policy_pack_id=resolved_tenant_default_policy_pack_id,
         global_default_policy_pack_id=os.getenv("DPM_DEFAULT_POLICY_PACK_ID"),
     )
 
@@ -397,10 +408,19 @@ def get_effective_dpm_policy_pack(
             examples=["dpm_tenant_default_v1"],
         ),
     ] = None,
+    tenant_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Tenant-Id",
+            description="Optional tenant identifier used for tenant policy-pack default lookup.",
+            examples=["tenant_001"],
+        ),
+    ] = None,
 ) -> DpmEffectivePolicyPackResolution:
     return _resolve_dpm_policy_pack(
         request_policy_pack_id=request_policy_pack_id,
         tenant_default_policy_pack_id=tenant_default_policy_pack_id,
+        tenant_id=tenant_id,
     )
 
 
@@ -432,10 +452,19 @@ def get_dpm_policy_pack_catalog(
             examples=["dpm_tenant_default_v1"],
         ),
     ] = None,
+    tenant_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Tenant-Id",
+            description="Optional tenant identifier used for tenant policy-pack default lookup.",
+            examples=["tenant_001"],
+        ),
+    ] = None,
 ) -> DpmPolicyPackCatalogResponse:
     resolution = _resolve_dpm_policy_pack(
         request_policy_pack_id=request_policy_pack_id,
         tenant_default_policy_pack_id=tenant_default_policy_pack_id,
+        tenant_id=tenant_id,
     )
     catalog = _load_dpm_policy_pack_catalog()
     items = sorted(catalog.values(), key=lambda item: item.policy_pack_id)
@@ -510,10 +539,18 @@ def simulate_rebalance(
             alias="X-Policy-Pack-Id",
             description=(
                 "Optional policy-pack identifier for request-scoped policy selection. "
-                "Current slice resolves and traces selection only; simulation behavior "
-                "remains unchanged."
+                "When selected and found in catalog, configured policy fields can override "
+                "engine options for this request."
             ),
             examples=["dpm_standard_v1"],
+        ),
+    ] = None,
+    tenant_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Tenant-Id",
+            description="Optional tenant identifier used for tenant policy-pack default lookup.",
+            examples=["tenant_001"],
         ),
     ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
@@ -524,7 +561,10 @@ def simulate_rebalance(
     max_size = _env_int("DPM_IDEMPOTENCY_CACHE_MAX_SIZE", DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE)
     request_payload = request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
-    policy_pack = _resolve_dpm_policy_pack(request_policy_pack_id=policy_pack_id)
+    policy_pack = _resolve_dpm_policy_pack(
+        request_policy_pack_id=policy_pack_id,
+        tenant_id=tenant_id,
+    )
     policy_pack_definition = resolve_policy_pack_definition(
         resolution=policy_pack,
         catalog=_load_dpm_policy_pack_catalog(),
@@ -617,15 +657,26 @@ def analyze_scenarios(
             alias="X-Policy-Pack-Id",
             description=(
                 "Optional policy-pack identifier for request-scoped policy selection. "
-                "Current slice resolves and traces selection only; analysis behavior "
-                "remains unchanged."
+                "When selected and found in catalog, configured policy fields can override "
+                "scenario engine options for this request."
             ),
             examples=["dpm_standard_v1"],
         ),
     ] = None,
+    tenant_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Tenant-Id",
+            description="Optional tenant identifier used for tenant policy-pack default lookup.",
+            examples=["tenant_001"],
+        ),
+    ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> BatchRebalanceResult:
-    policy_pack = _resolve_dpm_policy_pack(request_policy_pack_id=policy_pack_id)
+    policy_pack = _resolve_dpm_policy_pack(
+        request_policy_pack_id=policy_pack_id,
+        tenant_id=tenant_id,
+    )
     logger.debug(
         "Resolved DPM policy pack for analyze. enabled=%s source=%s policy_pack_id=%s",
         policy_pack.enabled,
@@ -637,6 +688,7 @@ def analyze_scenarios(
         correlation_id=correlation_id,
         request_policy_pack_id=policy_pack_id,
         tenant_default_policy_pack_id=None,
+        tenant_id=tenant_id,
     )
 
 
@@ -694,10 +746,18 @@ def analyze_scenarios_async(
             alias="X-Policy-Pack-Id",
             description=(
                 "Optional policy-pack identifier for request-scoped policy selection. "
-                "Current slice resolves and traces selection only; async behavior remains "
-                "unchanged."
+                "When selected and found in catalog, configured policy fields can override "
+                "scenario engine options for this request."
             ),
             examples=["dpm_standard_v1"],
+        ),
+    ] = None,
+    tenant_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Tenant-Id",
+            description="Optional tenant identifier used for tenant policy-pack default lookup.",
+            examples=["tenant_001"],
         ),
     ] = None,
     response: Response = None,
@@ -709,7 +769,10 @@ def analyze_scenarios_async(
             detail="DPM_ASYNC_OPERATIONS_DISABLED",
         )
     service = get_dpm_run_support_service()
-    policy_pack = _resolve_dpm_policy_pack(request_policy_pack_id=policy_pack_id)
+    policy_pack = _resolve_dpm_policy_pack(
+        request_policy_pack_id=policy_pack_id,
+        tenant_id=tenant_id,
+    )
     logger.debug(
         "Resolved DPM policy pack for analyze async. enabled=%s source=%s policy_pack_id=%s",
         policy_pack.enabled,
@@ -723,6 +786,7 @@ def analyze_scenarios_async(
             "policy_context": {
                 "request_policy_pack_id": policy_pack_id,
                 "tenant_default_policy_pack_id": None,
+                "tenant_id": tenant_id,
             },
         },
     )
@@ -783,6 +847,7 @@ def _execute_batch_analysis(
     correlation_id: Optional[str],
     request_policy_pack_id: Optional[str] = None,
     tenant_default_policy_pack_id: Optional[str] = None,
+    tenant_id: Optional[str] = None,
 ) -> BatchRebalanceResult:
     batch_id = f"batch_{uuid.uuid4().hex[:8]}"
     logger.info(f"Analyzing scenario batch. CID={correlation_id} BatchID={batch_id}")
@@ -794,6 +859,7 @@ def _execute_batch_analysis(
     policy_resolution = _resolve_dpm_policy_pack(
         request_policy_pack_id=request_policy_pack_id,
         tenant_default_policy_pack_id=tenant_default_policy_pack_id,
+        tenant_id=tenant_id,
     )
     policy_definition = resolve_policy_pack_definition(
         resolution=policy_resolution,
@@ -866,16 +932,19 @@ def _run_analyze_async_operation(*, operation_id: str, service: DpmRunSupportSer
             policy_context = request_json.get("policy_context") or {}
             request_policy_pack_id = policy_context.get("request_policy_pack_id")
             tenant_default_policy_pack_id = policy_context.get("tenant_default_policy_pack_id")
+            tenant_id = policy_context.get("tenant_id")
         else:
             batch_payload = request_json
             request_policy_pack_id = None
             tenant_default_policy_pack_id = None
+            tenant_id = None
         batch_request = BatchRebalanceRequest.model_validate(batch_payload)
         result = _execute_batch_analysis(
             request=batch_request,
             correlation_id=operation_correlation_id,
             request_policy_pack_id=request_policy_pack_id,
             tenant_default_policy_pack_id=tenant_default_policy_pack_id,
+            tenant_id=tenant_id,
         )
         service.complete_operation_success(
             operation_id=operation_id,

@@ -24,6 +24,7 @@ Implementation scope:
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id`
 - Optional header: `X-Policy-Pack-Id` (selected pack may override configured engine options)
+- Optional header: `X-Tenant-Id` (used for tenant default policy-pack resolver lookup)
   - Current policy transformations:
     - `max_turnover_pct`
     - `enable_tax_awareness`
@@ -41,6 +42,7 @@ Implementation scope:
 - Purpose: multi-scenario what-if analysis using shared snapshots.
 - Optional header: `X-Correlation-Id`
 - Optional header: `X-Policy-Pack-Id` (selected pack may override configured engine options)
+- Optional header: `X-Tenant-Id` (used for tenant default policy-pack resolver lookup)
   - Current policy transformations:
     - `max_turnover_pct`
     - `enable_tax_awareness`
@@ -78,6 +80,7 @@ Implementation scope:
 - Optional headers:
   - `X-Policy-Pack-Id`
   - `X-Tenant-Policy-Pack-Id`
+  - `X-Tenant-Id`
 - Output:
   - `enabled`
   - `selected_policy_pack_id`
@@ -88,6 +91,7 @@ Implementation scope:
 - Optional headers:
   - `X-Policy-Pack-Id`
   - `X-Tenant-Policy-Pack-Id`
+  - `X-Tenant-Id`
 - Output:
   - `enabled`
   - `total`
@@ -267,6 +271,8 @@ Implementation scope:
   - `DPM_POLICY_PACKS_ENABLED` (default `false`)
   - `DPM_DEFAULT_POLICY_PACK_ID`
   - `DPM_POLICY_PACK_CATALOG_JSON` (JSON map of policy-pack definitions)
+  - `DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED` (default `false`)
+  - `DPM_TENANT_POLICY_PACK_MAP_JSON` (JSON map: `tenant_id -> policy_pack_id`)
 
 Dependency policy note:
 - `link_buy_to_same_currency_sell_dependency=null` defaults to `true` in DPM.

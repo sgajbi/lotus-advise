@@ -1213,6 +1213,45 @@ def test_effective_policy_pack_endpoint_resolution_precedence(client, monkeypatc
     }
 
 
+def test_effective_policy_pack_endpoint_uses_tenant_resolver_when_enabled(client, monkeypatch):
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "global_pack")
+    monkeypatch.setenv("DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED", "true")
+    monkeypatch.setenv("DPM_TENANT_POLICY_PACK_MAP_JSON", '{"tenant_001":"tenant_pack"}')
+
+    tenant_level = client.get(
+        "/rebalance/policies/effective",
+        headers={"X-Tenant-Id": "tenant_001"},
+    )
+    assert tenant_level.status_code == 200
+    assert tenant_level.json() == {
+        "enabled": True,
+        "selected_policy_pack_id": "tenant_pack",
+        "source": "TENANT_DEFAULT",
+    }
+
+
+def test_effective_policy_pack_explicit_tenant_header_precedence_over_resolver(client, monkeypatch):
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "global_pack")
+    monkeypatch.setenv("DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED", "true")
+    monkeypatch.setenv("DPM_TENANT_POLICY_PACK_MAP_JSON", '{"tenant_001":"tenant_pack"}')
+
+    tenant_level = client.get(
+        "/rebalance/policies/effective",
+        headers={
+            "X-Tenant-Id": "tenant_001",
+            "X-Tenant-Policy-Pack-Id": "tenant_header_pack",
+        },
+    )
+    assert tenant_level.status_code == 200
+    assert tenant_level.json() == {
+        "enabled": True,
+        "selected_policy_pack_id": "tenant_header_pack",
+        "source": "TENANT_DEFAULT",
+    }
+
+
 def test_policy_pack_catalog_endpoint_returns_resolution_and_items(client, monkeypatch):
     monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
     monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "global_pack")
@@ -1244,6 +1283,26 @@ def test_policy_pack_catalog_endpoint_returns_resolution_and_items(client, monke
     assert body["items"][0]["turnover_policy"]["max_turnover_pct"] == "0.03"
 
 
+def test_policy_pack_catalog_endpoint_uses_tenant_resolver(client, monkeypatch):
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "global_pack")
+    monkeypatch.setenv("DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED", "true")
+    monkeypatch.setenv("DPM_TENANT_POLICY_PACK_MAP_JSON", '{"tenant_001":"tenant_pack"}')
+    monkeypatch.setenv(
+        "DPM_POLICY_PACK_CATALOG_JSON",
+        '{"tenant_pack":{"version":"1"}}',
+    )
+
+    response = client.get(
+        "/rebalance/policies/catalog",
+        headers={"X-Tenant-Id": "tenant_001"},
+    )
+    assert response.status_code == 200
+    assert response.json()["selected_policy_pack_id"] == "tenant_pack"
+    assert response.json()["selected_policy_pack_present"] is True
+    assert response.json()["selected_policy_pack_source"] == "TENANT_DEFAULT"
+
+
 def test_policy_pack_catalog_endpoint_selected_not_present(client, monkeypatch):
     monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
     monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "global_pack")
@@ -1259,6 +1318,51 @@ def test_policy_pack_catalog_endpoint_selected_not_present(client, monkeypatch):
     assert body["selected_policy_pack_id"] == "unknown_pack"
     assert body["selected_policy_pack_present"] is False
     assert body["selected_policy_pack_source"] == "REQUEST"
+
+
+def test_dpm_policy_pack_catalog_overrides_options_using_tenant_resolver(client, monkeypatch):
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "dpm_default_pack")
+    monkeypatch.setenv("DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED", "true")
+    monkeypatch.setenv("DPM_TENANT_POLICY_PACK_MAP_JSON", '{"tenant_001":"tenant_pack"}')
+    monkeypatch.setenv(
+        "DPM_POLICY_PACK_CATALOG_JSON",
+        '{"tenant_pack":{"version":"1","turnover_policy":{"max_turnover_pct":"0.02"}}}',
+    )
+    payload = get_valid_payload()
+    from src.core.dpm_engine import run_simulation as real_run
+    from src.core.models import (
+        EngineOptions,
+        MarketDataSnapshot,
+        ModelPortfolio,
+        PortfolioSnapshot,
+        ShelfEntry,
+    )
+
+    seed_payload = get_valid_payload()
+    real_result = real_run(
+        portfolio=PortfolioSnapshot(**seed_payload["portfolio_snapshot"]),
+        market_data=MarketDataSnapshot(**seed_payload["market_data_snapshot"]),
+        model=ModelPortfolio(**seed_payload["model_portfolio"]),
+        shelf=[ShelfEntry(**entry) for entry in seed_payload["shelf_entries"]],
+        options=EngineOptions(**seed_payload["options"]),
+        request_hash="seed-policy-pack-tenant",
+    )
+
+    with patch("src.api.main.run_simulation") as mock_run:
+        mock_run.return_value = real_result
+
+        simulate = client.post(
+            "/rebalance/simulate",
+            json=payload,
+            headers={
+                "Idempotency-Key": "test-key-policy-pack-tenant-override-simulate",
+                "X-Tenant-Id": "tenant_001",
+            },
+        )
+        assert simulate.status_code == 200
+        simulate_options = mock_run.call_args.kwargs["options"]
+        assert simulate_options.max_turnover_pct == Decimal("0.02")
 
 
 def test_analyze_async_accept_only_mode_keeps_operation_pending(client, monkeypatch):
@@ -1414,6 +1518,8 @@ def test_openapi_async_analyze_documents_correlation_header(client):
     analyze_header_names = {parameter["name"] for parameter in analyze["parameters"]}
     assert "X-Policy-Pack-Id" in simulate_header_names
     assert "X-Policy-Pack-Id" in analyze_header_names
+    assert "X-Tenant-Id" in simulate_header_names
+    assert "X-Tenant-Id" in analyze_header_names
 
     request_header = next(
         parameter
@@ -1445,6 +1551,17 @@ def test_openapi_async_analyze_documents_correlation_header(client):
         assert policy_schema["type"] == "string"
     else:
         assert any(item.get("type") == "string" for item in policy_schema.get("anyOf", []))
+
+    tenant_header = next(
+        parameter for parameter in analyze_async["parameters"] if parameter["name"] == "X-Tenant-Id"
+    )
+    assert tenant_header["in"] == "header"
+    assert tenant_header["description"]
+    tenant_schema = tenant_header["schema"]
+    if "type" in tenant_schema:
+        assert tenant_schema["type"] == "string"
+    else:
+        assert any(item.get("type") == "string" for item in tenant_schema.get("anyOf", []))
 
     accepted_schema = openapi["components"]["schemas"]["DpmAsyncAcceptedResponse"]
     assert "execute_url" in accepted_schema["properties"]

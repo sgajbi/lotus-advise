@@ -52,6 +52,8 @@ DPM currently relies on distributed flags and static defaults. As product varian
 
 - `DPM_POLICY_PACKS_ENABLED` (default `false`)
 - `DPM_DEFAULT_POLICY_PACK_ID`
+- `DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED` (default `false`)
+- `DPM_TENANT_POLICY_PACK_MAP_JSON`
 
 ## 5. Test Plan
 
@@ -125,7 +127,26 @@ Policy pack selection must not alter run status vocabulary semantics.
     - `POST /rebalance/simulate`
     - `POST /rebalance/analyze`
     - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
+- Implemented (slice 6):
+  - Tenant policy-pack adapter integration:
+    - resolver module:
+      - `src/core/dpm/tenant_policy_packs.py`
+    - optional tenant context header:
+      - `X-Tenant-Id`
+    - optional tenant default header remains supported:
+      - `X-Tenant-Policy-Pack-Id`
+    - tenant default resolution path:
+      - explicit `X-Tenant-Policy-Pack-Id` header
+      - otherwise resolver lookup by `X-Tenant-Id`
+      - controlled by:
+        - `DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED`
+        - `DPM_TENANT_POLICY_PACK_MAP_JSON`
+  - Applied on:
+    - `POST /rebalance/simulate`
+    - `POST /rebalance/analyze`
+    - `POST /rebalance/analyze/async`
+    - `GET /rebalance/policies/effective`
+    - `GET /rebalance/policies/catalog`
 - Pending:
-  - tenant-level policy resolution adapter integration.
   - additional policy dimensions beyond turnover/tax
     (settlement, constraints, workflow, idempotency).

@@ -312,3 +312,25 @@ Demo pack validation passed for http://127.0.0.1:8000
       returns `200` with `status=READY`.
   - Uvicorn runtime (`http://127.0.0.1:8002`):
     - same call and response semantics verified (`status=READY`).
+- Tenant policy-pack resolver validation (RFC-0022 slice 6):
+  - Docker runtime (`http://127.0.0.1:8000`, default config):
+    - `GET /rebalance/policies/effective` with `X-Tenant-Id=tenant_001` returns:
+      - `enabled=false`
+      - `source=DISABLED`
+    - `POST /rebalance/simulate` with `X-Tenant-Id=tenant_001` returns `200` with `status=READY`.
+  - Uvicorn runtime (`http://127.0.0.1:8003`) with:
+    - `DPM_POLICY_PACKS_ENABLED=true`
+    - `DPM_DEFAULT_POLICY_PACK_ID=global_pack`
+    - `DPM_POLICY_PACK_CATALOG_JSON={"tenant_pack":{"version":"1","turnover_policy":{"max_turnover_pct":"0.02"}}}`
+    - `DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED=true`
+    - `DPM_TENANT_POLICY_PACK_MAP_JSON={"tenant_001":"tenant_pack"}`
+    validated:
+    - `GET /rebalance/policies/effective` with `X-Tenant-Id=tenant_001` returns:
+      - `enabled=true`
+      - `selected_policy_pack_id=tenant_pack`
+      - `source=TENANT_DEFAULT`
+    - `GET /rebalance/policies/catalog` with `X-Tenant-Id=tenant_001` returns:
+      - `total=1`
+      - `selected_policy_pack_id=tenant_pack`
+      - `selected_policy_pack_present=true`
+    - `POST /rebalance/simulate` with `X-Tenant-Id=tenant_001` returns `200` with `status=READY`.

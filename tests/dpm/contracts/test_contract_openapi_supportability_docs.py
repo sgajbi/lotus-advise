@@ -189,6 +189,7 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     header_names = {param["name"] for param in analyze_async["parameters"]}
     assert "X-Correlation-Id" in header_names
     assert "X-Policy-Pack-Id" in header_names
+    assert "X-Tenant-Id" in header_names
 
     effective_policy = openapi["paths"]["/rebalance/policies/effective"]["get"]
     assert effective_policy["responses"]["200"]["content"]["application/json"]["schema"][
@@ -197,6 +198,7 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     policy_params = {param["name"] for param in effective_policy["parameters"]}
     assert "X-Policy-Pack-Id" in policy_params
     assert "X-Tenant-Policy-Pack-Id" in policy_params
+    assert "X-Tenant-Id" in policy_params
 
     policy_catalog = openapi["paths"]["/rebalance/policies/catalog"]["get"]
     assert policy_catalog["responses"]["200"]["content"]["application/json"]["schema"][
@@ -205,6 +207,7 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     policy_catalog_params = {param["name"] for param in policy_catalog["parameters"]}
     assert "X-Policy-Pack-Id" in policy_catalog_params
     assert "X-Tenant-Policy-Pack-Id" in policy_catalog_params
+    assert "X-Tenant-Id" in policy_catalog_params
 
     list_operations = openapi["paths"]["/rebalance/operations"]["get"]
     assert list_operations["responses"]["200"]["content"]["application/json"]["schema"][
