@@ -14,6 +14,12 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
+from src.api.routers.dpm_runs import (
+    record_dpm_run_for_support,
+)
+from src.api.routers.dpm_runs import (
+    router as dpm_run_support_router,
+)
 from src.api.routers.proposals import router as proposal_lifecycle_router
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.artifact_models import ProposalArtifact
@@ -53,6 +59,7 @@ MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
 PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict]]" = OrderedDict()
 
 app.include_router(proposal_lifecycle_router)
+app.include_router(dpm_run_support_router)
 
 
 async def get_db_session():
@@ -374,6 +381,13 @@ def simulate_rebalance(
         while len(DPM_IDEMPOTENCY_CACHE) > max_size:
             DPM_IDEMPOTENCY_CACHE.popitem(last=False)
 
+    record_dpm_run_for_support(
+        result=result,
+        request_hash=request_hash,
+        portfolio_id=request.portfolio_snapshot.portfolio_id,
+        idempotency_key=idempotency_key,
+    )
+
     if result.status == "BLOCKED":
         logger.warning(f"Run blocked. Diagnostics: {result.diagnostics}")
 
@@ -443,6 +457,12 @@ def analyze_scenarios(
                 options=options,
                 request_hash=f"{batch_id}:{scenario_name}",
                 correlation_id=scenario_correlation_id,
+            )
+            record_dpm_run_for_support(
+                result=scenario_result,
+                request_hash=f"{batch_id}:{scenario_name}",
+                portfolio_id=request.portfolio_snapshot.portfolio_id,
+                idempotency_key=None,
             )
             results[scenario_name] = scenario_result
             comparison_metrics[scenario_name] = _build_comparison_metric(

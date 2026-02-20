@@ -12,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import DPM_IDEMPOTENCY_CACHE, app, get_db_session
+from src.api.routers.dpm_runs import reset_dpm_run_support_service_for_tests
 from tests.shared.factories import valid_api_payload
 
 
@@ -24,8 +25,10 @@ def override_db_dependency():
     original_overrides = dict(app.dependency_overrides)
     app.dependency_overrides[get_db_session] = override_get_db_session
     DPM_IDEMPOTENCY_CACHE.clear()
+    reset_dpm_run_support_service_for_tests()
     yield
     DPM_IDEMPOTENCY_CACHE.clear()
+    reset_dpm_run_support_service_for_tests()
     app.dependency_overrides = original_overrides
 
 
@@ -118,6 +121,53 @@ def test_simulate_idempotency_replay_can_be_disabled(client, monkeypatch):
     assert first.status_code == 200
     assert second.status_code == 200
     assert first.json()["rebalance_run_id"] != second.json()["rebalance_run_id"]
+
+
+def test_dpm_support_apis_lookup_by_run_correlation_and_idempotency(client):
+    payload = get_valid_payload()
+    headers = {"Idempotency-Key": "test-key-support-1", "X-Correlation-Id": "corr-support-1"}
+    simulate = client.post("/rebalance/simulate", json=payload, headers=headers)
+    assert simulate.status_code == 200
+    body = simulate.json()
+
+    by_run = client.get(f"/rebalance/runs/{body['rebalance_run_id']}")
+    assert by_run.status_code == 200
+    run_body = by_run.json()
+    assert run_body["rebalance_run_id"] == body["rebalance_run_id"]
+    assert run_body["correlation_id"] == "corr-support-1"
+    assert run_body["idempotency_key"] == "test-key-support-1"
+    assert run_body["request_hash"].startswith("sha256:")
+    assert run_body["result"]["rebalance_run_id"] == body["rebalance_run_id"]
+
+    by_correlation = client.get("/rebalance/runs/by-correlation/corr-support-1")
+    assert by_correlation.status_code == 200
+    assert by_correlation.json()["rebalance_run_id"] == body["rebalance_run_id"]
+
+    by_idempotency = client.get("/rebalance/runs/idempotency/test-key-support-1")
+    assert by_idempotency.status_code == 200
+    idem_body = by_idempotency.json()
+    assert idem_body["idempotency_key"] == "test-key-support-1"
+    assert idem_body["rebalance_run_id"] == body["rebalance_run_id"]
+    assert idem_body["request_hash"].startswith("sha256:")
+
+
+def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
+    missing_run = client.get("/rebalance/runs/rr_missing")
+    assert missing_run.status_code == 404
+    assert missing_run.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
+    missing_correlation = client.get("/rebalance/runs/by-correlation/corr-missing")
+    assert missing_correlation.status_code == 404
+    assert missing_correlation.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
+    missing_idem = client.get("/rebalance/runs/idempotency/idem-missing")
+    assert missing_idem.status_code == 404
+    assert missing_idem.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"
+
+    monkeypatch.setenv("DPM_SUPPORT_APIS_ENABLED", "false")
+    disabled = client.get("/rebalance/runs/rr_missing")
+    assert disabled.status_code == 404
+    assert disabled.json()["detail"] == "DPM_SUPPORT_APIS_DISABLED"
 
 
 def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):
