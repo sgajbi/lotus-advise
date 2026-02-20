@@ -1104,6 +1104,62 @@ def test_dpm_policy_pack_header_is_accepted_without_behavior_change(client, monk
     assert response.json()["status"] in {"READY", "PENDING_REVIEW", "BLOCKED"}
 
 
+def test_dpm_policy_pack_catalog_overrides_turnover_option(client, monkeypatch):
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "dpm_default_pack")
+    monkeypatch.setenv(
+        "DPM_POLICY_PACK_CATALOG_JSON",
+        '{"dpm_request_pack":{"version":"1","turnover_policy":{"max_turnover_pct":"0.01"}}}',
+    )
+
+    payload = get_valid_payload()
+    from src.core.dpm_engine import run_simulation as real_run
+    from src.core.models import (
+        EngineOptions,
+        MarketDataSnapshot,
+        ModelPortfolio,
+        PortfolioSnapshot,
+        ShelfEntry,
+    )
+
+    seed_payload = get_valid_payload()
+    real_result = real_run(
+        portfolio=PortfolioSnapshot(**seed_payload["portfolio_snapshot"]),
+        market_data=MarketDataSnapshot(**seed_payload["market_data_snapshot"]),
+        model=ModelPortfolio(**seed_payload["model_portfolio"]),
+        shelf=[ShelfEntry(**entry) for entry in seed_payload["shelf_entries"]],
+        options=EngineOptions(**seed_payload["options"]),
+        request_hash="seed-policy-pack",
+    )
+
+    with patch("src.api.main.run_simulation") as mock_run:
+        mock_run.return_value = real_result
+
+        simulate = client.post(
+            "/rebalance/simulate",
+            json=payload,
+            headers={
+                "Idempotency-Key": "test-key-policy-pack-override-simulate",
+                "X-Policy-Pack-Id": "dpm_request_pack",
+            },
+        )
+        assert simulate.status_code == 200
+        simulate_options = mock_run.call_args_list[0].kwargs["options"]
+        assert simulate_options.max_turnover_pct == Decimal("0.01")
+
+        batch_payload = get_valid_payload()
+        batch_payload.pop("options")
+        batch_payload["scenarios"] = {"baseline": {"options": {}}}
+        analyze = client.post(
+            "/rebalance/analyze",
+            json=batch_payload,
+            headers={"X-Policy-Pack-Id": "dpm_request_pack"},
+        )
+        assert analyze.status_code == 200
+        analyze_options = mock_run.call_args_list[1].kwargs["options"]
+        assert analyze_options.max_turnover_pct == Decimal("0.01")
+
+
 def test_effective_policy_pack_endpoint_resolution_precedence(client, monkeypatch):
     disabled = client.get("/rebalance/policies/effective", headers={"X-Policy-Pack-Id": "req_pack"})
     assert disabled.status_code == 200
@@ -1292,7 +1348,14 @@ def test_openapi_title_and_tag_grouping(client):
 
 def test_openapi_async_analyze_documents_correlation_header(client):
     openapi = client.get("/openapi.json").json()
+    simulate = openapi["paths"]["/rebalance/simulate"]["post"]
+    analyze = openapi["paths"]["/rebalance/analyze"]["post"]
     analyze_async = openapi["paths"]["/rebalance/analyze/async"]["post"]
+
+    simulate_header_names = {parameter["name"] for parameter in simulate["parameters"]}
+    analyze_header_names = {parameter["name"] for parameter in analyze["parameters"]}
+    assert "X-Policy-Pack-Id" in simulate_header_names
+    assert "X-Policy-Pack-Id" in analyze_header_names
 
     request_header = next(
         parameter

@@ -1,6 +1,10 @@
+import json
+from decimal import Decimal
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
+
+from src.core.models import EngineOptions
 
 DpmPolicyPackSource = Literal["DISABLED", "REQUEST", "TENANT_DEFAULT", "GLOBAL_DEFAULT", "NONE"]
 
@@ -18,6 +22,29 @@ class DpmEffectivePolicyPackResolution(BaseModel):
     source: DpmPolicyPackSource = Field(
         description="Resolution source selected by precedence policy.",
         examples=["REQUEST"],
+    )
+
+
+class DpmPolicyPackTurnoverPolicy(BaseModel):
+    max_turnover_pct: Optional[Decimal] = Field(
+        default=None,
+        description="Optional turnover cap override to apply on selected policy-pack.",
+        examples=["0.15"],
+    )
+
+
+class DpmPolicyPackDefinition(BaseModel):
+    policy_pack_id: str = Field(
+        description="Unique policy-pack identifier.",
+        examples=["dpm_standard_v1"],
+    )
+    version: str = Field(
+        description="Policy-pack version.",
+        examples=["1"],
+    )
+    turnover_policy: DpmPolicyPackTurnoverPolicy = Field(
+        default_factory=DpmPolicyPackTurnoverPolicy,
+        description="Turnover policy overrides for selected policy-pack.",
     )
 
 
@@ -69,3 +96,60 @@ def _normalize_policy_pack_id(value: Optional[str]) -> Optional[str]:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+def parse_policy_pack_catalog(catalog_json: Optional[str]) -> dict[str, DpmPolicyPackDefinition]:
+    normalized_json = (catalog_json or "").strip()
+    if not normalized_json:
+        return {}
+    try:
+        raw = json.loads(normalized_json)
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+
+    catalog: dict[str, DpmPolicyPackDefinition] = {}
+    for policy_pack_id, definition in raw.items():
+        if not isinstance(policy_pack_id, str):
+            continue
+        if not isinstance(definition, dict):
+            continue
+        normalized_id = policy_pack_id.strip()
+        if not normalized_id:
+            continue
+        payload = {
+            "policy_pack_id": normalized_id,
+            "version": str(definition.get("version", "1")),
+            "turnover_policy": definition.get("turnover_policy") or {},
+        }
+        try:
+            parsed = DpmPolicyPackDefinition.model_validate(payload)
+        except Exception:
+            continue
+        catalog[normalized_id] = parsed
+    return catalog
+
+
+def resolve_policy_pack_definition(
+    *,
+    resolution: DpmEffectivePolicyPackResolution,
+    catalog: dict[str, DpmPolicyPackDefinition],
+) -> Optional[DpmPolicyPackDefinition]:
+    if resolution.selected_policy_pack_id is None:
+        return None
+    return catalog.get(resolution.selected_policy_pack_id)
+
+
+def apply_policy_pack_to_engine_options(
+    *,
+    options: EngineOptions,
+    policy_pack: Optional[DpmPolicyPackDefinition],
+) -> EngineOptions:
+    if policy_pack is None:
+        return options
+    if policy_pack.turnover_policy.max_turnover_pct is None:
+        return options
+    return options.model_copy(
+        update={"max_turnover_pct": policy_pack.turnover_policy.max_turnover_pct}
+    )

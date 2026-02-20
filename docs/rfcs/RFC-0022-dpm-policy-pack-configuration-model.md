@@ -97,6 +97,16 @@ Policy pack selection must not alter run status vocabulary semantics.
         - `enabled`
         - `selected_policy_pack_id`
         - `source` (`DISABLED | REQUEST | TENANT_DEFAULT | GLOBAL_DEFAULT | NONE`)
+- Implemented (slice 3):
+  - Policy-pack catalog parsing:
+    - `DPM_POLICY_PACK_CATALOG_JSON`
+  - Initial `EngineOptions` transformation:
+    - selected policy-pack can override:
+      - `max_turnover_pct`
+  - Applied on:
+    - `POST /rebalance/simulate`
+    - `POST /rebalance/analyze`
+    - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
 - Pending:
   - tenant-level policy resolution adapter integration.
-  - mapping from selected policy-pack to concrete `EngineOptions` transformations.
+  - additional policy dimensions beyond turnover (tax, settlement, constraints, workflow, idempotency).

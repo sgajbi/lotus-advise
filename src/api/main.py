@@ -29,7 +29,10 @@ from src.core.common.canonical import hash_canonical_payload
 from src.core.dpm.engine import run_simulation
 from src.core.dpm.policy_packs import (
     DpmEffectivePolicyPackResolution,
+    apply_policy_pack_to_engine_options,
+    parse_policy_pack_catalog,
     resolve_effective_policy_pack,
+    resolve_policy_pack_definition,
 )
 from src.core.dpm_runs import (
     DpmAsyncAcceptedResponse,
@@ -333,6 +336,10 @@ def _resolve_dpm_policy_pack(
     )
 
 
+def _load_dpm_policy_pack_catalog():
+    return parse_policy_pack_catalog(os.getenv("DPM_POLICY_PACK_CATALOG_JSON"))
+
+
 def _to_invalid_options_error(exc: ValidationError) -> str:
     first_error = exc.errors()[0]
     return f"INVALID_OPTIONS: {first_error.get('msg', 'validation failed')}"
@@ -469,6 +476,14 @@ def simulate_rebalance(
     request_payload = request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
     policy_pack = _resolve_dpm_policy_pack(request_policy_pack_id=policy_pack_id)
+    policy_pack_definition = resolve_policy_pack_definition(
+        resolution=policy_pack,
+        catalog=_load_dpm_policy_pack_catalog(),
+    )
+    effective_options = apply_policy_pack_to_engine_options(
+        options=request.options,
+        policy_pack=policy_pack_definition,
+    )
     logger.debug(
         "Resolved DPM policy pack for simulate. enabled=%s source=%s policy_pack_id=%s",
         policy_pack.enabled,
@@ -492,7 +507,7 @@ def simulate_rebalance(
         market_data=request.market_data_snapshot,
         model=request.model_portfolio,
         shelf=request.shelf_entries,
-        options=request.options,
+        options=effective_options,
         request_hash=request_hash,
         correlation_id=correlation_id or "c_none",
     )
@@ -568,7 +583,12 @@ def analyze_scenarios(
         policy_pack.source,
         policy_pack.selected_policy_pack_id,
     )
-    return _execute_batch_analysis(request=request, correlation_id=correlation_id)
+    return _execute_batch_analysis(
+        request=request,
+        correlation_id=correlation_id,
+        request_policy_pack_id=policy_pack_id,
+        tenant_default_policy_pack_id=None,
+    )
 
 
 @app.post(
@@ -649,7 +669,13 @@ def analyze_scenarios_async(
     )
     accepted = service.submit_analyze_async(
         correlation_id=correlation_id,
-        request_json=request.model_dump(mode="json"),
+        request_json={
+            "batch_request": request.model_dump(mode="json"),
+            "policy_context": {
+                "request_policy_pack_id": policy_pack_id,
+                "tenant_default_policy_pack_id": None,
+            },
+        },
     )
     if response is not None:
         response.headers["X-Correlation-Id"] = accepted.correlation_id
@@ -706,6 +732,8 @@ def _execute_batch_analysis(
     *,
     request: BatchRebalanceRequest,
     correlation_id: Optional[str],
+    request_policy_pack_id: Optional[str] = None,
+    tenant_default_policy_pack_id: Optional[str] = None,
 ) -> BatchRebalanceResult:
     batch_id = f"batch_{uuid.uuid4().hex[:8]}"
     logger.info(f"Analyzing scenario batch. CID={correlation_id} BatchID={batch_id}")
@@ -714,6 +742,14 @@ def _execute_batch_analysis(
     comparison_metrics = {}
     failed_scenarios = {}
     warnings = []
+    policy_resolution = _resolve_dpm_policy_pack(
+        request_policy_pack_id=request_policy_pack_id,
+        tenant_default_policy_pack_id=tenant_default_policy_pack_id,
+    )
+    policy_definition = resolve_policy_pack_definition(
+        resolution=policy_resolution,
+        catalog=_load_dpm_policy_pack_catalog(),
+    )
 
     for scenario_name in sorted(request.scenarios.keys()):
         scenario = request.scenarios[scenario_name]
@@ -724,6 +760,10 @@ def _execute_batch_analysis(
             continue
 
         try:
+            effective_options = apply_policy_pack_to_engine_options(
+                options=options,
+                policy_pack=policy_definition,
+            )
             scenario_correlation_id = (
                 f"{correlation_id}:{scenario_name}"
                 if correlation_id
@@ -734,7 +774,7 @@ def _execute_batch_analysis(
                 market_data=request.market_data_snapshot,
                 model=request.model_portfolio,
                 shelf=request.shelf_entries,
-                options=options,
+                options=effective_options,
                 request_hash=f"{batch_id}:{scenario_name}",
                 correlation_id=scenario_correlation_id,
             )
@@ -772,10 +812,21 @@ def _run_analyze_async_operation(*, operation_id: str, service: DpmRunSupportSer
         operation_id=operation_id
     )
     try:
-        batch_request = BatchRebalanceRequest.model_validate(request_json)
+        if isinstance(request_json, dict) and "batch_request" in request_json:
+            batch_payload = request_json.get("batch_request") or {}
+            policy_context = request_json.get("policy_context") or {}
+            request_policy_pack_id = policy_context.get("request_policy_pack_id")
+            tenant_default_policy_pack_id = policy_context.get("tenant_default_policy_pack_id")
+        else:
+            batch_payload = request_json
+            request_policy_pack_id = None
+            tenant_default_policy_pack_id = None
+        batch_request = BatchRebalanceRequest.model_validate(batch_payload)
         result = _execute_batch_analysis(
             request=batch_request,
             correlation_id=operation_correlation_id,
+            request_policy_pack_id=request_policy_pack_id,
+            tenant_default_policy_pack_id=tenant_default_policy_pack_id,
         )
         service.complete_operation_success(
             operation_id=operation_id,
