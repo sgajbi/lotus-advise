@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 10) |
+| **Status** | IN PROGRESS (SLICE 11) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -213,5 +213,14 @@ Current state is split between in-memory adapters (advisory and default DPM) and
   - Added Docker/runtime env passthrough for advisory Postgres backend:
     - `PROPOSAL_STORE_BACKEND`
     - `PROPOSAL_POSTGRES_DSN`
+- Implemented (slice 11):
+  - Added advisory supportability/config diagnostics endpoint:
+    - `GET /rebalance/proposals/supportability/config`
+  - Endpoint provides stable operational diagnostics without direct DB access:
+    - configured backend
+    - backend readiness
+    - backend initialization error code (when not ready)
+    - lifecycle/support/async and behavior toggles
+  - Added API coverage for default and backend-error diagnostic responses.
 - Next slice:
   - advisory Postgres repository CRUD parity implementation and repository contract tests.

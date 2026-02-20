@@ -98,6 +98,49 @@ def test_proposal_repository_unexpected_init_error_mapped_to_503(monkeypatch):
         assert response.json()["detail"] == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
 
 
+def test_proposal_supportability_config_defaults():
+    with TestClient(app) as client:
+        response = client.get("/rebalance/proposals/supportability/config")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["store_backend"] == "IN_MEMORY"
+        assert body["backend_ready"] is True
+        assert body["backend_init_error"] is None
+        assert body["lifecycle_enabled"] is True
+        assert body["support_apis_enabled"] is True
+        assert body["async_operations_enabled"] is True
+        assert body["store_evidence_bundle"] is True
+        assert body["require_expected_state"] is True
+        assert body["allow_portfolio_id_change_on_new_version"] is False
+        assert body["require_proposal_simulation_flag"] is True
+
+
+def test_proposal_supportability_config_reports_backend_error(monkeypatch):
+    with TestClient(app) as client:
+        monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
+        monkeypatch.delenv("PROPOSAL_POSTGRES_DSN", raising=False)
+
+        response = client.get("/rebalance/proposals/supportability/config")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["store_backend"] == "POSTGRES"
+        assert body["backend_ready"] is False
+        assert body["backend_init_error"] == "PROPOSAL_POSTGRES_DSN_REQUIRED"
+
+
+def test_proposal_supportability_config_reports_unexpected_backend_error(monkeypatch):
+    with TestClient(app) as client:
+        monkeypatch.setattr(
+            "src.api.routers.proposals.proposals_config.build_repository",
+            lambda: (_ for _ in ()).throw(ValueError("boom")),
+        )
+        response = client.get("/rebalance/proposals/supportability/config")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["backend_ready"] is False
+        assert body["backend_init_error"] == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
+
+
 def test_create_proposal_idempotency_reuses_existing_proposal_and_detects_conflict():
     with TestClient(app) as client:
         first = _create(client, "lifecycle-create-2")
@@ -473,6 +516,12 @@ def test_async_create_and_lookup_by_operation_and_correlation():
         )
         assert by_correlation.status_code == 200
         assert by_correlation.json()["operation_id"] == operation_id
+
+        missing_by_correlation = client.get(
+            "/rebalance/proposals/operations/by-correlation/corr-missing"
+        )
+        assert missing_by_correlation.status_code == 404
+        assert missing_by_correlation.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"
 
 
 def test_async_create_version_and_lookup():

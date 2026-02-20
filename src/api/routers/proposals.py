@@ -19,6 +19,7 @@ from src.core.proposals import (
     ProposalStateConflictError,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
+    ProposalSupportabilityConfigResponse,
     ProposalTransitionError,
     ProposalValidationError,
     ProposalVersionDetail,
@@ -39,6 +40,10 @@ def _env_flag(name: str, default: bool) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _proposal_store_backend_name() -> str:
+    return proposals_config.proposal_store_backend_name()
 
 
 def get_proposal_workflow_service() -> ProposalWorkflowService:
@@ -99,6 +104,45 @@ def _assert_async_operations_enabled() -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="PROPOSAL_ASYNC_OPERATIONS_DISABLED",
         )
+
+
+@router.get(
+    "/rebalance/proposals/supportability/config",
+    response_model=ProposalSupportabilityConfigResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Proposal Supportability Configuration",
+    description=(
+        "Returns proposal supportability runtime configuration and backend initialization status "
+        "for operational diagnostics without direct database access."
+    ),
+)
+def get_proposal_supportability_config() -> ProposalSupportabilityConfigResponse:
+    backend_error: Optional[str] = None
+    backend_ready = True
+    try:
+        proposals_config.build_repository()
+    except RuntimeError as exc:
+        backend_ready = False
+        backend_error = str(exc)
+    except Exception:
+        backend_ready = False
+        backend_error = "PROPOSAL_POSTGRES_CONNECTION_FAILED"
+
+    return ProposalSupportabilityConfigResponse(
+        store_backend=_proposal_store_backend_name(),
+        backend_ready=backend_ready,
+        backend_init_error=backend_error,
+        lifecycle_enabled=_env_flag("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", True),
+        support_apis_enabled=_env_flag("PROPOSAL_SUPPORT_APIS_ENABLED", True),
+        async_operations_enabled=_env_flag("PROPOSAL_ASYNC_OPERATIONS_ENABLED", True),
+        store_evidence_bundle=_env_flag("PROPOSAL_STORE_EVIDENCE_BUNDLE", True),
+        require_expected_state=_env_flag("PROPOSAL_REQUIRE_EXPECTED_STATE", True),
+        allow_portfolio_id_change_on_new_version=_env_flag(
+            "PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION",
+            False,
+        ),
+        require_proposal_simulation_flag=_env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
+    )
 
 
 @router.post(

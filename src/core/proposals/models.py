@@ -317,6 +317,63 @@ class ProposalListResponse(BaseModel):
     )
 
 
+class ProposalSupportabilityConfigResponse(BaseModel):
+    store_backend: str = Field(
+        description="Configured proposal repository backend name.",
+        examples=["IN_MEMORY"],
+    )
+    backend_ready: bool = Field(
+        description=(
+            "Whether repository backend initialized successfully with current runtime settings."
+        ),
+        examples=[True],
+    )
+    backend_init_error: Optional[str] = Field(
+        default=None,
+        description=(
+            "Stable initialization error code when backend is not ready. "
+            "Null when initialization succeeds."
+        ),
+        examples=["PROPOSAL_POSTGRES_DSN_REQUIRED"],
+    )
+    lifecycle_enabled: bool = Field(
+        description="Whether proposal workflow lifecycle APIs are enabled.",
+        examples=[True],
+    )
+    support_apis_enabled: bool = Field(
+        description="Whether proposal supportability investigation endpoints are enabled.",
+        examples=[True],
+    )
+    async_operations_enabled: bool = Field(
+        description="Whether proposal asynchronous operation endpoints are enabled.",
+        examples=[True],
+    )
+    store_evidence_bundle: bool = Field(
+        description="Whether immutable evidence bundle JSON is persisted for versions.",
+        examples=[True],
+    )
+    require_expected_state: bool = Field(
+        description=(
+            "Whether state-transition and approval APIs enforce expected_state concurrency checks."
+        ),
+        examples=[True],
+    )
+    allow_portfolio_id_change_on_new_version: bool = Field(
+        description=(
+            "Whether proposal version creation allows portfolio id changes "
+            "against original proposal."
+        ),
+        examples=[False],
+    )
+    require_proposal_simulation_flag: bool = Field(
+        description=(
+            "Whether proposal simulation requests require "
+            "options.enable_proposal_simulation=true."
+        ),
+        examples=[True],
+    )
+
+
 class ProposalVersionLineageItem(BaseModel):
     proposal_version_id: str = Field(
         description="Proposal version identifier.",
