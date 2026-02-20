@@ -1,17 +1,26 @@
 import os
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Header, status
+from fastapi import APIRouter, Header, HTTPException, Path, status
 
+from src.core.dpm.policy_pack_repository import DpmPolicyPackRepository
 from src.core.dpm.policy_packs import (
     DpmEffectivePolicyPackResolution,
     DpmPolicyPackCatalogResponse,
-    parse_policy_pack_catalog,
+    DpmPolicyPackDefinition,
+    DpmPolicyPackMutationResponse,
+    DpmPolicyPackUpsertRequest,
     resolve_effective_policy_pack,
 )
 from src.core.dpm.tenant_policy_packs import build_tenant_policy_pack_resolver
+from src.infrastructure.dpm_policy_packs import (
+    EnvJsonDpmPolicyPackRepository,
+    PostgresDpmPolicyPackRepository,
+)
 
 router = APIRouter(tags=["DPM Run Supportability"])
+_ENV_POLICY_PACK_REPOSITORY: EnvJsonDpmPolicyPackRepository | None = None
+_ENV_POLICY_PACK_REPOSITORY_RAW: str | None = None
 
 
 def _env_flag(name: str, default: bool) -> bool:
@@ -45,7 +54,68 @@ def resolve_dpm_policy_pack(
 
 
 def load_dpm_policy_pack_catalog():
-    return parse_policy_pack_catalog(os.getenv("DPM_POLICY_PACK_CATALOG_JSON"))
+    repository = _get_policy_pack_repository()
+    items = repository.list_policy_packs()
+    return {item.policy_pack_id: item for item in items}
+
+
+def _policy_pack_catalog_backend_name() -> str:
+    value = os.getenv("DPM_POLICY_PACK_CATALOG_BACKEND", "ENV_JSON").strip().upper()
+    if value == "POSTGRES":
+        return "POSTGRES"
+    return "ENV_JSON"
+
+
+def _policy_pack_postgres_dsn() -> str:
+    return os.getenv(
+        "DPM_POLICY_PACK_POSTGRES_DSN",
+        os.getenv("DPM_SUPPORTABILITY_POSTGRES_DSN", ""),
+    ).strip()
+
+
+def _build_policy_pack_repository() -> DpmPolicyPackRepository:
+    global _ENV_POLICY_PACK_REPOSITORY
+    global _ENV_POLICY_PACK_REPOSITORY_RAW
+    backend = _policy_pack_catalog_backend_name()
+    if backend == "POSTGRES":
+        dsn = _policy_pack_postgres_dsn()
+        if not dsn:
+            raise RuntimeError("DPM_POLICY_PACK_POSTGRES_DSN_REQUIRED")
+        try:
+            return PostgresDpmPolicyPackRepository(dsn=dsn)
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError("DPM_POLICY_PACK_POSTGRES_CONNECTION_FAILED") from exc
+    raw_catalog = os.getenv("DPM_POLICY_PACK_CATALOG_JSON")
+    if _ENV_POLICY_PACK_REPOSITORY is None or _ENV_POLICY_PACK_REPOSITORY_RAW != raw_catalog:
+        _ENV_POLICY_PACK_REPOSITORY = EnvJsonDpmPolicyPackRepository(catalog_json=raw_catalog)
+        _ENV_POLICY_PACK_REPOSITORY_RAW = raw_catalog
+    return _ENV_POLICY_PACK_REPOSITORY
+
+
+def _get_policy_pack_repository() -> DpmPolicyPackRepository:
+    try:
+        return _build_policy_pack_repository()
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+
+
+def _assert_policy_pack_admin_apis_enabled() -> None:
+    if not _env_flag("DPM_POLICY_PACK_ADMIN_APIS_ENABLED", False):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_POLICY_PACK_ADMIN_APIS_DISABLED",
+        )
+
+
+def reset_dpm_policy_pack_repository_for_tests() -> None:
+    global _ENV_POLICY_PACK_REPOSITORY
+    global _ENV_POLICY_PACK_REPOSITORY_RAW
+    _ENV_POLICY_PACK_REPOSITORY = None
+    _ENV_POLICY_PACK_REPOSITORY_RAW = None
 
 
 @router.get(
@@ -146,3 +216,85 @@ def get_dpm_policy_pack_catalog(
         selected_policy_pack_source=resolution.source,
         items=items,
     )
+
+
+@router.get(
+    "/rebalance/policies/catalog/{policy_pack_id}",
+    response_model=DpmPolicyPackDefinition,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Policy Pack",
+    description="Returns one policy-pack definition by identifier.",
+)
+def get_dpm_policy_pack(
+    policy_pack_id: Annotated[
+        str,
+        Path(
+            description="Policy-pack identifier.",
+            examples=["dpm_standard_v1"],
+        ),
+    ],
+) -> DpmPolicyPackDefinition:
+    repository = _get_policy_pack_repository()
+    policy_pack = repository.get_policy_pack(policy_pack_id=policy_pack_id)
+    if policy_pack is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="DPM_POLICY_PACK_NOT_FOUND"
+        )
+    return policy_pack
+
+
+@router.put(
+    "/rebalance/policies/catalog/{policy_pack_id}",
+    response_model=DpmPolicyPackMutationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Upsert DPM Policy Pack",
+    description="Creates or updates one policy-pack definition by identifier.",
+)
+def upsert_dpm_policy_pack(
+    policy_pack_id: Annotated[
+        str,
+        Path(
+            description="Policy-pack identifier.",
+            examples=["dpm_standard_v2"],
+        ),
+    ],
+    request: DpmPolicyPackUpsertRequest,
+) -> DpmPolicyPackMutationResponse:
+    _assert_policy_pack_admin_apis_enabled()
+    repository = _get_policy_pack_repository()
+    policy_pack = DpmPolicyPackDefinition(
+        policy_pack_id=policy_pack_id,
+        version=request.version,
+        turnover_policy=request.turnover_policy,
+        tax_policy=request.tax_policy,
+        settlement_policy=request.settlement_policy,
+        constraint_policy=request.constraint_policy,
+        workflow_policy=request.workflow_policy,
+        idempotency_policy=request.idempotency_policy,
+    )
+    repository.upsert_policy_pack(policy_pack)
+    return DpmPolicyPackMutationResponse(item=policy_pack)
+
+
+@router.delete(
+    "/rebalance/policies/catalog/{policy_pack_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete DPM Policy Pack",
+    description="Deletes one policy-pack definition by identifier when it exists.",
+)
+def delete_dpm_policy_pack(
+    policy_pack_id: Annotated[
+        str,
+        Path(
+            description="Policy-pack identifier.",
+            examples=["dpm_standard_v2"],
+        ),
+    ],
+) -> None:
+    _assert_policy_pack_admin_apis_enabled()
+    repository = _get_policy_pack_repository()
+    deleted = repository.delete_policy_pack(policy_pack_id=policy_pack_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="DPM_POLICY_PACK_NOT_FOUND"
+        )

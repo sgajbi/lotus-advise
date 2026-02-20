@@ -184,6 +184,43 @@ class DpmPolicyPackCatalogResponse(BaseModel):
     )
 
 
+class DpmPolicyPackUpsertRequest(BaseModel):
+    version: str = Field(
+        description="Policy-pack version.",
+        examples=["2"],
+    )
+    turnover_policy: DpmPolicyPackTurnoverPolicy = Field(
+        default_factory=DpmPolicyPackTurnoverPolicy,
+        description="Turnover policy overrides for selected policy-pack.",
+    )
+    tax_policy: DpmPolicyPackTaxPolicy = Field(
+        default_factory=DpmPolicyPackTaxPolicy,
+        description="Tax policy overrides for selected policy-pack.",
+    )
+    settlement_policy: DpmPolicyPackSettlementPolicy = Field(
+        default_factory=DpmPolicyPackSettlementPolicy,
+        description="Settlement policy overrides for selected policy-pack.",
+    )
+    constraint_policy: DpmPolicyPackConstraintPolicy = Field(
+        default_factory=DpmPolicyPackConstraintPolicy,
+        description="Constraint policy overrides for selected policy-pack.",
+    )
+    workflow_policy: DpmPolicyPackWorkflowPolicy = Field(
+        default_factory=DpmPolicyPackWorkflowPolicy,
+        description="Workflow policy overrides for selected policy-pack.",
+    )
+    idempotency_policy: DpmPolicyPackIdempotencyPolicy = Field(
+        default_factory=DpmPolicyPackIdempotencyPolicy,
+        description="Idempotency policy overrides for selected policy-pack.",
+    )
+
+
+class DpmPolicyPackMutationResponse(BaseModel):
+    item: DpmPolicyPackDefinition = Field(
+        description="Policy-pack definition persisted by this mutation."
+    )
+
+
 def resolve_effective_policy_pack(
     *,
     policy_packs_enabled: bool,

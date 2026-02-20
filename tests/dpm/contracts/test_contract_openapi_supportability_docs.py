@@ -24,6 +24,13 @@ def _assert_property_has_docs(schema: dict, property_name: str) -> None:
     assert ("example" in prop) or ("examples" in prop) or ("$ref" in prop)
 
 
+def _schema_any(schemas: dict, names: list[str]) -> dict:
+    for name in names:
+        if name in schemas:
+            return schemas[name]
+    raise KeyError(f"None of schema names present: {names}")
+
+
 def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _guard_strict_validation()
     openapi = app.openapi()
@@ -187,10 +194,16 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(policy_definition_schema, "workflow_policy")
     _assert_property_has_docs(policy_definition_schema, "idempotency_policy")
 
-    turnover_policy_schema = schemas["DpmPolicyPackTurnoverPolicy"]
+    turnover_policy_schema = _schema_any(
+        schemas,
+        ["DpmPolicyPackTurnoverPolicy", "DpmPolicyPackTurnoverPolicy-Output"],
+    )
     _assert_property_has_docs(turnover_policy_schema, "max_turnover_pct")
 
-    tax_policy_schema = schemas["DpmPolicyPackTaxPolicy"]
+    tax_policy_schema = _schema_any(
+        schemas,
+        ["DpmPolicyPackTaxPolicy", "DpmPolicyPackTaxPolicy-Output"],
+    )
     _assert_property_has_docs(tax_policy_schema, "enable_tax_awareness")
     _assert_property_has_docs(tax_policy_schema, "max_realized_capital_gains")
 
@@ -198,7 +211,10 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(settlement_policy_schema, "enable_settlement_awareness")
     _assert_property_has_docs(settlement_policy_schema, "settlement_horizon_days")
 
-    constraint_policy_schema = schemas["DpmPolicyPackConstraintPolicy"]
+    constraint_policy_schema = _schema_any(
+        schemas,
+        ["DpmPolicyPackConstraintPolicy", "DpmPolicyPackConstraintPolicy-Output"],
+    )
     _assert_property_has_docs(constraint_policy_schema, "single_position_max_weight")
     _assert_property_has_docs(constraint_policy_schema, "group_constraints")
 
@@ -209,6 +225,18 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
 
     idempotency_policy_schema = schemas["DpmPolicyPackIdempotencyPolicy"]
     _assert_property_has_docs(idempotency_policy_schema, "replay_enabled")
+
+    upsert_request_schema = schemas["DpmPolicyPackUpsertRequest"]
+    _assert_property_has_docs(upsert_request_schema, "version")
+    _assert_property_has_docs(upsert_request_schema, "turnover_policy")
+    _assert_property_has_docs(upsert_request_schema, "tax_policy")
+    _assert_property_has_docs(upsert_request_schema, "settlement_policy")
+    _assert_property_has_docs(upsert_request_schema, "constraint_policy")
+    _assert_property_has_docs(upsert_request_schema, "workflow_policy")
+    _assert_property_has_docs(upsert_request_schema, "idempotency_policy")
+
+    mutation_response_schema = schemas["DpmPolicyPackMutationResponse"]
+    _assert_property_has_docs(mutation_response_schema, "item")
 
 
 def test_dpm_async_and_supportability_endpoints_use_expected_request_response_contracts():
@@ -264,6 +292,26 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert "X-Policy-Pack-Id" in policy_catalog_params
     assert "X-Tenant-Policy-Pack-Id" in policy_catalog_params
     assert "X-Tenant-Id" in policy_catalog_params
+
+    policy_catalog_get_one = openapi["paths"]["/rebalance/policies/catalog/{policy_pack_id}"]["get"]
+    assert "requestBody" not in policy_catalog_get_one
+    assert policy_catalog_get_one["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmPolicyPackDefinition")
+
+    policy_catalog_upsert = openapi["paths"]["/rebalance/policies/catalog/{policy_pack_id}"]["put"]
+    assert policy_catalog_upsert["requestBody"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmPolicyPackUpsertRequest")
+    assert policy_catalog_upsert["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmPolicyPackMutationResponse")
+
+    policy_catalog_delete = openapi["paths"]["/rebalance/policies/catalog/{policy_pack_id}"][
+        "delete"
+    ]
+    assert "requestBody" not in policy_catalog_delete
+    assert "204" in policy_catalog_delete["responses"]
 
     list_operations = openapi["paths"]["/rebalance/operations"]["get"]
     assert list_operations["responses"]["200"]["content"]["application/json"]["schema"][
