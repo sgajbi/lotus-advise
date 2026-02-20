@@ -2,8 +2,9 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN_PROGRESS |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-20 |
+| **Completed** | 2026-02-20 |
 | **Depends On** | RFC-0008, RFC-0010, RFC-0011, RFC-0016 |
 | **Doc Location** | `docs/rfcs/RFC-0022-dpm-policy-pack-configuration-model.md` |
 
