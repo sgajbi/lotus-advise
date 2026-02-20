@@ -44,6 +44,10 @@ class _FakeConnection:
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
+        if sql == "SELECT pg_advisory_lock(%s)":
+            return _FakeCursor(None)
+        if sql == "SELECT pg_advisory_unlock(%s)":
+            return _FakeCursor(None)
         if sql.startswith("CREATE TABLE"):
             return _FakeCursor(None)
         if "FROM schema_migrations" in sql:

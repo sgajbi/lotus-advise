@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 17) |
+| **Status** | IN PROGRESS (SLICE 18) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -321,5 +321,15 @@ Current state is split between in-memory adapters (advisory and default DPM) and
       rollback strategy.
   - Updated project documentation to reflect current Postgres maturity and migration-first
     startup contract.
+- Implemented (slice 18):
+  - Added namespace-scoped migration lock strategy:
+    - `apply_postgres_migrations` now acquires/releases PostgreSQL advisory locks during
+      migration execution.
+    - lock key is deterministic per namespace (`dpm`, `proposals`) and stable across processes.
+  - Added migration lock coverage:
+    - lock and unlock executed for successful migration apply
+    - lock and unlock executed even when checksum mismatch raises
+    - lock key stability and namespace isolation assertions
+  - Updated migration rollout runbook with concurrency/race safety guidance.
 - Next slice:
-  - migration lock strategy for concurrent deploys (advisory lock around migration apply).
+  - close RFC-0024 by marking status completed once production cutover checklist is confirmed.

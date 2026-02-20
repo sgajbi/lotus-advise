@@ -3,7 +3,11 @@ from pathlib import Path
 import pytest
 
 import src.infrastructure.postgres_migrations as migrations_module
-from src.infrastructure.postgres_migrations import PostgresMigration, apply_postgres_migrations
+from src.infrastructure.postgres_migrations import (
+    PostgresMigration,
+    _migration_lock_key,
+    apply_postgres_migrations,
+)
 
 
 class _FakeCursor:
@@ -19,9 +23,17 @@ class _FakeConnection:
         self.schema_migrations: dict[tuple[str, str], str] = {}
         self.applied_statements: list[str] = []
         self.commit_count = 0
+        self.lock_calls: list[int] = []
+        self.unlock_calls: list[int] = []
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
+        if sql == "SELECT pg_advisory_lock(%s)":
+            self.lock_calls.append(int(args[0]))
+            return _FakeCursor()
+        if sql == "SELECT pg_advisory_unlock(%s)":
+            self.unlock_calls.append(int(args[0]))
+            return _FakeCursor()
         if sql.startswith("CREATE TABLE IF NOT EXISTS schema_migrations"):
             return _FakeCursor()
         if "FROM schema_migrations" in sql:
@@ -50,6 +62,8 @@ def test_apply_postgres_migrations_is_forward_only_and_idempotent():
     assert first_count > 0
     assert ("dpm", "0001") in connection.schema_migrations
     assert connection.commit_count == 1
+    assert connection.lock_calls == [_migration_lock_key(namespace="dpm")]
+    assert connection.unlock_calls == [_migration_lock_key(namespace="dpm")]
 
     apply_postgres_migrations(connection=connection, namespace="dpm")
     assert len(connection.applied_statements) == first_count
@@ -68,3 +82,10 @@ def test_apply_postgres_migrations_detects_checksum_mismatch(monkeypatch, tmp_pa
     with pytest.raises(RuntimeError) as exc:
         apply_postgres_migrations(connection=connection, namespace="custom")
     assert str(exc.value) == "POSTGRES_MIGRATION_CHECKSUM_MISMATCH:custom:0001"
+    assert connection.lock_calls == [_migration_lock_key(namespace="custom")]
+    assert connection.unlock_calls == [_migration_lock_key(namespace="custom")]
+
+
+def test_migration_lock_key_is_stable_and_namespace_scoped():
+    assert _migration_lock_key(namespace="dpm") == _migration_lock_key(namespace="dpm")
+    assert _migration_lock_key(namespace="dpm") != _migration_lock_key(namespace="proposals")

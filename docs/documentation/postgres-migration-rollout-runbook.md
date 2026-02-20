@@ -44,6 +44,8 @@ Do not start app replicas with Postgres backend enabled before migrations have c
 
 - Migrations are forward-only.
 - Applied migration checksums are stored in `schema_migrations`.
+- Migration execution is wrapped in a namespace-scoped PostgreSQL advisory lock
+  to avoid concurrent deploy races.
 - If a checked-in migration file is modified after apply, execution fails with:
   - `POSTGRES_MIGRATION_CHECKSUM_MISMATCH:{namespace}:{version}`
 

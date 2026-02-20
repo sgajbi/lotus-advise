@@ -14,6 +14,15 @@ class PostgresMigration:
 
 
 def apply_postgres_migrations(*, connection, namespace: str) -> None:
+    lock_key = _migration_lock_key(namespace=namespace)
+    connection.execute("SELECT pg_advisory_lock(%s)", (lock_key,))
+    try:
+        _apply_migrations_locked(connection=connection, namespace=namespace)
+    finally:
+        connection.execute("SELECT pg_advisory_unlock(%s)", (lock_key,))
+
+
+def _apply_migrations_locked(*, connection, namespace: str) -> None:
     migrations = _load_migrations(namespace=namespace)
     connection.execute(
         """
@@ -89,3 +98,8 @@ def _load_migrations(*, namespace: str) -> list[PostgresMigration]:
             )
         )
     return migrations
+
+
+def _migration_lock_key(*, namespace: str) -> int:
+    digest = hashlib.sha256(namespace.encode("utf-8")).digest()[:8]
+    return int.from_bytes(digest, byteorder="big", signed=False)
