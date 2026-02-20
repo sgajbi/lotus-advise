@@ -659,6 +659,14 @@ def get_dpm_run_support_bundle_by_operation(
         "Returns deterministic run artifact synthesized from persisted DPM run payload "
         "and supportability metadata."
     ),
+    responses={
+        404: {"description": "Support APIs/artifacts disabled or run id not found."},
+        503: {
+            "description": (
+                "Configured artifact store mode is not currently supported by runtime backend."
+            )
+        },
+    },
 )
 def get_run_artifact_by_run_id(
     rebalance_run_id: Annotated[

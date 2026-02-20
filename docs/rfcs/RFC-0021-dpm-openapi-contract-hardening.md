@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (PHASE 1 - CONTRACT TEST HARDENING) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0007A, RFC-0016, RFC-0017 |
 | **Doc Location** | `docs/rfcs/RFC-0021-dpm-openapi-contract-hardening.md` |
