@@ -107,6 +107,11 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `artifact` populated
       - `lineage.edges` count = `2`
       - `workflow_history.decisions` count = `0`
+    - Correlation/idempotency variants:
+      - `GET /rebalance/runs/by-correlation/{correlation_id}/support-bundle` returns `200`
+        with run id matching simulate response.
+      - `GET /rebalance/runs/idempotency/{idempotency_key}/support-bundle` returns `200`
+        with run id matching simulate response.
   - Docker runtime (`http://127.0.0.1:8000`):
     - `POST /rebalance/simulate` returns `status=READY`.
     - `GET /rebalance/runs/{rebalance_run_id}/support-bundle` returns `200` with:
@@ -114,6 +119,11 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `artifact` populated
       - `lineage.edges` count = `2`
       - `workflow_history.decisions` count = `0`
+    - Correlation/idempotency variants:
+      - `GET /rebalance/runs/by-correlation/{correlation_id}/support-bundle` returns `200`
+        with run id matching simulate response.
+      - `GET /rebalance/runs/idempotency/{idempotency_key}/support-bundle` returns `200`
+        with run id matching simulate response.
 - SQLite supportability backend validation:
   - Uvicorn run (`DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`) on `http://127.0.0.1:8001`:
     - `POST /rebalance/simulate` succeeded (`200`).

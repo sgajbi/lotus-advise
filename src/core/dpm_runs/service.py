@@ -448,6 +448,38 @@ class DpmRunSupportService:
             idempotency_history=idempotency_history,
         )
 
+    def get_run_support_bundle_by_correlation(
+        self,
+        *,
+        correlation_id: str,
+        include_artifact: bool,
+        include_async_operation: bool,
+        include_idempotency_history: bool,
+    ) -> DpmRunSupportBundleResponse:
+        run = self._get_required_run_by_correlation(correlation_id=correlation_id)
+        return self.get_run_support_bundle(
+            rebalance_run_id=run.rebalance_run_id,
+            include_artifact=include_artifact,
+            include_async_operation=include_async_operation,
+            include_idempotency_history=include_idempotency_history,
+        )
+
+    def get_run_support_bundle_by_idempotency(
+        self,
+        *,
+        idempotency_key: str,
+        include_artifact: bool,
+        include_async_operation: bool,
+        include_idempotency_history: bool,
+    ) -> DpmRunSupportBundleResponse:
+        mapping = self._get_required_idempotency_mapping(idempotency_key=idempotency_key)
+        return self.get_run_support_bundle(
+            rebalance_run_id=mapping.rebalance_run_id,
+            include_artifact=include_artifact,
+            include_async_operation=include_async_operation,
+            include_idempotency_history=include_idempotency_history,
+        )
+
     def mark_operation_running(self, *, operation_id: str) -> None:
         self._cleanup_expired_operations()
         operation = self._repository.get_operation(operation_id=operation_id)

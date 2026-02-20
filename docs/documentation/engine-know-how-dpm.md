@@ -79,6 +79,20 @@ Implementation scope:
   - `include_async_operation`
   - `include_idempotency_history`
 
+### `GET /rebalance/runs/by-correlation/{correlation_id}/support-bundle`
+- Purpose: retrieve the same supportability bundle when run id is not known.
+- Query options:
+  - `include_artifact`
+  - `include_async_operation`
+  - `include_idempotency_history`
+
+### `GET /rebalance/runs/idempotency/{idempotency_key}/support-bundle`
+- Purpose: retrieve the same supportability bundle when only idempotency key is available.
+- Query options:
+  - `include_artifact`
+  - `include_async_operation`
+  - `include_idempotency_history`
+
 ### `GET /rebalance/runs`
 - Purpose: list DPM runs for supportability investigations.
 - Filters:

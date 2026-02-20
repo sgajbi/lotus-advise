@@ -44,6 +44,8 @@ In-memory supportability works for local/runtime diagnostics but is insufficient
 - `GET /rebalance/runs?from=...&to=...&status=...&portfolio_id=...`
 - `GET /rebalance/supportability/summary`
 - `GET /rebalance/runs/{rebalance_run_id}/support-bundle`
+- `GET /rebalance/runs/by-correlation/{correlation_id}/support-bundle`
+- `GET /rebalance/runs/idempotency/{idempotency_key}/support-bundle`
 - `GET /rebalance/lineage/{entity_id}`
 - `GET /rebalance/idempotency/{idempotency_key}/history`
 
@@ -124,6 +126,8 @@ No new business run statuses. Investigation responses use explicit technical sta
 - Implemented (slice 8):
   - Run support bundle API:
     - `GET /rebalance/runs/{rebalance_run_id}/support-bundle`
+    - `GET /rebalance/runs/by-correlation/{correlation_id}/support-bundle`
+    - `GET /rebalance/runs/idempotency/{idempotency_key}/support-bundle`
       - aggregates run payload, lineage, workflow history, optional artifact,
         optional async operation by correlation, and optional idempotency history.
       - query toggles:

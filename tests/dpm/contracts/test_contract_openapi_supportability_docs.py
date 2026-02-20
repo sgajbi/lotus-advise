@@ -226,6 +226,37 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     actual_params = {param["name"] for param in support_bundle["parameters"]}
     assert expected_params.issubset(actual_params)
 
+    support_bundle_by_correlation = openapi["paths"][
+        "/rebalance/runs/by-correlation/{correlation_id}/support-bundle"
+    ]["get"]
+    correlation_schema_ref = support_bundle_by_correlation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assert correlation_schema_ref.endswith("/DpmRunSupportBundleResponse")
+    expected_params = {
+        "correlation_id",
+        "include_artifact",
+        "include_async_operation",
+        "include_idempotency_history",
+    }
+    actual_params = {param["name"] for param in support_bundle_by_correlation["parameters"]}
+    assert expected_params.issubset(actual_params)
+
+    support_bundle_by_idempotency = openapi["paths"][
+        "/rebalance/runs/idempotency/{idempotency_key}/support-bundle"
+    ]["get"]
+    assert support_bundle_by_idempotency["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"].endswith("/DpmRunSupportBundleResponse")
+    expected_params = {
+        "idempotency_key",
+        "include_artifact",
+        "include_async_operation",
+        "include_idempotency_history",
+    }
+    actual_params = {param["name"] for param in support_bundle_by_idempotency["parameters"]}
+    assert expected_params.issubset(actual_params)
+
     lineage = openapi["paths"]["/rebalance/lineage/{entity_id}"]["get"]
     assert lineage["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
         "/DpmLineageResponse"

@@ -436,6 +436,118 @@ def get_dpm_run_support_bundle(
 
 
 @router.get(
+    "/rebalance/runs/by-correlation/{correlation_id}/support-bundle",
+    response_model=DpmRunSupportBundleResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Support Bundle by Correlation Id",
+    description=(
+        "Returns aggregated supportability bundle for run resolved by correlation id, "
+        "including optional artifact, async operation, and idempotency history."
+    ),
+)
+def get_dpm_run_support_bundle_by_correlation(
+    correlation_id: Annotated[
+        str,
+        Path(
+            description="Correlation identifier used on run submission.",
+            examples=["corr-1234-abcd"],
+        ),
+    ],
+    include_artifact: Annotated[
+        bool,
+        Query(
+            description="Whether to include deterministic run artifact payload in response.",
+            examples=[True],
+        ),
+    ] = True,
+    include_async_operation: Annotated[
+        bool,
+        Query(
+            description="Whether to include async operation mapped by run correlation id.",
+            examples=[True],
+        ),
+    ] = True,
+    include_idempotency_history: Annotated[
+        bool,
+        Query(
+            description=(
+                "Whether to include idempotency mapping history when run has idempotency key."
+            ),
+            examples=[True],
+        ),
+    ] = True,
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunSupportBundleResponse:
+    _assert_support_apis_enabled()
+    _assert_support_bundle_apis_enabled()
+    try:
+        return service.get_run_support_bundle_by_correlation(
+            correlation_id=correlation_id,
+            include_artifact=include_artifact,
+            include_async_operation=include_async_operation,
+            include_idempotency_history=include_idempotency_history,
+        )
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/runs/idempotency/{idempotency_key}/support-bundle",
+    response_model=DpmRunSupportBundleResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Support Bundle by Idempotency Key",
+    description=(
+        "Returns aggregated supportability bundle for run resolved by idempotency key mapping, "
+        "including optional artifact, async operation, and idempotency history."
+    ),
+)
+def get_dpm_run_support_bundle_by_idempotency(
+    idempotency_key: Annotated[
+        str,
+        Path(
+            description="Idempotency key supplied to `/rebalance/simulate`.",
+            examples=["demo-idem-001"],
+        ),
+    ],
+    include_artifact: Annotated[
+        bool,
+        Query(
+            description="Whether to include deterministic run artifact payload in response.",
+            examples=[True],
+        ),
+    ] = True,
+    include_async_operation: Annotated[
+        bool,
+        Query(
+            description="Whether to include async operation mapped by run correlation id.",
+            examples=[True],
+        ),
+    ] = True,
+    include_idempotency_history: Annotated[
+        bool,
+        Query(
+            description=(
+                "Whether to include idempotency mapping history when run has idempotency key."
+            ),
+            examples=[True],
+        ),
+    ] = True,
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunSupportBundleResponse:
+    _assert_support_apis_enabled()
+    _assert_support_bundle_apis_enabled()
+    try:
+        return service.get_run_support_bundle_by_idempotency(
+            idempotency_key=idempotency_key,
+            include_artifact=include_artifact,
+            include_async_operation=include_async_operation,
+            include_idempotency_history=include_idempotency_history,
+        )
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
     "/rebalance/runs/{rebalance_run_id}/artifact",
     response_model=DpmRunArtifactResponse,
     status_code=status.HTTP_200_OK,

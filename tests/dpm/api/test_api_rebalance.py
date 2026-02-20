@@ -611,6 +611,49 @@ def test_dpm_run_support_bundle_endpoint(client):
     assert compact_body["idempotency_history"] is None
 
 
+def test_dpm_run_support_bundle_endpoint_by_correlation_and_idempotency(client):
+    payload = get_valid_payload()
+    simulate = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={
+            "Idempotency-Key": "test-key-support-bundle-2",
+            "X-Correlation-Id": "corr-support-bundle-2",
+        },
+    )
+    assert simulate.status_code == 200
+    run_id = simulate.json()["rebalance_run_id"]
+
+    by_correlation = client.get(
+        "/rebalance/runs/by-correlation/corr-support-bundle-2/support-bundle"
+    )
+    assert by_correlation.status_code == 200
+    by_correlation_body = by_correlation.json()
+    assert by_correlation_body["run"]["rebalance_run_id"] == run_id
+    assert by_correlation_body["run"]["correlation_id"] == "corr-support-bundle-2"
+
+    by_idempotency = client.get(
+        "/rebalance/runs/idempotency/test-key-support-bundle-2/support-bundle"
+    )
+    assert by_idempotency.status_code == 200
+    by_idempotency_body = by_idempotency.json()
+    assert by_idempotency_body["run"]["rebalance_run_id"] == run_id
+    assert by_idempotency_body["idempotency_history"] is not None
+    assert (
+        by_idempotency_body["idempotency_history"]["idempotency_key"] == "test-key-support-bundle-2"
+    )
+
+    missing_by_correlation = client.get(
+        "/rebalance/runs/by-correlation/corr_missing/support-bundle"
+    )
+    assert missing_by_correlation.status_code == 404
+    assert missing_by_correlation.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
+    missing_by_idempotency = client.get("/rebalance/runs/idempotency/idem_missing/support-bundle")
+    assert missing_by_idempotency.status_code == 404
+    assert missing_by_idempotency.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"
+
+
 def test_dpm_run_support_bundle_endpoint_disabled_and_not_found(client, monkeypatch):
     missing = client.get("/rebalance/runs/rr_missing/support-bundle")
     assert missing.status_code == 404
