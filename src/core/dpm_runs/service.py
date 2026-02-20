@@ -201,9 +201,7 @@ class DpmRunSupportService:
         return self._to_workflow_response(run=run)
 
     def get_workflow_by_correlation(self, *, correlation_id: str) -> DpmRunWorkflowResponse:
-        run = self._repository.get_run_by_correlation(correlation_id=correlation_id)
-        if run is None:
-            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        run = self._get_required_run_by_correlation(correlation_id=correlation_id)
         return self._to_workflow_response(run=run)
 
     def get_workflow_history(self, *, rebalance_run_id: str) -> DpmRunWorkflowHistoryResponse:
@@ -218,10 +216,19 @@ class DpmRunSupportService:
     def get_workflow_history_by_correlation(
         self, *, correlation_id: str
     ) -> DpmRunWorkflowHistoryResponse:
-        run = self._repository.get_run_by_correlation(correlation_id=correlation_id)
-        if run is None:
-            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        run = self._get_required_run_by_correlation(correlation_id=correlation_id)
         return self.get_workflow_history(rebalance_run_id=run.rebalance_run_id)
+
+    def get_workflow_by_idempotency(self, *, idempotency_key: str) -> DpmRunWorkflowResponse:
+        mapping = self._get_required_idempotency_mapping(idempotency_key=idempotency_key)
+        run = self._get_required_run(rebalance_run_id=mapping.rebalance_run_id)
+        return self._to_workflow_response(run=run)
+
+    def get_workflow_history_by_idempotency(
+        self, *, idempotency_key: str
+    ) -> DpmRunWorkflowHistoryResponse:
+        mapping = self._get_required_idempotency_mapping(idempotency_key=idempotency_key)
+        return self.get_workflow_history(rebalance_run_id=mapping.rebalance_run_id)
 
     def apply_workflow_action(
         self,
@@ -319,6 +326,20 @@ class DpmRunSupportService:
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
         return run
+
+    def _get_required_run_by_correlation(self, *, correlation_id: str) -> DpmRunRecord:
+        run = self._repository.get_run_by_correlation(correlation_id=correlation_id)
+        if run is None:
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        return run
+
+    def _get_required_idempotency_mapping(
+        self, *, idempotency_key: str
+    ) -> DpmRunIdempotencyRecord:
+        mapping = self._repository.get_idempotency_mapping(idempotency_key=idempotency_key)
+        if mapping is None:
+            raise DpmRunNotFoundError("DPM_IDEMPOTENCY_KEY_NOT_FOUND")
+        return mapping
 
     def _to_workflow_response(self, *, run: DpmRunRecord) -> DpmRunWorkflowResponse:
         run_status = str(run.result_json.get("status", ""))

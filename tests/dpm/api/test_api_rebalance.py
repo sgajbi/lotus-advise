@@ -1010,6 +1010,9 @@ def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, mo
     workflow_by_correlation = client.get("/rebalance/runs/by-correlation/corr-workflow-1/workflow")
     assert workflow_by_correlation.status_code == 200
     assert workflow_by_correlation.json()["run_id"] == run_id
+    workflow_by_idempotency = client.get("/rebalance/runs/idempotency/test-key-workflow-1/workflow")
+    assert workflow_by_idempotency.status_code == 200
+    assert workflow_by_idempotency.json()["run_id"] == run_id
 
     request_changes = client.post(
         f"/rebalance/runs/{run_id}/workflow/actions",
@@ -1058,6 +1061,13 @@ def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, mo
     history_by_correlation_body = history_by_correlation.json()
     assert history_by_correlation_body["run_id"] == run_id
     assert len(history_by_correlation_body["decisions"]) == 2
+    history_by_idempotency = client.get(
+        "/rebalance/runs/idempotency/test-key-workflow-1/workflow/history"
+    )
+    assert history_by_idempotency.status_code == 200
+    history_by_idempotency_body = history_by_idempotency.json()
+    assert history_by_idempotency_body["run_id"] == run_id
+    assert len(history_by_idempotency_body["decisions"]) == 2
 
     invalid = client.post(
         f"/rebalance/runs/{run_id}/workflow/actions",
@@ -1110,3 +1120,6 @@ def test_dpm_run_workflow_endpoints_disabled_and_not_required_behavior(client, m
     missing_by_correlation = client.get("/rebalance/runs/by-correlation/corr-missing/workflow")
     assert missing_by_correlation.status_code == 404
     assert missing_by_correlation.json()["detail"] == "DPM_RUN_NOT_FOUND"
+    missing_by_idempotency = client.get("/rebalance/runs/idempotency/idem-missing/workflow")
+    assert missing_by_idempotency.status_code == 404
+    assert missing_by_idempotency.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"

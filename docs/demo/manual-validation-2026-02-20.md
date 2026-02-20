@@ -87,9 +87,19 @@ Demo pack validation passed for http://127.0.0.1:8000
 - Additional workflow-enabled supportability checks validated:
   - Uvicorn (`DPM_WORKFLOW_ENABLED=true`, `http://127.0.0.1:8001`):
     - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow` returns `200`.
+    - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow` returns `200`.
     - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history` returns `200`.
+    - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history` returns `200`.
     - Workflow action and history are consistent between run-id and correlation-id endpoints.
+    - Idempotency-key workflow retrieval without prior action returns:
+      - `workflow_status=PENDING_REVIEW`
+      - history `decisions=[]`
   - Container runtime (`dpm-rebalance-engine:latest` with `-e DPM_WORKFLOW_ENABLED=true`,
     published on `http://127.0.0.1:8002`):
     - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow` returns `200`.
+    - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow` returns `200`.
     - `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history` returns `200`.
+    - `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history` returns `200`.
+    - Idempotency-key workflow retrieval without prior action returns:
+      - `workflow_status=PENDING_REVIEW`
+      - history `decisions=[]`

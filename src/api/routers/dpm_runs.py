@@ -308,6 +308,28 @@ def get_dpm_run_workflow_by_correlation(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
+@router.get(
+    "/rebalance/runs/idempotency/{idempotency_key}/workflow",
+    response_model=DpmRunWorkflowResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Workflow State by Idempotency Key",
+    description="Returns workflow gate state for run resolved by idempotency key mapping.",
+)
+def get_dpm_run_workflow_by_idempotency(
+    idempotency_key: Annotated[
+        str,
+        Path(description="Idempotency key supplied to `/rebalance/simulate`."),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunWorkflowResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.get_workflow_by_idempotency(idempotency_key=idempotency_key)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
 @router.post(
     "/rebalance/runs/{rebalance_run_id}/workflow/actions",
     response_model=DpmRunWorkflowResponse,
@@ -395,5 +417,27 @@ def get_dpm_run_workflow_history_by_correlation(
     _assert_workflow_enabled()
     try:
         return service.get_workflow_history_by_correlation(correlation_id=correlation_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/runs/idempotency/{idempotency_key}/workflow/history",
+    response_model=DpmRunWorkflowHistoryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Workflow History by Idempotency Key",
+    description="Returns workflow decision history for run resolved by idempotency key mapping.",
+)
+def get_dpm_run_workflow_history_by_idempotency(
+    idempotency_key: Annotated[
+        str,
+        Path(description="Idempotency key supplied to `/rebalance/simulate`."),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunWorkflowHistoryResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.get_workflow_history_by_idempotency(idempotency_key=idempotency_key)
     except DpmRunNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

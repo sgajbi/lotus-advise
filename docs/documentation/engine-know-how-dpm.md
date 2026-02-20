@@ -55,6 +55,9 @@ Implementation scope:
 ### `GET /rebalance/runs/by-correlation/{correlation_id}/workflow`
 - Purpose: retrieve workflow gate status when only correlation id is known.
 
+### `GET /rebalance/runs/idempotency/{idempotency_key}/workflow`
+- Purpose: retrieve workflow gate status when only idempotency key is known.
+
 ### `POST /rebalance/runs/{rebalance_run_id}/workflow/actions`
 - Purpose: apply one workflow action (`APPROVE`, `REJECT`, `REQUEST_CHANGES`) with actor/reason trace.
 
@@ -63,6 +66,9 @@ Implementation scope:
 
 ### `GET /rebalance/runs/by-correlation/{correlation_id}/workflow/history`
 - Purpose: retrieve workflow decision history when only correlation id is known.
+
+### `GET /rebalance/runs/idempotency/{idempotency_key}/workflow/history`
+- Purpose: retrieve workflow decision history when only idempotency key is known.
 
 ## Pipeline (`run_simulation`)
 

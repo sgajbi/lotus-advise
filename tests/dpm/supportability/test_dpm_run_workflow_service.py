@@ -53,7 +53,7 @@ def test_workflow_disabled_returns_not_required_and_blocks_actions():
         result=result,
         request_hash="sha256:test",
         portfolio_id="pf_test",
-        idempotency_key=None,
+        idempotency_key="idem-workflow-1",
     )
 
     workflow = service.get_workflow(rebalance_run_id=result.rebalance_run_id)
@@ -80,7 +80,7 @@ def test_workflow_transitions_and_history_for_pending_review_run():
         result=result,
         request_hash="sha256:test",
         portfolio_id="pf_test",
-        idempotency_key=None,
+        idempotency_key="idem-workflow-1",
     )
 
     initial = service.get_workflow(rebalance_run_id=result.rebalance_run_id)
@@ -91,6 +91,9 @@ def test_workflow_transitions_and_history_for_pending_review_run():
     initial_by_correlation = service.get_workflow_by_correlation(correlation_id="corr-test")
     assert initial_by_correlation.run_id == result.rebalance_run_id
     assert initial_by_correlation.workflow_status == "PENDING_REVIEW"
+    initial_by_idempotency = service.get_workflow_by_idempotency(idempotency_key="idem-workflow-1")
+    assert initial_by_idempotency.run_id == result.rebalance_run_id
+    assert initial_by_idempotency.workflow_status == "PENDING_REVIEW"
 
     request_changes = service.apply_workflow_action(
         rebalance_run_id=result.rebalance_run_id,
@@ -127,6 +130,11 @@ def test_workflow_transitions_and_history_for_pending_review_run():
     history_by_correlation = service.get_workflow_history_by_correlation(correlation_id="corr-test")
     assert history_by_correlation.run_id == result.rebalance_run_id
     assert len(history_by_correlation.decisions) == 2
+    history_by_idempotency = service.get_workflow_history_by_idempotency(
+        idempotency_key="idem-workflow-1"
+    )
+    assert history_by_idempotency.run_id == result.rebalance_run_id
+    assert len(history_by_idempotency.decisions) == 2
 
 
 def test_workflow_rejects_invalid_transition_for_approved_run():
@@ -201,3 +209,9 @@ def test_workflow_apis_raise_not_found_for_unknown_run():
 
     with pytest.raises(DpmRunNotFoundError, match="DPM_RUN_NOT_FOUND"):
         service.get_workflow_history_by_correlation(correlation_id="corr-missing")
+
+    with pytest.raises(DpmRunNotFoundError, match="DPM_IDEMPOTENCY_KEY_NOT_FOUND"):
+        service.get_workflow_by_idempotency(idempotency_key="idem-missing")
+
+    with pytest.raises(DpmRunNotFoundError, match="DPM_IDEMPOTENCY_KEY_NOT_FOUND"):
+        service.get_workflow_history_by_idempotency(idempotency_key="idem-missing")
