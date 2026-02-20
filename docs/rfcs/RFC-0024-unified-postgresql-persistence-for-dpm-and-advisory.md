@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 14) |
+| **Status** | IN PROGRESS (SLICE 15) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -272,6 +272,20 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - workflow event roundtrip and ordering behavior
     - approval roundtrip behavior
     - transition persistence semantics across proposal/event/approval records
+- Implemented (slice 15):
+  - Added advisory Postgres live integration contract tests (docker-gated):
+    - test runtime guard:
+      - tests run only when `PROPOSAL_POSTGRES_INTEGRATION_DSN` is set.
+    - covered repository parity contracts:
+      - idempotency
+      - async operations
+      - proposal aggregate/version persistence
+      - workflow events
+      - approvals
+      - transactional `transition_proposal`
+  - Manual runtime validation completed on `2026-02-20`:
+    - uvicorn with advisory Postgres backend enabled
+    - Docker Compose with advisory + DPM Postgres backends enabled
+    - full demo pack validation succeeded in both runtime modes.
 - Next slice:
-  - advisory Postgres live integration contract tests (docker-gated) and manual runtime
-    verification in uvicorn and Docker profiles.
+  - schema migration discipline and rollout tooling (forward-only migration workflows).

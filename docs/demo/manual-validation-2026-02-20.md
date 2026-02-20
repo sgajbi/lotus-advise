@@ -318,6 +318,27 @@ Demo pack validation passed for http://127.0.0.1:8000
   - Uvicorn runtime (`DPM_POLICY_PACKS_ENABLED=true`, `DPM_DEFAULT_POLICY_PACK_ID=dpm_default_pack`):
     - `GET /rebalance/policies/effective` with:
       - `X-Policy-Pack-Id=req_pack`
+
+## RFC-0024 Postgres Backend Validation
+
+- Uvicorn runtime (`http://127.0.0.1:8041`) with:
+  - `PROPOSAL_STORE_BACKEND=POSTGRES`
+  - `PROPOSAL_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability`
+  - Command:
+    - `.venv\Scripts\python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8041`
+  - Observed result:
+    - `Demo pack validation passed for http://127.0.0.1:8041`
+
+- Docker runtime (`http://127.0.0.1:8000`) with profile `postgres` and:
+  - `PROPOSAL_STORE_BACKEND=POSTGRES`
+  - `PROPOSAL_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability`
+  - `DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES`
+  - `DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability`
+  - Commands:
+    - `docker-compose --profile postgres up -d --build dpm-rebalance-engine`
+    - `.venv\Scripts\python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000`
+  - Observed result:
+    - `Demo pack validation passed for http://127.0.0.1:8000`
       - `X-Tenant-Policy-Pack-Id=tenant_pack`
       returns `200` with:
       - `enabled=true`
