@@ -1387,6 +1387,48 @@ def test_dpm_policy_pack_catalog_overrides_options_using_tenant_resolver(client,
         assert simulate_options.max_turnover_pct == Decimal("0.02")
 
 
+def test_dpm_policy_pack_idempotency_override_disables_replay(client, monkeypatch):
+    monkeypatch.setenv("DPM_IDEMPOTENCY_REPLAY_ENABLED", "true")
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv(
+        "DPM_POLICY_PACK_CATALOG_JSON",
+        '{"dpm_request_pack":{"idempotency_policy":{"replay_enabled":false}}}',
+    )
+    payload = get_valid_payload()
+    headers = {
+        "Idempotency-Key": "test-key-policy-idem-disable",
+        "X-Policy-Pack-Id": "dpm_request_pack",
+    }
+
+    first = client.post("/rebalance/simulate", json=payload, headers=headers)
+    second = client.post("/rebalance/simulate", json=payload, headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["rebalance_run_id"] != second.json()["rebalance_run_id"]
+
+
+def test_dpm_policy_pack_idempotency_override_enables_replay(client, monkeypatch):
+    monkeypatch.setenv("DPM_IDEMPOTENCY_REPLAY_ENABLED", "false")
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv(
+        "DPM_POLICY_PACK_CATALOG_JSON",
+        '{"dpm_request_pack":{"idempotency_policy":{"replay_enabled":true}}}',
+    )
+    payload = get_valid_payload()
+    headers = {
+        "Idempotency-Key": "test-key-policy-idem-enable",
+        "X-Policy-Pack-Id": "dpm_request_pack",
+    }
+
+    first = client.post("/rebalance/simulate", json=payload, headers=headers)
+    second = client.post("/rebalance/simulate", json=payload, headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == second.json()
+
+
 def test_analyze_async_accept_only_mode_keeps_operation_pending(client, monkeypatch):
     monkeypatch.setenv("DPM_ASYNC_EXECUTION_MODE", "ACCEPT_ONLY")
     payload = get_valid_payload()
