@@ -146,6 +146,27 @@ def test_demo_dpm_supportability_artifact_flow_via_api():
     )
 
 
+def test_demo_dpm_async_manual_execute_guard_via_api():
+    data = load_demo_scenario("28_dpm_async_manual_execute_guard.json")
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        try:
+            accepted = client.post(
+                "/rebalance/analyze/async",
+                json=data,
+                headers={"X-Correlation-Id": "demo-corr-28-async-inline"},
+            )
+            assert accepted.status_code == 202
+            operation_id = accepted.json()["operation_id"]
+            execute = client.post(f"/rebalance/operations/{operation_id}/execute")
+        finally:
+            app.dependency_overrides = original_overrides
+
+    assert execute.status_code == 409
+    assert execute.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_EXECUTABLE"
+
+
 @pytest.mark.parametrize(
     "filename, expected_status",
     [

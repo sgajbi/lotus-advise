@@ -185,6 +185,27 @@ def run_demo_pack(base_url: str) -> None:
             "26: expected invalid_options failed scenario",
         )
 
+        manual_guard = _run_scenario(
+            client,
+            name="28_dpm_async_manual_execute_guard.json",
+            method="POST",
+            path="/rebalance/analyze/async",
+            expected_http=202,
+            payload_file="28_dpm_async_manual_execute_guard.json",
+            headers={"X-Correlation-Id": "demo-corr-28-async-inline"},
+        )
+        manual_execute_conflict = client.post(
+            f"/rebalance/operations/{manual_guard['operation_id']}/execute"
+        )
+        _assert(
+            manual_execute_conflict.status_code == 409,
+            "28: expected 409 when executing non-pending operation",
+        )
+        _assert(
+            manual_execute_conflict.json().get("detail") == "DPM_ASYNC_OPERATION_NOT_EXECUTABLE",
+            "28: unexpected non-executable detail",
+        )
+
         # Advisory simulate demos
         advisory_expected = {
             "10_advisory_proposal_simulate.json": "READY",

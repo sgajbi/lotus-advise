@@ -13,6 +13,7 @@ Coverage includes:
 - DPM batch analyze demo (`09`)
 - DPM async batch analyze demo (`26`)
 - DPM supportability + deterministic artifact flow demo (`27`)
+- DPM async manual-execute guard demo (`28`)
 - Advisory simulate demos (`10`-`18`)
 - Advisory artifact demo (`19`)
 - Advisory lifecycle flow demos (`20`-`25`)
@@ -72,3 +73,7 @@ Demo pack validation passed for http://127.0.0.1:8000
   - `GET /rebalance/runs/idempotency/{idempotency_key}` returns mapped run id.
   - `GET /rebalance/runs/{rebalance_run_id}/artifact` returns deterministic artifact payload.
   - Repeated artifact retrieval returns identical `evidence.hashes.artifact_hash`.
+- Async manual execute guard scenario `28_dpm_async_manual_execute_guard.json` validated:
+  - `POST /rebalance/analyze/async` in default inline mode succeeds and completes operation.
+  - `POST /rebalance/operations/{operation_id}/execute` returns `409` with
+    `DPM_ASYNC_OPERATION_NOT_EXECUTABLE` when operation is already non-pending.

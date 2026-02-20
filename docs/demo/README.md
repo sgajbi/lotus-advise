@@ -86,6 +86,7 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
 | `25_advisory_proposal_transition_executed.json` | **Proposal Execution Transition** | `EXECUTED` lifecycle state | Records execution confirmation transition from execution-ready state. |
 | `26_dpm_async_batch_analysis.json` | **DPM Async Batch Analysis** | Async operation `SUCCEEDED` with partial-failure warning | Demonstrates `/rebalance/analyze/async` acceptance + operation lookup with `failed_scenarios` diagnostics. |
 | `27_dpm_supportability_artifact_flow.json` | **DPM Supportability + Artifact Flow** | `READY` run + deterministic artifact hash | Demonstrates run lookup by run id/correlation/idempotency and deterministic retrieval from `/rebalance/runs/{rebalance_run_id}/artifact`. |
+| `28_dpm_async_manual_execute_guard.json` | **DPM Async Manual Execute Guard** | Manual execute returns `409` on non-pending run | Demonstrates `/rebalance/operations/{operation_id}/execute` conflict guard when operation already completed inline. |
 
 ## Feature Toggles Demonstrated
 
@@ -109,6 +110,9 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
   - `GET /rebalance/runs/by-correlation/{correlation_id}`
   - `GET /rebalance/runs/idempotency/{idempotency_key}`
   - `GET /rebalance/runs/{rebalance_run_id}/artifact` with deterministic artifact hash on repeated retrieval
+- `28_dpm_async_manual_execute_guard.json`:
+  - `POST /rebalance/analyze/async` (default inline mode)
+  - `POST /rebalance/operations/{operation_id}/execute` guard path returns `DPM_ASYNC_OPERATION_NOT_EXECUTABLE` for non-pending operations
 - `10_advisory_proposal_simulate.json`:
   - `options.enable_proposal_simulation=true`
   - `options.proposal_apply_cash_flows_first=true`
