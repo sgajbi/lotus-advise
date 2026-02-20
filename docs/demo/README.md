@@ -37,6 +37,11 @@ For DPM lineage supportability (enabled when `DPM_LINEAGE_APIS_ENABLED=true`):
 curl -X GET "http://127.0.0.1:8000/rebalance/lineage/<entity_id>"
 ```
 
+For DPM idempotency history supportability (enabled when `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED=true`):
+```bash
+curl -X GET "http://127.0.0.1:8000/rebalance/idempotency/<idempotency_key>/history"
+```
+
 For DPM workflow supportability endpoints (enabled only when `DPM_WORKFLOW_ENABLED=true`):
 ```bash
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow"
@@ -106,6 +111,7 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
 | `27_dpm_supportability_artifact_flow.json` | **DPM Supportability + Artifact Flow** | `READY` run + deterministic artifact hash | Demonstrates run lookup by run id/correlation/idempotency and deterministic retrieval from `/rebalance/runs/{rebalance_run_id}/artifact`. |
 | `28_dpm_async_manual_execute_guard.json` | **DPM Async Manual Execute Guard** | Manual execute returns `409` on non-pending run | Demonstrates `/rebalance/operations/{operation_id}/execute` conflict guard when operation already completed inline. |
 | `29_dpm_workflow_gate_disabled_contract.json` | **DPM Workflow Gate Default Guard** | Workflow endpoints return `404 DPM_WORKFLOW_DISABLED` | Demonstrates feature-toggle default behavior for workflow supportability endpoints. |
+| `30_dpm_idempotency_history_supportability.json` | **DPM Idempotency History Supportability** | History returns two run mappings for same idempotency key | Demonstrates replay-disabled run recording and `GET /rebalance/idempotency/{idempotency_key}/history`. |
 
 ## Feature Toggles Demonstrated
 
@@ -136,6 +142,10 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
   - `POST /rebalance/simulate` to create a pending-review candidate run
   - `GET /rebalance/runs/{rebalance_run_id}/workflow` returns `DPM_WORKFLOW_DISABLED` when workflow feature is off
   - `GET /rebalance/runs/{rebalance_run_id}/workflow/history` returns `DPM_WORKFLOW_DISABLED` when workflow feature is off
+- `30_dpm_idempotency_history_supportability.json`:
+  - `DPM_IDEMPOTENCY_REPLAY_ENABLED=false`
+  - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED=true`
+  - `GET /rebalance/idempotency/{idempotency_key}/history` returns append-only mapping history with run id, correlation id, and request hash
 - `10_advisory_proposal_simulate.json`:
   - `options.enable_proposal_simulation=true`
   - `options.proposal_apply_cash_flows_first=true`

@@ -50,6 +50,7 @@ In-memory supportability works for local/runtime diagnostics but is insufficient
 - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQL`)
 - `DPM_SUPPORTABILITY_RETENTION_DAYS`
 - `DPM_LINEAGE_APIS_ENABLED` (default `false`)
+- `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
 
 ## 5. Test Plan
 
@@ -87,6 +88,13 @@ No new business run statuses. Investigation responses use explicit technical sta
     - async operation id to correlation id
   - Feature flag:
     - `DPM_LINEAGE_APIS_ENABLED` (default `false`)
+- Implemented (slice 3):
+  - Idempotency history API:
+    - `GET /rebalance/idempotency/{idempotency_key}/history`
+  - Persistent append-only idempotency history storage for both backends:
+    - in-memory
+    - SQLite
+  - Feature flag:
+    - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
 - Pending:
   - SQL backend beyond SQLite (enterprise managed database deployment profile).
-  - Idempotency history API (`GET /rebalance/idempotency/{idempotency_key}/history`).

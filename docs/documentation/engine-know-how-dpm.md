@@ -52,6 +52,9 @@ Implementation scope:
 ### `GET /rebalance/lineage/{entity_id}`
 - Purpose: retrieve supportability lineage edges for entity ids (correlation, idempotency, run, operation).
 
+### `GET /rebalance/idempotency/{idempotency_key}/history`
+- Purpose: retrieve append-only idempotency key mapping history across recorded runs.
+
 ### `GET /rebalance/runs/{rebalance_run_id}/workflow`
 - Purpose: retrieve workflow gate status and latest reviewer decision for a run.
 
@@ -132,6 +135,7 @@ Implementation scope:
   - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQLITE`, default `IN_MEMORY`)
   - `DPM_SUPPORTABILITY_SQLITE_PATH` (used when backend is `SQLITE`)
   - `DPM_LINEAGE_APIS_ENABLED` (default `false`)
+  - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
   - `DPM_WORKFLOW_ENABLED` (default `false`)
   - `DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES` (CSV list, default `PENDING_REVIEW`)
 

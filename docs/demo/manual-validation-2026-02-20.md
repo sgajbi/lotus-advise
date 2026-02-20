@@ -78,6 +78,19 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `GET /rebalance/lineage/{correlation_id}` returns `200` with `CORRELATION_TO_RUN`.
     - `GET /rebalance/lineage/{idempotency_key}` returns `200` with `IDEMPOTENCY_TO_RUN`.
     - `GET /rebalance/lineage/{operation_id}` returns `200` with `OPERATION_TO_CORRELATION`.
+- Idempotency history API validation:
+  - Uvicorn run (`DPM_IDEMPOTENCY_REPLAY_ENABLED=false`, `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED=true`)
+    on `http://127.0.0.1:8011`:
+    - Two `POST /rebalance/simulate` calls with same idempotency key and different payload hash
+      both return `200`.
+    - `GET /rebalance/idempotency/{idempotency_key}/history` returns `200` with two entries
+      preserving run ids, correlation ids, and request hashes.
+  - Container run (`dpm-rebalance-engine:latest`, `DPM_IDEMPOTENCY_REPLAY_ENABLED=false`,
+    `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED=true`, `DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`)
+    on `http://127.0.0.1:8012`:
+    - Two `POST /rebalance/simulate` calls with same idempotency key and different payload hash
+      both return `200`.
+    - `GET /rebalance/idempotency/{idempotency_key}/history` returns `200` with two entries.
   - Container run (`DPM_LINEAGE_APIS_ENABLED=true`, `DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`)
     on `http://127.0.0.1:8002`:
     - `GET /rebalance/lineage/{correlation_id}` returns `200` with `CORRELATION_TO_RUN`.
