@@ -67,6 +67,18 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `warnings = ["PARTIAL_BATCH_FAILURE"]`
     - `failed_scenarios = {"invalid_options": "..."}`
 - No contract or runtime mismatches observed between uvicorn and Docker paths.
+- SQLite supportability backend validation:
+  - Uvicorn run (`DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`) on `http://127.0.0.1:8001`:
+    - `POST /rebalance/simulate` succeeded (`200`).
+    - `GET /rebalance/runs/{rebalance_run_id}` succeeded (`200`).
+    - `GET /rebalance/runs/by-correlation/{correlation_id}` succeeded (`200`).
+    - `GET /rebalance/runs/idempotency/{idempotency_key}` succeeded (`200`).
+  - Container run (`dpm-rebalance-engine:latest` with `DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`)
+    on `http://127.0.0.1:8002`:
+    - `POST /rebalance/simulate` succeeded (`200`).
+    - `GET /rebalance/runs/{rebalance_run_id}` succeeded (`200`).
+    - `GET /rebalance/runs/by-correlation/{correlation_id}` succeeded (`200`).
+    - `GET /rebalance/runs/idempotency/{idempotency_key}` succeeded (`200`).
 - Supportability and artifact scenario `27_dpm_supportability_artifact_flow.json` validated:
   - `POST /rebalance/simulate` with idempotency + correlation headers succeeds.
   - `GET /rebalance/runs/{rebalance_run_id}` returns run payload and metadata.

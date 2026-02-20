@@ -1,0 +1,27 @@
+# ADR-0008: DPM Supportability Store Backend Selection
+
+## Status
+
+Accepted
+
+## Context
+
+RFC-0023 requires durable supportability storage while preserving current in-memory behavior for local development and backward compatibility. The DPM supportability domain now includes run records, idempotency mappings, async operation records, and workflow decision records.
+
+## Decision
+
+Introduce backend selection for DPM supportability repository:
+
+- `DPM_SUPPORTABILITY_STORE_BACKEND`
+  - `IN_MEMORY` (default)
+  - `SQLITE`
+- `DPM_SUPPORTABILITY_SQLITE_PATH`
+  - file path used when backend is `SQLITE`
+
+Repository interface remains unchanged so services and API contracts are storage-agnostic.
+
+## Consequences
+
+- Production-style durability can be enabled without API changes.
+- Local default remains fast and compatible with existing tests.
+- Backend parity is protected with repository contract tests across in-memory and SQLite adapters.

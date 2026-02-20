@@ -7,3 +7,4 @@
 - `ADR-0005-dpm-derived-run-artifact-strategy.md`
 - `ADR-0006-dpm-async-execution-mode-inline-vs-accept-only.md`
 - `ADR-0007-dpm-workflow-gate-supportability-api-first.md`
+- `ADR-0008-dpm-supportability-store-backend-selection.md`

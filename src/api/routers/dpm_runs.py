@@ -17,11 +17,11 @@ from src.core.dpm_runs import (
     DpmWorkflowTransitionError,
 )
 from src.core.models import RebalanceResult
-from src.infrastructure.dpm_runs import InMemoryDpmRunRepository
+from src.infrastructure.dpm_runs import InMemoryDpmRunRepository, SqliteDpmRunRepository
 
 router = APIRouter(tags=["DPM Run Supportability"])
 
-_REPOSITORY = InMemoryDpmRunRepository()
+_REPOSITORY = None
 _SERVICE: Optional[DpmRunSupportService] = None
 
 
@@ -83,8 +83,19 @@ def _assert_workflow_enabled() -> None:
         )
 
 
+def _build_repository():
+    backend = os.getenv("DPM_SUPPORTABILITY_STORE_BACKEND", "IN_MEMORY").strip().upper()
+    if backend == "SQLITE":
+        sqlite_path = os.getenv("DPM_SUPPORTABILITY_SQLITE_PATH", ".data/dpm_supportability.db")
+        return SqliteDpmRunRepository(database_path=sqlite_path)
+    return InMemoryDpmRunRepository()
+
+
 def get_dpm_run_support_service() -> DpmRunSupportService:
+    global _REPOSITORY
     global _SERVICE
+    if _REPOSITORY is None:
+        _REPOSITORY = _build_repository()
     if _SERVICE is None:
         _SERVICE = DpmRunSupportService(
             repository=_REPOSITORY,
@@ -120,7 +131,7 @@ def record_dpm_run_for_support(
 def reset_dpm_run_support_service_for_tests() -> None:
     global _REPOSITORY
     global _SERVICE
-    _REPOSITORY = InMemoryDpmRunRepository()
+    _REPOSITORY = _build_repository()
     _SERVICE = None
 
 

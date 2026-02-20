@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IN_PROGRESS |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0017, RFC-0018, RFC-0019 |
 | **Doc Location** | `docs/rfcs/RFC-0023-dpm-persistent-supportability-store-and-lineage-apis.md` |
@@ -66,3 +66,19 @@ Ship SQL adapter behind configuration, keep in-memory as default for local devel
 
 No new business run statuses. Investigation responses use explicit technical status codes and stable reason code fields when applicable.
 
+## 8. Implementation Status
+
+- Implemented (slice 1):
+  - Repository backend selection:
+    - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQLITE`)
+    - `DPM_SUPPORTABILITY_SQLITE_PATH` (SQLite database file path)
+  - SQLite repository adapter for DPM supportability records:
+    - runs
+    - idempotency mappings
+    - async operations
+    - workflow decisions
+  - Contract tests validating repository parity between in-memory and SQLite adapters.
+- Pending:
+  - SQL backend beyond SQLite (enterprise managed database deployment profile).
+  - Lineage traversal APIs (`GET /rebalance/lineage/{entity_id}`).
+  - Idempotency history API (`GET /rebalance/idempotency/{idempotency_key}/history`).

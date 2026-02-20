@@ -6,6 +6,8 @@ import asyncio
 import inspect
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
@@ -178,6 +180,31 @@ def test_dpm_support_apis_lookup_by_run_correlation_and_idempotency(client):
         artifact_again.json()["evidence"]["hashes"]["artifact_hash"]
         == artifact_body["evidence"]["hashes"]["artifact_hash"]
     )
+
+
+def test_dpm_supportability_sqlite_backend_selection(client, monkeypatch):
+    with TemporaryDirectory() as tmp_dir:
+        sqlite_path = str(Path(tmp_dir) / "dpm_supportability.sqlite")
+        monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "SQLITE")
+        monkeypatch.setenv("DPM_SUPPORTABILITY_SQLITE_PATH", sqlite_path)
+        reset_dpm_run_support_service_for_tests()
+
+        payload = get_valid_payload()
+        headers = {
+            "Idempotency-Key": "test-key-support-sqlite",
+            "X-Correlation-Id": "corr-sqlite-1",
+        }
+        simulate = client.post("/rebalance/simulate", json=payload, headers=headers)
+        assert simulate.status_code == 200
+        body = simulate.json()
+
+        by_run = client.get(f"/rebalance/runs/{body['rebalance_run_id']}")
+        assert by_run.status_code == 200
+        assert by_run.json()["rebalance_run_id"] == body["rebalance_run_id"]
+
+        by_idempotency = client.get("/rebalance/runs/idempotency/test-key-support-sqlite")
+        assert by_idempotency.status_code == 200
+        assert by_idempotency.json()["rebalance_run_id"] == body["rebalance_run_id"]
 
 
 def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):

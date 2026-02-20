@@ -126,6 +126,8 @@ Implementation scope:
   - `DPM_IDEMPOTENCY_REPLAY_ENABLED` (default `true`)
   - `DPM_IDEMPOTENCY_CACHE_MAX_SIZE` (default `1000`)
   - `DPM_SUPPORT_APIS_ENABLED` (default `true`)
+  - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQLITE`, default `IN_MEMORY`)
+  - `DPM_SUPPORTABILITY_SQLITE_PATH` (used when backend is `SQLITE`)
   - `DPM_WORKFLOW_ENABLED` (default `false`)
   - `DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES` (CSV list, default `PENDING_REVIEW`)
 
