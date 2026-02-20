@@ -137,5 +137,21 @@ Current state is split between in-memory adapters (advisory and default DPM) and
   - Added deployment documentation for:
     - `DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES`
     - `DPM_SUPPORTABILITY_POSTGRES_DSN=...`
+- Implemented (slice 4):
+  - Added concrete Postgres supportability repository subset:
+    - `save_run`
+    - `get_run`
+    - `save_run_artifact`
+    - `get_run_artifact`
+  - Added table bootstrap for:
+    - `dpm_runs`
+    - `dpm_run_artifacts`
+  - Added repository unit coverage using fake Postgres connection semantics to validate
+    deterministic SQL adapter behavior without external DB dependency.
 - Next slice:
-  - implement concrete PostgreSQL DPM supportability repository adapter with repository parity tests.
+  - implement remaining Postgres repository operations:
+    - idempotency mappings/history
+    - async operations
+    - workflow decisions
+    - lineage edges
+    - supportability summary and retention purge
