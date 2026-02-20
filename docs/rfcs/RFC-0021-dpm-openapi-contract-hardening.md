@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED (PHASE 1 - CONTRACT TEST HARDENING) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0007A, RFC-0016, RFC-0017 |
 | **Doc Location** | `docs/rfcs/RFC-0021-dpm-openapi-contract-hardening.md` |
@@ -41,6 +41,15 @@ Schema ambiguity and mixed request/response models reduce integrator confidence 
 - Snapshot/semantic tests over `/openapi.json`.
 - Assertions for required fields, enums, and examples on targeted models.
 
+Phase-1 implemented:
+- Added DPM OpenAPI contract tests for async/supportability/artifact schemas and endpoint contracts:
+  - `tests/dpm/contracts/test_contract_openapi_supportability_docs.py`
+- Validates:
+  - field-level descriptions/examples for key DPM response DTOs
+  - request/response schema separation and response header docs on async analyze
+  - execute endpoint contract shape (`POST /rebalance/operations/{operation_id}/execute`)
+  - artifact endpoint contract shape (`GET /rebalance/runs/{rebalance_run_id}/artifact`)
+
 ### 4.3 Configurability
 
 - `DPM_STRICT_OPENAPI_VALIDATION` (default `true` in CI, configurable locally)
@@ -58,4 +67,3 @@ No runtime behavior change intended. External clients benefit from clearer contr
 ## 7. Status and Reason Code Conventions
 
 No status vocabulary changes introduced by this RFC.
-

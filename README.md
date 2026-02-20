@@ -22,6 +22,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0017 (DPM supportability APIs for run lookup by run id, correlation id, and idempotency key)
 * RFC-0018 (DPM async operations phase-1 via `POST /rebalance/analyze/async` with operation lookup by id/correlation)
 * RFC-0019 (DPM run artifact phase-1 via `GET /rebalance/runs/{rebalance_run_id}/artifact` with deterministic artifact hashing)
+* RFC-0021 (DPM OpenAPI hardening phase-1 with contract tests for async/supportability/artifact endpoint schemas)
 * RFC-0014A (advisory proposal simulation via `POST /rebalance/proposals/simulate`, feature-flagged via `options.enable_proposal_simulation`)
 * RFC-0014B (advisory proposal auto-funding via generated `FX_SPOT` intents and dependencies)
 * RFC-0014C (advisory drift analytics via inline `reference_model` in `POST /rebalance/proposals/simulate`)
