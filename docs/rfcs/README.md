@@ -28,3 +28,9 @@ Standards for all current and future RFCs:
 | RFC-0015 | Deferred Scope Consolidation and Completion Backlog | DRAFT | RFC-0001..RFC-0013 | `docs/rfcs/RFC-0015-deferred-scope-consolidation-and-completion-backlog.md` |
 | RFC-0016 | DPM Idempotency Replay Contract for `/rebalance/simulate` | IMPLEMENTED | RFC-0001, RFC-0002, RFC-0007A | `docs/rfcs/RFC-0016-dpm-idempotency-replay-contract.md` |
 | RFC-0017 | DPM Run Supportability APIs (Run, Correlation, Idempotency Lookup) | IMPLEMENTED | RFC-0001, RFC-0002, RFC-0016 | `docs/rfcs/RFC-0017-dpm-run-supportability-apis.md` |
+| RFC-0018 | DPM Async Operations Resource | DRAFT | RFC-0013, RFC-0016, RFC-0017 | `docs/rfcs/RFC-0018-dpm-async-operations-resource.md` |
+| RFC-0019 | DPM Deterministic Run Artifact Contract | DRAFT | RFC-0003, RFC-0013, RFC-0017 | `docs/rfcs/RFC-0019-dpm-deterministic-run-artifact-contract.md` |
+| RFC-0020 | DPM Workflow Gate API and Persistence | DRAFT | RFC-0017, RFC-0019 | `docs/rfcs/RFC-0020-dpm-workflow-gate-api-and-persistence.md` |
+| RFC-0021 | DPM OpenAPI Contract Hardening and Separation of Request/Response Models | DRAFT | RFC-0007A, RFC-0016, RFC-0017 | `docs/rfcs/RFC-0021-dpm-openapi-contract-hardening.md` |
+| RFC-0022 | DPM Policy Pack Configuration Model | DRAFT | RFC-0008, RFC-0010, RFC-0011, RFC-0016 | `docs/rfcs/RFC-0022-dpm-policy-pack-configuration-model.md` |
+| RFC-0023 | DPM Persistent Supportability Store and Lineage APIs | DRAFT | RFC-0017, RFC-0018, RFC-0019 | `docs/rfcs/RFC-0023-dpm-persistent-supportability-store-and-lineage-apis.md` |
