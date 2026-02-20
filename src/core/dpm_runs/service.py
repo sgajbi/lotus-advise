@@ -24,7 +24,6 @@ from src.core.dpm_runs.models import (
     DpmRunRecord,
     DpmRunSupportBundleResponse,
     DpmRunWorkflowDecisionRecord,
-    DpmRunWorkflowDecisionResponse,
     DpmRunWorkflowHistoryResponse,
     DpmRunWorkflowResponse,
     DpmSupportabilitySummaryData,
@@ -34,6 +33,17 @@ from src.core.dpm_runs.models import (
     DpmWorkflowStatus,
 )
 from src.core.dpm_runs.repository import DpmRunRepository
+from src.core.dpm_runs.serializers import (
+    to_async_accepted,
+    to_async_status,
+    to_lookup_response,
+    to_workflow_decision_response,
+)
+from src.core.dpm_runs.workflow import (
+    resolve_workflow_status,
+    resolve_workflow_transition,
+    workflow_required_for_run_status,
+)
 from src.core.models import RebalanceResult
 
 
@@ -128,21 +138,21 @@ class DpmRunSupportService:
         run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
-        return self._to_lookup_response(run)
+        return to_lookup_response(run)
 
     def get_run_by_correlation(self, *, correlation_id: str) -> DpmRunLookupResponse:
         self._cleanup_expired_supportability()
         run = self._repository.get_run_by_correlation(correlation_id=correlation_id)
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
-        return self._to_lookup_response(run)
+        return to_lookup_response(run)
 
     def get_run_by_request_hash(self, *, request_hash: str) -> DpmRunLookupResponse:
         self._cleanup_expired_supportability()
         run = self._repository.get_run_by_request_hash(request_hash=request_hash)
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
-        return self._to_lookup_response(run)
+        return to_lookup_response(run)
 
     def list_runs(
         self,
@@ -257,7 +267,7 @@ class DpmRunSupportService:
             metadata={"operation_type": operation.operation_type},
             created_at=operation.created_at,
         )
-        return self._to_async_accepted(operation)
+        return to_async_accepted(operation)
 
     def list_async_operations(
         self,
@@ -393,7 +403,7 @@ class DpmRunSupportService:
                 correlation_id=run.correlation_id
             )
             if operation is not None:
-                async_operation = self._to_async_status(operation)
+                async_operation = to_async_status(operation)
 
         idempotency_history = None
         if include_idempotency_history and run.idempotency_key is not None:
@@ -424,7 +434,7 @@ class DpmRunSupportService:
         decisions = sorted(decisions, key=lambda item: item.decided_at)
         workflow_history = DpmRunWorkflowHistoryResponse(
             run_id=rebalance_run_id,
-            decisions=[self._to_workflow_decision_response(decision) for decision in decisions],
+            decisions=[to_workflow_decision_response(decision) for decision in decisions],
         )
 
         edges = self._repository.list_lineage_edges(entity_id=rebalance_run_id)
@@ -452,7 +462,7 @@ class DpmRunSupportService:
         )
 
         return DpmRunSupportBundleResponse(
-            run=self._to_lookup_response(run),
+            run=to_lookup_response(run),
             artifact=artifact,
             async_operation=async_operation,
             workflow_history=workflow_history,
@@ -548,7 +558,7 @@ class DpmRunSupportService:
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
             raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
-        return self._to_async_status(operation)
+        return to_async_status(operation)
 
     def get_async_operation_by_correlation(
         self, *, correlation_id: str
@@ -557,7 +567,7 @@ class DpmRunSupportService:
         operation = self._repository.get_operation_by_correlation(correlation_id=correlation_id)
         if operation is None:
             raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
-        return self._to_async_status(operation)
+        return to_async_status(operation)
 
     def prepare_analyze_operation_execution(self, *, operation_id: str) -> tuple[dict, str]:
         self._cleanup_expired_operations()
@@ -588,7 +598,7 @@ class DpmRunSupportService:
         decisions = sorted(decisions, key=lambda item: item.decided_at)
         return DpmRunWorkflowHistoryResponse(
             run_id=rebalance_run_id,
-            decisions=[self._to_workflow_decision_response(decision) for decision in decisions],
+            decisions=[to_workflow_decision_response(decision) for decision in decisions],
         )
 
     def get_workflow_history_by_correlation(
@@ -635,7 +645,7 @@ class DpmRunSupportService:
             cursor=cursor,
         )
         return DpmWorkflowDecisionListResponse(
-            items=[self._to_workflow_decision_response(decision) for decision in decisions],
+            items=[to_workflow_decision_response(decision) for decision in decisions],
             next_cursor=next_cursor,
         )
 
@@ -664,7 +674,7 @@ class DpmRunSupportService:
             run_status=run_status,
             latest_decision=latest_decision,
         )
-        next_status = _resolve_workflow_transition(current_status=current_status, action=action)
+        next_status = resolve_workflow_transition(current_status=current_status, action=action)
         if next_status is None:
             raise DpmWorkflowTransitionError("DPM_WORKFLOW_INVALID_TRANSITION")
 
@@ -684,7 +694,7 @@ class DpmRunSupportService:
             run_status=run_status,
             workflow_status=next_status,
             requires_review=True,
-            latest_decision=self._to_workflow_decision_response(decision),
+            latest_decision=to_workflow_decision_response(decision),
         )
 
     def apply_workflow_action_by_correlation(
@@ -727,43 +737,6 @@ class DpmRunSupportService:
             correlation_id=action_correlation_id,
         )
 
-    def _to_lookup_response(self, run: DpmRunRecord) -> DpmRunLookupResponse:
-        return DpmRunLookupResponse(
-            rebalance_run_id=run.rebalance_run_id,
-            correlation_id=run.correlation_id,
-            request_hash=run.request_hash,
-            idempotency_key=run.idempotency_key,
-            portfolio_id=run.portfolio_id,
-            created_at=run.created_at.isoformat(),
-            result=RebalanceResult.model_validate(run.result_json),
-        )
-
-    def _to_async_accepted(self, operation: DpmAsyncOperationRecord) -> DpmAsyncAcceptedResponse:
-        return DpmAsyncAcceptedResponse(
-            operation_id=operation.operation_id,
-            operation_type=operation.operation_type,
-            status=operation.status,
-            correlation_id=operation.correlation_id,
-            created_at=operation.created_at.isoformat(),
-            status_url=f"/rebalance/operations/{operation.operation_id}",
-            execute_url=f"/rebalance/operations/{operation.operation_id}/execute",
-        )
-
-    def _to_async_status(
-        self, operation: DpmAsyncOperationRecord
-    ) -> DpmAsyncOperationStatusResponse:
-        return DpmAsyncOperationStatusResponse(
-            operation_id=operation.operation_id,
-            operation_type=operation.operation_type,
-            status=operation.status,
-            is_executable=(operation.status == "PENDING" and operation.request_json is not None),
-            correlation_id=operation.correlation_id,
-            created_at=operation.created_at.isoformat(),
-            started_at=(operation.started_at.isoformat() if operation.started_at else None),
-            finished_at=(operation.finished_at.isoformat() if operation.finished_at else None),
-            result=operation.result_json,
-            error=operation.error_json,
-        )
 
     def _cleanup_expired_operations(self) -> None:
         self._repository.purge_expired_operations(
@@ -829,7 +802,7 @@ class DpmRunSupportService:
             workflow_status=workflow_status,
             requires_review=self._workflow_required_for_run_status(run_status=run_status),
             latest_decision=(
-                self._to_workflow_decision_response(latest_decision)
+                to_workflow_decision_response(latest_decision)
                 if latest_decision is not None
                 else None
             ),
@@ -844,7 +817,11 @@ class DpmRunSupportService:
         return max(decisions, key=lambda item: item.decided_at)
 
     def _workflow_required_for_run_status(self, *, run_status: str) -> bool:
-        return self._workflow_enabled and run_status in self._workflow_requires_review_for_statuses
+        return workflow_required_for_run_status(
+            workflow_enabled=self._workflow_enabled,
+            run_status=run_status,
+            requires_review_for_statuses=self._workflow_requires_review_for_statuses,
+        )
 
     def _resolve_workflow_status(
         self,
@@ -852,52 +829,13 @@ class DpmRunSupportService:
         run_status: str,
         latest_decision: Optional[DpmRunWorkflowDecisionRecord],
     ) -> DpmWorkflowStatus:
-        if not self._workflow_required_for_run_status(run_status=run_status):
-            return "NOT_REQUIRED"
-        if latest_decision is None:
-            return "PENDING_REVIEW"
-        return _status_for_action(latest_decision.action)
-
-    def _to_workflow_decision_response(
-        self, decision: DpmRunWorkflowDecisionRecord
-    ) -> DpmRunWorkflowDecisionResponse:
-        return DpmRunWorkflowDecisionResponse(
-            decision_id=decision.decision_id,
-            run_id=decision.run_id,
-            action=decision.action,
-            reason_code=decision.reason_code,
-            comment=decision.comment,
-            actor_id=decision.actor_id,
-            decided_at=decision.decided_at.isoformat(),
-            correlation_id=decision.correlation_id,
+        return resolve_workflow_status(
+            workflow_enabled=self._workflow_enabled,
+            run_status=run_status,
+            latest_decision=latest_decision,
+            requires_review_for_statuses=self._workflow_requires_review_for_statuses,
         )
 
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def _status_for_action(action: DpmWorkflowActionType) -> DpmWorkflowStatus:
-    if action == "APPROVE":
-        return "APPROVED"
-    if action == "REJECT":
-        return "REJECTED"
-    return "PENDING_REVIEW"
-
-
-_VALID_WORKFLOW_TRANSITIONS: dict[
-    tuple[DpmWorkflowStatus, DpmWorkflowActionType], DpmWorkflowStatus
-] = {
-    ("PENDING_REVIEW", "APPROVE"): "APPROVED",
-    ("PENDING_REVIEW", "REJECT"): "REJECTED",
-    ("PENDING_REVIEW", "REQUEST_CHANGES"): "PENDING_REVIEW",
-    ("APPROVED", "REQUEST_CHANGES"): "PENDING_REVIEW",
-    ("APPROVED", "REJECT"): "REJECTED",
-    ("REJECTED", "REQUEST_CHANGES"): "PENDING_REVIEW",
-}
-
-
-def _resolve_workflow_transition(
-    *, current_status: DpmWorkflowStatus, action: DpmWorkflowActionType
-) -> Optional[DpmWorkflowStatus]:
-    return _VALID_WORKFLOW_TRANSITIONS.get((current_status, action))
