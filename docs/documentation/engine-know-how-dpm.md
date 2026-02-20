@@ -122,6 +122,10 @@ Implementation scope:
   - `selected_policy_pack_source`
   - `items`
 
+Swagger contract quality:
+- Policy-pack and supportability DTOs are contract-tested for field-level `description` and `examples`.
+- Policy endpoints are contract-tested as response-only (`GET` without request body).
+
 ### `GET /rebalance/runs/{rebalance_run_id}`
 - Purpose: retrieve one DPM run with full result payload and lineage metadata for support investigations.
 

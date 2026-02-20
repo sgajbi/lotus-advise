@@ -46,7 +46,14 @@ Phase-1 implemented:
   - `tests/dpm/contracts/test_contract_openapi_supportability_docs.py`
 - Validates:
   - field-level descriptions/examples for key DPM response DTOs
+  - field-level descriptions/examples for DPM policy-pack resolution/catalog and nested policy DTOs
   - request/response schema separation and response header docs on async analyze
+  - request/response schema separation on:
+    - `POST /rebalance/simulate`
+    - `POST /rebalance/analyze`
+    - `POST /rebalance/analyze/async`
+    - `GET /rebalance/policies/effective`
+    - `GET /rebalance/policies/catalog`
   - execute endpoint contract shape (`POST /rebalance/operations/{operation_id}/execute`)
   - artifact endpoint contract shape (`GET /rebalance/runs/{rebalance_run_id}/artifact`)
 
