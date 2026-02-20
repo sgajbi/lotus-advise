@@ -136,6 +136,26 @@ def test_policy_pack_apply_tax_overrides():
     assert effective_options.max_realized_capital_gains == Decimal("75")
 
 
+def test_policy_pack_apply_settlement_overrides():
+    options = EngineOptions(enable_settlement_awareness=False, settlement_horizon_days=5)
+    catalog = parse_policy_pack_catalog(
+        (
+            '{"dpm_standard_v1":{"settlement_policy":{"enable_settlement_awareness":true,'
+            '"settlement_horizon_days":3}}}'
+        )
+    )
+    resolution = resolve_effective_policy_pack(
+        policy_packs_enabled=True,
+        request_policy_pack_id="dpm_standard_v1",
+        tenant_default_policy_pack_id=None,
+        global_default_policy_pack_id=None,
+    )
+    selected = resolve_policy_pack_definition(resolution=resolution, catalog=catalog)
+    effective_options = apply_policy_pack_to_engine_options(options=options, policy_pack=selected)
+    assert effective_options.enable_settlement_awareness is True
+    assert effective_options.settlement_horizon_days == 3
+
+
 def test_policy_pack_catalog_parse_invalid_json_and_shape():
     assert parse_policy_pack_catalog("{bad-json}") == {}
     assert parse_policy_pack_catalog("[]") == {}

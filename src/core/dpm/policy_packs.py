@@ -47,6 +47,21 @@ class DpmPolicyPackTaxPolicy(BaseModel):
     )
 
 
+class DpmPolicyPackSettlementPolicy(BaseModel):
+    enable_settlement_awareness: Optional[bool] = Field(
+        default=None,
+        description="Optional override for settlement ladder checks.",
+        examples=[True],
+    )
+    settlement_horizon_days: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=10,
+        description="Optional override for settlement ladder horizon in day offsets.",
+        examples=[3],
+    )
+
+
 class DpmPolicyPackDefinition(BaseModel):
     policy_pack_id: str = Field(
         description="Unique policy-pack identifier.",
@@ -63,6 +78,10 @@ class DpmPolicyPackDefinition(BaseModel):
     tax_policy: DpmPolicyPackTaxPolicy = Field(
         default_factory=DpmPolicyPackTaxPolicy,
         description="Tax policy overrides for selected policy-pack.",
+    )
+    settlement_policy: DpmPolicyPackSettlementPolicy = Field(
+        default_factory=DpmPolicyPackSettlementPolicy,
+        description="Settlement policy overrides for selected policy-pack.",
     )
 
 
@@ -101,6 +120,8 @@ class DpmPolicyPackCatalogResponse(BaseModel):
                     "policy_pack_id": "dpm_standard_v1",
                     "version": "1",
                     "turnover_policy": {"max_turnover_pct": "0.10"},
+                    "tax_policy": {"enable_tax_awareness": True},
+                    "settlement_policy": {"enable_settlement_awareness": False},
                 }
             ]
         ],
@@ -182,6 +203,7 @@ def parse_policy_pack_catalog(catalog_json: Optional[str]) -> dict[str, DpmPolic
             "version": str(definition.get("version", "1")),
             "turnover_policy": definition.get("turnover_policy") or {},
             "tax_policy": definition.get("tax_policy") or {},
+            "settlement_policy": definition.get("settlement_policy") or {},
         }
         try:
             parsed = DpmPolicyPackDefinition.model_validate(payload)
@@ -215,6 +237,12 @@ def apply_policy_pack_to_engine_options(
         updates["enable_tax_awareness"] = policy_pack.tax_policy.enable_tax_awareness
     if policy_pack.tax_policy.max_realized_capital_gains is not None:
         updates["max_realized_capital_gains"] = policy_pack.tax_policy.max_realized_capital_gains
+    if policy_pack.settlement_policy.enable_settlement_awareness is not None:
+        updates["enable_settlement_awareness"] = (
+            policy_pack.settlement_policy.enable_settlement_awareness
+        )
+    if policy_pack.settlement_policy.settlement_horizon_days is not None:
+        updates["settlement_horizon_days"] = policy_pack.settlement_policy.settlement_horizon_days
     if not updates:
         return options
     return options.model_copy(update=updates)

@@ -29,6 +29,8 @@ Implementation scope:
     - `max_turnover_pct`
     - `enable_tax_awareness`
     - `max_realized_capital_gains`
+    - `enable_settlement_awareness`
+    - `settlement_horizon_days`
 - Output: `RebalanceResult` with status `READY | PENDING_REVIEW | BLOCKED` and `gate_decision`
 - Correlation behavior:
   - response `correlation_id` echoes request `X-Correlation-Id` when provided
@@ -47,6 +49,8 @@ Implementation scope:
     - `max_turnover_pct`
     - `enable_tax_awareness`
     - `max_realized_capital_gains`
+    - `enable_settlement_awareness`
+    - `settlement_horizon_days`
 - Output: `BatchRebalanceResult` with scenario-level results/metrics/failures.
 - Scenario correlation behavior:
   - when `X-Correlation-Id` is provided, each scenario result uses `{header}:{scenario_name}`

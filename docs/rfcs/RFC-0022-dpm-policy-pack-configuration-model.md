@@ -147,6 +147,14 @@ Policy pack selection must not alter run status vocabulary semantics.
     - `POST /rebalance/analyze/async`
     - `GET /rebalance/policies/effective`
     - `GET /rebalance/policies/catalog`
+- Implemented (slice 7):
+  - Additional `EngineOptions` settlement transformations from selected policy-pack:
+    - `settlement_policy.enable_settlement_awareness` -> `options.enable_settlement_awareness`
+    - `settlement_policy.settlement_horizon_days` -> `options.settlement_horizon_days`
+  - Applied on:
+    - `POST /rebalance/simulate`
+    - `POST /rebalance/analyze`
+    - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
 - Pending:
-  - additional policy dimensions beyond turnover/tax
-    (settlement, constraints, workflow, idempotency).
+  - additional policy dimensions beyond turnover/tax/settlement
+    (constraints, workflow, idempotency).

@@ -43,6 +43,12 @@ export DPM_TENANT_POLICY_PACK_MAP_JSON='{"tenant_001":"dpm_standard_v1"}'
 curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-policy-pack-turnover-1" -H "X-Policy-Pack-Id: dpm_standard_v1" --data-binary "@docs/demo/01_standard_drift.json"
 ```
 
+Settlement-policy override example:
+```bash
+export DPM_POLICY_PACK_CATALOG_JSON='{"dpm_standard_v1":{"version":"1","settlement_policy":{"enable_settlement_awareness":true,"settlement_horizon_days":3}}}'
+curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-policy-pack-settlement-1" -H "X-Policy-Pack-Id: dpm_standard_v1" --data-binary "@docs/demo/07_settlement_overdraft_block.json"
+```
+
 For DPM supportability and deterministic artifact retrieval flow:
 ```bash
 curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-27-supportability" -H "X-Correlation-Id: demo-corr-27-supportability" --data-binary "@docs/demo/27_dpm_supportability_artifact_flow.json"

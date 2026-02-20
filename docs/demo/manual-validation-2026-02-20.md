@@ -334,3 +334,26 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `selected_policy_pack_id=tenant_pack`
       - `selected_policy_pack_present=true`
     - `POST /rebalance/simulate` with `X-Tenant-Id=tenant_001` returns `200` with `status=READY`.
+- Settlement policy-pack override validation (RFC-0022 slice 7):
+  - Docker runtime (`http://127.0.0.1:8000`, default config):
+    - `GET /rebalance/policies/catalog` with `X-Policy-Pack-Id=dpm_standard_v1` returns:
+      - `total=0`
+    - `POST /rebalance/simulate` with:
+      - `Idempotency-Key=manual-settlement-policy-docker`
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      - payload: `docs/demo/07_settlement_overdraft_block.json`
+      returns `200` with `status=BLOCKED`.
+  - Uvicorn runtime (`http://127.0.0.1:8004`) with:
+    - `DPM_POLICY_PACKS_ENABLED=true`
+    - `DPM_POLICY_PACK_CATALOG_JSON={"dpm_standard_v1":{"version":"1","settlement_policy":{"enable_settlement_awareness":true,"settlement_horizon_days":3}}}`
+    validated:
+    - `GET /rebalance/policies/catalog` with `X-Policy-Pack-Id=dpm_standard_v1` returns:
+      - `total=1`
+      - `selected_policy_pack_id=dpm_standard_v1`
+      - `items[0].settlement_policy.enable_settlement_awareness=true`
+      - `items[0].settlement_policy.settlement_horizon_days=3`
+    - `POST /rebalance/simulate` with:
+      - `Idempotency-Key=manual-settlement-policy-uvicorn`
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      - payload: `docs/demo/07_settlement_overdraft_block.json`
+      returns `200` with `status=BLOCKED`.
