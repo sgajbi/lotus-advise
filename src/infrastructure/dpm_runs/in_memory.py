@@ -5,6 +5,7 @@ from typing import Optional
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
+    DpmLineageEdgeRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
@@ -21,6 +22,7 @@ class InMemoryDpmRunRepository(DpmRunRepository):
         self._operations: dict[str, DpmAsyncOperationRecord] = {}
         self._operation_by_correlation: dict[str, str] = {}
         self._workflow_decisions: dict[str, list[DpmRunWorkflowDecisionRecord]] = {}
+        self._lineage_edges_by_entity: dict[str, list[DpmLineageEdgeRecord]] = {}
 
     def save_run(self, run: DpmRunRecord) -> None:
         with self._lock:
@@ -98,3 +100,16 @@ class InMemoryDpmRunRepository(DpmRunRepository):
         with self._lock:
             decisions = self._workflow_decisions.get(rebalance_run_id, [])
             return [deepcopy(decision) for decision in decisions]
+
+    def append_lineage_edge(self, edge: DpmLineageEdgeRecord) -> None:
+        with self._lock:
+            source_edges = self._lineage_edges_by_entity.setdefault(edge.source_entity_id, [])
+            source_edges.append(deepcopy(edge))
+            if edge.target_entity_id != edge.source_entity_id:
+                target_edges = self._lineage_edges_by_entity.setdefault(edge.target_entity_id, [])
+                target_edges.append(deepcopy(edge))
+
+    def list_lineage_edges(self, *, entity_id: str) -> list[DpmLineageEdgeRecord]:
+        with self._lock:
+            edges = self._lineage_edges_by_entity.get(entity_id, [])
+            return [deepcopy(edge) for edge in edges]

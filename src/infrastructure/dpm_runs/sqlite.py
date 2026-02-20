@@ -8,6 +8,7 @@ from typing import Optional
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
+    DpmLineageEdgeRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
@@ -256,6 +257,54 @@ class SqliteDpmRunRepository(DpmRunRepository):
             for row in rows
         ]
 
+    def append_lineage_edge(self, edge: DpmLineageEdgeRecord) -> None:
+        query = """
+            INSERT INTO dpm_lineage_edges (
+                source_entity_id,
+                edge_type,
+                target_entity_id,
+                created_at,
+                metadata_json
+            ) VALUES (?, ?, ?, ?, ?)
+        """
+        with self._lock, closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    edge.source_entity_id,
+                    edge.edge_type,
+                    edge.target_entity_id,
+                    edge.created_at.isoformat(),
+                    _json_dump(edge.metadata_json),
+                ),
+            )
+            connection.commit()
+
+    def list_lineage_edges(self, *, entity_id: str) -> list[DpmLineageEdgeRecord]:
+        query = """
+            SELECT
+                source_entity_id,
+                edge_type,
+                target_entity_id,
+                created_at,
+                metadata_json
+            FROM dpm_lineage_edges
+            WHERE source_entity_id = ? OR target_entity_id = ?
+            ORDER BY created_at ASC, rowid ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (entity_id, entity_id)).fetchall()
+        return [
+            DpmLineageEdgeRecord(
+                source_entity_id=row["source_entity_id"],
+                edge_type=row["edge_type"],
+                target_entity_id=row["target_entity_id"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+                metadata_json=json.loads(row["metadata_json"]),
+            )
+            for row in rows
+        ]
+
     def _upsert_operation(self, operation: DpmAsyncOperationRecord) -> None:
         query = """
             INSERT INTO dpm_async_operations (
@@ -377,6 +426,14 @@ class SqliteDpmRunRepository(DpmRunRepository):
                     actor_id TEXT NOT NULL,
                     decided_at TEXT NOT NULL,
                     correlation_id TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS dpm_lineage_edges (
+                    source_entity_id TEXT NOT NULL,
+                    edge_type TEXT NOT NULL,
+                    target_entity_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL
                 );
                 """
             )

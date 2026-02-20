@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
 
 from src.core.dpm_runs import (
     DpmAsyncOperationStatusResponse,
+    DpmLineageResponse,
     DpmRunArtifactResponse,
     DpmRunIdempotencyLookupResponse,
     DpmRunLookupResponse,
@@ -80,6 +81,14 @@ def _assert_workflow_enabled() -> None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_WORKFLOW_DISABLED",
+        )
+
+
+def _assert_lineage_apis_enabled() -> None:
+    if not _env_flag("DPM_LINEAGE_APIS_ENABLED", False):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_LINEAGE_APIS_DISABLED",
         )
 
 
@@ -271,6 +280,34 @@ def get_dpm_async_operation_by_correlation(
         return service.get_async_operation_by_correlation(correlation_id=correlation_id)
     except DpmRunNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/lineage/{entity_id}",
+    response_model=DpmLineageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Supportability Lineage by Entity Id",
+    description=(
+        "Returns supportability lineage edges for an entity id, including correlation, "
+        "idempotency, run, and operation relations."
+    ),
+)
+def get_dpm_lineage(
+    entity_id: Annotated[
+        str,
+        Path(
+            description=(
+                "Supportability entity identifier such as correlation id, idempotency key, "
+                "run id, or operation id."
+            ),
+            examples=["corr-1234-abcd"],
+        ),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmLineageResponse:
+    _assert_support_apis_enabled()
+    _assert_lineage_apis_enabled()
+    return service.get_lineage(entity_id=entity_id)
 
 
 @router.get(

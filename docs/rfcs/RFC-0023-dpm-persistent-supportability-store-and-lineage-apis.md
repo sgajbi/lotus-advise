@@ -78,7 +78,15 @@ No new business run statuses. Investigation responses use explicit technical sta
     - async operations
     - workflow decisions
   - Contract tests validating repository parity between in-memory and SQLite adapters.
+- Implemented (slice 2):
+  - Lineage API:
+    - `GET /rebalance/lineage/{entity_id}`
+  - Lineage edge recording for:
+    - correlation to run
+    - idempotency key to run
+    - async operation id to correlation id
+  - Feature flag:
+    - `DPM_LINEAGE_APIS_ENABLED` (default `false`)
 - Pending:
   - SQL backend beyond SQLite (enterprise managed database deployment profile).
-  - Lineage traversal APIs (`GET /rebalance/lineage/{entity_id}`).
   - Idempotency history API (`GET /rebalance/idempotency/{idempotency_key}/history`).

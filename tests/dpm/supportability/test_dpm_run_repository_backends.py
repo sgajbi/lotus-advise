@@ -6,6 +6,7 @@ import pytest
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
+    DpmLineageEdgeRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
@@ -127,3 +128,24 @@ def test_repository_workflow_decision_contract(repository):
     assert [decision.decision_id for decision in decisions] == ["dwd_repo_1", "dwd_repo_2"]
     assert decisions[0].action == "REQUEST_CHANGES"
     assert decisions[1].action == "APPROVE"
+
+
+def test_repository_lineage_edge_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    edge = DpmLineageEdgeRecord(
+        source_entity_id="corr_repo_1",
+        edge_type="CORRELATION_TO_RUN",
+        target_entity_id="rr_repo_1",
+        created_at=now,
+        metadata_json={"request_hash": "sha256:req1"},
+    )
+    repository.append_lineage_edge(edge)
+
+    by_source = repository.list_lineage_edges(entity_id="corr_repo_1")
+    assert len(by_source) == 1
+    assert by_source[0].edge_type == "CORRELATION_TO_RUN"
+    assert by_source[0].target_entity_id == "rr_repo_1"
+
+    by_target = repository.list_lineage_edges(entity_id="rr_repo_1")
+    assert len(by_target) == 1
+    assert by_target[0].source_entity_id == "corr_repo_1"

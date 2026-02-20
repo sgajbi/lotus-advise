@@ -7,6 +7,9 @@ from src.core.dpm_runs.models import (
     DpmAsyncAcceptedResponse,
     DpmAsyncOperationRecord,
     DpmAsyncOperationStatusResponse,
+    DpmLineageEdgeRecord,
+    DpmLineageEdgeResponse,
+    DpmLineageResponse,
     DpmRunArtifactResponse,
     DpmRunIdempotencyLookupResponse,
     DpmRunIdempotencyRecord,
@@ -73,6 +76,13 @@ class DpmRunSupportService:
             result_json=result.model_dump(mode="json"),
         )
         self._repository.save_run(run)
+        self._record_lineage_edge(
+            source_entity_id=run.correlation_id,
+            edge_type="CORRELATION_TO_RUN",
+            target_entity_id=run.rebalance_run_id,
+            metadata={"request_hash": run.request_hash},
+            created_at=now,
+        )
         if idempotency_key is not None:
             self._repository.save_idempotency_mapping(
                 DpmRunIdempotencyRecord(
@@ -81,6 +91,13 @@ class DpmRunSupportService:
                     rebalance_run_id=result.rebalance_run_id,
                     created_at=now,
                 )
+            )
+            self._record_lineage_edge(
+                source_entity_id=idempotency_key,
+                edge_type="IDEMPOTENCY_TO_RUN",
+                target_entity_id=run.rebalance_run_id,
+                metadata={"request_hash": run.request_hash},
+                created_at=now,
             )
 
     def get_run(self, *, rebalance_run_id: str) -> DpmRunLookupResponse:
@@ -135,7 +152,39 @@ class DpmRunSupportService:
             request_json=request_json,
         )
         self._repository.create_operation(operation)
+        self._record_lineage_edge(
+            source_entity_id=operation.operation_id,
+            edge_type="OPERATION_TO_CORRELATION",
+            target_entity_id=operation.correlation_id,
+            metadata={"operation_type": operation.operation_type},
+            created_at=operation.created_at,
+        )
         return self._to_async_accepted(operation)
+
+    def get_lineage(self, *, entity_id: str) -> DpmLineageResponse:
+        edges = self._repository.list_lineage_edges(entity_id=entity_id)
+        edges = sorted(
+            edges,
+            key=lambda edge: (
+                edge.created_at,
+                edge.source_entity_id,
+                edge.edge_type,
+                edge.target_entity_id,
+            ),
+        )
+        return DpmLineageResponse(
+            entity_id=entity_id,
+            edges=[
+                DpmLineageEdgeResponse(
+                    source_entity_id=edge.source_entity_id,
+                    edge_type=edge.edge_type,
+                    target_entity_id=edge.target_entity_id,
+                    created_at=edge.created_at.isoformat(),
+                    metadata=edge.metadata_json,
+                )
+                for edge in edges
+            ],
+        )
 
     def mark_operation_running(self, *, operation_id: str) -> None:
         self._cleanup_expired_operations()
@@ -359,6 +408,25 @@ class DpmRunSupportService:
         self._repository.purge_expired_operations(
             ttl_seconds=self._async_operation_ttl_seconds,
             now=_utc_now(),
+        )
+
+    def _record_lineage_edge(
+        self,
+        *,
+        source_entity_id: str,
+        edge_type: str,
+        target_entity_id: str,
+        metadata: dict,
+        created_at: datetime,
+    ) -> None:
+        self._repository.append_lineage_edge(
+            DpmLineageEdgeRecord(
+                source_entity_id=source_entity_id,
+                edge_type=edge_type,
+                target_entity_id=target_entity_id,
+                created_at=created_at,
+                metadata_json=metadata,
+            )
         )
 
     def _get_required_run(self, *, rebalance_run_id: str) -> DpmRunRecord:

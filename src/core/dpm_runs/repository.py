@@ -3,6 +3,7 @@ from typing import Optional, Protocol
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
+    DpmLineageEdgeRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
@@ -39,3 +40,7 @@ class DpmRunRepository(Protocol):
     def list_workflow_decisions(
         self, *, rebalance_run_id: str
     ) -> list[DpmRunWorkflowDecisionRecord]: ...
+
+    def append_lineage_edge(self, edge: DpmLineageEdgeRecord) -> None: ...
+
+    def list_lineage_edges(self, *, entity_id: str) -> list[DpmLineageEdgeRecord]: ...

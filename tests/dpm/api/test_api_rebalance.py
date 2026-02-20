@@ -207,6 +207,56 @@ def test_dpm_supportability_sqlite_backend_selection(client, monkeypatch):
         assert by_idempotency.json()["rebalance_run_id"] == body["rebalance_run_id"]
 
 
+def test_dpm_lineage_api_disabled_and_enabled(client, monkeypatch):
+    payload = get_valid_payload()
+    simulate = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-lineage-1", "X-Correlation-Id": "corr-lineage-api-1"},
+    )
+    assert simulate.status_code == 200
+    run_id = simulate.json()["rebalance_run_id"]
+
+    disabled = client.get("/rebalance/lineage/corr-lineage-api-1")
+    assert disabled.status_code == 404
+    assert disabled.json()["detail"] == "DPM_LINEAGE_APIS_DISABLED"
+
+    monkeypatch.setenv("DPM_LINEAGE_APIS_ENABLED", "true")
+    reset_dpm_run_support_service_for_tests()
+    simulate_enabled = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={
+            "Idempotency-Key": "test-key-lineage-2",
+            "X-Correlation-Id": "corr-lineage-api-2",
+        },
+    )
+    assert simulate_enabled.status_code == 200
+    run_id_enabled = simulate_enabled.json()["rebalance_run_id"]
+
+    by_correlation = client.get("/rebalance/lineage/corr-lineage-api-2")
+    assert by_correlation.status_code == 200
+    correlation_edges = by_correlation.json()["edges"]
+    assert len(correlation_edges) == 1
+    assert correlation_edges[0]["edge_type"] == "CORRELATION_TO_RUN"
+    assert correlation_edges[0]["target_entity_id"] == run_id_enabled
+
+    by_idempotency = client.get("/rebalance/lineage/test-key-lineage-2")
+    assert by_idempotency.status_code == 200
+    idempotency_edges = by_idempotency.json()["edges"]
+    assert len(idempotency_edges) == 1
+    assert idempotency_edges[0]["edge_type"] == "IDEMPOTENCY_TO_RUN"
+    assert idempotency_edges[0]["target_entity_id"] == run_id_enabled
+
+    by_run = client.get(f"/rebalance/lineage/{run_id_enabled}")
+    assert by_run.status_code == 200
+    run_edges = by_run.json()["edges"]
+    assert len(run_edges) == 2
+    assert {edge["edge_type"] for edge in run_edges} == {"CORRELATION_TO_RUN", "IDEMPOTENCY_TO_RUN"}
+
+    assert run_id != run_id_enabled
+
+
 def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
     missing_run = client.get("/rebalance/runs/rr_missing")
     assert missing_run.status_code == 404

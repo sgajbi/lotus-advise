@@ -95,6 +95,10 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(workflow_history_schema, "run_id")
     _assert_property_has_docs(workflow_history_schema, "decisions")
 
+    lineage_schema = schemas["DpmLineageResponse"]
+    _assert_property_has_docs(lineage_schema, "entity_id")
+    _assert_property_has_docs(lineage_schema, "edges")
+
 
 def test_dpm_async_and_supportability_endpoints_use_expected_request_response_contracts():
     _guard_strict_validation()
@@ -120,6 +124,11 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert run_artifact["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/DpmRunArtifactResponse")
+
+    lineage = openapi["paths"]["/rebalance/lineage/{entity_id}"]["get"]
+    assert lineage["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/DpmLineageResponse"
+    )
 
     workflow = openapi["paths"]["/rebalance/runs/{rebalance_run_id}/workflow"]["get"]
     assert workflow["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(

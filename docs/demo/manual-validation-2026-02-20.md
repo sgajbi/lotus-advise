@@ -73,6 +73,16 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `GET /rebalance/runs/{rebalance_run_id}` succeeded (`200`).
     - `GET /rebalance/runs/by-correlation/{correlation_id}` succeeded (`200`).
     - `GET /rebalance/runs/idempotency/{idempotency_key}` succeeded (`200`).
+- Lineage API validation:
+  - Uvicorn run (`DPM_LINEAGE_APIS_ENABLED=true`) on `http://127.0.0.1:8001`:
+    - `GET /rebalance/lineage/{correlation_id}` returns `200` with `CORRELATION_TO_RUN`.
+    - `GET /rebalance/lineage/{idempotency_key}` returns `200` with `IDEMPOTENCY_TO_RUN`.
+    - `GET /rebalance/lineage/{operation_id}` returns `200` with `OPERATION_TO_CORRELATION`.
+  - Container run (`DPM_LINEAGE_APIS_ENABLED=true`, `DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`)
+    on `http://127.0.0.1:8002`:
+    - `GET /rebalance/lineage/{correlation_id}` returns `200` with `CORRELATION_TO_RUN`.
+    - `GET /rebalance/lineage/{idempotency_key}` returns `200` with `IDEMPOTENCY_TO_RUN`.
+    - `GET /rebalance/lineage/{operation_id}` returns `200` with `OPERATION_TO_CORRELATION`.
   - Container run (`dpm-rebalance-engine:latest` with `DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`)
     on `http://127.0.0.1:8002`:
     - `POST /rebalance/simulate` succeeded (`200`).

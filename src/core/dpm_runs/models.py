@@ -9,6 +9,7 @@ DpmAsyncOperationType = Literal["ANALYZE_SCENARIOS"]
 DpmAsyncOperationStatus = Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]
 DpmWorkflowStatus = Literal["NOT_REQUIRED", "PENDING_REVIEW", "APPROVED", "REJECTED"]
 DpmWorkflowActionType = Literal["APPROVE", "REJECT", "REQUEST_CHANGES"]
+DpmLineageEdgeType = Literal["CORRELATION_TO_RUN", "IDEMPOTENCY_TO_RUN", "OPERATION_TO_CORRELATION"]
 
 
 class DpmRunRecord(BaseModel):
@@ -388,6 +389,76 @@ class DpmRunWorkflowActionRequest(BaseModel):
     actor_id: str = Field(
         description="Actor id executing the workflow action.",
         examples=["reviewer_001"],
+    )
+
+
+class DpmLineageEdgeRecord(BaseModel):
+    source_entity_id: str = Field(
+        description="Lineage source entity identifier.",
+        examples=["corr-1234-abcd"],
+    )
+    edge_type: DpmLineageEdgeType = Field(
+        description="Lineage relation type.",
+        examples=["CORRELATION_TO_RUN"],
+    )
+    target_entity_id: str = Field(
+        description="Lineage target entity identifier.",
+        examples=["rr_abc12345"],
+    )
+    created_at: datetime = Field(
+        description="Lineage edge creation timestamp (UTC).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    metadata_json: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Optional lineage edge metadata.",
+        examples=[{"request_hash": "sha256:abc123"}],
+    )
+
+
+class DpmLineageEdgeResponse(BaseModel):
+    source_entity_id: str = Field(
+        description="Lineage source entity identifier.",
+        examples=["corr-1234-abcd"],
+    )
+    edge_type: DpmLineageEdgeType = Field(
+        description="Lineage relation type.",
+        examples=["CORRELATION_TO_RUN"],
+    )
+    target_entity_id: str = Field(
+        description="Lineage target entity identifier.",
+        examples=["rr_abc12345"],
+    )
+    created_at: str = Field(
+        description="Lineage edge creation timestamp (UTC ISO8601).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Optional lineage edge metadata.",
+        examples=[{"request_hash": "sha256:abc123"}],
+    )
+
+
+class DpmLineageResponse(BaseModel):
+    entity_id: str = Field(
+        description="Requested entity identifier.",
+        examples=["corr-1234-abcd"],
+    )
+    edges: list[DpmLineageEdgeResponse] = Field(
+        default_factory=list,
+        description="Lineage edges where entity is source or target.",
+        examples=[
+            [
+                {
+                    "source_entity_id": "corr-1234-abcd",
+                    "edge_type": "CORRELATION_TO_RUN",
+                    "target_entity_id": "rr_abc12345",
+                    "created_at": "2026-02-20T12:00:00+00:00",
+                    "metadata": {"request_hash": "sha256:abc123"},
+                }
+            ]
+        ],
     )
 
 
