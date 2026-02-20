@@ -117,6 +117,15 @@ Policy pack selection must not alter run status vocabulary semantics.
         - effective selection context (`selected_policy_pack_id`, `selected_policy_pack_source`)
         - catalog presence flag for selected id (`selected_policy_pack_present`)
         - catalog entries (`items`) and count (`total`)
+- Implemented (slice 5):
+  - Additional `EngineOptions` transformations from selected policy-pack:
+    - `tax_policy.enable_tax_awareness` -> `options.enable_tax_awareness`
+    - `tax_policy.max_realized_capital_gains` -> `options.max_realized_capital_gains`
+  - Applied on:
+    - `POST /rebalance/simulate`
+    - `POST /rebalance/analyze`
+    - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
 - Pending:
   - tenant-level policy resolution adapter integration.
-  - additional policy dimensions beyond turnover (tax, settlement, constraints, workflow, idempotency).
+  - additional policy dimensions beyond turnover/tax
+    (settlement, constraints, workflow, idempotency).

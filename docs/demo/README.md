@@ -37,7 +37,7 @@ curl -X GET "http://127.0.0.1:8000/rebalance/policies/catalog" -H "X-Policy-Pack
 
 For DPM policy-pack turnover override demo (requires `DPM_POLICY_PACKS_ENABLED=true`):
 ```bash
-export DPM_POLICY_PACK_CATALOG_JSON='{"dpm_standard_v1":{"version":"1","turnover_policy":{"max_turnover_pct":"0.01"}}}'
+export DPM_POLICY_PACK_CATALOG_JSON='{"dpm_standard_v1":{"version":"1","turnover_policy":{"max_turnover_pct":"0.01"},"tax_policy":{"enable_tax_awareness":true,"max_realized_capital_gains":"100"}}}'
 curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-policy-pack-turnover-1" -H "X-Policy-Pack-Id: dpm_standard_v1" --data-binary "@docs/demo/01_standard_drift.json"
 ```
 

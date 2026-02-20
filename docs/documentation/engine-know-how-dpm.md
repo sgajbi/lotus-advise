@@ -24,7 +24,10 @@ Implementation scope:
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id`
 - Optional header: `X-Policy-Pack-Id` (selected pack may override configured engine options)
-  - Current policy transformation: `max_turnover_pct`.
+  - Current policy transformations:
+    - `max_turnover_pct`
+    - `enable_tax_awareness`
+    - `max_realized_capital_gains`
 - Output: `RebalanceResult` with status `READY | PENDING_REVIEW | BLOCKED` and `gate_decision`
 - Correlation behavior:
   - response `correlation_id` echoes request `X-Correlation-Id` when provided
@@ -38,7 +41,10 @@ Implementation scope:
 - Purpose: multi-scenario what-if analysis using shared snapshots.
 - Optional header: `X-Correlation-Id`
 - Optional header: `X-Policy-Pack-Id` (selected pack may override configured engine options)
-  - Current policy transformation: `max_turnover_pct`.
+  - Current policy transformations:
+    - `max_turnover_pct`
+    - `enable_tax_awareness`
+    - `max_realized_capital_gains`
 - Output: `BatchRebalanceResult` with scenario-level results/metrics/failures.
 - Scenario correlation behavior:
   - when `X-Correlation-Id` is provided, each scenario result uses `{header}:{scenario_name}`

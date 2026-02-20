@@ -33,6 +33,20 @@ class DpmPolicyPackTurnoverPolicy(BaseModel):
     )
 
 
+class DpmPolicyPackTaxPolicy(BaseModel):
+    enable_tax_awareness: Optional[bool] = Field(
+        default=None,
+        description="Optional override for tax-aware sell allocation behavior.",
+        examples=[True],
+    )
+    max_realized_capital_gains: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        description="Optional override for realized capital gains budget in base currency.",
+        examples=["100"],
+    )
+
+
 class DpmPolicyPackDefinition(BaseModel):
     policy_pack_id: str = Field(
         description="Unique policy-pack identifier.",
@@ -45,6 +59,10 @@ class DpmPolicyPackDefinition(BaseModel):
     turnover_policy: DpmPolicyPackTurnoverPolicy = Field(
         default_factory=DpmPolicyPackTurnoverPolicy,
         description="Turnover policy overrides for selected policy-pack.",
+    )
+    tax_policy: DpmPolicyPackTaxPolicy = Field(
+        default_factory=DpmPolicyPackTaxPolicy,
+        description="Tax policy overrides for selected policy-pack.",
     )
 
 
@@ -163,6 +181,7 @@ def parse_policy_pack_catalog(catalog_json: Optional[str]) -> dict[str, DpmPolic
             "policy_pack_id": normalized_id,
             "version": str(definition.get("version", "1")),
             "turnover_policy": definition.get("turnover_policy") or {},
+            "tax_policy": definition.get("tax_policy") or {},
         }
         try:
             parsed = DpmPolicyPackDefinition.model_validate(payload)
@@ -189,8 +208,13 @@ def apply_policy_pack_to_engine_options(
 ) -> EngineOptions:
     if policy_pack is None:
         return options
-    if policy_pack.turnover_policy.max_turnover_pct is None:
+    updates = {}
+    if policy_pack.turnover_policy.max_turnover_pct is not None:
+        updates["max_turnover_pct"] = policy_pack.turnover_policy.max_turnover_pct
+    if policy_pack.tax_policy.enable_tax_awareness is not None:
+        updates["enable_tax_awareness"] = policy_pack.tax_policy.enable_tax_awareness
+    if policy_pack.tax_policy.max_realized_capital_gains is not None:
+        updates["max_realized_capital_gains"] = policy_pack.tax_policy.max_realized_capital_gains
+    if not updates:
         return options
-    return options.model_copy(
-        update={"max_turnover_pct": policy_pack.turnover_policy.max_turnover_pct}
-    )
+    return options.model_copy(update=updates)

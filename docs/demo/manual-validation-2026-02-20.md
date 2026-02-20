@@ -304,3 +304,11 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `selected_policy_pack_source=DISABLED`
   - Uvicorn runtime (`http://127.0.0.1:8002`):
     - same call and response semantics verified.
+- Policy-pack tax/turnover application path validation (RFC-0022 slice 5):
+  - Docker runtime (`http://127.0.0.1:8000`):
+    - `POST /rebalance/simulate` with:
+      - `Idempotency-Key=manual-policy-tax-8000`
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      returns `200` with `status=READY`.
+  - Uvicorn runtime (`http://127.0.0.1:8002`):
+    - same call and response semantics verified (`status=READY`).

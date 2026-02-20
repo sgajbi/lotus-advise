@@ -1109,7 +1109,10 @@ def test_dpm_policy_pack_catalog_overrides_turnover_option(client, monkeypatch):
     monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "dpm_default_pack")
     monkeypatch.setenv(
         "DPM_POLICY_PACK_CATALOG_JSON",
-        '{"dpm_request_pack":{"version":"1","turnover_policy":{"max_turnover_pct":"0.01"}}}',
+        (
+            '{"dpm_request_pack":{"version":"1","turnover_policy":{"max_turnover_pct":"0.01"},'
+            '"tax_policy":{"enable_tax_awareness":true,"max_realized_capital_gains":"55"}}}'
+        ),
     )
 
     payload = get_valid_payload()
@@ -1146,6 +1149,8 @@ def test_dpm_policy_pack_catalog_overrides_turnover_option(client, monkeypatch):
         assert simulate.status_code == 200
         simulate_options = mock_run.call_args_list[0].kwargs["options"]
         assert simulate_options.max_turnover_pct == Decimal("0.01")
+        assert simulate_options.enable_tax_awareness is True
+        assert simulate_options.max_realized_capital_gains == Decimal("55")
 
         batch_payload = get_valid_payload()
         batch_payload.pop("options")
@@ -1158,6 +1163,8 @@ def test_dpm_policy_pack_catalog_overrides_turnover_option(client, monkeypatch):
         assert analyze.status_code == 200
         analyze_options = mock_run.call_args_list[1].kwargs["options"]
         assert analyze_options.max_turnover_pct == Decimal("0.01")
+        assert analyze_options.enable_tax_awareness is True
+        assert analyze_options.max_realized_capital_gains == Decimal("55")
 
 
 def test_effective_policy_pack_endpoint_resolution_precedence(client, monkeypatch):
