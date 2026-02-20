@@ -153,6 +153,32 @@ def test_dpm_support_apis_lookup_by_run_correlation_and_idempotency(client):
     assert idem_body["rebalance_run_id"] == body["rebalance_run_id"]
     assert idem_body["request_hash"].startswith("sha256:")
 
+    artifact = client.get(f"/rebalance/runs/{body['rebalance_run_id']}/artifact")
+    assert artifact.status_code == 200
+    artifact_body = artifact.json()
+    assert artifact_body["artifact_id"].startswith("dra_")
+    assert artifact_body["artifact_version"] == "1.0"
+    assert artifact_body["rebalance_run_id"] == body["rebalance_run_id"]
+    assert artifact_body["correlation_id"] == "corr-support-1"
+    assert artifact_body["idempotency_key"] == "test-key-support-1"
+    assert artifact_body["portfolio_id"] == payload["portfolio_snapshot"]["portfolio_id"]
+    assert artifact_body["status"] == body["status"]
+    assert artifact_body["request_snapshot"]["request_hash"].startswith("sha256:")
+    assert (
+        artifact_body["request_snapshot"]["portfolio_id"]
+        == payload["portfolio_snapshot"]["portfolio_id"]
+    )
+    assert artifact_body["evidence"]["hashes"]["request_hash"].startswith("sha256:")
+    assert artifact_body["evidence"]["hashes"]["artifact_hash"].startswith("sha256:")
+    assert artifact_body["result"]["rebalance_run_id"] == body["rebalance_run_id"]
+
+    artifact_again = client.get(f"/rebalance/runs/{body['rebalance_run_id']}/artifact")
+    assert artifact_again.status_code == 200
+    assert (
+        artifact_again.json()["evidence"]["hashes"]["artifact_hash"]
+        == artifact_body["evidence"]["hashes"]["artifact_hash"]
+    )
+
 
 def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
     missing_run = client.get("/rebalance/runs/rr_missing")
@@ -167,10 +193,20 @@ def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
     assert missing_idem.status_code == 404
     assert missing_idem.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"
 
+    missing_artifact = client.get("/rebalance/runs/rr_missing/artifact")
+    assert missing_artifact.status_code == 404
+    assert missing_artifact.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
     monkeypatch.setenv("DPM_SUPPORT_APIS_ENABLED", "false")
     disabled = client.get("/rebalance/runs/rr_missing")
     assert disabled.status_code == 404
     assert disabled.json()["detail"] == "DPM_SUPPORT_APIS_DISABLED"
+
+    monkeypatch.setenv("DPM_SUPPORT_APIS_ENABLED", "true")
+    monkeypatch.setenv("DPM_ARTIFACTS_ENABLED", "false")
+    artifact_disabled = client.get("/rebalance/runs/rr_missing/artifact")
+    assert artifact_disabled.status_code == 404
+    assert artifact_disabled.json()["detail"] == "DPM_ARTIFACTS_DISABLED"
 
 
 def test_dpm_async_operation_lookup_not_found_and_disabled(client, monkeypatch):
@@ -398,6 +434,30 @@ def test_analyze_async_disabled_returns_404(client, monkeypatch):
     response = client.post("/rebalance/analyze/async", json=payload)
     assert response.status_code == 404
     assert response.json()["detail"] == "DPM_ASYNC_OPERATIONS_DISABLED"
+
+
+def test_dpm_artifact_openapi_schema_has_descriptions_and_examples(client):
+    openapi = client.get("/openapi.json").json()
+    schema = openapi["components"]["schemas"]["DpmRunArtifactResponse"]
+    for property_name in [
+        "artifact_id",
+        "artifact_version",
+        "rebalance_run_id",
+        "correlation_id",
+        "portfolio_id",
+        "status",
+        "request_snapshot",
+        "before_summary",
+        "after_summary",
+        "order_intents",
+        "rule_outcomes",
+        "diagnostics",
+        "result",
+        "evidence",
+    ]:
+        prop = schema["properties"][property_name]
+        assert prop.get("description")
+        assert prop.get("examples") or prop.get("$ref")
 
 
 def test_analyze_rejects_invalid_scenario_name(client):

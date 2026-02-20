@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, status
 
 from src.core.dpm_runs import (
     DpmAsyncOperationStatusResponse,
+    DpmRunArtifactResponse,
     DpmRunIdempotencyLookupResponse,
     DpmRunLookupResponse,
     DpmRunNotFoundError,
@@ -39,6 +40,14 @@ def _assert_async_operations_enabled() -> None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_ASYNC_OPERATIONS_DISABLED",
+        )
+
+
+def _assert_artifacts_enabled() -> None:
+    if not _env_flag("DPM_ARTIFACTS_ENABLED", True):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_ARTIFACTS_DISABLED",
         )
 
 
@@ -137,6 +146,31 @@ def get_run_by_run_id(
     _assert_support_apis_enabled()
     try:
         return service.get_run(rebalance_run_id=rebalance_run_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/runs/{rebalance_run_id}/artifact",
+    response_model=DpmRunArtifactResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Artifact by Run Id",
+    description=(
+        "Returns deterministic run artifact synthesized from persisted DPM run payload "
+        "and supportability metadata."
+    ),
+)
+def get_run_artifact_by_run_id(
+    rebalance_run_id: Annotated[
+        str,
+        Path(description="DPM run identifier.", examples=["rr_abc12345"]),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunArtifactResponse:
+    _assert_support_apis_enabled()
+    _assert_artifacts_enabled()
+    try:
+        return service.get_run_artifact(rebalance_run_id=rebalance_run_id)
     except DpmRunNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 

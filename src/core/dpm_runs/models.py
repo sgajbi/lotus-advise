@@ -220,3 +220,98 @@ class DpmAsyncOperationRecord(BaseModel):
         description="Internal serialized failure payload.",
         examples=[{"code": "RuntimeError", "message": "boom"}],
     )
+
+
+class DpmRunArtifactHashes(BaseModel):
+    request_hash: str = Field(
+        description="Canonical request hash associated with this run artifact.",
+        examples=["sha256:abc123"],
+    )
+    artifact_hash: str = Field(
+        description="Canonical deterministic artifact hash.",
+        examples=["sha256:def456"],
+    )
+
+
+class DpmRunArtifactEvidence(BaseModel):
+    engine_version: str = Field(
+        description="Engine version associated with the persisted run output.",
+        examples=["0.1.0"],
+    )
+    run_created_at: str = Field(
+        description="Run creation timestamp used as deterministic artifact creation time.",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+    hashes: DpmRunArtifactHashes = Field(
+        description="Canonical hashes associated with this artifact."
+    )
+
+
+class DpmRunArtifactResponse(BaseModel):
+    artifact_id: str = Field(
+        description="Deterministic artifact identifier derived from run id.",
+        examples=["dra_abc12345"],
+    )
+    artifact_version: str = Field(
+        description="Artifact schema version for compatibility evolution.",
+        examples=["1.0"],
+    )
+    rebalance_run_id: str = Field(description="DPM run identifier.", examples=["rr_abc12345"])
+    correlation_id: str = Field(
+        description="Correlation identifier associated with this run.",
+        examples=["corr-1234-abcd"],
+    )
+    idempotency_key: Optional[str] = Field(
+        default=None,
+        description="Idempotency key associated with this run when available.",
+        examples=["demo-idem-001"],
+    )
+    portfolio_id: str = Field(description="Portfolio identifier.", examples=["pf_123"])
+    status: str = Field(
+        description="Run business status represented by the persisted output.",
+        examples=["READY"],
+    )
+    request_snapshot: Dict[str, Any] = Field(
+        description="Deterministic request snapshot metadata captured for replayability.",
+        examples=[{"portfolio_id": "pf_123", "request_hash": "sha256:abc123"}],
+    )
+    before_summary: Dict[str, Any] = Field(
+        description="Before-state holdings and valuation summary from run output.",
+        examples=[{"total_value_base": {"amount": "10000", "currency": "USD"}}],
+    )
+    after_summary: Dict[str, Any] = Field(
+        description="After-state holdings and valuation summary from run output.",
+        examples=[{"total_value_base": {"amount": "10000", "currency": "USD"}}],
+    )
+    order_intents: list[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Order intent list captured in run output.",
+        examples=[[{"intent_type": "SECURITY_TRADE", "side": "BUY", "instrument_id": "EQ_1"}]],
+    )
+    rule_outcomes: list[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Rule outcomes captured in run output.",
+        examples=[[{"rule_id": "NO_SHORTING", "severity": "HARD", "status": "PASS"}]],
+    )
+    diagnostics: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Diagnostics payload captured in run output.",
+        examples=[{"warnings": [], "data_quality": {"price_missing": [], "fx_missing": []}}],
+    )
+    result: RebalanceResult = Field(
+        description="Full persisted DPM run output used as artifact source of truth.",
+        examples=[{"rebalance_run_id": "rr_abc12345", "status": "READY"}],
+    )
+    evidence: DpmRunArtifactEvidence = Field(
+        description="Evidence metadata and canonical hash information for the artifact.",
+        examples=[
+            {
+                "engine_version": "0.1.0",
+                "run_created_at": "2026-02-20T12:00:00+00:00",
+                "hashes": {
+                    "request_hash": "sha256:abc123",
+                    "artifact_hash": "sha256:def456",
+                },
+            }
+        ],
+    )

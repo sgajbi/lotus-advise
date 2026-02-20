@@ -2,10 +2,12 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
+from src.core.dpm_runs.artifact import build_dpm_run_artifact
 from src.core.dpm_runs.models import (
     DpmAsyncAcceptedResponse,
     DpmAsyncOperationRecord,
     DpmAsyncOperationStatusResponse,
+    DpmRunArtifactResponse,
     DpmRunIdempotencyLookupResponse,
     DpmRunIdempotencyRecord,
     DpmRunLookupResponse,
@@ -75,6 +77,12 @@ class DpmRunSupportService:
             rebalance_run_id=record.rebalance_run_id,
             created_at=record.created_at.isoformat(),
         )
+
+    def get_run_artifact(self, *, rebalance_run_id: str) -> DpmRunArtifactResponse:
+        run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
+        if run is None:
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        return build_dpm_run_artifact(run=run)
 
     def submit_analyze_async(self, *, correlation_id: Optional[str]) -> DpmAsyncAcceptedResponse:
         now = _utc_now()
