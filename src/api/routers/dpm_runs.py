@@ -1,9 +1,9 @@
-import os
 from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, status
 
+from src.api.routers import dpm_runs_config
 from src.core.dpm_runs import (
     DpmAsyncOperationListResponse,
     DpmAsyncOperationStatusResponse,
@@ -26,7 +26,6 @@ from src.core.dpm_runs import (
 )
 from src.core.dpm_runs.models import DpmWorkflowActionType
 from src.core.models import RebalanceResult
-from src.infrastructure.dpm_runs import InMemoryDpmRunRepository, SqliteDpmRunRepository
 
 router = APIRouter(tags=["DPM Run Supportability"])
 
@@ -34,45 +33,8 @@ _REPOSITORY = None
 _SERVICE: Optional[DpmRunSupportService] = None
 
 
-def _env_flag(name: str, default: bool) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _env_int(name: str, default: int) -> int:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    try:
-        parsed = int(value)
-    except ValueError:
-        return default
-    return parsed if parsed >= 1 else default
-
-
-def _env_non_negative_int(name: str, default: int) -> int:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    try:
-        parsed = int(value)
-    except ValueError:
-        return default
-    return parsed if parsed >= 0 else default
-
-
-def _env_csv_set(name: str, default: set[str]) -> set[str]:
-    value = os.getenv(name)
-    if value is None:
-        return set(default)
-    parsed = {item.strip() for item in value.split(",") if item.strip()}
-    return parsed or set(default)
-
-
 def _assert_support_apis_enabled() -> None:
-    if not _env_flag("DPM_SUPPORT_APIS_ENABLED", True):
+    if not dpm_runs_config.env_flag("DPM_SUPPORT_APIS_ENABLED", True):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_SUPPORT_APIS_DISABLED",
@@ -80,7 +42,7 @@ def _assert_support_apis_enabled() -> None:
 
 
 def _assert_async_operations_enabled() -> None:
-    if not _env_flag("DPM_ASYNC_OPERATIONS_ENABLED", True):
+    if not dpm_runs_config.env_flag("DPM_ASYNC_OPERATIONS_ENABLED", True):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_ASYNC_OPERATIONS_DISABLED",
@@ -88,20 +50,15 @@ def _assert_async_operations_enabled() -> None:
 
 
 def _assert_artifacts_enabled() -> None:
-    if not _env_flag("DPM_ARTIFACTS_ENABLED", True):
+    if not dpm_runs_config.env_flag("DPM_ARTIFACTS_ENABLED", True):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_ARTIFACTS_DISABLED",
         )
 
 
-def _artifact_store_mode() -> str:
-    mode = os.getenv("DPM_ARTIFACT_STORE_MODE", "DERIVED").strip().upper()
-    return "PERSISTED" if mode == "PERSISTED" else "DERIVED"
-
-
 def _assert_artifact_store_mode_supported() -> None:
-    if _artifact_store_mode() == "PERSISTED":
+    if dpm_runs_config.artifact_store_mode() == "PERSISTED":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="DPM_ARTIFACT_STORE_MODE_NOT_SUPPORTED",
@@ -109,7 +66,7 @@ def _assert_artifact_store_mode_supported() -> None:
 
 
 def _assert_workflow_enabled() -> None:
-    if not _env_flag("DPM_WORKFLOW_ENABLED", False):
+    if not dpm_runs_config.env_flag("DPM_WORKFLOW_ENABLED", False):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_WORKFLOW_DISABLED",
@@ -117,7 +74,7 @@ def _assert_workflow_enabled() -> None:
 
 
 def _assert_lineage_apis_enabled() -> None:
-    if not _env_flag("DPM_LINEAGE_APIS_ENABLED", False):
+    if not dpm_runs_config.env_flag("DPM_LINEAGE_APIS_ENABLED", False):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_LINEAGE_APIS_DISABLED",
@@ -125,7 +82,7 @@ def _assert_lineage_apis_enabled() -> None:
 
 
 def _assert_idempotency_history_apis_enabled() -> None:
-    if not _env_flag("DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED", False):
+    if not dpm_runs_config.env_flag("DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED", False):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_IDEMPOTENCY_HISTORY_APIS_DISABLED",
@@ -133,7 +90,7 @@ def _assert_idempotency_history_apis_enabled() -> None:
 
 
 def _assert_supportability_summary_apis_enabled() -> None:
-    if not _env_flag("DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED", True):
+    if not dpm_runs_config.env_flag("DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED", True):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_SUPPORTABILITY_SUMMARY_APIS_DISABLED",
@@ -141,7 +98,7 @@ def _assert_supportability_summary_apis_enabled() -> None:
 
 
 def _assert_support_bundle_apis_enabled() -> None:
-    if not _env_flag("DPM_SUPPORT_BUNDLE_APIS_ENABLED", True):
+    if not dpm_runs_config.env_flag("DPM_SUPPORT_BUNDLE_APIS_ENABLED", True):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_SUPPORT_BUNDLE_APIS_DISABLED",
@@ -149,18 +106,11 @@ def _assert_support_bundle_apis_enabled() -> None:
 
 
 def _supportability_store_backend_name() -> str:
-    backend = os.getenv("DPM_SUPPORTABILITY_STORE_BACKEND", "IN_MEMORY").strip().upper()
-    return "SQL" if backend in {"SQL", "SQLITE"} else "IN_MEMORY"
+    return dpm_runs_config.supportability_store_backend_name()
 
 
 def _build_repository():
-    if _supportability_store_backend_name() == "SQL":
-        sqlite_path = os.getenv(
-            "DPM_SUPPORTABILITY_SQL_PATH",
-            os.getenv("DPM_SUPPORTABILITY_SQLITE_PATH", ".data/dpm_supportability.db"),
-        )
-        return SqliteDpmRunRepository(database_path=sqlite_path)
-    return InMemoryDpmRunRepository()
+    return dpm_runs_config.build_repository()
 
 
 def get_dpm_run_support_service() -> DpmRunSupportService:
@@ -171,16 +121,16 @@ def get_dpm_run_support_service() -> DpmRunSupportService:
     if _SERVICE is None:
         _SERVICE = DpmRunSupportService(
             repository=_REPOSITORY,
-            async_operation_ttl_seconds=_env_int(
+            async_operation_ttl_seconds=dpm_runs_config.env_int(
                 "DPM_ASYNC_OPERATIONS_TTL_SECONDS",
                 86400,
             ),
-            supportability_retention_days=_env_non_negative_int(
+            supportability_retention_days=dpm_runs_config.env_non_negative_int(
                 "DPM_SUPPORTABILITY_RETENTION_DAYS",
                 0,
             ),
-            workflow_enabled=_env_flag("DPM_WORKFLOW_ENABLED", False),
-            workflow_requires_review_for_statuses=_env_csv_set(
+            workflow_enabled=dpm_runs_config.env_flag("DPM_WORKFLOW_ENABLED", False),
+            workflow_requires_review_for_statuses=dpm_runs_config.env_csv_set(
                 "DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES",
                 {"PENDING_REVIEW"},
             ),
@@ -306,7 +256,7 @@ def get_dpm_supportability_summary(
     _assert_supportability_summary_apis_enabled()
     return service.get_supportability_summary(
         store_backend=_supportability_store_backend_name(),
-        retention_days=_env_non_negative_int("DPM_SUPPORTABILITY_RETENTION_DAYS", 0),
+        retention_days=dpm_runs_config.env_non_negative_int("DPM_SUPPORTABILITY_RETENTION_DAYS", 0),
     )
 
 
