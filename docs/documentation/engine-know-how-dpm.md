@@ -3,6 +3,7 @@
 Implementation scope:
 - API: `src/api/main.py` (`/rebalance/simulate`, `/rebalance/analyze`)
 - DPM run supportability router: `src/api/routers/dpm_runs.py`
+- DPM policy-pack supportability router: `src/api/routers/dpm_policy_packs.py`
 - DPM run supportability runtime config/env parsing: `src/api/routers/dpm_runs_config.py`
 - DPM run supportability service orchestration: `src/core/dpm_runs/service.py`
 - DPM run supportability DTO mappers: `src/core/dpm_runs/serializers.py`
