@@ -172,6 +172,11 @@ Policy pack selection must not alter run status vocabulary semantics.
     - `POST /rebalance/simulate`
     - `POST /rebalance/analyze`
     - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
+- Implemented (slice 10):
+  - Idempotency replay policy transformation from selected policy-pack:
+    - `idempotency_policy.replay_enabled` -> simulate replay behavior
+      (with env fallback from `DPM_IDEMPOTENCY_REPLAY_ENABLED`)
+  - Applied on:
+    - `POST /rebalance/simulate`
 - Pending:
-  - additional policy dimensions beyond turnover/tax/settlement/constraints/workflow
-    (idempotency).
+  - no additional policy dimensions in current RFC scope.

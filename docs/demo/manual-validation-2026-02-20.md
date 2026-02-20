@@ -404,3 +404,24 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `X-Policy-Pack-Id=dpm_standard_v1`
       - payload: `docs/demo/01_standard_drift.json`
       returns `200` with `status=READY`.
+- Idempotency policy-pack override validation (RFC-0022 slice 10):
+  - Docker runtime (`http://127.0.0.1:8000`, default config):
+    - `POST /rebalance/simulate` repeated twice with:
+      - `Idempotency-Key=manual-idem-policy-docker`
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      - payload: `docs/demo/01_standard_drift.json`
+      returns replayed same run id:
+      - `run1=rr_7f8351fa`
+      - `run2=rr_7f8351fa`
+  - Uvicorn runtime (`http://127.0.0.1:8007`) with:
+    - `DPM_POLICY_PACKS_ENABLED=true`
+    - `DPM_IDEMPOTENCY_REPLAY_ENABLED=true`
+    - `DPM_POLICY_PACK_CATALOG_JSON={"dpm_standard_v1":{"version":"1","idempotency_policy":{"replay_enabled":false}}}`
+    validated:
+    - `POST /rebalance/simulate` repeated twice with:
+      - `Idempotency-Key=manual-idem-policy-uvicorn`
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      - payload: `docs/demo/01_standard_drift.json`
+      returns different run ids:
+      - `run1=rr_ff9f058f`
+      - `run2=rr_2e3b31d8`

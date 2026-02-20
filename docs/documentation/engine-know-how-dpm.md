@@ -36,6 +36,8 @@ Implementation scope:
     - `enable_workflow_gates`
     - `workflow_requires_client_consent`
     - `client_consent_already_obtained`
+  - Current non-options policy transformation:
+    - `idempotency_policy.replay_enabled` controls simulate replay semantics.
 - Output: `RebalanceResult` with status `READY | PENDING_REVIEW | BLOCKED` and `gate_decision`
 - Correlation behavior:
   - response `correlation_id` echoes request `X-Correlation-Id` when provided
