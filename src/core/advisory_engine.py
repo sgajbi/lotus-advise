@@ -10,6 +10,7 @@ from src.core.advisory.intents import (
 )
 from src.core.common.diagnostics import make_diagnostics_data
 from src.core.common.drift_analytics import compute_drift_analysis
+from src.core.common.intent_dependencies import link_buy_intent_dependencies
 from src.core.common.simulation_shared import (
     apply_security_trade_to_portfolio,
     build_reconciliation,
@@ -155,11 +156,17 @@ def run_proposal_simulation(
             if "PROPOSAL_BUY_SKIPPED_UNFUNDED" not in diagnostics.warnings:
                 diagnostics.warnings.append("PROPOSAL_BUY_SKIPPED_UNFUNDED")
             continue
-        fx_dependency = fx_by_currency.get(buy_intent.notional.currency)
-        if fx_dependency is not None:
-            buy_intent.dependencies.append(fx_dependency)
         apply_security_trade_to_portfolio(after_portfolio, buy_intent)
         executable_buy_intents.append(buy_intent)
+
+    include_sell_dependency = options.link_buy_to_same_currency_sell_dependency
+    if include_sell_dependency is None:
+        include_sell_dependency = False
+    link_buy_intent_dependencies(
+        sell_intents + executable_buy_intents,
+        fx_intent_id_by_currency=fx_by_currency,
+        include_same_currency_sell_dependency=include_sell_dependency,
+    )
 
     fx_intents = sorted(fx_intents, key=lambda intent: intent.pair)
     intents = sort_execution_intents(

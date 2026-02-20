@@ -19,6 +19,7 @@ Implementation scope:
   - `src/core/advisory/funding.py` (RFC-0014B auto-funding planner)
   - `src/core/advisory/artifact.py` (RFC-0014E artifact builder)
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
+- Shared intent dependency linker: `src/core/common/intent_dependencies.py`
 - Shared diagnostics builders: `src/core/common/diagnostics.py`
 - Shared deterministic canonical serialization/hash: `src/core/common/canonical.py`
 - Shared workflow gate evaluator: `src/core/common/workflow_gates.py`
@@ -127,6 +128,7 @@ Persistence note:
 - `client_consent_already_obtained`
 - `proposal_apply_cash_flows_first`
 - `proposal_block_negative_cash`
+- `link_buy_to_same_currency_sell_dependency`
 - `enable_drift_analytics`
 - `enable_suitability_scanner`
 - `suitability_thresholds`:
@@ -143,6 +145,9 @@ Persistence note:
 - `funding_mode`
 - `fx_funding_source_currency`
 - `fx_generation_policy`
+- dependency policy note:
+  - `link_buy_to_same_currency_sell_dependency=null` defaults to `false` in advisory.
+  - when `true`, BUY security intents also depend on same-currency SELL intents.
 - plus shared controls:
   - `block_on_missing_prices`
   - `block_on_missing_fx`

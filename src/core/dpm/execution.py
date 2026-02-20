@@ -1,6 +1,7 @@
 from copy import deepcopy
 from decimal import Decimal
 
+from src.core.common.intent_dependencies import link_buy_intent_dependencies
 from src.core.common.simulation_shared import (
     apply_fx_spot_to_portfolio,
     apply_security_trade_to_portfolio,
@@ -148,22 +149,14 @@ def generate_fx_and_simulate(
                 )
             )
 
-    for i in intents:
-        if i.intent_type == "SECURITY_TRADE" and i.side == "BUY" and i.notional.currency in fx_map:
-            i.dependencies.append(fx_map[i.notional.currency])
-    sell_ids = {
-        i.notional.currency: i.intent_id
-        for i in intents
-        if i.intent_type == "SECURITY_TRADE" and i.side == "SELL"
-    }
-    for i in intents:
-        if (
-            i.intent_type == "SECURITY_TRADE"
-            and i.side == "BUY"
-            and i.notional.currency in sell_ids
-        ):
-            if sell_ids[i.notional.currency] not in i.dependencies:
-                i.dependencies.append(sell_ids[i.notional.currency])
+    include_sell_dependency = options.link_buy_to_same_currency_sell_dependency
+    if include_sell_dependency is None:
+        include_sell_dependency = True
+    link_buy_intent_dependencies(
+        intents,
+        fx_intent_id_by_currency=fx_map,
+        include_same_currency_sell_dependency=include_sell_dependency,
+    )
 
     intents = sort_execution_intents(intents)
 

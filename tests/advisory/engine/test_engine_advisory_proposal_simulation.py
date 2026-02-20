@@ -156,6 +156,55 @@ def test_proposal_simulation_orders_intents_cashflow_sell_fx_buy():
     assert result.intents[3].side == "BUY"
 
 
+def test_proposal_simulation_can_link_buy_to_same_currency_sell_dependency():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_dep_toggle",
+        base_currency="SGD",
+        positions=[position("US_OLD", "10")],
+        cash_balances=[cash("SGD", "1000")],
+    )
+    market_data = market_data_snapshot(
+        prices=[
+            price("US_OLD", "100", "USD"),
+            price("US_NEW", "100", "USD"),
+        ],
+        fx_rates=[{"pair": "USD/SGD", "rate": "1.35"}],
+    )
+    shelf = [
+        shelf_entry("US_OLD", status="APPROVED"),
+        shelf_entry("US_NEW", status="APPROVED"),
+    ]
+    options = EngineOptions(
+        enable_proposal_simulation=True,
+        link_buy_to_same_currency_sell_dependency=True,
+    )
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        options=options,
+        proposed_cash_flows=[{"currency": "SGD", "amount": "3000"}],
+        proposed_trades=[
+            {"side": "BUY", "instrument_id": "US_NEW", "quantity": "20"},
+            {"side": "SELL", "instrument_id": "US_OLD", "quantity": "5"},
+        ],
+        request_hash="proposal_hash_ordering_dep_toggle",
+    )
+
+    sell_intent = next(
+        intent
+        for intent in result.intents
+        if intent.intent_type == "SECURITY_TRADE" and intent.side == "SELL"
+    )
+    buy_intent = next(
+        intent
+        for intent in result.intents
+        if intent.intent_type == "SECURITY_TRADE" and intent.side == "BUY"
+    )
+    assert sell_intent.intent_id in buy_intent.dependencies
+
+
 def test_proposal_simulation_blocks_missing_fx_for_funding_when_blocking_enabled():
     portfolio = portfolio_snapshot(
         portfolio_id="pf_prop_fx_5",

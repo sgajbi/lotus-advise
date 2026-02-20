@@ -140,6 +140,7 @@ def test_target_method_comparison_options_defaults():
     assert options.enable_workflow_gates is True
     assert options.workflow_requires_client_consent is False
     assert options.client_consent_already_obtained is False
+    assert options.link_buy_to_same_currency_sell_dependency is None
 
 
 def test_max_turnover_pct_validation_bounds():

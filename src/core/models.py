@@ -440,6 +440,14 @@ class EngineOptions(BaseModel):
         description="Block proposal when cash-flow withdrawals create negative balances.",
         examples=[True],
     )
+    link_buy_to_same_currency_sell_dependency: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Attach BUY intent dependency to a same-currency SELL intent. "
+            "When null, defaults are engine-specific: true for DPM, false for advisory."
+        ),
+        examples=[None, True, False],
+    )
     enable_drift_analytics: bool = Field(
         default=True,
         description="Enable advisory drift analytics when a reference model is provided.",

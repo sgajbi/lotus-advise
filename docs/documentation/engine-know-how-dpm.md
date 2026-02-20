@@ -11,6 +11,7 @@ Implementation scope:
   - `src/core/dpm/turnover.py` (turnover ranking and budget enforcement)
   - `src/core/dpm/execution.py` (FX generation, settlement ladder, simulation execution)
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
+- Shared intent dependency linker: `src/core/common/intent_dependencies.py`
 - Shared workflow gate evaluator: `src/core/common/workflow_gates.py`
 - Valuation: `src/core/valuation.py`
 - Rules: `src/core/compliance.py`
@@ -73,7 +74,12 @@ Implementation scope:
 - `enable_workflow_gates`
 - `workflow_requires_client_consent`
 - `client_consent_already_obtained`
+- `link_buy_to_same_currency_sell_dependency`
 - plus shared controls (`valuation_mode`, cash bands, dust/min-notional, data quality blocking)
+
+Dependency policy note:
+- `link_buy_to_same_currency_sell_dependency=null` defaults to `true` in DPM.
+- when `false`, BUY security intents no longer depend on same-currency SELL intents.
 
 ## Tests That Lock DPM Behavior
 

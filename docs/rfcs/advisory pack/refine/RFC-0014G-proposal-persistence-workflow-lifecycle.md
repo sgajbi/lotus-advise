@@ -19,6 +19,7 @@ Implementation note (2026-02-19):
 - Implemented with repository port + in-memory adapter (`src/core/proposals/*`, `src/infrastructure/proposals/in_memory.py`).
 - API endpoints delivered under `/rebalance/proposals` lifecycle family in `src/api/routers/proposals.py`.
 - PostgreSQL adapter/migrations intentionally deferred; architecture keeps persistence concerns behind repository interface for later adapter addition.
+- Cross-engine alignment added through shared dependency-linking utility (`src/core/common/intent_dependencies.py`) and request option `link_buy_to_same_currency_sell_dependency` with engine-specific defaults.
 
 RFC-0014G adds **persistence and lifecycle management** for advisory proposals so they can move through a real private-banking workflow:
 
