@@ -330,6 +330,18 @@ class DpmRunWorkflowResponse(BaseModel):
     latest_decision: Optional[DpmRunWorkflowDecisionResponse] = Field(
         default=None,
         description="Most recent workflow decision when available.",
+        examples=[
+            {
+                "decision_id": "dwd_001",
+                "run_id": "rr_abc12345",
+                "action": "APPROVE",
+                "reason_code": "REVIEW_APPROVED",
+                "comment": "Checks passed after review.",
+                "actor_id": "reviewer_001",
+                "decided_at": "2026-02-20T12:00:00+00:00",
+                "correlation_id": "corr-workflow-001",
+            }
+        ],
     )
 
 
@@ -341,6 +353,41 @@ class DpmRunWorkflowHistoryResponse(BaseModel):
     decisions: list[DpmRunWorkflowDecisionResponse] = Field(
         default_factory=list,
         description="Append-only workflow decisions ordered by decision timestamp ascending.",
+        examples=[
+            [
+                {
+                    "decision_id": "dwd_001",
+                    "run_id": "rr_abc12345",
+                    "action": "REQUEST_CHANGES",
+                    "reason_code": "REQUIRES_ADVISOR_NOTE",
+                    "comment": "Please add rationale.",
+                    "actor_id": "reviewer_001",
+                    "decided_at": "2026-02-20T12:00:00+00:00",
+                    "correlation_id": "corr-workflow-001",
+                }
+            ]
+        ],
+    )
+
+
+class DpmRunWorkflowActionRequest(BaseModel):
+    action: DpmWorkflowActionType = Field(
+        description="Workflow action to apply to run review lifecycle.",
+        examples=["APPROVE"],
+    )
+    reason_code: str = Field(
+        pattern=r"^[A-Z][A-Z0-9_]*$",
+        description="Stable uppercase snake case reason code for the action.",
+        examples=["REVIEW_APPROVED"],
+    )
+    comment: Optional[str] = Field(
+        default=None,
+        description="Optional free-text comment for operational context.",
+        examples=["Approved after policy review."],
+    )
+    actor_id: str = Field(
+        description="Actor id executing the workflow action.",
+        examples=["reviewer_001"],
     )
 
 

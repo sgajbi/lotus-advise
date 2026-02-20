@@ -1,7 +1,7 @@
 import os
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
 
 from src.core.dpm_runs import (
     DpmAsyncOperationStatusResponse,
@@ -10,6 +10,11 @@ from src.core.dpm_runs import (
     DpmRunLookupResponse,
     DpmRunNotFoundError,
     DpmRunSupportService,
+    DpmRunWorkflowActionRequest,
+    DpmRunWorkflowHistoryResponse,
+    DpmRunWorkflowResponse,
+    DpmWorkflowDisabledError,
+    DpmWorkflowTransitionError,
 )
 from src.core.models import RebalanceResult
 from src.infrastructure.dpm_runs import InMemoryDpmRunRepository
@@ -38,6 +43,14 @@ def _env_int(name: str, default: int) -> int:
     return parsed if parsed >= 1 else default
 
 
+def _env_csv_set(name: str, default: set[str]) -> set[str]:
+    value = os.getenv(name)
+    if value is None:
+        return set(default)
+    parsed = {item.strip() for item in value.split(",") if item.strip()}
+    return parsed or set(default)
+
+
 def _assert_support_apis_enabled() -> None:
     if not _env_flag("DPM_SUPPORT_APIS_ENABLED", True):
         raise HTTPException(
@@ -62,6 +75,14 @@ def _assert_artifacts_enabled() -> None:
         )
 
 
+def _assert_workflow_enabled() -> None:
+    if not _env_flag("DPM_WORKFLOW_ENABLED", False):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_WORKFLOW_DISABLED",
+        )
+
+
 def get_dpm_run_support_service() -> DpmRunSupportService:
     global _SERVICE
     if _SERVICE is None:
@@ -70,6 +91,11 @@ def get_dpm_run_support_service() -> DpmRunSupportService:
             async_operation_ttl_seconds=_env_int(
                 "DPM_ASYNC_OPERATIONS_TTL_SECONDS",
                 86400,
+            ),
+            workflow_enabled=_env_flag("DPM_WORKFLOW_ENABLED", False),
+            workflow_requires_review_for_statuses=_env_csv_set(
+                "DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES",
+                {"PENDING_REVIEW"},
             ),
         )
     return _SERVICE
@@ -232,5 +258,98 @@ def get_dpm_async_operation_by_correlation(
     _assert_async_operations_enabled()
     try:
         return service.get_async_operation_by_correlation(correlation_id=correlation_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/runs/{rebalance_run_id}/workflow",
+    response_model=DpmRunWorkflowResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Workflow State",
+    description=(
+        "Returns workflow gate state and latest decision for run-level review supportability."
+    ),
+)
+def get_dpm_run_workflow(
+    rebalance_run_id: Annotated[
+        str,
+        Path(description="DPM run identifier.", examples=["rr_abc12345"]),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunWorkflowResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.get_workflow(rebalance_run_id=rebalance_run_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post(
+    "/rebalance/runs/{rebalance_run_id}/workflow/actions",
+    response_model=DpmRunWorkflowResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Apply DPM Run Workflow Action",
+    description=(
+        "Applies one workflow action (`APPROVE`, `REJECT`, `REQUEST_CHANGES`) and returns "
+        "updated workflow state."
+    ),
+)
+def apply_dpm_run_workflow_action(
+    rebalance_run_id: Annotated[
+        str,
+        Path(description="DPM run identifier.", examples=["rr_abc12345"]),
+    ],
+    payload: DpmRunWorkflowActionRequest,
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    correlation_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Correlation-Id",
+            description="Optional correlation id for workflow action request tracing.",
+            examples=["corr-workflow-001"],
+        ),
+    ] = None,
+) -> DpmRunWorkflowResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.apply_workflow_action(
+            rebalance_run_id=rebalance_run_id,
+            action=payload.action,
+            reason_code=payload.reason_code,
+            comment=payload.comment,
+            actor_id=payload.actor_id,
+            correlation_id=correlation_id or "c_none",
+        )
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DpmWorkflowDisabledError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except DpmWorkflowTransitionError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/runs/{rebalance_run_id}/workflow/history",
+    response_model=DpmRunWorkflowHistoryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run Workflow History",
+    description=(
+        "Returns append-only workflow decision history for run-level audit and investigation."
+    ),
+)
+def get_dpm_run_workflow_history(
+    rebalance_run_id: Annotated[
+        str,
+        Path(description="DPM run identifier.", examples=["rr_abc12345"]),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunWorkflowHistoryResponse:
+    _assert_support_apis_enabled()
+    _assert_workflow_enabled()
+    try:
+        return service.get_workflow_history(rebalance_run_id=rebalance_run_id)
     except DpmRunNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

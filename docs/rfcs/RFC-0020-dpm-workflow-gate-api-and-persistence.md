@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IN_PROGRESS |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0017, RFC-0019 |
 | **Doc Location** | `docs/rfcs/RFC-0020-dpm-workflow-gate-api-and-persistence.md` |
@@ -72,3 +72,14 @@ Additive APIs and storage. When disabled, existing run semantics and responses r
 - Workflow status is separate and does not replace run status.
 - Reason codes use uppercase snake case.
 
+## 8. Implementation Status
+
+- Implemented (in-memory):
+  - `GET /rebalance/runs/{run_id}/workflow`
+  - `POST /rebalance/runs/{run_id}/workflow/actions`
+  - `GET /rebalance/runs/{run_id}/workflow/history`
+  - Feature flags:
+    - `DPM_WORKFLOW_ENABLED` (default `false`)
+    - `DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES` (CSV, default `PENDING_REVIEW`)
+- Pending:
+  - Persistent database-backed repository integration (covered in RFC-0023 scope).

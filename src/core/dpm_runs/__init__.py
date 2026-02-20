@@ -4,6 +4,7 @@ from src.core.dpm_runs.models import (
     DpmRunArtifactResponse,
     DpmRunIdempotencyLookupResponse,
     DpmRunLookupResponse,
+    DpmRunWorkflowActionRequest,
     DpmRunWorkflowHistoryResponse,
     DpmRunWorkflowResponse,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "DpmRunArtifactResponse",
     "DpmRunIdempotencyLookupResponse",
     "DpmRunLookupResponse",
+    "DpmRunWorkflowActionRequest",
     "DpmRunWorkflowHistoryResponse",
     "DpmRunWorkflowResponse",
     "DpmRunNotFoundError",

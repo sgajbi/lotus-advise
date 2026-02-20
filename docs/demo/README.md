@@ -32,6 +32,13 @@ curl -X GET "http://127.0.0.1:8000/rebalance/runs/idempotency/demo-27-supportabi
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/artifact"
 ```
 
+For DPM workflow supportability endpoints (enabled only when `DPM_WORKFLOW_ENABLED=true`):
+```bash
+curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow"
+curl -X POST "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow/actions" -H "Content-Type: application/json" -H "X-Correlation-Id: demo-corr-workflow-1" --data-binary '{"action":"APPROVE","reason_code":"REVIEW_APPROVED","actor_id":"reviewer_001"}'
+curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/workflow/history"
+```
+
 For advisory proposal simulation demos, POST to `/rebalance/proposals/simulate`:
 ```bash
 curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-proposal-01" --data-binary "@docs/demo/10_advisory_proposal_simulate.json"
@@ -87,6 +94,7 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
 | `26_dpm_async_batch_analysis.json` | **DPM Async Batch Analysis** | Async operation `SUCCEEDED` with partial-failure warning | Demonstrates `/rebalance/analyze/async` acceptance + operation lookup with `failed_scenarios` diagnostics. |
 | `27_dpm_supportability_artifact_flow.json` | **DPM Supportability + Artifact Flow** | `READY` run + deterministic artifact hash | Demonstrates run lookup by run id/correlation/idempotency and deterministic retrieval from `/rebalance/runs/{rebalance_run_id}/artifact`. |
 | `28_dpm_async_manual_execute_guard.json` | **DPM Async Manual Execute Guard** | Manual execute returns `409` on non-pending run | Demonstrates `/rebalance/operations/{operation_id}/execute` conflict guard when operation already completed inline. |
+| `29_dpm_workflow_gate_disabled_contract.json` | **DPM Workflow Gate Default Guard** | Workflow endpoints return `404 DPM_WORKFLOW_DISABLED` | Demonstrates feature-toggle default behavior for workflow supportability endpoints. |
 
 ## Feature Toggles Demonstrated
 
@@ -113,6 +121,10 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
 - `28_dpm_async_manual_execute_guard.json`:
   - `POST /rebalance/analyze/async` (default inline mode)
   - `POST /rebalance/operations/{operation_id}/execute` guard path returns `DPM_ASYNC_OPERATION_NOT_EXECUTABLE` for non-pending operations
+- `29_dpm_workflow_gate_disabled_contract.json`:
+  - `POST /rebalance/simulate` to create a pending-review candidate run
+  - `GET /rebalance/runs/{rebalance_run_id}/workflow` returns `DPM_WORKFLOW_DISABLED` when workflow feature is off
+  - `GET /rebalance/runs/{rebalance_run_id}/workflow/history` returns `DPM_WORKFLOW_DISABLED` when workflow feature is off
 - `10_advisory_proposal_simulate.json`:
   - `options.enable_proposal_simulation=true`
   - `options.proposal_apply_cash_flows_first=true`

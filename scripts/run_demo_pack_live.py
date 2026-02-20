@@ -206,6 +206,40 @@ def run_demo_pack(base_url: str) -> None:
             "28: unexpected non-executable detail",
         )
 
+        workflow_disabled = _run_scenario(
+            client,
+            name="29_dpm_workflow_gate_disabled_contract.json",
+            method="POST",
+            path="/rebalance/simulate",
+            expected_http=200,
+            payload_file="29_dpm_workflow_gate_disabled_contract.json",
+            headers={
+                "Idempotency-Key": "live-demo-29-workflow-disabled",
+                "X-Correlation-Id": "live-corr-29-workflow-disabled",
+            },
+        )
+        workflow_run_id = workflow_disabled["rebalance_run_id"]
+        workflow_disabled_state = client.get(f"/rebalance/runs/{workflow_run_id}/workflow")
+        _assert(
+            workflow_disabled_state.status_code == 404,
+            "29: expected workflow state endpoint to be disabled by default",
+        )
+        _assert(
+            workflow_disabled_state.json().get("detail") == "DPM_WORKFLOW_DISABLED",
+            "29: unexpected workflow disabled detail",
+        )
+        workflow_disabled_history = client.get(
+            f"/rebalance/runs/{workflow_run_id}/workflow/history"
+        )
+        _assert(
+            workflow_disabled_history.status_code == 404,
+            "29: expected workflow history endpoint to be disabled by default",
+        )
+        _assert(
+            workflow_disabled_history.json().get("detail") == "DPM_WORKFLOW_DISABLED",
+            "29: unexpected workflow history disabled detail",
+        )
+
         # Advisory simulate demos
         advisory_expected = {
             "10_advisory_proposal_simulate.json": "READY",

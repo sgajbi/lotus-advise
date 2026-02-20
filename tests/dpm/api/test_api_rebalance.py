@@ -982,3 +982,115 @@ def test_simulate_tax_awareness_toggle_is_request_scoped(client):
     assert Decimal(body["intents"][0]["quantity"]) < Decimal("100")
     assert "TAX_BUDGET_LIMIT_REACHED" in body["diagnostics"]["warnings"]
     assert body["tax_impact"]["budget_used"]["amount"] == "100"
+
+
+def test_dpm_run_workflow_endpoints_happy_path_and_invalid_transition(client, monkeypatch):
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+    payload = get_valid_payload()
+    payload["options"]["single_position_max_weight"] = "0.5"
+    simulate = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-workflow-1", "X-Correlation-Id": "corr-workflow-1"},
+    )
+    assert simulate.status_code == 200
+    run = simulate.json()
+    assert run["status"] == "PENDING_REVIEW"
+    run_id = run["rebalance_run_id"]
+
+    workflow = client.get(f"/rebalance/runs/{run_id}/workflow")
+    assert workflow.status_code == 200
+    workflow_body = workflow.json()
+    assert workflow_body["run_id"] == run_id
+    assert workflow_body["run_status"] == "PENDING_REVIEW"
+    assert workflow_body["workflow_status"] == "PENDING_REVIEW"
+    assert workflow_body["requires_review"] is True
+    assert workflow_body["latest_decision"] is None
+
+    request_changes = client.post(
+        f"/rebalance/runs/{run_id}/workflow/actions",
+        json={
+            "action": "REQUEST_CHANGES",
+            "reason_code": "REQUIRES_ADVISOR_NOTE",
+            "comment": "Please add rationale.",
+            "actor_id": "reviewer_1",
+        },
+        headers={"X-Correlation-Id": "corr-workflow-2"},
+    )
+    assert request_changes.status_code == 200
+    request_changes_body = request_changes.json()
+    assert request_changes_body["workflow_status"] == "PENDING_REVIEW"
+    assert request_changes_body["latest_decision"]["action"] == "REQUEST_CHANGES"
+    assert request_changes_body["latest_decision"]["correlation_id"] == "corr-workflow-2"
+
+    approved = client.post(
+        f"/rebalance/runs/{run_id}/workflow/actions",
+        json={
+            "action": "APPROVE",
+            "reason_code": "REVIEW_APPROVED",
+            "comment": None,
+            "actor_id": "reviewer_2",
+        },
+        headers={"X-Correlation-Id": "corr-workflow-3"},
+    )
+    assert approved.status_code == 200
+    approved_body = approved.json()
+    assert approved_body["workflow_status"] == "APPROVED"
+    assert approved_body["latest_decision"]["action"] == "APPROVE"
+    assert approved_body["latest_decision"]["actor_id"] == "reviewer_2"
+
+    history = client.get(f"/rebalance/runs/{run_id}/workflow/history")
+    assert history.status_code == 200
+    history_body = history.json()
+    assert history_body["run_id"] == run_id
+    assert len(history_body["decisions"]) == 2
+    assert history_body["decisions"][0]["action"] == "REQUEST_CHANGES"
+    assert history_body["decisions"][1]["action"] == "APPROVE"
+
+    invalid = client.post(
+        f"/rebalance/runs/{run_id}/workflow/actions",
+        json={
+            "action": "APPROVE",
+            "reason_code": "REVIEW_APPROVED",
+            "comment": None,
+            "actor_id": "reviewer_2",
+        },
+    )
+    assert invalid.status_code == 409
+    assert invalid.json()["detail"] == "DPM_WORKFLOW_INVALID_TRANSITION"
+
+
+def test_dpm_run_workflow_endpoints_disabled_and_not_required_behavior(client, monkeypatch):
+    payload = get_valid_payload()
+    simulate = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-workflow-2"},
+    )
+    assert simulate.status_code == 200
+    run_id = simulate.json()["rebalance_run_id"]
+
+    disabled = client.get(f"/rebalance/runs/{run_id}/workflow")
+    assert disabled.status_code == 404
+    assert disabled.json()["detail"] == "DPM_WORKFLOW_DISABLED"
+
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+    reset_dpm_run_support_service_for_tests()
+    simulate_ready = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-workflow-3"},
+    )
+    assert simulate_ready.status_code == 200
+    ready_run_id = simulate_ready.json()["rebalance_run_id"]
+    not_required = client.post(
+        f"/rebalance/runs/{ready_run_id}/workflow/actions",
+        json={
+            "action": "APPROVE",
+            "reason_code": "REVIEW_APPROVED",
+            "comment": None,
+            "actor_id": "reviewer_1",
+        },
+    )
+    assert not_required.status_code == 409
+    assert not_required.json()["detail"] == "DPM_WORKFLOW_NOT_REQUIRED_FOR_RUN_STATUS"

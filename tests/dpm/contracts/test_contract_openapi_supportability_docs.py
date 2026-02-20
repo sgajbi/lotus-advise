@@ -78,6 +78,23 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(artifact_schema, "result")
     _assert_property_has_docs(artifact_schema, "evidence")
 
+    workflow_action_schema = schemas["DpmRunWorkflowActionRequest"]
+    _assert_property_has_docs(workflow_action_schema, "action")
+    _assert_property_has_docs(workflow_action_schema, "reason_code")
+    _assert_property_has_docs(workflow_action_schema, "comment")
+    _assert_property_has_docs(workflow_action_schema, "actor_id")
+
+    workflow_schema = schemas["DpmRunWorkflowResponse"]
+    _assert_property_has_docs(workflow_schema, "run_id")
+    _assert_property_has_docs(workflow_schema, "run_status")
+    _assert_property_has_docs(workflow_schema, "workflow_status")
+    _assert_property_has_docs(workflow_schema, "requires_review")
+    _assert_property_has_docs(workflow_schema, "latest_decision")
+
+    workflow_history_schema = schemas["DpmRunWorkflowHistoryResponse"]
+    _assert_property_has_docs(workflow_history_schema, "run_id")
+    _assert_property_has_docs(workflow_history_schema, "decisions")
+
 
 def test_dpm_async_and_supportability_endpoints_use_expected_request_response_contracts():
     _guard_strict_validation()
@@ -103,3 +120,26 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert run_artifact["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/DpmRunArtifactResponse")
+
+    workflow = openapi["paths"]["/rebalance/runs/{rebalance_run_id}/workflow"]["get"]
+    assert workflow["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/DpmRunWorkflowResponse"
+    )
+
+    workflow_actions = openapi["paths"]["/rebalance/runs/{rebalance_run_id}/workflow/actions"][
+        "post"
+    ]
+    workflow_action_request_ref = workflow_actions["requestBody"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    assert workflow_action_request_ref.endswith("/DpmRunWorkflowActionRequest")
+    assert workflow_actions["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmRunWorkflowResponse")
+
+    workflow_history = openapi["paths"]["/rebalance/runs/{rebalance_run_id}/workflow/history"][
+        "get"
+    ]
+    assert workflow_history["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmRunWorkflowHistoryResponse")

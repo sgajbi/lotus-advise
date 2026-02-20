@@ -49,6 +49,15 @@ Implementation scope:
 ### `GET /rebalance/runs/idempotency/{idempotency_key}`
 - Purpose: retrieve idempotency key to run mapping for retry and incident analysis.
 
+### `GET /rebalance/runs/{rebalance_run_id}/workflow`
+- Purpose: retrieve workflow gate status and latest reviewer decision for a run.
+
+### `POST /rebalance/runs/{rebalance_run_id}/workflow/actions`
+- Purpose: apply one workflow action (`APPROVE`, `REJECT`, `REQUEST_CHANGES`) with actor/reason trace.
+
+### `GET /rebalance/runs/{rebalance_run_id}/workflow/history`
+- Purpose: retrieve append-only workflow decision history for audit and investigation.
+
 ## Pipeline (`run_simulation`)
 
 1. Valuation
@@ -99,6 +108,8 @@ Implementation scope:
   - `DPM_IDEMPOTENCY_REPLAY_ENABLED` (default `true`)
   - `DPM_IDEMPOTENCY_CACHE_MAX_SIZE` (default `1000`)
   - `DPM_SUPPORT_APIS_ENABLED` (default `true`)
+  - `DPM_WORKFLOW_ENABLED` (default `false`)
+  - `DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES` (CSV list, default `PENDING_REVIEW`)
 
 Dependency policy note:
 - `link_buy_to_same_currency_sell_dependency=null` defaults to `true` in DPM.

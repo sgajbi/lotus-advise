@@ -14,6 +14,7 @@ Coverage includes:
 - DPM async batch analyze demo (`26`)
 - DPM supportability + deterministic artifact flow demo (`27`)
 - DPM async manual-execute guard demo (`28`)
+- DPM workflow gate default-disabled contract demo (`29`)
 - Advisory simulate demos (`10`-`18`)
 - Advisory artifact demo (`19`)
 - Advisory lifecycle flow demos (`20`-`25`)
@@ -77,3 +78,9 @@ Demo pack validation passed for http://127.0.0.1:8000
   - `POST /rebalance/analyze/async` in default inline mode succeeds and completes operation.
   - `POST /rebalance/operations/{operation_id}/execute` returns `409` with
     `DPM_ASYNC_OPERATION_NOT_EXECUTABLE` when operation is already non-pending.
+- Workflow gate contract scenario `29_dpm_workflow_gate_disabled_contract.json` validated:
+  - `POST /rebalance/simulate` creates a pending-review candidate run.
+  - `GET /rebalance/runs/{rebalance_run_id}/workflow` returns `404` with
+    `DPM_WORKFLOW_DISABLED` under default config.
+  - `GET /rebalance/runs/{rebalance_run_id}/workflow/history` returns `404` with
+    `DPM_WORKFLOW_DISABLED` under default config.
