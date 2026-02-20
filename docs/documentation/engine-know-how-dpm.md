@@ -40,6 +40,15 @@ Implementation scope:
   - when `X-Correlation-Id` is provided, each scenario result uses `{header}:{scenario_name}`
   - when omitted, each scenario result uses `{batch_run_id}:{scenario_name}`
 
+### `GET /rebalance/runs/{rebalance_run_id}`
+- Purpose: retrieve one DPM run with full result payload and lineage metadata for support investigations.
+
+### `GET /rebalance/runs/by-correlation/{correlation_id}`
+- Purpose: retrieve latest DPM run mapped to correlation id.
+
+### `GET /rebalance/runs/idempotency/{idempotency_key}`
+- Purpose: retrieve idempotency key to run mapping for retry and incident analysis.
+
 ## Pipeline (`run_simulation`)
 
 1. Valuation
@@ -89,6 +98,7 @@ Implementation scope:
 - runtime API toggles:
   - `DPM_IDEMPOTENCY_REPLAY_ENABLED` (default `true`)
   - `DPM_IDEMPOTENCY_CACHE_MAX_SIZE` (default `1000`)
+  - `DPM_SUPPORT_APIS_ENABLED` (default `true`)
 
 Dependency policy note:
 - `link_buy_to_same_currency_sell_dependency=null` defaults to `true` in DPM.

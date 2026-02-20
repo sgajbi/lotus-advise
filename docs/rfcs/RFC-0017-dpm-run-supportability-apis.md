@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0001, RFC-0002, RFC-0016 |
 | **Doc Location** | `docs/rfcs/RFC-0017-dpm-run-supportability-apis.md` |
@@ -16,6 +16,13 @@ Introduce DPM operational lookup APIs mirroring advisory supportability patterns
 - lookup idempotency mapping by `Idempotency-Key`
 
 These endpoints improve incident response, support triage, and audit traceability.
+
+Implementation note (2026-02-20):
+- Implemented router endpoints in `src/api/routers/dpm_runs.py`.
+- Implemented support domain and repository port in `src/core/dpm_runs/`.
+- Implemented in-memory adapter in `src/infrastructure/dpm_runs/in_memory.py`.
+- Integrated run recording in `src/api/main.py` for `/rebalance/simulate` and `/rebalance/analyze`.
+- Added API coverage in `tests/dpm/api/test_api_rebalance.py`.
 
 ## 2. Problem Statement
 
