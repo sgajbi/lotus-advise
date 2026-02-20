@@ -280,5 +280,16 @@ Demo pack validation passed for http://127.0.0.1:8000
     `http://127.0.0.1:8038`):
     - `POST /rebalance/simulate` with `X-Policy-Pack-Id=dpm_request_pack` returns `200`
       and unchanged simulation behavior (`status=READY` observed).
+- Policy-pack supportability endpoint validation (RFC-0022 slice 2):
+  - Uvicorn runtime (`DPM_POLICY_PACKS_ENABLED=true`, `DPM_DEFAULT_POLICY_PACK_ID=dpm_default_pack`):
+    - `GET /rebalance/policies/effective` with:
+      - `X-Policy-Pack-Id=req_pack`
+      - `X-Tenant-Policy-Pack-Id=tenant_pack`
+      returns `200` with:
+      - `enabled=true`
+      - `selected_policy_pack_id=req_pack`
+      - `source=REQUEST`
+  - Container runtime (`DPM_POLICY_PACKS_ENABLED=true`, `DPM_DEFAULT_POLICY_PACK_ID=dpm_default_pack`):
+    - same call and response semantics verified.
     - `GET /rebalance/workflow/decisions?limit=20` returns workflow decisions across runs.
     - `GET /rebalance/workflow/decisions?actor_id=...&action=...&limit=...` returns filtered rows.

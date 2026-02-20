@@ -321,12 +321,14 @@ def _async_manual_execution_enabled() -> bool:
 
 
 def _resolve_dpm_policy_pack(
-    *, request_policy_pack_id: Optional[str]
+    *,
+    request_policy_pack_id: Optional[str],
+    tenant_default_policy_pack_id: Optional[str] = None,
 ) -> DpmEffectivePolicyPackResolution:
     return resolve_effective_policy_pack(
         policy_packs_enabled=_env_flag("DPM_POLICY_PACKS_ENABLED", False),
         request_policy_pack_id=request_policy_pack_id,
-        tenant_default_policy_pack_id=None,
+        tenant_default_policy_pack_id=tenant_default_policy_pack_id,
         global_default_policy_pack_id=os.getenv("DPM_DEFAULT_POLICY_PACK_ID"),
     )
 
@@ -355,6 +357,42 @@ def _build_comparison_metric(
         status=scenario_result.status,
         security_intent_count=len(security_intents),
         gross_turnover_notional_base=Money(amount=turnover_proxy, currency=base_currency),
+    )
+
+
+@app.get(
+    "/rebalance/policies/effective",
+    response_model=DpmEffectivePolicyPackResolution,
+    status_code=status.HTTP_200_OK,
+    tags=["DPM Run Supportability"],
+    summary="Resolve Effective DPM Policy Pack",
+    description=(
+        "Returns the effective DPM policy-pack resolution using configured precedence "
+        "(request, tenant default, global default). This endpoint is read-only and "
+        "intended for supportability and integration diagnostics."
+    ),
+)
+def get_effective_dpm_policy_pack(
+    request_policy_pack_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Policy-Pack-Id",
+            description="Optional request-scoped policy-pack identifier.",
+            examples=["dpm_standard_v1"],
+        ),
+    ] = None,
+    tenant_default_policy_pack_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Tenant-Policy-Pack-Id",
+            description="Optional tenant-default policy-pack identifier from upstream context.",
+            examples=["dpm_tenant_default_v1"],
+        ),
+    ] = None,
+) -> DpmEffectivePolicyPackResolution:
+    return _resolve_dpm_policy_pack(
+        request_policy_pack_id=request_policy_pack_id,
+        tenant_default_policy_pack_id=tenant_default_policy_pack_id,
     )
 
 

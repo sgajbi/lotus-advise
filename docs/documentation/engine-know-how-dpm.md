@@ -65,6 +65,16 @@ Implementation scope:
   - async operation status distribution
   - oldest/newest created-at timestamps for runs and operations
 
+### `GET /rebalance/policies/effective`
+- Purpose: resolve and return effective DPM policy-pack selection for integration/support diagnostics.
+- Optional headers:
+  - `X-Policy-Pack-Id`
+  - `X-Tenant-Policy-Pack-Id`
+- Output:
+  - `enabled`
+  - `selected_policy_pack_id`
+  - `source`
+
 ### `GET /rebalance/runs/{rebalance_run_id}`
 - Purpose: retrieve one DPM run with full result payload and lineage metadata for support investigations.
 

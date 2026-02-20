@@ -1104,6 +1104,52 @@ def test_dpm_policy_pack_header_is_accepted_without_behavior_change(client, monk
     assert response.json()["status"] in {"READY", "PENDING_REVIEW", "BLOCKED"}
 
 
+def test_effective_policy_pack_endpoint_resolution_precedence(client, monkeypatch):
+    disabled = client.get("/rebalance/policies/effective", headers={"X-Policy-Pack-Id": "req_pack"})
+    assert disabled.status_code == 200
+    assert disabled.json() == {
+        "enabled": False,
+        "selected_policy_pack_id": None,
+        "source": "DISABLED",
+    }
+
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "global_pack")
+
+    request_level = client.get(
+        "/rebalance/policies/effective",
+        headers={
+            "X-Policy-Pack-Id": "req_pack",
+            "X-Tenant-Policy-Pack-Id": "tenant_pack",
+        },
+    )
+    assert request_level.status_code == 200
+    assert request_level.json() == {
+        "enabled": True,
+        "selected_policy_pack_id": "req_pack",
+        "source": "REQUEST",
+    }
+
+    tenant_level = client.get(
+        "/rebalance/policies/effective",
+        headers={"X-Tenant-Policy-Pack-Id": "tenant_pack"},
+    )
+    assert tenant_level.status_code == 200
+    assert tenant_level.json() == {
+        "enabled": True,
+        "selected_policy_pack_id": "tenant_pack",
+        "source": "TENANT_DEFAULT",
+    }
+
+    global_level = client.get("/rebalance/policies/effective")
+    assert global_level.status_code == 200
+    assert global_level.json() == {
+        "enabled": True,
+        "selected_policy_pack_id": "global_pack",
+        "source": "GLOBAL_DEFAULT",
+    }
+
+
 def test_analyze_async_accept_only_mode_keeps_operation_pending(client, monkeypatch):
     monkeypatch.setenv("DPM_ASYNC_EXECUTION_MODE", "ACCEPT_ONLY")
     payload = get_valid_payload()
@@ -1236,6 +1282,9 @@ def test_openapi_title_and_tag_grouping(client):
     assert openapi["paths"]["/rebalance/simulate"]["post"]["tags"] == ["DPM Simulation"]
     assert openapi["paths"]["/rebalance/analyze"]["post"]["tags"] == ["DPM What-If Analysis"]
     assert openapi["paths"]["/rebalance/analyze/async"]["post"]["tags"] == ["DPM What-If Analysis"]
+    assert openapi["paths"]["/rebalance/policies/effective"]["get"]["tags"] == [
+        "DPM Run Supportability"
+    ]
     assert openapi["paths"]["/rebalance/proposals/simulate"]["post"]["tags"] == [
         "Advisory Simulation"
     ]

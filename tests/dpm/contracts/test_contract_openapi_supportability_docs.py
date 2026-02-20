@@ -182,6 +182,14 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert "X-Correlation-Id" in header_names
     assert "X-Policy-Pack-Id" in header_names
 
+    effective_policy = openapi["paths"]["/rebalance/policies/effective"]["get"]
+    assert effective_policy["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmEffectivePolicyPackResolution")
+    policy_params = {param["name"] for param in effective_policy["parameters"]}
+    assert "X-Policy-Pack-Id" in policy_params
+    assert "X-Tenant-Policy-Pack-Id" in policy_params
+
     list_operations = openapi["paths"]["/rebalance/operations"]["get"]
     assert list_operations["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"

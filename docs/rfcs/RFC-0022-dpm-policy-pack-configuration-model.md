@@ -87,6 +87,16 @@ Policy pack selection must not alter run status vocabulary semantics.
       - `POST /rebalance/analyze/async`
   - Backward-compatibility:
     - engine behavior remains unchanged; policy-pack selection is resolved and traced only.
+- Implemented (slice 2):
+  - Supportability resolution endpoint:
+    - `GET /rebalance/policies/effective`
+      - optional headers:
+        - `X-Policy-Pack-Id`
+        - `X-Tenant-Policy-Pack-Id`
+      - response:
+        - `enabled`
+        - `selected_policy_pack_id`
+        - `source` (`DISABLED | REQUEST | TENANT_DEFAULT | GLOBAL_DEFAULT | NONE`)
 - Pending:
   - tenant-level policy resolution adapter integration.
   - mapping from selected policy-pack to concrete `EngineOptions` transformations.

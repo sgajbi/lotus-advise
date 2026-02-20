@@ -25,6 +25,11 @@ curl -X GET "http://127.0.0.1:8000/rebalance/operations?status=SUCCEEDED&operati
 curl -X GET "http://127.0.0.1:8000/rebalance/operations/by-correlation/demo-corr-26-async"
 ```
 
+For DPM policy-pack resolution supportability:
+```bash
+curl -X GET "http://127.0.0.1:8000/rebalance/policies/effective" -H "X-Policy-Pack-Id: dpm_standard_v1" -H "X-Tenant-Policy-Pack-Id: dpm_tenant_default_v1"
+```
+
 For DPM supportability and deterministic artifact retrieval flow:
 ```bash
 curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-27-supportability" -H "X-Correlation-Id: demo-corr-27-supportability" --data-binary "@docs/demo/27_dpm_supportability_artifact_flow.json"
