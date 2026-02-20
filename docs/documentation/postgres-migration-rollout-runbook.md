@@ -67,3 +67,8 @@ This validates both migration application and repository contract parity on real
   - keep schema as-is,
   - redeploy previous compatible app version,
   - fix forward in a new migration.
+
+## Completion Evidence
+
+- Cutover acceptance checklist:
+  - `docs/demo/postgres-cutover-checklist-2026-02-20.md`

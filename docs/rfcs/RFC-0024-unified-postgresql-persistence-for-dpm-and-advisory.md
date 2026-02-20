@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 18) |
+| **Status** | COMPLETED (SLICE 19) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -331,5 +331,14 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - lock and unlock executed even when checksum mismatch raises
     - lock key stability and namespace isolation assertions
   - Updated migration rollout runbook with concurrency/race safety guidance.
+- Implemented (slice 19):
+  - Added explicit production cutover checklist evidence:
+    - `docs/demo/postgres-cutover-checklist-2026-02-20.md`
+  - Confirmed completion criteria across:
+    - migrations
+    - locking
+    - CI smoke checks
+    - live integration coverage
+    - manual runtime validation
 - Next slice:
-  - close RFC-0024 by marking status completed once production cutover checklist is confirmed.
+  - none (RFC-0024 complete).
