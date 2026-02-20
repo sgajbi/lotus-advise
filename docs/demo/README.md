@@ -55,6 +55,12 @@ export DPM_POLICY_PACK_CATALOG_JSON='{"dpm_standard_v1":{"version":"1","constrai
 curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-policy-pack-constraints-1" -H "X-Policy-Pack-Id: dpm_standard_v1" --data-binary "@docs/demo/01_standard_drift.json"
 ```
 
+Workflow-policy override example:
+```bash
+export DPM_POLICY_PACK_CATALOG_JSON='{"dpm_standard_v1":{"version":"1","workflow_policy":{"enable_workflow_gates":false,"workflow_requires_client_consent":true,"client_consent_already_obtained":true}}}'
+curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-policy-pack-workflow-1" -H "X-Policy-Pack-Id: dpm_standard_v1" --data-binary "@docs/demo/01_standard_drift.json"
+```
+
 For DPM supportability and deterministic artifact retrieval flow:
 ```bash
 curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-27-supportability" -H "X-Correlation-Id: demo-corr-27-supportability" --data-binary "@docs/demo/27_dpm_supportability_artifact_flow.json"

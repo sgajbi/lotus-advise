@@ -33,6 +33,9 @@ Implementation scope:
     - `settlement_horizon_days`
     - `single_position_max_weight`
     - `group_constraints`
+    - `enable_workflow_gates`
+    - `workflow_requires_client_consent`
+    - `client_consent_already_obtained`
 - Output: `RebalanceResult` with status `READY | PENDING_REVIEW | BLOCKED` and `gate_decision`
 - Correlation behavior:
   - response `correlation_id` echoes request `X-Correlation-Id` when provided
@@ -55,6 +58,9 @@ Implementation scope:
     - `settlement_horizon_days`
     - `single_position_max_weight`
     - `group_constraints`
+    - `enable_workflow_gates`
+    - `workflow_requires_client_consent`
+    - `client_consent_already_obtained`
 - Output: `BatchRebalanceResult` with scenario-level results/metrics/failures.
 - Scenario correlation behavior:
   - when `X-Correlation-Id` is provided, each scenario result uses `{header}:{scenario_name}`

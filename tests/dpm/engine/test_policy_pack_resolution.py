@@ -177,6 +177,32 @@ def test_policy_pack_apply_constraint_overrides():
     assert effective_options.group_constraints["sector:TECH"].max_weight == Decimal("0.20")
 
 
+def test_policy_pack_apply_workflow_overrides():
+    options = EngineOptions(
+        enable_workflow_gates=True,
+        workflow_requires_client_consent=False,
+        client_consent_already_obtained=False,
+    )
+    catalog = parse_policy_pack_catalog(
+        (
+            '{"dpm_standard_v1":{"workflow_policy":{"enable_workflow_gates":false,'
+            '"workflow_requires_client_consent":true,'
+            '"client_consent_already_obtained":true}}}'
+        )
+    )
+    resolution = resolve_effective_policy_pack(
+        policy_packs_enabled=True,
+        request_policy_pack_id="dpm_standard_v1",
+        tenant_default_policy_pack_id=None,
+        global_default_policy_pack_id=None,
+    )
+    selected = resolve_policy_pack_definition(resolution=resolution, catalog=catalog)
+    effective_options = apply_policy_pack_to_engine_options(options=options, policy_pack=selected)
+    assert effective_options.enable_workflow_gates is False
+    assert effective_options.workflow_requires_client_consent is True
+    assert effective_options.client_consent_already_obtained is True
+
+
 def test_policy_pack_catalog_parse_invalid_json_and_shape():
     assert parse_policy_pack_catalog("{bad-json}") == {}
     assert parse_policy_pack_catalog("[]") == {}

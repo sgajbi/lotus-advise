@@ -77,6 +77,24 @@ class DpmPolicyPackConstraintPolicy(BaseModel):
     )
 
 
+class DpmPolicyPackWorkflowPolicy(BaseModel):
+    enable_workflow_gates: Optional[bool] = Field(
+        default=None,
+        description="Optional override for deterministic workflow gate output.",
+        examples=[True],
+    )
+    workflow_requires_client_consent: Optional[bool] = Field(
+        default=None,
+        description="Optional override for workflow client-consent requirement.",
+        examples=[False],
+    )
+    client_consent_already_obtained: Optional[bool] = Field(
+        default=None,
+        description="Optional override indicating consent already obtained for gate evaluation.",
+        examples=[False],
+    )
+
+
 class DpmPolicyPackDefinition(BaseModel):
     policy_pack_id: str = Field(
         description="Unique policy-pack identifier.",
@@ -101,6 +119,10 @@ class DpmPolicyPackDefinition(BaseModel):
     constraint_policy: DpmPolicyPackConstraintPolicy = Field(
         default_factory=DpmPolicyPackConstraintPolicy,
         description="Constraint policy overrides for selected policy-pack.",
+    )
+    workflow_policy: DpmPolicyPackWorkflowPolicy = Field(
+        default_factory=DpmPolicyPackWorkflowPolicy,
+        description="Workflow policy overrides for selected policy-pack.",
     )
 
 
@@ -142,6 +164,7 @@ class DpmPolicyPackCatalogResponse(BaseModel):
                     "tax_policy": {"enable_tax_awareness": True},
                     "settlement_policy": {"enable_settlement_awareness": False},
                     "constraint_policy": {"single_position_max_weight": "0.25"},
+                    "workflow_policy": {"enable_workflow_gates": True},
                 }
             ]
         ],
@@ -225,6 +248,7 @@ def parse_policy_pack_catalog(catalog_json: Optional[str]) -> dict[str, DpmPolic
             "tax_policy": definition.get("tax_policy") or {},
             "settlement_policy": definition.get("settlement_policy") or {},
             "constraint_policy": definition.get("constraint_policy") or {},
+            "workflow_policy": definition.get("workflow_policy") or {},
         }
         try:
             parsed = DpmPolicyPackDefinition.model_validate(payload)
@@ -270,6 +294,16 @@ def apply_policy_pack_to_engine_options(
         )
     if policy_pack.constraint_policy.group_constraints:
         updates["group_constraints"] = policy_pack.constraint_policy.group_constraints
+    if policy_pack.workflow_policy.enable_workflow_gates is not None:
+        updates["enable_workflow_gates"] = policy_pack.workflow_policy.enable_workflow_gates
+    if policy_pack.workflow_policy.workflow_requires_client_consent is not None:
+        updates["workflow_requires_client_consent"] = (
+            policy_pack.workflow_policy.workflow_requires_client_consent
+        )
+    if policy_pack.workflow_policy.client_consent_already_obtained is not None:
+        updates["client_consent_already_obtained"] = (
+            policy_pack.workflow_policy.client_consent_already_obtained
+        )
     if not updates:
         return options
     return options.model_copy(update=updates)

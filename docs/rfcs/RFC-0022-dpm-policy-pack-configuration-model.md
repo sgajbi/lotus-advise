@@ -163,6 +163,15 @@ Policy pack selection must not alter run status vocabulary semantics.
     - `POST /rebalance/simulate`
     - `POST /rebalance/analyze`
     - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
+- Implemented (slice 9):
+  - Additional `EngineOptions` workflow transformations from selected policy-pack:
+    - `workflow_policy.enable_workflow_gates` -> `options.enable_workflow_gates`
+    - `workflow_policy.workflow_requires_client_consent` -> `options.workflow_requires_client_consent`
+    - `workflow_policy.client_consent_already_obtained` -> `options.client_consent_already_obtained`
+  - Applied on:
+    - `POST /rebalance/simulate`
+    - `POST /rebalance/analyze`
+    - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
 - Pending:
-  - additional policy dimensions beyond turnover/tax/settlement/constraints
-    (workflow, idempotency).
+  - additional policy dimensions beyond turnover/tax/settlement/constraints/workflow
+    (idempotency).

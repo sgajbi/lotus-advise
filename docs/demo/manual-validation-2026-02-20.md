@@ -380,3 +380,27 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `X-Policy-Pack-Id=dpm_standard_v1`
       - payload: `docs/demo/01_standard_drift.json`
       returns `200` with `status=READY`.
+- Workflow policy-pack override validation (RFC-0022 slice 9):
+  - Docker runtime (`http://127.0.0.1:8000`, default config):
+    - `GET /rebalance/policies/catalog` with `X-Policy-Pack-Id=dpm_standard_v1` returns:
+      - `total=0`
+    - `POST /rebalance/simulate` with:
+      - `Idempotency-Key=manual-workflow-policy-docker`
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      - payload: `docs/demo/01_standard_drift.json`
+      returns `200` with `status=READY`.
+  - Uvicorn runtime (`http://127.0.0.1:8006`) with:
+    - `DPM_POLICY_PACKS_ENABLED=true`
+    - `DPM_POLICY_PACK_CATALOG_JSON={"dpm_standard_v1":{"version":"1","workflow_policy":{"enable_workflow_gates":false,"workflow_requires_client_consent":true,"client_consent_already_obtained":true}}}`
+    validated:
+    - `GET /rebalance/policies/catalog` with `X-Policy-Pack-Id=dpm_standard_v1` returns:
+      - `total=1`
+      - `selected_policy_pack_id=dpm_standard_v1`
+      - `items[0].workflow_policy.enable_workflow_gates=false`
+      - `items[0].workflow_policy.workflow_requires_client_consent=true`
+      - `items[0].workflow_policy.client_consent_already_obtained=true`
+    - `POST /rebalance/simulate` with:
+      - `Idempotency-Key=manual-workflow-policy-uvicorn`
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      - payload: `docs/demo/01_standard_drift.json`
+      returns `200` with `status=READY`.
