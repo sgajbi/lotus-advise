@@ -23,6 +23,7 @@ Implementation scope:
 - Purpose: deterministic rebalance simulation.
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id`
+- Optional header: `X-Policy-Pack-Id` (resolution-only in current slice; no behavior change)
 - Output: `RebalanceResult` with status `READY | PENDING_REVIEW | BLOCKED` and `gate_decision`
 - Correlation behavior:
   - response `correlation_id` echoes request `X-Correlation-Id` when provided
@@ -35,6 +36,7 @@ Implementation scope:
 ### `POST /rebalance/analyze`
 - Purpose: multi-scenario what-if analysis using shared snapshots.
 - Optional header: `X-Correlation-Id`
+- Optional header: `X-Policy-Pack-Id` (resolution-only in current slice; no behavior change)
 - Output: `BatchRebalanceResult` with scenario-level results/metrics/failures.
 - Scenario correlation behavior:
   - when `X-Correlation-Id` is provided, each scenario result uses `{header}:{scenario_name}`
@@ -231,6 +233,8 @@ Implementation scope:
   - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
   - `DPM_WORKFLOW_ENABLED` (default `false`)
   - `DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES` (CSV list, default `PENDING_REVIEW`)
+  - `DPM_POLICY_PACKS_ENABLED` (default `false`)
+  - `DPM_DEFAULT_POLICY_PACK_ID`
 
 Dependency policy note:
 - `link_buy_to_same_currency_sell_dependency=null` defaults to `true` in DPM.

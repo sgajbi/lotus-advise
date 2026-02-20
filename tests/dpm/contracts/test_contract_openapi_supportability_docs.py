@@ -178,6 +178,9 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
         "$ref"
     ].endswith("/DpmAsyncAcceptedResponse")
     assert "X-Correlation-Id" in analyze_async["responses"]["202"]["headers"]
+    header_names = {param["name"] for param in analyze_async["parameters"]}
+    assert "X-Correlation-Id" in header_names
+    assert "X-Policy-Pack-Id" in header_names
 
     list_operations = openapi["paths"]["/rebalance/operations"]["get"]
     assert list_operations["responses"]["200"]["content"]["application/json"]["schema"][

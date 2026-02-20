@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IN_PROGRESS |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0008, RFC-0010, RFC-0011, RFC-0016 |
 | **Doc Location** | `docs/rfcs/RFC-0022-dpm-policy-pack-configuration-model.md` |
@@ -67,3 +67,26 @@ Feature-flagged rollout. Default path keeps current behavior with no client chan
 
 Policy pack selection must not alter run status vocabulary semantics.
 
+## 8. Implementation Status
+
+- Implemented (slice 1):
+  - Policy-pack resolution module:
+    - `src/core/dpm/policy_packs.py`
+    - precedence order:
+      - explicit request policy
+      - tenant default policy
+      - global default policy
+      - none
+  - Configurability scaffold:
+    - `DPM_POLICY_PACKS_ENABLED` (default `false`)
+    - `DPM_DEFAULT_POLICY_PACK_ID`
+  - API request contract extension (non-behavioral in this slice):
+    - optional `X-Policy-Pack-Id` header on:
+      - `POST /rebalance/simulate`
+      - `POST /rebalance/analyze`
+      - `POST /rebalance/analyze/async`
+  - Backward-compatibility:
+    - engine behavior remains unchanged; policy-pack selection is resolved and traced only.
+- Pending:
+  - tenant-level policy resolution adapter integration.
+  - mapping from selected policy-pack to concrete `EngineOptions` transformations.

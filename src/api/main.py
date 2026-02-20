@@ -27,6 +27,10 @@ from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.dpm.engine import run_simulation
+from src.core.dpm.policy_packs import (
+    DpmEffectivePolicyPackResolution,
+    resolve_effective_policy_pack,
+)
 from src.core.dpm_runs import (
     DpmAsyncAcceptedResponse,
     DpmAsyncOperationStatusResponse,
@@ -316,6 +320,17 @@ def _async_manual_execution_enabled() -> bool:
     return _env_flag("DPM_ASYNC_MANUAL_EXECUTION_ENABLED", True)
 
 
+def _resolve_dpm_policy_pack(
+    *, request_policy_pack_id: Optional[str]
+) -> DpmEffectivePolicyPackResolution:
+    return resolve_effective_policy_pack(
+        policy_packs_enabled=_env_flag("DPM_POLICY_PACKS_ENABLED", False),
+        request_policy_pack_id=request_policy_pack_id,
+        tenant_default_policy_pack_id=None,
+        global_default_policy_pack_id=os.getenv("DPM_DEFAULT_POLICY_PACK_ID"),
+    )
+
+
 def _to_invalid_options_error(exc: ValidationError) -> str:
     first_error = exc.errors()[0]
     return f"INVALID_OPTIONS: {first_error.get('msg', 'validation failed')}"
@@ -395,6 +410,18 @@ def simulate_rebalance(
             examples=["corr-1234-abcd"],
         ),
     ] = None,
+    policy_pack_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Policy-Pack-Id",
+            description=(
+                "Optional policy-pack identifier for request-scoped policy selection. "
+                "Current slice resolves and traces selection only; simulation behavior "
+                "remains unchanged."
+            ),
+            examples=["dpm_standard_v1"],
+        ),
+    ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> RebalanceResult:
     """Core DPM simulation endpoint with optional idempotent replay semantics."""
@@ -403,6 +430,13 @@ def simulate_rebalance(
     max_size = _env_int("DPM_IDEMPOTENCY_CACHE_MAX_SIZE", DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE)
     request_payload = request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
+    policy_pack = _resolve_dpm_policy_pack(request_policy_pack_id=policy_pack_id)
+    logger.debug(
+        "Resolved DPM policy pack for simulate. enabled=%s source=%s policy_pack_id=%s",
+        policy_pack.enabled,
+        policy_pack.source,
+        policy_pack.selected_policy_pack_id,
+    )
 
     if replay_enabled:
         existing = DPM_IDEMPOTENCY_CACHE.get(idempotency_key)
@@ -475,8 +509,27 @@ def analyze_scenarios(
         Field(description="Shared snapshots plus scenario map of option overrides."),
     ],
     correlation_id: Annotated[Optional[str], Header(alias="X-Correlation-Id")] = None,
+    policy_pack_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Policy-Pack-Id",
+            description=(
+                "Optional policy-pack identifier for request-scoped policy selection. "
+                "Current slice resolves and traces selection only; analysis behavior "
+                "remains unchanged."
+            ),
+            examples=["dpm_standard_v1"],
+        ),
+    ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> BatchRebalanceResult:
+    policy_pack = _resolve_dpm_policy_pack(request_policy_pack_id=policy_pack_id)
+    logger.debug(
+        "Resolved DPM policy pack for analyze. enabled=%s source=%s policy_pack_id=%s",
+        policy_pack.enabled,
+        policy_pack.source,
+        policy_pack.selected_policy_pack_id,
+    )
     return _execute_batch_analysis(request=request, correlation_id=correlation_id)
 
 
@@ -528,6 +581,18 @@ def analyze_scenarios_async(
             examples=["corr-batch-async-1"],
         ),
     ] = None,
+    policy_pack_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Policy-Pack-Id",
+            description=(
+                "Optional policy-pack identifier for request-scoped policy selection. "
+                "Current slice resolves and traces selection only; async behavior remains "
+                "unchanged."
+            ),
+            examples=["dpm_standard_v1"],
+        ),
+    ] = None,
     response: Response = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> DpmAsyncAcceptedResponse:
@@ -537,6 +602,13 @@ def analyze_scenarios_async(
             detail="DPM_ASYNC_OPERATIONS_DISABLED",
         )
     service = get_dpm_run_support_service()
+    policy_pack = _resolve_dpm_policy_pack(request_policy_pack_id=policy_pack_id)
+    logger.debug(
+        "Resolved DPM policy pack for analyze async. enabled=%s source=%s policy_pack_id=%s",
+        policy_pack.enabled,
+        policy_pack.source,
+        policy_pack.selected_policy_pack_id,
+    )
     accepted = service.submit_analyze_async(
         correlation_id=correlation_id,
         request_json=request.model_dump(mode="json"),

@@ -1087,6 +1087,23 @@ def test_analyze_async_disabled_returns_404(client, monkeypatch):
     assert response.json()["detail"] == "DPM_ASYNC_OPERATIONS_DISABLED"
 
 
+def test_dpm_policy_pack_header_is_accepted_without_behavior_change(client, monkeypatch):
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_DEFAULT_POLICY_PACK_ID", "dpm_default_pack")
+    payload = get_valid_payload()
+
+    response = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={
+            "Idempotency-Key": "test-key-policy-pack-header",
+            "X-Policy-Pack-Id": "dpm_request_pack",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] in {"READY", "PENDING_REVIEW", "BLOCKED"}
+
+
 def test_analyze_async_accept_only_mode_keeps_operation_pending(client, monkeypatch):
     monkeypatch.setenv("DPM_ASYNC_EXECUTION_MODE", "ACCEPT_ONLY")
     payload = get_valid_payload()
@@ -1245,6 +1262,20 @@ def test_openapi_async_analyze_documents_correlation_header(client):
     assert "X-Correlation-Id" in response_headers
     assert response_headers["X-Correlation-Id"]["description"]
     assert response_headers["X-Correlation-Id"]["schema"]["type"] == "string"
+
+    policy_pack_header = next(
+        parameter
+        for parameter in analyze_async["parameters"]
+        if parameter["name"] == "X-Policy-Pack-Id"
+    )
+    assert policy_pack_header["in"] == "header"
+    assert policy_pack_header["description"]
+    policy_schema = policy_pack_header["schema"]
+    if "type" in policy_schema:
+        assert policy_schema["type"] == "string"
+    else:
+        assert any(item.get("type") == "string" for item in policy_schema.get("anyOf", []))
+
     accepted_schema = openapi["components"]["schemas"]["DpmAsyncAcceptedResponse"]
     assert "execute_url" in accepted_schema["properties"]
     assert accepted_schema["properties"]["execute_url"]["description"]

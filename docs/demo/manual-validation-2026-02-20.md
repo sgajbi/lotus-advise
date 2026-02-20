@@ -271,5 +271,14 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `POST /rebalance/simulate` + one workflow `APPROVE` action succeeded.
     - `GET /rebalance/workflow/decisions/by-correlation/corr-manual-wf-corr-docker`
       returns `200` with `run_id=rr_7d3afe35` and one decision.
+- Policy-pack scaffold validation (RFC-0022 slice 1):
+  - Uvicorn runtime (`DPM_POLICY_PACKS_ENABLED=true`, `DPM_DEFAULT_POLICY_PACK_ID=dpm_default_pack`,
+    `http://127.0.0.1:8037`):
+    - `POST /rebalance/simulate` with `X-Policy-Pack-Id=dpm_request_pack` returns `200`
+      and unchanged simulation behavior (`status=READY` observed).
+  - Container runtime (`DPM_POLICY_PACKS_ENABLED=true`, `DPM_DEFAULT_POLICY_PACK_ID=dpm_default_pack`,
+    `http://127.0.0.1:8038`):
+    - `POST /rebalance/simulate` with `X-Policy-Pack-Id=dpm_request_pack` returns `200`
+      and unchanged simulation behavior (`status=READY` observed).
     - `GET /rebalance/workflow/decisions?limit=20` returns workflow decisions across runs.
     - `GET /rebalance/workflow/decisions?actor_id=...&action=...&limit=...` returns filtered rows.
