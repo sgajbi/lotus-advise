@@ -34,6 +34,7 @@ from src.core.dpm.policy_packs import (
     parse_policy_pack_catalog,
     resolve_effective_policy_pack,
     resolve_policy_pack_definition,
+    resolve_policy_pack_replay_enabled,
 )
 from src.core.dpm.tenant_policy_packs import build_tenant_policy_pack_resolver
 from src.core.dpm_runs import (
@@ -557,7 +558,7 @@ def simulate_rebalance(
 ) -> RebalanceResult:
     """Core DPM simulation endpoint with optional idempotent replay semantics."""
     logger.info(f"Simulating rebalance. CID={correlation_id} Idempotency={idempotency_key}")
-    replay_enabled = _env_flag("DPM_IDEMPOTENCY_REPLAY_ENABLED", True)
+    default_replay_enabled = _env_flag("DPM_IDEMPOTENCY_REPLAY_ENABLED", True)
     max_size = _env_int("DPM_IDEMPOTENCY_CACHE_MAX_SIZE", DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE)
     request_payload = request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
@@ -571,6 +572,10 @@ def simulate_rebalance(
     )
     effective_options = apply_policy_pack_to_engine_options(
         options=request.options,
+        policy_pack=policy_pack_definition,
+    )
+    replay_enabled = resolve_policy_pack_replay_enabled(
+        default_replay_enabled=default_replay_enabled,
         policy_pack=policy_pack_definition,
     )
     logger.debug(
