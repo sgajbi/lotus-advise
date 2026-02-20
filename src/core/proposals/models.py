@@ -353,6 +353,7 @@ class ProposalLineageResponse(BaseModel):
     versions: List[ProposalVersionLineageItem] = Field(
         default_factory=list,
         description="Immutable proposal version lineage ordered by version number ascending.",
+        examples=[[{"proposal_version_id": "ppv_001", "version_no": 1}]],
     )
 
 
@@ -365,6 +366,7 @@ class ProposalWorkflowTimelineResponse(BaseModel):
     events: List[ProposalWorkflowEvent] = Field(
         default_factory=list,
         description="Append-only workflow events ordered by event occurrence.",
+        examples=[[{"event_type": "CREATED", "to_state": "DRAFT"}]],
     )
 
 
@@ -373,6 +375,7 @@ class ProposalApprovalsResponse(BaseModel):
     approvals: List[ProposalApprovalRecord] = Field(
         default_factory=list,
         description="Structured approval/consent records ordered by occurrence.",
+        examples=[[{"approval_type": "COMPLIANCE", "approved": True}]],
     )
 
 
@@ -385,7 +388,10 @@ class ProposalIdempotencyLookupResponse(BaseModel):
         description="Canonical request hash mapped to the idempotency key.",
         examples=["sha256:abc123"],
     )
-    proposal_id: str = Field(description="Proposal identifier mapped by idempotency key.")
+    proposal_id: str = Field(
+        description="Proposal identifier mapped by idempotency key.",
+        examples=["pp_001"],
+    )
     proposal_version_no: int = Field(
         description="Proposal version number mapped by idempotency key.", examples=[1]
     )
@@ -481,10 +487,12 @@ class ProposalAsyncOperationStatusResponse(BaseModel):
     result: Optional[ProposalCreateResponse] = Field(
         default=None,
         description="Successful operation result payload when status is SUCCEEDED.",
+        examples=[{"proposal": {"proposal_id": "pp_001", "current_state": "DRAFT"}}],
     )
     error: Optional[ProposalAsyncError] = Field(
         default=None,
         description="Failure details when status is FAILED.",
+        examples=[{"code": "ProposalNotFoundError", "message": "PROPOSAL_NOT_FOUND"}],
     )
 
 
