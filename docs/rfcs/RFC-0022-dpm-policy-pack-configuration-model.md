@@ -155,6 +155,14 @@ Policy pack selection must not alter run status vocabulary semantics.
     - `POST /rebalance/simulate`
     - `POST /rebalance/analyze`
     - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
+- Implemented (slice 8):
+  - Additional `EngineOptions` constraint transformations from selected policy-pack:
+    - `constraint_policy.single_position_max_weight` -> `options.single_position_max_weight`
+    - `constraint_policy.group_constraints` -> `options.group_constraints`
+  - Applied on:
+    - `POST /rebalance/simulate`
+    - `POST /rebalance/analyze`
+    - `POST /rebalance/analyze/async` (resolved at submission; applied at execution)
 - Pending:
-  - additional policy dimensions beyond turnover/tax/settlement
-    (constraints, workflow, idempotency).
+  - additional policy dimensions beyond turnover/tax/settlement/constraints
+    (workflow, idempotency).

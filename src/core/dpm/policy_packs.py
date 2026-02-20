@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from src.core.models import EngineOptions
+from src.core.models import EngineOptions, GroupConstraint
 
 DpmPolicyPackSource = Literal["DISABLED", "REQUEST", "TENANT_DEFAULT", "GLOBAL_DEFAULT", "NONE"]
 
@@ -62,6 +62,21 @@ class DpmPolicyPackSettlementPolicy(BaseModel):
     )
 
 
+class DpmPolicyPackConstraintPolicy(BaseModel):
+    single_position_max_weight: Optional[Decimal] = Field(
+        default=None,
+        ge=0,
+        le=1,
+        description="Optional override for single-position maximum weight.",
+        examples=["0.25"],
+    )
+    group_constraints: dict[str, GroupConstraint] = Field(
+        default_factory=dict,
+        description="Optional override for group constraints by attribute key/value.",
+        examples=[{"sector:TECH": {"max_weight": "0.20"}}],
+    )
+
+
 class DpmPolicyPackDefinition(BaseModel):
     policy_pack_id: str = Field(
         description="Unique policy-pack identifier.",
@@ -82,6 +97,10 @@ class DpmPolicyPackDefinition(BaseModel):
     settlement_policy: DpmPolicyPackSettlementPolicy = Field(
         default_factory=DpmPolicyPackSettlementPolicy,
         description="Settlement policy overrides for selected policy-pack.",
+    )
+    constraint_policy: DpmPolicyPackConstraintPolicy = Field(
+        default_factory=DpmPolicyPackConstraintPolicy,
+        description="Constraint policy overrides for selected policy-pack.",
     )
 
 
@@ -122,6 +141,7 @@ class DpmPolicyPackCatalogResponse(BaseModel):
                     "turnover_policy": {"max_turnover_pct": "0.10"},
                     "tax_policy": {"enable_tax_awareness": True},
                     "settlement_policy": {"enable_settlement_awareness": False},
+                    "constraint_policy": {"single_position_max_weight": "0.25"},
                 }
             ]
         ],
@@ -204,6 +224,7 @@ def parse_policy_pack_catalog(catalog_json: Optional[str]) -> dict[str, DpmPolic
             "turnover_policy": definition.get("turnover_policy") or {},
             "tax_policy": definition.get("tax_policy") or {},
             "settlement_policy": definition.get("settlement_policy") or {},
+            "constraint_policy": definition.get("constraint_policy") or {},
         }
         try:
             parsed = DpmPolicyPackDefinition.model_validate(payload)
@@ -243,6 +264,12 @@ def apply_policy_pack_to_engine_options(
         )
     if policy_pack.settlement_policy.settlement_horizon_days is not None:
         updates["settlement_horizon_days"] = policy_pack.settlement_policy.settlement_horizon_days
+    if policy_pack.constraint_policy.single_position_max_weight is not None:
+        updates["single_position_max_weight"] = (
+            policy_pack.constraint_policy.single_position_max_weight
+        )
+    if policy_pack.constraint_policy.group_constraints:
+        updates["group_constraints"] = policy_pack.constraint_policy.group_constraints
     if not updates:
         return options
     return options.model_copy(update=updates)

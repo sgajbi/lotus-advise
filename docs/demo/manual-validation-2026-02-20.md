@@ -357,3 +357,26 @@ Demo pack validation passed for http://127.0.0.1:8000
       - `X-Policy-Pack-Id=dpm_standard_v1`
       - payload: `docs/demo/07_settlement_overdraft_block.json`
       returns `200` with `status=BLOCKED`.
+- Constraint policy-pack override validation (RFC-0022 slice 8):
+  - Docker runtime (`http://127.0.0.1:8000`, default config):
+    - `GET /rebalance/policies/catalog` with `X-Policy-Pack-Id=dpm_standard_v1` returns:
+      - `total=0`
+    - `POST /rebalance/simulate` with:
+      - `Idempotency-Key=manual-constraint-policy-docker`
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      - payload: `docs/demo/01_standard_drift.json`
+      returns `200` with `status=READY`.
+  - Uvicorn runtime (`http://127.0.0.1:8005`) with:
+    - `DPM_POLICY_PACKS_ENABLED=true`
+    - `DPM_POLICY_PACK_CATALOG_JSON={"dpm_standard_v1":{"version":"1","constraint_policy":{"single_position_max_weight":"0.25","group_constraints":{"sector:TECH":{"max_weight":"0.20"}}}}}`
+    validated:
+    - `GET /rebalance/policies/catalog` with `X-Policy-Pack-Id=dpm_standard_v1` returns:
+      - `total=1`
+      - `selected_policy_pack_id=dpm_standard_v1`
+      - `items[0].constraint_policy.single_position_max_weight=0.25`
+      - `items[0].constraint_policy.group_constraints["sector:TECH"].max_weight=0.20`
+    - `POST /rebalance/simulate` with:
+      - `Idempotency-Key=manual-constraint-policy-uvicorn`
+      - `X-Policy-Pack-Id=dpm_standard_v1`
+      - payload: `docs/demo/01_standard_drift.json`
+      returns `200` with `status=READY`.

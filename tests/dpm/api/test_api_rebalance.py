@@ -1112,7 +1112,9 @@ def test_dpm_policy_pack_catalog_overrides_turnover_option(client, monkeypatch):
         (
             '{"dpm_request_pack":{"version":"1","turnover_policy":{"max_turnover_pct":"0.01"},'
             '"tax_policy":{"enable_tax_awareness":true,"max_realized_capital_gains":"55"},'
-            '"settlement_policy":{"enable_settlement_awareness":true,"settlement_horizon_days":3}}}'
+            '"settlement_policy":{"enable_settlement_awareness":true,"settlement_horizon_days":3},'
+            '"constraint_policy":{"single_position_max_weight":"0.25",'
+            '"group_constraints":{"sector:TECH":{"max_weight":"0.20"}}}}}'
         ),
     )
 
@@ -1154,6 +1156,9 @@ def test_dpm_policy_pack_catalog_overrides_turnover_option(client, monkeypatch):
         assert simulate_options.max_realized_capital_gains == Decimal("55")
         assert simulate_options.enable_settlement_awareness is True
         assert simulate_options.settlement_horizon_days == 3
+        assert simulate_options.single_position_max_weight == Decimal("0.25")
+        assert "sector:TECH" in simulate_options.group_constraints
+        assert simulate_options.group_constraints["sector:TECH"].max_weight == Decimal("0.20")
 
         batch_payload = get_valid_payload()
         batch_payload.pop("options")
@@ -1170,6 +1175,9 @@ def test_dpm_policy_pack_catalog_overrides_turnover_option(client, monkeypatch):
         assert analyze_options.max_realized_capital_gains == Decimal("55")
         assert analyze_options.enable_settlement_awareness is True
         assert analyze_options.settlement_horizon_days == 3
+        assert analyze_options.single_position_max_weight == Decimal("0.25")
+        assert "sector:TECH" in analyze_options.group_constraints
+        assert analyze_options.group_constraints["sector:TECH"].max_weight == Decimal("0.20")
 
 
 def test_effective_policy_pack_endpoint_resolution_precedence(client, monkeypatch):

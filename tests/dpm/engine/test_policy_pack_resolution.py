@@ -156,6 +156,27 @@ def test_policy_pack_apply_settlement_overrides():
     assert effective_options.settlement_horizon_days == 3
 
 
+def test_policy_pack_apply_constraint_overrides():
+    options = EngineOptions(single_position_max_weight=None, group_constraints={})
+    catalog = parse_policy_pack_catalog(
+        (
+            '{"dpm_standard_v1":{"constraint_policy":{"single_position_max_weight":"0.25",'
+            '"group_constraints":{"sector:TECH":{"max_weight":"0.20"}}}}}'
+        )
+    )
+    resolution = resolve_effective_policy_pack(
+        policy_packs_enabled=True,
+        request_policy_pack_id="dpm_standard_v1",
+        tenant_default_policy_pack_id=None,
+        global_default_policy_pack_id=None,
+    )
+    selected = resolve_policy_pack_definition(resolution=resolution, catalog=catalog)
+    effective_options = apply_policy_pack_to_engine_options(options=options, policy_pack=selected)
+    assert effective_options.single_position_max_weight == Decimal("0.25")
+    assert "sector:TECH" in effective_options.group_constraints
+    assert effective_options.group_constraints["sector:TECH"].max_weight == Decimal("0.20")
+
+
 def test_policy_pack_catalog_parse_invalid_json_and_shape():
     assert parse_policy_pack_catalog("{bad-json}") == {}
     assert parse_policy_pack_catalog("[]") == {}
