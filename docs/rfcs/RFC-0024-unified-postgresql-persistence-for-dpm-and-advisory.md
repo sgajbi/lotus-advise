@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 8) |
+| **Status** | IN PROGRESS (SLICE 9) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -193,5 +193,14 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - uvicorn with `POSTGRES` backend
     - Docker container runtime with `POSTGRES` backend
     - simulate -> run lookup by correlation -> supportability summary flow validated.
+- Implemented (slice 9):
+  - Added advisory repository backend configuration contract:
+    - `PROPOSAL_STORE_BACKEND` supports `IN_MEMORY` and `POSTGRES`.
+    - `PROPOSAL_POSTGRES_DSN` added for Postgres backend wiring.
+  - Added advisory router lazy repository initialization with explicit `503` mapping for backend
+    initialization errors.
+  - Added advisory Postgres backend scaffold with explicit guardrail error:
+    - `PROPOSAL_POSTGRES_NOT_IMPLEMENTED`
+  - Added unit and API tests for advisory backend config and `503` guardrail behavior.
 - Next slice:
-  - advisory Postgres repository parity implementation and contract tests.
+  - advisory Postgres repository CRUD parity implementation and repository contract tests.

@@ -4,6 +4,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Path, Query, status
 
+from src.api.routers import proposals_config
 from src.core.proposals import (
     ProposalApprovalsResponse,
     ProposalAsyncAcceptedResponse,
@@ -26,11 +27,10 @@ from src.core.proposals import (
     ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.models import ProposalApprovalRequest, ProposalListResponse
-from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 router = APIRouter(tags=["Advisory Proposal Lifecycle"])
 
-_REPOSITORY = InMemoryProposalRepository()
+_REPOSITORY = None
 _SERVICE: Optional[ProposalWorkflowService] = None
 
 
@@ -42,7 +42,16 @@ def _env_flag(name: str, default: bool) -> bool:
 
 
 def get_proposal_workflow_service() -> ProposalWorkflowService:
+    global _REPOSITORY
     global _SERVICE
+    if _REPOSITORY is None:
+        try:
+            _REPOSITORY = proposals_config.build_repository()
+        except RuntimeError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
     if _SERVICE is None:
         _SERVICE = ProposalWorkflowService(
             repository=_REPOSITORY,
@@ -59,7 +68,7 @@ def get_proposal_workflow_service() -> ProposalWorkflowService:
 def reset_proposal_workflow_service_for_tests() -> None:
     global _REPOSITORY
     global _SERVICE
-    _REPOSITORY = InMemoryProposalRepository()
+    _REPOSITORY = None
     _SERVICE = None
 
 

@@ -65,6 +65,26 @@ def test_create_proposal_persists_immutable_version_and_created_event():
         assert body["latest_workflow_event"]["event_type"] == "CREATED"
 
 
+def test_proposal_repository_backend_init_errors_return_503(monkeypatch):
+    with TestClient(app) as client:
+        monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
+        monkeypatch.delenv("PROPOSAL_POSTGRES_DSN", raising=False)
+        reset_proposal_workflow_service_for_tests()
+
+        missing_dsn = client.get("/rebalance/proposals")
+        assert missing_dsn.status_code == 503
+        assert missing_dsn.json()["detail"] == "PROPOSAL_POSTGRES_DSN_REQUIRED"
+
+        monkeypatch.setenv(
+            "PROPOSAL_POSTGRES_DSN",
+            "postgresql://user:pass@localhost:5432/proposals",
+        )
+        reset_proposal_workflow_service_for_tests()
+        not_implemented = client.get("/rebalance/proposals")
+        assert not_implemented.status_code == 503
+        assert not_implemented.json()["detail"] == "PROPOSAL_POSTGRES_NOT_IMPLEMENTED"
+
+
 def test_create_proposal_idempotency_reuses_existing_proposal_and_detects_conflict():
     with TestClient(app) as client:
         first = _create(client, "lifecycle-create-2")
