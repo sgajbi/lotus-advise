@@ -147,11 +147,15 @@ Environment variables for Postgres supportability backend:
 ```bash
 DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES
 DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability
+PROPOSAL_STORE_BACKEND=POSTGRES
+PROPOSAL_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability
 ```
 
 Note:
 * Postgres backend wiring is currently a scaffold. When enabled today, supportability endpoints
   return explicit `503` details until repository operations are fully implemented.
+* Advisory proposal lifecycle Postgres backend is also scaffolded and returns explicit `503`
+  details (`PROPOSAL_POSTGRES_NOT_IMPLEMENTED`) until repository parity is implemented.
 
 ### Accessing the Container
 

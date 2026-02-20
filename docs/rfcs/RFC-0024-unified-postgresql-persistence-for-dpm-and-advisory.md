@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 9) |
+| **Status** | IN PROGRESS (SLICE 10) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -202,5 +202,16 @@ Current state is split between in-memory adapters (advisory and default DPM) and
   - Added advisory Postgres backend scaffold with explicit guardrail error:
     - `PROPOSAL_POSTGRES_NOT_IMPLEMENTED`
   - Added unit and API tests for advisory backend config and `503` guardrail behavior.
+- Implemented (slice 10):
+  - Added advisory backend init error normalization for stable operational contracts:
+    - passthrough of known runtime guardrails (`PROPOSAL_POSTGRES_DSN_REQUIRED`,
+      `PROPOSAL_POSTGRES_DRIVER_MISSING`, `PROPOSAL_POSTGRES_NOT_IMPLEMENTED`)
+    - unexpected initialization failures mapped to `PROPOSAL_POSTGRES_CONNECTION_FAILED`
+  - Added advisory Postgres scaffold driver guard:
+    - missing `psycopg` dependency raises `PROPOSAL_POSTGRES_DRIVER_MISSING`
+  - Added deterministic tests for advisory config and API error mapping behavior.
+  - Added Docker/runtime env passthrough for advisory Postgres backend:
+    - `PROPOSAL_STORE_BACKEND`
+    - `PROPOSAL_POSTGRES_DSN`
 - Next slice:
   - advisory Postgres repository CRUD parity implementation and repository contract tests.

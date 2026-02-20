@@ -85,6 +85,19 @@ def test_proposal_repository_backend_init_errors_return_503(monkeypatch):
         assert not_implemented.json()["detail"] == "PROPOSAL_POSTGRES_NOT_IMPLEMENTED"
 
 
+def test_proposal_repository_unexpected_init_error_mapped_to_503(monkeypatch):
+    with TestClient(app) as client:
+        monkeypatch.setattr(
+            "src.api.routers.proposals.proposals_config.build_repository",
+            lambda: (_ for _ in ()).throw(ValueError("boom")),
+        )
+        reset_proposal_workflow_service_for_tests()
+
+        response = client.get("/rebalance/proposals")
+        assert response.status_code == 503
+        assert response.json()["detail"] == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
+
+
 def test_create_proposal_idempotency_reuses_existing_proposal_and_detects_conflict():
     with TestClient(app) as client:
         first = _create(client, "lifecycle-create-2")

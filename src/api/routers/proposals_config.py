@@ -20,5 +20,10 @@ def build_repository():
         dsn = proposal_postgres_dsn()
         if not dsn:
             raise RuntimeError("PROPOSAL_POSTGRES_DSN_REQUIRED")
-        return PostgresProposalRepository(dsn=dsn)
+        try:
+            return PostgresProposalRepository(dsn=dsn)
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError("PROPOSAL_POSTGRES_CONNECTION_FAILED") from exc
     return InMemoryProposalRepository()
