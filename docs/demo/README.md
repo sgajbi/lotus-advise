@@ -28,6 +28,17 @@ For advisory proposal artifact demos, POST to `/rebalance/proposals/artifact`:
 curl -X POST "http://127.0.0.1:8000/rebalance/proposals/artifact" -H "Content-Type: application/json" -H "Idempotency-Key: demo-proposal-artifact-01" --data-binary "@docs/demo/19_advisory_proposal_artifact.json"
 ```
 
+For advisory proposal persistence/lifecycle create demo, POST to `/rebalance/proposals`:
+```bash
+curl -X POST "http://127.0.0.1:8000/rebalance/proposals" -H "Content-Type: application/json" -H "Idempotency-Key: demo-proposal-persist-01" --data-binary "@docs/demo/20_advisory_proposal_persist_create.json"
+```
+
+For full live demo-pack validation (all scenarios, including lifecycle flow):
+```bash
+python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8001
+python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
+```
+
 ---
 
 ## Scenario Index
@@ -53,6 +64,12 @@ curl -X POST "http://127.0.0.1:8000/rebalance/proposals/artifact" -H "Content-Ty
 | `17_advisory_suitability_new_issuer_breach.json` | **Suitability New Issuer Breach** | `READY` | Returns a `NEW` high-severity issuer concentration issue and gate recommendation. |
 | `18_advisory_suitability_sell_only_violation.json` | **Suitability Sell-Only Violation** | `BLOCKED` | Returns a `NEW` governance issue when proposal attempts BUY in `SELL_ONLY`. |
 | `19_advisory_proposal_artifact.json` | **Advisory Proposal Artifact** | `READY` | Returns a deterministic proposal package from `/rebalance/proposals/artifact` with evidence bundle and hash. |
+| `20_advisory_proposal_persist_create.json` | **Proposal Persist Create** | `DRAFT` lifecycle state | Creates persisted proposal aggregate + immutable version via `/rebalance/proposals`. |
+| `21_advisory_proposal_new_version.json` | **Proposal New Version** | `DRAFT` lifecycle state | Creates immutable version `N+1` via `/rebalance/proposals/{proposal_id}/versions`. |
+| `22_advisory_proposal_transition_to_compliance.json` | **Proposal Transition** | `COMPLIANCE_REVIEW` lifecycle state | Transitions proposal workflow using optimistic `expected_state`. |
+| `23_advisory_proposal_approval_client_consent.json` | **Proposal Consent Approval** | `EXECUTION_READY` lifecycle state | Records structured client consent and emits workflow event. |
+| `24_advisory_proposal_approval_compliance.json` | **Proposal Compliance Approval** | `AWAITING_CLIENT_CONSENT` lifecycle state | Records compliance approval and advances lifecycle. |
+| `25_advisory_proposal_transition_executed.json` | **Proposal Execution Transition** | `EXECUTED` lifecycle state | Records execution confirmation transition from execution-ready state. |
 
 ## Feature Toggles Demonstrated
 
@@ -99,6 +116,25 @@ curl -X POST "http://127.0.0.1:8000/rebalance/proposals/artifact" -H "Content-Ty
   - `POST /rebalance/proposals/artifact`
   - deterministic `artifact_hash` excludes volatile fields (`created_at`, hash field)
   - includes `summary`, `portfolio_impact`, `trades_and_funding`, `suitability_summary`, `assumptions_and_limits`, `disclosures`, and `evidence_bundle`
+- `20_advisory_proposal_persist_create.json`:
+  - `POST /rebalance/proposals`
+  - `Idempotency-Key` required, create is idempotent by canonical request hash
+  - persists proposal metadata, immutable version payload, and `CREATED` event
+- `21_advisory_proposal_new_version.json`:
+  - `POST /rebalance/proposals/{proposal_id}/versions`
+  - same portfolio context by default (`PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION=false`)
+- `22_advisory_proposal_transition_to_compliance.json`:
+  - `POST /rebalance/proposals/{proposal_id}/transitions`
+  - requires `expected_state` by default (`PROPOSAL_REQUIRE_EXPECTED_STATE=true`)
+- `23_advisory_proposal_approval_client_consent.json`:
+  - `POST /rebalance/proposals/{proposal_id}/approvals`
+  - persists approval record and workflow event in one operation
+- `24_advisory_proposal_approval_compliance.json`:
+  - `POST /rebalance/proposals/{proposal_id}/approvals`
+  - validates compliance approval transition from `COMPLIANCE_REVIEW`
+- `25_advisory_proposal_transition_executed.json`:
+  - `POST /rebalance/proposals/{proposal_id}/transitions`
+  - validates transition to `EXECUTED` from `EXECUTION_READY`
 
 ## Understanding Output Statuses
 
