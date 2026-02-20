@@ -300,14 +300,10 @@ class _FakeConnection:
             for decision in self.workflow_decisions.values():
                 counts[decision["reason_code"]] = counts.get(decision["reason_code"], 0) + 1
             rows = [
-                {"reason_code": key, "reason_code_count": value}
-                for key, value in counts.items()
+                {"reason_code": key, "reason_code_count": value} for key, value in counts.items()
             ]
             return _FakeCursor(rows=rows)
-        if (
-            "SELECT COUNT(*) AS lineage_edge_count FROM dpm_lineage_edges"
-            in sql
-        ):
+        if "SELECT COUNT(*) AS lineage_edge_count FROM dpm_lineage_edges" in sql:
             return _FakeCursor(row={"lineage_edge_count": len(self.lineage_edges)})
         if (
             "SELECT rebalance_run_id, correlation_id, idempotency_key" in sql

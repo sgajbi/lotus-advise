@@ -89,6 +89,7 @@ def test_build_repository_postgres_driver_error_passthrough(monkeypatch):
         "DPM_SUPPORTABILITY_POSTGRES_DSN",
         "postgresql://user:pass@localhost:5432/dpm",
     )
+
     def _raise_driver_error(**_kwargs):
         raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_DRIVER_MISSING")
 
@@ -112,6 +113,7 @@ def test_build_repository_postgres_connection_failure_mapped(monkeypatch):
         "DPM_SUPPORTABILITY_POSTGRES_DSN",
         "postgresql://user:pass@localhost:5432/dpm",
     )
+
     def _raise_connection_error(**_kwargs):
         raise ValueError("connection broken")
 
