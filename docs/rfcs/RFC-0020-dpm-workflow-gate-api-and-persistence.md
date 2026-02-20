@@ -2,8 +2,9 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (PHASE 1 - WORKFLOW API + PERSISTENCE) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-20 |
+| **Completed** | 2026-02-20 |
 | **Depends On** | RFC-0017, RFC-0019 |
 | **Doc Location** | `docs/rfcs/RFC-0020-dpm-workflow-gate-api-and-persistence.md` |
 
@@ -109,5 +110,5 @@ Additive APIs and storage. When disabled, existing run semantics and responses r
   - Persistence backends:
     - in-memory
     - SQLite
-- Pending:
-  - Managed enterprise database profile integration (tracked by RFC-0023 follow-up scope).
+- Follow-up Scope (out of RFC-0020):
+  - Managed enterprise database profile integration is tracked by RFC-0023 and RFC-0024.
