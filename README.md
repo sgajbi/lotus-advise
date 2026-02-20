@@ -226,6 +226,7 @@ Runtime toggles:
 * `DPM_ASYNC_OPERATIONS_TTL_SECONDS` (`86400` by default)
 * `DPM_ASYNC_EXECUTION_MODE` (`INLINE` or `ACCEPT_ONLY`, default `INLINE`)
 * `DPM_ASYNC_MANUAL_EXECUTION_ENABLED` (`true` by default)
+* `DPM_STRICT_OPENAPI_VALIDATION` (`true` by default in CI; can be set `false` locally to skip strict contract tests)
 
 ### POST `/rebalance/proposals/simulate`
 

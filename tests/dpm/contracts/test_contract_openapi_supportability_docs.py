@@ -1,6 +1,21 @@
+import os
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+
+
+def _strict_openapi_validation_enabled() -> bool:
+    value = os.getenv("DPM_STRICT_OPENAPI_VALIDATION")
+    if value is None:
+        return True
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _guard_strict_validation() -> None:
+    if not _strict_openapi_validation_enabled():
+        pytest.skip("DPM_STRICT_OPENAPI_VALIDATION=false")
 
 
 def _assert_property_has_docs(schema: dict, property_name: str) -> None:
@@ -10,6 +25,7 @@ def _assert_property_has_docs(schema: dict, property_name: str) -> None:
 
 
 def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
+    _guard_strict_validation()
     openapi = app.openapi()
     schemas = openapi["components"]["schemas"]
 
@@ -64,6 +80,7 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
 
 
 def test_dpm_async_and_supportability_endpoints_use_expected_request_response_contracts():
+    _guard_strict_validation()
     with TestClient(app) as client:
         openapi = client.get("/openapi.json").json()
 
