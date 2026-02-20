@@ -252,6 +252,16 @@ def test_dpm_support_runs_list_filters_and_cursor(client):
     assert portfolio_rows.status_code == 200
     assert len(portfolio_rows.json()["items"]) >= 2
 
+    first_lookup = client.get(f"/rebalance/runs/{first_body['rebalance_run_id']}")
+    assert first_lookup.status_code == 200
+    first_request_hash = first_lookup.json()["request_hash"]
+
+    request_hash_rows = client.get(f"/rebalance/runs?request_hash={first_request_hash}&limit=10")
+    assert request_hash_rows.status_code == 200
+    request_hash_body = request_hash_rows.json()
+    assert len(request_hash_body["items"]) == 1
+    assert request_hash_body["items"][0]["rebalance_run_id"] == first_body["rebalance_run_id"]
+
     page_one = client.get("/rebalance/runs?limit=1")
     assert page_one.status_code == 200
     page_one_body = page_one.json()

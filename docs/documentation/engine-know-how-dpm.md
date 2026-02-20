@@ -106,6 +106,7 @@ Implementation scope:
   - `from` (created-at lower bound)
   - `to` (created-at upper bound)
   - `status` (`READY`, `PENDING_REVIEW`, `BLOCKED`)
+  - `request_hash` (canonical request hash)
   - `portfolio_id`
 - Pagination:
   - `limit`

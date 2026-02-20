@@ -77,6 +77,7 @@ def test_supportability_retention_purges_expired_run_records(repository):
         created_from=None,
         created_to=None,
         status=None,
+        request_hash=None,
         portfolio_id="pf_retention",
         limit=10,
         cursor=None,

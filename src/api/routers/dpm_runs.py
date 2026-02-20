@@ -227,6 +227,13 @@ def list_runs(
             examples=["READY"],
         ),
     ] = None,
+    request_hash: Annotated[
+        Optional[str],
+        Query(
+            description="Optional canonical request hash filter.",
+            examples=["sha256:abc123"],
+        ),
+    ] = None,
     portfolio_id: Annotated[
         Optional[str],
         Query(
@@ -257,6 +264,7 @@ def list_runs(
         created_from=created_from,
         created_to=created_to,
         status=status_filter,
+        request_hash=request_hash,
         portfolio_id=portfolio_id,
         limit=limit,
         cursor=cursor,

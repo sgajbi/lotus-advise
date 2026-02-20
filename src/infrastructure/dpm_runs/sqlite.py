@@ -98,6 +98,7 @@ class SqliteDpmRunRepository(DpmRunRepository):
         created_from: Optional[datetime],
         created_to: Optional[datetime],
         status: Optional[str],
+        request_hash: Optional[str],
         portfolio_id: Optional[str],
         limit: int,
         cursor: Optional[str],
@@ -113,6 +114,9 @@ class SqliteDpmRunRepository(DpmRunRepository):
         if portfolio_id is not None:
             where_clauses.append("portfolio_id = ?")
             args.append(portfolio_id)
+        if request_hash is not None:
+            where_clauses.append("request_hash = ?")
+            args.append(request_hash)
 
         where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
         query = f"""

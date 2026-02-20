@@ -52,6 +52,7 @@ class InMemoryDpmRunRepository(DpmRunRepository):
         created_from: Optional[datetime],
         created_to: Optional[datetime],
         status: Optional[str],
+        request_hash: Optional[str],
         portfolio_id: Optional[str],
         limit: int,
         cursor: Optional[str],
@@ -64,6 +65,8 @@ class InMemoryDpmRunRepository(DpmRunRepository):
                 rows = [row for row in rows if row.created_at <= created_to]
             if status is not None:
                 rows = [row for row in rows if str(row.result_json.get("status", "")) == status]
+            if request_hash is not None:
+                rows = [row for row in rows if row.request_hash == request_hash]
             if portfolio_id is not None:
                 rows = [row for row in rows if row.portfolio_id == portfolio_id]
             rows = sorted(

@@ -25,6 +25,7 @@ class DpmRunRepository(Protocol):
         created_from: Optional[datetime],
         created_to: Optional[datetime],
         status: Optional[str],
+        request_hash: Optional[str],
         portfolio_id: Optional[str],
         limit: int,
         cursor: Optional[str],

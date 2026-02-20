@@ -89,6 +89,7 @@ def test_repository_list_runs_filter_and_cursor_contract(repository):
         created_from=None,
         created_to=None,
         status="READY",
+        request_hash=None,
         portfolio_id=None,
         limit=10,
         cursor=None,
@@ -100,6 +101,7 @@ def test_repository_list_runs_filter_and_cursor_contract(repository):
         created_from=None,
         created_to=None,
         status=None,
+        request_hash=None,
         portfolio_id=None,
         limit=1,
         cursor=None,
@@ -111,6 +113,7 @@ def test_repository_list_runs_filter_and_cursor_contract(repository):
         created_from=None,
         created_to=None,
         status=None,
+        request_hash=None,
         portfolio_id=None,
         limit=1,
         cursor=cursor,
@@ -148,6 +151,7 @@ def test_repository_list_runs_time_window_and_invalid_cursor_contract(repository
         created_from=now + timedelta(minutes=1),
         created_to=None,
         status=None,
+        request_hash=None,
         portfolio_id=None,
         limit=10,
         cursor=None,
@@ -159,6 +163,7 @@ def test_repository_list_runs_time_window_and_invalid_cursor_contract(repository
         created_from=None,
         created_to=now + timedelta(minutes=1),
         status=None,
+        request_hash=None,
         portfolio_id=None,
         limit=10,
         cursor=None,
@@ -170,6 +175,7 @@ def test_repository_list_runs_time_window_and_invalid_cursor_contract(repository
         created_from=None,
         created_to=None,
         status=None,
+        request_hash=None,
         portfolio_id=None,
         limit=10,
         cursor="rr_missing_cursor",
@@ -216,6 +222,44 @@ def test_repository_async_operations_and_ttl_contract(repository):
     )
     assert removed == 1
     assert repository.get_operation(operation_id="dop_repo_1") is None
+
+
+def test_repository_list_runs_request_hash_filter_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_hash_1",
+            correlation_id="corr_repo_hash_1",
+            request_hash="sha256:req-hash-1",
+            idempotency_key=None,
+            portfolio_id="pf_repo_hash",
+            created_at=now,
+            result_json={"rebalance_run_id": "rr_repo_hash_1", "status": "READY"},
+        )
+    )
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_hash_2",
+            correlation_id="corr_repo_hash_2",
+            request_hash="sha256:req-hash-2",
+            idempotency_key=None,
+            portfolio_id="pf_repo_hash",
+            created_at=now + timedelta(minutes=1),
+            result_json={"rebalance_run_id": "rr_repo_hash_2", "status": "READY"},
+        )
+    )
+
+    matching_rows, matching_cursor = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status=None,
+        request_hash="sha256:req-hash-1",
+        portfolio_id=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in matching_rows] == ["rr_repo_hash_1"]
+    assert matching_cursor is None
 
 
 def test_repository_list_operations_filter_and_cursor_contract(repository):
