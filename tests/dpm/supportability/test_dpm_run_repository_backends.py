@@ -119,6 +119,65 @@ def test_repository_list_runs_filter_and_cursor_contract(repository):
     assert cursor_two is None
 
 
+def test_repository_list_runs_time_window_and_invalid_cursor_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_time_1",
+            correlation_id="corr_repo_time_1",
+            request_hash="sha256:req-time-1",
+            idempotency_key=None,
+            portfolio_id="pf_repo_time",
+            created_at=now,
+            result_json={"rebalance_run_id": "rr_repo_time_1", "status": "READY"},
+        )
+    )
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_time_2",
+            correlation_id="corr_repo_time_2",
+            request_hash="sha256:req-time-2",
+            idempotency_key=None,
+            portfolio_id="pf_repo_time",
+            created_at=now + timedelta(minutes=2),
+            result_json={"rebalance_run_id": "rr_repo_time_2", "status": "READY"},
+        )
+    )
+
+    from_window_rows, from_window_cursor = repository.list_runs(
+        created_from=now + timedelta(minutes=1),
+        created_to=None,
+        status=None,
+        portfolio_id=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in from_window_rows] == ["rr_repo_time_2"]
+    assert from_window_cursor is None
+
+    to_window_rows, to_window_cursor = repository.list_runs(
+        created_from=None,
+        created_to=now + timedelta(minutes=1),
+        status=None,
+        portfolio_id=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in to_window_rows] == ["rr_repo_time_1"]
+    assert to_window_cursor is None
+
+    invalid_cursor_rows, invalid_cursor = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status=None,
+        portfolio_id=None,
+        limit=10,
+        cursor="rr_missing_cursor",
+    )
+    assert invalid_cursor_rows == []
+    assert invalid_cursor is None
+
+
 def test_repository_async_operations_and_ttl_contract(repository):
     now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
     operation = DpmAsyncOperationRecord(
@@ -225,6 +284,74 @@ def test_repository_list_operations_filter_and_cursor_contract(repository):
     )
     assert [operation.operation_id for operation in page_two] == ["dop_repo_list_1"]
     assert cursor_two is None
+
+
+def test_repository_list_operations_time_window_and_invalid_cursor_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    repository.create_operation(
+        DpmAsyncOperationRecord(
+            operation_id="dop_repo_time_1",
+            operation_type="ANALYZE_SCENARIOS",
+            status="PENDING",
+            correlation_id="corr_repo_time_op_1",
+            created_at=now,
+            started_at=None,
+            finished_at=None,
+            result_json=None,
+            error_json=None,
+            request_json={"scenarios": {"baseline": {"options": {}}}},
+        )
+    )
+    repository.create_operation(
+        DpmAsyncOperationRecord(
+            operation_id="dop_repo_time_2",
+            operation_type="ANALYZE_SCENARIOS",
+            status="SUCCEEDED",
+            correlation_id="corr_repo_time_op_2",
+            created_at=now + timedelta(minutes=2),
+            started_at=now + timedelta(minutes=2, seconds=1),
+            finished_at=now + timedelta(minutes=2, seconds=2),
+            result_json={"ok": True},
+            error_json=None,
+            request_json=None,
+        )
+    )
+
+    from_window_rows, from_window_cursor = repository.list_operations(
+        created_from=now + timedelta(minutes=1),
+        created_to=None,
+        operation_type=None,
+        status=None,
+        correlation_id=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [operation.operation_id for operation in from_window_rows] == ["dop_repo_time_2"]
+    assert from_window_cursor is None
+
+    to_window_rows, to_window_cursor = repository.list_operations(
+        created_from=None,
+        created_to=now + timedelta(minutes=1),
+        operation_type=None,
+        status=None,
+        correlation_id=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [operation.operation_id for operation in to_window_rows] == ["dop_repo_time_1"]
+    assert to_window_cursor is None
+
+    invalid_cursor_rows, invalid_cursor = repository.list_operations(
+        created_from=None,
+        created_to=None,
+        operation_type=None,
+        status=None,
+        correlation_id=None,
+        limit=10,
+        cursor="dop_missing_cursor",
+    )
+    assert invalid_cursor_rows == []
+    assert invalid_cursor is None
 
 
 def test_repository_supportability_summary_contract(repository):
@@ -463,3 +590,9 @@ def test_repository_run_retention_purge_contract(repository):
     assert repository.list_idempotency_history(idempotency_key="idem_repo_retention_old") == []
     assert repository.list_lineage_edges(entity_id="rr_repo_retention_old") == []
     assert repository.get_run(rebalance_run_id="rr_repo_retention_new") is not None
+
+
+def test_repository_run_retention_disabled_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    removed = repository.purge_expired_runs(retention_days=0, now=now)
+    assert removed == 0

@@ -13,10 +13,16 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+import src.api.routers.dpm_runs as dpm_runs_router
 from src.api.main import DPM_IDEMPOTENCY_CACHE, app, get_db_session
 from src.api.routers.dpm_runs import (
     get_dpm_run_support_service,
     reset_dpm_run_support_service_for_tests,
+)
+from src.core.dpm_runs import (
+    DpmRunNotFoundError,
+    DpmWorkflowDisabledError,
+    DpmWorkflowTransitionError,
 )
 from src.core.models import RebalanceResult
 from tests.shared.factories import valid_api_payload
@@ -614,6 +620,101 @@ def test_dpm_run_support_bundle_endpoint_disabled_and_not_found(client, monkeypa
     disabled = client.get("/rebalance/runs/rr_missing/support-bundle")
     assert disabled.status_code == 404
     assert disabled.json()["detail"] == "DPM_SUPPORT_BUNDLE_APIS_DISABLED"
+
+
+def test_dpm_run_support_service_env_parsing_defaults(monkeypatch):
+    monkeypatch.setenv("DPM_ASYNC_OPERATIONS_TTL_SECONDS", "not-an-int")
+    monkeypatch.setenv("DPM_SUPPORTABILITY_RETENTION_DAYS", "not-an-int")
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+    monkeypatch.setenv("DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES", " , ")
+    dpm_runs_router._REPOSITORY = None
+    dpm_runs_router._SERVICE = None
+
+    service = get_dpm_run_support_service()
+    assert service._async_operation_ttl_seconds == 86400
+    assert service._supportability_retention_days == 0
+    assert service._workflow_enabled is True
+    assert service._workflow_requires_review_for_statuses == {"PENDING_REVIEW"}
+
+
+def test_dpm_workflow_router_not_found_mappings(client, monkeypatch):
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+
+    by_run = client.get("/rebalance/runs/rr_missing/workflow")
+    assert by_run.status_code == 404
+    assert by_run.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
+    history_by_run = client.get("/rebalance/runs/rr_missing/workflow/history")
+    assert history_by_run.status_code == 404
+    assert history_by_run.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
+    history_by_correlation = client.get(
+        "/rebalance/runs/by-correlation/corr_missing/workflow/history"
+    )
+    assert history_by_correlation.status_code == 404
+    assert history_by_correlation.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
+    history_by_idempotency = client.get("/rebalance/runs/idempotency/idem_missing/workflow/history")
+    assert history_by_idempotency.status_code == 404
+    assert history_by_idempotency.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"
+
+
+def test_dpm_workflow_action_router_exception_mappings(client, monkeypatch):
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+    payload = {
+        "action": "APPROVE",
+        "reason_code": "REVIEW_APPROVED",
+        "actor_id": "reviewer_001",
+    }
+
+    with patch.object(
+        dpm_runs_router.DpmRunSupportService,
+        "apply_workflow_action",
+        side_effect=DpmRunNotFoundError("DPM_RUN_NOT_FOUND"),
+    ):
+        not_found = client.post("/rebalance/runs/rr_missing/workflow/actions", json=payload)
+    assert not_found.status_code == 404
+    assert not_found.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
+    with patch.object(
+        dpm_runs_router.DpmRunSupportService,
+        "apply_workflow_action",
+        side_effect=DpmWorkflowDisabledError("DPM_WORKFLOW_DISABLED"),
+    ):
+        disabled = client.post("/rebalance/runs/rr_missing/workflow/actions", json=payload)
+    assert disabled.status_code == 404
+    assert disabled.json()["detail"] == "DPM_WORKFLOW_DISABLED"
+
+    with patch.object(
+        dpm_runs_router.DpmRunSupportService,
+        "apply_workflow_action_by_correlation",
+        side_effect=DpmWorkflowTransitionError("DPM_WORKFLOW_INVALID_TRANSITION"),
+    ):
+        transition = client.post(
+            "/rebalance/runs/by-correlation/corr_missing/workflow/actions",
+            json=payload,
+        )
+    assert transition.status_code == 409
+    assert transition.json()["detail"] == "DPM_WORKFLOW_INVALID_TRANSITION"
+
+    missing_idempotency = client.post(
+        "/rebalance/runs/idempotency/idem_missing/workflow/actions",
+        json=payload,
+    )
+    assert missing_idempotency.status_code == 404
+    assert missing_idempotency.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"
+
+    with patch.object(
+        dpm_runs_router.DpmRunSupportService,
+        "apply_workflow_action_by_idempotency",
+        side_effect=DpmWorkflowDisabledError("DPM_WORKFLOW_DISABLED"),
+    ):
+        disabled_idem = client.post(
+            "/rebalance/runs/idempotency/idem_any/workflow/actions",
+            json=payload,
+        )
+    assert disabled_idem.status_code == 404
+    assert disabled_idem.json()["detail"] == "DPM_WORKFLOW_DISABLED"
 
 
 def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):
