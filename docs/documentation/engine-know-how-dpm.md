@@ -319,6 +319,8 @@ Dependency policy note:
 - DSN configuration sources:
   - `--dpm-dsn` / `DPM_SUPPORTABILITY_POSTGRES_DSN`
   - `--proposals-dsn` / `PROPOSAL_POSTGRES_DSN`
+- Production rollout runbook:
+  - `docs/documentation/postgres-migration-rollout-runbook.md`
 
 ## Tests That Lock DPM Behavior
 

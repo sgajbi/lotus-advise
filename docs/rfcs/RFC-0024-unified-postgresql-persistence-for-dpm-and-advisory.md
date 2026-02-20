@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN PROGRESS (SLICE 16) |
+| **Status** | IN PROGRESS (SLICE 17) |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 |
 | **Doc Location** | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
@@ -308,6 +308,18 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - idempotent/forward-only apply behavior
     - checksum mismatch guardrail
     - compatibility with existing Postgres repository scaffold tests.
+- Implemented (slice 17):
+  - Added CI Postgres migration smoke job:
+    - starts live Postgres service (`postgres:17.6`)
+    - applies migrations via `python scripts/postgres_migrate.py --target all`
+    - runs live Postgres integration contracts for:
+      - DPM repository
+      - advisory repository
+  - Added production rollout runbook:
+    - `docs/documentation/postgres-migration-rollout-runbook.md`
+    - covers startup sequencing, checksum guardrails, CI smoke checks, and forward-only
+      rollback strategy.
+  - Updated project documentation to reflect current Postgres maturity and migration-first
+    startup contract.
 - Next slice:
-  - production rollout runbook: startup sequencing, migration lock strategy, and CI migration
-    smoke checks against live Postgres profile.
+  - migration lock strategy for concurrent deploys (advisory lock around migration apply).
