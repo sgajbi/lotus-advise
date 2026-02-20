@@ -714,3 +714,58 @@ def test_repository_run_retention_disabled_contract(repository):
     now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
     removed = repository.purge_expired_runs(retention_days=0, now=now)
     assert removed == 0
+
+
+def test_repository_run_artifact_persistence_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_artifact_1",
+            correlation_id="corr_repo_artifact_1",
+            request_hash="sha256:req-artifact-1",
+            idempotency_key="idem_repo_artifact_1",
+            portfolio_id="pf_repo_artifact_1",
+            created_at=now,
+            result_json={"rebalance_run_id": "rr_repo_artifact_1", "status": "READY"},
+        )
+    )
+    artifact_json = {
+        "artifact_id": "dra_repo_artifact_1",
+        "rebalance_run_id": "rr_repo_artifact_1",
+        "evidence": {"hashes": {"artifact_hash": "sha256:artifact-1"}},
+    }
+    repository.save_run_artifact(
+        rebalance_run_id="rr_repo_artifact_1",
+        artifact_json=artifact_json,
+    )
+
+    stored = repository.get_run_artifact(rebalance_run_id="rr_repo_artifact_1")
+    assert stored == artifact_json
+    assert repository.get_run_artifact(rebalance_run_id="rr_repo_artifact_missing") is None
+
+
+def test_repository_run_retention_also_purges_artifacts(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    old_time = now - timedelta(days=5)
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_retention_artifact_old",
+            correlation_id="corr_repo_retention_artifact_old",
+            request_hash="sha256:req-old-artifact",
+            idempotency_key=None,
+            portfolio_id="pf_repo_retention",
+            created_at=old_time,
+            result_json={
+                "rebalance_run_id": "rr_repo_retention_artifact_old",
+                "status": "READY",
+            },
+        )
+    )
+    repository.save_run_artifact(
+        rebalance_run_id="rr_repo_retention_artifact_old",
+        artifact_json={"artifact_id": "dra_repo_retention_artifact_old"},
+    )
+
+    removed = repository.purge_expired_runs(retention_days=2, now=now)
+    assert removed == 1
+    assert repository.get_run_artifact(rebalance_run_id="rr_repo_retention_artifact_old") is None

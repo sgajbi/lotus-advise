@@ -291,8 +291,8 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert run_artifact["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/DpmRunArtifactResponse")
-    assert "503" in run_artifact["responses"]
-    assert run_artifact["responses"]["503"]["description"]
+    assert "404" in run_artifact["responses"]
+    assert run_artifact["responses"]["404"]["description"]
 
     list_runs = openapi["paths"]["/rebalance/runs"]["get"]
     assert list_runs["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(

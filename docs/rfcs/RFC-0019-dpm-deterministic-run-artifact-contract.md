@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (PHASE 1 - DERIVED ARTIFACT) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0003, RFC-0013, RFC-0017 |
 | **Doc Location** | `docs/rfcs/RFC-0019-dpm-deterministic-run-artifact-contract.md` |
@@ -53,7 +53,7 @@ Current supportability APIs expose run metadata, but there is no single normaliz
 - `DPM_ARTIFACTS_ENABLED` (default `true`)
 - `DPM_ARTIFACT_STORE_MODE` (`DERIVED` | `PERSISTED`, default `DERIVED`)
 
-### 4.4 Phase-1 Delivery Scope (2026-02-20)
+### 4.4 Implementation Scope (2026-02-20)
 
 Implemented in current codebase:
 - `GET /rebalance/runs/{rebalance_run_id}/artifact`
@@ -62,13 +62,12 @@ Implemented in current codebase:
 - Artifact hash from canonical payload for repeatable retrieval.
 - Feature flag:
   - `DPM_ARTIFACTS_ENABLED`
-- Artifact store mode contract:
-  - `DPM_ARTIFACT_STORE_MODE=DERIVED` (default)
+- Artifact store mode:
+  - `DPM_ARTIFACT_STORE_MODE=DERIVED` (default): artifact is deterministically generated from run payload at read time.
+  - `DPM_ARTIFACT_STORE_MODE=PERSISTED`: artifact is persisted with run supportability record and read from repository.
   - Invalid mode values fall back to `DERIVED`.
-  - `DPM_ARTIFACT_STORE_MODE=PERSISTED` is rejected with `DPM_ARTIFACT_STORE_MODE_NOT_SUPPORTED` until persisted artifact backend is implemented.
 
 Deferred:
-- Persisted artifact backend mode.
 - Expanded request snapshot persistence beyond current supportability record fields.
 
 ## 5. Test Plan

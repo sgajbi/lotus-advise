@@ -197,9 +197,7 @@ def test_dpm_support_apis_lookup_by_run_correlation_and_idempotency(client):
     ("backend_value", "path_env_var"),
     [("SQLITE", "DPM_SUPPORTABILITY_SQLITE_PATH"), ("SQL", "DPM_SUPPORTABILITY_SQL_PATH")],
 )
-def test_dpm_supportability_sql_backend_selection(
-    client, monkeypatch, backend_value, path_env_var
-):
+def test_dpm_supportability_sql_backend_selection(client, monkeypatch, backend_value, path_env_var):
     with TemporaryDirectory() as tmp_dir:
         sqlite_path = str(Path(tmp_dir) / "dpm_supportability.sqlite")
         monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", backend_value)
@@ -457,9 +455,9 @@ def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
 
     monkeypatch.setenv("DPM_ARTIFACTS_ENABLED", "true")
     monkeypatch.setenv("DPM_ARTIFACT_STORE_MODE", "PERSISTED")
-    artifact_mode_unsupported = client.get("/rebalance/runs/rr_missing/artifact")
-    assert artifact_mode_unsupported.status_code == 503
-    assert artifact_mode_unsupported.json()["detail"] == "DPM_ARTIFACT_STORE_MODE_NOT_SUPPORTED"
+    artifact_mode_enabled = client.get("/rebalance/runs/rr_missing/artifact")
+    assert artifact_mode_enabled.status_code == 404
+    assert artifact_mode_enabled.json()["detail"] == "DPM_RUN_NOT_FOUND"
 
     monkeypatch.setenv("DPM_ARTIFACT_STORE_MODE", "UNKNOWN_MODE")
     artifact_mode_fallback = client.get("/rebalance/runs/rr_missing/artifact")
