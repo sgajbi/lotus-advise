@@ -3,8 +3,15 @@
 Implementation scope:
 - API: `src/api/main.py` (`/rebalance/proposals/simulate`)
 - API: `src/api/main.py` (`/rebalance/proposals/artifact`)
+- API router: `src/api/routers/proposals.py` (`/rebalance/proposals` lifecycle family)
 - Models: `src/core/models.py`
 - Artifact models: `src/core/advisory/artifact_models.py`
+- Proposal lifecycle domain:
+  - `src/core/proposals/models.py`
+  - `src/core/proposals/service.py`
+  - `src/core/proposals/repository.py`
+- Proposal lifecycle persistence adapter:
+  - `src/infrastructure/proposals/in_memory.py`
 - Core orchestration: `src/core/advisory_engine.py` (`run_proposal_simulation`)
 - Advisory modular internals:
   - `src/core/advisory/ids.py` (deterministic run id generation)
@@ -41,6 +48,43 @@ Implementation scope:
 - Idempotency behavior:
   - Uses the same proposal simulation idempotency cache/hash behavior as `/rebalance/proposals/simulate`.
   - Same key + different canonical payload returns `409 Conflict`.
+
+### `POST /rebalance/proposals`
+- Purpose: run simulation+artifact and persist proposal aggregate/version/workflow event.
+- Required header: `Idempotency-Key`
+- Optional header: `X-Correlation-Id`
+- Output: `ProposalCreateResponse`
+- Idempotency behavior:
+  - same key + same canonical request: returns same proposal/version
+  - same key + different canonical request: `409 Conflict`
+
+### `GET /rebalance/proposals/{proposal_id}`
+- Purpose: read proposal summary + current version + last gate decision.
+- Query: `include_evidence=true|false` (defaults true)
+
+### `GET /rebalance/proposals`
+- Purpose: list proposals with filters and cursor pagination.
+- Filters: `portfolio_id`, `state`, `created_by`, `created_from`, `created_to`, `limit`, `cursor`
+
+### `GET /rebalance/proposals/{proposal_id}/versions/{version_no}`
+- Purpose: read one immutable proposal version.
+- Query: `include_evidence=true|false`
+
+### `POST /rebalance/proposals/{proposal_id}/versions`
+- Purpose: create immutable version `N+1` for existing proposal.
+- Guard: same `portfolio_id` as aggregate unless `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION=true`.
+
+### `POST /rebalance/proposals/{proposal_id}/transitions`
+- Purpose: apply one workflow transition.
+- Concurrency: `expected_state` required by default (`PROPOSAL_REQUIRE_EXPECTED_STATE=true`).
+
+### `POST /rebalance/proposals/{proposal_id}/approvals`
+- Purpose: persist structured approval/consent and corresponding workflow event.
+- Approval types: `RISK`, `COMPLIANCE`, `CLIENT_CONSENT`
+
+Persistence note:
+- Current lifecycle persistence is in-memory through the repository adapter.
+- PostgreSQL schema in RFC-0014G is target-state and intentionally deferred.
 
 ## Pipeline (`run_proposal_simulation`)
 
@@ -105,6 +149,17 @@ Implementation scope:
   - `allow_restricted`
   - cash-band options (affect final status via rule engine)
 
+Lifecycle runtime config (env):
+- `PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED` (default `true`)
+- `PROPOSAL_STORE_EVIDENCE_BUNDLE` (default `true`)
+- `PROPOSAL_REQUIRE_EXPECTED_STATE` (default `true`)
+- `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION` (default `false`)
+- `PROPOSAL_REQUIRE_SIMULATION_FLAG` (default `true`)
+
+Swagger contract quality:
+- Lifecycle request/response models include explicit attribute-level `description` and `examples`.
+- Path/query/header parameters include explicit descriptions and examples in router definitions.
+
 ## Proposal-Specific Diagnostics/Outcomes
 
 - `PROPOSAL_WITHDRAWAL_NEGATIVE_CASH`
@@ -145,10 +200,12 @@ Determinism controls:
 ## Tests That Lock Advisory Behavior
 
 - API: `tests/advisory/api/test_api_advisory_proposal_simulate.py`
+- API: `tests/advisory/api/test_api_advisory_proposal_lifecycle.py`
 - Contract: `tests/advisory/contracts/test_contract_advisory_models.py`
 - Contract: `tests/advisory/contracts/test_contract_proposal_artifact_models.py`
 - Engine: `tests/advisory/engine/test_engine_advisory_proposal_simulation.py`
 - Engine: `tests/advisory/engine/test_engine_proposal_artifact.py`
+- Engine: `tests/advisory/engine/test_engine_proposal_workflow_service.py`
 - Engine: `tests/dpm/engine/test_engine_workflow_gates.py`
 - Proposal golden: `tests/advisory/golden/test_golden_advisory_proposal_scenarios.py`
 - Artifact golden: `tests/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`

@@ -3,17 +3,22 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED (MVP IN-MEMORY ADAPTER) |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14G |
 | **Depends On** | RFC-0014A (Proposal Simulation) |
 | **Strongly Recommended** | RFC-0014E (Proposal Artifact), RFC-0014F (GateDecision) |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014G-proposal-persistence-workflow-lifecycle.md` |
-| **Backward Compatibility** | Not required |
+| **Backward Compatibility** | Existing `/rebalance/proposals/simulate` and `/rebalance/proposals/artifact` unchanged |
 
 ---
 
 ## 0. Executive Summary
+
+Implementation note (2026-02-19):
+- Implemented with repository port + in-memory adapter (`src/core/proposals/*`, `src/infrastructure/proposals/in_memory.py`).
+- API endpoints delivered under `/rebalance/proposals` lifecycle family in `src/api/routers/proposals.py`.
+- PostgreSQL adapter/migrations intentionally deferred; architecture keeps persistence concerns behind repository interface for later adapter addition.
 
 RFC-0014G adds **persistence and lifecycle management** for advisory proposals so they can move through a real private-banking workflow:
 
@@ -42,10 +47,10 @@ Simulation results are ephemeral. Advisory workflows require:
 ## 2. Scope
 
 ### 2.1 In Scope
-- PostgreSQL persistence for:
+- Lifecycle persistence via repository port with in-memory adapter for MVP:
   - proposal metadata
-  - proposal versions
-  - workflow state transitions
+  - immutable proposal versions
+  - append-only workflow transitions
   - approvals/consents records (structured)
   - idempotency records for create operations
 - APIs:
@@ -54,9 +59,12 @@ Simulation results are ephemeral. Advisory workflows require:
   - list proposals with filters
   - transition workflow state
   - attach approvals/consent
-- Audit logging in DB (append-only event log)
+- Audit logging in repository storage (append-only workflow event log)
+- Runtime configurability via environment variables for lifecycle enablement, evidence storage,
+  expected-state enforcement, portfolio-context enforcement, and simulation-flag enforcement.
 
 ### 2.2 Out of Scope
+- PostgreSQL adapter + migrations (deferred to next persistence hardening RFC slice)
 - Integration with external consent tools / e-signature providers
 - Integration with OMS execution confirmation (can be a later RFC)
 - Jurisdiction-specific data retention rules (config hooks only)
@@ -143,6 +151,11 @@ Store as structured entries linked to workflow events:
 ---
 
 ## 5. Persistence Design (PostgreSQL)
+
+Implementation status note:
+- This section defines the target-state database design.
+- Current implementation uses `ProposalRepository` + `InMemoryProposalRepository`.
+- API/domain behavior is aligned to this schema contract to allow a drop-in PostgreSQL adapter.
 
 ### 5.1 Tables (minimal)
 1) `proposals`
@@ -421,25 +434,29 @@ Define interface hooks:
 ## 10. Implementation Plan (Slices)
 
 1. Persistence layer scaffolding:
-
-   * DB connection, migrations, repository interfaces
-2. Tables + migrations for proposals/versions/events/approvals/idempotency
-3. Create proposal endpoint:
+   * repository interfaces and in-memory adapter
+2. Create proposal endpoint:
 
    * simulate → artifact → persist
-4. Read endpoints:
+3. Read endpoints:
 
    * get proposal, list proposals, get version
-5. Transitions + approvals:
+4. Transitions + approvals:
 
    * state machine validation
    * optimistic locking
-6. Tests:
+5. Tests:
 
-   * repository tests (transactional)
+   * repository tests (in-memory transactional semantics)
    * API tests (FastAPI test client)
    * idempotency conflict tests
-7. Observability:
+6. Demo-pack live validation:
+   * `uvicorn` and Docker host execution of full demo pack
+
+7. Deferred:
+   * PostgreSQL adapter + migrations
+
+8. Observability:
 
    * metrics counters for create/transition outcomes
    * structured logs with correlation_id
@@ -459,10 +476,8 @@ Define interface hooks:
 
 ### 11.2 Integration tests (Postgres)
 
-* use testcontainers (recommended) or ephemeral DB in CI
-* create proposal persists all rows correctly
-* transitions append events and update current_state
-* approvals create records and appropriate workflow event
+- Deferred until PostgreSQL adapter delivery.
+- Current integration coverage uses FastAPI test client and live API calls against `uvicorn` and Docker.
 
 ### 11.3 Golden tests
 
@@ -473,12 +488,20 @@ Define interface hooks:
 
 ## 12. Acceptance Criteria (DoD)
 
-* Proposals can be created idempotently and stored in Postgres.
+* Proposals can be created idempotently and stored through repository adapter (in-memory in MVP).
 * Proposal versions are immutable and include artifact + evidence bundle + hashes.
 * Workflow events are append-only; current state is consistent and derived from events.
 * Approvals/consents are recorded and produce workflow transitions.
 * Concurrency conflicts return 409 Problem Details.
-* Integration tests run reliably in CI.
+* API + engine tests and live demo-pack validation run reliably in CI/dev.
+
+### 12.1 MVP Runtime Config Delivered
+Configuration is implementation-faithful and currently delivered via environment variables:
+- `PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED` (default `true`)
+- `PROPOSAL_STORE_EVIDENCE_BUNDLE` (default `true`)
+- `PROPOSAL_REQUIRE_EXPECTED_STATE` (default `true`)
+- `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION` (default `false`)
+- `PROPOSAL_REQUIRE_SIMULATION_FLAG` (default `true`)
 
 ---
 
