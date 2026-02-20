@@ -79,6 +79,31 @@ def test_demo_batch_scenario_execution():
     assert body["failed_scenarios"] == {}
 
 
+def test_demo_async_batch_scenario_execution():
+    data = load_demo_scenario("26_dpm_async_batch_analysis.json")
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        try:
+            accepted = client.post(
+                "/rebalance/analyze/async",
+                json=data,
+                headers={"X-Correlation-Id": "demo-corr-26-async"},
+            )
+            assert accepted.status_code == 202
+            operation_id = accepted.json()["operation_id"]
+            operation = client.get(f"/rebalance/operations/{operation_id}")
+        finally:
+            app.dependency_overrides = original_overrides
+
+    assert operation.status_code == 200
+    operation_body = operation.json()
+    assert operation_body["status"] == "SUCCEEDED"
+    assert operation_body["result"]["warnings"] == ["PARTIAL_BATCH_FAILURE"]
+    assert set(operation_body["result"]["failed_scenarios"].keys()) == {"invalid_options"}
+    assert set(operation_body["result"]["results"].keys()) == {"baseline"}
+
+
 @pytest.mark.parametrize(
     "filename, expected_status",
     [

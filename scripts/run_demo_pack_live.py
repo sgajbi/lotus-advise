@@ -96,6 +96,34 @@ def run_demo_pack(base_url: str) -> None:
             "09_batch_what_if_analysis.json: unexpected scenario keys",
         )
 
+        async_batch = _run_scenario(
+            client,
+            name="26_dpm_async_batch_analysis.json",
+            method="POST",
+            path="/rebalance/analyze/async",
+            expected_http=202,
+            payload_file="26_dpm_async_batch_analysis.json",
+            headers={"X-Correlation-Id": "demo-corr-26-async"},
+        )
+        operation_id = async_batch["operation_id"]
+        operation = _run_scenario(
+            client,
+            name="get_async_operation",
+            method="GET",
+            path=f"/rebalance/operations/{operation_id}",
+            expected_http=200,
+        )
+        _assert(operation["status"] == "SUCCEEDED", "26: async operation did not succeed")
+        _assert(
+            operation.get("result", {}).get("warnings") == ["PARTIAL_BATCH_FAILURE"],
+            "26: expected PARTIAL_BATCH_FAILURE warning",
+        )
+        _assert(
+            set(operation.get("result", {}).get("failed_scenarios", {}).keys())
+            == {"invalid_options"},
+            "26: expected invalid_options failed scenario",
+        )
+
         # Advisory simulate demos
         advisory_expected = {
             "10_advisory_proposal_simulate.json": "READY",

@@ -18,6 +18,12 @@ For batch what-if demos, POST to `/rebalance/analyze`:
 curl -X POST "http://127.0.0.1:8000/rebalance/analyze" -H "Content-Type: application/json" --data-binary "@docs/demo/09_batch_what_if_analysis.json"
 ```
 
+For asynchronous batch what-if demos, POST to `/rebalance/analyze/async` and retrieve operation status:
+```bash
+curl -X POST "http://127.0.0.1:8000/rebalance/analyze/async" -H "Content-Type: application/json" -H "X-Correlation-Id: demo-corr-26-async" --data-binary "@docs/demo/26_dpm_async_batch_analysis.json"
+curl -X GET "http://127.0.0.1:8000/rebalance/operations/by-correlation/demo-corr-26-async"
+```
+
 For advisory proposal simulation demos, POST to `/rebalance/proposals/simulate`:
 ```bash
 curl -X POST "http://127.0.0.1:8000/rebalance/proposals/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-proposal-01" --data-binary "@docs/demo/10_advisory_proposal_simulate.json"
@@ -70,6 +76,7 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
 | `23_advisory_proposal_approval_client_consent.json` | **Proposal Consent Approval** | `EXECUTION_READY` lifecycle state | Records structured client consent and emits workflow event. |
 | `24_advisory_proposal_approval_compliance.json` | **Proposal Compliance Approval** | `AWAITING_CLIENT_CONSENT` lifecycle state | Records compliance approval and advances lifecycle. |
 | `25_advisory_proposal_transition_executed.json` | **Proposal Execution Transition** | `EXECUTED` lifecycle state | Records execution confirmation transition from execution-ready state. |
+| `26_dpm_async_batch_analysis.json` | **DPM Async Batch Analysis** | Async operation `SUCCEEDED` with partial-failure warning | Demonstrates `/rebalance/analyze/async` acceptance + operation lookup with `failed_scenarios` diagnostics. |
 
 ## Feature Toggles Demonstrated
 
@@ -83,6 +90,10 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
   - `options.target_method=SOLVER`
 - `09_batch_what_if_analysis.json`:
   - `scenarios.<name>.options` for per-scenario configuration in batch mode.
+- `26_dpm_async_batch_analysis.json`:
+  - `POST /rebalance/analyze/async` for async batch acceptance
+  - `GET /rebalance/operations/{operation_id}` and `/by-correlation/{correlation_id}` for operation retrieval
+  - partial-failure batch behavior (`warnings=["PARTIAL_BATCH_FAILURE"]`) with successful operation completion
 - `10_advisory_proposal_simulate.json`:
   - `options.enable_proposal_simulation=true`
   - `options.proposal_apply_cash_flows_first=true`
