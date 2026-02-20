@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (PHASE 1 - INLINE EXECUTION) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0013, RFC-0016, RFC-0017 |
 | **Doc Location** | `docs/rfcs/RFC-0018-dpm-async-operations-resource.md` |
@@ -28,7 +28,7 @@ Large what-if batches can be slow and are currently synchronous, which creates t
 
 ### 3.2 Non-Goals
 - Replace existing synchronous endpoints.
-- Distributed durable queue in this initial slice.
+- Distributed durable queue (tracked as a follow-up slice).
 
 ## 4. Proposed Design
 
