@@ -71,6 +71,18 @@ Implementation scope:
 - Purpose: read one immutable proposal version.
 - Query: `include_evidence=true|false`
 
+### `GET /rebalance/proposals/{proposal_id}/workflow-events`
+- Purpose: retrieve append-only workflow timeline for operations investigation and audit.
+
+### `GET /rebalance/proposals/{proposal_id}/approvals`
+- Purpose: retrieve structured approval/consent records for supportability and controls review.
+
+### `GET /rebalance/proposals/{proposal_id}/lineage`
+- Purpose: retrieve immutable version lineage metadata (request/simulation/artifact hashes).
+
+### `GET /rebalance/proposals/idempotency/{idempotency_key}`
+- Purpose: resolve idempotency-key mappings during retry and incident investigations.
+
 ### `POST /rebalance/proposals/{proposal_id}/versions`
 - Purpose: create immutable version `N+1` for existing proposal.
 - Guard: same `portfolio_id` as aggregate unless `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION=true`.
@@ -160,6 +172,7 @@ Lifecycle runtime config (env):
 - `PROPOSAL_REQUIRE_EXPECTED_STATE` (default `true`)
 - `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION` (default `false`)
 - `PROPOSAL_REQUIRE_SIMULATION_FLAG` (default `true`)
+- `PROPOSAL_SUPPORT_APIS_ENABLED` (default `true`)
 
 Swagger contract quality:
 - Lifecycle request/response models include explicit attribute-level `description` and `examples`.

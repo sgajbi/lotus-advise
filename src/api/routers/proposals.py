@@ -5,10 +5,13 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, status
 
 from src.core.proposals import (
+    ProposalApprovalsResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalDetailResponse,
     ProposalIdempotencyConflictError,
+    ProposalIdempotencyLookupResponse,
+    ProposalLineageResponse,
     ProposalNotFoundError,
     ProposalStateConflictError,
     ProposalStateTransitionRequest,
@@ -18,6 +21,7 @@ from src.core.proposals import (
     ProposalVersionDetail,
     ProposalVersionRequest,
     ProposalWorkflowService,
+    ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.models import ProposalApprovalRequest, ProposalListResponse
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
@@ -62,6 +66,14 @@ def _assert_lifecycle_enabled() -> None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED",
+        )
+
+
+def _assert_support_apis_enabled() -> None:
+    if not _env_flag("PROPOSAL_SUPPORT_APIS_ENABLED", True):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PROPOSAL_SUPPORT_APIS_DISABLED",
         )
 
 
@@ -324,3 +336,103 @@ def record_proposal_approval(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
+
+
+@router.get(
+    "/rebalance/proposals/{proposal_id}/workflow-events",
+    response_model=ProposalWorkflowTimelineResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Proposal Workflow Timeline",
+    description=(
+        "Returns append-only workflow event timeline for investigation, supportability, and audit."
+    ),
+)
+def get_proposal_workflow_timeline(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    service: Annotated[ProposalWorkflowService, Depends(get_proposal_workflow_service)] = None,
+) -> ProposalWorkflowTimelineResponse:
+    _assert_lifecycle_enabled()
+    _assert_support_apis_enabled()
+    try:
+        return service.get_workflow_timeline(proposal_id=proposal_id)
+    except ProposalNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/proposals/{proposal_id}/approvals",
+    response_model=ProposalApprovalsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Proposal Approvals",
+    description=(
+        "Returns approval/consent records for support investigations and workflow audit traces."
+    ),
+)
+def get_proposal_approvals(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    service: Annotated[ProposalWorkflowService, Depends(get_proposal_workflow_service)] = None,
+) -> ProposalApprovalsResponse:
+    _assert_lifecycle_enabled()
+    _assert_support_apis_enabled()
+    try:
+        return service.get_approvals(proposal_id=proposal_id)
+    except ProposalNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/proposals/{proposal_id}/lineage",
+    response_model=ProposalLineageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Proposal Lineage",
+    description=(
+        "Returns immutable version lineage metadata with hashes "
+        "for reproducibility and root-cause analysis."
+    ),
+)
+def get_proposal_lineage(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    service: Annotated[ProposalWorkflowService, Depends(get_proposal_workflow_service)] = None,
+) -> ProposalLineageResponse:
+    _assert_lifecycle_enabled()
+    _assert_support_apis_enabled()
+    try:
+        return service.get_lineage(proposal_id=proposal_id)
+    except ProposalNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/proposals/idempotency/{idempotency_key}",
+    response_model=ProposalIdempotencyLookupResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Lookup Proposal Idempotency Mapping",
+    description=(
+        "Returns idempotency-to-proposal mapping for support and retry investigation workflows."
+    ),
+)
+def get_proposal_idempotency_lookup(
+    idempotency_key: Annotated[
+        str,
+        Path(
+            description="Proposal create idempotency key.",
+            examples=["proposal-create-idem-001"],
+        ),
+    ],
+    service: Annotated[ProposalWorkflowService, Depends(get_proposal_workflow_service)] = None,
+) -> ProposalIdempotencyLookupResponse:
+    _assert_lifecycle_enabled()
+    _assert_support_apis_enabled()
+    try:
+        return service.get_idempotency_lookup(idempotency_key=idempotency_key)
+    except ProposalNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

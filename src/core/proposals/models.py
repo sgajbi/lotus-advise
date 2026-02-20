@@ -315,6 +315,84 @@ class ProposalListResponse(BaseModel):
     )
 
 
+class ProposalVersionLineageItem(BaseModel):
+    proposal_version_id: str = Field(
+        description="Proposal version identifier.",
+        examples=["ppv_001"],
+    )
+    version_no: int = Field(description="Proposal version number.", examples=[1])
+    created_at: str = Field(
+        description="UTC ISO8601 timestamp for version creation.",
+        examples=["2026-02-19T12:00:00+00:00"],
+    )
+    status_at_creation: ProposalCreationStatus = Field(
+        description="Simulation status captured at version creation.",
+        examples=["READY"],
+    )
+    request_hash: str = Field(
+        description="Canonical request hash for this version.",
+        examples=["sha256:abc123"],
+    )
+    simulation_hash: str = Field(
+        description="Canonical simulation-output hash for this version.",
+        examples=["sha256:sim789"],
+    )
+    artifact_hash: str = Field(
+        description="Canonical artifact hash for this version.",
+        examples=["sha256:def456"],
+    )
+
+
+class ProposalLineageResponse(BaseModel):
+    proposal: ProposalSummary = Field(
+        description="Proposal summary used as lineage root context.",
+        examples=[{"proposal_id": "pp_001", "current_version_no": 2}],
+    )
+    versions: List[ProposalVersionLineageItem] = Field(
+        default_factory=list,
+        description="Immutable proposal version lineage ordered by version number ascending.",
+    )
+
+
+class ProposalWorkflowTimelineResponse(BaseModel):
+    proposal_id: str = Field(description="Proposal identifier.", examples=["pp_001"])
+    current_state: ProposalWorkflowState = Field(
+        description="Current workflow state at retrieval time.",
+        examples=["AWAITING_CLIENT_CONSENT"],
+    )
+    events: List[ProposalWorkflowEvent] = Field(
+        default_factory=list,
+        description="Append-only workflow events ordered by event occurrence.",
+    )
+
+
+class ProposalApprovalsResponse(BaseModel):
+    proposal_id: str = Field(description="Proposal identifier.", examples=["pp_001"])
+    approvals: List[ProposalApprovalRecord] = Field(
+        default_factory=list,
+        description="Structured approval/consent records ordered by occurrence.",
+    )
+
+
+class ProposalIdempotencyLookupResponse(BaseModel):
+    idempotency_key: str = Field(
+        description="Idempotency key supplied on create request.",
+        examples=["proposal-create-idem-001"],
+    )
+    request_hash: str = Field(
+        description="Canonical request hash mapped to the idempotency key.",
+        examples=["sha256:abc123"],
+    )
+    proposal_id: str = Field(description="Proposal identifier mapped by idempotency key.")
+    proposal_version_no: int = Field(
+        description="Proposal version number mapped by idempotency key.", examples=[1]
+    )
+    created_at: str = Field(
+        description="UTC ISO8601 timestamp when idempotency mapping was persisted.",
+        examples=["2026-02-19T12:00:00+00:00"],
+    )
+
+
 class ProposalStateTransitionRequest(BaseModel):
     event_type: ProposalWorkflowEventType = Field(
         description="Workflow event to apply on current proposal state.",

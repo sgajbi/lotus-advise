@@ -9,21 +9,26 @@ from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
+    ProposalApprovalsResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalDetailResponse,
+    ProposalIdempotencyLookupResponse,
     ProposalIdempotencyRecord,
+    ProposalLineageResponse,
     ProposalListResponse,
     ProposalRecord,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
     ProposalSummary,
     ProposalVersionDetail,
+    ProposalVersionLineageItem,
     ProposalVersionRecord,
     ProposalVersionRequest,
     ProposalWorkflowEvent,
     ProposalWorkflowEventRecord,
     ProposalWorkflowState,
+    ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.repository import ProposalRepository
 
@@ -210,6 +215,69 @@ class ProposalWorkflowService:
         )
         return ProposalListResponse(
             items=[self._to_summary(row) for row in rows], next_cursor=next_cursor
+        )
+
+    def get_workflow_timeline(self, *, proposal_id: str) -> ProposalWorkflowTimelineResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        events = self._repository.list_events(proposal_id=proposal_id)
+        return ProposalWorkflowTimelineResponse(
+            proposal_id=proposal_id,
+            current_state=proposal.current_state,
+            events=[self._to_event(event) for event in events],
+        )
+
+    def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        approvals = self._repository.list_approvals(proposal_id=proposal_id)
+        return ProposalApprovalsResponse(
+            proposal_id=proposal_id,
+            approvals=[
+                self._to_approval(approval)
+                for approval in approvals
+                if approval is not None
+            ],
+        )
+
+    def get_lineage(self, *, proposal_id: str) -> ProposalLineageResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+
+        versions: list[ProposalVersionLineageItem] = []
+        for version_no in range(1, proposal.current_version_no + 1):
+            version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
+            if version is None:
+                continue
+            versions.append(
+                ProposalVersionLineageItem(
+                    proposal_version_id=version.proposal_version_id,
+                    version_no=version.version_no,
+                    created_at=version.created_at.isoformat(),
+                    status_at_creation=version.status_at_creation,
+                    request_hash=version.request_hash,
+                    simulation_hash=version.simulation_hash,
+                    artifact_hash=version.artifact_hash,
+                )
+            )
+
+        return ProposalLineageResponse(proposal=self._to_summary(proposal), versions=versions)
+
+    def get_idempotency_lookup(
+        self, *, idempotency_key: str
+    ) -> ProposalIdempotencyLookupResponse:
+        record = self._repository.get_idempotency(idempotency_key=idempotency_key)
+        if record is None:
+            raise ProposalNotFoundError("PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND")
+        return ProposalIdempotencyLookupResponse(
+            idempotency_key=record.idempotency_key,
+            request_hash=record.request_hash,
+            proposal_id=record.proposal_id,
+            proposal_version_no=record.proposal_version_no,
+            created_at=record.created_at.isoformat(),
         )
 
     def get_version(

@@ -60,6 +60,7 @@ Simulation results are ephemeral. Advisory workflows require:
   - list proposals with filters
   - transition workflow state
   - attach approvals/consent
+  - supportability reads: workflow timeline, approvals list, lineage hashes, idempotency lookup
 - Audit logging in repository storage (append-only workflow event log)
 - Runtime configurability via environment variables for lifecycle enablement, evidence storage,
   expected-state enforcement, portfolio-context enforcement, and simulation-flag enforcement.
@@ -343,6 +344,16 @@ Behavior:
 * write workflow event `CLIENT_CONSENT_RECORDED`
 * update current_state accordingly
 
+### 6.8 Supportability and investigation reads
+
+Read-only operational endpoints for support teams:
+- `GET /rebalance/proposals/{proposal_id}/workflow-events`
+- `GET /rebalance/proposals/{proposal_id}/approvals`
+- `GET /rebalance/proposals/{proposal_id}/lineage`
+- `GET /rebalance/proposals/idempotency/{idempotency_key}`
+
+These are intended for audit, incident response, and reproducibility investigation.
+
 ---
 
 ## 7. Workflow State Machine (Institutional MVP)
@@ -503,6 +514,7 @@ Configuration is implementation-faithful and currently delivered via environment
 - `PROPOSAL_REQUIRE_EXPECTED_STATE` (default `true`)
 - `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION` (default `false`)
 - `PROPOSAL_REQUIRE_SIMULATION_FLAG` (default `true`)
+- `PROPOSAL_SUPPORT_APIS_ENABLED` (default `true`)
 
 ---
 

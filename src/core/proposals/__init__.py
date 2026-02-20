@@ -1,14 +1,19 @@
 from src.core.proposals.models import (
     ProposalApprovalRecord,
+    ProposalApprovalsResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalDetailResponse,
+    ProposalIdempotencyLookupResponse,
+    ProposalLineageResponse,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
     ProposalSummary,
     ProposalVersionDetail,
+    ProposalVersionLineageItem,
     ProposalVersionRequest,
     ProposalWorkflowEvent,
+    ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.service import (
@@ -23,9 +28,12 @@ from src.core.proposals.service import (
 
 __all__ = [
     "ProposalApprovalRecord",
+    "ProposalApprovalsResponse",
     "ProposalCreateRequest",
     "ProposalCreateResponse",
     "ProposalDetailResponse",
+    "ProposalIdempotencyLookupResponse",
+    "ProposalLineageResponse",
     "ProposalIdempotencyConflictError",
     "ProposalLifecycleError",
     "ProposalNotFoundError",
@@ -37,7 +45,9 @@ __all__ = [
     "ProposalTransitionError",
     "ProposalValidationError",
     "ProposalVersionDetail",
+    "ProposalVersionLineageItem",
     "ProposalVersionRequest",
     "ProposalWorkflowEvent",
+    "ProposalWorkflowTimelineResponse",
     "ProposalWorkflowService",
 ]

@@ -324,3 +324,89 @@ def test_transition_and_approval_not_found_and_invalid_approval_state_paths():
         )
         assert invalid_state.status_code == 422
         assert invalid_state.json()["detail"] == "INVALID_APPROVAL_STATE"
+
+
+def test_support_endpoints_return_timeline_approvals_lineage_and_idempotency():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-support-1")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        submit = client.post(
+            f"/rebalance/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
+                "actor_id": "advisor_1",
+                "expected_state": "DRAFT",
+                "reason": {"comment": "submit"},
+                "related_version_no": 1,
+            },
+        )
+        assert submit.status_code == 200
+        approval = client.post(
+            f"/rebalance/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "COMPLIANCE",
+                "approved": True,
+                "actor_id": "compliance_1",
+                "expected_state": "COMPLIANCE_REVIEW",
+                "details": {"ticket": "cmp_1"},
+                "related_version_no": 1,
+            },
+        )
+        assert approval.status_code == 200
+
+        timeline = client.get(f"/rebalance/proposals/{proposal_id}/workflow-events")
+        assert timeline.status_code == 200
+        timeline_body = timeline.json()
+        assert timeline_body["proposal_id"] == proposal_id
+        assert len(timeline_body["events"]) >= 3
+        assert timeline_body["events"][0]["event_type"] == "CREATED"
+
+        approvals = client.get(f"/rebalance/proposals/{proposal_id}/approvals")
+        assert approvals.status_code == 200
+        approvals_body = approvals.json()
+        assert approvals_body["proposal_id"] == proposal_id
+        assert len(approvals_body["approvals"]) == 1
+        assert approvals_body["approvals"][0]["approval_type"] == "COMPLIANCE"
+
+        lineage = client.get(f"/rebalance/proposals/{proposal_id}/lineage")
+        assert lineage.status_code == 200
+        lineage_body = lineage.json()
+        assert lineage_body["proposal"]["proposal_id"] == proposal_id
+        assert lineage_body["versions"][0]["version_no"] == 1
+        assert lineage_body["versions"][0]["artifact_hash"].startswith("sha256:")
+
+        idem_lookup = client.get("/rebalance/proposals/idempotency/lifecycle-support-1")
+        assert idem_lookup.status_code == 200
+        idem_body = idem_lookup.json()
+        assert idem_body["idempotency_key"] == "lifecycle-support-1"
+        assert idem_body["proposal_id"] == proposal_id
+        assert idem_body["proposal_version_no"] == 1
+
+
+def test_support_endpoints_404_for_missing_entities():
+    with TestClient(app) as client:
+        missing_timeline = client.get("/rebalance/proposals/pp_missing_support/workflow-events")
+        assert missing_timeline.status_code == 404
+
+        missing_approvals = client.get("/rebalance/proposals/pp_missing_support/approvals")
+        assert missing_approvals.status_code == 404
+
+        missing_lineage = client.get("/rebalance/proposals/pp_missing_support/lineage")
+        assert missing_lineage.status_code == 404
+
+        missing_idempotency = client.get("/rebalance/proposals/idempotency/missing-idem")
+        assert missing_idempotency.status_code == 404
+        assert missing_idempotency.json()["detail"] == "PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND"
+
+
+def test_support_endpoints_return_404_when_support_apis_disabled(monkeypatch):
+    monkeypatch.setenv("PROPOSAL_SUPPORT_APIS_ENABLED", "false")
+    reset_proposal_workflow_service_for_tests()
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-support-disabled")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        timeline = client.get(f"/rebalance/proposals/{proposal_id}/workflow-events")
+        assert timeline.status_code == 404
+        assert timeline.json()["detail"] == "PROPOSAL_SUPPORT_APIS_DISABLED"
