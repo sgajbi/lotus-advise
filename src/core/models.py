@@ -24,6 +24,47 @@ def _quantize_ratio(value: Decimal) -> Decimal:
     return value.quantize(Decimal("0.0001"))
 
 
+_GROUP_CONSTRAINT_KEY_FORMAT = "<attribute_key>:<attribute_value>"
+_SCENARIO_NAME_REGEX = re.compile(r"^[a-z0-9_-]{1,64}$")
+
+
+def _validate_group_constraint_keys(
+    group_constraints: Dict[str, "GroupConstraint"],
+) -> Dict[str, "GroupConstraint"]:
+    for key in group_constraints:
+        if key.count(":") != 1:
+            raise ValueError(
+                f"group_constraints keys must use format '{_GROUP_CONSTRAINT_KEY_FORMAT}'"
+            )
+        attribute_key, attribute_value = key.split(":", 1)
+        if not attribute_key or not attribute_value:
+            raise ValueError(
+                f"group_constraints keys must use format '{_GROUP_CONSTRAINT_KEY_FORMAT}'"
+            )
+    return group_constraints
+
+
+def _validate_optional_ratio_between_zero_and_one(
+    value: Optional[Decimal], *, field_name: str
+) -> Optional[Decimal]:
+    if value is None:
+        return value
+    if value < Decimal("0") or value > Decimal("1"):
+        raise ValueError(f"{field_name} must be between 0 and 1 inclusive")
+    return value
+
+
+def _validate_non_negative_amounts_by_currency(
+    amounts_by_currency: Dict[str, Decimal], *, field_name: str
+) -> Dict[str, Decimal]:
+    for currency, amount in amounts_by_currency.items():
+        if not currency:
+            raise ValueError(f"{field_name} keys must be non-empty currency codes")
+        if amount < Decimal("0"):
+            raise ValueError(f"{field_name} values must be non-negative")
+    return amounts_by_currency
+
+
 class Money(BaseModel):
     amount: Decimal = Field(
         description="Monetary amount as decimal string/number.",
@@ -533,36 +574,19 @@ class EngineOptions(BaseModel):
     def validate_group_constraint_keys(
         cls, v: Dict[str, GroupConstraint]
     ) -> Dict[str, GroupConstraint]:
-        for key in v:
-            if key.count(":") != 1:
-                raise ValueError(
-                    "group_constraints keys must use format '<attribute_key>:<attribute_value>'"
-                )
-            attr_key, attr_val = key.split(":", 1)
-            if not attr_key or not attr_val:
-                raise ValueError(
-                    "group_constraints keys must use format '<attribute_key>:<attribute_value>'"
-                )
-        return v
+        return _validate_group_constraint_keys(v)
 
     @field_validator("max_turnover_pct")
     @classmethod
     def validate_max_turnover_pct(cls, v: Optional[Decimal]) -> Optional[Decimal]:
-        if v is None:
-            return v
-        if v < Decimal("0") or v > Decimal("1"):
-            raise ValueError("max_turnover_pct must be between 0 and 1 inclusive")
-        return v
+        return _validate_optional_ratio_between_zero_and_one(v, field_name="max_turnover_pct")
 
     @field_validator("max_overdraft_by_ccy")
     @classmethod
     def validate_max_overdraft_by_ccy(cls, v: Dict[str, Decimal]) -> Dict[str, Decimal]:
-        for ccy, amount in v.items():
-            if not ccy:
-                raise ValueError("max_overdraft_by_ccy keys must be non-empty currency codes")
-            if amount < Decimal("0"):
-                raise ValueError("max_overdraft_by_ccy values must be non-negative")
-        return v
+        return _validate_non_negative_amounts_by_currency(
+            v, field_name="max_overdraft_by_ccy"
+        )
 
 
 class AllocationMetric(BaseModel):
@@ -1451,6 +1475,7 @@ class SimulationScenario(BaseModel):
 
 class BatchRebalanceRequest(BaseModel):
     MAX_SCENARIOS_PER_REQUEST: ClassVar[int] = 20
+    SCENARIO_NAME_PATTERN: ClassVar[re.Pattern[str]] = _SCENARIO_NAME_REGEX
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -1496,9 +1521,8 @@ class BatchRebalanceRequest(BaseModel):
         if len(scenarios) > cls.MAX_SCENARIOS_PER_REQUEST:
             raise ValueError(f"scenario count exceeds maximum of {cls.MAX_SCENARIOS_PER_REQUEST}")
 
-        pattern = re.compile(r"^[a-z0-9_-]{1,64}$")
         for scenario_name in scenarios:
-            if not pattern.fullmatch(scenario_name):
+            if not cls.SCENARIO_NAME_PATTERN.fullmatch(scenario_name):
                 raise ValueError("scenario names must match regex [a-z0-9_\\-]{1,64}")
 
         return scenarios
