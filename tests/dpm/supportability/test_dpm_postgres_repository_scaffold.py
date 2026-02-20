@@ -59,6 +59,44 @@ class _FakeConnection:
             return _FakeCursor(None)
         if "FROM dpm_runs WHERE rebalance_run_id = %s" in sql:
             return _FakeCursor(self.runs.get(args[0]))
+        if "FROM dpm_runs WHERE correlation_id = %s" in sql:
+            row = next(
+                (run for run in self.runs.values() if run["correlation_id"] == args[0]),
+                None,
+            )
+            return _FakeCursor(row)
+        if "FROM dpm_runs WHERE request_hash = %s" in sql and "LIMIT 1" in sql:
+            rows = [run for run in self.runs.values() if run["request_hash"] == args[0]]
+            rows = sorted(
+                rows,
+                key=lambda row: (row["created_at"], row["rebalance_run_id"]),
+                reverse=True,
+            )
+            return _FakeCursor(rows[0] if rows else None)
+        if "FROM dpm_runs" in sql and "ORDER BY created_at DESC" in sql:
+            rows = list(self.runs.values())
+            arg_index = 0
+            if "created_at >= %s" in sql:
+                created_from = args[arg_index]
+                arg_index += 1
+                rows = [row for row in rows if row["created_at"] >= created_from]
+            if "created_at <= %s" in sql:
+                created_to = args[arg_index]
+                arg_index += 1
+                rows = [row for row in rows if row["created_at"] <= created_to]
+            if "portfolio_id = %s" in sql:
+                portfolio_id = args[arg_index]
+                arg_index += 1
+                rows = [row for row in rows if row["portfolio_id"] == portfolio_id]
+            if "request_hash = %s" in sql:
+                request_hash = args[arg_index]
+                rows = [row for row in rows if row["request_hash"] == request_hash]
+            rows = sorted(
+                rows,
+                key=lambda row: (row["created_at"], row["rebalance_run_id"]),
+                reverse=True,
+            )
+            return _FakeCursor(rows=rows)
         if "INSERT INTO dpm_run_artifacts" in sql:
             self.artifacts[args[0]] = {"artifact_json": args[1]}
             return _FakeCursor(None)
@@ -386,6 +424,16 @@ def test_postgres_repository_save_and_get_run(monkeypatch):
     assert stored.result_json["status"] == "READY"
     assert repository.get_run(rebalance_run_id="rr_pg_missing") is None
     assert connection.commits >= 2
+
+    by_correlation = repository.get_run_by_correlation(correlation_id="corr_pg_1")
+    assert by_correlation is not None
+    assert by_correlation.rebalance_run_id == "rr_pg_1"
+    assert repository.get_run_by_correlation(correlation_id="corr_pg_missing") is None
+
+    by_request_hash = repository.get_run_by_request_hash(request_hash="sha256:req-pg-1")
+    assert by_request_hash is not None
+    assert by_request_hash.rebalance_run_id == "rr_pg_1"
+    assert repository.get_run_by_request_hash(request_hash="sha256:req-pg-missing") is None
 
 
 def test_postgres_repository_save_and_get_artifact(monkeypatch):
@@ -817,10 +865,105 @@ def test_postgres_repository_purge_expired_runs(monkeypatch):
     assert removed_disabled == 0
 
 
+def test_postgres_repository_list_runs_filters_and_cursor(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_pg_list_1",
+            correlation_id="corr_pg_list_1",
+            request_hash="sha256:req-pg-list-1",
+            idempotency_key=None,
+            portfolio_id="pf_pg_list",
+            created_at=now,
+            result_json={"rebalance_run_id": "rr_pg_list_1", "status": "READY"},
+        )
+    )
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_pg_list_2",
+            correlation_id="corr_pg_list_2",
+            request_hash="sha256:req-pg-list-2",
+            idempotency_key=None,
+            portfolio_id="pf_pg_list",
+            created_at=now.replace(minute=1),
+            result_json={"rebalance_run_id": "rr_pg_list_2", "status": "BLOCKED"},
+        )
+    )
+    rows, next_cursor = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status=None,
+        request_hash=None,
+        portfolio_id=None,
+        limit=1,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in rows] == ["rr_pg_list_2"]
+    assert next_cursor == "rr_pg_list_2"
+
+    page_two, cursor_two = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status=None,
+        request_hash=None,
+        portfolio_id=None,
+        limit=1,
+        cursor=next_cursor,
+    )
+    assert [row.rebalance_run_id for row in page_two] == ["rr_pg_list_1"]
+    assert cursor_two is None
+
+    status_filtered, _ = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status="READY",
+        request_hash=None,
+        portfolio_id=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in status_filtered] == ["rr_pg_list_1"]
+
+    hash_filtered, _ = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status=None,
+        request_hash="sha256:req-pg-list-1",
+        portfolio_id=None,
+        limit=10,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in hash_filtered] == ["rr_pg_list_1"]
+
+    portfolio_filtered, _ = repository.list_runs(
+        created_from=now.replace(second=30),
+        created_to=now.replace(minute=1, second=30),
+        status=None,
+        request_hash=None,
+        portfolio_id="pf_pg_list",
+        limit=10,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in portfolio_filtered] == ["rr_pg_list_2"]
+
+    invalid_rows, invalid_cursor = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status=None,
+        request_hash=None,
+        portfolio_id=None,
+        limit=10,
+        cursor="rr_pg_missing_cursor",
+    )
+    assert invalid_rows == []
+    assert invalid_cursor is None
+
+
 def test_postgres_repository_reports_unimplemented_for_other_methods(monkeypatch):
     repository, _ = _build_repository(monkeypatch)
     try:
-        repository.list_runs  # type: ignore[attr-defined]
+        repository.unimplemented_operation  # type: ignore[attr-defined]
     except RuntimeError as exc:
         assert str(exc) == "DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED"
     else:

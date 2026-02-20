@@ -173,9 +173,15 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - lineage retrieval by source/target entity
     - summary counters and status distributions
     - retention purge cascade behavior
+- Implemented (slice 7):
+  - Added concrete Postgres run lookup/list parity helpers:
+    - `get_run_by_correlation`
+    - `get_run_by_request_hash`
+    - `list_runs`
+  - Added unit coverage for:
+    - run listing filters (`from`, `to`, `status`, `request_hash`, `portfolio_id`)
+    - run listing cursor paging and invalid cursor behavior
+    - correlation/request-hash lookup semantics
 - Next slice:
   - implement remaining Postgres repository operations:
-    - run lookup/list parity helpers:
-      - `get_run_by_correlation`
-      - `get_run_by_request_hash`
-      - `list_runs`
+    - add live Postgres integration contract tests (docker profile) for repository parity.

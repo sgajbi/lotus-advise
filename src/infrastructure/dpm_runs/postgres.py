@@ -85,6 +85,99 @@ class PostgresDpmRunRepository:
             result_json=json.loads(row["result_json"]),
         )
 
+    def get_run_by_correlation(self, *, correlation_id: str) -> Optional[DpmRunRecord]:
+        query = """
+            SELECT
+                rebalance_run_id,
+                correlation_id,
+                request_hash,
+                idempotency_key,
+                portfolio_id,
+                created_at,
+                result_json
+            FROM dpm_runs
+            WHERE correlation_id = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (correlation_id,)).fetchone()
+        return self._to_run(row)
+
+    def get_run_by_request_hash(self, *, request_hash: str) -> Optional[DpmRunRecord]:
+        query = """
+            SELECT
+                rebalance_run_id,
+                correlation_id,
+                request_hash,
+                idempotency_key,
+                portfolio_id,
+                created_at,
+                result_json
+            FROM dpm_runs
+            WHERE request_hash = %s
+            ORDER BY created_at DESC, rebalance_run_id DESC
+            LIMIT 1
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (request_hash,)).fetchone()
+        return self._to_run(row)
+
+    def list_runs(
+        self,
+        *,
+        created_from: Optional[datetime],
+        created_to: Optional[datetime],
+        status: Optional[str],
+        request_hash: Optional[str],
+        portfolio_id: Optional[str],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmRunRecord], Optional[str]]:
+        where_clauses = []
+        args: list[str] = []
+        if created_from is not None:
+            where_clauses.append("created_at >= %s")
+            args.append(created_from.isoformat())
+        if created_to is not None:
+            where_clauses.append("created_at <= %s")
+            args.append(created_to.isoformat())
+        if portfolio_id is not None:
+            where_clauses.append("portfolio_id = %s")
+            args.append(portfolio_id)
+        if request_hash is not None:
+            where_clauses.append("request_hash = %s")
+            args.append(request_hash)
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        query = f"""
+            SELECT
+                rebalance_run_id,
+                correlation_id,
+                request_hash,
+                idempotency_key,
+                portfolio_id,
+                created_at,
+                result_json
+            FROM dpm_runs
+            {where_sql}
+            ORDER BY created_at DESC, rebalance_run_id DESC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, tuple(args)).fetchall()
+        runs = [self._to_run(row) for row in rows]
+        runs = [run for run in runs if run is not None]
+        if status is not None:
+            runs = [run for run in runs if str(run.result_json.get("status", "")) == status]
+        if cursor is not None:
+            cursor_index = next(
+                (index for index, row in enumerate(runs) if row.rebalance_run_id == cursor),
+                None,
+            )
+            if cursor_index is None:
+                return [], None
+            runs = runs[cursor_index + 1 :]
+        page = runs[:limit]
+        next_cursor = page[-1].rebalance_run_id if len(runs) > limit else None
+        return page, next_cursor
+
     def save_run_artifact(self, *, rebalance_run_id: str, artifact_json: dict[str, Any]) -> None:
         query = """
             INSERT INTO dpm_run_artifacts (
@@ -798,6 +891,19 @@ class PostgresDpmRunRepository:
                 ),
             )
             connection.commit()
+
+    def _to_run(self, row) -> Optional[DpmRunRecord]:
+        if row is None:
+            return None
+        return DpmRunRecord(
+            rebalance_run_id=row["rebalance_run_id"],
+            correlation_id=row["correlation_id"],
+            request_hash=row["request_hash"],
+            idempotency_key=row["idempotency_key"],
+            portfolio_id=row["portfolio_id"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+            result_json=json.loads(row["result_json"]),
+        )
 
     def _to_operation(self, row) -> Optional[DpmAsyncOperationRecord]:
         if row is None:
