@@ -35,6 +35,19 @@ For DPM policy-pack catalog and selected-pack presence diagnostics:
 curl -X GET "http://127.0.0.1:8000/rebalance/policies/catalog" -H "X-Policy-Pack-Id: dpm_standard_v1" -H "X-Tenant-Policy-Pack-Id: dpm_tenant_default_v1" -H "X-Tenant-Id: tenant_001"
 ```
 
+For DPM policy-pack supportability + diagnostics scenario:
+```bash
+curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-31-policy-pack" -H "X-Policy-Pack-Id: dpm_standard_v1" -H "X-Tenant-Policy-Pack-Id: dpm_tenant_default_v1" -H "X-Tenant-Id: tenant_001" --data-binary "@docs/demo/31_dpm_policy_pack_supportability_diagnostics.json"
+curl -X GET "http://127.0.0.1:8000/rebalance/policies/effective" -H "X-Policy-Pack-Id: dpm_standard_v1" -H "X-Tenant-Policy-Pack-Id: dpm_tenant_default_v1" -H "X-Tenant-Id: tenant_001"
+curl -X GET "http://127.0.0.1:8000/rebalance/policies/catalog" -H "X-Policy-Pack-Id: dpm_standard_v1" -H "X-Tenant-Policy-Pack-Id: dpm_tenant_default_v1" -H "X-Tenant-Id: tenant_001"
+```
+
+For DPM supportability summary metrics scenario:
+```bash
+curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-32-support-summary" -H "X-Correlation-Id: demo-corr-32-support-summary" --data-binary "@docs/demo/32_dpm_supportability_summary_metrics.json"
+curl -X GET "http://127.0.0.1:8000/rebalance/supportability/summary"
+```
+
 For DPM policy-pack turnover override demo (requires `DPM_POLICY_PACKS_ENABLED=true`):
 ```bash
 export DPM_POLICY_PACK_CATALOG_JSON='{"dpm_standard_v1":{"version":"1","turnover_policy":{"max_turnover_pct":"0.01"},"tax_policy":{"enable_tax_awareness":true,"max_realized_capital_gains":"100"}}}'
@@ -171,6 +184,8 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
 | `28_dpm_async_manual_execute_guard.json` | **DPM Async Manual Execute Guard** | Manual execute returns `409` on non-pending run | Demonstrates `/rebalance/operations/{operation_id}/execute` conflict guard when operation already completed inline. |
 | `29_dpm_workflow_gate_disabled_contract.json` | **DPM Workflow Gate Default Guard** | Workflow endpoints return `404 DPM_WORKFLOW_DISABLED` | Demonstrates feature-toggle default behavior for workflow supportability endpoints. |
 | `30_dpm_idempotency_history_supportability.json` | **DPM Idempotency History Supportability** | History returns two run mappings for same idempotency key | Demonstrates replay-disabled run recording and `GET /rebalance/idempotency/{idempotency_key}/history`. |
+| `31_dpm_policy_pack_supportability_diagnostics.json` | **DPM Policy-Pack Supportability Diagnostics** | `READY` plus policy diagnostics responses | Demonstrates policy endpoint diagnostics (`/policies/effective`, `/policies/catalog`) with policy headers and request simulation context. |
+| `32_dpm_supportability_summary_metrics.json` | **DPM Supportability Summary Metrics** | `READY` and summary response with expected metric fields | Demonstrates `/rebalance/supportability/summary` as the primary no-DB operational overview endpoint. |
 
 ## Feature Toggles Demonstrated
 
@@ -210,6 +225,12 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
   - `DPM_IDEMPOTENCY_REPLAY_ENABLED=false`
   - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED=true`
   - `GET /rebalance/idempotency/{idempotency_key}/history` returns append-only mapping history with run id, correlation id, and request hash
+- `31_dpm_policy_pack_supportability_diagnostics.json`:
+  - `POST /rebalance/simulate` with policy headers (`X-Policy-Pack-Id`, `X-Tenant-Policy-Pack-Id`, `X-Tenant-Id`)
+  - `GET /rebalance/policies/effective` and `GET /rebalance/policies/catalog` for policy selection diagnostics
+- `32_dpm_supportability_summary_metrics.json`:
+  - `POST /rebalance/simulate` to create supportability records
+  - `GET /rebalance/supportability/summary` for run/operation/workflow/lineage aggregate metrics
 - `10_advisory_proposal_simulate.json`:
   - `options.enable_proposal_simulation=true`
   - `options.proposal_apply_cash_flows_first=true`

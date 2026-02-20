@@ -15,6 +15,8 @@ Coverage includes:
 - DPM supportability + deterministic artifact flow demo (`27`)
 - DPM async manual-execute guard demo (`28`)
 - DPM workflow gate default-disabled contract demo (`29`)
+- DPM policy-pack supportability diagnostics demo (`31`)
+- DPM supportability summary metrics demo (`32`)
 - Advisory simulate demos (`10`-`18`)
 - Advisory artifact demo (`19`)
 - Advisory lifecycle flow demos (`20`-`25`)
@@ -80,6 +82,38 @@ Demo pack validation passed for http://127.0.0.1:8000
       - cursor pagination over operations returns deterministic next row.
     - Container (`DPM_ASYNC_EXECUTION_MODE=ACCEPT_ONLY`, `http://127.0.0.1:8018`):
       - filtered listing and cursor pagination produce expected operation rows.
+- Policy-pack supportability diagnostics scenario `31_dpm_policy_pack_supportability_diagnostics.json` validated:
+  - Uvicorn runtime (`http://127.0.0.1:8001`):
+    - `POST /rebalance/simulate` with policy headers returns `200`.
+    - `GET /rebalance/policies/effective` returns `200` with:
+      - `enabled`
+      - `selected_policy_pack_id`
+      - `source`
+    - `GET /rebalance/policies/catalog` returns `200` with:
+      - `enabled`
+      - `total`
+      - `selected_policy_pack_id`
+      - `selected_policy_pack_present`
+      - `selected_policy_pack_source`
+      - `items`
+  - Docker runtime (`http://127.0.0.1:8000`):
+    - Same request sequence returns `200` with expected diagnostics keys.
+- Supportability summary metrics scenario `32_dpm_supportability_summary_metrics.json` validated:
+  - Uvicorn runtime (`http://127.0.0.1:8001`):
+    - `POST /rebalance/simulate` returns `200`.
+    - `GET /rebalance/supportability/summary` returns `200` with expected aggregate fields:
+      - `store_backend`
+      - `retention_days`
+      - `run_count`
+      - `operation_count`
+      - `operation_status_counts`
+      - `run_status_counts`
+      - `workflow_decision_count`
+      - `workflow_action_counts`
+      - `workflow_reason_code_counts`
+      - `lineage_edge_count`
+  - Docker runtime (`http://127.0.0.1:8000`):
+    - Same request sequence returns `200` with expected aggregate fields.
 - Supportability summary API validation:
   - Uvicorn runtime (`http://127.0.0.1:8019`):
     - `POST /rebalance/simulate` returns `status=READY`.
