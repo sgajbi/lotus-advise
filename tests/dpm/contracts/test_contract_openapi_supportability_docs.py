@@ -216,6 +216,11 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     actual_params = {param["name"] for param in list_runs["parameters"]}
     assert expected_params.issubset(actual_params)
 
+    run_by_request_hash = openapi["paths"]["/rebalance/runs/by-request-hash/{request_hash}"]["get"]
+    assert run_by_request_hash["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmRunLookupResponse")
+
     supportability_summary = openapi["paths"]["/rebalance/supportability/summary"]["get"]
     assert supportability_summary["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"

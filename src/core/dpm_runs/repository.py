@@ -19,6 +19,8 @@ class DpmRunRepository(Protocol):
 
     def get_run_by_correlation(self, *, correlation_id: str) -> Optional[DpmRunRecord]: ...
 
+    def get_run_by_request_hash(self, *, request_hash: str) -> Optional[DpmRunRecord]: ...
+
     def list_runs(
         self,
         *,

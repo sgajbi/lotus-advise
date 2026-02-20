@@ -190,10 +190,12 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `POST /rebalance/simulate` succeeds.
     - `GET /rebalance/runs/{rebalance_run_id}` returns persisted `request_hash`.
     - `GET /rebalance/runs?request_hash={request_hash}&limit=20` returns one matching run.
+    - `GET /rebalance/runs/by-request-hash/{url_encoded_request_hash}` returns matching run.
   - Docker runtime (`http://127.0.0.1:8000`):
     - `POST /rebalance/simulate` succeeds.
     - `GET /rebalance/runs/{rebalance_run_id}` returns persisted `request_hash`.
     - `GET /rebalance/runs?request_hash={request_hash}&limit=20` returns one matching run.
+    - `GET /rebalance/runs/by-request-hash/{url_encoded_request_hash}` returns matching run.
 - Async manual execute guard scenario `28_dpm_async_manual_execute_guard.json` validated:
   - `POST /rebalance/analyze/async` in default inline mode succeeds and completes operation.
   - `POST /rebalance/operations/{operation_id}/execute` returns `409` with

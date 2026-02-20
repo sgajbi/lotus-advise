@@ -92,6 +92,25 @@ class SqliteDpmRunRepository(DpmRunRepository):
             row = connection.execute(query, (correlation_id,)).fetchone()
         return self._to_run(row)
 
+    def get_run_by_request_hash(self, *, request_hash: str) -> Optional[DpmRunRecord]:
+        query = """
+            SELECT
+                rebalance_run_id,
+                correlation_id,
+                request_hash,
+                idempotency_key,
+                portfolio_id,
+                created_at,
+                result_json
+            FROM dpm_runs
+            WHERE request_hash = ?
+            ORDER BY created_at DESC, rebalance_run_id DESC
+            LIMIT 1
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (request_hash,)).fetchone()
+        return self._to_run(row)
+
     def list_runs(
         self,
         *,

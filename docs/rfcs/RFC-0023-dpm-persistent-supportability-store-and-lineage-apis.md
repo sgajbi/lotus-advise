@@ -42,6 +42,7 @@ In-memory supportability works for local/runtime diagnostics but is insufficient
 ### 4.2 API Surface
 
 - `GET /rebalance/runs?from=...&to=...&status=...&request_hash=...&portfolio_id=...`
+- `GET /rebalance/runs/by-request-hash/{request_hash}`
 - `GET /rebalance/supportability/summary`
 - `GET /rebalance/runs/{rebalance_run_id}/support-bundle`
 - `GET /rebalance/runs/by-correlation/{correlation_id}/support-bundle`
@@ -108,6 +109,9 @@ No new business run statuses. Investigation responses use explicit technical sta
     - `GET /rebalance/runs`
       - filters: `from`, `to`, `status`, `request_hash`, `portfolio_id`
       - pagination: `limit`, `cursor`
+  - Run lookup extension:
+    - `GET /rebalance/runs/by-request-hash/{request_hash}`
+      - returns latest run mapped to canonical request hash.
 - Implemented (slice 5):
   - Retention policy:
     - `DPM_SUPPORTABILITY_RETENTION_DAYS`

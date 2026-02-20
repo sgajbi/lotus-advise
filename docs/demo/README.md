@@ -30,6 +30,7 @@ For DPM supportability and deterministic artifact retrieval flow:
 curl -X POST "http://127.0.0.1:8000/rebalance/simulate" -H "Content-Type: application/json" -H "Idempotency-Key: demo-27-supportability" -H "X-Correlation-Id: demo-corr-27-supportability" --data-binary "@docs/demo/27_dpm_supportability_artifact_flow.json"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs?status=READY&portfolio_id=pf_demo_support_27&limit=20"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs?request_hash=<request_hash>&limit=20"
+curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-request-hash/<url_encoded_request_hash>"
 curl -X GET "http://127.0.0.1:8000/rebalance/supportability/summary"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/by-correlation/demo-corr-27-supportability"
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/idempotency/demo-27-supportability"

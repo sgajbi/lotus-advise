@@ -155,6 +155,10 @@ def test_dpm_support_apis_lookup_by_run_correlation_and_idempotency(client):
     assert by_correlation.status_code == 200
     assert by_correlation.json()["rebalance_run_id"] == body["rebalance_run_id"]
 
+    by_request_hash = client.get(f"/rebalance/runs/by-request-hash/{run_body['request_hash']}")
+    assert by_request_hash.status_code == 200
+    assert by_request_hash.json()["rebalance_run_id"] == body["rebalance_run_id"]
+
     by_idempotency = client.get("/rebalance/runs/idempotency/test-key-support-1")
     assert by_idempotency.status_code == 200
     idem_body = by_idempotency.json()
@@ -417,6 +421,10 @@ def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
     missing_correlation = client.get("/rebalance/runs/by-correlation/corr-missing")
     assert missing_correlation.status_code == 404
     assert missing_correlation.json()["detail"] == "DPM_RUN_NOT_FOUND"
+
+    missing_request_hash = client.get("/rebalance/runs/by-request-hash/sha256:missing")
+    assert missing_request_hash.status_code == 404
+    assert missing_request_hash.json()["detail"] == "DPM_RUN_NOT_FOUND"
 
     missing_idem = client.get("/rebalance/runs/idempotency/idem-missing")
     assert missing_idem.status_code == 404

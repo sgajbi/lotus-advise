@@ -136,6 +136,13 @@ class DpmRunSupportService:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
         return self._to_lookup_response(run)
 
+    def get_run_by_request_hash(self, *, request_hash: str) -> DpmRunLookupResponse:
+        self._cleanup_expired_supportability()
+        run = self._repository.get_run_by_request_hash(request_hash=request_hash)
+        if run is None:
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+        return self._to_lookup_response(run)
+
     def list_runs(
         self,
         *,

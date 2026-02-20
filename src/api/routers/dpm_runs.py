@@ -317,6 +317,30 @@ def get_run_by_correlation(
 
 
 @router.get(
+    "/rebalance/runs/by-request-hash/{request_hash}",
+    response_model=DpmRunLookupResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Run by Request Hash",
+    description="Returns the latest DPM run mapped to a canonical request hash for investigation.",
+)
+def get_run_by_request_hash(
+    request_hash: Annotated[
+        str,
+        Path(
+            description="Canonical request hash persisted for run supportability record.",
+            examples=["sha256:abc123"],
+        ),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunLookupResponse:
+    _assert_support_apis_enabled()
+    try:
+        return service.get_run_by_request_hash(request_hash=request_hash)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
     "/rebalance/runs/idempotency/{idempotency_key}",
     response_model=DpmRunIdempotencyLookupResponse,
     status_code=status.HTTP_200_OK,

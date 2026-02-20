@@ -47,6 +47,9 @@ def test_repository_run_and_idempotency_contract(repository):
     by_correlation = repository.get_run_by_correlation(correlation_id="corr_repo_1")
     assert by_correlation is not None
     assert by_correlation.rebalance_run_id == "rr_repo_1"
+    by_request_hash = repository.get_run_by_request_hash(request_hash="sha256:req1")
+    assert by_request_hash is not None
+    assert by_request_hash.rebalance_run_id == "rr_repo_1"
 
     record = DpmRunIdempotencyRecord(
         idempotency_key="idem_repo_1",

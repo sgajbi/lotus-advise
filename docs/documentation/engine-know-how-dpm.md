@@ -115,6 +115,10 @@ Implementation scope:
 ### `GET /rebalance/runs/by-correlation/{correlation_id}`
 - Purpose: retrieve latest DPM run mapped to correlation id.
 
+### `GET /rebalance/runs/by-request-hash/{request_hash}`
+- Purpose: retrieve latest DPM run mapped to canonical request hash.
+- Note: URL-encode `request_hash` when calling via path parameter.
+
 ### `GET /rebalance/runs/idempotency/{idempotency_key}`
 - Purpose: retrieve idempotency key to run mapping for retry and incident analysis.
 

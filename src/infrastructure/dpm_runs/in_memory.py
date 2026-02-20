@@ -46,6 +46,14 @@ class InMemoryDpmRunRepository(DpmRunRepository):
             run = self._runs.get(run_id)
             return deepcopy(run) if run is not None else None
 
+    def get_run_by_request_hash(self, *, request_hash: str) -> Optional[DpmRunRecord]:
+        with self._lock:
+            matching = [run for run in self._runs.values() if run.request_hash == request_hash]
+            if not matching:
+                return None
+            latest = max(matching, key=lambda item: (item.created_at, item.rebalance_run_id))
+            return deepcopy(latest)
+
     def list_runs(
         self,
         *,
