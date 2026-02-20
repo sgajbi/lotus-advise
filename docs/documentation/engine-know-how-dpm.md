@@ -27,6 +27,10 @@ Implementation scope:
 - Correlation behavior:
   - response `correlation_id` echoes request `X-Correlation-Id` when provided
   - otherwise defaults to `c_none`
+- Idempotency behavior:
+  - same key + same canonical request payload returns cached result
+  - same key + different canonical request payload returns `409 Conflict`
+  - replay semantics can be disabled with `DPM_IDEMPOTENCY_REPLAY_ENABLED=false`
 
 ### `POST /rebalance/analyze`
 - Purpose: multi-scenario what-if analysis using shared snapshots.
@@ -82,6 +86,9 @@ Implementation scope:
 - `client_consent_already_obtained`
 - `link_buy_to_same_currency_sell_dependency`
 - plus shared controls (`valuation_mode`, cash bands, dust/min-notional, data quality blocking)
+- runtime API toggles:
+  - `DPM_IDEMPOTENCY_REPLAY_ENABLED` (default `true`)
+  - `DPM_IDEMPOTENCY_CACHE_MAX_SIZE` (default `1000`)
 
 Dependency policy note:
 - `link_buy_to_same_currency_sell_dependency=null` defaults to `true` in DPM.

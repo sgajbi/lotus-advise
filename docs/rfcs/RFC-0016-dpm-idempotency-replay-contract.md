@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0001, RFC-0002, RFC-0007A |
 | **Doc Location** | `docs/rfcs/RFC-0016-dpm-idempotency-replay-contract.md` |
@@ -15,6 +15,13 @@ This RFC defines and implements explicit idempotency semantics for `POST /rebala
 - same `Idempotency-Key` + different canonical request payload -> return `409 Conflict`
 
 This aligns DPM behavior with advisory simulation behavior and improves enterprise-grade retry safety.
+
+Implementation note (2026-02-20):
+- Implemented in `src/api/main.py` with canonical request hashing and bounded in-memory replay cache.
+- API tests added in `tests/dpm/api/test_api_rebalance.py`.
+- Runtime controls delivered:
+  - `DPM_IDEMPOTENCY_REPLAY_ENABLED`
+  - `DPM_IDEMPOTENCY_CACHE_MAX_SIZE`
 
 ## 2. Problem Statement
 
