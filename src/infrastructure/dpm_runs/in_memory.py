@@ -2,7 +2,7 @@ import json
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from threading import Lock
-from typing import Optional
+from typing import Any, Optional
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
@@ -23,6 +23,7 @@ class InMemoryDpmRunRepository(DpmRunRepository):
         self._run_id_by_correlation: dict[str, str] = {}
         self._idempotency: dict[str, DpmRunIdempotencyRecord] = {}
         self._idempotency_history: dict[str, list[DpmRunIdempotencyHistoryRecord]] = {}
+        self._run_artifacts: dict[str, dict[str, Any]] = {}
         self._operations: dict[str, DpmAsyncOperationRecord] = {}
         self._operation_by_correlation: dict[str, str] = {}
         self._workflow_decisions: dict[str, list[DpmRunWorkflowDecisionRecord]] = {}
@@ -91,6 +92,15 @@ class InMemoryDpmRunRepository(DpmRunRepository):
             page = rows[:limit]
             next_cursor = page[-1].rebalance_run_id if len(rows) > limit else None
             return [deepcopy(row) for row in page], next_cursor
+
+    def save_run_artifact(self, *, rebalance_run_id: str, artifact_json: dict[str, Any]) -> None:
+        with self._lock:
+            self._run_artifacts[rebalance_run_id] = deepcopy(artifact_json)
+
+    def get_run_artifact(self, *, rebalance_run_id: str) -> Optional[dict[str, Any]]:
+        with self._lock:
+            artifact = self._run_artifacts.get(rebalance_run_id)
+            return deepcopy(artifact) if artifact is not None else None
 
     def save_idempotency_mapping(self, record: DpmRunIdempotencyRecord) -> None:
         with self._lock:
@@ -337,6 +347,7 @@ class InMemoryDpmRunRepository(DpmRunRepository):
 
             for run in expired_runs:
                 self._runs.pop(run.rebalance_run_id, None)
+                self._run_artifacts.pop(run.rebalance_run_id, None)
                 if self._run_id_by_correlation.get(run.correlation_id) == run.rebalance_run_id:
                     self._run_id_by_correlation.pop(run.correlation_id, None)
 

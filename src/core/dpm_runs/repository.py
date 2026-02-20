@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Protocol
+from typing import Any, Optional, Protocol
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
@@ -32,6 +32,12 @@ class DpmRunRepository(Protocol):
         limit: int,
         cursor: Optional[str],
     ) -> tuple[list[DpmRunRecord], Optional[str]]: ...
+
+    def save_run_artifact(
+        self, *, rebalance_run_id: str, artifact_json: dict[str, Any]
+    ) -> None: ...
+
+    def get_run_artifact(self, *, rebalance_run_id: str) -> Optional[dict[str, Any]]: ...
 
     def save_idempotency_mapping(self, record: DpmRunIdempotencyRecord) -> None: ...
 

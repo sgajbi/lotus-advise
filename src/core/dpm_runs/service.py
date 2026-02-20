@@ -68,6 +68,7 @@ class DpmRunSupportService:
         supportability_retention_days: int = 0,
         workflow_enabled: bool = False,
         workflow_requires_review_for_statuses: Optional[set[str]] = None,
+        artifact_store_mode: str = "DERIVED",
     ) -> None:
         self._repository = repository
         self._async_operation_ttl_seconds = max(1, async_operation_ttl_seconds)
@@ -78,6 +79,9 @@ class DpmRunSupportService:
             for value in (workflow_requires_review_for_statuses or {"PENDING_REVIEW"})
             if value.strip()
         }
+        self._artifact_store_mode = (
+            "PERSISTED" if artifact_store_mode.strip().upper() == "PERSISTED" else "DERIVED"
+        )
 
     def record_run(
         self,
@@ -100,6 +104,7 @@ class DpmRunSupportService:
             result_json=result.model_dump(mode="json"),
         )
         self._repository.save_run(run)
+        self._persist_run_artifact_if_needed(run=run)
         self._record_lineage_edge(
             source_entity_id=run.correlation_id,
             edge_type="CORRELATION_TO_RUN",
@@ -235,7 +240,7 @@ class DpmRunSupportService:
         run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
-        return build_dpm_run_artifact(run=run)
+        return self._resolve_run_artifact(run=run)
 
     def submit_analyze_async(
         self,
@@ -396,7 +401,7 @@ class DpmRunSupportService:
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
 
-        artifact = build_dpm_run_artifact(run=run) if include_artifact else None
+        artifact = self._resolve_run_artifact(run=run) if include_artifact else None
         async_operation = None
         if include_async_operation:
             operation = self._repository.get_operation_by_correlation(
@@ -737,7 +742,6 @@ class DpmRunSupportService:
             correlation_id=action_correlation_id,
         )
 
-
     def _cleanup_expired_operations(self) -> None:
         self._repository.purge_expired_operations(
             ttl_seconds=self._async_operation_ttl_seconds,
@@ -835,6 +839,28 @@ class DpmRunSupportService:
             latest_decision=latest_decision,
             requires_review_for_statuses=self._workflow_requires_review_for_statuses,
         )
+
+    def _persist_run_artifact_if_needed(self, *, run: DpmRunRecord) -> None:
+        if self._artifact_store_mode != "PERSISTED":
+            return
+        artifact = build_dpm_run_artifact(run=run)
+        self._repository.save_run_artifact(
+            rebalance_run_id=run.rebalance_run_id,
+            artifact_json=artifact.model_dump(mode="json"),
+        )
+
+    def _resolve_run_artifact(self, *, run: DpmRunRecord) -> DpmRunArtifactResponse:
+        if self._artifact_store_mode != "PERSISTED":
+            return build_dpm_run_artifact(run=run)
+        persisted = self._repository.get_run_artifact(rebalance_run_id=run.rebalance_run_id)
+        if persisted is not None:
+            return DpmRunArtifactResponse.model_validate(persisted)
+        artifact = build_dpm_run_artifact(run=run)
+        self._repository.save_run_artifact(
+            rebalance_run_id=run.rebalance_run_id,
+            artifact_json=artifact.model_dump(mode="json"),
+        )
+        return artifact
 
 
 def _utc_now() -> datetime:

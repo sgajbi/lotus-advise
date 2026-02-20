@@ -4,7 +4,7 @@ from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
-from typing import Optional
+from typing import Any, Optional
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
@@ -168,6 +168,31 @@ class SqliteDpmRunRepository(DpmRunRepository):
         page = runs[:limit]
         next_cursor = page[-1].rebalance_run_id if len(runs) > limit else None
         return page, next_cursor
+
+    def save_run_artifact(self, *, rebalance_run_id: str, artifact_json: dict[str, Any]) -> None:
+        query = """
+            INSERT INTO dpm_run_artifacts (
+                rebalance_run_id,
+                artifact_json
+            ) VALUES (?, ?)
+            ON CONFLICT(rebalance_run_id) DO UPDATE SET
+                artifact_json=excluded.artifact_json
+        """
+        with self._lock, closing(self._connect()) as connection:
+            connection.execute(query, (rebalance_run_id, _json_dump(artifact_json)))
+            connection.commit()
+
+    def get_run_artifact(self, *, rebalance_run_id: str) -> Optional[dict[str, Any]]:
+        query = """
+            SELECT artifact_json
+            FROM dpm_run_artifacts
+            WHERE rebalance_run_id = ?
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (rebalance_run_id,)).fetchone()
+        if row is None:
+            return None
+        return json.loads(row["artifact_json"])
 
     def save_idempotency_mapping(self, record: DpmRunIdempotencyRecord) -> None:
         query = """
@@ -689,6 +714,10 @@ class SqliteDpmRunRepository(DpmRunRepository):
                 tuple(run_ids),
             )
             connection.execute(
+                f"DELETE FROM dpm_run_artifacts WHERE rebalance_run_id IN ({run_id_placeholders})",
+                tuple(run_ids),
+            )
+            connection.execute(
                 f"""
                 DELETE FROM dpm_run_idempotency
                 WHERE rebalance_run_id IN ({run_id_placeholders})
@@ -823,6 +852,11 @@ class SqliteDpmRunRepository(DpmRunRepository):
                     correlation_id TEXT NOT NULL,
                     request_hash TEXT NOT NULL,
                     created_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS dpm_run_artifacts (
+                    rebalance_run_id TEXT PRIMARY KEY,
+                    artifact_json TEXT NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS dpm_async_operations (

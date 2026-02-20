@@ -57,14 +57,6 @@ def _assert_artifacts_enabled() -> None:
         )
 
 
-def _assert_artifact_store_mode_supported() -> None:
-    if dpm_runs_config.artifact_store_mode() == "PERSISTED":
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="DPM_ARTIFACT_STORE_MODE_NOT_SUPPORTED",
-        )
-
-
 def _assert_workflow_enabled() -> None:
     if not dpm_runs_config.env_flag("DPM_WORKFLOW_ENABLED", False):
         raise HTTPException(
@@ -134,6 +126,7 @@ def get_dpm_run_support_service() -> DpmRunSupportService:
                 "DPM_WORKFLOW_REQUIRES_REVIEW_FOR_STATUSES",
                 {"PENDING_REVIEW"},
             ),
+            artifact_store_mode=dpm_runs_config.artifact_store_mode(),
         )
     return _SERVICE
 
@@ -609,16 +602,11 @@ def get_dpm_run_support_bundle_by_operation(
     status_code=status.HTTP_200_OK,
     summary="Get DPM Run Artifact by Run Id",
     description=(
-        "Returns deterministic run artifact synthesized from persisted DPM run payload "
-        "and supportability metadata."
+        "Returns deterministic run artifact from supportability run data using configured "
+        "artifact mode (`DERIVED` or `PERSISTED`)."
     ),
     responses={
         404: {"description": "Support APIs/artifacts disabled or run id not found."},
-        503: {
-            "description": (
-                "Configured artifact store mode is not currently supported by runtime backend."
-            )
-        },
     },
 )
 def get_run_artifact_by_run_id(
@@ -630,7 +618,6 @@ def get_run_artifact_by_run_id(
 ) -> DpmRunArtifactResponse:
     _assert_support_apis_enabled()
     _assert_artifacts_enabled()
-    _assert_artifact_store_mode_supported()
     try:
         return service.get_run_artifact(rebalance_run_id=rebalance_run_id)
     except DpmRunNotFoundError as exc:
