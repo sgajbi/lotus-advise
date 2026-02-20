@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
@@ -507,6 +507,7 @@ def analyze_scenarios_async(
             examples=["corr-batch-async-1"],
         ),
     ] = None,
+    response: Response = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> DpmAsyncAcceptedResponse:
     if not _env_flag("DPM_ASYNC_OPERATIONS_ENABLED", True):
@@ -516,6 +517,8 @@ def analyze_scenarios_async(
         )
     service = get_dpm_run_support_service()
     accepted = service.submit_analyze_async(correlation_id=correlation_id)
+    if response is not None:
+        response.headers["X-Correlation-Id"] = accepted.correlation_id
     if _resolve_async_execution_mode() == "ACCEPT_ONLY":
         return accepted
     service.mark_operation_running(operation_id=accepted.operation_id)

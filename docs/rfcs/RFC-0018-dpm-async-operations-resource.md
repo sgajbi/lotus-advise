@@ -43,6 +43,7 @@ Large what-if batches can be slow and are currently synchronous, which creates t
 - `POST /rebalance/analyze/async`
   - Returns `202 Accepted` with operation resource.
   - Uses request `X-Correlation-Id` when provided; otherwise generates one.
+  - Echoes resolved `X-Correlation-Id` in response header.
 - `GET /rebalance/operations/{operation_id}`
   - Returns operation state and, once complete, normalized result/error envelope.
 - `GET /rebalance/operations/by-correlation/{correlation_id}`

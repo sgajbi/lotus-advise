@@ -403,6 +403,7 @@ def test_analyze_async_accept_and_lookup_succeeded(client):
     assert accepted_body["operation_type"] == "ANALYZE_SCENARIOS"
     assert accepted_body["status"] == "PENDING"
     assert accepted_body["correlation_id"] == "corr-batch-async-1"
+    assert accepted.headers["X-Correlation-Id"] == "corr-batch-async-1"
     operation_id = accepted_body["operation_id"]
 
     by_operation = client.get(f"/rebalance/operations/{operation_id}")
@@ -418,6 +419,18 @@ def test_analyze_async_accept_and_lookup_succeeded(client):
     assert by_correlation.status_code == 200
     assert by_correlation.json()["operation_id"] == operation_id
     assert by_correlation.json()["status"] == "SUCCEEDED"
+
+
+def test_analyze_async_generates_and_echoes_correlation_header_when_missing(client):
+    payload = get_valid_payload()
+    payload.pop("options")
+    payload["scenarios"] = {"baseline": {"options": {}}}
+
+    accepted = client.post("/rebalance/analyze/async", json=payload)
+    assert accepted.status_code == 202
+    accepted_body = accepted.json()
+    assert accepted_body["correlation_id"].startswith("corr_")
+    assert accepted.headers["X-Correlation-Id"] == accepted_body["correlation_id"]
 
 
 def test_analyze_async_failure_is_captured_in_operation_status(client):
