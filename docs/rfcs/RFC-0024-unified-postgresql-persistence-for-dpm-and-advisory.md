@@ -159,8 +159,23 @@ Current state is split between in-memory adapters (advisory and default DPM) and
     - `dpm_run_idempotency_history`
     - `dpm_async_operations`
   - Added deterministic unit coverage for filters, cursor behavior, and purge semantics.
+- Implemented (slice 6):
+  - Added concrete Postgres supportability repository operations for:
+    - workflow decisions append/list/list-filtered
+    - lineage edges append/list
+    - supportability summary aggregation
+    - run retention purge with related-entity cleanup
+  - Added table bootstrap for:
+    - `dpm_workflow_decisions`
+    - `dpm_lineage_edges`
+  - Added unit coverage for:
+    - workflow filtering and cursor behavior
+    - lineage retrieval by source/target entity
+    - summary counters and status distributions
+    - retention purge cascade behavior
 - Next slice:
   - implement remaining Postgres repository operations:
-    - workflow decisions
-    - lineage edges
-    - supportability summary and retention purge
+    - run lookup/list parity helpers:
+      - `get_run_by_correlation`
+      - `get_run_by_request_hash`
+      - `list_runs`

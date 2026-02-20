@@ -6,9 +6,12 @@ from typing import Any, Optional
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
+    DpmLineageEdgeRecord,
     DpmRunIdempotencyHistoryRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
+    DpmRunWorkflowDecisionRecord,
+    DpmSupportabilitySummaryData,
 )
 
 
@@ -323,6 +326,342 @@ class PostgresDpmRunRepository:
             connection.commit()
             return cursor.rowcount
 
+    def append_workflow_decision(self, decision: DpmRunWorkflowDecisionRecord) -> None:
+        query = """
+            INSERT INTO dpm_workflow_decisions (
+                decision_id,
+                run_id,
+                action,
+                reason_code,
+                comment,
+                actor_id,
+                decided_at,
+                correlation_id
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        with closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    decision.decision_id,
+                    decision.run_id,
+                    decision.action,
+                    decision.reason_code,
+                    decision.comment,
+                    decision.actor_id,
+                    decision.decided_at.isoformat(),
+                    decision.correlation_id,
+                ),
+            )
+            connection.commit()
+
+    def list_workflow_decisions(
+        self, *, rebalance_run_id: str
+    ) -> list[DpmRunWorkflowDecisionRecord]:
+        query = """
+            SELECT
+                decision_id,
+                run_id,
+                action,
+                reason_code,
+                comment,
+                actor_id,
+                decided_at,
+                correlation_id
+            FROM dpm_workflow_decisions
+            WHERE run_id = %s
+            ORDER BY decided_at ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (rebalance_run_id,)).fetchall()
+        return [
+            DpmRunWorkflowDecisionRecord(
+                decision_id=row["decision_id"],
+                run_id=row["run_id"],
+                action=row["action"],
+                reason_code=row["reason_code"],
+                comment=row["comment"],
+                actor_id=row["actor_id"],
+                decided_at=datetime.fromisoformat(row["decided_at"]),
+                correlation_id=row["correlation_id"],
+            )
+            for row in rows
+        ]
+
+    def list_workflow_decisions_filtered(
+        self,
+        *,
+        rebalance_run_id: Optional[str],
+        action: Optional[str],
+        actor_id: Optional[str],
+        reason_code: Optional[str],
+        decided_from: Optional[datetime],
+        decided_to: Optional[datetime],
+        limit: int,
+        cursor: Optional[str],
+    ) -> tuple[list[DpmRunWorkflowDecisionRecord], Optional[str]]:
+        where_clauses = []
+        args: list[str] = []
+        if rebalance_run_id is not None:
+            where_clauses.append("run_id = %s")
+            args.append(rebalance_run_id)
+        if action is not None:
+            where_clauses.append("action = %s")
+            args.append(action)
+        if actor_id is not None:
+            where_clauses.append("actor_id = %s")
+            args.append(actor_id)
+        if reason_code is not None:
+            where_clauses.append("reason_code = %s")
+            args.append(reason_code)
+        if decided_from is not None:
+            where_clauses.append("decided_at >= %s")
+            args.append(decided_from.isoformat())
+        if decided_to is not None:
+            where_clauses.append("decided_at <= %s")
+            args.append(decided_to.isoformat())
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        query = f"""
+            SELECT
+                decision_id,
+                run_id,
+                action,
+                reason_code,
+                comment,
+                actor_id,
+                decided_at,
+                correlation_id
+            FROM dpm_workflow_decisions
+            {where_sql}
+            ORDER BY decided_at DESC, decision_id DESC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, tuple(args)).fetchall()
+        decisions = [
+            DpmRunWorkflowDecisionRecord(
+                decision_id=row["decision_id"],
+                run_id=row["run_id"],
+                action=row["action"],
+                reason_code=row["reason_code"],
+                comment=row["comment"],
+                actor_id=row["actor_id"],
+                decided_at=datetime.fromisoformat(row["decided_at"]),
+                correlation_id=row["correlation_id"],
+            )
+            for row in rows
+        ]
+        if cursor is not None:
+            cursor_index = next(
+                (index for index, row in enumerate(decisions) if row.decision_id == cursor),
+                None,
+            )
+            if cursor_index is None:
+                return [], None
+            decisions = decisions[cursor_index + 1 :]
+        page = decisions[:limit]
+        next_cursor = page[-1].decision_id if len(decisions) > limit else None
+        return page, next_cursor
+
+    def append_lineage_edge(self, edge: DpmLineageEdgeRecord) -> None:
+        query = """
+            INSERT INTO dpm_lineage_edges (
+                source_entity_id,
+                edge_type,
+                target_entity_id,
+                created_at,
+                metadata_json
+            ) VALUES (%s, %s, %s, %s, %s)
+        """
+        with closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    edge.source_entity_id,
+                    edge.edge_type,
+                    edge.target_entity_id,
+                    edge.created_at.isoformat(),
+                    _json_dump(edge.metadata_json),
+                ),
+            )
+            connection.commit()
+
+    def list_lineage_edges(self, *, entity_id: str) -> list[DpmLineageEdgeRecord]:
+        query = """
+            SELECT
+                source_entity_id,
+                edge_type,
+                target_entity_id,
+                created_at,
+                metadata_json
+            FROM dpm_lineage_edges
+            WHERE source_entity_id = %s OR target_entity_id = %s
+            ORDER BY created_at ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (entity_id, entity_id)).fetchall()
+        return [
+            DpmLineageEdgeRecord(
+                source_entity_id=row["source_entity_id"],
+                edge_type=row["edge_type"],
+                target_entity_id=row["target_entity_id"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+                metadata_json=json.loads(row["metadata_json"]),
+            )
+            for row in rows
+        ]
+
+    def get_supportability_summary(self) -> DpmSupportabilitySummaryData:
+        run_query = """
+            SELECT
+                COUNT(*) AS run_count,
+                MIN(created_at) AS oldest_run_created_at,
+                MAX(created_at) AS newest_run_created_at
+            FROM dpm_runs
+        """
+        operation_query = """
+            SELECT
+                COUNT(*) AS operation_count,
+                MIN(created_at) AS oldest_operation_created_at,
+                MAX(created_at) AS newest_operation_created_at
+            FROM dpm_async_operations
+        """
+        operation_status_query = """
+            SELECT status, COUNT(*) AS status_count
+            FROM dpm_async_operations
+            GROUP BY status
+        """
+        run_status_query = """
+            SELECT result_json
+            FROM dpm_runs
+        """
+        workflow_decision_count_query = (
+            "SELECT COUNT(*) AS workflow_decision_count FROM dpm_workflow_decisions"
+        )
+        workflow_action_counts_query = """
+            SELECT action, COUNT(*) AS action_count
+            FROM dpm_workflow_decisions
+            GROUP BY action
+        """
+        workflow_reason_code_counts_query = """
+            SELECT reason_code, COUNT(*) AS reason_code_count
+            FROM dpm_workflow_decisions
+            GROUP BY reason_code
+        """
+        lineage_edge_count_query = "SELECT COUNT(*) AS lineage_edge_count FROM dpm_lineage_edges"
+        with closing(self._connect()) as connection:
+            run_row = connection.execute(run_query).fetchone()
+            operation_row = connection.execute(operation_query).fetchone()
+            status_rows = connection.execute(operation_status_query).fetchall()
+            run_rows = connection.execute(run_status_query).fetchall()
+            workflow_row = connection.execute(workflow_decision_count_query).fetchone()
+            workflow_action_rows = connection.execute(workflow_action_counts_query).fetchall()
+            workflow_reason_code_rows = connection.execute(
+                workflow_reason_code_counts_query
+            ).fetchall()
+            lineage_row = connection.execute(lineage_edge_count_query).fetchone()
+
+        operation_status_counts = {
+            row["status"]: int(row["status_count"])
+            for row in status_rows
+            if row["status"] is not None
+        }
+        run_status_counts: dict[str, int] = {}
+        for row in run_rows:
+            status = str(json.loads(row["result_json"]).get("status", ""))
+            if status:
+                run_status_counts[status] = run_status_counts.get(status, 0) + 1
+        workflow_action_counts = {
+            row["action"]: int(row["action_count"])
+            for row in workflow_action_rows
+            if row["action"] is not None
+        }
+        workflow_reason_code_counts = {
+            row["reason_code"]: int(row["reason_code_count"])
+            for row in workflow_reason_code_rows
+            if row["reason_code"] is not None
+        }
+        return DpmSupportabilitySummaryData(
+            run_count=int(run_row["run_count"]),
+            operation_count=int(operation_row["operation_count"]),
+            operation_status_counts=operation_status_counts,
+            run_status_counts=run_status_counts,
+            workflow_decision_count=int(workflow_row["workflow_decision_count"]),
+            workflow_action_counts=workflow_action_counts,
+            workflow_reason_code_counts=workflow_reason_code_counts,
+            lineage_edge_count=int(lineage_row["lineage_edge_count"]),
+            oldest_run_created_at=_optional_datetime(run_row["oldest_run_created_at"]),
+            newest_run_created_at=_optional_datetime(run_row["newest_run_created_at"]),
+            oldest_operation_created_at=_optional_datetime(
+                operation_row["oldest_operation_created_at"]
+            ),
+            newest_operation_created_at=_optional_datetime(
+                operation_row["newest_operation_created_at"]
+            ),
+        )
+
+    def purge_expired_runs(self, *, retention_days: int, now: datetime) -> int:
+        if retention_days < 1:
+            return 0
+        cutoff = now.astimezone(timezone.utc) - timedelta(days=retention_days)
+        select_expired = """
+            SELECT rebalance_run_id, correlation_id, idempotency_key
+            FROM dpm_runs
+            WHERE created_at < %s
+        """
+        with closing(self._connect()) as connection:
+            expired_rows = connection.execute(select_expired, (cutoff.isoformat(),)).fetchall()
+            if not expired_rows:
+                return 0
+
+            run_ids = [row["rebalance_run_id"] for row in expired_rows]
+            correlation_ids = [row["correlation_id"] for row in expired_rows]
+            idempotency_keys = [
+                row["idempotency_key"] for row in expired_rows if row["idempotency_key"]
+            ]
+
+            run_id_placeholders = _placeholders(len(run_ids))
+            connection.execute(
+                f"DELETE FROM dpm_runs WHERE rebalance_run_id IN ({run_id_placeholders})",
+                tuple(run_ids),
+            )
+            connection.execute(
+                f"DELETE FROM dpm_workflow_decisions WHERE run_id IN ({run_id_placeholders})",
+                tuple(run_ids),
+            )
+            connection.execute(
+                f"DELETE FROM dpm_run_artifacts WHERE rebalance_run_id IN ({run_id_placeholders})",
+                tuple(run_ids),
+            )
+            connection.execute(
+                f"""
+                DELETE FROM dpm_run_idempotency
+                WHERE rebalance_run_id IN ({run_id_placeholders})
+                """,
+                tuple(run_ids),
+            )
+            connection.execute(
+                f"""
+                DELETE FROM dpm_run_idempotency_history
+                WHERE rebalance_run_id IN ({run_id_placeholders})
+                """,
+                tuple(run_ids),
+            )
+
+            entities = run_ids + correlation_ids + idempotency_keys
+            if entities:
+                entity_placeholders = _placeholders(len(entities))
+                connection.execute(
+                    f"""
+                    DELETE FROM dpm_lineage_edges
+                    WHERE source_entity_id IN ({entity_placeholders})
+                    OR target_entity_id IN ({entity_placeholders})
+                    """,
+                    tuple(entities + entities),
+                )
+
+            connection.commit()
+            return len(run_ids)
+
     def __getattr__(self, _name: str):
         raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED")
 
@@ -387,6 +726,31 @@ class PostgresDpmRunRepository:
                     result_json TEXT NULL,
                     error_json TEXT NULL,
                     request_json TEXT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS dpm_workflow_decisions (
+                    decision_id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    reason_code TEXT NOT NULL,
+                    comment TEXT NULL,
+                    actor_id TEXT NOT NULL,
+                    decided_at TEXT NOT NULL,
+                    correlation_id TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS dpm_lineage_edges (
+                    source_entity_id TEXT NOT NULL,
+                    edge_type TEXT NOT NULL,
+                    target_entity_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL
                 )
                 """
             )
@@ -485,3 +849,7 @@ def _optional_datetime(value: Optional[str]) -> Optional[datetime]:
     if value is None:
         return None
     return datetime.fromisoformat(value)
+
+
+def _placeholders(count: int) -> str:
+    return ",".join("%s" for _ in range(count))
