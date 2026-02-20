@@ -410,6 +410,65 @@ class SqliteDpmRunRepository(DpmRunRepository):
             for row in rows
         ]
 
+    def purge_expired_runs(self, *, retention_days: int, now: datetime) -> int:
+        if retention_days < 1:
+            return 0
+        cutoff = now.astimezone(timezone.utc) - timedelta(days=retention_days)
+        select_expired = """
+            SELECT rebalance_run_id, correlation_id, idempotency_key
+            FROM dpm_runs
+            WHERE created_at < ?
+        """
+        with self._lock, closing(self._connect()) as connection:
+            expired_rows = connection.execute(select_expired, (cutoff.isoformat(),)).fetchall()
+            if not expired_rows:
+                return 0
+
+            run_ids = [row["rebalance_run_id"] for row in expired_rows]
+            correlation_ids = [row["correlation_id"] for row in expired_rows]
+            idempotency_keys = [
+                row["idempotency_key"] for row in expired_rows if row["idempotency_key"]
+            ]
+
+            run_id_placeholders = _placeholders(len(run_ids))
+            connection.execute(
+                f"DELETE FROM dpm_runs WHERE rebalance_run_id IN ({run_id_placeholders})",
+                tuple(run_ids),
+            )
+            connection.execute(
+                f"DELETE FROM dpm_workflow_decisions WHERE run_id IN ({run_id_placeholders})",
+                tuple(run_ids),
+            )
+            connection.execute(
+                f"""
+                DELETE FROM dpm_run_idempotency
+                WHERE rebalance_run_id IN ({run_id_placeholders})
+                """,
+                tuple(run_ids),
+            )
+            connection.execute(
+                f"""
+                DELETE FROM dpm_run_idempotency_history
+                WHERE rebalance_run_id IN ({run_id_placeholders})
+                """,
+                tuple(run_ids),
+            )
+
+            entities = run_ids + correlation_ids + idempotency_keys
+            if entities:
+                entity_placeholders = _placeholders(len(entities))
+                connection.execute(
+                    f"""
+                    DELETE FROM dpm_lineage_edges
+                    WHERE source_entity_id IN ({entity_placeholders})
+                    OR target_entity_id IN ({entity_placeholders})
+                    """,
+                    tuple(entities + entities),
+                )
+
+            connection.commit()
+            return len(run_ids)
+
     def _upsert_operation(self, operation: DpmAsyncOperationRecord) -> None:
         query = """
             INSERT INTO dpm_async_operations (
@@ -579,3 +638,7 @@ def _optional_datetime(value: Optional[str]) -> Optional[datetime]:
     if value is None:
         return None
     return datetime.fromisoformat(value)
+
+
+def _placeholders(count: int) -> str:
+    return ",".join("?" for _ in range(count))

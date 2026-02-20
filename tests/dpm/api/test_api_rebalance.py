@@ -18,6 +18,7 @@ from src.api.routers.dpm_runs import (
     get_dpm_run_support_service,
     reset_dpm_run_support_service_for_tests,
 )
+from src.core.models import RebalanceResult
 from tests.shared.factories import valid_api_payload
 
 
@@ -259,6 +260,44 @@ def test_dpm_support_runs_list_filters_and_cursor(client):
         page_two_body["items"][0]["rebalance_run_id"]
         != page_one_body["items"][0]["rebalance_run_id"]
     )
+
+
+def test_dpm_support_runs_list_respects_retention_policy(client, monkeypatch):
+    monkeypatch.setenv("DPM_SUPPORTABILITY_RETENTION_DAYS", "1")
+    reset_dpm_run_support_service_for_tests()
+
+    payload = get_valid_payload()
+    recent = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-runs-retention-recent"},
+    )
+    assert recent.status_code == 200
+    recent_body = recent.json()
+    recent_result = RebalanceResult.model_validate(recent_body)
+
+    old_result = recent_result.model_copy(
+        update={
+            "rebalance_run_id": "rr_runs_retention_old",
+            "correlation_id": "corr-runs-retention-old",
+        }
+    )
+    service = get_dpm_run_support_service()
+    service.record_run(
+        result=old_result,
+        request_hash="sha256:runs-retention-old",
+        portfolio_id=payload["portfolio_snapshot"]["portfolio_id"],
+        idempotency_key="idem-runs-retention-old",
+        created_at=datetime.now(timezone.utc) - timedelta(days=2),
+    )
+
+    listed = client.get(
+        f"/rebalance/runs?portfolio_id={payload['portfolio_snapshot']['portfolio_id']}&limit=20"
+    )
+    assert listed.status_code == 200
+    rows = listed.json()["items"]
+    assert any(row["rebalance_run_id"] == recent_body["rebalance_run_id"] for row in rows)
+    assert all(row["rebalance_run_id"] != "rr_runs_retention_old" for row in rows)
 
 
 def test_dpm_lineage_api_disabled_and_enabled(client, monkeypatch):

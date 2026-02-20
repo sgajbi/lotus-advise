@@ -113,6 +113,17 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `GET /rebalance/runs?limit=1&cursor={next_cursor}` returns next row.
   - `GET /rebalance/runs/{rebalance_run_id}/artifact` returns deterministic artifact payload.
   - Repeated artifact retrieval returns identical `evidence.hashes.artifact_hash`.
+- Supportability run-list and retention validation:
+  - Uvicorn (`DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`,
+    `DPM_SUPPORTABILITY_RETENTION_DAYS=1`, `http://127.0.0.1:8015`):
+    - `POST /rebalance/simulate` succeeds and appears in `GET /rebalance/runs`.
+    - After setting persisted run timestamp older than retention window in SQLite,
+      `GET /rebalance/runs` returns empty list (expired run purged).
+  - Container (`DPM_SUPPORTABILITY_STORE_BACKEND=SQLITE`,
+    `DPM_SUPPORTABILITY_RETENTION_DAYS=1`, `http://127.0.0.1:8016`):
+    - `POST /rebalance/simulate` succeeds and appears in `GET /rebalance/runs`.
+    - After setting persisted run timestamp older than retention window in SQLite,
+      `GET /rebalance/runs` returns empty list (expired run purged).
 - Async manual execute guard scenario `28_dpm_async_manual_execute_guard.json` validated:
   - `POST /rebalance/analyze/async` in default inline mode succeeds and completes operation.
   - `POST /rebalance/operations/{operation_id}/execute` returns `409` with

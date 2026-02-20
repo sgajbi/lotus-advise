@@ -101,7 +101,9 @@ No new business run statuses. Investigation responses use explicit technical sta
     - `GET /rebalance/runs`
       - filters: `from`, `to`, `status`, `portfolio_id`
       - pagination: `limit`, `cursor`
-- Pending:
-  - SQL backend beyond SQLite (enterprise managed database deployment profile).
+- Implemented (slice 5):
   - Retention policy:
     - `DPM_SUPPORTABILITY_RETENTION_DAYS`
+  - Automatic purge of expired supportability run records and derived mappings/edges.
+- Pending:
+  - SQL backend beyond SQLite (enterprise managed database deployment profile).

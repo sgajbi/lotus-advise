@@ -234,3 +234,65 @@ def test_repository_idempotency_history_contract(repository):
     assert [entry.rebalance_run_id for entry in history] == ["rr_repo_1", "rr_repo_2"]
     assert [entry.correlation_id for entry in history] == ["corr_repo_1", "corr_repo_2"]
     assert [entry.request_hash for entry in history] == ["sha256:req1", "sha256:req2"]
+
+
+def test_repository_run_retention_purge_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    old_time = now - timedelta(days=5)
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_retention_old",
+            correlation_id="corr_repo_retention_old",
+            request_hash="sha256:req-old",
+            idempotency_key="idem_repo_retention_old",
+            portfolio_id="pf_repo_retention",
+            created_at=old_time,
+            result_json={"rebalance_run_id": "rr_repo_retention_old", "status": "READY"},
+        )
+    )
+    repository.save_idempotency_mapping(
+        DpmRunIdempotencyRecord(
+            idempotency_key="idem_repo_retention_old",
+            request_hash="sha256:req-old",
+            rebalance_run_id="rr_repo_retention_old",
+            created_at=old_time,
+        )
+    )
+    repository.append_idempotency_history(
+        DpmRunIdempotencyHistoryRecord(
+            idempotency_key="idem_repo_retention_old",
+            rebalance_run_id="rr_repo_retention_old",
+            correlation_id="corr_repo_retention_old",
+            request_hash="sha256:req-old",
+            created_at=old_time,
+        )
+    )
+    repository.append_lineage_edge(
+        DpmLineageEdgeRecord(
+            source_entity_id="idem_repo_retention_old",
+            edge_type="IDEMPOTENCY_TO_RUN",
+            target_entity_id="rr_repo_retention_old",
+            created_at=old_time,
+            metadata_json={},
+        )
+    )
+
+    repository.save_run(
+        DpmRunRecord(
+            rebalance_run_id="rr_repo_retention_new",
+            correlation_id="corr_repo_retention_new",
+            request_hash="sha256:req-new",
+            idempotency_key="idem_repo_retention_new",
+            portfolio_id="pf_repo_retention",
+            created_at=now,
+            result_json={"rebalance_run_id": "rr_repo_retention_new", "status": "READY"},
+        )
+    )
+    removed = repository.purge_expired_runs(retention_days=2, now=now)
+    assert removed == 1
+
+    assert repository.get_run(rebalance_run_id="rr_repo_retention_old") is None
+    assert repository.get_idempotency_mapping(idempotency_key="idem_repo_retention_old") is None
+    assert repository.list_idempotency_history(idempotency_key="idem_repo_retention_old") == []
+    assert repository.list_lineage_edges(entity_id="rr_repo_retention_old") == []
+    assert repository.get_run(rebalance_run_id="rr_repo_retention_new") is not None

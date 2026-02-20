@@ -47,6 +47,17 @@ def _env_int(name: str, default: int) -> int:
     return parsed if parsed >= 1 else default
 
 
+def _env_non_negative_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        parsed = int(value)
+    except ValueError:
+        return default
+    return parsed if parsed >= 0 else default
+
+
 def _env_csv_set(name: str, default: set[str]) -> set[str]:
     value = os.getenv(name)
     if value is None:
@@ -122,6 +133,10 @@ def get_dpm_run_support_service() -> DpmRunSupportService:
             async_operation_ttl_seconds=_env_int(
                 "DPM_ASYNC_OPERATIONS_TTL_SECONDS",
                 86400,
+            ),
+            supportability_retention_days=_env_non_negative_int(
+                "DPM_SUPPORTABILITY_RETENTION_DAYS",
+                0,
             ),
             workflow_enabled=_env_flag("DPM_WORKFLOW_ENABLED", False),
             workflow_requires_review_for_statuses=_env_csv_set(

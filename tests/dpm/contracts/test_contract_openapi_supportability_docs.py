@@ -152,6 +152,9 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert list_runs["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
         "/DpmRunListResponse"
     )
+    expected_params = {"from", "to", "status", "portfolio_id", "limit", "cursor"}
+    actual_params = {param["name"] for param in list_runs["parameters"]}
+    assert expected_params.issubset(actual_params)
 
     lineage = openapi["paths"]["/rebalance/lineage/{entity_id}"]["get"]
     assert lineage["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(

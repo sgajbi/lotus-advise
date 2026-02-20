@@ -33,6 +33,9 @@ curl -X GET "http://127.0.0.1:8000/rebalance/runs/idempotency/demo-27-supportabi
 curl -X GET "http://127.0.0.1:8000/rebalance/runs/<rebalance_run_id>/artifact"
 ```
 
+Retention can be enabled for supportability records with:
+- `DPM_SUPPORTABILITY_RETENTION_DAYS=<positive_integer>`
+
 For DPM lineage supportability (enabled when `DPM_LINEAGE_APIS_ENABLED=true`):
 ```bash
 curl -X GET "http://127.0.0.1:8000/rebalance/lineage/<entity_id>"

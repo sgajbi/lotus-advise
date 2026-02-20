@@ -49,11 +49,13 @@ class DpmRunSupportService:
         *,
         repository: DpmRunRepository,
         async_operation_ttl_seconds: int = 86400,
+        supportability_retention_days: int = 0,
         workflow_enabled: bool = False,
         workflow_requires_review_for_statuses: Optional[set[str]] = None,
     ) -> None:
         self._repository = repository
         self._async_operation_ttl_seconds = max(1, async_operation_ttl_seconds)
+        self._supportability_retention_days = max(0, supportability_retention_days)
         self._workflow_enabled = workflow_enabled
         self._workflow_requires_review_for_statuses = {
             value.strip()
@@ -70,6 +72,7 @@ class DpmRunSupportService:
         idempotency_key: Optional[str],
         created_at: Optional[datetime] = None,
     ) -> None:
+        self._cleanup_expired_supportability()
         now = created_at or datetime.now(timezone.utc)
         run = DpmRunRecord(
             rebalance_run_id=result.rebalance_run_id,
@@ -115,12 +118,14 @@ class DpmRunSupportService:
             )
 
     def get_run(self, *, rebalance_run_id: str) -> DpmRunLookupResponse:
+        self._cleanup_expired_supportability()
         run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
         return self._to_lookup_response(run)
 
     def get_run_by_correlation(self, *, correlation_id: str) -> DpmRunLookupResponse:
+        self._cleanup_expired_supportability()
         run = self._repository.get_run_by_correlation(correlation_id=correlation_id)
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
@@ -136,6 +141,7 @@ class DpmRunSupportService:
         limit: int,
         cursor: Optional[str],
     ) -> DpmRunListResponse:
+        self._cleanup_expired_supportability()
         rows, next_cursor = self._repository.list_runs(
             created_from=created_from,
             created_to=created_to,
@@ -161,6 +167,7 @@ class DpmRunSupportService:
         )
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> DpmRunIdempotencyLookupResponse:
+        self._cleanup_expired_supportability()
         record = self._repository.get_idempotency_mapping(idempotency_key=idempotency_key)
         if record is None:
             raise DpmRunNotFoundError("DPM_IDEMPOTENCY_KEY_NOT_FOUND")
@@ -172,6 +179,7 @@ class DpmRunSupportService:
         )
 
     def get_idempotency_history(self, *, idempotency_key: str) -> DpmRunIdempotencyHistoryResponse:
+        self._cleanup_expired_supportability()
         history = self._repository.list_idempotency_history(idempotency_key=idempotency_key)
         if not history:
             raise DpmRunNotFoundError("DPM_IDEMPOTENCY_KEY_NOT_FOUND")
@@ -198,6 +206,7 @@ class DpmRunSupportService:
         )
 
     def get_run_artifact(self, *, rebalance_run_id: str) -> DpmRunArtifactResponse:
+        self._cleanup_expired_supportability()
         run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
         if run is None:
             raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
@@ -236,6 +245,7 @@ class DpmRunSupportService:
         return self._to_async_accepted(operation)
 
     def get_lineage(self, *, entity_id: str) -> DpmLineageResponse:
+        self._cleanup_expired_supportability()
         edges = self._repository.list_lineage_edges(entity_id=entity_id)
         edges = sorted(
             edges,
@@ -320,14 +330,17 @@ class DpmRunSupportService:
         return operation.request_json, operation.correlation_id
 
     def get_workflow(self, *, rebalance_run_id: str) -> DpmRunWorkflowResponse:
+        self._cleanup_expired_supportability()
         run = self._get_required_run(rebalance_run_id=rebalance_run_id)
         return self._to_workflow_response(run=run)
 
     def get_workflow_by_correlation(self, *, correlation_id: str) -> DpmRunWorkflowResponse:
+        self._cleanup_expired_supportability()
         run = self._get_required_run_by_correlation(correlation_id=correlation_id)
         return self._to_workflow_response(run=run)
 
     def get_workflow_history(self, *, rebalance_run_id: str) -> DpmRunWorkflowHistoryResponse:
+        self._cleanup_expired_supportability()
         self._get_required_run(rebalance_run_id=rebalance_run_id)
         decisions = self._repository.list_workflow_decisions(rebalance_run_id=rebalance_run_id)
         decisions = sorted(decisions, key=lambda item: item.decided_at)
@@ -339,10 +352,12 @@ class DpmRunSupportService:
     def get_workflow_history_by_correlation(
         self, *, correlation_id: str
     ) -> DpmRunWorkflowHistoryResponse:
+        self._cleanup_expired_supportability()
         run = self._get_required_run_by_correlation(correlation_id=correlation_id)
         return self.get_workflow_history(rebalance_run_id=run.rebalance_run_id)
 
     def get_workflow_by_idempotency(self, *, idempotency_key: str) -> DpmRunWorkflowResponse:
+        self._cleanup_expired_supportability()
         mapping = self._get_required_idempotency_mapping(idempotency_key=idempotency_key)
         run = self._get_required_run(rebalance_run_id=mapping.rebalance_run_id)
         return self._to_workflow_response(run=run)
@@ -350,6 +365,7 @@ class DpmRunSupportService:
     def get_workflow_history_by_idempotency(
         self, *, idempotency_key: str
     ) -> DpmRunWorkflowHistoryResponse:
+        self._cleanup_expired_supportability()
         mapping = self._get_required_idempotency_mapping(idempotency_key=idempotency_key)
         return self.get_workflow_history(rebalance_run_id=mapping.rebalance_run_id)
 
@@ -363,6 +379,7 @@ class DpmRunSupportService:
         actor_id: str,
         correlation_id: str,
     ) -> DpmRunWorkflowResponse:
+        self._cleanup_expired_supportability()
         if not self._workflow_enabled:
             raise DpmWorkflowDisabledError("DPM_WORKFLOW_DISABLED")
         run = self._repository.get_run(rebalance_run_id=rebalance_run_id)
@@ -481,6 +498,14 @@ class DpmRunSupportService:
     def _cleanup_expired_operations(self) -> None:
         self._repository.purge_expired_operations(
             ttl_seconds=self._async_operation_ttl_seconds,
+            now=_utc_now(),
+        )
+
+    def _cleanup_expired_supportability(self) -> None:
+        if self._supportability_retention_days < 1:
+            return
+        self._repository.purge_expired_runs(
+            retention_days=self._supportability_retention_days,
             now=_utc_now(),
         )
 

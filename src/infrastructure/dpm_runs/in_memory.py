@@ -162,3 +162,53 @@ class InMemoryDpmRunRepository(DpmRunRepository):
         with self._lock:
             edges = self._lineage_edges_by_entity.get(entity_id, [])
             return [deepcopy(edge) for edge in edges]
+
+    def purge_expired_runs(self, *, retention_days: int, now: datetime) -> int:
+        with self._lock:
+            if retention_days < 1:
+                return 0
+            cutoff = now.astimezone(timezone.utc) - timedelta(days=retention_days)
+            expired_runs = [run for run in self._runs.values() if run.created_at < cutoff]
+            if not expired_runs:
+                return 0
+
+            expired_run_ids = {run.rebalance_run_id for run in expired_runs}
+            expired_correlation_ids = {run.correlation_id for run in expired_runs}
+            expired_idempotency_keys = {
+                run.idempotency_key for run in expired_runs if run.idempotency_key
+            }
+
+            for run in expired_runs:
+                self._runs.pop(run.rebalance_run_id, None)
+                if self._run_id_by_correlation.get(run.correlation_id) == run.rebalance_run_id:
+                    self._run_id_by_correlation.pop(run.correlation_id, None)
+
+            for idempotency_key, mapping in list(self._idempotency.items()):
+                if mapping.rebalance_run_id in expired_run_ids:
+                    self._idempotency.pop(idempotency_key, None)
+                    expired_idempotency_keys.add(idempotency_key)
+
+            for idempotency_key, history in list(self._idempotency_history.items()):
+                filtered = [row for row in history if row.rebalance_run_id not in expired_run_ids]
+                if filtered:
+                    self._idempotency_history[idempotency_key] = filtered
+                else:
+                    self._idempotency_history.pop(idempotency_key, None)
+
+            for run_id in expired_run_ids:
+                self._workflow_decisions.pop(run_id, None)
+
+            expired_entities = expired_run_ids | expired_correlation_ids | expired_idempotency_keys
+            for entity_id, edges in list(self._lineage_edges_by_entity.items()):
+                filtered_edges = [
+                    edge
+                    for edge in edges
+                    if edge.source_entity_id not in expired_entities
+                    and edge.target_entity_id not in expired_entities
+                ]
+                if filtered_edges:
+                    self._lineage_edges_by_entity[entity_id] = filtered_edges
+                else:
+                    self._lineage_edges_by_entity.pop(entity_id, None)
+
+            return len(expired_runs)

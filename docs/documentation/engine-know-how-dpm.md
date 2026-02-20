@@ -145,6 +145,7 @@ Implementation scope:
   - `DPM_SUPPORT_APIS_ENABLED` (default `true`)
   - `DPM_SUPPORTABILITY_STORE_BACKEND` (`IN_MEMORY` | `SQLITE`, default `IN_MEMORY`)
   - `DPM_SUPPORTABILITY_SQLITE_PATH` (used when backend is `SQLITE`)
+  - `DPM_SUPPORTABILITY_RETENTION_DAYS` (default `0`, disabled when `0`)
   - `DPM_LINEAGE_APIS_ENABLED` (default `false`)
   - `DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED` (default `false`)
   - `DPM_WORKFLOW_ENABLED` (default `false`)
