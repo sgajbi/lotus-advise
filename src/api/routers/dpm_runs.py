@@ -7,6 +7,7 @@ from src.core.dpm_runs import (
     DpmAsyncOperationStatusResponse,
     DpmLineageResponse,
     DpmRunArtifactResponse,
+    DpmRunIdempotencyHistoryResponse,
     DpmRunIdempotencyLookupResponse,
     DpmRunLookupResponse,
     DpmRunNotFoundError,
@@ -89,6 +90,14 @@ def _assert_lineage_apis_enabled() -> None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="DPM_LINEAGE_APIS_DISABLED",
+        )
+
+
+def _assert_idempotency_history_apis_enabled() -> None:
+    if not _env_flag("DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED", False):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="DPM_IDEMPOTENCY_HISTORY_APIS_DISABLED",
         )
 
 
@@ -188,6 +197,34 @@ def get_run_idempotency_lookup(
     _assert_support_apis_enabled()
     try:
         return service.get_idempotency_lookup(idempotency_key=idempotency_key)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/rebalance/idempotency/{idempotency_key}/history",
+    response_model=DpmRunIdempotencyHistoryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get DPM Idempotency History",
+    description=(
+        "Returns append-only run mapping history for one idempotency key, including request hash "
+        "and correlation context for support investigations."
+    ),
+)
+def get_run_idempotency_history(
+    idempotency_key: Annotated[
+        str,
+        Path(
+            description="Idempotency key supplied to `/rebalance/simulate`.",
+            examples=["demo-idem-001"],
+        ),
+    ],
+    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+) -> DpmRunIdempotencyHistoryResponse:
+    _assert_support_apis_enabled()
+    _assert_idempotency_history_apis_enabled()
+    try:
+        return service.get_idempotency_history(idempotency_key=idempotency_key)
     except DpmRunNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 

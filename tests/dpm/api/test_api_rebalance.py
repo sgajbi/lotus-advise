@@ -257,6 +257,49 @@ def test_dpm_lineage_api_disabled_and_enabled(client, monkeypatch):
     assert run_id != run_id_enabled
 
 
+def test_dpm_idempotency_history_api_disabled_enabled_and_history_payload(client, monkeypatch):
+    payload = get_valid_payload()
+    monkeypatch.setenv("DPM_IDEMPOTENCY_REPLAY_ENABLED", "false")
+    simulate_one = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-history-1", "X-Correlation-Id": "corr-history-1"},
+    )
+    assert simulate_one.status_code == 200
+    run_one = simulate_one.json()["rebalance_run_id"]
+
+    payload["options"]["single_position_max_weight"] = "0.50"
+    simulate_two = client.post(
+        "/rebalance/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "test-key-history-1", "X-Correlation-Id": "corr-history-2"},
+    )
+    assert simulate_two.status_code == 200
+    run_two = simulate_two.json()["rebalance_run_id"]
+    assert run_one != run_two
+
+    disabled = client.get("/rebalance/idempotency/test-key-history-1/history")
+    assert disabled.status_code == 404
+    assert disabled.json()["detail"] == "DPM_IDEMPOTENCY_HISTORY_APIS_DISABLED"
+
+    monkeypatch.setenv("DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED", "true")
+    history = client.get("/rebalance/idempotency/test-key-history-1/history")
+    assert history.status_code == 200
+    body = history.json()
+    assert body["idempotency_key"] == "test-key-history-1"
+    assert len(body["history"]) == 2
+    assert body["history"][0]["rebalance_run_id"] == run_one
+    assert body["history"][0]["correlation_id"] == "corr-history-1"
+    assert body["history"][0]["request_hash"].startswith("sha256:")
+    assert body["history"][1]["rebalance_run_id"] == run_two
+    assert body["history"][1]["correlation_id"] == "corr-history-2"
+    assert body["history"][1]["request_hash"].startswith("sha256:")
+
+    missing = client.get("/rebalance/idempotency/test-key-history-missing/history")
+    assert missing.status_code == 404
+    assert missing.json()["detail"] == "DPM_IDEMPOTENCY_KEY_NOT_FOUND"
+
+
 def test_dpm_support_apis_not_found_and_disabled(client, monkeypatch):
     missing_run = client.get("/rebalance/runs/rr_missing")
     assert missing_run.status_code == 404

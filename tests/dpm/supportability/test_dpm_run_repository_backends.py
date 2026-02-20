@@ -7,6 +7,7 @@ import pytest
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
     DpmLineageEdgeRecord,
+    DpmRunIdempotencyHistoryRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
@@ -149,3 +150,28 @@ def test_repository_lineage_edge_contract(repository):
     by_target = repository.list_lineage_edges(entity_id="rr_repo_1")
     assert len(by_target) == 1
     assert by_target[0].source_entity_id == "corr_repo_1"
+
+
+def test_repository_idempotency_history_contract(repository):
+    now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)
+    one = DpmRunIdempotencyHistoryRecord(
+        idempotency_key="idem_repo_history_1",
+        rebalance_run_id="rr_repo_1",
+        correlation_id="corr_repo_1",
+        request_hash="sha256:req1",
+        created_at=now,
+    )
+    two = DpmRunIdempotencyHistoryRecord(
+        idempotency_key="idem_repo_history_1",
+        rebalance_run_id="rr_repo_2",
+        correlation_id="corr_repo_2",
+        request_hash="sha256:req2",
+        created_at=now + timedelta(seconds=1),
+    )
+    repository.append_idempotency_history(one)
+    repository.append_idempotency_history(two)
+
+    history = repository.list_idempotency_history(idempotency_key="idem_repo_history_1")
+    assert [entry.rebalance_run_id for entry in history] == ["rr_repo_1", "rr_repo_2"]
+    assert [entry.correlation_id for entry in history] == ["corr_repo_1", "corr_repo_2"]
+    assert [entry.request_hash for entry in history] == ["sha256:req1", "sha256:req2"]

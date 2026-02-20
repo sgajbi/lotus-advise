@@ -4,6 +4,7 @@ from typing import Optional, Protocol
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
     DpmLineageEdgeRecord,
+    DpmRunIdempotencyHistoryRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
@@ -22,6 +23,12 @@ class DpmRunRepository(Protocol):
     def get_idempotency_mapping(
         self, *, idempotency_key: str
     ) -> Optional[DpmRunIdempotencyRecord]: ...
+
+    def append_idempotency_history(self, record: DpmRunIdempotencyHistoryRecord) -> None: ...
+
+    def list_idempotency_history(
+        self, *, idempotency_key: str
+    ) -> list[DpmRunIdempotencyHistoryRecord]: ...
 
     def create_operation(self, operation: DpmAsyncOperationRecord) -> None: ...
 

@@ -167,6 +167,51 @@ def test_demo_dpm_async_manual_execute_guard_via_api():
     assert execute.json()["detail"] == "DPM_ASYNC_OPERATION_NOT_EXECUTABLE"
 
 
+def test_demo_dpm_idempotency_history_supportability_via_api(monkeypatch):
+    data = load_demo_scenario("30_dpm_idempotency_history_supportability.json")
+    monkeypatch.setenv("DPM_IDEMPOTENCY_REPLAY_ENABLED", "false")
+    monkeypatch.setenv("DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED", "true")
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        try:
+            first = client.post(
+                "/rebalance/simulate",
+                json=data,
+                headers={
+                    "Idempotency-Key": "demo-30-idem-history",
+                    "X-Correlation-Id": "demo-corr-30-idem-history-1",
+                },
+            )
+            assert first.status_code == 200
+            first_run = first.json()["rebalance_run_id"]
+
+            data["options"]["single_position_max_weight"] = "0.50"
+            second = client.post(
+                "/rebalance/simulate",
+                json=data,
+                headers={
+                    "Idempotency-Key": "demo-30-idem-history",
+                    "X-Correlation-Id": "demo-corr-30-idem-history-2",
+                },
+            )
+            assert second.status_code == 200
+            second_run = second.json()["rebalance_run_id"]
+
+            history = client.get("/rebalance/idempotency/demo-30-idem-history/history")
+        finally:
+            app.dependency_overrides = original_overrides
+
+    assert history.status_code == 200
+    body = history.json()
+    assert body["idempotency_key"] == "demo-30-idem-history"
+    assert len(body["history"]) == 2
+    assert body["history"][0]["rebalance_run_id"] == first_run
+    assert body["history"][0]["correlation_id"] == "demo-corr-30-idem-history-1"
+    assert body["history"][1]["rebalance_run_id"] == second_run
+    assert body["history"][1]["correlation_id"] == "demo-corr-30-idem-history-2"
+
+
 @pytest.mark.parametrize(
     "filename, expected_status",
     [

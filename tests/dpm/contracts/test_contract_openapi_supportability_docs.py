@@ -43,6 +43,16 @@ def test_dpm_supportability_and_async_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(idempotency_schema, "rebalance_run_id")
     _assert_property_has_docs(idempotency_schema, "created_at")
 
+    idempotency_history_schema = schemas["DpmRunIdempotencyHistoryResponse"]
+    _assert_property_has_docs(idempotency_history_schema, "idempotency_key")
+    _assert_property_has_docs(idempotency_history_schema, "history")
+
+    idempotency_history_item_schema = schemas["DpmRunIdempotencyHistoryItem"]
+    _assert_property_has_docs(idempotency_history_item_schema, "rebalance_run_id")
+    _assert_property_has_docs(idempotency_history_item_schema, "correlation_id")
+    _assert_property_has_docs(idempotency_history_item_schema, "request_hash")
+    _assert_property_has_docs(idempotency_history_item_schema, "created_at")
+
     async_accepted_schema = schemas["DpmAsyncAcceptedResponse"]
     _assert_property_has_docs(async_accepted_schema, "operation_id")
     _assert_property_has_docs(async_accepted_schema, "operation_type")
@@ -129,6 +139,13 @@ def test_dpm_async_and_supportability_endpoints_use_expected_request_response_co
     assert lineage["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(
         "/DpmLineageResponse"
     )
+
+    idempotency_history = openapi["paths"]["/rebalance/idempotency/{idempotency_key}/history"][
+        "get"
+    ]
+    assert idempotency_history["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/DpmRunIdempotencyHistoryResponse")
 
     workflow = openapi["paths"]["/rebalance/runs/{rebalance_run_id}/workflow"]["get"]
     assert workflow["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith(

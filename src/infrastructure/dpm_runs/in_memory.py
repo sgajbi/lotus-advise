@@ -6,6 +6,7 @@ from typing import Optional
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
     DpmLineageEdgeRecord,
+    DpmRunIdempotencyHistoryRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
@@ -19,6 +20,7 @@ class InMemoryDpmRunRepository(DpmRunRepository):
         self._runs: dict[str, DpmRunRecord] = {}
         self._run_id_by_correlation: dict[str, str] = {}
         self._idempotency: dict[str, DpmRunIdempotencyRecord] = {}
+        self._idempotency_history: dict[str, list[DpmRunIdempotencyHistoryRecord]] = {}
         self._operations: dict[str, DpmAsyncOperationRecord] = {}
         self._operation_by_correlation: dict[str, str] = {}
         self._workflow_decisions: dict[str, list[DpmRunWorkflowDecisionRecord]] = {}
@@ -50,6 +52,18 @@ class InMemoryDpmRunRepository(DpmRunRepository):
         with self._lock:
             record = self._idempotency.get(idempotency_key)
             return deepcopy(record) if record is not None else None
+
+    def append_idempotency_history(self, record: DpmRunIdempotencyHistoryRecord) -> None:
+        with self._lock:
+            history = self._idempotency_history.setdefault(record.idempotency_key, [])
+            history.append(deepcopy(record))
+
+    def list_idempotency_history(
+        self, *, idempotency_key: str
+    ) -> list[DpmRunIdempotencyHistoryRecord]:
+        with self._lock:
+            history = self._idempotency_history.get(idempotency_key, [])
+            return [deepcopy(item) for item in history]
 
     def create_operation(self, operation: DpmAsyncOperationRecord) -> None:
         with self._lock:

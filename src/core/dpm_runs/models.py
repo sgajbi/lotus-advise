@@ -101,6 +101,69 @@ class DpmRunIdempotencyLookupResponse(BaseModel):
     )
 
 
+class DpmRunIdempotencyHistoryItem(BaseModel):
+    rebalance_run_id: str = Field(
+        description="Run identifier observed for this idempotency key event.",
+        examples=["rr_abc12345"],
+    )
+    correlation_id: str = Field(
+        description="Correlation identifier associated with the mapped run.",
+        examples=["corr-1234-abcd"],
+    )
+    request_hash: str = Field(
+        description="Canonical request hash associated with this idempotency event.",
+        examples=["sha256:abc123"],
+    )
+    created_at: str = Field(
+        description="Timestamp when this idempotency history event was recorded (UTC ISO8601).",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+
+
+class DpmRunIdempotencyHistoryRecord(BaseModel):
+    idempotency_key: str = Field(
+        description="Idempotency key supplied to simulate endpoint.",
+        examples=["demo-idem-001"],
+    )
+    rebalance_run_id: str = Field(
+        description="Run identifier mapped by idempotency key for this history event.",
+        examples=["rr_abc12345"],
+    )
+    correlation_id: str = Field(
+        description="Correlation identifier associated with the mapped run.",
+        examples=["corr-1234-abcd"],
+    )
+    request_hash: str = Field(
+        description="Canonical request hash associated with this history event.",
+        examples=["sha256:abc123"],
+    )
+    created_at: datetime = Field(
+        description="Timestamp when idempotency history event was stored.",
+        examples=["2026-02-20T12:00:00+00:00"],
+    )
+
+
+class DpmRunIdempotencyHistoryResponse(BaseModel):
+    idempotency_key: str = Field(
+        description="Requested idempotency key.",
+        examples=["demo-idem-001"],
+    )
+    history: list[DpmRunIdempotencyHistoryItem] = Field(
+        default_factory=list,
+        description="Append-only history of mappings observed for this idempotency key.",
+        examples=[
+            [
+                {
+                    "rebalance_run_id": "rr_abc12345",
+                    "correlation_id": "corr-1234-abcd",
+                    "request_hash": "sha256:abc123",
+                    "created_at": "2026-02-20T12:00:00+00:00",
+                }
+            ]
+        ],
+    )
+
+
 class DpmAsyncAcceptedResponse(BaseModel):
     operation_id: str = Field(
         description="Asynchronous operation identifier.",

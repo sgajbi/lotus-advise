@@ -9,6 +9,7 @@ from typing import Optional
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
     DpmLineageEdgeRecord,
+    DpmRunIdempotencyHistoryRecord,
     DpmRunIdempotencyRecord,
     DpmRunRecord,
     DpmRunWorkflowDecisionRecord,
@@ -135,6 +136,56 @@ class SqliteDpmRunRepository(DpmRunRepository):
             rebalance_run_id=row["rebalance_run_id"],
             created_at=datetime.fromisoformat(row["created_at"]),
         )
+
+    def append_idempotency_history(self, record: DpmRunIdempotencyHistoryRecord) -> None:
+        query = """
+            INSERT INTO dpm_run_idempotency_history (
+                idempotency_key,
+                rebalance_run_id,
+                correlation_id,
+                request_hash,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?)
+        """
+        with self._lock, closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    record.idempotency_key,
+                    record.rebalance_run_id,
+                    record.correlation_id,
+                    record.request_hash,
+                    record.created_at.isoformat(),
+                ),
+            )
+            connection.commit()
+
+    def list_idempotency_history(
+        self, *, idempotency_key: str
+    ) -> list[DpmRunIdempotencyHistoryRecord]:
+        query = """
+            SELECT
+                idempotency_key,
+                rebalance_run_id,
+                correlation_id,
+                request_hash,
+                created_at
+            FROM dpm_run_idempotency_history
+            WHERE idempotency_key = ?
+            ORDER BY created_at ASC, rowid ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (idempotency_key,)).fetchall()
+        return [
+            DpmRunIdempotencyHistoryRecord(
+                idempotency_key=row["idempotency_key"],
+                rebalance_run_id=row["rebalance_run_id"],
+                correlation_id=row["correlation_id"],
+                request_hash=row["request_hash"],
+                created_at=datetime.fromisoformat(row["created_at"]),
+            )
+            for row in rows
+        ]
 
     def create_operation(self, operation: DpmAsyncOperationRecord) -> None:
         self._upsert_operation(operation)
@@ -401,6 +452,14 @@ class SqliteDpmRunRepository(DpmRunRepository):
                     idempotency_key TEXT PRIMARY KEY,
                     request_hash TEXT NOT NULL,
                     rebalance_run_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS dpm_run_idempotency_history (
+                    idempotency_key TEXT NOT NULL,
+                    rebalance_run_id TEXT NOT NULL,
+                    correlation_id TEXT NOT NULL,
+                    request_hash TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
 
