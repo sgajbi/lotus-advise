@@ -15,6 +15,18 @@ Runbook for forward-only schema migration rollout for:
   - `PROPOSAL_POSTGRES_DSN`
 - Application image/version to deploy is already tested in non-production.
 
+## Profile Modes
+
+- `APP_PERSISTENCE_PROFILE=LOCAL`:
+  - Intended for local development workflows.
+  - In-memory/SQLite backends may be used.
+- `APP_PERSISTENCE_PROFILE=PRODUCTION`:
+  - Enforces Postgres-only runtime guardrails at startup.
+  - Required backend settings:
+    - `DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES`
+    - `PROPOSAL_STORE_BACKEND=POSTGRES`
+    - `DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES` when policy packs/admin APIs are enabled.
+
 ## Migration Command
 
 Use the shared migration tool before switching traffic:

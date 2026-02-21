@@ -537,3 +537,18 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `docker run --rm -e APP_PERSISTENCE_PROFILE=PRODUCTION -e DPM_SUPPORTABILITY_STORE_BACKEND=IN_MEMORY -e PROPOSAL_STORE_BACKEND=POSTGRES dpm-rebalance-engine:latest`
   - Observed:
     - container exits at startup with `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`.
+
+## RFC-0025 Slice 2 CI and Production Profile Smoke
+
+- CI workflow adds production-profile smoke job with:
+  - `APP_PERSISTENCE_PROFILE=PRODUCTION`
+  - Postgres-backed DPM/advisory/policy-pack configuration
+  - migration application via `python scripts/postgres_migrate.py --target all`
+  - startup verification of `/docs`, `/rebalance/policies/effective`, and `/rebalance/proposals?limit=1`
+
+- Local equivalent smoke command sequence:
+  - `python scripts/postgres_migrate.py --target all`
+  - `APP_PERSISTENCE_PROFILE=PRODUCTION DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES PROPOSAL_STORE_BACKEND=POSTGRES DPM_POLICY_PACKS_ENABLED=true DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8052`
+  - `curl http://127.0.0.1:8052/docs`
+  - `curl http://127.0.0.1:8052/rebalance/policies/effective`
+  - `curl "http://127.0.0.1:8052/rebalance/proposals?limit=1"`

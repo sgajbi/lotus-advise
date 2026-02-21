@@ -82,3 +82,7 @@ variance and incident complexity in production.
     - advisory proposal store backend must be `POSTGRES`.
     - policy-pack catalog backend must be `POSTGRES` when policy packs/admin APIs are enabled.
   - Added unit tests and startup tests for all guardrail reason codes.
+- Slice 2 completed (2026-02-21):
+  - Added CI production-profile startup smoke job with Postgres services and migration pre-step.
+  - Added startup guardrail tests for advisory and policy-pack production misconfiguration paths.
+  - Updated deployment docs and runbook with explicit `LOCAL` vs `PRODUCTION` profile behavior.

@@ -157,6 +157,10 @@ DPM_POLICY_PACK_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportabili
 Note:
 * `APP_PERSISTENCE_PROFILE=PRODUCTION` enforces Postgres-only guardrails at startup.
   Startup fails fast with explicit reason codes if non-Postgres backends are configured.
+* Profile guidance:
+  * `LOCAL` (default): allows local in-memory/SQLite development backends.
+  * `PRODUCTION`: requires Postgres for DPM supportability and advisory stores, plus
+    policy-pack catalog when policy packs/admin APIs are enabled.
 * Postgres backends for DPM supportability and advisory proposal lifecycle are implemented.
 * Apply forward-only migrations before enabling Postgres-backed runtime:
   * `python scripts/postgres_migrate.py --target all`
