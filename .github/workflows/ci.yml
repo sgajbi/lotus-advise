@@ -72,6 +72,10 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Verify Installed Dependencies
+        run: |
+          pip check
+
       - name: Run Mypy (Full src)
         run: make typecheck
 
@@ -128,6 +132,10 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Verify Installed Dependencies
+        run: |
+          pip check
+
       - name: Apply Postgres Migrations
         run: |
           python scripts/postgres_migrate.py --target all
@@ -183,6 +191,10 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Verify Installed Dependencies
+        run: |
+          pip check
+
       - name: Apply Postgres Migrations
         run: |
           python scripts/postgres_migrate.py --target all
@@ -230,6 +242,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+
+      - name: Verify Installed Dependencies
+        run: |
+          pip check
 
       - name: Verify DPM Backend Guardrail
         run: |
