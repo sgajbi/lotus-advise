@@ -97,7 +97,7 @@ class Position(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_lot_quantity_total(self):
+    def validate_lot_quantity_total(self) -> "Position":
         if not self.lots:
             return self
         total = sum((lot.quantity for lot in self.lots), Decimal("0"))
@@ -329,7 +329,7 @@ class SuitabilityThresholds(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_cash_band(self):
+    def validate_cash_band(self) -> "SuitabilityThresholds":
         if self.cash_band_min_weight > self.cash_band_max_weight:
             raise ValueError("suitability cash band min cannot exceed max")
         return self
@@ -1216,7 +1216,7 @@ class ProposedCashFlow(BaseModel):
 
     @field_validator("amount", mode="before")
     @classmethod
-    def reject_float_amount(cls, v):
+    def reject_float_amount(cls, v: object) -> object:
         if isinstance(v, float):
             raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: amount must be a decimal string")
         return v
@@ -1249,14 +1249,14 @@ class ProposedTrade(BaseModel):
 
     @field_validator("quantity", mode="before")
     @classmethod
-    def reject_float_quantity(cls, v):
+    def reject_float_quantity(cls, v: object) -> object:
         if isinstance(v, float):
             raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: quantity must be a decimal string")
         return v
 
     @field_validator("notional", mode="before")
     @classmethod
-    def reject_float_notional_amount(cls, v):
+    def reject_float_notional_amount(cls, v: object) -> object:
         if isinstance(v, dict) and isinstance(v.get("amount"), float):
             raise ValueError(
                 "PROPOSAL_INVALID_TRADE_INPUT: notional.amount must be a decimal string"
@@ -1264,7 +1264,7 @@ class ProposedTrade(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_quantity_or_notional(self):
+    def validate_quantity_or_notional(self) -> "ProposedTrade":
         if self.quantity is None and self.notional is None:
             raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: quantity or notional is required")
         if self.quantity is not None and self.notional is not None:

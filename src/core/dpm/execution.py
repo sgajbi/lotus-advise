@@ -62,6 +62,8 @@ def build_settlement_ladder(
 
     for intent in sorted(intents, key=lambda item: item.intent_id):
         if intent.intent_type == "SECURITY_TRADE":
+            if intent.notional is None:
+                continue
             settlement_day = settlement_days_by_instrument.get(intent.instrument_id, 2)
             ensure_currency(intent.notional.currency)
             signed_flow = (
@@ -128,6 +130,8 @@ def generate_fx_and_simulate(
     proj = {c.currency: c.amount for c in portfolio.cash_balances}
     for i in intents:
         if i.intent_type == "SECURITY_TRADE":
+            if i.notional is None:
+                continue
             proj[i.notional.currency] = proj.get(i.notional.currency, Decimal("0")) + (
                 i.notional.amount if i.side == "SELL" else -i.notional.amount
             )

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any
+from typing import Any, Optional, TypedDict
 
 from src.core.common.simulation_shared import (
     apply_fx_spot_to_portfolio,
@@ -8,6 +8,18 @@ from src.core.common.simulation_shared import (
 )
 from src.core.models import FundingPlanEntry, FxSpotIntent, InsufficientCashEntry, IntentRationale
 from src.core.valuation import get_fx_rate
+
+
+class _FundingSelection(TypedDict):
+    pair: str
+    rate: Decimal
+    funding_currency: str
+    sell_required: Decimal
+
+
+class _FundingDeficit(TypedDict):
+    currency: str
+    deficit: Decimal
 
 
 def record_missing_fx_pair(diagnostics: Any, pair: str) -> None:
@@ -90,8 +102,8 @@ def build_auto_funding_plan(
             cash_ledger=cash_ledger,
         )
 
-        selected = None
-        smallest_deficit = None
+        selected: Optional[_FundingSelection] = None
+        smallest_deficit: Optional[_FundingDeficit] = None
         for funding_currency in candidates:
             pair = f"{target_currency}/{funding_currency}"
             rate = get_fx_rate(market_data, target_currency, funding_currency)

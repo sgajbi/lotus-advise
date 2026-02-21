@@ -46,7 +46,11 @@ def apply_turnover_limit(
         intents,
         key=lambda intent: (
             -calculate_turnover_score(intent, portfolio_value_base),
-            abs(intent.notional_base.amount),
+            (
+                abs(intent.notional_base.amount)
+                if intent.notional_base is not None
+                else Decimal("0")
+            ),
             intent.instrument_id,
             intent.intent_id,
         ),

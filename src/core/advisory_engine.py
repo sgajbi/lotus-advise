@@ -1,5 +1,6 @@
 from copy import deepcopy
 from decimal import Decimal
+from typing import Any, Optional
 
 from src.core.advisory.funding import build_auto_funding_plan
 from src.core.advisory.ids import proposal_run_id_from_request_hash
@@ -22,12 +23,16 @@ from src.core.common.workflow_gates import evaluate_gate_decision
 from src.core.compliance import RuleEngine
 from src.core.models import (
     CashFlowIntent,
+    EngineOptions,
     LineageData,
+    MarketDataSnapshot,
+    PortfolioSnapshot,
     ProposalResult,
     ProposedCashFlow,
     ProposedTrade,
     ReferenceModel,
     RuleResult,
+    ShelfEntry,
     ValuationMode,
 )
 from src.core.valuation import build_simulated_state
@@ -35,17 +40,17 @@ from src.core.valuation import build_simulated_state
 
 def run_proposal_simulation(
     *,
-    portfolio,
-    market_data,
-    shelf,
-    options,
-    proposed_cash_flows,
-    proposed_trades,
-    reference_model=None,
-    request_hash="no_hash",
-    idempotency_key=None,
-    correlation_id="c_none",
-):
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    proposed_cash_flows: list[ProposedCashFlow] | list[dict[str, Any]],
+    proposed_trades: list[ProposedTrade] | list[dict[str, Any]],
+    reference_model: Optional[ReferenceModel | dict[str, Any]] = None,
+    request_hash: str = "no_hash",
+    idempotency_key: Optional[str] = None,
+    correlation_id: str = "c_none",
+) -> ProposalResult:
     run_id = proposal_run_id_from_request_hash(request_hash)
     diagnostics = make_diagnostics_data()
 
@@ -152,6 +157,8 @@ def run_proposal_simulation(
 
     executable_buy_intents = []
     for buy_intent in buy_intents:
+        if buy_intent.notional is None:
+            continue
         if buy_intent.notional.currency in unfunded_currencies:
             if "PROPOSAL_BUY_SKIPPED_UNFUNDED" not in diagnostics.warnings:
                 diagnostics.warnings.append("PROPOSAL_BUY_SKIPPED_UNFUNDED")

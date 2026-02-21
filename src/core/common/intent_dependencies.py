@@ -19,12 +19,16 @@ def link_buy_intent_dependencies(
     if include_same_currency_sell_dependency:
         for intent in intents:
             if intent.intent_type == "SECURITY_TRADE" and intent.side == "SELL":
+                if intent.notional is None:
+                    continue
                 sell_intent_id_by_currency[intent.notional.currency] = intent.intent_id
 
     for intent in intents:
         if intent.intent_type != "SECURITY_TRADE" or intent.side != "BUY":
             continue
 
+        if intent.notional is None:
+            continue
         currency = intent.notional.currency
         fx_dependency = fx_dependencies.get(currency)
         if fx_dependency is not None and fx_dependency not in intent.dependencies:

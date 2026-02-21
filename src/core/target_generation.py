@@ -1,10 +1,18 @@
 from decimal import Decimal
+from typing import Any
 
-from src.core.models import Money, TargetInstrument
+from src.core.models import DiagnosticsData, EngineOptions, Money, ShelfEntry, TargetInstrument
 
 
-def _collect_infeasibility_hints(*, tradeable_ids, locked_weight, options, eligible_targets, shelf):
-    hints = []
+def _collect_infeasibility_hints(
+    *,
+    tradeable_ids: list[str],
+    locked_weight: Decimal,
+    options: EngineOptions,
+    eligible_targets: dict[str, Decimal],
+    shelf: list[ShelfEntry],
+) -> list[str]:
+    hints: list[str] = []
 
     invested_min = Decimal("1.0") - options.cash_band_max_weight - locked_weight
     invested_max = Decimal("1.0") - options.cash_band_min_weight - locked_weight
@@ -39,8 +47,14 @@ def _collect_infeasibility_hints(*, tradeable_ids, locked_weight, options, eligi
     return hints
 
 
-def build_target_trace(model, eligible_targets, buy_list, total_val, base_ccy):
-    trace = []
+def build_target_trace(
+    model: Any,
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    total_val: Decimal,
+    base_ccy: str,
+) -> list[TargetInstrument]:
+    trace: list[TargetInstrument] = []
     for t in model.targets:
         final_w = eligible_targets.get(t.instrument_id, Decimal("0.0"))
         tags = ["CAPPED_BY_MAX_WEIGHT"] if t.weight > final_w else []
@@ -76,16 +90,16 @@ def build_target_trace(model, eligible_targets, buy_list, total_val, base_ccy):
 
 
 def generate_targets_solver(
-    model,
-    eligible_targets,
-    buy_list,
-    sell_only_excess,
-    shelf,
-    options,
-    total_val,
-    base_ccy,
-    diagnostics,
-):
+    model: Any,
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    sell_only_excess: Decimal,
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    total_val: Decimal,
+    base_ccy: str,
+    diagnostics: DiagnosticsData,
+) -> tuple[list[TargetInstrument], str]:
     try:
         import cvxpy as cp
         import numpy as np
@@ -98,14 +112,14 @@ def generate_targets_solver(
         recs = {k: v for k, v in eligible_targets.items() if k in buy_list}
         total_rec = sum(recs.values())
         if total_rec > Decimal("0.0"):
-            for i_id, w in recs.items():
-                eligible_targets[i_id] = w + (sell_only_excess * (w / total_rec))
+            for i_id, rec_weight in recs.items():
+                eligible_targets[i_id] = rec_weight + (sell_only_excess * (rec_weight / total_rec))
         else:
             status = "PENDING_REVIEW"
 
     tradeable_ids = [i_id for i_id in eligible_targets if i_id in buy_list]
     locked_ids = [i_id for i_id in eligible_targets if i_id not in buy_list]
-    locked_weight = sum(eligible_targets[i_id] for i_id in locked_ids)
+    locked_weight = sum((eligible_targets[i_id] for i_id in locked_ids), Decimal("0"))
 
     if not tradeable_ids:
         return build_target_trace(model, eligible_targets, buy_list, total_val, base_ccy), status

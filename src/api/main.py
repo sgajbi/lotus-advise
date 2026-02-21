@@ -9,7 +9,7 @@ from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Annotated, AsyncIterator, Dict, Optional
+from typing import Annotated, AsyncIterator, Dict, Optional, cast
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -324,7 +324,7 @@ def simulate_rebalance(
             )
         if existing:
             DPM_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-            return RebalanceResult.model_validate(existing["response"])
+            return cast(RebalanceResult, RebalanceResult.model_validate(existing["response"]))
 
     result = run_simulation(
         portfolio=request.portfolio_snapshot,
@@ -788,7 +788,7 @@ def _simulate_proposal_response(
         )
     if existing:
         PROPOSAL_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-        return ProposalResult.model_validate(existing["response"])
+        return cast(ProposalResult, ProposalResult.model_validate(existing["response"]))
 
     resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
     result = run_proposal_simulation(
