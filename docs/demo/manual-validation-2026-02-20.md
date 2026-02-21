@@ -552,3 +552,13 @@ Demo pack validation passed for http://127.0.0.1:8000
   - `curl http://127.0.0.1:8052/docs`
   - `curl http://127.0.0.1:8052/rebalance/policies/effective`
   - `curl "http://127.0.0.1:8052/rebalance/proposals?limit=1"`
+
+## RFC-0025 Slice 3 Negative Guardrail Validation
+
+- Production-profile negative startup checks validated by CI job `production-profile-guardrail-negatives`:
+  - DPM backend mismatch (`DPM_SUPPORTABILITY_STORE_BACKEND=IN_MEMORY`) fails startup with:
+    - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
+  - Advisory backend mismatch (`PROPOSAL_STORE_BACKEND=IN_MEMORY`) fails startup with:
+    - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
+  - Policy-pack backend mismatch (`DPM_POLICY_PACKS_ENABLED=true`, `DPM_POLICY_PACK_CATALOG_BACKEND=ENV_JSON`) fails startup with:
+    - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`

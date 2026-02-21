@@ -86,3 +86,8 @@ variance and incident complexity in production.
   - Added CI production-profile startup smoke job with Postgres services and migration pre-step.
   - Added startup guardrail tests for advisory and policy-pack production misconfiguration paths.
   - Updated deployment docs and runbook with explicit `LOCAL` vs `PRODUCTION` profile behavior.
+- Slice 3 completed (2026-02-21):
+  - Added CI negative guardrail job asserting startup fails with explicit reason codes for:
+    - DPM backend misconfiguration in `PRODUCTION`
+    - advisory backend misconfiguration in `PRODUCTION`
+    - policy-pack backend misconfiguration in `PRODUCTION` when policy packs are enabled

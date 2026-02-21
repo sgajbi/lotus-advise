@@ -77,6 +77,13 @@ CI executes:
 2. Live Postgres integration tests:
    - `tests/dpm/supportability/test_dpm_postgres_repository_integration.py`
    - `tests/advisory/engine/test_engine_proposal_repository_postgres_integration.py`
+3. Production-profile startup smoke:
+   - starts API with `APP_PERSISTENCE_PROFILE=PRODUCTION` and Postgres backends.
+4. Production-profile guardrail negatives:
+   - validates startup fails with:
+     - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
+     - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
+     - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
 
 This validates both migration application and repository contract parity on real Postgres.
 
