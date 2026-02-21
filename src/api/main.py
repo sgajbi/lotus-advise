@@ -9,13 +9,14 @@ from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Annotated, Dict, List, Optional
+from typing import Annotated, Dict, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, Response, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import Field, ValidationError
 
 from src.api.persistence_profile import validate_persistence_profile_guardrails
+from src.api.request_models import RebalanceRequest
 from src.api.routers.dpm_policy_packs import (
     load_dpm_policy_pack_catalog,
     resolve_dpm_policy_pack,
@@ -29,6 +30,18 @@ from src.api.routers.dpm_runs import (
     router as dpm_run_support_router,
 )
 from src.api.routers.proposals import router as proposal_lifecycle_router
+from src.api.simulation_examples import (
+    ANALYZE_ASYNC_ACCEPTED_EXAMPLE,
+    ANALYZE_RESPONSE_EXAMPLE,
+    PROPOSAL_409_EXAMPLE,
+    PROPOSAL_BLOCKED_EXAMPLE,
+    PROPOSAL_PENDING_EXAMPLE,
+    PROPOSAL_READY_EXAMPLE,
+    SIMULATE_409_EXAMPLE,
+    SIMULATE_BLOCKED_EXAMPLE,
+    SIMULATE_PENDING_EXAMPLE,
+    SIMULATE_READY_EXAMPLE,
+)
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory_engine import run_proposal_simulation
@@ -50,14 +63,10 @@ from src.core.models import (
     BatchRebalanceResult,
     BatchScenarioMetric,
     EngineOptions,
-    MarketDataSnapshot,
-    ModelPortfolio,
     Money,
-    PortfolioSnapshot,
     ProposalResult,
     ProposalSimulateRequest,
     RebalanceResult,
-    ShelfEntry,
 )
 
 
@@ -132,170 +141,6 @@ async def unhandled_exception_to_problem_details(request: Request, exc: Exceptio
             "instance": str(request.url.path),
         },
     )
-
-
-class RebalanceRequest(BaseModel):
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "portfolio_snapshot": {
-                    "portfolio_id": "pf_1",
-                    "base_currency": "USD",
-                    "positions": [{"instrument_id": "EQ_1", "quantity": "100"}],
-                    "cash_balances": [{"currency": "USD", "amount": "5000"}],
-                },
-                "market_data_snapshot": {
-                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
-                    "fx_rates": [],
-                },
-                "model_portfolio": {"targets": [{"instrument_id": "EQ_1", "weight": "0.6"}]},
-                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
-                "options": {
-                    "target_method": "HEURISTIC",
-                    "enable_tax_awareness": False,
-                    "enable_settlement_awareness": False,
-                },
-            }
-        }
-    }
-
-    portfolio_snapshot: PortfolioSnapshot = Field(
-        description="Current portfolio holdings and cash balances."
-    )
-    market_data_snapshot: MarketDataSnapshot = Field(
-        description="Price and FX snapshot used for valuation and intent generation."
-    )
-    model_portfolio: ModelPortfolio = Field(description="Target model weights by instrument.")
-    shelf_entries: List[ShelfEntry] = Field(
-        description=(
-            "Instrument eligibility and policy metadata (status, attributes, settlement days)."
-        )
-    )
-    options: EngineOptions = Field(description="Request-level engine behavior and feature toggles.")
-
-
-SIMULATE_READY_EXAMPLE = {
-    "summary": "Ready run",
-    "value": {
-        "status": "READY",
-        "rebalance_run_id": "rr_demo1234",
-        "diagnostics": {"warnings": [], "data_quality": {"price_missing": [], "fx_missing": []}},
-    },
-}
-SIMULATE_PENDING_EXAMPLE = {
-    "summary": "Pending review run",
-    "value": {
-        "status": "PENDING_REVIEW",
-        "rebalance_run_id": "rr_demo5678",
-        "diagnostics": {"warnings": ["CAPPED_BY_GROUP_LIMIT_sector:TECH"]},
-    },
-}
-SIMULATE_BLOCKED_EXAMPLE = {
-    "summary": "Blocked run",
-    "value": {
-        "status": "BLOCKED",
-        "rebalance_run_id": "rr_demo9999",
-        "diagnostics": {"warnings": ["OVERDRAFT_ON_T_PLUS_1"]},
-    },
-}
-SIMULATE_409_EXAMPLE = {
-    "summary": "Idempotency hash conflict",
-    "value": {"detail": "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"},
-}
-
-BATCH_EXAMPLE = {
-    "summary": "Batch what-if request",
-    "value": {
-        "portfolio_snapshot": {
-            "portfolio_id": "pf_batch",
-            "base_currency": "USD",
-            "positions": [{"instrument_id": "EQ_1", "quantity": "100"}],
-            "cash_balances": [{"currency": "USD", "amount": "1000"}],
-        },
-        "market_data_snapshot": {
-            "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
-            "fx_rates": [],
-        },
-        "model_portfolio": {"targets": [{"instrument_id": "EQ_1", "weight": "0.5"}]},
-        "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
-        "scenarios": {
-            "baseline": {"options": {}},
-            "solver_case": {"options": {"target_method": "SOLVER"}},
-        },
-    },
-}
-
-ANALYZE_RESPONSE_EXAMPLE = {
-    "summary": "Batch result",
-    "value": {
-        "batch_run_id": "batch_ab12cd34",
-        "run_at_utc": "2026-02-18T10:00:00+00:00",
-        "base_snapshot_ids": {"portfolio_snapshot_id": "pf_batch", "market_data_snapshot_id": "md"},
-        "results": {},
-        "comparison_metrics": {},
-        "failed_scenarios": {},
-        "warnings": [],
-    },
-}
-ANALYZE_ASYNC_ACCEPTED_EXAMPLE = {
-    "summary": "Async batch accepted",
-    "value": {
-        "operation_id": "dop_abc12345",
-        "operation_type": "ANALYZE_SCENARIOS",
-        "status": "PENDING",
-        "correlation_id": "corr-batch-async-1",
-        "created_at": "2026-02-20T12:00:00+00:00",
-        "status_url": "/rebalance/operations/dop_abc12345",
-    },
-}
-
-PROPOSAL_READY_EXAMPLE = {
-    "summary": "Proposal simulation ready",
-    "value": {
-        "status": "READY",
-        "proposal_run_id": "pr_demo1234",
-        "correlation_id": "corr_demo1234",
-        "intents": [
-            {"intent_type": "CASH_FLOW", "currency": "USD", "amount": "2000.00"},
-            {
-                "intent_type": "SECURITY_TRADE",
-                "side": "BUY",
-                "instrument_id": "EQ_GROWTH",
-                "quantity": "40",
-            },
-        ],
-        "diagnostics": {"warnings": [], "data_quality": {"price_missing": [], "fx_missing": []}},
-    },
-}
-
-PROPOSAL_PENDING_EXAMPLE = {
-    "summary": "Proposal simulation pending review",
-    "value": {
-        "status": "PENDING_REVIEW",
-        "proposal_run_id": "pr_demo5678",
-        "correlation_id": "corr_demo5678",
-        "diagnostics": {"warnings": [], "data_quality": {"price_missing": [], "fx_missing": []}},
-        "rule_results": [{"rule_id": "CASH_BAND", "severity": "SOFT", "status": "FAIL"}],
-    },
-}
-
-PROPOSAL_BLOCKED_EXAMPLE = {
-    "summary": "Proposal simulation blocked",
-    "value": {
-        "status": "BLOCKED",
-        "proposal_run_id": "pr_demo9999",
-        "correlation_id": "corr_demo9999",
-        "diagnostics": {
-            "warnings": ["PROPOSAL_WITHDRAWAL_NEGATIVE_CASH"],
-            "data_quality": {"price_missing": [], "fx_missing": []},
-        },
-    },
-}
-
-PROPOSAL_409_EXAMPLE = {
-    "summary": "Idempotency hash conflict",
-    "value": {"detail": "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"},
-}
 
 
 def _resolve_base_snapshot_ids(request: BatchRebalanceRequest) -> Dict[str, str]:
@@ -507,7 +352,7 @@ def simulate_rebalance(
             portfolio_id=request.portfolio_snapshot.portfolio_id,
             idempotency_key=idempotency_key,
         )
-    except Exception:
+    except (HTTPException, RuntimeError, ValueError):
         logger.exception(
             "Supportability persistence failed. RunID=%s CorrelationID=%s",
             result.rebalance_run_id,
@@ -801,7 +646,7 @@ def _execute_batch_analysis(
                 scenario_result=scenario_result,
                 base_currency=request.portfolio_snapshot.base_currency,
             )
-        except Exception as exc:
+        except (HTTPException, ValidationError, RuntimeError, ValueError) as exc:
             logger.exception("Scenario execution failed. Scenario=%s", scenario_name)
             failed_scenarios[scenario_name] = f"SCENARIO_EXECUTION_ERROR: {type(exc).__name__}"
 
@@ -847,7 +692,7 @@ def _run_analyze_async_operation(*, operation_id: str, service: DpmRunSupportSer
             operation_id=operation_id,
             result_json=result.model_dump(mode="json"),
         )
-    except Exception as exc:
+    except (DpmRunNotFoundError, ValidationError, HTTPException, RuntimeError, ValueError) as exc:
         logger.exception("Asynchronous batch analysis failed. OperationID=%s", operation_id)
         service.complete_operation_failure(
             operation_id=operation_id,
