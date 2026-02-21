@@ -10,3 +10,4 @@ uvicorn.local.out.log
 uvicorn.local.err.log
 env/
 .ruff_cache/
+.mypy_cache/
