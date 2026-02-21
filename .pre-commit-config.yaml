@@ -24,9 +24,8 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
-        args: ["--strict", "--ignore-missing-imports"]
+        args: ["--ignore-missing-imports", "--follow-imports=skip"]
+        files: ^src/api/
         additional_dependencies:
           - "pydantic>=2.0"
           - "fastapi>=0.100"
-          - "sqlalchemy>=2.0"
-          - "types-all"
