@@ -500,12 +500,19 @@ def simulate_rebalance(
         while len(DPM_IDEMPOTENCY_CACHE) > max_size:
             DPM_IDEMPOTENCY_CACHE.popitem(last=False)
 
-    record_dpm_run_for_support(
-        result=result,
-        request_hash=request_hash,
-        portfolio_id=request.portfolio_snapshot.portfolio_id,
-        idempotency_key=idempotency_key,
-    )
+    try:
+        record_dpm_run_for_support(
+            result=result,
+            request_hash=request_hash,
+            portfolio_id=request.portfolio_snapshot.portfolio_id,
+            idempotency_key=idempotency_key,
+        )
+    except Exception:
+        logger.exception(
+            "Supportability persistence failed. RunID=%s CorrelationID=%s",
+            result.rebalance_run_id,
+            result.correlation_id,
+        )
 
     if result.status == "BLOCKED":
         logger.warning(f"Run blocked. Diagnostics: {result.diagnostics}")

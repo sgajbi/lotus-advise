@@ -925,6 +925,18 @@ def test_simulate_generates_correlation_id_when_header_missing(client):
     assert response.json()["correlation_id"].startswith("corr_")
 
 
+def test_simulate_ignores_supportability_persistence_errors(client):
+    payload = get_valid_payload()
+    with patch("src.api.main.record_dpm_run_for_support", side_effect=RuntimeError("boom")):
+        response = client.post(
+            "/rebalance/simulate",
+            json=payload,
+            headers={"Idempotency-Key": "test-key-supportability-error"},
+        )
+    assert response.status_code == 200
+    assert response.json()["status"] in {"READY", "PENDING_REVIEW", "BLOCKED"}
+
+
 def test_simulate_rfc7807_domain_error_mapping(client):
     payload = get_valid_payload()
     payload["options"]["single_position_max_weight"] = "0.50"
