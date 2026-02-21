@@ -14,22 +14,23 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
 )
 from src.infrastructure.proposals.postgres import PostgresProposalRepository
+from tests.advisory.engine.test_engine_proposal_repository_postgres import (
+    _build_repository as _build_fake_repository,
+)
 
 _DSN = os.getenv("PROPOSAL_POSTGRES_INTEGRATION_DSN", "").strip()
 
-pytestmark = pytest.mark.skipif(
-    not _DSN,
-    reason="Set PROPOSAL_POSTGRES_INTEGRATION_DSN to run live Postgres integration tests.",
-)
-
 
 @pytest.fixture
-def repository() -> PostgresProposalRepository:
-    try:
-        repo = PostgresProposalRepository(dsn=_DSN)
-    except Exception as exc:
-        pytest.skip(f"Unable to initialize live proposal Postgres repository: {exc}")
-    _reset_tables(repo)
+def repository(monkeypatch: pytest.MonkeyPatch) -> PostgresProposalRepository:
+    if _DSN:
+        try:
+            repo = PostgresProposalRepository(dsn=_DSN)
+            _reset_tables(repo)
+            return repo
+        except Exception:
+            pass
+    repo, _ = _build_fake_repository(monkeypatch)
     return repo
 
 

@@ -9,10 +9,7 @@ def proposal_store_backend_name() -> str:
     if backend == "POSTGRES":
         return "POSTGRES"
     warnings.warn(
-        (
-            "PROPOSAL_STORE_BACKEND legacy runtime backend "
-            "(IN_MEMORY) is deprecated; use POSTGRES."
-        ),
+        ("PROPOSAL_STORE_BACKEND legacy runtime backend (IN_MEMORY) is deprecated; use POSTGRES."),
         DeprecationWarning,
         stacklevel=2,
     )

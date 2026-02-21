@@ -33,6 +33,12 @@ _REPOSITORY = None
 _SERVICE: Optional[DpmRunSupportService] = None
 
 
+def _backend_init_error_detail(detail: str) -> str:
+    if detail == "DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED":
+        return detail
+    return "DPM_SUPPORTABILITY_POSTGRES_CONNECTION_FAILED"
+
+
 def _assert_support_apis_enabled() -> None:
     if not dpm_runs_config.env_flag("DPM_SUPPORT_APIS_ENABLED", True):
         raise HTTPException(
@@ -114,7 +120,7 @@ def get_dpm_run_support_service() -> DpmRunSupportService:
         except RuntimeError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=str(exc),
+                detail=_backend_init_error_detail(str(exc)),
             ) from exc
     if _SERVICE is None:
         _SERVICE = DpmRunSupportService(

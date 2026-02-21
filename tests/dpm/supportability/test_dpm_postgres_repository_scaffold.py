@@ -117,7 +117,7 @@ class _FakeConnection:
         if "INSERT INTO dpm_run_artifacts" in sql:
             self.artifacts[args[0]] = {"artifact_json": args[1]}
             return _FakeCursor(None)
-        if "FROM dpm_run_artifacts" in sql:
+        if "SELECT artifact_json FROM dpm_run_artifacts" in sql:
             return _FakeCursor(self.artifacts.get(args[0]))
         if "INSERT INTO dpm_run_idempotency (" in sql:
             row = {
@@ -141,7 +141,7 @@ class _FakeConnection:
                 }
             )
             return _FakeCursor()
-        if "FROM dpm_run_idempotency_history" in sql:
+        if "SELECT idempotency_key, rebalance_run_id, correlation_id, request_hash, created_at FROM dpm_run_idempotency_history" in sql:
             rows = [row for row in self.idempotency_history if row["idempotency_key"] == args[0]]
             rows = sorted(rows, key=lambda row: row["created_at"])
             return _FakeCursor(rows=rows)

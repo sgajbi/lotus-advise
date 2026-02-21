@@ -46,6 +46,12 @@ def _proposal_store_backend_name() -> str:
     return proposals_config.proposal_store_backend_name()
 
 
+def _backend_init_error_detail(detail: str) -> str:
+    if detail == "PROPOSAL_POSTGRES_DSN_REQUIRED":
+        return detail
+    return "PROPOSAL_POSTGRES_CONNECTION_FAILED"
+
+
 def get_proposal_workflow_service() -> ProposalWorkflowService:
     global _REPOSITORY
     global _SERVICE
@@ -55,7 +61,7 @@ def get_proposal_workflow_service() -> ProposalWorkflowService:
         except RuntimeError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=str(exc),
+                detail=_backend_init_error_detail(str(exc)),
             ) from exc
         except Exception as exc:
             raise HTTPException(

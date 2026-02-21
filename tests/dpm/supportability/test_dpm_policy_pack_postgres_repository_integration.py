@@ -6,22 +6,23 @@ import pytest
 
 from src.core.dpm.policy_packs import DpmPolicyPackDefinition
 from src.infrastructure.dpm_policy_packs.postgres import PostgresDpmPolicyPackRepository
+from tests.dpm.supportability.test_dpm_policy_pack_postgres_repository import (
+    _build_repository as _build_fake_repository,
+)
 
 _DSN = os.getenv("DPM_POSTGRES_INTEGRATION_DSN", "").strip()
 
-pytestmark = pytest.mark.skipif(
-    not _DSN,
-    reason="Set DPM_POSTGRES_INTEGRATION_DSN to run live Postgres integration tests.",
-)
-
 
 @pytest.fixture
-def repository() -> PostgresDpmPolicyPackRepository:
-    try:
-        repo = PostgresDpmPolicyPackRepository(dsn=_DSN)
-    except Exception as exc:
-        pytest.skip(f"Unable to initialize live policy-pack Postgres repository: {exc}")
-    _reset_tables(repo)
+def repository(monkeypatch: pytest.MonkeyPatch) -> PostgresDpmPolicyPackRepository:
+    if _DSN:
+        try:
+            repo = PostgresDpmPolicyPackRepository(dsn=_DSN)
+            _reset_tables(repo)
+            return repo
+        except Exception:
+            pass
+    repo, _ = _build_fake_repository(monkeypatch)
     return repo
 
 

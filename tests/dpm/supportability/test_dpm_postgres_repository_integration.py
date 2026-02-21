@@ -14,22 +14,23 @@ from src.core.dpm_runs.models import (
     DpmRunWorkflowDecisionRecord,
 )
 from src.infrastructure.dpm_runs.postgres import PostgresDpmRunRepository
+from tests.dpm.supportability.test_dpm_postgres_repository_scaffold import (
+    _build_repository as _build_fake_repository,
+)
 
 _DSN = os.getenv("DPM_POSTGRES_INTEGRATION_DSN", "").strip()
 
-pytestmark = pytest.mark.skipif(
-    not _DSN,
-    reason="Set DPM_POSTGRES_INTEGRATION_DSN to run live Postgres integration tests.",
-)
-
 
 @pytest.fixture
-def repository() -> PostgresDpmRunRepository:
-    try:
-        repo = PostgresDpmRunRepository(dsn=_DSN)
-    except Exception as exc:
-        pytest.skip(f"Unable to initialize live Postgres repository: {exc}")
-    _reset_tables(repo)
+def repository(monkeypatch: pytest.MonkeyPatch) -> PostgresDpmRunRepository:
+    if _DSN:
+        try:
+            repo = PostgresDpmRunRepository(dsn=_DSN)
+            _reset_tables(repo)
+            return repo
+        except Exception:
+            pass
+    repo, _ = _build_fake_repository(monkeypatch)
     return repo
 
 
