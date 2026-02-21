@@ -75,3 +75,29 @@ def test_startup_fails_fast_for_production_profile_misconfiguration(monkeypatch)
         with TestClient(app):
             pass
     assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES"
+
+
+def test_startup_fails_fast_for_advisory_backend_in_production(monkeypatch):
+    monkeypatch.setenv("APP_PERSISTENCE_PROFILE", "PRODUCTION")
+    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "IN_MEMORY")
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "false")
+    monkeypatch.setenv("DPM_POLICY_PACK_ADMIN_APIS_ENABLED", "false")
+
+    with pytest.raises(RuntimeError) as exc:
+        with TestClient(app):
+            pass
+    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES"
+
+
+def test_startup_fails_fast_for_policy_pack_backend_in_production(monkeypatch):
+    monkeypatch.setenv("APP_PERSISTENCE_PROFILE", "PRODUCTION")
+    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv("DPM_POLICY_PACKS_ENABLED", "true")
+    monkeypatch.setenv("DPM_POLICY_PACK_CATALOG_BACKEND", "ENV_JSON")
+
+    with pytest.raises(RuntimeError) as exc:
+        with TestClient(app):
+            pass
+    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES"
