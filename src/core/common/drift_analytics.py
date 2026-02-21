@@ -1,7 +1,8 @@
+from collections.abc import Iterable, Sequence
 from decimal import Decimal
-from typing import Iterable, List, Set
 
 from src.core.models import (
+    AllocationMetric,
     DriftAnalysis,
     DriftBucketDetail,
     DriftDimensionAnalysis,
@@ -10,17 +11,23 @@ from src.core.models import (
     DriftReferenceModelSummary,
     DriftUnmodeledExposure,
     EngineOptions,
+    ReferenceAssetClassTarget,
+    ReferenceInstrumentTarget,
     ReferenceModel,
     SimulatedState,
 )
 
 
-def _to_weight_map(allocations) -> dict[str, Decimal]:
+def _to_weight_map(allocations: Sequence[AllocationMetric]) -> dict[str, Decimal]:
     return {allocation.key: allocation.weight for allocation in allocations}
 
 
-def _to_target_map(targets, key_attr: str) -> dict[str, Decimal]:
-    return {getattr(target, key_attr): target.weight for target in targets}
+def _to_asset_class_target_map(targets: Sequence[ReferenceAssetClassTarget]) -> dict[str, Decimal]:
+    return {target.asset_class: target.weight for target in targets}
+
+
+def _to_instrument_target_map(targets: Sequence[ReferenceInstrumentTarget]) -> dict[str, Decimal]:
+    return {target.instrument_id: target.weight for target in targets}
 
 
 def _build_dimension(
@@ -31,7 +38,7 @@ def _build_dimension(
     buckets: Iterable[str],
     top_limit: int,
 ) -> DriftDimensionAnalysis:
-    details: List[DriftBucketDetail] = []
+    details: list[DriftBucketDetail] = []
     for bucket in sorted(set(buckets)):
         model_weight = model_weights.get(bucket, Decimal("0"))
         before_weight = before_weights.get(bucket, Decimal("0"))
@@ -72,7 +79,7 @@ def _build_dimension(
 
 def _build_highlights(
     *,
-    details: List[DriftBucketDetail],
+    details: list[DriftBucketDetail],
     top_limit: int,
     unmodeled_threshold: Decimal,
 ) -> DriftHighlights:
@@ -127,12 +134,12 @@ def compute_drift_analysis(
     before: SimulatedState,
     after: SimulatedState,
     reference_model: ReferenceModel,
-    traded_instruments: Set[str],
+    traded_instruments: set[str],
     options: EngineOptions,
 ) -> DriftAnalysis:
     before_by_asset_class = _to_weight_map(before.allocation_by_asset_class)
     after_by_asset_class = _to_weight_map(after.allocation_by_asset_class)
-    model_by_asset_class = _to_target_map(reference_model.asset_class_targets, "asset_class")
+    model_by_asset_class = _to_asset_class_target_map(reference_model.asset_class_targets)
     asset_class_buckets = (
         set(before_by_asset_class.keys())
         | set(after_by_asset_class.keys())
@@ -152,7 +159,7 @@ def compute_drift_analysis(
     if options.enable_instrument_drift and reference_model.instrument_targets:
         before_by_instrument = _to_weight_map(before.allocation_by_instrument)
         after_by_instrument = _to_weight_map(after.allocation_by_instrument)
-        model_by_instrument = _to_target_map(reference_model.instrument_targets, "instrument_id")
+        model_by_instrument = _to_instrument_target_map(reference_model.instrument_targets)
         instrument_buckets = (
             set(before_by_instrument.keys())
             | set(after_by_instrument.keys())
