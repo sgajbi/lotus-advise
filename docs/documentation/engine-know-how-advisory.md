@@ -12,6 +12,7 @@ Implementation scope:
   - `src/core/proposals/repository.py`
 - Proposal lifecycle persistence adapter:
   - `src/infrastructure/proposals/in_memory.py`
+  - `src/infrastructure/proposals/postgres.py`
 - Core orchestration: `src/core/advisory_engine.py` (`run_proposal_simulation`)
 - Advisory modular internals:
   - `src/core/advisory/ids.py` (deterministic run id generation)
@@ -113,8 +114,9 @@ Implementation scope:
 - Approval types: `RISK`, `COMPLIANCE`, `CLIENT_CONSENT`
 
 Persistence note:
-- Current lifecycle persistence is in-memory through the repository adapter.
-- PostgreSQL schema in RFC-0014G is target-state and intentionally deferred.
+- Lifecycle persistence supports repository backends selected by runtime config.
+- Postgres-backed persistence is implemented (`PROPOSAL_STORE_BACKEND=POSTGRES`).
+- In-memory backend remains available for local/test workflows and emits deprecation warnings.
 
 ## Pipeline (`run_proposal_simulation`)
 

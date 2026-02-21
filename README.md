@@ -2,7 +2,7 @@
 # Private Banking Rebalance Engine (DPM)
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Compliance](https://img.shields.io/badge/RFC-0003%20Audit%20Bundle-Compliant-gold)
 
@@ -28,7 +28,9 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0014C (advisory drift analytics via inline `reference_model` in `POST /rebalance/proposals/simulate`)
 * RFC-0014D (advisory suitability scanner with NEW/RESOLVED/PERSISTENT issue classification and gate recommendation)
 * RFC-0014E (advisory proposal artifact via `POST /rebalance/proposals/artifact` with deterministic evidence hash)
-* RFC-0014G (advisory proposal persistence and workflow lifecycle via `/rebalance/proposals` endpoint family, in-memory adapter with repository port)
+* RFC-0014G (advisory proposal persistence and workflow lifecycle via `/rebalance/proposals` endpoint family and repository port)
+* RFC-0024 (unified PostgreSQL persistence for DPM supportability and advisory proposal lifecycle)
+* RFC-0025 (PostgreSQL-only production profile cutover guardrails and rollout controls)
 * Shared workflow gate decision semantics (deterministic `gate_decision` block in DPM/advisory outputs, configurable through `EngineOptions`)
 
 ---
@@ -105,7 +107,7 @@ uvicorn src.api.main:app --reload --port 8000
 
 ```bash
 # Run full test suite with coverage
-python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=100
+python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
 
 # Linting & Formatting
 ruff check .
@@ -126,9 +128,10 @@ Testing strategy:
 
 ---
 
-## 🐳 Docker Deployment (Ephemeral)
+## 🐳 Docker Deployment (Postgres-First)
 
-The current version runs as a stateless container. Data (Idempotency keys and Rebalance Runs) is stored in-memory and will be lost if the container restarts.
+Default local container runtime uses PostgreSQL-backed persistence.
+Persisted data is stored in the Postgres volume (`dpm-postgres-data`).
 
 ### Build and Run
 

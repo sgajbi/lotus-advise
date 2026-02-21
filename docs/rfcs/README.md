@@ -24,7 +24,7 @@ Standards for all current and future RFCs:
 | RFC-0014C | Drift Analytics for Advisory Proposals (Before vs After vs Reference Model) | IMPLEMENTED | RFC-0014A, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014C-drift-analytics.md` |
 | RFC-0014D | Suitability Scanner v1 for Advisory Proposals | IMPLEMENTED | RFC-0014A, RFC-0006A | `docs/rfcs/advisory pack/refine/RFC-0014D-suitability-scanner-v1.md` |
 | RFC-0014E | Advisory Proposal Artifact | IMPLEMENTED | RFC-0014A, RFC-0014B, RFC-0014C, RFC-0014D | `docs/rfcs/advisory pack/refine/RFC-0014E-proposal-artifact.md` |
-| RFC-0014G | Proposal Persistence and Workflow Lifecycle | IMPLEMENTED (MVP IN-MEMORY ADAPTER) | RFC-0014A, RFC-0014E, RFC-0014F | `docs/rfcs/advisory pack/refine/RFC-0014G-proposal-persistence-workflow-lifecycle.md` |
+| RFC-0014G | Proposal Persistence and Workflow Lifecycle | IMPLEMENTED (MVP DELIVERED, POSTGRES SLICES COMPLETED VIA RFC-0024) | RFC-0014A, RFC-0014E, RFC-0014F | `docs/rfcs/advisory pack/refine/RFC-0014G-proposal-persistence-workflow-lifecycle.md` |
 | RFC-0015 | Deferred Scope Consolidation and Completion Backlog | SUPERSEDED (TRIAGED) | RFC-0001..RFC-0013 | `docs/rfcs/RFC-0015-deferred-scope-consolidation-and-completion-backlog.md` |
 | RFC-0016 | DPM Idempotency Replay Contract for `/rebalance/simulate` | IMPLEMENTED | RFC-0001, RFC-0002, RFC-0007A | `docs/rfcs/RFC-0016-dpm-idempotency-replay-contract.md` |
 | RFC-0017 | DPM Run Supportability APIs (Run, Correlation, Idempotency Lookup) | IMPLEMENTED | RFC-0001, RFC-0002, RFC-0016 | `docs/rfcs/RFC-0017-dpm-run-supportability-apis.md` |
@@ -34,4 +34,5 @@ Standards for all current and future RFCs:
 | RFC-0021 | DPM OpenAPI Contract Hardening and Separation of Request/Response Models | IMPLEMENTED | RFC-0007A, RFC-0016, RFC-0017 | `docs/rfcs/RFC-0021-dpm-openapi-contract-hardening.md` |
 | RFC-0022 | DPM Policy Pack Configuration Model | IMPLEMENTED | RFC-0008, RFC-0010, RFC-0011, RFC-0016 | `docs/rfcs/RFC-0022-dpm-policy-pack-configuration-model.md` |
 | RFC-0023 | DPM Persistent Supportability Store and Lineage APIs | IMPLEMENTED | RFC-0017, RFC-0018, RFC-0019 | `docs/rfcs/RFC-0023-dpm-persistent-supportability-store-and-lineage-apis.md` |
-| RFC-0024 | Unified PostgreSQL Persistence for DPM and Advisory | DRAFT | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
+| RFC-0024 | Unified PostgreSQL Persistence for DPM and Advisory | COMPLETED (SLICE 19) | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
+| RFC-0025 | PostgreSQL-Only Production Mode Cutover | COMPLETED | RFC-0023, RFC-0024 | `docs/rfcs/RFC-0025-postgres-only-production-mode-cutover.md` |
