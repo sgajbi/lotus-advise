@@ -1,5 +1,6 @@
 from copy import deepcopy
 from decimal import Decimal
+from typing import Literal
 
 from src.core.common.intent_dependencies import link_buy_intent_dependencies
 from src.core.common.simulation_shared import (
@@ -13,15 +14,29 @@ from src.core.compliance import RuleEngine
 from src.core.models import (
     CashLadderBreach,
     CashLadderPoint,
+    DiagnosticsData,
+    EngineOptions,
     FxSpotIntent,
     IntentRationale,
+    MarketDataSnapshot,
+    PortfolioSnapshot,
+    ProposalOrderIntent,
+    Reconciliation,
     RuleResult,
+    ShelfEntry,
+    SimulatedState,
     ValuationMode,
 )
 from src.core.valuation import build_simulated_state, get_fx_rate
 
 
-def build_settlement_ladder(portfolio, shelf, intents, options, diagnostics):
+def build_settlement_ladder(
+    portfolio: PortfolioSnapshot,
+    shelf: list[ShelfEntry],
+    intents: list[ProposalOrderIntent],
+    options: EngineOptions,
+    diagnostics: DiagnosticsData,
+) -> None:
     settlement_days_by_instrument = {entry.instrument_id: entry.settlement_days for entry in shelf}
     max_security_day = max(
         (
@@ -35,9 +50,9 @@ def build_settlement_ladder(portfolio, shelf, intents, options, diagnostics):
         options.settlement_horizon_days, options.fx_settlement_days, max_security_day
     )
 
-    flows = {}
+    flows: dict[str, list[Decimal]] = {}
 
-    def ensure_currency(currency):
+    def ensure_currency(currency: str) -> None:
         if currency not in flows:
             flows[currency] = [Decimal("0")] * (horizon_days + 1)
 
@@ -93,8 +108,20 @@ def build_settlement_ladder(portfolio, shelf, intents, options, diagnostics):
 
 
 def generate_fx_and_simulate(
-    portfolio, market_data, shelf, intents, options, total_val_before, diagnostics
-):
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    shelf: list[ShelfEntry],
+    intents: list[ProposalOrderIntent],
+    options: EngineOptions,
+    total_val_before: Decimal,
+    diagnostics: DiagnosticsData,
+) -> tuple[
+    list[ProposalOrderIntent],
+    SimulatedState | PortfolioSnapshot,
+    list[RuleResult],
+    Literal["READY", "BLOCKED", "PENDING_REVIEW"],
+    Reconciliation | None,
+]:
     """
     Applies intents, generates FX, checks Safety Guards, and computes Reconciliation.
     """
@@ -238,7 +265,7 @@ def generate_fx_and_simulate(
     return intents, state, rules, derive_status_from_rules(rules), recon
 
 
-def check_blocking_dq(dq_log, options):
+def check_blocking_dq(dq_log: dict[str, list[str]], options: EngineOptions) -> bool:
     if dq_log.get("shelf_missing"):
         return True
     if dq_log.get("price_missing") and options.block_on_missing_prices:

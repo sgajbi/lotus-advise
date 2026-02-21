@@ -97,7 +97,7 @@ def _build_policy_pack_repository() -> DpmPolicyPackRepository:
         if not dsn:
             raise RuntimeError("DPM_POLICY_PACK_POSTGRES_DSN_REQUIRED")
         try:
-            return PostgresDpmPolicyPackRepository(dsn=dsn)
+            return cast(DpmPolicyPackRepository, PostgresDpmPolicyPackRepository(dsn=dsn))
         except RuntimeError:
             raise
         except Exception as exc:
@@ -106,7 +106,7 @@ def _build_policy_pack_repository() -> DpmPolicyPackRepository:
     if _ENV_POLICY_PACK_REPOSITORY is None or _ENV_POLICY_PACK_REPOSITORY_RAW != raw_catalog:
         _ENV_POLICY_PACK_REPOSITORY = EnvJsonDpmPolicyPackRepository(catalog_json=raw_catalog)
         _ENV_POLICY_PACK_REPOSITORY_RAW = raw_catalog
-    return _ENV_POLICY_PACK_REPOSITORY
+    return cast(DpmPolicyPackRepository, _ENV_POLICY_PACK_REPOSITORY)
 
 
 def _get_policy_pack_repository() -> DpmPolicyPackRepository:

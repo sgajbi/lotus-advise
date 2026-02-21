@@ -1,12 +1,26 @@
 from copy import deepcopy
 from decimal import Decimal
+from typing import Any, Literal, cast
 
 from src.core.common.diagnostics import make_diagnostics_data
-from src.core.models import EngineOptions, GroupConstraintEvent, TargetMethod
+from src.core.models import (
+    DiagnosticsData,
+    EngineOptions,
+    GroupConstraintEvent,
+    ModelPortfolio,
+    ShelfEntry,
+    TargetMethod,
+)
 from src.core.target_generation import build_target_trace, generate_targets_solver
 
 
-def apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnostics):
+def apply_group_constraints(
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    diagnostics: DiagnosticsData,
+) -> Literal["READY", "BLOCKED"]:
     """
     RFC-0008: Apply multi-dimensional group constraints.
     Caps overweight groups and redistributes excess to eligible buyable instruments.
@@ -88,16 +102,16 @@ def apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnost
 
 
 def generate_targets(
-    model,
-    eligible_targets,
-    buy_list,
-    sell_only_excess,
-    shelf=None,
-    options=None,
-    total_val=Decimal("0"),
-    base_ccy="USD",
-    diagnostics=None,
-):
+    model: ModelPortfolio,
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    sell_only_excess: Decimal,
+    shelf: list[ShelfEntry] | None = None,
+    options: EngineOptions | None = None,
+    total_val: Decimal = Decimal("0"),
+    base_ccy: str = "USD",
+    diagnostics: DiagnosticsData | None = None,
+) -> tuple[list[Any], str]:
     if shelf is None:
         shelf = []
     if options is None:
@@ -106,16 +120,19 @@ def generate_targets(
         diagnostics = make_diagnostics_data()
 
     if options.target_method == TargetMethod.SOLVER:
-        return generate_targets_solver(
-            model=model,
-            eligible_targets=eligible_targets,
-            buy_list=buy_list,
-            sell_only_excess=sell_only_excess,
-            shelf=shelf,
-            options=options,
-            total_val=total_val,
-            base_ccy=base_ccy,
-            diagnostics=diagnostics,
+        return cast(
+            tuple[list[Any], str],
+            generate_targets_solver(
+                model=model,
+                eligible_targets=eligible_targets,
+                buy_list=buy_list,
+                sell_only_excess=sell_only_excess,
+                shelf=shelf,
+                options=options,
+                total_val=total_val,
+                base_ccy=base_ccy,
+                diagnostics=diagnostics,
+            ),
         )
 
     return generate_targets_heuristic(
@@ -131,23 +148,23 @@ def generate_targets(
     )
 
 
-def _to_weight_map(trace):
+def _to_weight_map(trace: list[Any]) -> dict[str, Decimal]:
     return {t.instrument_id: t.final_weight for t in trace}
 
 
 def compare_target_generation_methods(
     *,
-    model,
-    eligible_targets,
-    buy_list,
-    sell_only_excess,
-    shelf,
-    options,
-    total_val,
-    base_ccy,
-    primary_trace,
-    primary_status,
-):
+    model: ModelPortfolio,
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    sell_only_excess: Decimal,
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    total_val: Decimal,
+    base_ccy: str,
+    primary_trace: list[Any],
+    primary_status: str,
+) -> dict[str, Any]:
     primary_method = options.target_method
     alternate_method = (
         TargetMethod.SOLVER if primary_method == TargetMethod.HEURISTIC else TargetMethod.HEURISTIC
@@ -189,16 +206,16 @@ def compare_target_generation_methods(
 
 
 def generate_targets_heuristic(
-    model,
-    eligible_targets,
-    buy_list,
-    sell_only_excess,
-    shelf,
-    options,
-    total_val,
-    base_ccy,
-    diagnostics,
-):
+    model: ModelPortfolio,
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    sell_only_excess: Decimal,
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    total_val: Decimal,
+    base_ccy: str,
+    diagnostics: DiagnosticsData,
+) -> tuple[list[Any], str]:
     status = "READY"
 
     if sell_only_excess > Decimal("0.0"):

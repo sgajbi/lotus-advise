@@ -1,9 +1,15 @@
 from decimal import Decimal
+from typing import Any, cast
 
 from src.core.models import (
+    DiagnosticsData,
+    EngineOptions,
     IntentRationale,
+    MarketDataSnapshot,
     Money,
+    PortfolioSnapshot,
     SecurityTradeIntent,
+    ShelfEntry,
     SuppressedIntent,
     TaxBudgetConstraintEvent,
     TaxImpact,
@@ -12,24 +18,32 @@ from src.core.valuation import get_fx_rate
 
 
 def generate_intents(
-    portfolio, market_data, targets, shelf, options, total_val, dq_log, diagnostics, suppressed
-):
-    intents = []
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    targets: list[Any],
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    total_val: Decimal,
+    dq_log: dict[str, list[str]],
+    diagnostics: DiagnosticsData,
+    suppressed: list[SuppressedIntent],
+) -> tuple[list[SecurityTradeIntent], TaxImpact | None]:
+    intents: list[SecurityTradeIntent] = []
     total_realized_gain_base = Decimal("0")
     total_realized_loss_base = Decimal("0")
     tax_budget_used_base = Decimal("0")
     tax_budget_limit_base = options.max_realized_capital_gains
 
-    def lot_cost_in_instrument_ccy(unit_cost, instrument_ccy):
+    def lot_cost_in_instrument_ccy(unit_cost: Money, instrument_ccy: str) -> Decimal | None:
         if unit_cost.currency == instrument_ccy:
-            return unit_cost.amount
+            return cast(Decimal, unit_cost.amount)
         fx = get_fx_rate(market_data, unit_cost.currency, instrument_ccy)
         if fx is None:
             dq_log["fx_missing"].append(f"{unit_cost.currency}/{instrument_ccy}")
             return None
-        return unit_cost.amount * fx
+        return cast(Decimal, unit_cost.amount * fx)
 
-    def hifo_sorted_lots(position, instrument_ccy):
+    def hifo_sorted_lots(position: Any, instrument_ccy: str) -> list[tuple[Any, Decimal]]:
         if not position or not position.lots:
             return []
         lots_with_cost = []
@@ -44,7 +58,13 @@ def generate_intents(
             reverse=True,
         )
 
-    def apply_tax_budget_sell_limit(position, requested_qty, sell_price, price_ccy, base_rate):
+    def apply_tax_budget_sell_limit(
+        position: Any,
+        requested_qty: Decimal,
+        sell_price: Decimal,
+        price_ccy: str,
+        base_rate: Decimal,
+    ) -> Decimal:
         nonlocal total_realized_gain_base, total_realized_loss_base, tax_budget_used_base
 
         if not options.enable_tax_awareness:

@@ -3,6 +3,7 @@
 import uuid
 from copy import deepcopy
 from decimal import Decimal
+from typing import Any, Literal, cast
 
 from src.core.common.diagnostics import make_diagnostics_data
 from src.core.common.workflow_gates import evaluate_gate_decision
@@ -37,26 +38,36 @@ from src.core.dpm.turnover import (
 )
 from src.core.dpm.universe import build_universe as build_universe_impl
 from src.core.models import (
+    DiagnosticsData,
+    EngineOptions,
     LineageData,
+    MarketDataSnapshot,
+    ModelPortfolio,
+    PortfolioSnapshot,
     RebalanceResult,
+    SecurityTradeIntent,
+    ShelfEntry,
     TargetData,
+    TaxImpact,
     UniverseCoverage,
     UniverseData,
 )
 from src.core.valuation import build_simulated_state
 
 
-def _calculate_turnover_score(intent, portfolio_value_base):
+def _calculate_turnover_score(
+    intent: SecurityTradeIntent, portfolio_value_base: Decimal
+) -> Decimal:
     return calculate_turnover_score_impl(intent, portfolio_value_base)
 
 
 def _apply_turnover_limit(
-    intents,
-    options,
-    portfolio_value_base,
-    base_currency,
-    diagnostics,
-):
+    intents: list[SecurityTradeIntent],
+    options: EngineOptions,
+    portfolio_value_base: Decimal,
+    base_currency: str,
+    diagnostics: DiagnosticsData,
+) -> list[SecurityTradeIntent]:
     return apply_turnover_limit_impl(
         intents=intents,
         options=options,
@@ -67,18 +78,18 @@ def _apply_turnover_limit(
 
 
 def _make_blocked_result(
-    run_id,
-    portfolio,
-    before,
-    buy_l,
-    sell_l,
-    excl,
-    trace,
-    options,
-    diagnostics,
-    request_hash,
-    correlation_id,
-):
+    run_id: str,
+    portfolio: PortfolioSnapshot,
+    before: Any,
+    buy_l: list[str],
+    sell_l: list[str],
+    excl: list[Any],
+    trace: list[Any],
+    options: EngineOptions,
+    diagnostics: DiagnosticsData,
+    request_hash: str,
+    correlation_id: str,
+) -> RebalanceResult:
     """Create a consistent blocked response payload."""
     rule_results = RuleEngine.evaluate(before, options, diagnostics)
     gate_decision = None
@@ -118,25 +129,38 @@ def _make_blocked_result(
     )
 
 
-def _build_universe(model, portfolio, shelf, options, dq_log, current_val):
+def _build_universe(
+    model: ModelPortfolio,
+    portfolio: PortfolioSnapshot,
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    dq_log: dict[str, list[str]],
+    current_val: Any,
+) -> tuple[dict[str, Decimal], list[Any], list[str], list[str], Decimal]:
     return build_universe_impl(model, portfolio, shelf, options, dq_log, current_val)
 
 
-def _apply_group_constraints(eligible_targets, buy_list, shelf, options, diagnostics):
+def _apply_group_constraints(
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    diagnostics: DiagnosticsData,
+) -> str:
     return apply_group_constraints_impl(eligible_targets, buy_list, shelf, options, diagnostics)
 
 
 def _generate_targets(
-    model,
-    eligible_targets,
-    buy_list,
-    sell_only_excess,
-    shelf=None,
-    options=None,
-    total_val=Decimal("0"),
-    base_ccy="USD",
-    diagnostics=None,
-):
+    model: ModelPortfolio,
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    sell_only_excess: Decimal,
+    shelf: list[ShelfEntry] | None = None,
+    options: EngineOptions | None = None,
+    total_val: Decimal = Decimal("0"),
+    base_ccy: str = "USD",
+    diagnostics: DiagnosticsData | None = None,
+) -> tuple[list[Any], str]:
     return generate_targets_impl(
         model=model,
         eligible_targets=eligible_targets,
@@ -150,23 +174,23 @@ def _generate_targets(
     )
 
 
-def _to_weight_map(trace):
+def _to_weight_map(trace: list[Any]) -> dict[str, Decimal]:
     return {t.instrument_id: t.final_weight for t in trace}
 
 
 def _compare_target_generation_methods(
     *,
-    model,
-    eligible_targets,
-    buy_list,
-    sell_only_excess,
-    shelf,
-    options,
-    total_val,
-    base_ccy,
-    primary_trace,
-    primary_status,
-):
+    model: ModelPortfolio,
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    sell_only_excess: Decimal,
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    total_val: Decimal,
+    base_ccy: str,
+    primary_trace: list[Any],
+    primary_status: str,
+) -> dict[str, Any]:
     return compare_target_generation_methods_impl(
         model=model,
         eligible_targets=eligible_targets,
@@ -182,16 +206,16 @@ def _compare_target_generation_methods(
 
 
 def _generate_targets_heuristic(
-    model,
-    eligible_targets,
-    buy_list,
-    sell_only_excess,
-    shelf,
-    options,
-    total_val,
-    base_ccy,
-    diagnostics,
-):
+    model: ModelPortfolio,
+    eligible_targets: dict[str, Decimal],
+    buy_list: list[str],
+    sell_only_excess: Decimal,
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    total_val: Decimal,
+    base_ccy: str,
+    diagnostics: DiagnosticsData,
+) -> tuple[list[Any], str]:
     return generate_targets_heuristic_impl(
         model=model,
         eligible_targets=eligible_targets,
@@ -206,38 +230,58 @@ def _generate_targets_heuristic(
 
 
 def _generate_intents(
-    portfolio, market_data, targets, shelf, options, total_val, dq_log, diagnostics, suppressed
-):
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    targets: list[Any],
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    total_val: Decimal,
+    dq_log: dict[str, list[str]],
+    diagnostics: DiagnosticsData,
+    suppressed: list[Any],
+) -> tuple[list[SecurityTradeIntent], TaxImpact | None]:
     return generate_intents_impl(
         portfolio, market_data, targets, shelf, options, total_val, dq_log, diagnostics, suppressed
     )
 
 
-def _build_settlement_ladder(portfolio, shelf, intents, options, diagnostics):
+def _build_settlement_ladder(
+    portfolio: PortfolioSnapshot,
+    shelf: list[ShelfEntry],
+    intents: list[Any],
+    options: EngineOptions,
+    diagnostics: DiagnosticsData,
+) -> None:
     return build_settlement_ladder_impl(portfolio, shelf, intents, options, diagnostics)
 
 
 def _generate_fx_and_simulate(
-    portfolio, market_data, shelf, intents, options, total_val_before, diagnostics
-):
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    shelf: list[ShelfEntry],
+    intents: list[Any],
+    options: EngineOptions,
+    total_val_before: Decimal,
+    diagnostics: DiagnosticsData,
+) -> tuple[list[Any], Any, list[Any], str, Any]:
     return generate_fx_and_simulate_impl(
         portfolio, market_data, shelf, intents, options, total_val_before, diagnostics
     )
 
 
-def _check_blocking_dq(dq_log, options):
+def _check_blocking_dq(dq_log: dict[str, list[str]], options: EngineOptions) -> bool:
     return check_blocking_dq_impl(dq_log, options)
 
 
 def run_simulation(
-    portfolio,
-    market_data,
-    model,
-    shelf,
-    options,
-    request_hash="no_hash",
-    correlation_id="c_none",
-):
+    portfolio: PortfolioSnapshot,
+    market_data: MarketDataSnapshot,
+    model: ModelPortfolio,
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    request_hash: str = "no_hash",
+    correlation_id: str = "c_none",
+) -> RebalanceResult:
     run_id = f"rr_{uuid.uuid4().hex[:8]}"
     diag_data = make_diagnostics_data()
 
@@ -333,10 +377,11 @@ def run_simulation(
 
     if s3_stat == "PENDING_REVIEW" and f_stat == "READY":
         f_stat = "PENDING_REVIEW"
+    gate_status = cast(Literal["READY", "BLOCKED", "PENDING_REVIEW"], f_stat)
     gate_decision = None
     if options.enable_workflow_gates:
         gate_decision = evaluate_gate_decision(
-            status=f_stat,
+            status=gate_status,
             rule_results=rules,
             suitability=None,
             diagnostics=diag_data,
