@@ -1,5 +1,6 @@
 import os
 import warnings
+from typing import cast
 
 from src.core.dpm_runs.repository import DpmRunRepository
 from src.infrastructure.dpm_runs import (
@@ -80,15 +81,17 @@ def supportability_postgres_dsn() -> str:
 def build_repository() -> DpmRunRepository:
     backend = supportability_store_backend_name()
     if backend == "SQL":
-        return SqliteDpmRunRepository(database_path=supportability_sql_path())
+        return cast(
+            DpmRunRepository, SqliteDpmRunRepository(database_path=supportability_sql_path())
+        )
     if backend == "POSTGRES":
         dsn = supportability_postgres_dsn()
         if not dsn:
             raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED")
         try:
-            return PostgresDpmRunRepository(dsn=dsn)
+            return cast(DpmRunRepository, PostgresDpmRunRepository(dsn=dsn))
         except RuntimeError:
             raise
         except Exception as exc:
             raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_CONNECTION_FAILED") from exc
-    return InMemoryDpmRunRepository()
+    return cast(DpmRunRepository, InMemoryDpmRunRepository())

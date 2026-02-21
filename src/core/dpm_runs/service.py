@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional, cast
 
 from src.core.dpm_runs.artifact import build_dpm_run_artifact
 from src.core.dpm_runs.models import (
@@ -246,7 +246,7 @@ class DpmRunSupportService:
         self,
         *,
         correlation_id: Optional[str],
-        request_json: dict,
+        request_json: dict[str, Any],
         created_at: Optional[datetime] = None,
     ) -> DpmAsyncAcceptedResponse:
         self._cleanup_expired_operations()
@@ -592,7 +592,7 @@ class DpmRunSupportService:
         operation.started_at = _utc_now()
         self._repository.update_operation(operation)
 
-    def complete_operation_success(self, *, operation_id: str, result_json: dict) -> None:
+    def complete_operation_success(self, *, operation_id: str, result_json: dict[str, Any]) -> None:
         self._cleanup_expired_operations()
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
@@ -630,7 +630,9 @@ class DpmRunSupportService:
             raise DpmRunNotFoundError("DPM_ASYNC_OPERATION_NOT_FOUND")
         return to_async_status(operation)
 
-    def prepare_analyze_operation_execution(self, *, operation_id: str) -> tuple[dict, str]:
+    def prepare_analyze_operation_execution(
+        self, *, operation_id: str
+    ) -> tuple[dict[str, Any], str]:
         self._cleanup_expired_operations()
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
@@ -640,7 +642,7 @@ class DpmRunSupportService:
         operation.status = "RUNNING"
         operation.started_at = _utc_now()
         self._repository.update_operation(operation)
-        return operation.request_json, operation.correlation_id
+        return cast(dict[str, Any], operation.request_json), operation.correlation_id
 
     def get_workflow(self, *, rebalance_run_id: str) -> DpmRunWorkflowResponse:
         self._cleanup_expired_supportability()
@@ -818,7 +820,7 @@ class DpmRunSupportService:
         source_entity_id: str,
         edge_type: str,
         target_entity_id: str,
-        metadata: dict,
+        metadata: dict[str, Any],
         created_at: datetime,
     ) -> None:
         self._repository.append_lineage_edge(
@@ -910,7 +912,7 @@ class DpmRunSupportService:
             return build_dpm_run_artifact(run=run)
         persisted = self._repository.get_run_artifact(rebalance_run_id=run.rebalance_run_id)
         if persisted is not None:
-            return DpmRunArtifactResponse.model_validate(persisted)
+            return cast(DpmRunArtifactResponse, DpmRunArtifactResponse.model_validate(persisted))
         artifact = build_dpm_run_artifact(run=run)
         self._repository.save_run_artifact(
             rebalance_run_id=run.rebalance_run_id,

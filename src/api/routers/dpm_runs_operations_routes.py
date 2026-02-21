@@ -76,10 +76,7 @@ def list_dpm_async_operations(
             examples=["dop_001"],
         ),
     ] = None,
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmAsyncOperationListResponse:
     shared._assert_support_apis_enabled()
     shared._assert_async_operations_enabled()
@@ -106,10 +103,7 @@ def get_dpm_async_operation(
         str,
         Path(description="Asynchronous operation identifier.", examples=["dop_001"]),
     ],
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmAsyncOperationStatusResponse:
     shared._assert_support_apis_enabled()
     shared._assert_async_operations_enabled()
@@ -131,10 +125,7 @@ def get_dpm_async_operation_by_correlation(
         str,
         Path(description="Correlation identifier associated with async operation."),
     ],
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmAsyncOperationStatusResponse:
     shared._assert_support_apis_enabled()
     shared._assert_async_operations_enabled()
@@ -204,10 +195,7 @@ def get_dpm_lineage(
             examples=["2026-02-20T12:00:00+00:00|corr-1234|CORRELATION_TO_RUN|rr_abc12345"],
         ),
     ] = None,
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmLineageResponse:
     shared._assert_support_apis_enabled()
     shared._assert_lineage_apis_enabled()

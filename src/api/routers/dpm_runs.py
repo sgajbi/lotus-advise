@@ -225,7 +225,7 @@ def list_runs(
             examples=["rr_abc12345"],
         ),
     ] = None,
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunListResponse:
     _assert_support_apis_enabled()
     return service.list_runs(
@@ -250,7 +250,7 @@ def list_runs(
     ),
 )
 def get_dpm_supportability_summary(
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmSupportabilitySummaryResponse:
     _assert_support_apis_enabled()
     _assert_supportability_summary_apis_enabled()
@@ -275,7 +275,7 @@ def get_run_by_correlation(
             examples=["corr-1234-abcd"],
         ),
     ],
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunLookupResponse:
     _assert_support_apis_enabled()
     try:
@@ -299,7 +299,7 @@ def get_run_by_request_hash(
             examples=["sha256:abc123"],
         ),
     ],
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunLookupResponse:
     _assert_support_apis_enabled()
     try:
@@ -323,7 +323,7 @@ def get_run_idempotency_lookup(
             examples=["demo-idem-001"],
         ),
     ],
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunIdempotencyLookupResponse:
     _assert_support_apis_enabled()
     try:
@@ -350,7 +350,7 @@ def get_run_idempotency_history(
             examples=["demo-idem-001"],
         ),
     ],
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunIdempotencyHistoryResponse:
     _assert_support_apis_enabled()
     _assert_idempotency_history_apis_enabled()
@@ -372,7 +372,7 @@ def get_run_by_run_id(
         str,
         Path(description="DPM run identifier.", examples=["rr_abc12345"]),
     ],
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunLookupResponse:
     _assert_support_apis_enabled()
     try:
@@ -420,7 +420,7 @@ def get_dpm_run_support_bundle(
             examples=[True],
         ),
     ] = True,
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunSupportBundleResponse:
     _assert_support_apis_enabled()
     _assert_support_bundle_apis_enabled()
@@ -476,7 +476,7 @@ def get_dpm_run_support_bundle_by_correlation(
             examples=[True],
         ),
     ] = True,
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunSupportBundleResponse:
     _assert_support_apis_enabled()
     _assert_support_bundle_apis_enabled()
@@ -532,7 +532,7 @@ def get_dpm_run_support_bundle_by_idempotency(
             examples=[True],
         ),
     ] = True,
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunSupportBundleResponse:
     _assert_support_apis_enabled()
     _assert_support_bundle_apis_enabled()
@@ -588,7 +588,7 @@ def get_dpm_run_support_bundle_by_operation(
             examples=[True],
         ),
     ] = True,
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunSupportBundleResponse:
     _assert_support_apis_enabled()
     _assert_support_bundle_apis_enabled()
@@ -621,7 +621,7 @@ def get_run_artifact_by_run_id(
         str,
         Path(description="DPM run identifier.", examples=["rr_abc12345"]),
     ],
-    service: Annotated[DpmRunSupportService, Depends(get_dpm_run_support_service)] = None,
+    service: DpmRunSupportService = Depends(get_dpm_run_support_service),
 ) -> DpmRunArtifactResponse:
     _assert_support_apis_enabled()
     _assert_artifacts_enabled()

@@ -87,10 +87,7 @@ def list_dpm_workflow_decisions(
             examples=["dwd_001"],
         ),
     ] = None,
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmWorkflowDecisionListResponse:
     shared._assert_support_apis_enabled()
     shared._assert_workflow_enabled()
@@ -123,10 +120,7 @@ def get_dpm_workflow_decisions_by_correlation(
             examples=["corr-1234-abcd"],
         ),
     ],
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmRunWorkflowHistoryResponse:
     shared._assert_support_apis_enabled()
     shared._assert_workflow_enabled()
@@ -150,10 +144,7 @@ def get_dpm_run_workflow(
         str,
         Path(description="DPM run identifier.", examples=["rr_abc12345"]),
     ],
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmRunWorkflowResponse:
     shared._assert_support_apis_enabled()
     shared._assert_workflow_enabled()
@@ -175,10 +166,7 @@ def get_dpm_run_workflow_by_correlation(
         str,
         Path(description="Correlation identifier used on run submission."),
     ],
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmRunWorkflowResponse:
     shared._assert_support_apis_enabled()
     shared._assert_workflow_enabled()
@@ -200,10 +188,7 @@ def get_dpm_run_workflow_by_idempotency(
         str,
         Path(description="Idempotency key supplied to `/rebalance/simulate`."),
     ],
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmRunWorkflowResponse:
     shared._assert_support_apis_enabled()
     shared._assert_workflow_enabled()
@@ -229,10 +214,7 @@ def apply_dpm_run_workflow_action(
         Path(description="DPM run identifier.", examples=["rr_abc12345"]),
     ],
     payload: DpmRunWorkflowActionRequest,
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
     correlation_id: Annotated[
         Optional[str],
         Header(
@@ -277,10 +259,7 @@ def apply_dpm_run_workflow_action_by_correlation(
         Path(description="Correlation identifier used on run submission."),
     ],
     payload: DpmRunWorkflowActionRequest,
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
     action_correlation_id: Annotated[
         Optional[str],
         Header(
@@ -325,10 +304,7 @@ def apply_dpm_run_workflow_action_by_idempotency(
         Path(description="Idempotency key supplied to `/rebalance/simulate`."),
     ],
     payload: DpmRunWorkflowActionRequest,
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
     action_correlation_id: Annotated[
         Optional[str],
         Header(
@@ -371,10 +347,7 @@ def get_dpm_run_workflow_history(
         str,
         Path(description="DPM run identifier.", examples=["rr_abc12345"]),
     ],
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmRunWorkflowHistoryResponse:
     shared._assert_support_apis_enabled()
     shared._assert_workflow_enabled()
@@ -396,10 +369,7 @@ def get_dpm_run_workflow_history_by_correlation(
         str,
         Path(description="Correlation identifier used on run submission."),
     ],
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmRunWorkflowHistoryResponse:
     shared._assert_support_apis_enabled()
     shared._assert_workflow_enabled()
@@ -421,10 +391,7 @@ def get_dpm_run_workflow_history_by_idempotency(
         str,
         Path(description="Idempotency key supplied to `/rebalance/simulate`."),
     ],
-    service: Annotated[
-        DpmRunSupportService,
-        shared.Depends(shared.get_dpm_run_support_service),
-    ] = None,
+    service: DpmRunSupportService = shared.Depends(shared.get_dpm_run_support_service),
 ) -> DpmRunWorkflowHistoryResponse:
     shared._assert_support_apis_enabled()
     shared._assert_workflow_enabled()

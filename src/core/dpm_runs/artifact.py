@@ -1,3 +1,5 @@
+from typing import cast
+
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.dpm_runs.models import (
     DpmRunArtifactEvidence,
@@ -42,4 +44,4 @@ def build_dpm_run_artifact(*, run: DpmRunRecord) -> DpmRunArtifactResponse:
     payload = base_payload.model_dump(mode="json")
     canonical_payload = strip_keys(payload, exclude={"artifact_hash"})
     payload["evidence"]["hashes"]["artifact_hash"] = hash_canonical_payload(canonical_payload)
-    return DpmRunArtifactResponse.model_validate(payload)
+    return cast(DpmRunArtifactResponse, DpmRunArtifactResponse.model_validate(payload))
