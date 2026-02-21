@@ -98,7 +98,8 @@ jobs:
         run: |
           pytest -q \
             tests/dpm/supportability/test_dpm_postgres_repository_integration.py \
-            tests/advisory/engine/test_engine_proposal_repository_postgres_integration.py
+            tests/advisory/engine/test_engine_proposal_repository_postgres_integration.py \
+            tests/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
 
   production-profile-smoke:
     name: Production Profile Startup Smoke
