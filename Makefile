@@ -1,8 +1,9 @@
-.PHONY: install test lint format clean run check-deps pre-commit
+.PHONY: install test typecheck lint format clean run check-deps pre-commit
 
 install:
 	pip install -r requirements.txt
 	pip install pre-commit
+	pip install mypy
 	pre-commit install
 
 pre-commit:
@@ -10,6 +11,9 @@ pre-commit:
 
 test:
 	python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
+
+typecheck:
+	mypy .
 
 lint:
 	ruff check .

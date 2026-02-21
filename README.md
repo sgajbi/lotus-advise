@@ -109,6 +109,9 @@ uvicorn src.api.main:app --reload --port 8000
 # Run full test suite with coverage
 python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
 
+# Static Type Checking
+make typecheck
+
 # Linting & Formatting
 ruff check .
 ruff format .
