@@ -77,6 +77,10 @@ def _policy_pack_postgres_dsn() -> str:
     ).strip()
 
 
+def policy_pack_postgres_dsn() -> str:
+    return _policy_pack_postgres_dsn()
+
+
 def _build_policy_pack_repository() -> DpmPolicyPackRepository:
     global _ENV_POLICY_PACK_REPOSITORY
     global _ENV_POLICY_PACK_REPOSITORY_RAW
