@@ -25,7 +25,7 @@ format:
 	ruff format .
 
 clean:
-	python -c "import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in ['__pycache__', '.pytest_cache', 'htmlcov', '.ruff_cache']]; pathlib.Path('.coverage').unlink(missing_ok=True)"
+	python -c "import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in ['__pycache__', '.pytest_cache', 'htmlcov', '.ruff_cache', '.mypy_cache']]; pathlib.Path('.coverage').unlink(missing_ok=True)"
 
 run:
 	uvicorn src.api.main:app --reload --port 8000
