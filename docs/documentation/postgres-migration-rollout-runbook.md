@@ -21,7 +21,8 @@ Runbook for forward-only schema migration rollout for:
 
 - `APP_PERSISTENCE_PROFILE=LOCAL`:
   - Intended for local development workflows.
-  - In-memory/SQLite backends may be used.
+  - Postgres-backed runtime is the default local mode.
+  - In-memory/SQLite/ENV_JSON runtime backends are deprecated and kept only for transition/testing.
 - `APP_PERSISTENCE_PROFILE=PRODUCTION`:
   - Enforces Postgres-only runtime guardrails at startup.
   - Required backend settings:
@@ -101,6 +102,9 @@ CI executes:
     - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN`
 5. Production cutover contract check:
    - `python scripts/production_cutover_check.py --check-migrations`
+6. Optional nightly/manual deep validation:
+   - `.github/workflows/nightly-postgres-full.yml`
+   - runs integration repositories plus live API demo pack in production profile on Postgres.
 
 This validates both migration application and repository contract parity on real Postgres.
 

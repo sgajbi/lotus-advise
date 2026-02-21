@@ -105,3 +105,10 @@ variance and incident complexity in production.
     - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES_DSN`
     - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
     - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN`
+- Slice 6 completed (2026-02-21):
+  - Switched local container defaults to Postgres-backed runtime in `docker-compose.yml`.
+  - Marked legacy runtime backends as deprecated via `DeprecationWarning`:
+    - DPM supportability: `IN_MEMORY`/`SQL`/`SQLITE`
+    - advisory store: `IN_MEMORY`
+    - policy-pack catalog: `ENV_JSON`
+  - Captured rationale and transition policy in ADR-0011.

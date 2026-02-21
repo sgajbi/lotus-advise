@@ -1,15 +1,19 @@
+import pytest
+
 from src.api.routers import proposals_config
 
 
 def test_proposal_backend_alias_and_default(monkeypatch):
     monkeypatch.delenv("PROPOSAL_STORE_BACKEND", raising=False)
-    assert proposals_config.proposal_store_backend_name() == "IN_MEMORY"
+    with pytest.warns(DeprecationWarning):
+        assert proposals_config.proposal_store_backend_name() == "IN_MEMORY"
 
     monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
     assert proposals_config.proposal_store_backend_name() == "POSTGRES"
 
     monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "unknown")
-    assert proposals_config.proposal_store_backend_name() == "IN_MEMORY"
+    with pytest.warns(DeprecationWarning):
+        assert proposals_config.proposal_store_backend_name() == "IN_MEMORY"
 
 
 def test_proposal_postgres_dsn(monkeypatch):

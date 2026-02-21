@@ -1,7 +1,11 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.api.routers.dpm_policy_packs import reset_dpm_policy_pack_repository_for_tests
+from src.api.routers.dpm_policy_packs import (
+    policy_pack_catalog_backend_name,
+    reset_dpm_policy_pack_repository_for_tests,
+)
 
 
 def setup_function() -> None:
@@ -18,3 +22,9 @@ def test_policy_pack_catalog_postgres_requires_dsn(monkeypatch):
         response = client.get("/rebalance/policies/catalog")
         assert response.status_code == 503
         assert response.json()["detail"] == "DPM_POLICY_PACK_POSTGRES_DSN_REQUIRED"
+
+
+def test_policy_pack_catalog_env_json_backend_deprecated(monkeypatch):
+    monkeypatch.delenv("DPM_POLICY_PACK_CATALOG_BACKEND", raising=False)
+    with pytest.warns(DeprecationWarning):
+        assert policy_pack_catalog_backend_name() == "ENV_JSON"

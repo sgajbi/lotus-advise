@@ -1,18 +1,24 @@
+import pytest
+
 from src.api.routers import dpm_runs_config
 
 
 def test_supportability_backend_aliases_and_defaults(monkeypatch):
     monkeypatch.delenv("DPM_SUPPORTABILITY_STORE_BACKEND", raising=False)
-    assert dpm_runs_config.supportability_store_backend_name() == "IN_MEMORY"
+    with pytest.warns(DeprecationWarning):
+        assert dpm_runs_config.supportability_store_backend_name() == "IN_MEMORY"
 
     monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "SQL")
-    assert dpm_runs_config.supportability_store_backend_name() == "SQL"
+    with pytest.warns(DeprecationWarning):
+        assert dpm_runs_config.supportability_store_backend_name() == "SQL"
 
     monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "SQLITE")
-    assert dpm_runs_config.supportability_store_backend_name() == "SQL"
+    with pytest.warns(DeprecationWarning):
+        assert dpm_runs_config.supportability_store_backend_name() == "SQL"
 
     monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "unknown")
-    assert dpm_runs_config.supportability_store_backend_name() == "IN_MEMORY"
+    with pytest.warns(DeprecationWarning):
+        assert dpm_runs_config.supportability_store_backend_name() == "IN_MEMORY"
 
     monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
     assert dpm_runs_config.supportability_store_backend_name() == "POSTGRES"

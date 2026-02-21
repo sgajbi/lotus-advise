@@ -580,3 +580,14 @@ Demo pack validation passed for http://127.0.0.1:8000
   - missing DPM Postgres DSN -> `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES_DSN`
   - missing advisory Postgres DSN -> `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
   - missing policy-pack Postgres DSN with policy packs enabled -> `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN`
+
+- Nightly/full Postgres suite added (`.github/workflows/nightly-postgres-full.yml`):
+  - scheduled/manual workflow with production profile + Postgres service,
+  - applies migrations,
+  - validates production cutover contract,
+  - runs Postgres integration tests,
+  - runs live demo pack against Postgres-backed API.
+
+- RFC-0025 local-default continuation:
+  - `docker-compose.yml` defaults now start Postgres-backed runtime (no profile required).
+  - legacy runtime backends remain available for transition/testing but emit `DeprecationWarning`.

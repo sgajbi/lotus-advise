@@ -118,6 +118,12 @@ python scripts/dependency_health_check.py --requirements requirements.txt --fail
 
 ```
 
+Testing strategy:
+* Default: keep unit tests lightweight for fast iteration.
+* Critical persistence parity: run live Postgres integration tests in CI.
+* Optional deep validation: nightly/manual Postgres full-suite workflow.
+* Decision record: `docs/adr/ADR-0010-testing-strategy-fast-unit-and-postgres-parity.md`
+
 ---
 
 ## 🐳 Docker Deployment (Ephemeral)
@@ -135,11 +141,11 @@ docker-compose logs -f
 
 ```
 
-### Optional Postgres Profile (RFC-0024 rollout)
+### Postgres-First Local Runtime (RFC-0025 continuation)
 
 ```bash
-# Start API + Postgres profile
-docker-compose --profile postgres up -d --build
+# Start API + Postgres (default local runtime)
+docker-compose up -d --build
 ```
 
 Production-style compose override (RFC-0025):
@@ -164,9 +170,12 @@ Note:
 * `APP_PERSISTENCE_PROFILE=PRODUCTION` enforces Postgres-only guardrails at startup.
   Startup fails fast with explicit reason codes if non-Postgres backends are configured.
 * Profile guidance:
-  * `LOCAL` (default): allows local in-memory/SQLite development backends.
+  * `LOCAL`: legacy in-memory/SQLite runtime backends are still available but deprecated.
   * `PRODUCTION`: requires Postgres for DPM supportability and advisory stores, plus
     policy-pack catalog when policy packs/admin APIs are enabled.
+* Runtime backend deprecation policy:
+  * `IN_MEMORY` / `SQL` / `SQLITE` / `ENV_JSON` runtime backends emit `DeprecationWarning`.
+  * Use Postgres-backed runtime as the default for local and production operations.
 * Postgres backends for DPM supportability and advisory proposal lifecycle are implemented.
 * Apply forward-only migrations before enabling Postgres-backed runtime:
   * `python scripts/postgres_migrate.py --target all`
@@ -180,7 +189,9 @@ Note:
 * **API Root:** `http://localhost:8000`
 * **API Docs:** `http://localhost:8000/docs`
 
-> **Note:** This Docker setup generates a production-optimized image (excluding tests and docs). To persist data, a PostgreSQL service will be introduced in **RFC-0004**.
+> **Note:** This Docker setup generates a production-optimized image (excluding tests and docs).
+> PostgreSQL persistence is implemented and governed by RFC-0024/RFC-0025 for
+> production-profile enforcement and cutover controls.
 
 ---
 

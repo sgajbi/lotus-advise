@@ -1,4 +1,5 @@
 import os
+import warnings
 
 from src.infrastructure.dpm_runs import (
     InMemoryDpmRunRepository,
@@ -53,6 +54,14 @@ def supportability_store_backend_name() -> str:
     backend = os.getenv("DPM_SUPPORTABILITY_STORE_BACKEND", "IN_MEMORY").strip().upper()
     if backend == "POSTGRES":
         return "POSTGRES"
+    warnings.warn(
+        (
+            "DPM_SUPPORTABILITY_STORE_BACKEND legacy runtime backends "
+            "(IN_MEMORY/SQL/SQLITE) are deprecated; use POSTGRES."
+        ),
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return "SQL" if backend in {"SQL", "SQLITE"} else "IN_MEMORY"
 
 

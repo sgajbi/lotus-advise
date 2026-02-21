@@ -1,4 +1,5 @@
 import os
+import warnings
 
 from src.infrastructure.proposals import InMemoryProposalRepository, PostgresProposalRepository
 
@@ -7,6 +8,14 @@ def proposal_store_backend_name() -> str:
     backend = os.getenv("PROPOSAL_STORE_BACKEND", "IN_MEMORY").strip().upper()
     if backend == "POSTGRES":
         return "POSTGRES"
+    warnings.warn(
+        (
+            "PROPOSAL_STORE_BACKEND legacy runtime backend "
+            "(IN_MEMORY) is deprecated; use POSTGRES."
+        ),
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return "IN_MEMORY"
 
 

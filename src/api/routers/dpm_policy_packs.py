@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Path, status
@@ -63,6 +64,14 @@ def _policy_pack_catalog_backend_name() -> str:
     value = os.getenv("DPM_POLICY_PACK_CATALOG_BACKEND", "ENV_JSON").strip().upper()
     if value == "POSTGRES":
         return "POSTGRES"
+    warnings.warn(
+        (
+            "DPM_POLICY_PACK_CATALOG_BACKEND legacy runtime backend "
+            "(ENV_JSON) is deprecated for runtime; use POSTGRES."
+        ),
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return "ENV_JSON"
 
 
