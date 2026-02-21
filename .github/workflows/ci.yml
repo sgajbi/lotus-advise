@@ -29,8 +29,11 @@ jobs:
       - name: Dependency Security & Freshness Check
         run: make check-deps
 
-      - name: Run Full Quality Gate
-        run: make check
+      - name: Run Lint Checks
+        run: make lint
+
+      - name: Run Pytest & Enforce 99% Coverage (CI)
+        run: make test
 
   mypy-src:
     name: Mypy (Full src)
