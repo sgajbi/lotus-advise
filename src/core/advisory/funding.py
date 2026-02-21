@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Any
 
 from src.core.common.simulation_shared import (
     apply_fx_spot_to_portfolio,
@@ -9,14 +10,16 @@ from src.core.models import FundingPlanEntry, FxSpotIntent, InsufficientCashEntr
 from src.core.valuation import get_fx_rate
 
 
-def record_missing_fx_pair(diagnostics, pair):
+def record_missing_fx_pair(diagnostics: Any, pair: str) -> None:
     if pair not in diagnostics.missing_fx_pairs:
         diagnostics.missing_fx_pairs.append(pair)
     if pair not in diagnostics.data_quality["fx_missing"]:
         diagnostics.data_quality["fx_missing"].append(pair)
 
 
-def funding_priority_currencies(*, options, base_currency, target_currency, cash_ledger):
+def funding_priority_currencies(
+    *, options: Any, base_currency: str, target_currency: str, cash_ledger: dict[str, Decimal]
+) -> list[str]:
     if options.fx_funding_source_currency == "BASE_ONLY":
         if base_currency != target_currency:
             return [base_currency]
@@ -29,16 +32,22 @@ def funding_priority_currencies(*, options, base_currency, target_currency, cash
 
 def build_auto_funding_plan(
     *,
-    after_portfolio,
-    market_data,
-    options,
-    buy_intents,
-    diagnostics,
-):
-    fx_intents = []
-    fx_by_currency = {}
-    unfunded_currencies = set()
-    hard_failures = []
+    after_portfolio: Any,
+    market_data: Any,
+    options: Any,
+    buy_intents: list[Any],
+    diagnostics: Any,
+) -> tuple[
+    list[FxSpotIntent],
+    dict[str, str],
+    set[str],
+    list[str],
+    bool,
+]:
+    fx_intents: list[FxSpotIntent] = []
+    fx_by_currency: dict[str, str] = {}
+    unfunded_currencies: set[str] = set()
+    hard_failures: list[str] = []
     force_pending_review = False
 
     if not options.auto_funding or options.funding_mode != "AUTO_FX":
@@ -50,7 +59,7 @@ def build_auto_funding_plan(
             force_pending_review,
         )
 
-    grouped_buys = {}
+    grouped_buys: dict[str, list[Any]] = {}
     for intent in buy_intents:
         grouped_buys.setdefault(intent.notional.currency, []).append(intent)
 

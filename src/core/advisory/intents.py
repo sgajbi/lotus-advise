@@ -1,23 +1,24 @@
 from decimal import Decimal
+from typing import Any
 
 from src.core.common.simulation_shared import ensure_cash_balance
 from src.core.models import IntentRationale, Money, SecurityTradeIntent
 from src.core.valuation import get_fx_rate
 
 
-def apply_proposal_cash_flow(after_pf, cash_flow):
+def apply_proposal_cash_flow(after_pf: Any, cash_flow: Any) -> None:
     cash_entry = ensure_cash_balance(after_pf, cash_flow.currency)
     cash_entry.amount += cash_flow.amount
 
 
 def build_proposal_security_trade_intent(
     *,
-    trade,
-    market_data,
-    base_currency,
-    intent_id,
-    dq_log,
-):
+    trade: Any,
+    market_data: Any,
+    base_currency: str,
+    intent_id: str,
+    dq_log: dict[str, list[str]],
+) -> tuple[SecurityTradeIntent | None, str | None]:
     price_ent = next(
         (p for p in market_data.prices if p.instrument_id == trade.instrument_id), None
     )
@@ -57,7 +58,12 @@ def build_proposal_security_trade_intent(
     )
 
 
-def expected_cash_delta_base(portfolio, market_data, cash_flows, dq_log):
+def expected_cash_delta_base(
+    portfolio: Any,
+    market_data: Any,
+    cash_flows: list[Any],
+    dq_log: dict[str, list[str]],
+) -> Decimal:
     total = Decimal("0")
     for cash_flow in cash_flows:
         fx_rate = get_fx_rate(market_data, cash_flow.currency, portfolio.base_currency)
