@@ -2,8 +2,8 @@
 
 install:
 	pip install -r requirements.txt
+	pip install -r requirements-dev.txt
 	pip install pre-commit
-	pip install mypy
 	pre-commit install
 
 pre-commit:
@@ -13,7 +13,7 @@ test:
 	python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
 
 typecheck:
-	mypy .
+	mypy --config-file mypy.ini
 
 lint:
 	ruff check .
