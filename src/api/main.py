@@ -111,10 +111,10 @@ app = FastAPI(
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-DPM_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict]]" = OrderedDict()
+DPM_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict[str, object]]]" = OrderedDict()
 DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE = 1000
 MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
-PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict]]" = OrderedDict()
+PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, Dict[str, object]]]" = OrderedDict()
 
 app.include_router(proposal_lifecycle_router)
 app.include_router(dpm_run_support_router)
