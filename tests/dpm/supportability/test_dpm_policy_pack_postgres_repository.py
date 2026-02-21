@@ -1,3 +1,6 @@
+import sys
+from types import SimpleNamespace
+
 import src.infrastructure.dpm_policy_packs.postgres as postgres_module
 from src.core.dpm.policy_packs import DpmPolicyPackDefinition
 from src.infrastructure.dpm_policy_packs.postgres import PostgresDpmPolicyPackRepository
@@ -92,6 +95,16 @@ def test_postgres_policy_pack_repository_requires_dsn():
         raise AssertionError("Expected RuntimeError for missing policy pack postgres dsn")
 
 
+def test_postgres_policy_pack_repository_requires_driver(monkeypatch):
+    monkeypatch.setattr(postgres_module, "find_spec", lambda _name: None)
+    try:
+        PostgresDpmPolicyPackRepository(dsn="postgresql://user:pass@localhost:5432/dpm")
+    except RuntimeError as exc:
+        assert str(exc) == "DPM_POLICY_PACK_POSTGRES_DRIVER_MISSING"
+    else:
+        raise AssertionError("Expected RuntimeError for missing psycopg driver")
+
+
 def test_postgres_policy_pack_repository_roundtrip(monkeypatch):
     repository, _ = _build_repository(monkeypatch)
     policy_pack = DpmPolicyPackDefinition(
@@ -110,3 +123,43 @@ def test_postgres_policy_pack_repository_roundtrip(monkeypatch):
 
     assert repository.delete_policy_pack(policy_pack_id="dpm_standard_v1") is True
     assert repository.delete_policy_pack(policy_pack_id="dpm_standard_v1") is False
+
+
+def test_postgres_policy_pack_repository_connect_uses_imported_driver(monkeypatch):
+    calls = {}
+
+    class _FakePsycopg:
+        @staticmethod
+        def connect(dsn, row_factory):
+            calls["dsn"] = dsn
+            calls["row_factory"] = row_factory
+            return object()
+
+    class _FakeRepository(PostgresDpmPolicyPackRepository):
+        def _init_db(self):
+            return None
+
+    monkeypatch.setattr(postgres_module, "find_spec", lambda _name: object())
+    monkeypatch.setattr(
+        postgres_module,
+        "_import_psycopg",
+        lambda: (_FakePsycopg, "DICT_ROW"),
+    )
+
+    repository = _FakeRepository(dsn="postgresql://user:pass@localhost:5432/dpm")
+    repository._connect()
+    assert calls == {
+        "dsn": "postgresql://user:pass@localhost:5432/dpm",
+        "row_factory": "DICT_ROW",
+    }
+
+
+def test_import_psycopg_returns_driver_and_row_factory(monkeypatch):
+    fake_psycopg = object()
+    fake_dict_row = object()
+    monkeypatch.setitem(sys.modules, "psycopg", fake_psycopg)
+    monkeypatch.setitem(sys.modules, "psycopg.rows", SimpleNamespace(dict_row=fake_dict_row))
+
+    psycopg, dict_row = postgres_module._import_psycopg()
+    assert psycopg is fake_psycopg
+    assert dict_row is fake_dict_row

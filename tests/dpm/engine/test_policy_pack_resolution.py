@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+import src.core.dpm.policy_packs as policy_pack_module
 from src.core.dpm.policy_packs import (
     apply_policy_pack_to_engine_options,
     parse_policy_pack_catalog,
@@ -251,6 +252,15 @@ def test_policy_pack_catalog_parse_skips_invalid_rows():
         '{"bad_row":"x"," ":"x","invalid_turnover":{"turnover_policy":{"max_turnover_pct":"bad"}}}'
     )
     assert catalog == {}
+
+
+def test_policy_pack_catalog_parse_skips_non_string_and_blank_ids(monkeypatch):
+    monkeypatch.setattr(
+        policy_pack_module.json,
+        "loads",
+        lambda _raw: {123: {"version": "1"}, "  ": {"version": "1"}},
+    )
+    assert policy_pack_module.parse_policy_pack_catalog('{"ignored":"input"}') == {}
 
 
 def test_policy_pack_resolve_definition_missing_or_none():

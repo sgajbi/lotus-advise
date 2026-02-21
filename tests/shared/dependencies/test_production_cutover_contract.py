@@ -128,3 +128,29 @@ def test_validate_cutover_migrations_applied_detects_missing(monkeypatch):
     with pytest.raises(RuntimeError) as exc:
         contract_module.validate_cutover_migrations_applied()
     assert str(exc.value) == "CUTOVER_MIGRATION_MISSING:dpm:0002"
+
+
+def test_validate_cutover_migrations_applied_requires_postgres_driver(monkeypatch):
+    monkeypatch.setattr(contract_module, "find_spec", lambda _name: None)
+    with pytest.raises(RuntimeError) as exc:
+        contract_module.validate_cutover_migrations_applied()
+    assert str(exc.value) == "CUTOVER_POSTGRES_DRIVER_MISSING"
+
+
+def test_expected_migration_versions_requires_existing_namespace():
+    with pytest.raises(RuntimeError) as exc:
+        expected_migration_versions(namespace="missing_namespace")
+    assert str(exc.value) == "POSTGRES_MIGRATIONS_NAMESPACE_NOT_FOUND:missing_namespace"
+
+
+def test_expected_migration_versions_rejects_empty_namespace(tmp_path, monkeypatch):
+    fake_module_file = tmp_path / "api" / "production_cutover_contract.py"
+    fake_module_file.parent.mkdir(parents=True)
+    fake_module_file.write_text("# test", encoding="utf-8")
+    empty_namespace_dir = tmp_path / "infrastructure" / "postgres_migrations" / "empty_namespace"
+    empty_namespace_dir.mkdir(parents=True)
+    monkeypatch.setattr(contract_module, "__file__", str(fake_module_file))
+
+    with pytest.raises(RuntimeError) as exc:
+        expected_migration_versions(namespace="empty_namespace")
+    assert str(exc.value) == "CUTOVER_MIGRATIONS_EMPTY:empty_namespace"

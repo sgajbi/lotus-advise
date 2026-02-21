@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from src.api.main import app
 from src.api.persistence_profile import (
     app_persistence_profile_name,
+    policy_pack_catalog_required_in_profile,
     validate_persistence_profile_guardrails,
 )
 
@@ -16,6 +17,12 @@ def test_persistence_profile_defaults_to_local(monkeypatch):
 def test_persistence_profile_unknown_value_falls_back_to_local(monkeypatch):
     monkeypatch.setenv("APP_PERSISTENCE_PROFILE", "staging")
     assert app_persistence_profile_name() == "LOCAL"
+
+
+def test_policy_pack_catalog_not_required_by_default(monkeypatch):
+    monkeypatch.delenv("DPM_POLICY_PACKS_ENABLED", raising=False)
+    monkeypatch.delenv("DPM_POLICY_PACK_ADMIN_APIS_ENABLED", raising=False)
+    assert policy_pack_catalog_required_in_profile() is False
 
 
 def test_production_profile_requires_dpm_postgres(monkeypatch):

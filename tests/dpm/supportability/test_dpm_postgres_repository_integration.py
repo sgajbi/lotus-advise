@@ -349,11 +349,9 @@ def _build_run(
 
 def _reset_tables(repository: PostgresDpmRunRepository) -> None:
     with closing(repository._connect()) as connection:
-        connection.execute("DELETE FROM dpm_lineage_edges")
-        connection.execute("DELETE FROM dpm_workflow_decisions")
-        connection.execute("DELETE FROM dpm_run_idempotency_history")
-        connection.execute("DELETE FROM dpm_run_idempotency")
-        connection.execute("DELETE FROM dpm_run_artifacts")
-        connection.execute("DELETE FROM dpm_async_operations")
-        connection.execute("DELETE FROM dpm_runs")
+        connection.execute(
+            "TRUNCATE TABLE dpm_lineage_edges, dpm_workflow_decisions, "
+            "dpm_run_idempotency_history, dpm_run_idempotency, "
+            "dpm_run_artifacts, dpm_async_operations, dpm_runs CASCADE"
+        )
         connection.commit()

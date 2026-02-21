@@ -18,9 +18,7 @@ def assert_feature_enabled(*, name: str, default: bool, detail: str) -> None:
         )
 
 
-def normalize_backend_init_error(
-    *, detail: str, required_detail: str, fallback_detail: str
-) -> str:
+def normalize_backend_init_error(*, detail: str, required_detail: str, fallback_detail: str) -> str:
     if detail == required_detail:
         return detail
     return fallback_detail

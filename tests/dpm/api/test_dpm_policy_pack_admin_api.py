@@ -52,3 +52,14 @@ def test_policy_pack_admin_apis_env_repository_roundtrip(monkeypatch):
         get_missing = client.get("/rebalance/policies/catalog/dpm_standard_v1")
         assert get_missing.status_code == 404
         assert get_missing.json()["detail"] == "DPM_POLICY_PACK_NOT_FOUND"
+
+
+def test_policy_pack_admin_delete_missing_returns_404(monkeypatch):
+    with TestClient(app) as client:
+        monkeypatch.setenv("DPM_POLICY_PACK_ADMIN_APIS_ENABLED", "true")
+        monkeypatch.delenv("DPM_POLICY_PACK_CATALOG_BACKEND", raising=False)
+        reset_dpm_policy_pack_repository_for_tests()
+
+        response = client.delete("/rebalance/policies/catalog/does_not_exist")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "DPM_POLICY_PACK_NOT_FOUND"

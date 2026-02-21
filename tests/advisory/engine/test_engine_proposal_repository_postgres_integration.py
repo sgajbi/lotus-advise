@@ -190,10 +190,9 @@ def test_live_postgres_proposal_repository_parity_contract(
 
 def _reset_tables(repository: PostgresProposalRepository) -> None:
     with closing(repository._connect()) as connection:  # noqa: SLF001
-        connection.execute("DELETE FROM proposal_approvals")
-        connection.execute("DELETE FROM proposal_workflow_events")
-        connection.execute("DELETE FROM proposal_versions")
-        connection.execute("DELETE FROM proposal_records")
-        connection.execute("DELETE FROM proposal_async_operations")
-        connection.execute("DELETE FROM proposal_idempotency")
+        connection.execute(
+            "TRUNCATE TABLE proposal_approvals, proposal_workflow_events, "
+            "proposal_versions, proposal_records, proposal_async_operations, "
+            "proposal_idempotency CASCADE"
+        )
         connection.commit()
