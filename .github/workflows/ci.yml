@@ -31,6 +31,10 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Verify Installed Dependencies
+        run: |
+          pip check
+
       - name: Dependency Security & Freshness Check
         run: make check-deps
 
