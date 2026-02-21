@@ -230,3 +230,45 @@ jobs:
           set -e
           test "$exit_code" -ne 0
           grep -q "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES" policy_pack_guardrail.log
+
+      - name: Verify DPM DSN Guardrail
+        run: |
+          set +e
+          APP_PERSISTENCE_PROFILE=PRODUCTION \
+          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
+          PROPOSAL_STORE_BACKEND=POSTGRES \
+          PROPOSAL_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
+          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8006 > dpm_dsn_guardrail.log 2>&1
+          exit_code=$?
+          set -e
+          test "$exit_code" -ne 0
+          grep -q "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES_DSN" dpm_dsn_guardrail.log
+
+      - name: Verify Advisory DSN Guardrail
+        run: |
+          set +e
+          APP_PERSISTENCE_PROFILE=PRODUCTION \
+          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
+          DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
+          PROPOSAL_STORE_BACKEND=POSTGRES \
+          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8007 > advisory_dsn_guardrail.log 2>&1
+          exit_code=$?
+          set -e
+          test "$exit_code" -ne 0
+          grep -q "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN" advisory_dsn_guardrail.log
+
+      - name: Verify Policy Pack DSN Guardrail
+        run: |
+          set +e
+          APP_PERSISTENCE_PROFILE=PRODUCTION \
+          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
+          DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
+          PROPOSAL_STORE_BACKEND=POSTGRES \
+          PROPOSAL_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
+          DPM_POLICY_PACKS_ENABLED=true \
+          DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES \
+          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8008 > policy_pack_dsn_guardrail.log 2>&1
+          exit_code=$?
+          set -e
+          test "$exit_code" -ne 0
+          grep -q "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN" policy_pack_dsn_guardrail.log

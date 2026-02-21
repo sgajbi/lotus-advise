@@ -100,3 +100,8 @@ variance and incident complexity in production.
   - Added CI execution of cutover contract validation in production-profile smoke flow.
   - Added production compose override (`docker-compose.production.yml`).
   - Updated rollout runbook/checklist to include cutover contract command and closure controls.
+- Slice 5 completed (2026-02-21):
+  - Expanded CI negative startup validation to cover all DSN guardrail reason codes:
+    - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES_DSN`
+    - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
+    - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN`

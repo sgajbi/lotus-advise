@@ -75,8 +75,11 @@ Do not start app replicas with Postgres backend enabled before migrations have c
   - `POSTGRES_MIGRATION_CHECKSUM_MISMATCH:{namespace}:{version}`
 - Startup profile guardrails fail-fast in production profile with explicit reason codes:
   - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES_DSN`
   - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
   - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN`
 
 ## CI Smoke Checks
 
@@ -89,10 +92,13 @@ CI executes:
 3. Production-profile startup smoke:
    - starts API with `APP_PERSISTENCE_PROFILE=PRODUCTION` and Postgres backends.
 4. Production-profile guardrail negatives:
-   - validates startup fails with:
-     - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
-     - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
-      - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
+  - validates startup fails with:
+    - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
+    - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES_DSN`
+    - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
+    - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
+    - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
+    - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN`
 5. Production cutover contract check:
    - `python scripts/production_cutover_check.py --check-migrations`
 

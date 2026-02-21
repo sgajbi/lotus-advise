@@ -575,3 +575,8 @@ Demo pack validation passed for http://127.0.0.1:8000
 - Production compose override added:
   - `docker-compose --profile postgres -f docker-compose.yml -f docker-compose.production.yml up -d --build`
   - enforces production profile and postgres-only persistence env defaults.
+
+- RFC-0025 DSN guardrail negatives are now validated in CI (`production-profile-guardrail-negatives`):
+  - missing DPM Postgres DSN -> `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES_DSN`
+  - missing advisory Postgres DSN -> `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
+  - missing policy-pack Postgres DSN with policy packs enabled -> `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN`
