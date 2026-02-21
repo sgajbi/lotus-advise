@@ -3,8 +3,18 @@ FILE: src/core/simulation_shared.py
 """
 
 from decimal import Decimal
+from typing import Literal
 
-from src.core.models import CashBalance, Money, Position, Reconciliation
+from src.core.models import (
+    CashBalance,
+    Money,
+    PortfolioSnapshot,
+    Position,
+    ProposalOrderIntent,
+    Reconciliation,
+    RuleResult,
+    SecurityTradeIntent,
+)
 
 _CURRENCY_MINOR_UNITS = {
     "BHD": 3,
@@ -16,7 +26,7 @@ _CURRENCY_MINOR_UNITS = {
 }
 
 
-def ensure_position(portfolio, instrument_id):
+def ensure_position(portfolio: PortfolioSnapshot, instrument_id: str) -> Position:
     position = next(
         (item for item in portfolio.positions if item.instrument_id == instrument_id), None
     )
@@ -26,7 +36,7 @@ def ensure_position(portfolio, instrument_id):
     return position
 
 
-def ensure_cash_balance(portfolio, currency):
+def ensure_cash_balance(portfolio: PortfolioSnapshot, currency: str) -> CashBalance:
     cash_balance = next(
         (item for item in portfolio.cash_balances if item.currency == currency), None
     )
@@ -36,7 +46,11 @@ def ensure_cash_balance(portfolio, currency):
     return cash_balance
 
 
-def apply_security_trade_to_portfolio(portfolio, intent):
+def apply_security_trade_to_portfolio(
+    portfolio: PortfolioSnapshot, intent: SecurityTradeIntent
+) -> None:
+    if intent.notional is None or intent.quantity is None:
+        return
     position = ensure_position(portfolio, intent.instrument_id)
     cash_balance = ensure_cash_balance(portfolio, intent.notional.currency)
 
@@ -48,7 +62,9 @@ def apply_security_trade_to_portfolio(portfolio, intent):
         cash_balance.amount += intent.notional.amount
 
 
-def apply_fx_spot_to_portfolio(portfolio, intent):
+def apply_fx_spot_to_portfolio(portfolio: PortfolioSnapshot, intent: ProposalOrderIntent) -> None:
+    if intent.intent_type != "FX_SPOT":
+        return
     ensure_cash_balance(portfolio, intent.sell_currency).amount -= intent.sell_amount_estimated
     ensure_cash_balance(portfolio, intent.buy_currency).amount += intent.buy_amount
 
@@ -59,8 +75,8 @@ def quantize_amount_for_currency(amount: Decimal, currency: str) -> Decimal:
     return amount.quantize(quantum)
 
 
-def sort_execution_intents(intents):
-    def _sort_key(intent):
+def sort_execution_intents(intents: list[ProposalOrderIntent]) -> list[ProposalOrderIntent]:
+    def _sort_key(intent: ProposalOrderIntent) -> int:
         if intent.intent_type == "CASH_FLOW":
             return 0
         if intent.intent_type == "SECURITY_TRADE":
@@ -72,7 +88,9 @@ def sort_execution_intents(intents):
     return sorted(intents, key=_sort_key)
 
 
-def derive_status_from_rules(rule_results):
+def derive_status_from_rules(
+    rule_results: list[RuleResult],
+) -> Literal["READY", "BLOCKED", "PENDING_REVIEW"]:
     has_hard_fail = any(rule.severity == "HARD" and rule.status == "FAIL" for rule in rule_results)
     if has_hard_fail:
         return "BLOCKED"
@@ -85,13 +103,13 @@ def derive_status_from_rules(rule_results):
 
 
 def build_reconciliation(
-    before_total,
-    after_total,
-    expected_after_total,
-    base_currency,
+    before_total: Decimal,
+    after_total: Decimal,
+    expected_after_total: Decimal,
+    base_currency: str,
     *,
-    use_absolute_scale=False,
-):
+    use_absolute_scale: bool = False,
+) -> tuple[Reconciliation, Decimal, Decimal]:
     recon_diff = abs(after_total - expected_after_total)
     scale_value = abs(expected_after_total) if use_absolute_scale else expected_after_total
     tolerance = Decimal("0.5") + (scale_value * Decimal("0.0005"))
