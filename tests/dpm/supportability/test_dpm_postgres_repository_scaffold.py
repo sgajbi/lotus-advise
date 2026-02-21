@@ -141,7 +141,10 @@ class _FakeConnection:
                 }
             )
             return _FakeCursor()
-        if "SELECT idempotency_key, rebalance_run_id, correlation_id, request_hash, created_at FROM dpm_run_idempotency_history" in sql:
+        if (
+            "SELECT idempotency_key, rebalance_run_id, correlation_id, request_hash, created_at "
+            "FROM dpm_run_idempotency_history" in sql
+        ):
             rows = [row for row in self.idempotency_history if row["idempotency_key"] == args[0]]
             rows = sorted(rows, key=lambda row: row["created_at"])
             return _FakeCursor(rows=rows)
