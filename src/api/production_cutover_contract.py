@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from importlib.util import find_spec
 from pathlib import Path
+from typing import Any
 
 from src.api.persistence_profile import (
     app_persistence_profile_name,
@@ -55,7 +56,7 @@ def expected_migration_versions(*, namespace: str) -> list[str]:
     return versions
 
 
-def applied_migration_versions(*, connection, namespace: str) -> list[str]:
+def applied_migration_versions(*, connection: Any, namespace: str) -> list[str]:
     exists_row = connection.execute(
         "SELECT to_regclass('public.schema_migrations') AS regclass"
     ).fetchone()

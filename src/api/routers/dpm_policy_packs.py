@@ -52,7 +52,7 @@ def resolve_dpm_policy_pack(
     )
 
 
-def load_dpm_policy_pack_catalog():
+def load_dpm_policy_pack_catalog() -> dict[str, DpmPolicyPackDefinition]:
     repository = _get_policy_pack_repository()
     items = repository.list_policy_packs()
     return {item.policy_pack_id: item for item in items}

@@ -1,6 +1,7 @@
 import os
 import warnings
 
+from src.core.dpm_runs.repository import DpmRunRepository
 from src.infrastructure.dpm_runs import (
     InMemoryDpmRunRepository,
     PostgresDpmRunRepository,
@@ -76,7 +77,7 @@ def supportability_postgres_dsn() -> str:
     return os.getenv("DPM_SUPPORTABILITY_POSTGRES_DSN", "").strip()
 
 
-def build_repository():
+def build_repository() -> DpmRunRepository:
     backend = supportability_store_backend_name()
     if backend == "SQL":
         return SqliteDpmRunRepository(database_path=supportability_sql_path())

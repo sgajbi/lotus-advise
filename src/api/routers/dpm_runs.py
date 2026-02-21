@@ -17,6 +17,7 @@ from src.core.dpm_runs import (
     DpmRunSupportService,
     DpmSupportabilitySummaryResponse,
 )
+from src.core.dpm_runs.repository import DpmRunRepository
 from src.core.models import RebalanceResult
 
 router = APIRouter(tags=["DPM Run Supportability"])
@@ -101,7 +102,7 @@ def _supportability_store_backend_name() -> str:
     return dpm_runs_config.supportability_store_backend_name()
 
 
-def _build_repository():
+def _build_repository() -> DpmRunRepository:
     return dpm_runs_config.build_repository()
 
 

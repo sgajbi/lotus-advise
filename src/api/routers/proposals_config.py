@@ -1,6 +1,7 @@
 import os
 import warnings
 
+from src.core.proposals.repository import ProposalRepository
 from src.infrastructure.proposals import InMemoryProposalRepository, PostgresProposalRepository
 
 
@@ -20,7 +21,7 @@ def proposal_postgres_dsn() -> str:
     return os.getenv("PROPOSAL_POSTGRES_DSN", "").strip()
 
 
-def build_repository():
+def build_repository() -> ProposalRepository:
     backend = proposal_store_backend_name()
     if backend == "POSTGRES":
         dsn = proposal_postgres_dsn()

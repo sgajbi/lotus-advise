@@ -9,7 +9,7 @@ from collections import OrderedDict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Annotated, Dict, Optional
+from typing import Annotated, AsyncIterator, Dict, Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -71,7 +71,7 @@ from src.core.models import (
 
 
 @asynccontextmanager
-async def _app_lifespan(_app: FastAPI):
+async def _app_lifespan(_app: FastAPI) -> AsyncIterator[None]:
     validate_persistence_profile_guardrails()
     yield
 
@@ -121,7 +121,7 @@ app.include_router(dpm_run_support_router)
 app.include_router(dpm_policy_pack_router)
 
 
-async def get_db_session():
+async def get_db_session() -> AsyncIterator[None]:
     """Stub for Database Session (RFC-0005).
     To be replaced with actual AsyncPG session."""
     yield None
