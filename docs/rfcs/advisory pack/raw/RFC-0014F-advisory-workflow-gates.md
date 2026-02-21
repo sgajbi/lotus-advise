@@ -298,4 +298,3 @@ Each asserts:
 * RFC-0014G: Persist workflow state (proposal saved, approval tracking)
 * RFC-0014H: Jurisdiction-specific gate policies
 * RFC-0014I: Integration with consent and execution systems
- 

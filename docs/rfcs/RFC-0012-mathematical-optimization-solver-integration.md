@@ -85,25 +85,25 @@ def generate_targets_solver(
     n = len(universe.all_instruments)
     w = cp.Variable(n)
     w_model = np.array([model.get_weight(i) for i in universe.all_instruments])
-    
+
     # 2. Define Objective: Minimize distance to Model Weights
     objective = cp.Minimize(cp.sum_squares(w - w_model))
-    
+
     # 3. Define Constraints
     constraints = [
         cp.sum(w) == 1,         # Budget Constraint
         w >= 0,                 # No Shorting (in target weights)
     ]
-    
+
     # Position Limits
     if options.single_position_max_weight:
         constraints.append(w <= options.single_position_max_weight)
-        
+
     # Group Limits (RFC-0008)
     for group, limit in options.group_constraints.items():
         indices = universe.get_indices_for_group(group)
         constraints.append(cp.sum(w[indices]) <= limit.max_weight)
-        
+
     # Cash band lower/upper if configured
     # Example: cash index set C
     # constraints.append(cp.sum(w[C]) >= options.cash_band.min)
@@ -115,10 +115,10 @@ def generate_targets_solver(
         prob.solve()
     except cp.SolverError:
         return "BLOCKED", "SOLVER_ERROR"
-        
+
     if prob.status not in ["optimal", "optimal_inaccurate"]:
         return "BLOCKED", f"INFEASIBLE_{prob.status.upper()}"
-        
+
     # 5. Extract Result
     final_weights = w.value
     # ... map back to instrument_ids ...

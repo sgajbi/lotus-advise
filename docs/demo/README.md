@@ -289,5 +289,3 @@ python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8000
 * **READY:** All constraints met, trades generated, safety checks passed. Ready for execution.
 * **PENDING_REVIEW:** Trades generated but require human approval (e.g., cash drift, soft constraint breach).
 * **BLOCKED:** Critical failure (Data Quality, Hard Constraint, Safety Violation). No trades valid.
-
- 

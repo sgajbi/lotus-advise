@@ -24,7 +24,7 @@ This RFC implements only the **foundation**:
 - Applies cash flows **before** simulating trades
 - Produces a full **before/after simulated state**, intents, and rule results (no-throw)
 
-> The draft RFC-0014 also mentions Auto-Funding, Drift Analytics, and Suitability scanning. Those are intentionally deferred to later RFCs. 
+> The draft RFC-0014 also mentions Auto-Funding, Drift Analytics, and Suitability scanning. Those are intentionally deferred to later RFCs.
 
 ---
 
@@ -33,7 +33,7 @@ This RFC implements only the **foundation**:
 Advisors often need to pitch a **specific idea** ("sell X, buy Y, client deposits Z") rather than trigger a full algorithmic rebalance.
 
 Key gaps this RFC closes:
-- **Operational gap:** simulate “what if” proposals without manual spreadsheet math. 
+- **Operational gap:** simulate “what if” proposals without manual spreadsheet math.
 - **Workflow gap:** create a proposal artifact that can later plug into suitability, consent, and execution steps.
 - **Platform gap:** allow advisory proposals to reuse existing institutional infrastructure: deterministic simulation, after-state completeness, evidence bundle, rule results.
 
@@ -51,8 +51,8 @@ Key gaps this RFC closes:
    - proposed trades (manual)
    - proposed cash flows (manual)
 3. **Logic**:
-   - **Bypass targeting** (no model target weights generation). 
-   - Apply cash flows **before** trade simulation. 
+   - **Bypass targeting** (no model target weights generation).
+   - Apply cash flows **before** trade simulation.
    - Deterministic ordering of intents and deterministic output.
 4. **Outputs**:
    - Proposal result bundle including: before, after, intents, diagnostics, rule results, reconciliation, lineage IDs
@@ -380,7 +380,7 @@ Scenario:
 * **RFC-0014E**: Proposal Artifact Packaging (client-ready narrative bundle)
 
 ---
- 
+
 
 ## Behavior Reference (Implemented)
 
@@ -389,6 +389,3 @@ Scenario:
 3. If `proposal_block_negative_cash=true`, withdrawal-driven negative cash is hard-blocked.
 4. Final status is still derived from shared hard/soft rule semantics (`READY`, `PENDING_REVIEW`, `BLOCKED`).
 5. Idempotency behavior is deterministic: same `Idempotency-Key` plus same canonical payload returns cached-equivalent output; same key with different payload returns conflict.
-
-
-

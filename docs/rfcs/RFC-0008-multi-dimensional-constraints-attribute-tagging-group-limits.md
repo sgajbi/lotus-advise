@@ -183,5 +183,3 @@ Expected:
 2. Allocation breakdowns remain auditable in the simulated after-state outputs.
 3. Status contract remains unchanged (`READY`, `PENDING_REVIEW`, `BLOCKED`), so no
    downstream status integration changes are required.
-
- 

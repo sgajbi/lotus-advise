@@ -34,7 +34,7 @@ Advisory proposals are not only about “what trades happen” — the advisor m
 - **What portfolio problem they fix**
 - **How much alignment improves** against the intended mandate/model
 
-Your draft RFC-0014 implies that the proposal engine should help advisors communicate outcomes, not only simulate trades. Drift analytics is the cleanest first step toward an “advisory-ready” proposal story. 
+Your draft RFC-0014 implies that the proposal engine should help advisors communicate outcomes, not only simulate trades. Drift analytics is the cleanest first step toward an “advisory-ready” proposal story.
 
 ---
 

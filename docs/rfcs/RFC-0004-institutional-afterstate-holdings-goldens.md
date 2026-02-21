@@ -234,5 +234,3 @@ Create `docs/demo/` with curated scenarios and `expected_highlights.md`.
 2. Implement complete `after_state` simulator.
 3. Add holdings-aware golden scenarios (101–110).
 4. Create demo pack.
-
- 

@@ -78,7 +78,7 @@ The hardening process introduces wrapping layers around the pure functional core
 ## 4. API Contract Upgrade
 
 ### 4.1 Request Contract
-**Endpoint:** `POST /rebalance/simulate`  
+**Endpoint:** `POST /rebalance/simulate`
 **Headers:**
 * `Idempotency-Key` (Required, UUID/String)
 * `X-Correlation-Id` (Optional, generated if missing)
@@ -101,7 +101,7 @@ The hardening process introduces wrapping layers around the pure functional core
 {
   "rebalance_run_id": "rr_20260213_abc123",
   "correlation_id": "c_8f7e6d5c",
-  "status": "PENDING_REVIEW", 
+  "status": "PENDING_REVIEW",
   "before": {
     "total_value": { "amount": 1200000, "currency": "SGD" },
     "allocation": [
@@ -352,5 +352,3 @@ Current implementation uses HTTP 200 with `status=BLOCKED` for domain failures o
 6. **Shelf Filtering:** `SELL_ONLY` assets correctly block buys but permit liquidation sells.
 7. **Error Handling:** Infeasible mathematical distributions properly throw RFC 7807 422 errors, not 500s.
 8. **Test Coverage:** Contract tests and Golden Scenarios expanded and maintaining 100% CI coverage.
-
- 

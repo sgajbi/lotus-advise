@@ -35,7 +35,7 @@ Advisory proposals are not only about “what trades happen” — the advisor m
 - **What portfolio problem they fix**
 - **How much alignment improves** against the intended mandate/model
 
-Your draft RFC-0014 implies that the proposal engine should help advisors communicate outcomes, not only simulate trades. Drift analytics is the cleanest first step toward an “advisory-ready” proposal story. 
+Your draft RFC-0014 implies that the proposal engine should help advisors communicate outcomes, not only simulate trades. Drift analytics is the cleanest first step toward an “advisory-ready” proposal story.
 
 ---
 
@@ -294,6 +294,3 @@ Each golden asserts:
 2. Bucket universes are deterministic unions, so unmodeled exposure is explicitly surfaced instead of hidden.
 3. Drift totals and contributors are produced with stable ordering for repeatable artifacts and reviews.
 4. When no reference model is supplied, drift output is omitted by design rather than inferred.
-
-
-

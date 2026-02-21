@@ -66,19 +66,19 @@ Simulation results are ephemeral. Advisory workflows require:
 
 ## 3. Key Principles (Non-Negotiable)
 
-1) **Immutability of proposal versions**  
+1) **Immutability of proposal versions**
    Once a proposal version is created, its `artifact_json`, `evidence_bundle_json`, and hashes must be immutable.
 
-2) **Append-only workflow history**  
+2) **Append-only workflow history**
    Current status is derived from last event; all transitions are retained.
 
-3) **Idempotent create**  
+3) **Idempotent create**
    Same canonical input + same Idempotency-Key must return the same created proposal/version.
 
-4) **Separation of Domain vs Persistence**  
+4) **Separation of Domain vs Persistence**
    Domain objects do not depend on SQLAlchemy details; repositories are ports/adapters.
 
-5) **Reproducibility**  
+5) **Reproducibility**
    Stored evidence must allow re-running and matching the stored hashes (within stated deterministic rules).
 
 ---
@@ -488,4 +488,3 @@ Define interface hooks:
 * Retention & archival policy per jurisdiction
 * PII encryption and key management enhancements
 * External consent providers and document signing
- 

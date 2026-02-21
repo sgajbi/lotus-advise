@@ -308,7 +308,7 @@ Each asserts:
 * RFC-0014G: Persist workflow state (proposal saved, approval tracking)
 * RFC-0014H: Jurisdiction-specific gate policies
 * RFC-0014I: Integration with consent and execution systems
- 
+
 
 
 ## Behavior Reference (Implemented)
@@ -317,5 +317,3 @@ Each asserts:
 2. `BLOCKED` always dominates gate outcomes and routes to input-fix workflow.
 3. Clean feasible proposals route to client-consent or execution-ready based on consent options.
 4. Shared gate vocabulary is applied consistently in advisory simulate, advisory artifact, and DPM simulate responses.
-
-

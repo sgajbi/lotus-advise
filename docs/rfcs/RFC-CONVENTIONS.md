@@ -66,4 +66,3 @@ Each RFC should include:
 1. New RFCs must state which previous RFCs they extend.
 2. If there is pending work in implemented RFCs that is required for correctness, add a carry-forward section.
 3. Cross-RFC conflicts must be resolved in the newer RFC text explicitly.
-

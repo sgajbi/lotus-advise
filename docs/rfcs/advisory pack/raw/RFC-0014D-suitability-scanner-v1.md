@@ -34,7 +34,7 @@ In private banking advisory, an “investment proposal” must be paired with:
 - evidence that the proposal improves or at least does not worsen key constraints,
 - explicit disclosure of any new risks introduced.
 
-Your rough RFC idea references a “5-point scan” concept and highlights that suitability should compare current vs proposed state.   
+Your rough RFC idea references a “5-point scan” concept and highlights that suitability should compare current vs proposed state.
 RFC-0014D formalizes that scanner in a deterministic, testable way.
 
 ---

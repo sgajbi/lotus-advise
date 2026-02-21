@@ -131,4 +131,3 @@ The engine proceeds through stages, accumulating state. If a **Hard Block** occu
 3. **Safety:** Post-trade `SINGLE_POSITION_MAX` is evaluated on the final simulated values.
 4. **Coverage:** 100% test coverage maintained.
 5. **Lineage:** `rebalance_run_id` and `correlation_id` are present in all logs and responses.
-

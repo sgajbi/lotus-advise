@@ -66,10 +66,10 @@ The Proposal Artifact standardizes these elements in a deterministic structure.
 
 ## 3. Design Principles
 
-1) **Deterministic**: same input snapshot + same market snapshot + same options → same artifact  
-2) **Explainable**: includes “why” as structured facts, not LLM free text  
-3) **Composable**: UI/report layers can render each section independently  
-4) **Auditable**: includes evidence bundle for reproducibility and reviewer confidence  
+1) **Deterministic**: same input snapshot + same market snapshot + same options → same artifact
+2) **Explainable**: includes “why” as structured facts, not LLM free text
+3) **Composable**: UI/report layers can render each section independently
+4) **Auditable**: includes evidence bundle for reproducibility and reviewer confidence
 5) **No backward compatibility needed**: contract can be clean and strict
 
 ---
@@ -370,5 +370,3 @@ Goldens should assert:
 * RFC-0014F: Workflow state machine + consent/execution lifecycle (with persistence later)
 * RFC-0014G: Client document rendering (PDF/Word/email templates)
 * RFC-0014H: Jurisdiction-specific disclosure packs and suitability mapping
-
- 

@@ -25,6 +25,7 @@ repos:
     hooks:
       - id: mypy
         args: ["--config-file", "mypy.ini"]
+        pass_filenames: false
         additional_dependencies:
           - "pydantic>=2.0"
           - "fastapi>=0.100"

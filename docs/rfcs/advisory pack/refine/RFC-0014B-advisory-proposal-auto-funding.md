@@ -391,6 +391,3 @@ Each golden must assert:
 3. FX funding intents are generated deterministically and BUY intents carry explicit dependencies on those FX intents.
 4. Missing required FX data follows policy: with blocking enabled the proposal is `BLOCKED`; with non-blocking policy execution intents are constrained and surfaced for review.
 5. Intent ordering remains deterministic: `CASH_FLOW -> SELL -> FX -> BUY`.
-
-
-

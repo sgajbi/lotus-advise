@@ -379,7 +379,3 @@ Not required for execution pipeline beyond determinism of tickets, but can snaps
 * Allocation to accounts, settlement instructions
 * Multi-day execution, slicing, time windows
 * Real OMS/FIX integration adapters
-
-
-
-

@@ -35,7 +35,7 @@ In private banking advisory, an “investment proposal” must be paired with:
 - evidence that the proposal improves or at least does not worsen key constraints,
 - explicit disclosure of any new risks introduced.
 
-Your rough RFC idea references a “5-point scan” concept and highlights that suitability should compare current vs proposed state.   
+Your rough RFC idea references a “5-point scan” concept and highlights that suitability should compare current vs proposed state.
 RFC-0014D formalizes that scanner in a deterministic, testable way.
 
 ---
@@ -201,7 +201,7 @@ Use shelf status for each instrument:
 * If **RESTRICTED** and increases and allow is true => issue MEDIUM with disclosure (“restricted allowed”)
 
 Implementation alignment note:
-- Advisory execution guards can block disallowed BUYs before they change after-state holdings.  
+- Advisory execution guards can block disallowed BUYs before they change after-state holdings.
 - Suitability scanner therefore also emits governance issues for attempted BUYs in `SELL_ONLY` and `RESTRICTED` instruments so NEW violations remain visible in blocked proposals.
 
 ### 6.5 Cash Band (Suitability View)
@@ -366,6 +366,3 @@ Each golden asserts:
 2. Scanner output is advisory-focused and complements, rather than replaces, hard/soft rule-engine status decisions.
 3. Governance-related attempted violations are still surfaced as suitability issues even when execution guards block the trade.
 4. `recommended_gate` is derived from new-issue severity and consumed by shared workflow-gate policy.
-
-
-
