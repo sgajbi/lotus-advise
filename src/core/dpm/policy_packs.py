@@ -326,7 +326,7 @@ def apply_policy_pack_to_engine_options(
 ) -> EngineOptions:
     if policy_pack is None:
         return options
-    updates = {}
+    updates: dict[str, object] = {}
     if policy_pack.turnover_policy.max_turnover_pct is not None:
         updates["max_turnover_pct"] = policy_pack.turnover_policy.max_turnover_pct
     if policy_pack.tax_policy.enable_tax_awareness is not None:

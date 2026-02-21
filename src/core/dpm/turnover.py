@@ -1,27 +1,44 @@
 from decimal import Decimal
+from typing import cast
 
-from src.core.models import DroppedIntent, Money
+from src.core.models import (
+    DiagnosticsData,
+    DroppedIntent,
+    EngineOptions,
+    Money,
+    SecurityTradeIntent,
+)
 
 
-def calculate_turnover_score(intent, portfolio_value_base):
+def calculate_turnover_score(intent: SecurityTradeIntent, portfolio_value_base: Decimal) -> Decimal:
     if portfolio_value_base <= Decimal("0"):
         return Decimal("0")
-    return abs(intent.notional_base.amount) / portfolio_value_base
+    if intent.notional_base is None:
+        return Decimal("0")
+    notional_abs = cast(Decimal, abs(intent.notional_base.amount))
+    return notional_abs / portfolio_value_base
 
 
 def apply_turnover_limit(
     *,
-    intents,
-    options,
-    portfolio_value_base,
-    base_currency,
-    diagnostics,
-):
+    intents: list[SecurityTradeIntent],
+    options: EngineOptions,
+    portfolio_value_base: Decimal,
+    base_currency: str,
+    diagnostics: DiagnosticsData,
+) -> list[SecurityTradeIntent]:
     if options.max_turnover_pct is None:
         return intents
 
     budget = portfolio_value_base * options.max_turnover_pct
-    proposed = sum(abs(intent.notional_base.amount) for intent in intents)
+    proposed = sum(
+        (
+            abs(intent.notional_base.amount)
+            for intent in intents
+            if intent.notional_base is not None
+        ),
+        Decimal("0"),
+    )
     if proposed <= budget:
         return intents
 
@@ -35,9 +52,11 @@ def apply_turnover_limit(
         ),
     )
 
-    selected = []
+    selected: list[SecurityTradeIntent] = []
     used = Decimal("0")
     for intent in ranked:
+        if intent.notional_base is None:
+            continue
         notional_abs = abs(intent.notional_base.amount)
         score = calculate_turnover_score(intent, portfolio_value_base)
         if used + notional_abs <= budget:

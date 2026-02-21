@@ -1,12 +1,28 @@
 from decimal import Decimal
 
-from src.core.models import ExcludedInstrument
+from src.core.models import (
+    EngineOptions,
+    ExcludedInstrument,
+    ModelPortfolio,
+    PortfolioSnapshot,
+    ShelfEntry,
+    SimulatedState,
+)
 
 
-def build_universe(model, portfolio, shelf, options, dq_log, current_val):
+def build_universe(
+    model: ModelPortfolio,
+    portfolio: PortfolioSnapshot,
+    shelf: list[ShelfEntry],
+    options: EngineOptions,
+    dq_log: dict[str, list[str]],
+    current_val: SimulatedState,
+) -> tuple[dict[str, Decimal], list[ExcludedInstrument], list[str], list[str], Decimal]:
     """Stage 2: Filter targets and handle implicit locking/sells."""
-    eligible_targets, excluded = {}, []
-    buy_list, sell_list = [], []
+    eligible_targets: dict[str, Decimal] = {}
+    excluded: list[ExcludedInstrument] = []
+    buy_list: list[str] = []
+    sell_list: list[str] = []
     sell_only_excess = Decimal("0.0")
 
     for target in model.targets:
