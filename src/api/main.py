@@ -439,7 +439,10 @@ def simulate_rebalance(
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> RebalanceResult:
     """Core DPM simulation endpoint with optional idempotent replay semantics."""
-    logger.info(f"Simulating rebalance. CID={correlation_id} Idempotency={idempotency_key}")
+    resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+    logger.info(
+        f"Simulating rebalance. CID={resolved_correlation_id} Idempotency={idempotency_key}"
+    )
     default_replay_enabled = _env_flag("DPM_IDEMPOTENCY_REPLAY_ENABLED", True)
     max_size = _env_int("DPM_IDEMPOTENCY_CACHE_MAX_SIZE", DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE)
     request_payload = request.model_dump(mode="json")
@@ -485,7 +488,7 @@ def simulate_rebalance(
         shelf=request.shelf_entries,
         options=effective_options,
         request_hash=request_hash,
-        correlation_id=correlation_id or "c_none",
+        correlation_id=resolved_correlation_id,
     )
 
     if replay_enabled:

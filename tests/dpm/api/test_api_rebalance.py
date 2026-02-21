@@ -914,7 +914,7 @@ def test_dpm_workflow_action_router_exception_mappings(client, monkeypatch):
     assert transition_idem.json()["detail"] == "DPM_WORKFLOW_INVALID_TRANSITION"
 
 
-def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):
+def test_simulate_generates_correlation_id_when_header_missing(client):
     payload = get_valid_payload()
     response = client.post(
         "/rebalance/simulate",
@@ -922,7 +922,7 @@ def test_simulate_defaults_correlation_id_to_c_none_when_header_missing(client):
         headers={"Idempotency-Key": "test-key-corr-none"},
     )
     assert response.status_code == 200
-    assert response.json()["correlation_id"] == "c_none"
+    assert response.json()["correlation_id"].startswith("corr_")
 
 
 def test_simulate_rfc7807_domain_error_mapping(client):

@@ -85,7 +85,10 @@ def run_demo_pack(base_url: str) -> None:
                 path="/rebalance/simulate",
                 expected_http=200,
                 payload_file=file_name,
-                headers={"Idempotency-Key": f"live-demo-{index:02d}"},
+                headers={
+                    "Idempotency-Key": f"live-demo-{index:02d}",
+                    "X-Correlation-Id": f"live-corr-{index:02d}-{run_token}",
+                },
             )
             _assert(
                 body.get("status") == expected,
