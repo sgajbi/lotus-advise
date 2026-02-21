@@ -40,9 +40,8 @@ jobs:
           pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=99
 
   mypy-api:
-    name: Mypy (API Scope, Non-Blocking)
+    name: Mypy (API Scope)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
