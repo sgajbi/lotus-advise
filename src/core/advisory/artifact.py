@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Any, cast
 
 from src.core.advisory.artifact_models import (
     ProposalArtifact,
@@ -28,6 +29,7 @@ from src.core.advisory.artifact_models import (
 )
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.common.workflow_gates import evaluate_gate_decision
+from src.core.models import ProposalResult, ProposalSimulateRequest
 
 _ZERO = Decimal("0")
 
@@ -43,11 +45,11 @@ def _quantized_weight_str(value: Decimal) -> str:
     return format(value.quantize(Decimal("0.0001")), "f")
 
 
-def _sorted_allocations(allocations):
+def _sorted_allocations(allocations: list[Any]) -> list[Any]:
     return sorted(allocations, key=lambda item: (-item.weight, item.key))
 
 
-def _state_payload(state):
+def _state_payload(state: Any) -> ProposalArtifactPortfolioState:
     return ProposalArtifactPortfolioState(
         total_value=state.total_value,
         allocation_by_asset_class=[
@@ -61,7 +63,9 @@ def _state_payload(state):
     )
 
 
-def _largest_weight_changes(before_state, after_state, *, limit: int):
+def _largest_weight_changes(
+    before_state: Any, after_state: Any, *, limit: int
+) -> list[ProposalArtifactWeightChange]:
     before_by_id = {row.key: row.weight for row in before_state.allocation_by_instrument}
     after_by_id = {row.key: row.weight for row in after_state.allocation_by_instrument}
     rows = []
@@ -85,7 +89,9 @@ def _largest_weight_changes(before_state, after_state, *, limit: int):
     ]
 
 
-def _resolve_objective_tags(*, request, result):
+def _resolve_objective_tags(
+    *, request: ProposalSimulateRequest, result: ProposalResult
+) -> list[str]:
     tags = []
     has_cash_flow = bool(request.proposed_cash_flows)
     has_trade = any(intent.intent_type == "SECURITY_TRADE" for intent in result.intents)
@@ -104,7 +110,7 @@ def _resolve_objective_tags(*, request, result):
     return tags
 
 
-def _resolve_next_step(result):
+def _resolve_next_step(result: ProposalResult) -> str:
     if result.gate_decision is not None:
         if result.gate_decision.gate == "BLOCKED":
             has_high_suitability = any(
@@ -133,14 +139,16 @@ def _resolve_next_step(result):
     return "RISK_REVIEW"
 
 
-def _cash_weight(state) -> Decimal:
+def _cash_weight(state: Any) -> Decimal:
     for row in state.allocation_by_asset_class:
         if row.key == "CASH":
-            return row.weight
+            return cast(Decimal, row.weight)
     return _ZERO
 
 
-def _build_takeaways(*, request, result):
+def _build_takeaways(
+    *, request: ProposalSimulateRequest, result: ProposalResult
+) -> list[ProposalArtifactTakeaway]:
     security_trade_count = sum(1 for item in result.intents if item.intent_type == "SECURITY_TRADE")
     fx_intent_count = sum(1 for item in result.intents if item.intent_type == "FX_SPOT")
     takeaways = [
@@ -186,7 +194,9 @@ def _build_takeaways(*, request, result):
     return takeaways
 
 
-def _build_trades_and_funding(*, request, result):
+def _build_trades_and_funding(
+    *, request: ProposalSimulateRequest, result: ProposalResult
+) -> ProposalArtifactTradesAndFunding:
     fx_rates = {row.pair: row.rate for row in request.market_data_snapshot.fx_rates}
     trade_list = []
     fx_list = []
@@ -248,7 +258,9 @@ def _build_trades_and_funding(*, request, result):
     )
 
 
-def _build_suitability_summary(*, request, result):
+def _build_suitability_summary(
+    *, request: ProposalSimulateRequest, result: ProposalResult
+) -> ProposalArtifactSuitabilitySummary:
     if not request.options.enable_suitability_scanner or result.suitability is None:
         return ProposalArtifactSuitabilitySummary(
             status="NOT_AVAILABLE",
@@ -278,7 +290,12 @@ def _build_suitability_summary(*, request, result):
     )
 
 
-def build_proposal_artifact(*, request, proposal_result, created_at: str | None = None):
+def build_proposal_artifact(
+    *,
+    request: ProposalSimulateRequest,
+    proposal_result: ProposalResult,
+    created_at: str | None = None,
+) -> ProposalArtifact:
     before_state = proposal_result.before
     after_state = proposal_result.after_simulated
     largest_weight_changes = _largest_weight_changes(
@@ -402,4 +419,4 @@ def build_proposal_artifact(*, request, proposal_result, created_at: str | None 
     canonical_payload = strip_keys(payload, exclude={"created_at", "artifact_hash"})
     artifact_hash = hash_canonical_payload(canonical_payload)
     payload["evidence_bundle"]["hashes"]["artifact_hash"] = artifact_hash
-    return ProposalArtifact.model_validate(payload)
+    return cast(ProposalArtifact, ProposalArtifact.model_validate(payload))
