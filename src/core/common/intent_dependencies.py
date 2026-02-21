@@ -1,8 +1,13 @@
 from collections.abc import Mapping, Sequence
+from typing import TypeAlias
+
+from src.core.models import FxSpotIntent, SecurityTradeIntent
+
+RebalanceIntent: TypeAlias = SecurityTradeIntent | FxSpotIntent
 
 
 def link_buy_intent_dependencies(
-    intents: Sequence,
+    intents: Sequence[RebalanceIntent],
     *,
     fx_intent_id_by_currency: Mapping[str, str] | None = None,
     include_same_currency_sell_dependency: bool = False,
