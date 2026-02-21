@@ -304,7 +304,7 @@ def _append_governance_trade_attempt_issues(
     shelf_by_instrument: Dict[str, ShelfEntry],
     proposed_trades: list[Any],
     options: EngineOptions,
-):
+) -> None:
     before_weights = _to_instrument_weight_map(before)
     after_weights = _to_instrument_weight_map(after)
 
