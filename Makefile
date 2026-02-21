@@ -1,4 +1,4 @@
-.PHONY: install check test typecheck lint format clean run check-deps pre-commit
+.PHONY: install check test typecheck lint format clean run check-deps pre-commit docker-up docker-down
 
 install:
 	pip install -r requirements.txt
