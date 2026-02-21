@@ -106,6 +106,9 @@ uvicorn src.api.main:app --reload --port 8000
 ### Testing
 
 ```bash
+# Fast full-quality gate (lint + mypy + tests)
+make check
+
 # Run full test suite with coverage
 python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
 

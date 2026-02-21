@@ -1,4 +1,4 @@
-.PHONY: install test typecheck lint format clean run check-deps pre-commit
+.PHONY: install check test typecheck lint format clean run check-deps pre-commit
 
 install:
 	pip install -r requirements.txt
@@ -8,6 +8,8 @@ install:
 
 pre-commit:
 	pre-commit run --all-files
+
+check: lint typecheck test
 
 test:
 	python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
