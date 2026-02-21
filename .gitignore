@@ -6,4 +6,6 @@ __pycache__/
 htmlcov/
 .env
 venv/
+uvicorn.local.out.log
+uvicorn.local.err.log
 env/
