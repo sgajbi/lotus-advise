@@ -32,7 +32,7 @@ def get_proposal_supportability_config() -> ProposalSupportabilityConfigResponse
     except RuntimeError as exc:
         backend_ready = False
         backend_error = str(exc)
-    except Exception:
+    except (TypeError, ValueError):
         backend_ready = False
         backend_error = "PROPOSAL_POSTGRES_CONNECTION_FAILED"
 

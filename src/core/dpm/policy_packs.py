@@ -2,7 +2,7 @@ import json
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from src.core.models import EngineOptions, GroupConstraint
 
@@ -303,7 +303,7 @@ def parse_policy_pack_catalog(catalog_json: Optional[str]) -> dict[str, DpmPolic
         }
         try:
             parsed = DpmPolicyPackDefinition.model_validate(payload)
-        except Exception:
+        except ValidationError:
             continue
         catalog[normalized_id] = parsed
     return catalog
