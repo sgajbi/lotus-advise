@@ -9,3 +9,5 @@
 - `ADR-0007-dpm-workflow-gate-supportability-api-first.md`
 - `ADR-0008-dpm-supportability-store-backend-selection.md`
 - `ADR-0009-postgresql-as-target-persistence-backend.md`
+- `ADR-0010-testing-strategy-fast-unit-and-postgres-parity.md`
+- `ADR-0011-local-postgres-default-and-runtime-legacy-backend-deprecation.md`
