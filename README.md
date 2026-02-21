@@ -109,15 +109,10 @@ uvicorn src.api.main:app --reload --port 8000
 # Fast full-quality gate (lint + mypy + tests)
 make check
 
-# Run full test suite with coverage
-python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
-
-# Static Type Checking
+# Individual gates
+make lint
 make typecheck
-
-# Linting & Formatting
-ruff check .
-ruff format .
+make test
 
 # Dependency security/freshness checks
 python scripts/dependency_health_check.py --requirements requirements.txt
