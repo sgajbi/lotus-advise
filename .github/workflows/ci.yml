@@ -165,3 +165,61 @@ jobs:
           if [ -f uvicorn.pid ]; then
             kill "$(cat uvicorn.pid)" || true
           fi
+
+  production-profile-guardrail-negatives:
+    name: Production Profile Guardrail Negatives
+    needs: lint-test-and-coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Verify DPM Backend Guardrail
+        run: |
+          set +e
+          APP_PERSISTENCE_PROFILE=PRODUCTION \
+          DPM_SUPPORTABILITY_STORE_BACKEND=IN_MEMORY \
+          PROPOSAL_STORE_BACKEND=POSTGRES \
+          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8003 > dpm_guardrail.log 2>&1
+          exit_code=$?
+          set -e
+          test "$exit_code" -ne 0
+          grep -q "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES" dpm_guardrail.log
+
+      - name: Verify Advisory Backend Guardrail
+        run: |
+          set +e
+          APP_PERSISTENCE_PROFILE=PRODUCTION \
+          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
+          PROPOSAL_STORE_BACKEND=IN_MEMORY \
+          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8004 > advisory_guardrail.log 2>&1
+          exit_code=$?
+          set -e
+          test "$exit_code" -ne 0
+          grep -q "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES" advisory_guardrail.log
+
+      - name: Verify Policy Pack Backend Guardrail
+        run: |
+          set +e
+          APP_PERSISTENCE_PROFILE=PRODUCTION \
+          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
+          PROPOSAL_STORE_BACKEND=POSTGRES \
+          DPM_POLICY_PACKS_ENABLED=true \
+          DPM_POLICY_PACK_CATALOG_BACKEND=ENV_JSON \
+          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8005 > policy_pack_guardrail.log 2>&1
+          exit_code=$?
+          set -e
+          test "$exit_code" -ne 0
+          grep -q "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES" policy_pack_guardrail.log
