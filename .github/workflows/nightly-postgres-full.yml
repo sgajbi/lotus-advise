@@ -65,15 +65,44 @@ jobs:
             tests/advisory/engine/test_engine_proposal_repository_postgres_integration.py \
             tests/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
 
+      - name: Reset Postgres Tables Before Live Demo
+        run: |
+          python - <<'PY'
+          import os
+          import psycopg
+
+          dsn = os.environ["DPM_SUPPORTABILITY_POSTGRES_DSN"]
+          with psycopg.connect(dsn) as connection:
+              with connection.cursor() as cursor:
+                  cursor.execute(
+                      "TRUNCATE TABLE "
+                      "dpm_lineage_edges, dpm_workflow_decisions, dpm_run_idempotency_history, "
+                      "dpm_run_idempotency, dpm_run_artifacts, dpm_async_operations, dpm_runs, "
+                      "dpm_policy_packs, "
+                      "proposal_approvals, proposal_workflow_events, proposal_versions, "
+                      "proposal_records, proposal_async_operations, proposal_idempotency "
+                      "CASCADE"
+                  )
+              connection.commit()
+          PY
+
       - name: Start API in Production Profile
         run: |
-          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8010 &
+          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8010 > uvicorn.log 2>&1 &
           echo $! > uvicorn.pid
           sleep 5
 
       - name: Run Demo Pack Against Live Postgres Runtime
         run: |
           python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8010
+
+      - name: Dump API Logs On Failure
+        if: failure()
+        run: |
+          if [ -f uvicorn.log ]; then
+            echo "----- uvicorn.log (tail -200) -----"
+            tail -n 200 uvicorn.log
+          fi
 
       - name: Stop API
         if: always()
