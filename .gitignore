@@ -9,3 +9,4 @@ venv/
 uvicorn.local.out.log
 uvicorn.local.err.log
 env/
+.ruff_cache/
