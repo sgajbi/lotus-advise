@@ -2,6 +2,7 @@ import json
 from contextlib import closing
 from datetime import datetime, timezone
 from importlib.util import find_spec
+from typing import Any, cast
 
 from src.core.dpm.policy_packs import DpmPolicyPackDefinition
 from src.infrastructure.postgres_migrations import apply_postgres_migrations
@@ -77,9 +78,9 @@ class PostgresDpmPolicyPackRepository:
         with closing(self._connect()) as connection:
             cursor = connection.execute(query, (policy_pack_id,))
             connection.commit()
-            return cursor.rowcount > 0
+            return int(cursor.rowcount) > 0
 
-    def _connect(self):
+    def _connect(self) -> Any:
         psycopg, dict_row = _import_psycopg()
         return psycopg.connect(self._dsn, row_factory=dict_row)
 
@@ -88,19 +89,19 @@ class PostgresDpmPolicyPackRepository:
             apply_postgres_migrations(connection=connection, namespace="dpm")
 
 
-def _import_psycopg():
+def _import_psycopg() -> tuple[Any, Any]:
     import psycopg
     from psycopg.rows import dict_row
 
     return psycopg, dict_row
 
 
-def _row_to_policy_pack(row) -> DpmPolicyPackDefinition:
+def _row_to_policy_pack(row: Any) -> DpmPolicyPackDefinition:
     payload = json.loads(row["definition_json"])
     payload["policy_pack_id"] = row["policy_pack_id"]
     payload["version"] = row["version"]
-    return DpmPolicyPackDefinition.model_validate(payload)
+    return cast(DpmPolicyPackDefinition, DpmPolicyPackDefinition.model_validate(payload))
 
 
-def _json_dump(value: dict) -> str:
+def _json_dump(value: dict[str, Any]) -> str:
     return json.dumps(value, separators=(",", ":"), sort_keys=True)

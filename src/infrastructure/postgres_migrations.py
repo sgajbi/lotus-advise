@@ -4,6 +4,7 @@ import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -13,7 +14,7 @@ class PostgresMigration:
     checksum: str
 
 
-def apply_postgres_migrations(*, connection, namespace: str) -> None:
+def apply_postgres_migrations(*, connection: Any, namespace: str) -> None:
     lock_key = _migration_lock_key(namespace=namespace)
     connection.execute("SELECT pg_advisory_lock(%s::bigint)", (lock_key,))
     try:
@@ -25,7 +26,7 @@ def apply_postgres_migrations(*, connection, namespace: str) -> None:
         connection.execute("SELECT pg_advisory_unlock(%s::bigint)", (lock_key,))
 
 
-def _apply_migrations_locked(*, connection, namespace: str) -> None:
+def _apply_migrations_locked(*, connection: Any, namespace: str) -> None:
     migrations = _load_migrations(namespace=namespace)
     connection.execute(
         """
@@ -86,7 +87,7 @@ def _apply_migrations_locked(*, connection, namespace: str) -> None:
     connection.commit()
 
 
-def _execute_sql_statements(*, connection, sql: str) -> None:
+def _execute_sql_statements(*, connection: Any, sql: str) -> None:
     for statement in sql.split(";"):
         normalized = statement.strip()
         if not normalized:

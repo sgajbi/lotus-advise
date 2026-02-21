@@ -2,7 +2,7 @@ import json
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from importlib.util import find_spec
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
@@ -163,8 +163,11 @@ class PostgresDpmRunRepository:
         """
         with closing(self._connect()) as connection:
             rows = connection.execute(query, tuple(args)).fetchall()
-        runs = [self._to_run(row) for row in rows]
-        runs = [run for run in runs if run is not None]
+        run_candidates = [self._to_run(row) for row in rows]
+        runs = cast(
+            list[DpmRunRecord],
+            [run for run in run_candidates if run is not None],
+        )
         if status is not None:
             runs = [run for run in runs if str(run.result_json.get("status", "")) == status]
         if cursor is not None:
@@ -202,7 +205,7 @@ class PostgresDpmRunRepository:
             row = connection.execute(query, (rebalance_run_id,)).fetchone()
         if row is None:
             return None
-        return json.loads(row["artifact_json"])
+        return cast(dict[str, Any], json.loads(row["artifact_json"]))
 
     def save_idempotency_mapping(self, record: DpmRunIdempotencyRecord) -> None:
         query = """
@@ -395,8 +398,11 @@ class PostgresDpmRunRepository:
         """
         with closing(self._connect()) as connection:
             rows = connection.execute(query, tuple(args)).fetchall()
-        operations = [self._to_operation(row) for row in rows]
-        operations = [operation for operation in operations if operation is not None]
+        operation_candidates = [self._to_operation(row) for row in rows]
+        operations = cast(
+            list[DpmAsyncOperationRecord],
+            [operation for operation in operation_candidates if operation is not None],
+        )
         if cursor is not None:
             cursor_index = next(
                 (index for index, row in enumerate(operations) if row.operation_id == cursor),
@@ -418,7 +424,7 @@ class PostgresDpmRunRepository:
         with closing(self._connect()) as connection:
             cursor = connection.execute(query, (cutoff.isoformat(),))
             connection.commit()
-            return cursor.rowcount
+            return int(cursor.rowcount)
 
     def append_workflow_decision(self, decision: DpmRunWorkflowDecisionRecord) -> None:
         query = """
@@ -756,10 +762,10 @@ class PostgresDpmRunRepository:
             connection.commit()
             return len(run_ids)
 
-    def __getattr__(self, _name: str):
+    def __getattr__(self, _name: str) -> Any:
         raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_NOT_IMPLEMENTED")
 
-    def _connect(self):
+    def _connect(self) -> Any:
         psycopg, dict_row = _import_psycopg()
         return psycopg.connect(self._dsn, row_factory=dict_row)
 
@@ -810,7 +816,7 @@ class PostgresDpmRunRepository:
             )
             connection.commit()
 
-    def _to_run(self, row) -> Optional[DpmRunRecord]:
+    def _to_run(self, row: Any) -> Optional[DpmRunRecord]:
         if row is None:
             return None
         return DpmRunRecord(
@@ -823,7 +829,7 @@ class PostgresDpmRunRepository:
             result_json=json.loads(row["result_json"]),
         )
 
-    def _to_operation(self, row) -> Optional[DpmAsyncOperationRecord]:
+    def _to_operation(self, row: Any) -> Optional[DpmAsyncOperationRecord]:
         if row is None:
             return None
         return DpmAsyncOperationRecord(
@@ -840,27 +846,27 @@ class PostgresDpmRunRepository:
         )
 
 
-def _import_psycopg():
+def _import_psycopg() -> tuple[Any, Any]:
     import psycopg
     from psycopg.rows import dict_row
 
     return psycopg, dict_row
 
 
-def _json_dump(value: dict) -> str:
+def _json_dump(value: dict[str, Any]) -> str:
     return json.dumps(value, separators=(",", ":"), sort_keys=True)
 
 
-def _optional_json(value: Optional[dict]) -> Optional[str]:
+def _optional_json(value: Optional[dict[str, Any]]) -> Optional[str]:
     if value is None:
         return None
     return _json_dump(value)
 
 
-def _optional_load_json(value: Optional[str]) -> Optional[dict]:
+def _optional_load_json(value: Optional[str]) -> Optional[dict[str, Any]]:
     if value is None:
         return None
-    return json.loads(value)
+    return cast(dict[str, Any], json.loads(value))
 
 
 def _optional_iso(value: Optional[datetime]) -> Optional[str]:

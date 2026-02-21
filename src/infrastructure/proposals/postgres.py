@@ -2,7 +2,7 @@ import json
 from contextlib import closing
 from datetime import datetime
 from importlib.util import find_spec
-from typing import Optional
+from typing import Any, Optional, cast
 
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
@@ -207,8 +207,10 @@ class PostgresProposalRepository:
         """
         with closing(self._connect()) as connection:
             rows = connection.execute(query, tuple(args)).fetchall()
-        proposals = [_to_proposal(row) for row in rows]
-        proposals = [proposal for proposal in proposals if proposal is not None]
+        proposals = cast(
+            list[ProposalRecord],
+            [proposal for proposal in (_to_proposal(row) for row in rows) if proposal is not None],
+        )
         if cursor:
             cursor_index = next(
                 (
@@ -388,7 +390,7 @@ class PostgresProposalRepository:
             approval=approval,
         )
 
-    def _connect(self):
+    def _connect(self) -> Any:
         psycopg, dict_row = _import_psycopg()
         return psycopg.connect(self._dsn, row_factory=dict_row)
 
@@ -445,7 +447,7 @@ class PostgresProposalRepository:
             )
             connection.commit()
 
-    def _upsert_proposal(self, *, connection, proposal: ProposalRecord) -> None:
+    def _upsert_proposal(self, *, connection: Any, proposal: ProposalRecord) -> None:
         query = """
             INSERT INTO proposal_records (
                 proposal_id,
@@ -489,7 +491,7 @@ class PostgresProposalRepository:
             ),
         )
 
-    def _insert_event(self, *, connection, event: ProposalWorkflowEventRecord) -> None:
+    def _insert_event(self, *, connection: Any, event: ProposalWorkflowEventRecord) -> None:
         query = """
             INSERT INTO proposal_workflow_events (
                 event_id,
@@ -527,7 +529,7 @@ class PostgresProposalRepository:
             ),
         )
 
-    def _insert_approval(self, *, connection, approval: ProposalApprovalRecordData) -> None:
+    def _insert_approval(self, *, connection: Any, approval: ProposalApprovalRecordData) -> None:
         query = """
             INSERT INTO proposal_approvals (
                 approval_id,
@@ -563,7 +565,7 @@ class PostgresProposalRepository:
         )
 
 
-def _import_psycopg():
+def _import_psycopg() -> tuple[Any, Any]:
     import psycopg
     from psycopg.rows import dict_row
 
@@ -576,17 +578,17 @@ def _optional_iso(value: Optional[datetime]) -> Optional[str]:
     return value.isoformat()
 
 
-def _optional_json(value: Optional[dict]) -> Optional[str]:
+def _optional_json(value: Optional[dict[str, Any]]) -> Optional[str]:
     if value is None:
         return None
     return _json_dump(value)
 
 
-def _json_dump(value: dict) -> str:
+def _json_dump(value: dict[str, Any]) -> str:
     return json.dumps(value, separators=(",", ":"), sort_keys=True)
 
 
-def _to_operation(row) -> Optional[ProposalAsyncOperationRecord]:
+def _to_operation(row: Any) -> Optional[ProposalAsyncOperationRecord]:
     if row is None:
         return None
     return ProposalAsyncOperationRecord(
@@ -611,13 +613,13 @@ def _optional_datetime(value: Optional[str]) -> Optional[datetime]:
     return datetime.fromisoformat(value)
 
 
-def _optional_load_json(value: Optional[str]) -> Optional[dict]:
+def _optional_load_json(value: Optional[str]) -> Optional[dict[str, Any]]:
     if value is None:
         return None
-    return json.loads(value)
+    return cast(dict[str, Any], json.loads(value))
 
 
-def _to_proposal(row) -> Optional[ProposalRecord]:
+def _to_proposal(row: Any) -> Optional[ProposalRecord]:
     if row is None:
         return None
     return ProposalRecord(
@@ -635,7 +637,7 @@ def _to_proposal(row) -> Optional[ProposalRecord]:
     )
 
 
-def _to_version(row) -> Optional[ProposalVersionRecord]:
+def _to_version(row: Any) -> Optional[ProposalVersionRecord]:
     if row is None:
         return None
     return ProposalVersionRecord(
@@ -654,7 +656,7 @@ def _to_version(row) -> Optional[ProposalVersionRecord]:
     )
 
 
-def _to_event(row) -> ProposalWorkflowEventRecord:
+def _to_event(row: Any) -> ProposalWorkflowEventRecord:
     return ProposalWorkflowEventRecord(
         event_id=row["event_id"],
         proposal_id=row["proposal_id"],
@@ -668,7 +670,7 @@ def _to_event(row) -> ProposalWorkflowEventRecord:
     )
 
 
-def _to_approval(row) -> ProposalApprovalRecordData:
+def _to_approval(row: Any) -> ProposalApprovalRecordData:
     return ProposalApprovalRecordData(
         approval_id=row["approval_id"],
         proposal_id=row["proposal_id"],

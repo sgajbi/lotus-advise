@@ -4,7 +4,7 @@ from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.core.dpm_runs.models import (
     DpmAsyncOperationRecord,
@@ -153,8 +153,11 @@ class SqliteDpmRunRepository(DpmRunRepository):
         """
         with closing(self._connect()) as connection:
             rows = connection.execute(query, tuple(args)).fetchall()
-        runs = [self._to_run(row) for row in rows]
-        runs = [run for run in runs if run is not None]
+        run_candidates = [self._to_run(row) for row in rows]
+        runs = cast(
+            list[DpmRunRecord],
+            [run for run in run_candidates if run is not None],
+        )
         if status is not None:
             runs = [run for run in runs if str(run.result_json.get("status", "")) == status]
         if cursor is not None:
@@ -192,7 +195,7 @@ class SqliteDpmRunRepository(DpmRunRepository):
             row = connection.execute(query, (rebalance_run_id,)).fetchone()
         if row is None:
             return None
-        return json.loads(row["artifact_json"])
+        return cast(dict[str, Any], json.loads(row["artifact_json"]))
 
     def save_idempotency_mapping(self, record: DpmRunIdempotencyRecord) -> None:
         query = """
@@ -386,8 +389,11 @@ class SqliteDpmRunRepository(DpmRunRepository):
         """
         with closing(self._connect()) as connection:
             rows = connection.execute(query, tuple(args)).fetchall()
-        operations = [self._to_operation(row) for row in rows]
-        operations = [operation for operation in operations if operation is not None]
+        operation_candidates = [self._to_operation(row) for row in rows]
+        operations = cast(
+            list[DpmAsyncOperationRecord],
+            [operation for operation in operation_candidates if operation is not None],
+        )
         if cursor is not None:
             cursor_index = next(
                 (index for index, row in enumerate(operations) if row.operation_id == cursor),
@@ -895,20 +901,20 @@ class SqliteDpmRunRepository(DpmRunRepository):
             connection.commit()
 
 
-def _json_dump(value: dict) -> str:
+def _json_dump(value: dict[str, Any]) -> str:
     return json.dumps(value, separators=(",", ":"), sort_keys=True)
 
 
-def _optional_json(value: Optional[dict]) -> Optional[str]:
+def _optional_json(value: Optional[dict[str, Any]]) -> Optional[str]:
     if value is None:
         return None
     return _json_dump(value)
 
 
-def _optional_load_json(value: Optional[str]) -> Optional[dict]:
+def _optional_load_json(value: Optional[str]) -> Optional[dict[str, Any]]:
     if value is None:
         return None
-    return json.loads(value)
+    return cast(dict[str, Any], json.loads(value))
 
 
 def _optional_iso(value: Optional[datetime]) -> Optional[str]:
