@@ -67,7 +67,7 @@ jobs:
 
   docker-build:
     name: Validate Docker Build
-    needs: lint-test-and-coverage
+    needs: [lint-test-and-coverage, mypy-src]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -79,7 +79,7 @@ jobs:
 
   postgres-migration-smoke:
     name: Postgres Migration Smoke
-    needs: lint-test-and-coverage
+    needs: [lint-test-and-coverage, mypy-src]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -129,7 +129,7 @@ jobs:
 
   production-profile-smoke:
     name: Production Profile Startup Smoke
-    needs: lint-test-and-coverage
+    needs: [lint-test-and-coverage, mypy-src]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -199,7 +199,7 @@ jobs:
 
   production-profile-guardrail-negatives:
     name: Production Profile Guardrail Negatives
-    needs: lint-test-and-coverage
+    needs: [lint-test-and-coverage, mypy-src]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
