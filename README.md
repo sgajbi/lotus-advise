@@ -76,7 +76,7 @@ The DPM engine (`src/core/dpm/engine.py`) processes rebalance requests through a
 ## 🚀 Quick Start
 
 ### Prerequisites
-* Python 3.11+
+* Python >=3.11 (CI baseline: 3.11)
 * `pip`
 * Docker (Optional)
 
