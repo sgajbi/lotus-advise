@@ -1,5 +1,6 @@
 import os
 import warnings
+from typing import cast
 
 from src.core.proposals.repository import ProposalRepository
 from src.infrastructure.proposals import InMemoryProposalRepository, PostgresProposalRepository
@@ -28,9 +29,9 @@ def build_repository() -> ProposalRepository:
         if not dsn:
             raise RuntimeError("PROPOSAL_POSTGRES_DSN_REQUIRED")
         try:
-            return PostgresProposalRepository(dsn=dsn)
+            return cast(ProposalRepository, PostgresProposalRepository(dsn=dsn))
         except RuntimeError:
             raise
         except Exception as exc:
             raise RuntimeError("PROPOSAL_POSTGRES_CONNECTION_FAILED") from exc
-    return InMemoryProposalRepository()
+    return cast(ProposalRepository, InMemoryProposalRepository())

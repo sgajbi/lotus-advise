@@ -5,6 +5,7 @@ from typing import Any, Optional
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
+from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
@@ -657,7 +658,7 @@ class ProposalWorkflowService:
         proposal_id: str,
         version_no: int,
         request_hash: str,
-        proposal_result,
+        proposal_result: ProposalResult,
         artifact: dict[str, Any],
         evidence_bundle: dict[str, Any],
         created_at: datetime,
@@ -721,11 +722,11 @@ class ProposalWorkflowService:
     def _run_simulation(
         self,
         *,
-        request,
+        request: ProposalSimulateRequest,
         request_hash: str,
         idempotency_key: Optional[str],
         correlation_id: Optional[str],
-    ):
+    ) -> ProposalResult:
         resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
         return run_proposal_simulation(
             portfolio=request.portfolio_snapshot,
@@ -740,7 +741,7 @@ class ProposalWorkflowService:
             correlation_id=resolved_correlation_id,
         )
 
-    def _validate_simulation_flag(self, request) -> None:
+    def _validate_simulation_flag(self, request: ProposalSimulateRequest) -> None:
         if (
             self._require_proposal_simulation_flag
             and not request.options.enable_proposal_simulation

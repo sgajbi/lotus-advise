@@ -70,7 +70,7 @@ def get_proposal_workflow_timeline(
     service: Annotated[
         ProposalWorkflowService,
         Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    ],
 ) -> ProposalWorkflowTimelineResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -97,7 +97,7 @@ def get_proposal_approvals(
     service: Annotated[
         ProposalWorkflowService,
         Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    ],
 ) -> ProposalApprovalsResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -125,7 +125,7 @@ def get_proposal_lineage(
     service: Annotated[
         ProposalWorkflowService,
         Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    ],
 ) -> ProposalLineageResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()
@@ -155,7 +155,7 @@ def get_proposal_idempotency_lookup(
     service: Annotated[
         ProposalWorkflowService,
         Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    ],
 ) -> ProposalIdempotencyLookupResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_support_apis_enabled()

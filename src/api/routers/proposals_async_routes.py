@@ -44,10 +44,7 @@ def create_proposal_async(
             examples=["corr-proposal-create-async-001"],
         ),
     ] = None,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalAsyncAcceptedResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
@@ -93,10 +90,7 @@ def create_proposal_version_async(
             examples=["corr-proposal-version-async-001"],
         ),
     ] = None,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalAsyncAcceptedResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
@@ -127,10 +121,7 @@ def get_proposal_async_operation(
         str,
         Path(description="Asynchronous operation identifier.", examples=["pop_001"]),
     ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalAsyncOperationStatusResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
@@ -155,10 +146,7 @@ def get_proposal_async_operation_by_correlation(
             examples=["corr-proposal-create-async-001"],
         ),
     ],
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalAsyncOperationStatusResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()

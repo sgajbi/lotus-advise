@@ -50,10 +50,7 @@ def create_proposal(
             examples=["corr-proposal-create-001"],
         ),
     ] = None,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalCreateResponse:
     shared._assert_lifecycle_enabled()
     try:
@@ -90,10 +87,7 @@ def get_proposal(
             examples=[True],
         ),
     ] = True,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalDetailResponse:
     shared._assert_lifecycle_enabled()
     try:
@@ -144,10 +138,7 @@ def list_proposals(
         Optional[str],
         Query(description="Opaque cursor from previous list response.", examples=["pp_123"]),
     ] = None,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalListResponse:
     shared._assert_lifecycle_enabled()
     return service.list_proposals(
@@ -181,10 +172,7 @@ def get_proposal_version(
         bool,
         Query(description="Include full evidence bundle in version payload.", examples=[True]),
     ] = True,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalVersionDetail:
     shared._assert_lifecycle_enabled()
     try:
@@ -220,10 +208,7 @@ def create_proposal_version(
             examples=["corr-proposal-version-001"],
         ),
     ] = None,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalCreateResponse:
     shared._assert_lifecycle_enabled()
     try:
@@ -256,10 +241,7 @@ def transition_proposal_state(
         Path(description="Persisted proposal identifier.", examples=["pp_001"]),
     ],
     payload: ProposalStateTransitionRequest,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
     try:
@@ -292,10 +274,7 @@ def record_proposal_approval(
         Path(description="Persisted proposal identifier.", examples=["pp_001"]),
     ],
     payload: ProposalApprovalRequest,
-    service: Annotated[
-        ProposalWorkflowService,
-        Depends(shared.get_proposal_workflow_service),
-    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
     try:
