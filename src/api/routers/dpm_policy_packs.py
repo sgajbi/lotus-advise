@@ -4,6 +4,11 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Path, status
 
+from src.api.routers.runtime_utils import (
+    assert_feature_enabled,
+    env_flag,
+    normalize_backend_init_error,
+)
 from src.core.dpm.policy_pack_repository import DpmPolicyPackRepository
 from src.core.dpm.policy_packs import (
     DpmEffectivePolicyPackResolution,
@@ -24,13 +29,6 @@ _ENV_POLICY_PACK_REPOSITORY: EnvJsonDpmPolicyPackRepository | None = None
 _ENV_POLICY_PACK_REPOSITORY_RAW: str | None = None
 
 
-def _env_flag(name: str, default: bool) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-
 def resolve_dpm_policy_pack(
     *,
     request_policy_pack_id: Optional[str],
@@ -40,14 +38,14 @@ def resolve_dpm_policy_pack(
     resolved_tenant_default_policy_pack_id = tenant_default_policy_pack_id
     if resolved_tenant_default_policy_pack_id is None:
         tenant_policy_pack_resolver = build_tenant_policy_pack_resolver(
-            enabled=_env_flag("DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED", False),
+            enabled=env_flag("DPM_TENANT_POLICY_PACK_RESOLUTION_ENABLED", False),
             mapping_json=os.getenv("DPM_TENANT_POLICY_PACK_MAP_JSON"),
         )
         resolved_tenant_default_policy_pack_id = tenant_policy_pack_resolver.resolve(
             tenant_id=tenant_id
         )
     return resolve_effective_policy_pack(
-        policy_packs_enabled=_env_flag("DPM_POLICY_PACKS_ENABLED", False),
+        policy_packs_enabled=env_flag("DPM_POLICY_PACKS_ENABLED", False),
         request_policy_pack_id=request_policy_pack_id,
         tenant_default_policy_pack_id=resolved_tenant_default_policy_pack_id,
         global_default_policy_pack_id=os.getenv("DPM_DEFAULT_POLICY_PACK_ID"),
@@ -116,16 +114,21 @@ def _get_policy_pack_repository() -> DpmPolicyPackRepository:
         return _build_policy_pack_repository()
     except RuntimeError as exc:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=normalize_backend_init_error(
+                detail=str(exc),
+                required_detail="DPM_POLICY_PACK_POSTGRES_DSN_REQUIRED",
+                fallback_detail="DPM_POLICY_PACK_POSTGRES_CONNECTION_FAILED",
+            ),
         ) from exc
 
 
 def _assert_policy_pack_admin_apis_enabled() -> None:
-    if not _env_flag("DPM_POLICY_PACK_ADMIN_APIS_ENABLED", False):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="DPM_POLICY_PACK_ADMIN_APIS_DISABLED",
-        )
+    assert_feature_enabled(
+        name="DPM_POLICY_PACK_ADMIN_APIS_ENABLED",
+        default=False,
+        detail="DPM_POLICY_PACK_ADMIN_APIS_DISABLED",
+    )
 
 
 def reset_dpm_policy_pack_repository_for_tests() -> None:
