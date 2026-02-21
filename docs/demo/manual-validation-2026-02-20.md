@@ -510,3 +510,30 @@ Demo pack validation passed for http://127.0.0.1:8000
       returns different run ids:
       - `run1=rr_ff9f058f`
       - `run2=rr_2e3b31d8`
+
+## RFC-0025 Slice 1 Production Profile Guardrails
+
+- Uvicorn startup validation (expected fail-fast):
+  - Command:
+    - `APP_PERSISTENCE_PROFILE=PRODUCTION`
+    - `DPM_SUPPORTABILITY_STORE_BACKEND=IN_MEMORY`
+    - `PROPOSAL_STORE_BACKEND=POSTGRES`
+    - `python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8050`
+  - Observed:
+    - startup fails with `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`.
+
+- Uvicorn startup validation (expected pass):
+  - Command:
+    - `APP_PERSISTENCE_PROFILE=PRODUCTION`
+    - `DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES`
+    - `PROPOSAL_STORE_BACKEND=POSTGRES`
+    - `DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES`
+    - `python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8051`
+  - Observed:
+    - app starts normally and `/docs` responds `200`.
+
+- Docker startup validation (expected fail-fast):
+  - Command:
+    - `docker run --rm -e APP_PERSISTENCE_PROFILE=PRODUCTION -e DPM_SUPPORTABILITY_STORE_BACKEND=IN_MEMORY -e PROPOSAL_STORE_BACKEND=POSTGRES dpm-rebalance-engine:latest`
+  - Observed:
+    - container exits at startup with `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`.

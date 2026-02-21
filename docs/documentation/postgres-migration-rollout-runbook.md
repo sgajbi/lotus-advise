@@ -34,7 +34,11 @@ python scripts/postgres_migrate.py --target proposals
 
 1. Start/verify Postgres instance health.
 2. Apply migrations (`scripts/postgres_migrate.py`).
-3. Start API services with Postgres backends enabled.
+3. Start API services with Postgres backends enabled and production persistence profile:
+   - `APP_PERSISTENCE_PROFILE=PRODUCTION`
+   - `DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES`
+   - `PROPOSAL_STORE_BACKEND=POSTGRES`
+   - `DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES` (when policy packs/admin APIs are enabled)
 4. Run smoke API checks for DPM and advisory.
 5. Shift traffic.
 
@@ -48,6 +52,10 @@ Do not start app replicas with Postgres backend enabled before migrations have c
   to avoid concurrent deploy races.
 - If a checked-in migration file is modified after apply, execution fails with:
   - `POSTGRES_MIGRATION_CHECKSUM_MISMATCH:{namespace}:{version}`
+- Startup profile guardrails fail-fast in production profile with explicit reason codes:
+  - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
 
 ## CI Smoke Checks
 

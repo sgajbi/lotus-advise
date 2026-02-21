@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | PROPOSED |
+| **Status** | IN_PROGRESS |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0023, RFC-0024 |
 | **Doc Location** | `docs/rfcs/RFC-0025-postgres-only-production-mode-cutover.md` |
@@ -71,3 +71,14 @@ variance and incident complexity in production.
   - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
   - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
   - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
+
+## 8. Implementation Progress
+
+- Slice 1 completed (2026-02-21):
+  - Added `APP_PERSISTENCE_PROFILE` guardrails (`LOCAL` | `PRODUCTION`).
+  - Added startup fail-fast validation in app lifespan.
+  - Enforced in `PRODUCTION`:
+    - DPM supportability backend must be `POSTGRES`.
+    - advisory proposal store backend must be `POSTGRES`.
+    - policy-pack catalog backend must be `POSTGRES` when policy packs/admin APIs are enabled.
+  - Added unit tests and startup tests for all guardrail reason codes.

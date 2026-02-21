@@ -145,6 +145,7 @@ docker-compose --profile postgres up -d --build
 Environment variables for Postgres supportability backend:
 
 ```bash
+APP_PERSISTENCE_PROFILE=PRODUCTION
 DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES
 DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability
 PROPOSAL_STORE_BACKEND=POSTGRES
@@ -154,6 +155,8 @@ DPM_POLICY_PACK_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportabili
 ```
 
 Note:
+* `APP_PERSISTENCE_PROFILE=PRODUCTION` enforces Postgres-only guardrails at startup.
+  Startup fails fast with explicit reason codes if non-Postgres backends are configured.
 * Postgres backends for DPM supportability and advisory proposal lifecycle are implemented.
 * Apply forward-only migrations before enabling Postgres-backed runtime:
   * `python scripts/postgres_migrate.py --target all`
