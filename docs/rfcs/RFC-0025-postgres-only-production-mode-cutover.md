@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IN_PROGRESS |
+| **Status** | COMPLETED |
 | **Created** | 2026-02-20 |
 | **Depends On** | RFC-0023, RFC-0024 |
 | **Doc Location** | `docs/rfcs/RFC-0025-postgres-only-production-mode-cutover.md` |
@@ -69,8 +69,11 @@ variance and incident complexity in production.
 
 - Proposed startup reason codes:
   - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES_DSN`
   - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
   - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
+  - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN`
 
 ## 8. Implementation Progress
 
@@ -91,3 +94,9 @@ variance and incident complexity in production.
     - DPM backend misconfiguration in `PRODUCTION`
     - advisory backend misconfiguration in `PRODUCTION`
     - policy-pack backend misconfiguration in `PRODUCTION` when policy packs are enabled
+- Slice 4 completed (2026-02-21):
+  - Added production cutover contract validation CLI (`scripts/production_cutover_check.py`)
+    for profile/env + migration readiness checks.
+  - Added CI execution of cutover contract validation in production-profile smoke flow.
+  - Added production compose override (`docker-compose.production.yml`).
+  - Updated rollout runbook/checklist to include cutover contract command and closure controls.

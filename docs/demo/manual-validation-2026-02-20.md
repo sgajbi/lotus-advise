@@ -562,3 +562,16 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
   - Policy-pack backend mismatch (`DPM_POLICY_PACKS_ENABLED=true`, `DPM_POLICY_PACK_CATALOG_BACKEND=ENV_JSON`) fails startup with:
     - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
+
+## RFC-0025 Slice 4 Cutover Contract and Closure
+
+- Production cutover contract CLI added:
+  - `python scripts/production_cutover_check.py --check-migrations`
+  - validates:
+    - `APP_PERSISTENCE_PROFILE=PRODUCTION`
+    - production backend/DSN guardrails
+    - `schema_migrations` contains all checked-in `dpm` and `proposals` migration versions.
+
+- Production compose override added:
+  - `docker-compose --profile postgres -f docker-compose.yml -f docker-compose.production.yml up -d --build`
+  - enforces production profile and postgres-only persistence env defaults.

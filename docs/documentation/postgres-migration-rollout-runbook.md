@@ -14,6 +14,8 @@ Runbook for forward-only schema migration rollout for:
   - `DPM_SUPPORTABILITY_POSTGRES_DSN`
   - `PROPOSAL_POSTGRES_DSN`
 - Application image/version to deploy is already tested in non-production.
+- Production compose override available:
+  - `docker-compose.production.yml`
 
 ## Profile Modes
 
@@ -42,17 +44,24 @@ python scripts/postgres_migrate.py --target dpm
 python scripts/postgres_migrate.py --target proposals
 ```
 
+Production contract check (profile/env/migration readiness):
+
+```bash
+python scripts/production_cutover_check.py --check-migrations
+```
+
 ## Startup Sequencing
 
 1. Start/verify Postgres instance health.
 2. Apply migrations (`scripts/postgres_migrate.py`).
-3. Start API services with Postgres backends enabled and production persistence profile:
+3. Validate production contract (`scripts/production_cutover_check.py --check-migrations`).
+4. Start API services with Postgres backends enabled and production persistence profile:
    - `APP_PERSISTENCE_PROFILE=PRODUCTION`
    - `DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES`
    - `PROPOSAL_STORE_BACKEND=POSTGRES`
    - `DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES` (when policy packs/admin APIs are enabled)
-4. Run smoke API checks for DPM and advisory.
-5. Shift traffic.
+5. Run smoke API checks for DPM and advisory.
+6. Shift traffic.
 
 Do not start app replicas with Postgres backend enabled before migrations have completed.
 
@@ -83,7 +92,9 @@ CI executes:
    - validates startup fails with:
      - `PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES`
      - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
-     - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
+      - `PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES`
+5. Production cutover contract check:
+   - `python scripts/production_cutover_check.py --check-migrations`
 
 This validates both migration application and repository contract parity on real Postgres.
 
@@ -94,6 +105,10 @@ This validates both migration application and repository contract parity on real
   - keep schema as-is,
   - redeploy previous compatible app version,
   - fix forward in a new migration.
+- If startup fails due profile guardrails:
+  - correct backend/profile/DSN env configuration,
+  - rerun `scripts/production_cutover_check.py --check-migrations`,
+  - restart services.
 
 ## Completion Evidence
 

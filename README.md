@@ -142,6 +142,12 @@ docker-compose logs -f
 docker-compose --profile postgres up -d --build
 ```
 
+Production-style compose override (RFC-0025):
+
+```bash
+docker-compose --profile postgres -f docker-compose.yml -f docker-compose.production.yml up -d --build
+```
+
 Environment variables for Postgres supportability backend:
 
 ```bash
@@ -164,6 +170,8 @@ Note:
 * Postgres backends for DPM supportability and advisory proposal lifecycle are implemented.
 * Apply forward-only migrations before enabling Postgres-backed runtime:
   * `python scripts/postgres_migrate.py --target all`
+* Validate production cutover contract (profile + env + migration readiness):
+  * `python scripts/production_cutover_check.py --check-migrations`
 * Rollout and sequencing guidance:
   * `docs/documentation/postgres-migration-rollout-runbook.md`
 
