@@ -6,6 +6,7 @@ import logging
 import os
 import uuid
 from collections import OrderedDict
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated, Dict, List, Optional
@@ -14,6 +15,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Path, Request, Resp
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
+from src.api.persistence_profile import validate_persistence_profile_guardrails
 from src.api.routers.dpm_policy_packs import (
     load_dpm_policy_pack_catalog,
     resolve_dpm_policy_pack,
@@ -58,6 +60,13 @@ from src.core.models import (
     ShelfEntry,
 )
 
+
+@asynccontextmanager
+async def _app_lifespan(_app: FastAPI):
+    validate_persistence_profile_guardrails()
+    yield
+
+
 app = FastAPI(
     title="Private Banking Rebalance API",
     version="0.1.0",
@@ -88,6 +97,7 @@ app = FastAPI(
             "description": "Advisory proposal persistence, workflow, and support endpoints.",
         },
     ],
+    lifespan=_app_lifespan,
 )
 
 logging.basicConfig(level=logging.INFO)

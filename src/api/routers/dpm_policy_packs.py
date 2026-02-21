@@ -66,6 +66,10 @@ def _policy_pack_catalog_backend_name() -> str:
     return "ENV_JSON"
 
 
+def policy_pack_catalog_backend_name() -> str:
+    return _policy_pack_catalog_backend_name()
+
+
 def _policy_pack_postgres_dsn() -> str:
     return os.getenv(
         "DPM_POLICY_PACK_POSTGRES_DSN",
