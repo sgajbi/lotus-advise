@@ -14,6 +14,7 @@ jobs:
   lint-test-and-coverage:
     name: Lint, Test & Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -42,6 +43,7 @@ jobs:
   mypy-src:
     name: Mypy (Full src)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -73,6 +75,7 @@ jobs:
     name: Validate Docker Build
     needs: [lint-test-and-coverage, mypy-src]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -85,6 +88,7 @@ jobs:
     name: Postgres Migration Smoke
     needs: [lint-test-and-coverage, mypy-src]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17.6
@@ -135,6 +139,7 @@ jobs:
     name: Production Profile Startup Smoke
     needs: [lint-test-and-coverage, mypy-src]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17.6
@@ -205,6 +210,7 @@ jobs:
     name: Production Profile Guardrail Negatives
     needs: [lint-test-and-coverage, mypy-src]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
