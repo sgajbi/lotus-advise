@@ -1,12 +1,25 @@
-from typing import Iterable
+from collections.abc import Iterable
+from typing import Literal
 
-from src.core.models import GateDecision, GateDecisionSummary, GateReason
+from src.core.models import (
+    DiagnosticsData,
+    EngineOptions,
+    GateDecision,
+    GateDecisionSummary,
+    GateReason,
+    RuleResult,
+    SuitabilityResult,
+)
 
 _SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 
 
-def _dq_reasons(diagnostics) -> list[GateReason]:
-    dq = diagnostics.data_quality if diagnostics is not None else {}
+def _dq_reasons(diagnostics: DiagnosticsData | None) -> list[GateReason]:
+    dq = (
+        diagnostics.data_quality
+        if diagnostics is not None
+        else {"price_missing": [], "fx_missing": []}
+    )
     reasons: list[GateReason] = []
     if dq.get("price_missing"):
         reasons.append(
@@ -29,8 +42,8 @@ def _dq_reasons(diagnostics) -> list[GateReason]:
     return reasons
 
 
-def _rule_reasons(rule_results: Iterable) -> tuple[list[GateReason], int, int]:
-    reasons = []
+def _rule_reasons(rule_results: Iterable[RuleResult]) -> tuple[list[GateReason], int, int]:
+    reasons: list[GateReason] = []
     hard_fail_count = 0
     soft_fail_count = 0
     for rule in rule_results:
@@ -59,10 +72,12 @@ def _rule_reasons(rule_results: Iterable) -> tuple[list[GateReason], int, int]:
     return reasons, hard_fail_count, soft_fail_count
 
 
-def _suitability_reasons(suitability) -> tuple[list[GateReason], int, int]:
+def _suitability_reasons(
+    suitability: SuitabilityResult | None,
+) -> tuple[list[GateReason], int, int]:
     if suitability is None:
         return [], 0, 0
-    reasons = []
+    reasons: list[GateReason] = []
     new_high = 0
     new_medium = 0
     for issue in suitability.issues:
@@ -93,11 +108,11 @@ def _suitability_reasons(suitability) -> tuple[list[GateReason], int, int]:
 
 def evaluate_gate_decision(
     *,
-    status: str,
-    rule_results: Iterable,
-    suitability,
-    diagnostics,
-    options,
+    status: Literal["READY", "BLOCKED", "PENDING_REVIEW"],
+    rule_results: Iterable[RuleResult],
+    suitability: SuitabilityResult | None,
+    diagnostics: DiagnosticsData | None,
+    options: EngineOptions,
     default_requires_client_consent: bool,
 ) -> GateDecision:
     reasons, hard_fail_count, soft_fail_count = _rule_reasons(rule_results)
