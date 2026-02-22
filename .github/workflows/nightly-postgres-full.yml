@@ -95,6 +95,11 @@ jobs:
           echo $! > uvicorn.pid
           sleep 5
 
+      - name: Preflight API Health
+        run: |
+          curl --fail --silent --show-error --max-time 10 \
+            http://127.0.0.1:8010/health > /dev/null
+
       - name: Run Demo Pack Against Live Postgres Runtime
         run: |
           python scripts/run_demo_pack_live.py --base-url http://127.0.0.1:8010
