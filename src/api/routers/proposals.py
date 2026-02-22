@@ -1,5 +1,5 @@
 import importlib
-from typing import Optional
+from typing import Optional, cast
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -10,22 +10,26 @@ from src.api.routers.runtime_utils import (
     normalize_backend_init_error,
 )
 from src.core.proposals import ProposalWorkflowService
+from src.core.proposals.repository import ProposalRepository
 
 router = APIRouter(tags=["Advisory Proposal Lifecycle"])
 
-_REPOSITORY = None
+_REPOSITORY: Optional[ProposalRepository] = None
 _SERVICE: Optional[ProposalWorkflowService] = None
 
 
 def _proposal_store_backend_name() -> str:
-    return proposals_config.proposal_store_backend_name()
+    return cast(str, proposals_config.proposal_store_backend_name())
 
 
 def _backend_init_error_detail(detail: str) -> str:
-    return normalize_backend_init_error(
-        detail=detail,
-        required_detail="PROPOSAL_POSTGRES_DSN_REQUIRED",
-        fallback_detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
+    return cast(
+        str,
+        normalize_backend_init_error(
+            detail=detail,
+            required_detail="PROPOSAL_POSTGRES_DSN_REQUIRED",
+            fallback_detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
+        ),
     )
 
 
@@ -57,6 +61,24 @@ def get_proposal_workflow_service() -> ProposalWorkflowService:
             require_proposal_simulation_flag=env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
         )
     return _SERVICE
+
+
+def get_proposal_repository() -> ProposalRepository:
+    global _REPOSITORY
+    if _REPOSITORY is None:
+        try:
+            _REPOSITORY = proposals_config.build_repository()
+        except RuntimeError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=_backend_init_error_detail(str(exc)),
+            ) from exc
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
+            ) from exc
+    return cast(ProposalRepository, _REPOSITORY)
 
 
 def reset_proposal_workflow_service_for_tests() -> None:

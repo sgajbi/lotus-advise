@@ -4,6 +4,7 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalIdempotencyRecord,
     ProposalRecord,
+    ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
@@ -55,6 +56,25 @@ def test_repository_idempotency_roundtrip_and_update_proposal():
     fetched = repo.get_proposal(proposal_id="pp_repo_1")
     assert fetched is not None
     assert fetched.current_state == "CANCELLED"
+
+
+def test_repository_simulation_idempotency_roundtrip():
+    repo = InMemoryProposalRepository()
+    created_at = _now()
+    record = ProposalSimulationIdempotencyRecord(
+        idempotency_key="idem-sim-1",
+        request_hash="sha256:sim-req",
+        response_json={"proposal_run_id": "pr_001", "status": "READY"},
+        created_at=created_at,
+    )
+    assert repo.get_simulation_idempotency(idempotency_key="idem-sim-1") is None
+
+    repo.save_simulation_idempotency(record)
+    loaded = repo.get_simulation_idempotency(idempotency_key="idem-sim-1")
+    assert loaded is not None
+    assert loaded.request_hash == "sha256:sim-req"
+    assert loaded.response_json["proposal_run_id"] == "pr_001"
+    assert loaded.created_at == created_at
 
 
 def test_repository_list_filters_cursor_events_and_approvals():

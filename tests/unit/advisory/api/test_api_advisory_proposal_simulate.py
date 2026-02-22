@@ -1,12 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import (
-    MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
-    PROPOSAL_IDEMPOTENCY_CACHE,
-    app,
-    get_db_session,
-)
+from src.api.main import app, get_db_session
+from src.api.routers.proposals import reset_proposal_workflow_service_for_tests
 
 
 async def override_get_db_session():
@@ -17,10 +13,10 @@ async def override_get_db_session():
 def override_db_dependency():
     original_overrides = dict(app.dependency_overrides)
     app.dependency_overrides[get_db_session] = override_get_db_session
-    PROPOSAL_IDEMPOTENCY_CACHE.clear()
+    reset_proposal_workflow_service_for_tests()
     yield
     app.dependency_overrides = original_overrides
-    PROPOSAL_IDEMPOTENCY_CACHE.clear()
+    reset_proposal_workflow_service_for_tests()
 
 
 @pytest.fixture
@@ -303,7 +299,7 @@ def test_advisory_proposal_artifact_idempotency_conflict_returns_409(client):
     assert "IDEMPOTENCY_KEY_CONFLICT" in second.json()["detail"]
 
 
-def test_advisory_proposal_idempotency_cache_evicts_oldest(monkeypatch, client):
+def test_advisory_proposal_simulate_allows_different_idempotency_keys(client):
     payload = {
         "portfolio_snapshot": {"portfolio_id": "pf_prop_api_cache", "base_currency": "USD"},
         "market_data_snapshot": {"prices": [], "fx_rates": []},
@@ -312,7 +308,6 @@ def test_advisory_proposal_idempotency_cache_evicts_oldest(monkeypatch, client):
         "proposed_cash_flows": [],
         "proposed_trades": [],
     }
-    monkeypatch.setattr("src.api.main.MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE", 1)
 
     first = client.post(
         "/rebalance/proposals/simulate",
@@ -327,10 +322,4 @@ def test_advisory_proposal_idempotency_cache_evicts_oldest(monkeypatch, client):
 
     assert first.status_code == 200
     assert second.status_code == 200
-    assert len(PROPOSAL_IDEMPOTENCY_CACHE) == 1
-    assert "prop-cache-1" not in PROPOSAL_IDEMPOTENCY_CACHE
-    assert "prop-cache-2" in PROPOSAL_IDEMPOTENCY_CACHE
-    monkeypatch.setattr(
-        "src.api.main.MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE",
-        MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
-    )
+    assert first.json()["proposal_run_id"] == second.json()["proposal_run_id"]

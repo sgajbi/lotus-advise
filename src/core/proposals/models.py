@@ -748,6 +748,25 @@ class ProposalIdempotencyRecord(BaseModel):
     )
 
 
+class ProposalSimulationIdempotencyRecord(BaseModel):
+    idempotency_key: str = Field(
+        description="Internal simulation idempotency key.",
+        examples=["proposal-simulate-idem-001"],
+    )
+    request_hash: str = Field(
+        description="Internal canonical request hash for simulation payload.",
+        examples=["sha256:abc"],
+    )
+    response_json: Dict[str, Any] = Field(
+        description="Internal serialized proposal simulation response payload.",
+        examples=[{"proposal_run_id": "pr_001", "status": "READY"}],
+    )
+    created_at: datetime = Field(
+        description="Internal simulation idempotency creation timestamp.",
+        examples=["2026-02-19T12:00:00+00:00"],
+    )
+
+
 class ProposalTransitionResult(BaseModel):
     proposal: ProposalRecord = Field(
         description="Internal proposal aggregate snapshot after transition.",

@@ -6,6 +6,7 @@ from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalRecord,
+    ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
@@ -16,6 +17,12 @@ class ProposalRepository(Protocol):
     def get_idempotency(self, *, idempotency_key: str) -> Optional[ProposalIdempotencyRecord]: ...
 
     def save_idempotency(self, record: ProposalIdempotencyRecord) -> None: ...
+
+    def get_simulation_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[ProposalSimulationIdempotencyRecord]: ...
+
+    def save_simulation_idempotency(self, record: ProposalSimulationIdempotencyRecord) -> None: ...
 
     def create_operation(self, operation: ProposalAsyncOperationRecord) -> None: ...
 

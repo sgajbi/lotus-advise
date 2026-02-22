@@ -8,6 +8,7 @@ from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalRecord,
+    ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
@@ -23,6 +24,7 @@ class InMemoryProposalRepository(ProposalRepository):
         self._events: dict[str, list[ProposalWorkflowEventRecord]] = {}
         self._approvals: dict[str, list[ProposalApprovalRecordData]] = {}
         self._idempotency: dict[str, ProposalIdempotencyRecord] = {}
+        self._simulation_idempotency: dict[str, ProposalSimulationIdempotencyRecord] = {}
         self._operations: dict[str, ProposalAsyncOperationRecord] = {}
         self._operation_by_correlation: dict[str, str] = {}
 
@@ -34,6 +36,17 @@ class InMemoryProposalRepository(ProposalRepository):
     def save_idempotency(self, record: ProposalIdempotencyRecord) -> None:
         with self._lock:
             self._idempotency[record.idempotency_key] = deepcopy(record)
+
+    def get_simulation_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[ProposalSimulationIdempotencyRecord]:
+        with self._lock:
+            record = self._simulation_idempotency.get(idempotency_key)
+            return deepcopy(record) if record is not None else None
+
+    def save_simulation_idempotency(self, record: ProposalSimulationIdempotencyRecord) -> None:
+        with self._lock:
+            self._simulation_idempotency[record.idempotency_key] = deepcopy(record)
 
     def create_operation(self, operation: ProposalAsyncOperationRecord) -> None:
         with self._lock:

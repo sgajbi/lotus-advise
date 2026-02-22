@@ -929,13 +929,28 @@ def test_simulate_generates_correlation_id_when_header_missing(client):
     assert response.json()["correlation_id"].startswith("corr_")
 
 
-def test_simulate_ignores_supportability_persistence_errors(client):
+def test_simulate_returns_503_when_idempotency_store_write_fails(client):
     payload = get_valid_payload()
     with patch("src.api.main.record_dpm_run_for_support", side_effect=RuntimeError("boom")):
         response = client.post(
             "/rebalance/simulate",
             json=payload,
             headers={"Idempotency-Key": "test-key-supportability-error"},
+        )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "DPM_IDEMPOTENCY_STORE_WRITE_FAILED"
+
+
+def test_simulate_ignores_supportability_persistence_errors_when_replay_disabled(
+    client, monkeypatch
+):
+    monkeypatch.setenv("DPM_IDEMPOTENCY_REPLAY_ENABLED", "false")
+    payload = get_valid_payload()
+    with patch("src.api.main.record_dpm_run_for_support", side_effect=RuntimeError("boom")):
+        response = client.post(
+            "/rebalance/simulate",
+            json=payload,
+            headers={"Idempotency-Key": "test-key-supportability-error-disabled"},
         )
     assert response.status_code == 200
     assert response.json()["status"] in {"READY", "PENDING_REVIEW", "BLOCKED"}
