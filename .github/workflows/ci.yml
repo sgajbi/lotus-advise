@@ -102,7 +102,7 @@ jobs:
           python -m pytest ${{ matrix.path }} --cov=src --cov-report=
 
       - name: Upload coverage data (${{ matrix.suite }})
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-data-${{ matrix.suite }}
           path: .coverage.${{ matrix.suite }}
