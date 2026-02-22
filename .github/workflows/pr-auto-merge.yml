@@ -1,46 +1,39 @@
 name: PR Auto Merge
 
 on:
-  workflow_run:
-    workflows: ["DPM Rebalance Engine Pipeline"]
-    types: [completed]
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  auto-merge:
-    name: Auto Merge PR After Green CI
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+  queue-auto-merge:
+    name: Queue Auto Merge
+    if: >
+      github.event.pull_request.state == 'open' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.fork == false
     runs-on: ubuntu-latest
     steps:
-      - name: Find associated open PR
-        id: find-pr
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const sha = context.payload.workflow_run.head_sha;
-            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: sha,
-            });
-
-            const pr = prs.find((item) => item.state === "open" && item.draft === false);
-            if (!pr) {
-              core.info("No open non-draft PR associated with this successful workflow run.");
-              core.setOutput("number", "");
-              return;
-            }
-
-            core.info(`Found PR #${pr.number}: ${pr.title}`);
-            core.setOutput("number", String(pr.number));
-
-      - name: Merge PR (squash)
-        if: steps.find-pr.outputs.number != ''
+      - name: Enable auto-merge queue (squash)
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ steps.find-pr.outputs.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
+          set +e
+          output=$(gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --squash --delete-branch 2>&1)
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "$output"
+            exit 0
+          fi
+          if echo "$output" | grep -qi "already"; then
+            echo "$output"
+            exit 0
+          fi
+          echo "$output"
+          exit "$code"
