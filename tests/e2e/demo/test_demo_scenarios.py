@@ -9,7 +9,8 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app, get_db_session
+from src.api.main import app, get_db_session
+from src.api.routers.proposals import reset_proposal_workflow_service_for_tests
 from src.core.dpm_engine import run_simulation
 from src.core.models import (
     EngineOptions,
@@ -324,7 +325,7 @@ def test_demo_advisory_scenarios_via_api(filename, expected_status):
     with TestClient(app) as client:
         original_overrides = dict(app.dependency_overrides)
         app.dependency_overrides[get_db_session] = _override_get_db_session
-        PROPOSAL_IDEMPOTENCY_CACHE.clear()
+        reset_proposal_workflow_service_for_tests()
         try:
             response = client.post(
                 "/rebalance/proposals/simulate",
@@ -333,7 +334,7 @@ def test_demo_advisory_scenarios_via_api(filename, expected_status):
             )
         finally:
             app.dependency_overrides = original_overrides
-            PROPOSAL_IDEMPOTENCY_CACHE.clear()
+            reset_proposal_workflow_service_for_tests()
 
     assert response.status_code == 200
     body = response.json()
@@ -360,7 +361,7 @@ def test_demo_advisory_artifact_scenario_via_api():
     with TestClient(app) as client:
         original_overrides = dict(app.dependency_overrides)
         app.dependency_overrides[get_db_session] = _override_get_db_session
-        PROPOSAL_IDEMPOTENCY_CACHE.clear()
+        reset_proposal_workflow_service_for_tests()
         try:
             response = client.post(
                 "/rebalance/proposals/artifact",
@@ -369,7 +370,7 @@ def test_demo_advisory_artifact_scenario_via_api():
             )
         finally:
             app.dependency_overrides = original_overrides
-            PROPOSAL_IDEMPOTENCY_CACHE.clear()
+            reset_proposal_workflow_service_for_tests()
 
     assert response.status_code == 200
     body = response.json()

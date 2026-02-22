@@ -125,6 +125,40 @@ def test_advisory_proposal_simulate_returns_cached_response_on_same_payload(clie
     assert first.json() == second.json()
 
 
+def test_advisory_proposal_simulate_returns_503_when_idempotency_store_write_fails(
+    client, monkeypatch
+):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_store_error", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    class _FailingSimulationIdempotencyRepository:
+        def get_simulation_idempotency(self, *, idempotency_key):
+            return None
+
+        def save_simulation_idempotency(self, record):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "src.api.services.advisory_simulation_service.get_proposal_repository",
+        lambda: _FailingSimulationIdempotencyRepository(),
+    )
+
+    response = client.post(
+        "/rebalance/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-store-error"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "PROPOSAL_IDEMPOTENCY_STORE_WRITE_FAILED"
+
+
 def test_advisory_proposal_simulate_unhandled_error_returns_problem_details(monkeypatch):
     payload = {
         "portfolio_snapshot": {"portfolio_id": "pf_prop_api_5", "base_currency": "USD"},

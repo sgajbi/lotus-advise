@@ -601,6 +601,19 @@ def test_repository_list_workflow_decisions_filtered_contract(repository):
     assert [decision.decision_id for decision in page_two] == ["dwd_repo_filter_1"]
     assert cursor_two is None
 
+    invalid_cursor_rows, invalid_cursor = repository.list_workflow_decisions_filtered(
+        rebalance_run_id=None,
+        action=None,
+        actor_id=None,
+        reason_code=None,
+        decided_from=None,
+        decided_to=None,
+        limit=10,
+        cursor="dwd_missing_cursor",
+    )
+    assert invalid_cursor_rows == []
+    assert invalid_cursor is None
+
 
 def test_repository_lineage_edge_contract(repository):
     now = datetime(2026, 2, 20, 12, 0, tzinfo=timezone.utc)

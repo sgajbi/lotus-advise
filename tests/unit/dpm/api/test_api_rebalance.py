@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -939,6 +940,39 @@ def test_simulate_returns_503_when_idempotency_store_write_fails(client):
         )
     assert response.status_code == 503
     assert response.json()["detail"] == "DPM_IDEMPOTENCY_STORE_WRITE_FAILED"
+
+
+def test_simulate_returns_503_when_idempotency_lookup_points_to_missing_run(client):
+    payload = get_valid_payload()
+
+    class _InconsistentIdempotencyService:
+        def get_idempotency_lookup(self, *, idempotency_key):
+            return SimpleNamespace(
+                idempotency_key=idempotency_key,
+                request_hash="sha256:matches",
+                rebalance_run_id="rr_missing_for_idem",
+            )
+
+        def get_run(self, *, rebalance_run_id):
+            raise DpmRunNotFoundError("DPM_RUN_NOT_FOUND")
+
+    with (
+        patch(
+            "src.api.services.dpm_simulation_service.hash_canonical_payload",
+            return_value="sha256:matches",
+        ),
+        patch(
+            "src.api.services.dpm_simulation_service.get_dpm_run_support_service",
+            return_value=_InconsistentIdempotencyService(),
+        ),
+    ):
+        response = client.post(
+            "/rebalance/simulate",
+            json=payload,
+            headers={"Idempotency-Key": "test-key-idem-store-inconsistent"},
+        )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "DPM_IDEMPOTENCY_STORE_INCONSISTENT"
 
 
 def test_simulate_ignores_supportability_persistence_errors_when_replay_disabled(
