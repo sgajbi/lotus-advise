@@ -228,10 +228,10 @@ jobs:
 
       - name: Run Postgres Integration Contract Tests
         run: |
-          pytest -q \
-            tests/integration/dpm/supportability/test_dpm_postgres_repository_integration.py \
-            tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py \
-            tests/integration/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
+          test -f tests/integration/dpm/supportability/test_dpm_postgres_repository_integration.py
+          test -f tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py
+          test -f tests/integration/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
+          python -m pytest -q tests/integration/dpm/supportability/test_dpm_postgres_repository_integration.py tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py tests/integration/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
 
   production-profile-smoke:
     name: Production Profile Startup Smoke
