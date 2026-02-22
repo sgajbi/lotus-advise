@@ -6,6 +6,7 @@ from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalRecord,
+    ProposalSimulationIdempotencyRecord,
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
 )
@@ -27,6 +28,7 @@ class _FakeCursor:
 class _FakeConnection:
     def __init__(self):
         self.idempotency = {}
+        self.simulation_idempotency = {}
         self.operations = {}
         self.proposals = {}
         self.versions = {}
@@ -65,6 +67,16 @@ class _FakeConnection:
             return _FakeCursor()
         if "FROM proposal_idempotency WHERE idempotency_key = %s" in sql:
             return _FakeCursor(self.idempotency.get(args[0]))
+        if "INSERT INTO proposal_simulation_idempotency" in sql:
+            self.simulation_idempotency[args[0]] = {
+                "idempotency_key": args[0],
+                "request_hash": args[1],
+                "response_json": args[2],
+                "created_at": args[3],
+            }
+            return _FakeCursor()
+        if "FROM proposal_simulation_idempotency WHERE idempotency_key = %s" in sql:
+            return _FakeCursor(self.simulation_idempotency.get(args[0]))
         if "INSERT INTO proposal_async_operations" in sql:
             self.operations[args[0]] = {
                 "operation_id": args[0],
@@ -259,6 +271,26 @@ def test_postgres_repository_idempotency_roundtrip(monkeypatch):
     assert loaded.request_hash == "sha256:req"
     assert loaded.proposal_id == "pp_001"
     assert loaded.proposal_version_no == 1
+    assert loaded.created_at == created_at
+
+
+def test_postgres_repository_simulation_idempotency_roundtrip(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    created_at = datetime.now(timezone.utc)
+    record = ProposalSimulationIdempotencyRecord(
+        idempotency_key="idem-prop-sim-pg-1",
+        request_hash="sha256:req-sim",
+        response_json={"proposal_run_id": "pr_001", "status": "READY"},
+        created_at=created_at,
+    )
+
+    assert repository.get_simulation_idempotency(idempotency_key=record.idempotency_key) is None
+    repository.save_simulation_idempotency(record)
+    loaded = repository.get_simulation_idempotency(idempotency_key=record.idempotency_key)
+    assert loaded is not None
+    assert loaded.idempotency_key == record.idempotency_key
+    assert loaded.request_hash == "sha256:req-sim"
+    assert loaded.response_json["proposal_run_id"] == "pr_001"
     assert loaded.created_at == created_at
 
 

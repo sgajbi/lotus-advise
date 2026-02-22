@@ -29,6 +29,7 @@ from src.api.routers.dpm_runs import (
 from src.api.routers.dpm_runs import (
     router as dpm_run_support_router,
 )
+from src.api.routers.proposals import get_proposal_repository
 from src.api.routers.proposals import router as proposal_lifecycle_router
 from src.api.simulation_examples import (
     ANALYZE_ASYNC_ACCEPTED_EXAMPLE,
@@ -68,6 +69,7 @@ from src.core.models import (
     ProposalSimulateRequest,
     RebalanceResult,
 )
+from src.core.proposals.models import ProposalSimulationIdempotencyRecord
 
 
 @asynccontextmanager
@@ -111,6 +113,7 @@ app = FastAPI(
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+# Deprecated in-memory caches retained for test compatibility; replay now uses shared stores.
 DPM_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, object]]" = OrderedDict()
 DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE = 1000
 MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
@@ -209,6 +212,50 @@ def _build_comparison_metric(
     )
 
 
+def _resolve_replayed_dpm_result(
+    *,
+    service: DpmRunSupportService,
+    idempotency_key: str,
+    request_hash: str,
+) -> Optional[RebalanceResult]:
+    try:
+        mapping = service.get_idempotency_lookup(idempotency_key=idempotency_key)
+    except DpmRunNotFoundError:
+        return None
+
+    if mapping.request_hash != request_hash:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
+        )
+
+    try:
+        run = service.get_run(rebalance_run_id=mapping.rebalance_run_id)
+    except DpmRunNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="DPM_IDEMPOTENCY_REFERENT_NOT_FOUND",
+        ) from exc
+    return cast(RebalanceResult, RebalanceResult.model_validate(run.result))
+
+
+def _resolve_replayed_proposal_result(
+    *,
+    idempotency_key: str,
+    request_hash: str,
+) -> Optional[ProposalResult]:
+    repository = get_proposal_repository()
+    existing = repository.get_simulation_idempotency(idempotency_key=idempotency_key)
+    if existing is None:
+        return None
+    if existing.request_hash != request_hash:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
+        )
+    return cast(ProposalResult, ProposalResult.model_validate(existing.response_json))
+
+
 @app.post(
     "/rebalance/simulate",
     response_model=RebalanceResult,
@@ -289,7 +336,6 @@ def simulate_rebalance(
         f"Simulating rebalance. CID={resolved_correlation_id} Idempotency={idempotency_key}"
     )
     default_replay_enabled = _env_flag("DPM_IDEMPOTENCY_REPLAY_ENABLED", True)
-    max_size = _env_int("DPM_IDEMPOTENCY_CACHE_MAX_SIZE", DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE)
     request_payload = request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
     policy_pack = resolve_dpm_policy_pack(
@@ -316,15 +362,13 @@ def simulate_rebalance(
     )
 
     if replay_enabled:
-        existing = DPM_IDEMPOTENCY_CACHE.get(idempotency_key)
-        if existing and existing["request_hash"] != request_hash:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
-            )
-        if existing:
-            DPM_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-            return cast(RebalanceResult, RebalanceResult.model_validate(existing["response"]))
+        replayed = _resolve_replayed_dpm_result(
+            service=get_dpm_run_support_service(),
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+        )
+        if replayed is not None:
+            return replayed
 
     result = run_simulation(
         portfolio=request.portfolio_snapshot,
@@ -336,15 +380,6 @@ def simulate_rebalance(
         correlation_id=resolved_correlation_id,
     )
 
-    if replay_enabled:
-        DPM_IDEMPOTENCY_CACHE[idempotency_key] = {
-            "request_hash": request_hash,
-            "response": result.model_dump(mode="json"),
-        }
-        DPM_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-        while len(DPM_IDEMPOTENCY_CACHE) > max_size:
-            DPM_IDEMPOTENCY_CACHE.popitem(last=False)
-
     try:
         record_dpm_run_for_support(
             result=result,
@@ -352,7 +387,12 @@ def simulate_rebalance(
             portfolio_id=request.portfolio_snapshot.portfolio_id,
             idempotency_key=idempotency_key,
         )
-    except (HTTPException, RuntimeError, ValueError):
+    except (HTTPException, RuntimeError, ValueError) as exc:
+        if replay_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="DPM_IDEMPOTENCY_STORE_WRITE_FAILED",
+            ) from exc
         logger.exception(
             "Supportability persistence failed. RunID=%s CorrelationID=%s",
             result.rebalance_run_id,
@@ -780,15 +820,12 @@ def _simulate_proposal_response(
     request_payload = request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
 
-    existing = PROPOSAL_IDEMPOTENCY_CACHE.get(idempotency_key)
-    if existing and existing["request_hash"] != request_hash:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
-        )
-    if existing:
-        PROPOSAL_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-        return cast(ProposalResult, ProposalResult.model_validate(existing["response"]))
+    replayed = _resolve_replayed_proposal_result(
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+    if replayed is not None:
+        return replayed
 
     resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
     result = run_proposal_simulation(
@@ -804,13 +841,15 @@ def _simulate_proposal_response(
         correlation_id=resolved_correlation_id,
     )
 
-    PROPOSAL_IDEMPOTENCY_CACHE[idempotency_key] = {
-        "request_hash": request_hash,
-        "response": result.model_dump(mode="json"),
-    }
-    PROPOSAL_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-    while len(PROPOSAL_IDEMPOTENCY_CACHE) > MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE:
-        PROPOSAL_IDEMPOTENCY_CACHE.popitem(last=False)
+    repository = get_proposal_repository()
+    repository.save_simulation_idempotency(
+        ProposalSimulationIdempotencyRecord(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            response_json=result.model_dump(mode="json"),
+            created_at=datetime.now(timezone.utc),
+        )
+    )
     return result
 
 

@@ -372,3 +372,46 @@ def test_service_invalid_approval_state_variants():
             assert str(exc) == "INVALID_APPROVAL_STATE"
         else:
             raise AssertionError("Expected INVALID_APPROVAL_STATE")
+
+
+def test_service_execute_async_returns_when_operation_missing():
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    service.execute_create_proposal_async(
+        operation_id="pop_missing",
+        payload=_create_payload(),
+        idempotency_key="idem-missing",
+        correlation_id="corr-missing",
+    )
+    service.execute_create_version_async(
+        operation_id="pop_missing",
+        proposal_id="pp_missing",
+        payload=ProposalVersionRequest(
+            created_by="advisor_service",
+            simulate_request=_simulate_request(),
+        ),
+        correlation_id="corr-missing",
+    )
+
+
+def test_service_execute_create_proposal_async_marks_failed_on_lifecycle_error():
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    accepted = service.submit_create_proposal_async(
+        payload=_create_payload(),
+        idempotency_key="idem-async-fail",
+        correlation_id="corr-async-fail",
+    )
+
+    payload = _create_payload()
+    payload.simulate_request.options.enable_proposal_simulation = False
+    service.execute_create_proposal_async(
+        operation_id=accepted.operation_id,
+        payload=payload,
+        idempotency_key="idem-async-fail",
+        correlation_id="corr-async-fail",
+    )
+
+    operation = service.get_async_operation(operation_id=accepted.operation_id)
+    assert operation.status == "FAILED"
+    assert operation.error is not None
+    assert operation.error.code == "ProposalValidationError"

@@ -9,6 +9,7 @@ from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
     ProposalRecord,
+    ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
@@ -71,6 +72,54 @@ class PostgresProposalRepository:
                     record.request_hash,
                     record.proposal_id,
                     record.proposal_version_no,
+                    record.created_at.isoformat(),
+                ),
+            )
+            connection.commit()
+
+    def get_simulation_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[ProposalSimulationIdempotencyRecord]:
+        query = """
+            SELECT
+                idempotency_key,
+                request_hash,
+                response_json,
+                created_at
+            FROM proposal_simulation_idempotency
+            WHERE idempotency_key = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (idempotency_key,)).fetchone()
+        if row is None:
+            return None
+        return ProposalSimulationIdempotencyRecord(
+            idempotency_key=row["idempotency_key"],
+            request_hash=row["request_hash"],
+            response_json=json.loads(row["response_json"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def save_simulation_idempotency(self, record: ProposalSimulationIdempotencyRecord) -> None:
+        query = """
+            INSERT INTO proposal_simulation_idempotency (
+                idempotency_key,
+                request_hash,
+                response_json,
+                created_at
+            ) VALUES (%s, %s, %s, %s)
+            ON CONFLICT (idempotency_key) DO UPDATE SET
+                request_hash=excluded.request_hash,
+                response_json=excluded.response_json,
+                created_at=excluded.created_at
+        """
+        with closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    record.idempotency_key,
+                    record.request_hash,
+                    _json_dump(record.response_json),
                     record.created_at.isoformat(),
                 ),
             )

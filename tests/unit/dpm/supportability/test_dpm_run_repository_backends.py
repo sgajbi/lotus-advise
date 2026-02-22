@@ -769,3 +769,14 @@ def test_repository_run_retention_also_purges_artifacts(repository):
     removed = repository.purge_expired_runs(retention_days=2, now=now)
     assert removed == 1
     assert repository.get_run_artifact(rebalance_run_id="rr_repo_retention_artifact_old") is None
+
+
+def test_sqlite_repository_purge_expired_runs_noop_when_empty():
+    with TemporaryDirectory() as tmp_dir:
+        sqlite_path = str(Path(tmp_dir) / "supportability-empty.sqlite")
+        repository = SqliteDpmRunRepository(database_path=sqlite_path)
+        purged = repository.purge_expired_runs(
+            retention_days=1,
+            now=datetime(2026, 2, 22, 12, 0, tzinfo=timezone.utc),
+        )
+        assert purged == 0
