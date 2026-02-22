@@ -1,25 +1,46 @@
 name: PR Auto Merge
 
 on:
-  pull_request_target:
-    types: [opened, reopened, synchronize, labeled, ready_for_review]
+  workflow_run:
+    workflows: ["DPM Rebalance Engine Pipeline"]
+    types: [completed]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  enable-auto-merge:
-    name: Enable Auto Merge For Labeled PRs
-    if: >
-      contains(github.event.pull_request.labels.*.name, 'automerge') &&
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.head.repo.full_name == github.repository
+  auto-merge:
+    name: Auto Merge PR After Green CI
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Enable auto-merge (squash)
+      - name: Find associated open PR
+        id: find-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.payload.workflow_run.head_sha;
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: sha,
+            });
+
+            const pr = prs.find((item) => item.state === "open" && item.draft === false);
+            if (!pr) {
+              core.info("No open non-draft PR associated with this successful workflow run.");
+              core.setOutput("number", "");
+              return;
+            }
+
+            core.info(`Found PR #${pr.number}: ${pr.title}`);
+            core.setOutput("number", String(pr.number));
+
+      - name: Merge PR (squash)
+        if: steps.find-pr.outputs.number != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.find-pr.outputs.number }}
         run: |
-          gh pr merge "$PR_NUMBER" --auto --squash --delete-branch
+          gh pr merge "$PR_NUMBER" --squash --delete-branch

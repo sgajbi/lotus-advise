@@ -82,14 +82,8 @@ gh pr checks <PR_NUMBER> --watch
 gh pr merge <PR_NUMBER> --squash --delete-branch
 ```
 
-Optional auto-merge for normal PRs:
-
-```bash
-gh pr edit <PR_NUMBER> --add-label automerge
-```
-
-If label `automerge` is present, GitHub Action `PR Auto Merge` enables auto-merge.
-The PR still merges only after required checks are green.
+Auto-merge is enabled via GitHub Action after successful CI.
+If CI is green, PR can merge automatically.
 
 ### 9. Sync local after merge
 
@@ -106,7 +100,7 @@ Use branch + PR flow above.
 ## Dependabot PRs (Current Setup)
 
 Dependabot opens dependency-update PRs.
-This repo also has auto-merge workflow for Dependabot PRs after successful CI.
+Dependabot PRs follow the same auto-merge behavior after successful CI.
 
 Useful commands:
 
