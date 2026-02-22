@@ -6,10 +6,13 @@ from src.core.proposals.models import (
     ProposalIdempotencyRecord,
     ProposalRecord,
     ProposalStateTransitionRequest,
+    ProposalVersionRecord,
     ProposalVersionRequest,
+    ProposalWorkflowEventRecord,
 )
 from src.core.proposals.service import (
     ProposalNotFoundError,
+    ProposalStateConflictError,
     ProposalTransitionError,
     ProposalValidationError,
     ProposalWorkflowService,
@@ -415,3 +418,103 @@ def test_service_execute_create_proposal_async_marks_failed_on_lifecycle_error()
     assert operation.status == "FAILED"
     assert operation.error is not None
     assert operation.error.code == "ProposalValidationError"
+
+
+def test_service_expected_state_can_be_optional_when_disabled():
+    service = ProposalWorkflowService(
+        repository=InMemoryProposalRepository(),
+        require_expected_state=False,
+    )
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-idem-optional-state",
+        correlation_id="corr-service-optional-state",
+    )
+    transitioned = service.transition_state(
+        proposal_id=created.proposal.proposal_id,
+        payload=ProposalStateTransitionRequest(
+            event_type="SUBMITTED_FOR_RISK_REVIEW",
+            actor_id="advisor_service",
+            expected_state=None,
+            reason={},
+        ),
+    )
+    assert transitioned.current_state == "RISK_REVIEW"
+
+    strict_service = ProposalWorkflowService(
+        repository=InMemoryProposalRepository(),
+        require_expected_state=True,
+    )
+    strict_created = strict_service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-idem-required-state",
+        correlation_id="corr-service-required-state",
+    )
+    try:
+        strict_service.transition_state(
+            proposal_id=strict_created.proposal.proposal_id,
+            payload=ProposalStateTransitionRequest(
+                event_type="SUBMITTED_FOR_RISK_REVIEW",
+                actor_id="advisor_service",
+                expected_state=None,
+                reason={},
+            ),
+        )
+    except ProposalStateConflictError as exc:
+        assert "expected_state is required" in str(exc)
+    else:
+        raise AssertionError("Expected ProposalStateConflictError")
+
+
+def test_service_lineage_skips_missing_version_rows():
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    now = datetime.now(timezone.utc)
+    repo.create_proposal(
+        ProposalRecord(
+            proposal_id="pp_lineage_gap",
+            portfolio_id="pf_lineage_gap",
+            mandate_id=None,
+            jurisdiction=None,
+            created_by="advisor",
+            created_at=now,
+            last_event_at=now,
+            current_state="DRAFT",
+            current_version_no=2,
+            title="lineage gap",
+            advisor_notes=None,
+        )
+    )
+    repo.create_version(
+        ProposalVersionRecord(
+            proposal_version_id="ppv_lineage_gap_1",
+            proposal_id="pp_lineage_gap",
+            version_no=1,
+            created_at=now,
+            request_hash="sha256:req-lineage-gap-1",
+            artifact_hash="sha256:artifact-lineage-gap-1",
+            simulation_hash="sha256:sim-lineage-gap-1",
+            status_at_creation="READY",
+            proposal_result_json={"proposal_run_id": "pr_lineage_gap_1", "status": "READY"},
+            artifact_json={"artifact_id": "pa_lineage_gap_1"},
+            evidence_bundle_json={},
+            gate_decision_json=None,
+        )
+    )
+    repo.append_event(
+        ProposalWorkflowEventRecord(
+            event_id="pwe_lineage_gap_created",
+            proposal_id="pp_lineage_gap",
+            event_type="CREATED",
+            from_state=None,
+            to_state="DRAFT",
+            actor_id="advisor",
+            occurred_at=now,
+            reason_json={},
+            related_version_no=1,
+        )
+    )
+
+    lineage = service.get_lineage(proposal_id="pp_lineage_gap")
+    assert lineage.proposal.proposal_id == "pp_lineage_gap"
+    assert [version.version_no for version in lineage.versions] == [1]

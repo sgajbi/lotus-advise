@@ -1,12 +1,15 @@
 import uuid
 from collections import OrderedDict
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, cast
 
 from fastapi import HTTPException, status
 
+from src.api.routers.proposals import get_proposal_repository
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposals.models import ProposalSimulationIdempotencyRecord
 
 PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, object]]" = OrderedDict()
 MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
@@ -34,16 +37,16 @@ def simulate_proposal_response(
 
     request_payload = request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
+    repository = get_proposal_repository()
 
-    existing = PROPOSAL_IDEMPOTENCY_CACHE.get(idempotency_key)
-    if existing and existing["request_hash"] != request_hash:
+    existing = repository.get_simulation_idempotency(idempotency_key=idempotency_key)
+    if existing is not None and existing.request_hash != request_hash:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
         )
-    if existing:
-        PROPOSAL_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-        return cast(ProposalResult, ProposalResult.model_validate(existing["response"]))
+    if existing is not None:
+        return cast(ProposalResult, ProposalResult.model_validate(existing.response_json))
 
     run_fn = _main_override("run_proposal_simulation") or run_proposal_simulation
     resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
@@ -60,14 +63,18 @@ def simulate_proposal_response(
         correlation_id=resolved_correlation_id,
     )
 
-    PROPOSAL_IDEMPOTENCY_CACHE[idempotency_key] = {
-        "request_hash": request_hash,
-        "response": result.model_dump(mode="json"),
-    }
-    PROPOSAL_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-    max_cache_size = (
-        _main_override("MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE") or MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE
-    )
-    while len(PROPOSAL_IDEMPOTENCY_CACHE) > max_cache_size:
-        PROPOSAL_IDEMPOTENCY_CACHE.popitem(last=False)
+    try:
+        repository.save_simulation_idempotency(
+            ProposalSimulationIdempotencyRecord(
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                response_json=result.model_dump(mode="json"),
+                created_at=datetime.now(timezone.utc),
+            )
+        )
+    except (RuntimeError, ValueError, TypeError, ConnectionError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="PROPOSAL_IDEMPOTENCY_STORE_WRITE_FAILED",
+        ) from exc
     return result

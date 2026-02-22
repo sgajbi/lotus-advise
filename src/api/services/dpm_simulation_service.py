@@ -22,6 +22,7 @@ from src.core.dpm.policy_packs import (
 from src.core.dpm_runs import (
     DpmAsyncAcceptedResponse,
     DpmAsyncOperationStatusResponse,
+    DpmRunLookupResponse,
     DpmRunNotFoundError,
     DpmRunSupportService,
 )
@@ -134,7 +135,6 @@ def simulate_rebalance(
         idempotency_key,
     )
     default_replay_enabled = env_flag("DPM_IDEMPOTENCY_REPLAY_ENABLED", True)
-    max_size = env_int("DPM_IDEMPOTENCY_CACHE_MAX_SIZE", DEFAULT_DPM_IDEMPOTENCY_CACHE_SIZE)
     request_payload = request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
     policy_pack = resolve_dpm_policy_pack(
@@ -161,15 +161,28 @@ def simulate_rebalance(
     )
 
     if replay_enabled:
-        existing = DPM_IDEMPOTENCY_CACHE.get(idempotency_key)
-        if existing and existing["request_hash"] != request_hash:
+        support_service = get_dpm_run_support_service()
+        existing = None
+        try:
+            existing = support_service.get_idempotency_lookup(idempotency_key=idempotency_key)
+        except DpmRunNotFoundError:
+            existing = None
+        if existing is not None and existing.request_hash != request_hash:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="IDEMPOTENCY_KEY_CONFLICT: request hash mismatch",
             )
-        if existing:
-            DPM_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-            return cast(RebalanceResult, RebalanceResult.model_validate(existing["response"]))
+        if existing is not None:
+            try:
+                replay_run: DpmRunLookupResponse = support_service.get_run(
+                    rebalance_run_id=existing.rebalance_run_id
+                )
+            except DpmRunNotFoundError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="DPM_IDEMPOTENCY_STORE_INCONSISTENT",
+                ) from exc
+            return cast(RebalanceResult, RebalanceResult.model_validate(replay_run.result))
 
     run_fn = _main_override("run_simulation") or run_simulation
     result = run_fn(
@@ -181,15 +194,6 @@ def simulate_rebalance(
         request_hash=request_hash,
         correlation_id=resolved_correlation_id,
     )
-
-    if replay_enabled:
-        DPM_IDEMPOTENCY_CACHE[idempotency_key] = {
-            "request_hash": request_hash,
-            "response": result.model_dump(mode="json"),
-        }
-        DPM_IDEMPOTENCY_CACHE.move_to_end(idempotency_key)
-        while len(DPM_IDEMPOTENCY_CACHE) > max_size:
-            DPM_IDEMPOTENCY_CACHE.popitem(last=False)
 
     try:
         record_for_support = (
