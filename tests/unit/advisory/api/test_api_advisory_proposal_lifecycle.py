@@ -298,6 +298,98 @@ def test_workflow_transitions_and_approvals_happy_path_to_executed():
         assert executed.json()["current_state"] == "EXECUTED"
 
 
+def test_workflow_transitions_happy_path_via_risk_to_execution_ready():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-create-risk-happy")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        to_risk = client.post(
+            f"/rebalance/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "actor_id": "advisor_1",
+                "expected_state": "DRAFT",
+                "reason": {"comment": "risk first"},
+                "related_version_no": 1,
+            },
+        )
+        assert to_risk.status_code == 200
+        assert to_risk.json()["current_state"] == "RISK_REVIEW"
+
+        risk_approved = client.post(
+            f"/rebalance/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "RISK",
+                "approved": True,
+                "actor_id": "risk_user",
+                "expected_state": "RISK_REVIEW",
+                "details": {"ticket": "risk_1"},
+                "related_version_no": 1,
+            },
+        )
+        assert risk_approved.status_code == 200
+        assert risk_approved.json()["current_state"] == "AWAITING_CLIENT_CONSENT"
+        assert risk_approved.json()["latest_workflow_event"]["event_type"] == "RISK_APPROVED"
+
+        consent = client.post(
+            f"/rebalance/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "CLIENT_CONSENT",
+                "approved": True,
+                "actor_id": "client_1",
+                "expected_state": "AWAITING_CLIENT_CONSENT",
+                "details": {"channel": "DIGITAL"},
+                "related_version_no": 1,
+            },
+        )
+        assert consent.status_code == 200
+        assert consent.json()["current_state"] == "EXECUTION_READY"
+
+
+def test_workflow_rejection_path_transitions_to_rejected_terminal_state():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-create-rejected")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        to_risk = client.post(
+            f"/rebalance/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "actor_id": "advisor_1",
+                "expected_state": "DRAFT",
+                "reason": {"comment": "risk first"},
+            },
+        )
+        assert to_risk.status_code == 200
+        assert to_risk.json()["current_state"] == "RISK_REVIEW"
+
+        rejected = client.post(
+            f"/rebalance/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "RISK",
+                "approved": False,
+                "actor_id": "risk_user",
+                "expected_state": "RISK_REVIEW",
+                "details": {"comment": "client not suitable"},
+            },
+        )
+        assert rejected.status_code == 200
+        assert rejected.json()["current_state"] == "REJECTED"
+        assert rejected.json()["latest_workflow_event"]["event_type"] == "REJECTED"
+
+        invalid_after_terminal = client.post(
+            f"/rebalance/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
+                "actor_id": "advisor_1",
+                "expected_state": "REJECTED",
+                "reason": {"comment": "should fail"},
+            },
+        )
+        assert invalid_after_terminal.status_code == 422
+        assert invalid_after_terminal.json()["detail"] == "INVALID_TRANSITION"
+
+
 def test_approval_requires_matching_expected_state():
     with TestClient(app) as client:
         created = _create(client, "lifecycle-create-7")
