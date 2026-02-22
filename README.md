@@ -31,6 +31,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0014G (advisory proposal persistence and workflow lifecycle via `/rebalance/proposals` endpoint family and repository port)
 * RFC-0024 (unified PostgreSQL persistence for DPM supportability and advisory proposal lifecycle)
 * RFC-0025 (PostgreSQL-only production profile cutover guardrails and rollout controls)
+* RFC-0027 (approval-chain lifecycle regression hardening for risk-first and rejection paths)
 * Shared workflow gate decision semantics (deterministic `gate_decision` block in DPM/advisory outputs, configurable through `EngineOptions`)
 
 ---
