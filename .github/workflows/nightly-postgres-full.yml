@@ -98,7 +98,7 @@ jobs:
       - name: Preflight API Health
         run: |
           curl --fail --silent --show-error --max-time 10 \
-            http://127.0.0.1:8010/health > /dev/null
+            http://127.0.0.1:8010/docs > /dev/null
 
       - name: Run Demo Pack Against Live Postgres Runtime
         run: |
