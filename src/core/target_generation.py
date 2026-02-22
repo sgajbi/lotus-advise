@@ -3,6 +3,83 @@ from typing import Any
 
 from src.core.models import DiagnosticsData, EngineOptions, Money, ShelfEntry, TargetInstrument
 
+_SOLVER_STATUS_OPTIMAL = {"optimal", "optimal_inaccurate"}
+_SOLVER_STATUS_INFEASIBLE = {"infeasible", "infeasible_inaccurate"}
+_SOLVER_STATUS_UNBOUNDED = {"unbounded", "unbounded_inaccurate"}
+
+
+def _build_solver_attempts(cp: Any) -> tuple[tuple[Any, tuple[dict[str, Any], ...]], ...]:
+    """
+    Return ordered solver attempts with bounded runtime/iteration settings.
+
+    Each solver includes a primary kwargs profile and a compatibility fallback profile
+    for environments where specific kwargs are unsupported by installed bindings.
+    """
+    return (
+        (
+            cp.OSQP,
+            (
+                {"max_iter": 2_000, "eps_abs": 1e-5, "eps_rel": 1e-5, "time_limit": 0.25},
+                {"max_iter": 2_000},
+            ),
+        ),
+        (
+            cp.SCS,
+            (
+                {"max_iters": 5_000, "eps": 1e-4, "time_limit_secs": 0.5},
+                {"max_iters": 5_000, "eps": 1e-4},
+            ),
+        ),
+    )
+
+
+def _solve_with_fallbacks(prob: Any, cp: Any) -> tuple[bool, str | None]:
+    latest_status: str | None = None
+
+    try:
+        installed = set(cp.installed_solvers())
+    except Exception:
+        installed = set()
+
+    for solver_name, kwargs_attempts in _build_solver_attempts(cp):
+        solver_key = str(solver_name)
+        if installed and solver_key not in installed:
+            continue
+
+        for solve_kwargs in kwargs_attempts:
+            try:
+                prob.solve(
+                    solver=solver_name,
+                    verbose=False,
+                    warm_start=False,
+                    **solve_kwargs,
+                )
+            except TypeError:
+                # Solver binding does not support one or more kwargs.
+                continue
+            except (cp.SolverError, ValueError):
+                # Try next solver when this one fails hard.
+                break
+            except Exception:
+                break
+
+            latest_status = str(prob.status).lower()
+            if latest_status in _SOLVER_STATUS_OPTIMAL:
+                return True, latest_status
+            break
+
+    return False, latest_status
+
+
+def _solver_failure_reason(latest_status: str | None) -> str:
+    if latest_status is None:
+        return "SOLVER_ERROR"
+    if latest_status in _SOLVER_STATUS_INFEASIBLE:
+        return f"INFEASIBLE_{latest_status.upper()}"
+    if latest_status in _SOLVER_STATUS_UNBOUNDED:
+        return f"UNBOUNDED_{latest_status.upper()}"
+    return f"SOLVER_NON_OPTIMAL_{latest_status.upper()}"
+
 
 def _collect_infeasibility_hints(
     *,
@@ -13,6 +90,7 @@ def _collect_infeasibility_hints(
     shelf: list[ShelfEntry],
 ) -> list[str]:
     hints: list[str] = []
+    shelf_attrs_by_id = {s.instrument_id: s.attributes for s in shelf}
 
     invested_min = Decimal("1.0") - options.cash_band_max_weight - locked_weight
     invested_max = Decimal("1.0") - options.cash_band_min_weight - locked_weight
@@ -31,8 +109,8 @@ def _collect_infeasibility_hints(
         group_locked_weight = Decimal("0")
         group_tradeable_count = 0
         for i_id in eligible_targets:
-            s_ent = next((s for s in shelf if s.instrument_id == i_id), None)
-            if not s_ent or s_ent.attributes.get(attr_key) != attr_val:
+            attrs = shelf_attrs_by_id.get(i_id)
+            if attrs is None or attrs.get(attr_key) != attr_val:
                 continue
             if i_id in indexed_tradeable:
                 group_tradeable_count += 1
@@ -55,6 +133,8 @@ def build_target_trace(
     base_ccy: str,
 ) -> list[TargetInstrument]:
     trace: list[TargetInstrument] = []
+    buy_set = set(buy_list)
+    model_target_ids = {t.instrument_id for t in model.targets}
     for t in model.targets:
         final_w = eligible_targets.get(t.instrument_id, Decimal("0.0"))
         tags = ["CAPPED_BY_MAX_WEIGHT"] if t.weight > final_w else []
@@ -72,9 +152,9 @@ def build_target_trace(
         )
 
     for i_id, final_w in eligible_targets.items():
-        if not any(t.instrument_id == i_id for t in model.targets):
+        if i_id not in model_target_ids:
             tag = (
-                "IMPLICIT_SELL_TO_ZERO" if (i_id in buy_list or final_w == 0) else "LOCKED_POSITION"
+                "IMPLICIT_SELL_TO_ZERO" if (i_id in buy_set or final_w == 0) else "LOCKED_POSITION"
             )
             trace.append(
                 TargetInstrument(
@@ -103,7 +183,7 @@ def generate_targets_solver(
     try:
         import cvxpy as cp
         import numpy as np
-    except ImportError:
+    except Exception:
         diagnostics.warnings.append("SOLVER_ERROR")
         return [], "BLOCKED"
 
@@ -120,6 +200,8 @@ def generate_targets_solver(
     tradeable_ids = [i_id for i_id in eligible_targets if i_id in buy_list]
     locked_ids = [i_id for i_id in eligible_targets if i_id not in buy_list]
     locked_weight = sum((eligible_targets[i_id] for i_id in locked_ids), Decimal("0"))
+    shelf_attrs_by_id = {s.instrument_id: s.attributes for s in shelf}
+    known_attr_keys = {k for attrs in shelf_attrs_by_id.values() for k in attrs}
 
     if not tradeable_ids:
         return build_target_trace(model, eligible_targets, buy_list, total_val, base_ccy), status
@@ -145,15 +227,15 @@ def generate_targets_solver(
         constraint = options.group_constraints[constraint_key]
         attr_key, attr_val = constraint_key.split(":", 1)
 
-        if not any(attr_key in s.attributes for s in shelf):
+        if attr_key not in known_attr_keys:
             diagnostics.warnings.append(f"UNKNOWN_CONSTRAINT_ATTRIBUTE_{attr_key}")
             continue
 
         group_tradeable = []
         group_locked_weight = Decimal("0")
         for i_id in eligible_targets:
-            s_ent = next((s for s in shelf if s.instrument_id == i_id), None)
-            if not s_ent or s_ent.attributes.get(attr_key) != attr_val:
+            attrs = shelf_attrs_by_id.get(i_id)
+            if attrs is None or attrs.get(attr_key) != attr_val:
                 continue
             if i_id in indexed_tradeable:
                 group_tradeable.append(i_id)
@@ -169,20 +251,10 @@ def generate_targets_solver(
         constraints.append(group_expr <= float(constraint.max_weight))
 
     prob = cp.Problem(objective, constraints)
-    solved = False
-    latest_status = None
-    for solver_name in (cp.OSQP, cp.SCS):
-        try:
-            prob.solve(solver=solver_name, verbose=False, warm_start=False)
-        except cp.SolverError:
-            continue
-        latest_status = str(prob.status).upper()
-        if prob.status in ("optimal", "optimal_inaccurate"):
-            solved = True
-            break
+    solved, latest_status = _solve_with_fallbacks(prob, cp)
 
     if not solved:
-        reason = "SOLVER_ERROR" if latest_status is None else f"INFEASIBLE_{latest_status}"
+        reason = _solver_failure_reason(latest_status)
         diagnostics.warnings.append(reason)
         if reason.startswith("INFEASIBLE_"):
             diagnostics.warnings.extend(
