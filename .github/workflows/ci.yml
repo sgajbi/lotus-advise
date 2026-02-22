@@ -20,6 +20,17 @@ env:
   PYTHON_VERSION: "3.11"
 
 jobs:
+  workflow-lint:
+    name: Workflow Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Lint GitHub Actions Workflows
+        uses: rhysd/actionlint@v1
+
   lint-test-and-coverage:
     name: Lint & Dependency Checks
     runs-on: ubuntu-latest
