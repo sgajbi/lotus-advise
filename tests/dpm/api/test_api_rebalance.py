@@ -478,6 +478,10 @@ def test_dpm_support_repository_backend_init_errors_return_503(client, monkeypat
         "DPM_SUPPORTABILITY_POSTGRES_DSN",
         "postgresql://user:pass@localhost:5432/dpm",
     )
+    monkeypatch.setattr(
+        "src.api.routers.dpm_runs_config.PostgresDpmRunRepository",
+        lambda *args, **kwargs: (_ for _ in ()).throw(ConnectionError("boom")),
+    )
     reset_dpm_run_support_service_for_tests()
     missing_driver = client.get("/rebalance/runs?limit=1")
     assert missing_driver.status_code == 503

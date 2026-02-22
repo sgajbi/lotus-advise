@@ -1,8 +1,10 @@
 from decimal import Decimal
 
+from src.core.dpm.execution import build_settlement_ladder
 from src.core.dpm_engine import _generate_fx_and_simulate, run_simulation
 from src.core.models import (
     EngineOptions,
+    SecurityTradeIntent,
 )
 from tests.dpm.engine.coverage.helpers import empty_diagnostics, usd_cash_portfolio
 from tests.shared.assertions import security_intents
@@ -134,3 +136,60 @@ class TestIntentDependenciesAndSimulation:
 
         assert status in {"READY", "PENDING_REVIEW"}
         assert diagnostics.data_quality["fx_missing"].count("EUR/USD") >= 1
+
+    def test_generate_fx_and_simulate_skips_security_intent_without_notional(self):
+        diagnostics = empty_diagnostics()
+        intents = [
+            SecurityTradeIntent(
+                intent_id="oi_incomplete",
+                instrument_id="EQ_1",
+                side="BUY",
+                quantity=Decimal("1"),
+                notional=None,
+                notional_base=None,
+            )
+        ]
+
+        _, _, _, status, _ = _generate_fx_and_simulate(
+            portfolio=portfolio_snapshot(
+                portfolio_id="pf_skip_missing_notional",
+                base_currency="USD",
+                cash_balances=[cash("USD", "1000")],
+            ),
+            market_data=market_data_snapshot(prices=[], fx_rates=[]),
+            shelf=[],
+            intents=intents,
+            options=EngineOptions(),
+            total_val_before=Decimal("1000"),
+            diagnostics=diagnostics,
+        )
+
+        assert status in {"READY", "PENDING_REVIEW"}
+
+    def test_build_settlement_ladder_skips_security_intent_without_notional(self):
+        diagnostics = empty_diagnostics()
+        portfolio = portfolio_snapshot(
+            portfolio_id="pf_ladder_missing_notional",
+            base_currency="USD",
+            cash_balances=[cash("USD", "1000")],
+        )
+        intents = [
+            SecurityTradeIntent(
+                intent_id="oi_incomplete_ladder",
+                instrument_id="EQ_1",
+                side="BUY",
+                quantity=Decimal("1"),
+                notional=None,
+                notional_base=None,
+            )
+        ]
+
+        build_settlement_ladder(
+            portfolio=portfolio,
+            shelf=[],
+            intents=intents,
+            options=EngineOptions(enable_settlement_awareness=True),
+            diagnostics=diagnostics,
+        )
+
+        assert diagnostics.cash_ladder_breaches == []

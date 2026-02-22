@@ -1,4 +1,4 @@
-.PHONY: install check test typecheck lint format clean run check-deps pre-commit docker-up docker-down
+.PHONY: install check check-all test test-unit test-integration test-e2e test-all typecheck lint format clean run check-deps pre-commit docker-up docker-down
 
 install:
 	pip install -r requirements.txt
@@ -12,7 +12,21 @@ pre-commit:
 check: lint typecheck test
 
 test:
+	$(MAKE) test-unit
+
+test-unit:
+	python -m pytest -m unit
+
+test-integration:
+	python -m pytest -m integration
+
+test-e2e:
+	python -m pytest -m e2e
+
+test-all:
 	python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
+
+check-all: lint typecheck test-all
 
 typecheck:
 	mypy --config-file mypy.ini

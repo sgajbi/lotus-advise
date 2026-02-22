@@ -140,3 +140,44 @@ def test_sort_execution_intents_orders_cashflow_sell_fx_buy():
     ]
     assert ordered[1].side == "SELL"
     assert ordered[3].side == "BUY"
+
+
+def test_apply_security_trade_to_portfolio_ignores_incomplete_trade_intent():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_shared_5",
+        base_currency="USD",
+        cash_balances=[cash("USD", "1000")],
+    )
+    intent = SecurityTradeIntent(
+        intent_id="oi_incomplete_1",
+        instrument_id="EQ_1",
+        side="BUY",
+        quantity=None,
+        notional=None,
+        notional_base=None,
+    )
+
+    apply_security_trade_to_portfolio(portfolio, intent)
+
+    assert portfolio.positions == []
+    assert portfolio.cash_balances[0].amount == Decimal("1000")
+
+
+def test_apply_fx_spot_to_portfolio_ignores_non_fx_intent():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_shared_6",
+        base_currency="USD",
+        cash_balances=[cash("USD", "1000")],
+    )
+    intent = SecurityTradeIntent(
+        intent_id="oi_non_fx_1",
+        instrument_id="EQ_1",
+        side="BUY",
+        quantity=Decimal("1"),
+        notional={"amount": Decimal("100"), "currency": "USD"},
+        notional_base={"amount": Decimal("100"), "currency": "USD"},
+    )
+
+    apply_fx_spot_to_portfolio(portfolio, intent)
+
+    assert portfolio.cash_balances[0].amount == Decimal("1000")

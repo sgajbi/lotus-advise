@@ -4,6 +4,7 @@ Shared fixtures for engine tests.
 """
 
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -12,6 +13,29 @@ from src.core.models import (
     EngineOptions,
     PortfolioSnapshot,
 )
+
+
+def _has_marker(item: pytest.Item, name: str) -> bool:
+    return item.get_closest_marker(name) is not None
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    for item in items:
+        if (
+            _has_marker(item, "unit")
+            or _has_marker(item, "integration")
+            or _has_marker(item, "e2e")
+        ):
+            continue
+
+        path = Path(str(item.fspath)).as_posix().lower()
+        if "_integration.py" in path or "/integration/" in path:
+            item.add_marker(pytest.mark.integration)
+            continue
+        if "/tests/shared/demo/" in path or "/tests/e2e/" in path:
+            item.add_marker(pytest.mark.e2e)
+            continue
+        item.add_marker(pytest.mark.unit)
 
 
 @pytest.fixture

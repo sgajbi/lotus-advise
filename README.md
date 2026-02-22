@@ -106,13 +106,42 @@ uvicorn src.api.main:app --reload --port 8000
 ### Testing
 
 ```bash
-# Fast full-quality gate (lint + mypy + tests)
+# Bash quick start (Linux/macOS/Git Bash)
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Unit tests (fast default)
+python -m pytest -m unit
+
+# Integration tests
+python -m pytest -m integration
+
+# E2E tests
+python -m pytest -m e2e
+
+# Full suite + coverage gate (99%)
+python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
+
+# Fast default gate (lint + mypy + unit tests)
 make check
 
 # Individual gates
 make lint
 make typecheck
 make test
+make test-unit
+make test-integration
+make test-e2e
+
+# Full suite gate (unit + integration + e2e)
+make check-all
+
+# Full suite tests only
+make test-all
+
+# Coverage gate (99%) is enforced in full-suite commands (`test-all` / `check-all`)
 
 # Dependency security/freshness checks
 python scripts/dependency_health_check.py --requirements requirements.txt

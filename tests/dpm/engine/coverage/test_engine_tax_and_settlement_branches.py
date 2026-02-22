@@ -35,6 +35,18 @@ def test_calculate_turnover_score_returns_zero_when_portfolio_value_non_positive
     assert _calculate_turnover_score(intent, Decimal("0")) == Decimal("0")
 
 
+def test_calculate_turnover_score_returns_zero_when_notional_base_missing():
+    intent = SecurityTradeIntent(
+        intent_id="oi_1b",
+        instrument_id="A",
+        side="BUY",
+        quantity=Decimal("1"),
+        notional=Money(amount=Decimal("100"), currency="USD"),
+        notional_base=None,
+    )
+    assert _calculate_turnover_score(intent, Decimal("1000")) == Decimal("0")
+
+
 def test_apply_turnover_limit_keeps_all_intents_when_within_budget():
     intents = [
         SecurityTradeIntent(
@@ -64,6 +76,38 @@ def test_apply_turnover_limit_keeps_all_intents_when_within_budget():
     )
     assert selected == intents
     assert diagnostics.dropped_intents == []
+
+
+def test_apply_turnover_limit_skips_intent_without_notional_base():
+    intents = [
+        SecurityTradeIntent(
+            intent_id="oi_no_base",
+            instrument_id="A",
+            side="BUY",
+            quantity=Decimal("1"),
+            notional=Money(amount=Decimal("100"), currency="USD"),
+            notional_base=None,
+        ),
+        SecurityTradeIntent(
+            intent_id="oi_with_base",
+            instrument_id="B",
+            side="BUY",
+            quantity=Decimal("1"),
+            notional=Money(amount=Decimal("100"), currency="USD"),
+            notional_base=Money(amount=Decimal("100"), currency="USD"),
+        ),
+    ]
+    diagnostics = _diag()
+    selected = _apply_turnover_limit(
+        intents=intents,
+        options=EngineOptions(max_turnover_pct=Decimal("0.05")),
+        portfolio_value_base=Decimal("1000"),
+        base_currency="USD",
+        diagnostics=diagnostics,
+    )
+
+    assert selected == []
+    assert [item.instrument_id for item in diagnostics.dropped_intents] == ["B"]
 
 
 def test_tax_awareness_with_missing_lots_uses_legacy_sell_path():

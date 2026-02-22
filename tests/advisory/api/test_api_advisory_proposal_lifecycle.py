@@ -79,6 +79,10 @@ def test_proposal_repository_backend_init_errors_return_503(monkeypatch):
             "PROPOSAL_POSTGRES_DSN",
             "postgresql://user:pass@localhost:5432/proposals",
         )
+        monkeypatch.setattr(
+            "src.api.routers.proposals_config.PostgresProposalRepository",
+            lambda *args, **kwargs: (_ for _ in ()).throw(ConnectionError("boom")),
+        )
         reset_proposal_workflow_service_for_tests()
         not_implemented = client.get("/rebalance/proposals")
         assert not_implemented.status_code == 503

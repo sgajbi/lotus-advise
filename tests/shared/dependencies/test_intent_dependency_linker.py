@@ -43,3 +43,36 @@ def test_link_buy_intent_dependencies_does_not_duplicate_existing_values():
     )
 
     assert buy.dependencies == ["oi_fx_1", "oi_1"]
+
+
+def test_link_buy_intent_dependencies_skips_missing_notional_values():
+    sell = SecurityTradeIntent(
+        intent_id="oi_1",
+        side="SELL",
+        instrument_id="EQ_OLD",
+        quantity=Decimal("1"),
+        notional=None,
+        notional_base=Money(amount=Decimal("100"), currency="USD"),
+        rationale=IntentRationale(code="TEST", message="test"),
+        dependencies=[],
+        constraints_applied=[],
+    )
+    buy = SecurityTradeIntent(
+        intent_id="oi_2",
+        side="BUY",
+        instrument_id="EQ_NEW",
+        quantity=Decimal("1"),
+        notional=None,
+        notional_base=Money(amount=Decimal("100"), currency="USD"),
+        rationale=IntentRationale(code="TEST", message="test"),
+        dependencies=[],
+        constraints_applied=[],
+    )
+
+    link_buy_intent_dependencies(
+        [sell, buy],
+        fx_intent_id_by_currency={"USD": "oi_fx_1"},
+        include_same_currency_sell_dependency=True,
+    )
+
+    assert buy.dependencies == []
