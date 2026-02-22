@@ -49,7 +49,7 @@ jobs:
       PROPOSAL_POSTGRES_INTEGRATION_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
