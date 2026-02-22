@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from decimal import Decimal
 from importlib.util import find_spec
 
@@ -5,6 +7,7 @@ import pytest
 
 from src.core.dpm_engine import _generate_targets, run_simulation
 from src.core.models import DiagnosticsData, EngineOptions, GroupConstraint, ShelfEntry
+from src.core.target_generation import _solver_failure_reason
 from tests.shared.factories import (
     cash,
     market_data_snapshot,
@@ -15,6 +18,25 @@ from tests.shared.factories import (
 )
 
 
+def _cvxpy_runtime_available(timeout_seconds: float = 3.0) -> bool:
+    if find_spec("cvxpy") is None:
+        return False
+    try:
+        subprocess.run(
+            [sys.executable, "-c", "import cvxpy"],
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            check=True,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return False
+    return True
+
+
+_CVXPY_RUNTIME_AVAILABLE = _cvxpy_runtime_available()
+
+
 def _diag():
     return DiagnosticsData(
         warnings=[],
@@ -23,7 +45,7 @@ def _diag():
     )
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_solver_counts_locked_group_weight_in_group_constraint():
     model = model_portfolio(targets=[target("TECH_BUY", "1.0"), target("BOND", "0.0")])
     eligible_targets = {
@@ -63,7 +85,7 @@ def test_solver_counts_locked_group_weight_in_group_constraint():
     assert eligible_targets["BOND"] >= Decimal("0.7500")
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_solver_warns_unknown_attribute_and_continues():
     model = model_portfolio(targets=[target("A", "0.6"), target("B", "0.4")])
     eligible_targets = {"A": Decimal("0.6"), "B": Decimal("0.4")}
@@ -95,7 +117,7 @@ def test_solver_warns_unknown_attribute_and_continues():
     assert "UNKNOWN_CONSTRAINT_ATTRIBUTE_region" in diagnostics.warnings
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_solver_handles_sell_only_excess_with_buy_recipients():
     model = model_portfolio(targets=[target("A", "0.7"), target("B", "0.3")])
     eligible_targets = {"A": Decimal("0.7"), "B": Decimal("0.3")}
@@ -126,7 +148,7 @@ def test_solver_handles_sell_only_excess_with_buy_recipients():
     assert eligible_targets["B"] == Decimal("0.3000")
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_solver_skips_group_constraint_when_value_not_present():
     model = model_portfolio(targets=[target("A", "0.7"), target("B", "0.3")])
     eligible_targets = {"A": Decimal("0.7"), "B": Decimal("0.3")}
@@ -158,7 +180,7 @@ def test_solver_skips_group_constraint_when_value_not_present():
     assert diagnostics.warnings == []
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_solver_falls_back_to_secondary_solver_when_primary_errors(monkeypatch):
     import cvxpy as cp
 
@@ -203,7 +225,7 @@ def test_solver_falls_back_to_secondary_solver_when_primary_errors(monkeypatch):
     assert str(cp.SCS) in attempted
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_run_simulation_solver_preserves_pending_review_when_no_recipients():
     pf = portfolio_snapshot(
         portfolio_id="pf_solver_pending",
@@ -252,7 +274,7 @@ def test_solver_returns_blocked_when_solver_dependencies_unavailable(monkeypatch
     assert "SOLVER_ERROR" in diagnostics.warnings
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_solver_infeasible_emits_cash_band_and_capacity_hints():
     model = model_portfolio(targets=[target("A", "1.0")])
     diagnostics = _diag()
@@ -280,7 +302,7 @@ def test_solver_infeasible_emits_cash_band_and_capacity_hints():
     assert "INFEASIBILITY_HINT_SINGLE_POSITION_CAPACITY" in diagnostics.warnings
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_solver_infeasible_emits_locked_group_hint():
     model = model_portfolio(targets=[target("TECH_BUY", "0.0"), target("BOND", "1.0")])
     diagnostics = _diag()
@@ -317,7 +339,7 @@ def test_solver_infeasible_emits_locked_group_hint():
     assert "INFEASIBILITY_HINT_LOCKED_GROUP_WEIGHT_sector:TECH" in diagnostics.warnings
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_solver_infeasible_skips_non_matching_group_hint():
     model = model_portfolio(targets=[target("A", "1.0")])
     diagnostics = _diag()
@@ -347,7 +369,7 @@ def test_solver_infeasible_skips_non_matching_group_hint():
     )
 
 
-@pytest.mark.skipif(find_spec("cvxpy") is None, reason="cvxpy not installed")
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_compare_target_methods_emits_divergence_warnings_and_payload():
     pf = portfolio_snapshot(
         portfolio_id="pf_solver_compare",
@@ -381,3 +403,11 @@ def test_compare_target_methods_emits_divergence_warnings_and_payload():
     assert comparison["primary_status"] == "READY"
     assert comparison["alternate_status"] == "BLOCKED"
     assert comparison["differing_instruments"] != []
+
+
+def test_solver_failure_reason_classification():
+    assert _solver_failure_reason(None) == "SOLVER_ERROR"
+    assert _solver_failure_reason("infeasible") == "INFEASIBLE_INFEASIBLE"
+    assert _solver_failure_reason("infeasible_inaccurate") == "INFEASIBLE_INFEASIBLE_INACCURATE"
+    assert _solver_failure_reason("unbounded") == "UNBOUNDED_UNBOUNDED"
+    assert _solver_failure_reason("optimal") == "SOLVER_NON_OPTIMAL_OPTIMAL"

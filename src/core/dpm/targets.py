@@ -14,6 +14,14 @@ from src.core.models import (
 from src.core.target_generation import build_target_trace, generate_targets_solver
 
 
+def _build_shelf_attr_indexes(
+    shelf: list[ShelfEntry],
+) -> tuple[dict[str, dict[str, str]], set[str]]:
+    shelf_attrs_by_id = {s.instrument_id: s.attributes for s in shelf}
+    known_attr_keys = {k for attrs in shelf_attrs_by_id.values() for k in attrs}
+    return shelf_attrs_by_id, known_attr_keys
+
+
 def apply_group_constraints(
     eligible_targets: dict[str, Decimal],
     buy_list: list[str],
@@ -28,6 +36,8 @@ def apply_group_constraints(
     if not options.group_constraints:
         return "READY"
 
+    buy_set = set(buy_list)
+    shelf_attrs_by_id, known_attr_keys = _build_shelf_attr_indexes(shelf)
     sorted_keys = sorted(options.group_constraints.keys())
 
     for constraint_key in sorted_keys:
@@ -39,14 +49,14 @@ def apply_group_constraints(
             diagnostics.warnings.append(f"INVALID_CONSTRAINT_KEY_{constraint_key}")
             continue
 
-        if not any(attr_key in s.attributes for s in shelf):
+        if attr_key not in known_attr_keys:
             diagnostics.warnings.append(f"UNKNOWN_CONSTRAINT_ATTRIBUTE_{attr_key}")
             continue
 
         group_members = []
         for i_id in eligible_targets:
-            s_ent = next((s for s in shelf if s.instrument_id == i_id), None)
-            if s_ent and s_ent.attributes.get(attr_key) == attr_val:
+            attrs = shelf_attrs_by_id.get(i_id)
+            if attrs and attrs.get(attr_key) == attr_val:
                 group_members.append(i_id)
 
         if not group_members:
@@ -62,7 +72,7 @@ def apply_group_constraints(
         for i_id in group_members:
             eligible_targets[i_id] *= scale
 
-        candidates = [i for i in eligible_targets if i in buy_list and i not in group_members]
+        candidates = [i for i in eligible_targets if i in buy_set and i not in group_members]
         total_cand_w = sum(eligible_targets[c] for c in candidates)
 
         if total_cand_w > Decimal("0"):
@@ -217,9 +227,10 @@ def generate_targets_heuristic(
     diagnostics: DiagnosticsData,
 ) -> tuple[list[Any], str]:
     status = "READY"
+    buy_set = set(buy_list)
 
     if sell_only_excess > Decimal("0.0"):
-        recs = {k: v for k, v in eligible_targets.items() if k in buy_list}
+        recs = {k: v for k, v in eligible_targets.items() if k in buy_set}
         total_rec = sum(recs.values())
         if total_rec > Decimal("0.0"):
             for i_id, w in recs.items():
@@ -233,8 +244,8 @@ def generate_targets_heuristic(
 
     total_w = sum(eligible_targets.values())
     if total_w > Decimal("1.0001"):
-        tradeable_keys = [k for k in eligible_targets if k in buy_list]
-        locked_w = sum(v for k, v in eligible_targets.items() if k not in buy_list)
+        tradeable_keys = [k for k in eligible_targets if k in buy_set]
+        locked_w = sum(v for k, v in eligible_targets.items() if k not in buy_set)
         available_space = max(Decimal("0.0"), Decimal("1.0") - locked_w)
         if locked_w > Decimal("1.0"):
             status = "PENDING_REVIEW"
@@ -252,7 +263,7 @@ def generate_targets_heuristic(
         for i_id in eligible_targets:
             eligible_targets[i_id] = min(eligible_targets[i_id], max_w)
         if excess > Decimal("0.0"):
-            cands = {k: v for k, v in eligible_targets.items() if k in buy_list and v < max_w}
+            cands = {k: v for k, v in eligible_targets.items() if k in buy_set and v < max_w}
             total_cand = sum(cands.values())
             if total_cand > Decimal("0.0"):
                 rem = excess
@@ -266,14 +277,14 @@ def generate_targets_heuristic(
                 status = "PENDING_REVIEW"
 
     if options.min_cash_buffer_pct > Decimal("0.0"):
-        tw = sum(v for k, v in eligible_targets.items() if k in buy_list)
-        lw = sum(v for k, v in eligible_targets.items() if k not in buy_list)
+        tw = sum(v for k, v in eligible_targets.items() if k in buy_set)
+        lw = sum(v for k, v in eligible_targets.items() if k not in buy_set)
         allowed = max(Decimal("0.0"), Decimal("1.0") - options.min_cash_buffer_pct - lw)
         if tw > allowed:
             if tw > Decimal("0.0"):
                 scale = allowed / tw
                 for k in eligible_targets:
-                    if k in buy_list:
+                    if k in buy_set:
                         eligible_targets[k] *= scale
             status = "PENDING_REVIEW"
 

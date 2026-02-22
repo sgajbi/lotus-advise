@@ -112,6 +112,10 @@ Directory layout:
 * `tests/e2e/` - end-to-end workflow scenarios
 
 ```bash
+# Shell convention
+# Use Bash for all commands in this repository (Linux/macOS/WSL/Git Bash).
+# If you are in PowerShell, run: bash -lc "<command>"
+
 # Bash quick start (Linux/macOS/Git Bash)
 python -m venv .venv
 source .venv/bin/activate
@@ -147,6 +151,13 @@ make check-all
 # Full suite tests only
 make test-all
 
+# CI-equivalent local gate (same shape as .github/workflows/ci.yml)
+make ci-local
+
+# CI-equivalent local gate in Docker (Linux + Python 3.11 + Postgres service)
+make ci-local-docker
+make ci-local-docker-down
+
 # Coverage gate (99%) is enforced in full-suite commands (`test-all` / `check-all`)
 
 # Dependency security/freshness checks
@@ -159,6 +170,7 @@ python scripts/dependency_health_check.py --requirements requirements.txt --fail
 Testing strategy:
 * Default: keep unit tests lightweight for fast iteration.
 * CI runs test suites in parallel (`tests/unit`, `tests/integration`, `tests/e2e`) and enforces a combined 99% coverage gate.
+* Local CI parity option: run `make ci-local` (host) or `make ci-local-docker` (recommended for stable Linux/Python 3.11 parity).
 * Critical persistence parity: run live Postgres integration tests in CI (including dedicated Postgres repository smoke tests).
 * Optional deep validation: nightly/manual Postgres full-suite workflow.
 * Decision record: `docs/adr/ADR-0010-testing-strategy-fast-unit-and-postgres-parity.md`
