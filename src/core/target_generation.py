@@ -10,17 +10,19 @@ _SOLVER_STATUS_UNBOUNDED = {"unbounded", "unbounded_inaccurate"}
 
 def _build_solver_attempts(cp: Any) -> tuple[tuple[Any, tuple[dict[str, Any], ...]], ...]:
     """
-    Return ordered solver attempts with bounded runtime/iteration settings.
+    Ordered solver attempts with bounded runtime and compatibility fallbacks.
 
-    Each solver includes a primary kwargs profile and a compatibility fallback profile
-    for environments where specific kwargs are unsupported by installed bindings.
+    The first kwargs profile is preferred; subsequent profiles are compatibility
+    fallbacks for environments where specific kwargs are unsupported.
     """
     return (
         (
             cp.OSQP,
             (
                 {"max_iter": 2_000, "eps_abs": 1e-5, "eps_rel": 1e-5, "time_limit": 0.25},
+                {"max_iter": 2_000, "eps_abs": 1e-5, "eps_rel": 1e-5},
                 {"max_iter": 2_000},
+                {},
             ),
         ),
         (
@@ -28,6 +30,8 @@ def _build_solver_attempts(cp: Any) -> tuple[tuple[Any, tuple[dict[str, Any], ..
             (
                 {"max_iters": 5_000, "eps": 1e-4, "time_limit_secs": 0.5},
                 {"max_iters": 5_000, "eps": 1e-4},
+                {"max_iters": 5_000},
+                {},
             ),
         ),
     )
@@ -35,15 +39,14 @@ def _build_solver_attempts(cp: Any) -> tuple[tuple[Any, tuple[dict[str, Any], ..
 
 def _solve_with_fallbacks(prob: Any, cp: Any) -> tuple[bool, str | None]:
     latest_status: str | None = None
-
+    installed: set[str] = set()
     try:
-        installed = set(cp.installed_solvers())
-    except Exception:
+        installed = {str(s) for s in cp.installed_solvers()}
+    except (AttributeError, TypeError, ValueError):
         installed = set()
 
     for solver_name, kwargs_attempts in _build_solver_attempts(cp):
-        solver_key = str(solver_name)
-        if installed and solver_key not in installed:
+        if installed and str(solver_name) not in installed:
             continue
 
         for solve_kwargs in kwargs_attempts:
@@ -55,18 +58,15 @@ def _solve_with_fallbacks(prob: Any, cp: Any) -> tuple[bool, str | None]:
                     **solve_kwargs,
                 )
             except TypeError:
-                # Solver binding does not support one or more kwargs.
+                # Binding rejected one or more kwargs; try compatibility profile.
                 continue
             except (cp.SolverError, ValueError):
-                # Try next solver when this one fails hard.
-                break
-            except Exception:
-                break
+                # Runtime/configuration failure; still try compatibility profile.
+                continue
 
             latest_status = str(prob.status).lower()
             if latest_status in _SOLVER_STATUS_OPTIMAL:
                 return True, latest_status
-            break
 
     return False, latest_status
 

@@ -20,7 +20,10 @@ def apply_postgres_migrations(*, connection: Any, namespace: str) -> None:
     try:
         _apply_migrations_locked(connection=connection, namespace=namespace)
     except Exception:
-        connection.rollback()
+        try:
+            connection.rollback()
+        except Exception:
+            pass
         raise
     finally:
         connection.execute("SELECT pg_advisory_unlock(%s::bigint)", (lock_key,))

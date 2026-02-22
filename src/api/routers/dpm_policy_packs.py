@@ -88,6 +88,23 @@ def policy_pack_postgres_dsn() -> str:
     return _policy_pack_postgres_dsn()
 
 
+def _postgres_connection_exception_types() -> tuple[type[BaseException], ...]:
+    types: list[type[BaseException]] = [
+        ConnectionError,
+        OSError,
+        TimeoutError,
+        TypeError,
+        ValueError,
+    ]
+    try:
+        import psycopg
+    except ImportError:
+        pass
+    else:
+        types.append(psycopg.Error)
+    return tuple(types)
+
+
 def _build_policy_pack_repository() -> DpmPolicyPackRepository:
     global _ENV_POLICY_PACK_REPOSITORY
     global _ENV_POLICY_PACK_REPOSITORY_RAW
@@ -100,7 +117,7 @@ def _build_policy_pack_repository() -> DpmPolicyPackRepository:
             return cast(DpmPolicyPackRepository, PostgresDpmPolicyPackRepository(dsn=dsn))
         except RuntimeError:
             raise
-        except Exception as exc:
+        except _postgres_connection_exception_types() as exc:
             raise RuntimeError("DPM_POLICY_PACK_POSTGRES_CONNECTION_FAILED") from exc
     raw_catalog = os.getenv("DPM_POLICY_PACK_CATALOG_JSON")
     if _ENV_POLICY_PACK_REPOSITORY is None or _ENV_POLICY_PACK_REPOSITORY_RAW != raw_catalog:

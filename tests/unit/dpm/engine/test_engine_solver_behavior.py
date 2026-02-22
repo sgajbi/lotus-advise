@@ -226,6 +226,52 @@ def test_solver_falls_back_to_secondary_solver_when_primary_errors(monkeypatch):
 
 
 @pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
+def test_solver_retries_primary_solver_with_compatibility_kwargs(monkeypatch):
+    import cvxpy as cp
+
+    model = model_portfolio(targets=[target("A", "0.5"), target("B", "0.5")])
+    eligible_targets = {"A": Decimal("0.5"), "B": Decimal("0.5")}
+    shelf = [
+        ShelfEntry(instrument_id="A", status="APPROVED", attributes={"sector": "TECH"}),
+        ShelfEntry(instrument_id="B", status="APPROVED", attributes={"sector": "FI"}),
+    ]
+    options = EngineOptions(
+        target_method="SOLVER",
+        cash_band_min_weight=Decimal("0.0"),
+        cash_band_max_weight=Decimal("0.0"),
+    )
+
+    original_solve = cp.Problem.solve
+    osqp_attempts = []
+
+    def solve_rejecting_osqp_time_limit(self, *args, **kwargs):
+        solver = kwargs.get("solver")
+        if solver == cp.OSQP:
+            osqp_attempts.append(dict(kwargs))
+            if "time_limit" in kwargs:
+                raise ValueError("time_limit unsupported in this binding")
+        return original_solve(self, *args, **kwargs)
+
+    monkeypatch.setattr(cp.Problem, "solve", solve_rejecting_osqp_time_limit)
+
+    _, status = _generate_targets(
+        model=model,
+        eligible_targets=eligible_targets,
+        buy_list=["A", "B"],
+        sell_only_excess=Decimal("0"),
+        shelf=shelf,
+        options=options,
+        total_val=Decimal("1000"),
+        base_ccy="USD",
+        diagnostics=_diag(),
+    )
+
+    assert status == "READY"
+    assert any("time_limit" in attempt for attempt in osqp_attempts)
+    assert any("time_limit" not in attempt for attempt in osqp_attempts)
+
+
+@pytest.mark.skipif(not _CVXPY_RUNTIME_AVAILABLE, reason="cvxpy runtime unavailable")
 def test_run_simulation_solver_preserves_pending_review_when_no_recipients():
     pf = portfolio_snapshot(
         portfolio_id="pf_solver_pending",

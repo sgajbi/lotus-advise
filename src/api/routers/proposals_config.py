@@ -22,6 +22,23 @@ def proposal_postgres_dsn() -> str:
     return os.getenv("PROPOSAL_POSTGRES_DSN", "").strip()
 
 
+def _postgres_connection_exception_types() -> tuple[type[BaseException], ...]:
+    types: list[type[BaseException]] = [
+        ConnectionError,
+        OSError,
+        TimeoutError,
+        TypeError,
+        ValueError,
+    ]
+    try:
+        import psycopg
+    except ImportError:
+        pass
+    else:
+        types.append(psycopg.Error)
+    return tuple(types)
+
+
 def build_repository() -> ProposalRepository:
     backend = proposal_store_backend_name()
     if backend == "POSTGRES":
@@ -32,6 +49,6 @@ def build_repository() -> ProposalRepository:
             return cast(ProposalRepository, PostgresProposalRepository(dsn=dsn))
         except RuntimeError:
             raise
-        except Exception as exc:
+        except _postgres_connection_exception_types() as exc:
             raise RuntimeError("PROPOSAL_POSTGRES_CONNECTION_FAILED") from exc
     return cast(ProposalRepository, InMemoryProposalRepository())

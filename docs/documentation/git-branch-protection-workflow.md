@@ -8,6 +8,10 @@ What this means:
 - Merge only after CI passes.
 - Do not push directly to `main`.
 
+Shell convention:
+- Use Bash for repo commands (Linux/macOS/WSL/Git Bash).
+- If currently in PowerShell, run commands as: `bash -lc "<command>"`.
+
 ## Daily Flow (Step-by-Step)
 
 ### 1. Sync local `main`
@@ -40,6 +44,83 @@ If your change is broader:
 ```bash
 make check-all
 ```
+
+For CI-parity local validation (recommended before pushing):
+
+```bash
+make ci-local
+```
+
+For stable CI-like runtime (Linux + Python 3.11 + Postgres) in Docker:
+
+```bash
+make ci-local-docker
+make ci-local-docker-down
+```
+
+Quick command guide:
+
+| Command | When to use | Includes |
+|---|---|---|
+| `make check` | Fast iteration while coding | `lint` + `typecheck` + unit tests |
+| `make check-all` | Broad local gate before opening PR | `lint` + `typecheck` + full suite with coverage gate |
+| `make ci-local` | CI-shape validation on host machine | Lint/deps/pip check + unit/integration/e2e split + combined coverage(99%) + mypy |
+| `make ci-local-docker` | Most stable local CI parity | Same as `ci-local` in Linux Python 3.11 container with Postgres service |
+
+## Anti-Conflict Protocol (Required)
+
+Use this protocol to prevent long-lived branch drift and large merge conflicts.
+
+### A. Rebase before every push
+
+Run this sequence before `git push`:
+
+```bash
+git fetch origin
+git rebase origin/main
+make check
+git push
+```
+
+If your branch is already on remote:
+
+```bash
+git push --force-with-lease
+```
+
+### B. Keep branches short-lived
+
+- Target PR lifetime: less than 1 day.
+- Rebase at least twice per day if PR is still open.
+- If branch falls behind `main`, rebase immediately.
+
+### C. Keep PR scope small
+
+- One concern per PR (refactor, behavior change, or CI/docs).
+- For large work, use stacked PRs:
+  1. move/rename only
+  2. behavior changes
+  3. tests/docs
+
+### D. Hotspot file handling
+
+For frequently-edited files (for example `src/api/main.py`):
+
+- Rebase before opening PR and before each review response push.
+- Avoid combining hotspot edits with unrelated changes.
+- Split follow-up fixes into separate PRs instead of extending a stale branch.
+
+### E. Pre-merge freshness check
+
+Before merge, verify:
+
+```bash
+git fetch origin
+git rev-list --left-right --count HEAD...origin/main
+```
+
+- Left count > 0 means your commits ahead of `main`.
+- Right count must be 0 before final merge approval.
 
 ### 4. Commit
 
