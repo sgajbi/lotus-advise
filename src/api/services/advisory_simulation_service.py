@@ -15,7 +15,7 @@ MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
 def _main_override(name: str) -> Any | None:
     try:
         from src.api import main as main_module
-    except Exception:
+    except ImportError:
         return None
     return getattr(main_module, name, None)
 
