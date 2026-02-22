@@ -17,13 +17,15 @@ class PostgresMigration:
 def apply_postgres_migrations(*, connection: Any, namespace: str) -> None:
     lock_key = _migration_lock_key(namespace=namespace)
     connection.execute("SELECT pg_advisory_lock(%s::bigint)", (lock_key,))
-    completed = False
     try:
         _apply_migrations_locked(connection=connection, namespace=namespace)
-        completed = True
-    finally:
-        if not completed:
+    except Exception:
+        try:
             connection.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
         connection.execute("SELECT pg_advisory_unlock(%s::bigint)", (lock_key,))
 
 

@@ -58,6 +58,12 @@ class _FakeConnection:
         self.rollback_count += 1
 
 
+class _RollbackFailConnection(_FakeConnection):
+    def rollback(self):
+        super().rollback()
+        raise RuntimeError("rollback failed")
+
+
 def test_apply_postgres_migrations_is_forward_only_and_idempotent():
     connection = _FakeConnection()
 
@@ -94,3 +100,18 @@ def test_apply_postgres_migrations_detects_checksum_mismatch(monkeypatch, tmp_pa
 def test_migration_lock_key_is_stable_and_namespace_scoped():
     assert _migration_lock_key(namespace="dpm") == _migration_lock_key(namespace="dpm")
     assert _migration_lock_key(namespace="dpm") != _migration_lock_key(namespace="proposals")
+
+
+def test_apply_postgres_migrations_unlocks_when_rollback_raises(monkeypatch):
+    def _fail_apply(*, connection, namespace):  # noqa: ARG001
+        raise RuntimeError("apply failed")
+
+    monkeypatch.setattr(migrations_module, "_apply_migrations_locked", _fail_apply)
+    connection = _RollbackFailConnection()
+
+    with pytest.raises(RuntimeError) as exc:
+        apply_postgres_migrations(connection=connection, namespace="dpm")
+    assert str(exc.value) == "apply failed"
+    assert connection.rollback_count == 1
+    assert connection.lock_calls == [_migration_lock_key(namespace="dpm")]
+    assert connection.unlock_calls == [_migration_lock_key(namespace="dpm")]
