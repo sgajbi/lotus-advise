@@ -23,7 +23,7 @@ This RFC is strictly **pre-persistence** (runs may still be in-memory).
 ### 0.1 Implementation Alignment (As of 2026-02-17)
 
 1. Holdings-aware `before`/`after_simulated` state is implemented in `src/core/valuation.py`.
-2. Golden suite is implemented with filenames `scenario_101...scenario_114` under `tests/dpm/golden_data/`.
+2. Golden suite is implemented with filenames `scenario_101...scenario_114` under `tests/unit/dpm/golden_data/`.
 3. Rule and diagnostics outputs are present and exercised by golden tests.
 
 ---
@@ -207,7 +207,7 @@ Any dust or min-notional suppression MUST append:
 
 ## 8. Holdings-aware Golden Scenarios (Must Implement)
 
-Scenarios under `tests/dpm/golden_data/` are implemented as `scenario_10x_*` and `scenario_11x_*` files:
+Scenarios under `tests/unit/dpm/golden_data/` are implemented as `scenario_10x_*` and `scenario_11x_*` files:
 
 * **GOLDEN_101:** Simple drift rebalance with holdings (same currency).
 * **GOLDEN_102:** Cash inflow with holdings.

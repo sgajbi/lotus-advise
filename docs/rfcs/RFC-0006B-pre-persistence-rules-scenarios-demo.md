@@ -53,7 +53,7 @@ Despite recent hardening (RFC-0006A), the engine remains rigid and difficult to 
 * **Determinism:** Generate at most one consolidated FX intent per currency pair per run (Hub-and-Spoke model).
 
 ### 2.3 Golden Scenario Matrix (The 300 Series)
-Implement a robust suite (`tests/dpm/golden_data/GOLDEN_3xx_*.json`) covering:
+Implement a robust suite (`tests/unit/dpm/golden_data/GOLDEN_3xx_*.json`) covering:
 * **301:** Drift Rebalance (Sell Overweight / Buy Underweight, same currency).
 * **302:** Sell-to-Fund (Cash insufficient; Sell must precede Buy).
 * **303:** Multi-Currency + FX Funding.

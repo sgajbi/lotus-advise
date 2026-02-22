@@ -109,7 +109,7 @@ Diagnostics should include per-instrument constrained sells caused by tax budget
 
 ## 4. Test Plan
 
-Add `tests/dpm/golden_data/scenario_09_tax_hifo.json`.
+Add `tests/unit/dpm/golden_data/scenario_09_tax_hifo.json`.
 
 Scenario:
 1. Position `ABC` has two lots:

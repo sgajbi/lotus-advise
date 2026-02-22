@@ -157,7 +157,8 @@ python scripts/dependency_health_check.py --requirements requirements.txt --fail
 
 Testing strategy:
 * Default: keep unit tests lightweight for fast iteration.
-* Critical persistence parity: run live Postgres integration tests in CI.
+* CI runs test suites in parallel (`tests/unit`, `tests/integration`, `tests/e2e`) and enforces a combined 99% coverage gate.
+* Critical persistence parity: run live Postgres integration tests in CI (including dedicated Postgres repository smoke tests).
 * Optional deep validation: nightly/manual Postgres full-suite workflow.
 * Decision record: `docs/adr/ADR-0010-testing-strategy-fast-unit-and-postgres-parity.md`
 
@@ -381,12 +382,12 @@ Lifecycle runtime configuration (environment variables):
 
 ## 🧪 Regression Testing (Golden Scenarios)
 
-We maintain a set of "Gold Standard" inputs and outputs in `tests/dpm/golden_data/` and
-`tests/advisory/golden_data/`. These ensure that complex math never changes unexpectedly.
+We maintain a set of "Gold Standard" inputs and outputs in `tests/unit/dpm/golden_data/` and
+`tests/unit/advisory/golden_data/`. These ensure that complex math never changes unexpectedly.
 
 Solver-mode golden scenarios (RFC-0012):
-* `tests/dpm/golden_data/scenario_12_solver_conflict.json`
-* `tests/dpm/golden_data/scenario_12_solver_infeasible.json`
+* `tests/unit/dpm/golden_data/scenario_12_solver_conflict.json`
+* `tests/unit/dpm/golden_data/scenario_12_solver_infeasible.json`
 
 **To Regenerate Golden Files:**
 (Only do this if you have intentionally changed the business logic via an RFC).

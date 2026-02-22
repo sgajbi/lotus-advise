@@ -43,7 +43,7 @@ Schema ambiguity and mixed request/response models reduce integrator confidence 
 
 Phase-1 implemented:
 - Added DPM OpenAPI contract tests for async/supportability/artifact schemas and endpoint contracts:
-  - `tests/dpm/contracts/test_contract_openapi_supportability_docs.py`
+  - `tests/unit/dpm/contracts/test_contract_openapi_supportability_docs.py`
 - Validates:
   - field-level descriptions/examples for key DPM response DTOs
   - field-level descriptions/examples for DPM policy-pack resolution/catalog and nested policy DTOs

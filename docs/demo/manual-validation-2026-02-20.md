@@ -353,7 +353,7 @@ Demo pack validation passed for http://127.0.0.1:8000
     - `docker-compose --profile postgres up -d postgres`
     - `DPM_POSTGRES_INTEGRATION_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability`
   - Executed:
-    - `uv run pytest tests/dpm/supportability/test_dpm_postgres_repository_integration.py -q`
+    - `uv run pytest tests/integration/dpm/supportability/test_dpm_postgres_repository_integration.py -q`
   - Observed:
     - `3 passed in 4.75s`
     - run persistence/lookup/filter/cursor behavior matched repository contract

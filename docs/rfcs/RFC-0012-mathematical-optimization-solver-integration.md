@@ -139,10 +139,10 @@ Completed:
 3. Preserved legacy heuristic path and status contract (`READY`, `PENDING_REVIEW`, `BLOCKED`).
 4. Added reason-code diagnostics for solver failures: `SOLVER_ERROR`, `INFEASIBLE_<STATUS>`.
 5. Added golden scenarios:
-   1. `tests/dpm/golden_data/scenario_12_solver_conflict.json`
-   2. `tests/dpm/golden_data/scenario_12_solver_infeasible.json`
+   1. `tests/unit/dpm/golden_data/scenario_12_solver_conflict.json`
+   2. `tests/unit/dpm/golden_data/scenario_12_solver_infeasible.json`
 6. Extracted solver logic and target trace construction into `src/core/target_generation.py` for modularity.
-7. Added targeted solver behavior coverage tests in `tests/dpm/engine/test_engine_solver_behavior.py`.
+7. Added targeted solver behavior coverage tests in `tests/unit/dpm/engine/test_engine_solver_behavior.py`.
 8. Upgraded vulnerable web framework dependencies and aligned Pydantic typing for compatibility.
 9. Added infeasibility hint diagnostics for common contradictory constraints:
    1. `INFEASIBILITY_HINT_CASH_BAND_CONTRADICTION`
@@ -179,8 +179,8 @@ Soft constraints (future extension):
 ## 4. Test Plan
 
 Add:
-1. `tests/dpm/golden_data/scenario_12_solver_conflict.json`
-2. `tests/dpm/golden_data/scenario_12_solver_infeasible.json`
+1. `tests/unit/dpm/golden_data/scenario_12_solver_conflict.json`
+2. `tests/unit/dpm/golden_data/scenario_12_solver_infeasible.json`
 
 Scenario A (feasible):
 1. Model 100% `Tech_A`.

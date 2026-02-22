@@ -1,4 +1,4 @@
-Ôªø# RFC-0014A: Advisory Proposal Simulation MVP (Manual Trades + Cash Flows)
+# RFC-0014A: Advisory Proposal Simulation MVP (Manual Trades + Cash Flows)
 
 | Metadata | Details |
 | --- | --- |
@@ -33,7 +33,7 @@ This RFC implements only the **foundation**:
 Advisors often need to pitch a **specific idea** ("sell X, buy Y, client deposits Z") rather than trigger a full algorithmic rebalance.
 
 Key gaps this RFC closes:
-- **Operational gap:** simulate ‚Äúwhat if‚Äù proposals without manual spreadsheet math.
+- **Operational gap:** simulate ìwhat ifî proposals without manual spreadsheet math.
 - **Workflow gap:** create a proposal artifact that can later plug into suitability, consent, and execution steps.
 - **Platform gap:** allow advisory proposals to reuse existing institutional infrastructure: deterministic simulation, after-state completeness, evidence bundle, rule results.
 
@@ -103,7 +103,7 @@ Rationale:
 - `409 Conflict`: idempotency key mismatch (same key, different canonical request hash)
 - `500`: unexpected bug (should not happen; must emit RFC7807)
 
-**Important**: This RFC follows ‚Äúno-throw domain outcomes‚Äù as described in your existing architecture docs. (Domain infeasibility should be surfaced in `status=BLOCKED` + rule results/diagnostics rather than 422.)
+**Important**: This RFC follows ìno-throw domain outcomesî as described in your existing architecture docs. (Domain infeasibility should be surfaced in `status=BLOCKED` + rule results/diagnostics rather than 422.)
 
 ---
 
@@ -348,7 +348,7 @@ Reuses existing safety reason codes from rebalance:
 
 ### 9.2 Golden scenario (new)
 
-Add: `tests/advisory/golden_data/scenario_14A_advisory_manual_trade_cashflow.json`
+Add: `tests/unit/advisory/golden_data/scenario_14A_advisory_manual_trade_cashflow.json`
 
 Scenario:
 

@@ -94,16 +94,16 @@ Algorithm:
 ## 4. Test Plan and Coverage
 
 Implemented tests:
-1. Contract tests (`tests/shared/contracts/test_contract_models.py`)
+1. Contract tests (`tests/unit/shared/contracts/test_contract_models.py`)
    1. `max_turnover_pct` bounds validation.
    2. diagnostics support for dropped intents.
-2. Engine tests (`tests/dpm/engine/test_engine_turnover_control.py`)
+2. Engine tests (`tests/unit/dpm/engine/test_engine_turnover_control.py`)
    1. Skip-and-continue selection under cap.
    2. Exact-fit deterministic combination.
    3. Backward compatibility when cap is unset.
 3. Golden scenarios:
-   1. `tests/dpm/golden_data/scenario_10_turnover_cap.json`
-   2. `tests/dpm/golden_data/scenario_10_turnover_exact_fit.json`
+   1. `tests/unit/dpm/golden_data/scenario_10_turnover_cap.json`
+   2. `tests/unit/dpm/golden_data/scenario_10_turnover_exact_fit.json`
 
 ---
 

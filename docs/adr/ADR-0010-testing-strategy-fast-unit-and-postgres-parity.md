@@ -27,6 +27,7 @@ Adopt a layered testing model:
 1. Lightweight unit tests by default:
    - use in-memory fakes/adapters for business-logic and contract-path testing.
    - remain the primary quick-iteration feedback mechanism.
+   - primary suite location: `tests/unit/`.
 
 2. Mandatory Postgres integration coverage for critical persistence flows:
    - DPM supportability repository live integration tests.
@@ -34,10 +35,12 @@ Adopt a layered testing model:
    - DPM policy-pack Postgres repository live integration tests.
    - production-profile startup and guardrail reason-code checks in CI.
    - migration and cutover contract checks in CI.
+   - integration suite location: `tests/integration/`.
 
-3. Optional but recommended “all-with-Postgres” deep validation:
+3. Optional but recommended all-with-Postgres deep validation:
    - scheduled/manual nightly workflow runs integration + live API demo pack on Postgres.
    - not required for every quick local iteration.
+   - end-to-end suite location: `tests/e2e/`.
 
 ## Consequences
 
@@ -55,9 +58,15 @@ Trade-offs:
 ## Operational Guidance
 
 - For quick iteration:
-  - run standard lint/unit suite.
+  - run `make check` (lint + mypy + unit tests).
 - For persistence-sensitive changes:
-  - run Postgres integration tests locally.
+  - run `make test-integration` locally.
 - Before production changes:
   - run migrations + cutover contract checks.
   - use production-profile compose override where appropriate.
+
+## CI Shape
+
+- CI runs `tests/unit`, `tests/integration`, and `tests/e2e` in parallel jobs.
+- Each suite emits a coverage artifact.
+- CI combines artifacts and enforces a single global `99%` coverage gate.

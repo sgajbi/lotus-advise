@@ -112,7 +112,7 @@ This enables direct verification of group-limit compliance from response payload
 
 ## 4. Test Plan
 
-Add `tests/dpm/golden_data/scenario_08_sector_cap.json`.
+Add `tests/unit/dpm/golden_data/scenario_08_sector_cap.json`.
 
 Scenario:
 

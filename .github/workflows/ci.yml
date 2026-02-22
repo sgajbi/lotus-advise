@@ -21,7 +21,7 @@ env:
 
 jobs:
   lint-test-and-coverage:
-    name: Lint, Test & Coverage
+    name: Lint & Dependency Checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -50,8 +50,85 @@ jobs:
       - name: Run Lint Checks
         run: make lint
 
-      - name: Run Pytest & Enforce 99% Coverage (CI)
-        run: make test
+  test-suites:
+    name: Tests (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: unit
+            path: tests/unit
+          - suite: integration
+            path: tests/integration
+          - suite: e2e
+            path: tests/e2e
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Verify Installed Dependencies
+        run: |
+          pip check
+
+      - name: Run ${{ matrix.suite }} tests with coverage data
+        env:
+          COVERAGE_FILE: .coverage.${{ matrix.suite }}
+        run: |
+          python -m pytest ${{ matrix.path }} --cov=src --cov-report=
+
+      - name: Upload coverage data (${{ matrix.suite }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-data-${{ matrix.suite }}
+          path: .coverage.${{ matrix.suite }}
+          if-no-files-found: error
+
+  coverage-gate:
+    name: Coverage Gate (Combined)
+    needs: [test-suites]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-data-*
+          merge-multiple: true
+          path: coverage-data
+
+      - name: Enforce 99% Coverage (combined suites)
+        run: |
+          python -m coverage combine coverage-data
+          python -m coverage report --fail-under=99
 
   mypy-src:
     name: Mypy (Full src)
@@ -90,7 +167,7 @@ jobs:
 
   docker-build:
     name: Validate Docker Build
-    needs: [lint-test-and-coverage, mypy-src]
+    needs: [lint-test-and-coverage, mypy-src, coverage-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -103,7 +180,7 @@ jobs:
 
   postgres-migration-smoke:
     name: Postgres Migration Smoke
-    needs: [lint-test-and-coverage, mypy-src]
+    needs: [lint-test-and-coverage, mypy-src, coverage-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -152,13 +229,13 @@ jobs:
       - name: Run Postgres Integration Contract Tests
         run: |
           pytest -q \
-            tests/dpm/supportability/test_dpm_postgres_repository_integration.py \
-            tests/advisory/engine/test_engine_proposal_repository_postgres_integration.py \
-            tests/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
+            tests/integration/dpm/supportability/test_dpm_postgres_repository_integration.py \
+            tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py \
+            tests/integration/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
 
   production-profile-smoke:
     name: Production Profile Startup Smoke
-    needs: [lint-test-and-coverage, mypy-src]
+    needs: [lint-test-and-coverage, mypy-src, coverage-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -233,7 +310,7 @@ jobs:
 
   production-profile-guardrail-negatives:
     name: Production Profile Guardrail Negatives
-    needs: [lint-test-and-coverage, mypy-src]
+    needs: [lint-test-and-coverage, mypy-src, coverage-gate]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

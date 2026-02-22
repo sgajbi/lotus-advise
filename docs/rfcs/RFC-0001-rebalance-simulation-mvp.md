@@ -332,7 +332,7 @@ All logs must include `correlation_id`, `portfolio_id`, and `run_id`.
 
 ### 10.2 Golden Data Tests (Regression)
 
-A suite of 10+ JSON scenarios (Input + Expected Output) stored in `tests/dpm/golden/`.
+A suite of 10+ JSON scenarios (Input + Expected Output) stored in `tests/unit/dpm/golden/`.
 
 * **Scenario A:** Simple Cash Inflow (Proportional Buy).
 * **Scenario B:** Single Position Cap Breach (Redistribution).

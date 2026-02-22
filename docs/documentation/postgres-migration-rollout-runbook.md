@@ -88,8 +88,9 @@ CI executes:
 
 1. `python scripts/postgres_migrate.py --target all`
 2. Live Postgres integration tests:
-   - `tests/dpm/supportability/test_dpm_postgres_repository_integration.py`
-   - `tests/advisory/engine/test_engine_proposal_repository_postgres_integration.py`
+   - `tests/integration/dpm/supportability/test_dpm_postgres_repository_integration.py`
+   - `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py`
+   - `tests/integration/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py`
 3. Production-profile startup smoke:
    - starts API with `APP_PERSISTENCE_PROFILE=PRODUCTION` and Postgres backends.
 4. Production-profile guardrail negatives:

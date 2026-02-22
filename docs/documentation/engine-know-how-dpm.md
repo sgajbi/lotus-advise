@@ -347,10 +347,10 @@ Dependency policy note:
 
 ## Tests That Lock DPM Behavior
 
-- API: `tests/dpm/api/test_api_rebalance.py`
-- Engine: `tests/dpm/engine/`
-- Goldens: `tests/dpm/golden/test_golden_scenarios.py`
-- Batch goldens: `tests/dpm/golden/test_golden_batch_analysis.py`
+- API: `tests/unit/dpm/api/test_api_rebalance.py`
+- Engine: `tests/unit/dpm/engine/`
+- Goldens: `tests/unit/dpm/golden/test_golden_scenarios.py`
+- Batch goldens: `tests/unit/dpm/golden/test_golden_batch_analysis.py`
 
 ## Deprecation Notes
 

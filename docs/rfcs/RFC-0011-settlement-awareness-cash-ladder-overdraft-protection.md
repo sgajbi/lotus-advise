@@ -95,7 +95,7 @@ Determinism:
 
 ## 4. Test Plan
 
-Add `tests/dpm/golden_data/scenario_11_settlement_fail.json`.
+Add `tests/unit/dpm/golden_data/scenario_11_settlement_fail.json`.
 
 Scenario:
 1. Settled cash: 0.

@@ -68,13 +68,20 @@ The API remains deterministic for identical inputs and options.
 ## Test Strategy
 
 Tests are organized by responsibility:
-- `tests/dpm/`: DPM API, engine, and DPM golden tests.
-- `tests/advisory/`: advisory API, engine, contracts, and advisory golden tests.
-- `tests/shared/`: shared contracts/compliance/dependencies/demo scenarios and shared test helpers.
+- `tests/unit/dpm/`: DPM API, engine, and DPM golden tests.
+- `tests/unit/advisory/`: advisory API, engine, contracts, and advisory golden tests.
+- `tests/unit/shared/`: shared contracts/compliance/dependencies tests.
+- `tests/e2e/`: end-to-end workflow/demo scenario tests.
+- `tests/shared/`: shared test helpers (factories/assertions).
 
 Golden fixtures are split by domain:
-- `tests/dpm/golden_data/`
-- `tests/advisory/golden_data/`
+- `tests/unit/dpm/golden_data/`
+- `tests/unit/advisory/golden_data/`
+
+CI test execution model:
+- runs `tests/unit`, `tests/integration`, and `tests/e2e` in parallel matrix jobs,
+- combines per-suite coverage artifacts,
+- enforces a single repository-wide `99%` coverage gate.
 
 ## Governance and RFCs
 

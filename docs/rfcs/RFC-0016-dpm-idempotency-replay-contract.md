@@ -18,7 +18,7 @@ This aligns DPM behavior with advisory simulation behavior and improves enterpri
 
 Implementation note (2026-02-20):
 - Implemented in `src/api/main.py` with canonical request hashing and bounded in-memory replay cache.
-- API tests added in `tests/dpm/api/test_api_rebalance.py`.
+- API tests added in `tests/unit/dpm/api/test_api_rebalance.py`.
 - Runtime controls delivered:
   - `DPM_IDEMPOTENCY_REPLAY_ENABLED`
   - `DPM_IDEMPOTENCY_CACHE_MAX_SIZE`

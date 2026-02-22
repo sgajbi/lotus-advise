@@ -237,16 +237,16 @@ Determinism controls:
 
 ## Tests That Lock Advisory Behavior
 
-- API: `tests/advisory/api/test_api_advisory_proposal_simulate.py`
-- API: `tests/advisory/api/test_api_advisory_proposal_lifecycle.py`
-- Contract: `tests/advisory/contracts/test_contract_advisory_models.py`
-- Contract: `tests/advisory/contracts/test_contract_proposal_artifact_models.py`
-- Engine: `tests/advisory/engine/test_engine_advisory_proposal_simulation.py`
-- Engine: `tests/advisory/engine/test_engine_proposal_artifact.py`
-- Engine: `tests/advisory/engine/test_engine_proposal_workflow_service.py`
-- Engine: `tests/dpm/engine/test_engine_workflow_gates.py`
-- Proposal golden: `tests/advisory/golden/test_golden_advisory_proposal_scenarios.py`
-- Artifact golden: `tests/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`
+- API: `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py`
+- API: `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py`
+- Contract: `tests/unit/advisory/contracts/test_contract_advisory_models.py`
+- Contract: `tests/unit/advisory/contracts/test_contract_proposal_artifact_models.py`
+- Engine: `tests/unit/advisory/engine/test_engine_advisory_proposal_simulation.py`
+- Engine: `tests/unit/advisory/engine/test_engine_proposal_artifact.py`
+- Engine: `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py`
+- Engine: `tests/unit/dpm/engine/test_engine_workflow_gates.py`
+- Proposal golden: `tests/unit/advisory/golden/test_golden_advisory_proposal_scenarios.py`
+- Artifact golden: `tests/unit/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`
 
 Dependency quality gate:
 - `scripts/dependency_health_check.py --requirements requirements.txt`
