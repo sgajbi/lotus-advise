@@ -201,7 +201,12 @@ def simulate_rebalance(
             portfolio_id=request.portfolio_snapshot.portfolio_id,
             idempotency_key=idempotency_key,
         )
-    except (HTTPException, RuntimeError, ValueError):
+    except (HTTPException, RuntimeError, ValueError) as exc:
+        if replay_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="DPM_IDEMPOTENCY_STORE_WRITE_FAILED",
+            ) from exc
         current_logger.exception(
             "Supportability persistence failed. RunID=%s CorrelationID=%s",
             result.rebalance_run_id,
