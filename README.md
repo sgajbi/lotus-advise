@@ -39,6 +39,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 Primary implementation guide:
 * `docs/documentation/engine-know-how-dpm.md`
 * `docs/documentation/engine-know-how-advisory.md`
+* `docs/documentation/git-branch-protection-workflow.md` (daily branch + PR commands)
 
 ---
 
