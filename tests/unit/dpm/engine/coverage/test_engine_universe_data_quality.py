@@ -3,7 +3,6 @@ from src.core.models import (
     EngineOptions,
 )
 from src.core.valuation import build_simulated_state
-from tests.dpm.engine.coverage.helpers import usd_cash_portfolio
 from tests.shared.assertions import assert_dq_contains, assert_status, find_excluded
 from tests.shared.factories import (
     cash,
@@ -14,6 +13,7 @@ from tests.shared.factories import (
     shelf_entry,
     target,
 )
+from tests.unit.dpm.engine.coverage.helpers import usd_cash_portfolio
 
 
 class TestUniverseAndDataQuality:

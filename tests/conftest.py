@@ -29,11 +29,14 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             continue
 
         path = Path(str(item.fspath)).as_posix().lower()
-        if "_integration.py" in path or "/integration/" in path:
+        if "/tests/integration/" in path or "_integration.py" in path:
             item.add_marker(pytest.mark.integration)
             continue
-        if "/tests/shared/demo/" in path or "/tests/e2e/" in path:
+        if "/tests/e2e/" in path or "/tests/shared/demo/" in path:
             item.add_marker(pytest.mark.e2e)
+            continue
+        if "/tests/unit/" in path:
+            item.add_marker(pytest.mark.unit)
             continue
         item.add_marker(pytest.mark.unit)
 

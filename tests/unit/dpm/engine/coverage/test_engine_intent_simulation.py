@@ -6,7 +6,6 @@ from src.core.models import (
     EngineOptions,
     SecurityTradeIntent,
 )
-from tests.dpm.engine.coverage.helpers import empty_diagnostics, usd_cash_portfolio
 from tests.shared.assertions import security_intents
 from tests.shared.factories import (
     cash,
@@ -19,6 +18,7 @@ from tests.shared.factories import (
     shelf_entry,
     target,
 )
+from tests.unit.dpm.engine.coverage.helpers import empty_diagnostics, usd_cash_portfolio
 
 
 class TestIntentDependenciesAndSimulation:

@@ -105,6 +105,11 @@ uvicorn src.api.main:app --reload --port 8000
 
 ### Testing
 
+Directory layout:
+* `tests/unit/` - unit and contract tests
+* `tests/integration/` - tests that require live integration dependencies (for example Postgres)
+* `tests/e2e/` - end-to-end workflow scenarios
+
 ```bash
 # Bash quick start (Linux/macOS/Git Bash)
 python -m venv .venv
@@ -113,13 +118,13 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 
 # Unit tests (fast default)
-python -m pytest -m unit
+python -m pytest tests/unit
 
 # Integration tests
-python -m pytest -m integration
+python -m pytest tests/integration
 
 # E2E tests
-python -m pytest -m e2e
+python -m pytest tests/e2e
 
 # Full suite + coverage gate (99%)
 python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99

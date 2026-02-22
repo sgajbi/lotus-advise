@@ -14,7 +14,7 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
 )
 from src.infrastructure.proposals.postgres import PostgresProposalRepository
-from tests.advisory.engine.test_engine_proposal_repository_postgres import (
+from tests.unit.advisory.engine.test_engine_proposal_repository_postgres import (
     _build_repository as _build_fake_repository,
 )
 

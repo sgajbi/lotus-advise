@@ -15,13 +15,13 @@ test:
 	$(MAKE) test-unit
 
 test-unit:
-	python -m pytest -m unit
+	python -m pytest tests/unit
 
 test-integration:
-	python -m pytest -m integration
+	python -m pytest tests/integration
 
 test-e2e:
-	python -m pytest -m e2e
+	python -m pytest tests/e2e
 
 test-all:
 	python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
