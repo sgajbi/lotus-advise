@@ -43,6 +43,9 @@ Primary implementation guide:
 * `docs/documentation/engine-know-how-advisory.md`
 * `docs/documentation/git-branch-protection-workflow.md` (daily branch + PR commands)
 
+Platform-wide architecture and cross-cutting standards authority:
+* `https://github.com/sgajbi/pbwm-platform-docs`
+
 ---
 
 

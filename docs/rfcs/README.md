@@ -3,6 +3,10 @@
 Standards for all current and future RFCs:
 - `docs/rfcs/RFC-CONVENTIONS.md`
 
+Governance boundary:
+- Service-specific implementation RFCs belong in this repository.
+- Cross-cutting platform and multi-service RFCs belong in `https://github.com/sgajbi/pbwm-platform-docs`.
+
 | RFC | Title | Status | Depends On | File |
 | --- | --- | --- | --- | --- |
 | RFC-0001 | Enterprise Rebalance Simulation MVP (DPM Platform) | IMPLEMENTED | - | `docs/rfcs/RFC-0001-rebalance-simulation-mvp.md` |
