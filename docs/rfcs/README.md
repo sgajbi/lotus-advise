@@ -37,3 +37,4 @@ Standards for all current and future RFCs:
 | RFC-0024 | Unified PostgreSQL Persistence for DPM and Advisory | COMPLETED (SLICE 19) | RFC-0014G, RFC-0017, RFC-0018, RFC-0019, RFC-0020, RFC-0023 | `docs/rfcs/RFC-0024-unified-postgresql-persistence-for-dpm-and-advisory.md` |
 | RFC-0025 | PostgreSQL-Only Production Mode Cutover | COMPLETED | RFC-0023, RFC-0024 | `docs/rfcs/RFC-0025-postgres-only-production-mode-cutover.md` |
 | RFC-0027 | Advisory Proposal Workflow Coverage Hardening (Approval Chain Paths) | IMPLEMENTED | RFC-0014G, RFC-0024 | `docs/rfcs/RFC-0027-advisory-proposal-workflow-coverage-hardening.md` |
+| RFC-0028 | DPM Integration Capabilities Contract | IMPLEMENTED | RFC-0021, RFC-0022, RFC-0027 | `docs/rfcs/RFC-0028-dpm-integration-capabilities-contract.md` |

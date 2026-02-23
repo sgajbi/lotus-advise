@@ -33,6 +33,9 @@ from src.api.routers.dpm_simulation import (
 from src.api.routers.dpm_simulation import (
     router as dpm_simulation_router,
 )
+from src.api.routers.integration_capabilities import (
+    router as integration_capabilities_router,
+)
 from src.api.routers.proposals import router as proposal_lifecycle_router
 from src.api.services.advisory_simulation_service import (
     MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
@@ -114,6 +117,7 @@ app.include_router(dpm_run_support_router)
 app.include_router(dpm_policy_pack_router)
 app.include_router(dpm_simulation_router)
 app.include_router(advisory_simulation_router)
+app.include_router(integration_capabilities_router)
 
 
 @app.exception_handler(Exception)

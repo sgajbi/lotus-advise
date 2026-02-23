@@ -32,6 +32,7 @@ A deterministic, production-grade **Discretionary Portfolio Management (DPM)** r
 * RFC-0024 (unified PostgreSQL persistence for DPM supportability and advisory proposal lifecycle)
 * RFC-0025 (PostgreSQL-only production profile cutover guardrails and rollout controls)
 * RFC-0027 (approval-chain lifecycle regression hardening for risk-first and rejection paths)
+* RFC-0028 (integration capabilities contract via `GET /integration/capabilities`)
 * Shared workflow gate decision semantics (deterministic `gate_decision` block in DPM/advisory outputs, configurable through `EngineOptions`)
 
 ---
@@ -322,6 +323,7 @@ Notes:
 * `GET /rebalance/runs/by-correlation/{correlation_id}`: lookup latest run by correlation id.
 * `GET /rebalance/runs/idempotency/{idempotency_key}`: lookup idempotency mapping to run id.
 * `GET /rebalance/runs/{rebalance_run_id}/artifact`: retrieve deterministic run artifact for business/support workflows.
+* `GET /integration/capabilities`: backend-driven integration capability/workflow contract for BFF/UI/PA/PAS consumers.
 
 Runtime toggles:
 * `DPM_SUPPORT_APIS_ENABLED` (`true` by default)
