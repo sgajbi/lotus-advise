@@ -11,6 +11,10 @@ The platform provides deterministic portfolio decisioning APIs for:
 - **DPM rebalancing** (model-driven discretionary portfolio management),
 - **Advisory proposals** (advisor-entered cash flows and manual trades).
 
+Architecture authority:
+- Platform-wide integration and architecture standards are maintained centrally in `https://github.com/sgajbi/pbwm-platform-docs`.
+- This repository documents service-local implementation details and service-specific RFCs only.
+
 Both flows produce structured, auditable outputs with:
 - before/after portfolio states,
 - intent-level actions,
