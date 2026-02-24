@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
@@ -103,3 +104,50 @@ def test_proposal_submit_and_support_endpoints() -> None:
     assert approvals.status_code == 200
     assert lineage.status_code == 200
     assert submit.json()["current_state"] == "RISK_REVIEW"
+
+
+def test_proposal_idempotency_lookup_and_support_config() -> None:
+    idempotency_key = "integration-proposal-idem-lookup-1"
+    with TestClient(app) as client:
+        created = client.post(
+            "/rebalance/proposals",
+            json=_base_create_payload("pf_integration_proposal_3"),
+            headers={"Idempotency-Key": idempotency_key},
+        )
+        assert created.status_code == 200
+
+        lookup = client.get(f"/rebalance/proposals/idempotency/{idempotency_key}")
+        support_config = client.get("/rebalance/proposals/supportability/config")
+
+    assert lookup.status_code == 200
+    assert lookup.json()["idempotency_key"] == idempotency_key
+    assert support_config.status_code == 200
+    assert "backend_ready" in support_config.json()
+
+
+def test_proposal_support_endpoints_disabled_by_feature_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/rebalance/proposals",
+            json=_base_create_payload("pf_integration_proposal_4"),
+            headers={"Idempotency-Key": "integration-proposal-support-disabled-1"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+
+        monkeypatch.setenv("PROPOSAL_SUPPORT_APIS_ENABLED", "false")
+        approvals = client.get(f"/rebalance/proposals/{proposal_id}/approvals")
+
+    assert approvals.status_code == 404
+    assert approvals.json()["detail"] == "PROPOSAL_SUPPORT_APIS_DISABLED"
+
+
+def test_proposal_lifecycle_disabled_by_feature_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", "false")
+    with TestClient(app) as client:
+        response = client.get("/rebalance/proposals")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED"
