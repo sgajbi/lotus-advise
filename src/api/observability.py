@@ -4,9 +4,10 @@ import os
 import time
 from contextvars import ContextVar
 from datetime import UTC, datetime
+from typing import Awaitable, Callable
 from uuid import uuid4
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from prometheus_fastapi_instrumentator import Instrumentator
 
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="")
@@ -44,7 +45,9 @@ def setup_observability(app: FastAPI) -> None:
     Instrumentator().instrument(app).expose(app)
 
     @app.middleware("http")
-    async def _request_observability_middleware(request: Request, call_next):
+    async def _request_observability_middleware(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         logger = logging.getLogger("http.access")
         started = time.perf_counter()
 
@@ -61,7 +64,7 @@ def setup_observability(app: FastAPI) -> None:
         request_token = request_id_var.set(request_id)
         trace_token = trace_id_var.set(trace_id)
         try:
-            response = await call_next(request)
+            response: Response = await call_next(request)
         finally:
             latency_ms = round((time.perf_counter() - started) * 1000, 2)
             logger.info(
@@ -78,7 +81,8 @@ def setup_observability(app: FastAPI) -> None:
             request_id_var.reset(request_token)
             trace_id_var.reset(trace_token)
 
-        response.headers["X-Correlation-Id"] = correlation_id
+        response_correlation_id = response.headers.get("X-Correlation-Id", correlation_id)
+        response.headers["X-Correlation-Id"] = response_correlation_id
         response.headers["X-Request-Id"] = request_id
         response.headers["X-Trace-Id"] = trace_id
         response.headers["traceparent"] = f"00-{trace_id}-0000000000000001-01"
