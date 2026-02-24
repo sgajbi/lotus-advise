@@ -34,3 +34,15 @@ def test_metrics_endpoint_available():
     response = client.get("/metrics")
     assert response.status_code == 200
     assert "http_requests_total" in response.text or "http_request_duration" in response.text
+
+
+def test_traceparent_header_propagates_trace_id():
+    client = TestClient(app)
+    upstream_trace_id = "1234567890abcdef1234567890abcdef"
+    response = client.get(
+        "/integration/capabilities?consumerSystem=BFF&tenantId=default",
+        headers={"traceparent": f"00-{upstream_trace_id}-0000000000000001-01"},
+    )
+    assert response.status_code == 200
+    assert response.headers.get("X-Trace-Id") == upstream_trace_id
+    assert response.headers.get("traceparent", "").startswith(f"00-{upstream_trace_id}-")

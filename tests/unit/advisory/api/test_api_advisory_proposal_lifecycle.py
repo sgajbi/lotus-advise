@@ -1,6 +1,9 @@
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
+from src.api.routers import proposals as proposals_router
 from src.api.routers.proposals import reset_proposal_workflow_service_for_tests
 
 
@@ -63,6 +66,30 @@ def test_create_proposal_persists_immutable_version_and_created_event():
         assert body["version"]["status_at_creation"] == "READY"
         assert body["version"]["artifact_hash"].startswith("sha256:")
         assert body["latest_workflow_event"]["event_type"] == "CREATED"
+
+
+def test_get_proposal_repository_maps_runtime_and_value_errors(monkeypatch):
+    reset_proposal_workflow_service_for_tests()
+
+    def _raise_runtime():
+        raise RuntimeError("PROPOSAL_POSTGRES_DSN_REQUIRED")
+
+    monkeypatch.setattr(proposals_router.proposals_config, "build_repository", _raise_runtime)
+    with pytest.raises(HTTPException) as runtime_exc:
+        proposals_router.get_proposal_repository()
+    assert runtime_exc.value.status_code == 503
+    assert runtime_exc.value.detail == "PROPOSAL_POSTGRES_DSN_REQUIRED"
+
+    reset_proposal_workflow_service_for_tests()
+
+    def _raise_value():
+        raise ValueError("invalid")
+
+    monkeypatch.setattr(proposals_router.proposals_config, "build_repository", _raise_value)
+    with pytest.raises(HTTPException) as value_exc:
+        proposals_router.get_proposal_repository()
+    assert value_exc.value.status_code == 503
+    assert value_exc.value.detail == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
 
 
 def test_proposal_repository_backend_init_errors_return_503(monkeypatch):

@@ -1,3 +1,5 @@
+import builtins
+
 import pytest
 
 from src.api.routers import proposals_config
@@ -109,3 +111,16 @@ def test_build_repository_postgres_connection_failure_mapped(monkeypatch):
         assert str(exc) == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
     else:
         raise AssertionError("Expected RuntimeError for proposal postgres connection failure")
+
+
+def test_postgres_connection_exception_types_handles_missing_driver(monkeypatch):
+    original_import = builtins.__import__
+
+    def _import_with_psycopg_missing(name, *args, **kwargs):
+        if name == "psycopg":
+            raise ImportError("psycopg not installed")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _import_with_psycopg_missing)
+    exception_types = proposals_config._postgres_connection_exception_types()
+    assert ValueError in exception_types
