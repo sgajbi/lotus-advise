@@ -326,6 +326,316 @@ def test_live_postgres_async_and_retention_purge_contract(
     assert not repository.list_lineage_edges(entity_id=run.correlation_id)
 
 
+def test_live_postgres_list_runs_invalid_cursor_returns_empty_page(
+    repository: PostgresDpmRunRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    run = _build_run(
+        run_id=f"rr-{uuid.uuid4().hex}",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        request_hash=f"sha256:{uuid.uuid4().hex}",
+        portfolio_id="pf-cursor",
+        status="READY",
+        created_at=now,
+        idempotency_key=f"idem-{uuid.uuid4().hex}",
+    )
+    repository.save_run(run)
+
+    rows, next_cursor = repository.list_runs(
+        created_from=None,
+        created_to=None,
+        status=None,
+        request_hash=None,
+        portfolio_id=None,
+        limit=5,
+        cursor="rr-missing-cursor",
+    )
+    assert rows == []
+    assert next_cursor is None
+
+
+def test_live_postgres_list_runs_filter_contract(
+    repository: PostgresDpmRunRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    shared_hash = f"sha256:{uuid.uuid4().hex}"
+    run_older = _build_run(
+        run_id=f"rr-{uuid.uuid4().hex}",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        request_hash=shared_hash,
+        portfolio_id="pf-filter",
+        status="READY",
+        created_at=now - timedelta(hours=2),
+        idempotency_key=f"idem-{uuid.uuid4().hex}",
+    )
+    run_newer = _build_run(
+        run_id=f"rr-{uuid.uuid4().hex}",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        request_hash=shared_hash,
+        portfolio_id="pf-filter",
+        status="BLOCKED",
+        created_at=now - timedelta(hours=1),
+        idempotency_key=f"idem-{uuid.uuid4().hex}",
+    )
+    repository.save_run(run_older)
+    repository.save_run(run_newer)
+
+    filtered, _ = repository.list_runs(
+        created_from=now - timedelta(hours=1, minutes=30),
+        created_to=now,
+        status="BLOCKED",
+        request_hash=shared_hash,
+        portfolio_id="pf-filter",
+        limit=10,
+        cursor=None,
+    )
+    assert [row.rebalance_run_id for row in filtered] == [run_newer.rebalance_run_id]
+
+
+def test_live_postgres_list_operations_filters_and_invalid_cursor(
+    repository: PostgresDpmRunRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    failed_operation = DpmAsyncOperationRecord(
+        operation_id=f"op-{uuid.uuid4().hex}",
+        operation_type="ANALYZE_SCENARIOS",
+        status="FAILED",
+        correlation_id=f"corr-op-{uuid.uuid4().hex}",
+        created_at=now - timedelta(minutes=40),
+        started_at=now - timedelta(minutes=39),
+        finished_at=now - timedelta(minutes=38),
+        result_json=None,
+        error_json={"code": "FAILED"},
+        request_json={"mode": "baseline"},
+    )
+    success_operation = DpmAsyncOperationRecord(
+        operation_id=f"op-{uuid.uuid4().hex}",
+        operation_type="ANALYZE_SCENARIOS",
+        status="SUCCEEDED",
+        correlation_id=f"corr-op-{uuid.uuid4().hex}",
+        created_at=now - timedelta(minutes=20),
+        started_at=now - timedelta(minutes=19),
+        finished_at=now - timedelta(minutes=18),
+        result_json={"ok": True},
+        error_json=None,
+        request_json={"mode": "baseline"},
+    )
+    repository.create_operation(failed_operation)
+    repository.create_operation(success_operation)
+
+    filtered, _ = repository.list_operations(
+        created_from=now - timedelta(minutes=25),
+        created_to=now,
+        operation_type="ANALYZE_SCENARIOS",
+        status="SUCCEEDED",
+        correlation_id=success_operation.correlation_id,
+        limit=10,
+        cursor=None,
+    )
+    assert [row.operation_id for row in filtered] == [success_operation.operation_id]
+
+    invalid_page, invalid_cursor = repository.list_operations(
+        created_from=None,
+        created_to=None,
+        operation_type=None,
+        status=None,
+        correlation_id=None,
+        limit=10,
+        cursor="op-missing-cursor",
+    )
+    assert invalid_page == []
+    assert invalid_cursor is None
+
+
+def test_live_postgres_workflow_decision_filtered_pagination_contract(
+    repository: PostgresDpmRunRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    run = _build_run(
+        run_id=f"rr-{uuid.uuid4().hex}",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        request_hash=f"sha256:{uuid.uuid4().hex}",
+        portfolio_id="pf-workflow",
+        status="PENDING_REVIEW",
+        created_at=now - timedelta(minutes=5),
+        idempotency_key=f"idem-{uuid.uuid4().hex}",
+    )
+    repository.save_run(run)
+    first = DpmRunWorkflowDecisionRecord(
+        decision_id=f"dec-{uuid.uuid4().hex}",
+        run_id=run.rebalance_run_id,
+        action="REQUEST_CHANGES",
+        reason_code="NEEDS_DETAIL",
+        comment="expand rationale",
+        actor_id="reviewer-a",
+        decided_at=now - timedelta(minutes=3),
+        correlation_id=run.correlation_id,
+    )
+    second = DpmRunWorkflowDecisionRecord(
+        decision_id=f"dec-{uuid.uuid4().hex}",
+        run_id=run.rebalance_run_id,
+        action="REQUEST_CHANGES",
+        reason_code="NEEDS_DETAIL",
+        comment="fix limits",
+        actor_id="reviewer-a",
+        decided_at=now - timedelta(minutes=2),
+        correlation_id=run.correlation_id,
+    )
+    repository.append_workflow_decision(first)
+    repository.append_workflow_decision(second)
+
+    first_page, next_cursor = repository.list_workflow_decisions_filtered(
+        rebalance_run_id=run.rebalance_run_id,
+        action="REQUEST_CHANGES",
+        actor_id="reviewer-a",
+        reason_code="NEEDS_DETAIL",
+        decided_from=now - timedelta(days=1),
+        decided_to=now + timedelta(days=1),
+        limit=1,
+        cursor=None,
+    )
+    assert [row.decision_id for row in first_page] == [second.decision_id]
+    assert next_cursor == second.decision_id
+
+    second_page, second_cursor = repository.list_workflow_decisions_filtered(
+        rebalance_run_id=run.rebalance_run_id,
+        action="REQUEST_CHANGES",
+        actor_id="reviewer-a",
+        reason_code="NEEDS_DETAIL",
+        decided_from=now - timedelta(days=1),
+        decided_to=now + timedelta(days=1),
+        limit=1,
+        cursor=next_cursor,
+    )
+    assert [row.decision_id for row in second_page] == [first.decision_id]
+    assert second_cursor is None
+
+
+def test_live_postgres_workflow_decision_invalid_cursor_contract(
+    repository: PostgresDpmRunRepository,
+) -> None:
+    page, cursor = repository.list_workflow_decisions_filtered(
+        rebalance_run_id=None,
+        action=None,
+        actor_id=None,
+        reason_code=None,
+        decided_from=None,
+        decided_to=None,
+        limit=10,
+        cursor="dec-missing-cursor",
+    )
+    assert page == []
+    assert cursor is None
+
+
+def test_live_postgres_lineage_lookup_by_target_entity(
+    repository: PostgresDpmRunRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    run = _build_run(
+        run_id=f"rr-{uuid.uuid4().hex}",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        request_hash=f"sha256:{uuid.uuid4().hex}",
+        portfolio_id="pf-lineage",
+        status="READY",
+        created_at=now,
+        idempotency_key=f"idem-{uuid.uuid4().hex}",
+    )
+    repository.save_run(run)
+    repository.append_lineage_edge(
+        DpmLineageEdgeRecord(
+            source_entity_id=run.correlation_id,
+            edge_type="CORRELATION_TO_RUN",
+            target_entity_id=run.rebalance_run_id,
+            created_at=now,
+            metadata_json={"source": "integration"},
+        )
+    )
+
+    by_target = repository.list_lineage_edges(entity_id=run.rebalance_run_id)
+    assert len(by_target) == 1
+    assert by_target[0].source_entity_id == run.correlation_id
+
+
+def test_live_postgres_supportability_summary_status_breakdown(
+    repository: PostgresDpmRunRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    ready_run = _build_run(
+        run_id=f"rr-{uuid.uuid4().hex}",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        request_hash=f"sha256:{uuid.uuid4().hex}",
+        portfolio_id="pf-summary-2",
+        status="READY",
+        created_at=now - timedelta(minutes=3),
+        idempotency_key=f"idem-{uuid.uuid4().hex}",
+    )
+    blocked_run = _build_run(
+        run_id=f"rr-{uuid.uuid4().hex}",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        request_hash=f"sha256:{uuid.uuid4().hex}",
+        portfolio_id="pf-summary-2",
+        status="BLOCKED",
+        created_at=now - timedelta(minutes=2),
+        idempotency_key=f"idem-{uuid.uuid4().hex}",
+    )
+    repository.save_run(ready_run)
+    repository.save_run(blocked_run)
+    repository.create_operation(
+        DpmAsyncOperationRecord(
+            operation_id=f"op-{uuid.uuid4().hex}",
+            operation_type="ANALYZE_SCENARIOS",
+            status="SUCCEEDED",
+            correlation_id=f"corr-op-{uuid.uuid4().hex}",
+            created_at=now - timedelta(minutes=1),
+            started_at=now - timedelta(minutes=1),
+            finished_at=now,
+            result_json={"ok": True},
+            error_json=None,
+            request_json=None,
+        )
+    )
+    repository.create_operation(
+        DpmAsyncOperationRecord(
+            operation_id=f"op-{uuid.uuid4().hex}",
+            operation_type="ANALYZE_SCENARIOS",
+            status="FAILED",
+            correlation_id=f"corr-op-{uuid.uuid4().hex}",
+            created_at=now - timedelta(minutes=1),
+            started_at=now - timedelta(minutes=1),
+            finished_at=now,
+            result_json=None,
+            error_json={"code": "FAILED"},
+            request_json=None,
+        )
+    )
+
+    summary = repository.get_supportability_summary()
+    assert summary.run_count == 2
+    assert summary.run_status_counts == {"BLOCKED": 1, "READY": 1}
+    assert summary.operation_status_counts == {"FAILED": 1, "SUCCEEDED": 1}
+
+
+def test_live_postgres_purge_expired_runs_disabled_for_non_positive_retention(
+    repository: PostgresDpmRunRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    run = _build_run(
+        run_id=f"rr-{uuid.uuid4().hex}",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        request_hash=f"sha256:{uuid.uuid4().hex}",
+        portfolio_id="pf-retention",
+        status="READY",
+        created_at=now - timedelta(days=7),
+        idempotency_key=f"idem-{uuid.uuid4().hex}",
+    )
+    repository.save_run(run)
+
+    purged = repository.purge_expired_runs(retention_days=0, now=now)
+    assert purged == 0
+    assert repository.get_run(rebalance_run_id=run.rebalance_run_id) is not None
+
+
 def _build_run(
     *,
     run_id: str,

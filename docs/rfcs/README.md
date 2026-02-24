@@ -43,3 +43,9 @@ Governance boundary:
 | RFC-0027 | Advisory Proposal Workflow Coverage Hardening (Approval Chain Paths) | IMPLEMENTED | RFC-0014G, RFC-0024 | `docs/rfcs/RFC-0027-advisory-proposal-workflow-coverage-hardening.md` |
 | RFC-0028 | DPM Integration Capabilities Contract | IMPLEMENTED | RFC-0021, RFC-0022, RFC-0027 | `docs/rfcs/RFC-0028-dpm-integration-capabilities-contract.md` |
 | RFC-0029 | Iterative Proposal Simulation Workspace Contract for Advisory and DPM Lifecycles | PROPOSED | RFC-0020, RFC-0021, RFC-0028 | `docs/rfcs/RFC-0029-iterative-proposal-simulation-workspace-contract.md` |
+| RFC-0030 | DPM Integration Pyramid Rebalance Wave 1 | IMPLEMENTED | RFC-0023, RFC-0024, RFC-0028 | `docs/rfcs/RFC-0030-dpm-integration-pyramid-rebalance-wave-1.md` |
+| RFC-0031 | DPM Integration Pyramid Wave 2 (Supportability and Guardrails) | IMPLEMENTED | RFC-0030 | `docs/rfcs/RFC-0031-dpm-integration-pyramid-wave-2-supportability-and-guardrails.md` |
+| RFC-0032 | DPM Pyramid Wave 3 (Integration and E2E Workflow Expansion) | IMPLEMENTED | RFC-0031 | `docs/rfcs/RFC-0032-dpm-pyramid-wave-3-integration-and-e2e-workflow-expansion.md` |
+| RFC-0033 | DPM Pyramid Wave 4 (Integration and E2E Expansion) | IMPLEMENTED | RFC-0032 | `docs/rfcs/RFC-0033-dpm-pyramid-wave-4-integration-e2e-expansion.md` |
+| RFC-0034 | DPM Pyramid Wave 5 (Integration Boundary Expansion) | IMPLEMENTED | RFC-0033 | `docs/rfcs/RFC-0034-dpm-pyramid-wave-5-integration-boundary-expansion.md` |
+| RFC-0035 | DPM Pyramid Wave 6 (Repository Integration Depth Expansion) | PROPOSED | RFC-0034 | `docs/rfcs/RFC-0035-dpm-pyramid-wave-6-repository-integration-depth-expansion.md` |
