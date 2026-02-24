@@ -326,3 +326,121 @@ def test_supportability_not_found_matrix(path: str, expected_detail: str) -> Non
 
     assert response.status_code == 404
     assert response.json()["detail"] == expected_detail
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_detail"),
+    [
+        ("/rebalance/workflow/decisions/by-correlation/corr_missing", "DPM_RUN_NOT_FOUND"),
+        ("/rebalance/runs/rr_missing/workflow", "DPM_RUN_NOT_FOUND"),
+        ("/rebalance/runs/by-correlation/corr_missing/workflow", "DPM_RUN_NOT_FOUND"),
+        (
+            "/rebalance/runs/idempotency/idem_missing/workflow",
+            "DPM_IDEMPOTENCY_KEY_NOT_FOUND",
+        ),
+        ("/rebalance/runs/rr_missing/workflow/history", "DPM_RUN_NOT_FOUND"),
+        (
+            "/rebalance/runs/by-correlation/corr_missing/workflow/history",
+            "DPM_RUN_NOT_FOUND",
+        ),
+        (
+            "/rebalance/runs/idempotency/idem_missing/workflow/history",
+            "DPM_IDEMPOTENCY_KEY_NOT_FOUND",
+        ),
+    ],
+)
+def test_workflow_lookup_not_found_matrix(
+    monkeypatch: pytest.MonkeyPatch, path: str, expected_detail: str
+) -> None:
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_detail"),
+    [
+        ("/rebalance/workflow/decisions", "DPM_WORKFLOW_DISABLED"),
+        ("/rebalance/workflow/decisions/by-correlation/corr_missing", "DPM_WORKFLOW_DISABLED"),
+        ("/rebalance/runs/rr_missing/workflow", "DPM_WORKFLOW_DISABLED"),
+        ("/rebalance/runs/by-correlation/corr_missing/workflow", "DPM_WORKFLOW_DISABLED"),
+        ("/rebalance/runs/idempotency/idem_missing/workflow", "DPM_WORKFLOW_DISABLED"),
+        ("/rebalance/runs/rr_missing/workflow/history", "DPM_WORKFLOW_DISABLED"),
+        (
+            "/rebalance/runs/by-correlation/corr_missing/workflow/history",
+            "DPM_WORKFLOW_DISABLED",
+        ),
+        (
+            "/rebalance/runs/idempotency/idem_missing/workflow/history",
+            "DPM_WORKFLOW_DISABLED",
+        ),
+    ],
+)
+def test_workflow_feature_flag_guard_matrix(
+    monkeypatch: pytest.MonkeyPatch, path: str, expected_detail: str
+) -> None:
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "false")
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_detail"),
+    [
+        ("/rebalance/runs/rr_missing/workflow/actions", "DPM_RUN_NOT_FOUND"),
+        (
+            "/rebalance/runs/by-correlation/corr_missing/workflow/actions",
+            "DPM_RUN_NOT_FOUND",
+        ),
+        (
+            "/rebalance/runs/idempotency/idem_missing/workflow/actions",
+            "DPM_IDEMPOTENCY_KEY_NOT_FOUND",
+        ),
+    ],
+)
+def test_workflow_action_not_found_matrix(
+    monkeypatch: pytest.MonkeyPatch, path: str, expected_detail: str
+) -> None:
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+    payload = {
+        "action": "APPROVE",
+        "reason_code": "REVIEW_APPROVED",
+        "comment": None,
+        "actor_id": "integration_reviewer",
+    }
+    with TestClient(app) as client:
+        response = client.post(path, json=payload)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/rebalance/runs/rr_missing/workflow/actions",
+        "/rebalance/runs/by-correlation/corr_missing/workflow/actions",
+        "/rebalance/runs/idempotency/idem_missing/workflow/actions",
+    ],
+)
+def test_workflow_action_feature_flag_guard_matrix(
+    monkeypatch: pytest.MonkeyPatch, path: str
+) -> None:
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "false")
+    payload = {
+        "action": "APPROVE",
+        "reason_code": "REVIEW_APPROVED",
+        "comment": None,
+        "actor_id": "integration_reviewer",
+    }
+    with TestClient(app) as client:
+        response = client.post(path, json=payload)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "DPM_WORKFLOW_DISABLED"

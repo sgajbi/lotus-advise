@@ -293,3 +293,99 @@ def test_proposal_idempotency_lookup_not_found_returns_404() -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"] == "PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/rebalance/proposals/p_missing/workflow-events",
+        "/rebalance/proposals/p_missing/approvals",
+        "/rebalance/proposals/p_missing/lineage",
+        "/rebalance/proposals/idempotency/idem_missing",
+    ],
+)
+def test_proposal_support_api_guard_matrix(
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+) -> None:
+    monkeypatch.setenv("PROPOSAL_SUPPORT_APIS_ENABLED", "false")
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROPOSAL_SUPPORT_APIS_DISABLED"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/rebalance/proposals",
+        "/rebalance/proposals/p_missing",
+        "/rebalance/proposals/p_missing/versions/1",
+        "/rebalance/proposals/p_missing/workflow-events",
+        "/rebalance/proposals/p_missing/approvals",
+        "/rebalance/proposals/p_missing/lineage",
+        "/rebalance/proposals/operations/pop_missing",
+        "/rebalance/proposals/operations/by-correlation/corr_missing",
+    ],
+)
+def test_proposal_lifecycle_guard_matrix(
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+) -> None:
+    monkeypatch.setenv("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", "false")
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/rebalance/proposals/operations/pop_missing",
+        "/rebalance/proposals/operations/by-correlation/corr_missing",
+    ],
+)
+def test_proposal_async_api_guard_matrix(
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+) -> None:
+    monkeypatch.setenv("PROPOSAL_ASYNC_OPERATIONS_ENABLED", "false")
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROPOSAL_ASYNC_OPERATIONS_DISABLED"
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_detail"),
+    [
+        ("/rebalance/proposals/p_missing/transitions", "PROPOSAL_NOT_FOUND"),
+        ("/rebalance/proposals/p_missing/approvals", "PROPOSAL_NOT_FOUND"),
+    ],
+)
+def test_proposal_post_not_found_matrix(path: str, expected_detail: str) -> None:
+    payload = (
+        {
+            "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+            "actor_id": "advisor_integration",
+            "expected_state": "DRAFT",
+            "reason": {"comment": "integration submit"},
+        }
+        if path.endswith("/transitions")
+        else {
+            "approval_type": "CLIENT_CONSENT",
+            "approved": True,
+            "actor_id": "reviewer_integration",
+            "details": {"comment": "approved"},
+        }
+    )
+
+    with TestClient(app) as client:
+        response = client.post(path, json=payload)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail
