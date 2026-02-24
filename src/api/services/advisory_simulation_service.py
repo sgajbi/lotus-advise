@@ -31,7 +31,7 @@ def simulate_proposal_response(
 ) -> ProposalResult:
     if not request.options.enable_proposal_simulation:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true",
         )
 
