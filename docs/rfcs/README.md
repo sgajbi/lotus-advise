@@ -42,3 +42,4 @@ Governance boundary:
 | RFC-0025 | PostgreSQL-Only Production Mode Cutover | COMPLETED | RFC-0023, RFC-0024 | `docs/rfcs/RFC-0025-postgres-only-production-mode-cutover.md` |
 | RFC-0027 | Advisory Proposal Workflow Coverage Hardening (Approval Chain Paths) | IMPLEMENTED | RFC-0014G, RFC-0024 | `docs/rfcs/RFC-0027-advisory-proposal-workflow-coverage-hardening.md` |
 | RFC-0028 | DPM Integration Capabilities Contract | IMPLEMENTED | RFC-0021, RFC-0022, RFC-0027 | `docs/rfcs/RFC-0028-dpm-integration-capabilities-contract.md` |
+| RFC-0029 | Iterative Proposal Simulation Workspace Contract for Advisory and DPM Lifecycles | PROPOSED | RFC-0020, RFC-0021, RFC-0028 | `docs/rfcs/RFC-0029-iterative-proposal-simulation-workspace-contract.md` |
