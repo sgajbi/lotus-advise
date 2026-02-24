@@ -234,6 +234,5 @@ def test_workflow_actions_and_decision_list_roundtrip(monkeypatch: pytest.Monkey
     items = decisions.json()["items"]
     assert len(items) >= 1
     assert any(
-        item["run_id"] == run_id and item["reason_code"] == "REVIEW_APPROVED"
-        for item in items
+        item["run_id"] == run_id and item["reason_code"] == "REVIEW_APPROVED" for item in items
     )
