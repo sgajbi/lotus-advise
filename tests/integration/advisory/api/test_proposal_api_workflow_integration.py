@@ -229,3 +229,67 @@ def test_proposal_async_operation_not_found_returns_404() -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"
+
+
+@pytest.mark.parametrize(
+    ("env_name", "env_value", "path", "expected_detail"),
+    [
+        (
+            "PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED",
+            "false",
+            "/rebalance/proposals",
+            "PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED",
+        ),
+        (
+            "PROPOSAL_SUPPORT_APIS_ENABLED",
+            "false",
+            "/rebalance/proposals/p_missing/approvals",
+            "PROPOSAL_SUPPORT_APIS_DISABLED",
+        ),
+        (
+            "PROPOSAL_ASYNC_OPERATIONS_ENABLED",
+            "false",
+            "/rebalance/proposals/operations/pop_missing",
+            "PROPOSAL_ASYNC_OPERATIONS_DISABLED",
+        ),
+    ],
+)
+def test_proposal_feature_flag_guard_matrix(
+    monkeypatch: pytest.MonkeyPatch,
+    env_name: str,
+    env_value: str,
+    path: str,
+    expected_detail: str,
+) -> None:
+    monkeypatch.setenv(env_name, env_value)
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_detail"),
+    [
+        ("/rebalance/proposals/p_missing", "PROPOSAL_NOT_FOUND"),
+        ("/rebalance/proposals/p_missing/versions/1", "PROPOSAL_VERSION_NOT_FOUND"),
+        ("/rebalance/proposals/p_missing/workflow-events", "PROPOSAL_NOT_FOUND"),
+        ("/rebalance/proposals/p_missing/approvals", "PROPOSAL_NOT_FOUND"),
+        ("/rebalance/proposals/p_missing/lineage", "PROPOSAL_NOT_FOUND"),
+    ],
+)
+def test_proposal_not_found_matrix(path: str, expected_detail: str) -> None:
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail
+
+
+def test_proposal_idempotency_lookup_not_found_returns_404() -> None:
+    with TestClient(app) as client:
+        response = client.get("/rebalance/proposals/idempotency/idem_missing")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND"

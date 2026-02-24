@@ -578,3 +578,68 @@ def test_demo_advisory_artifact_scenario_via_api():
     assert body["summary"]["recommended_next_step"] == "CLIENT_CONSENT"
     assert body["trades_and_funding"]["trade_list"]
     assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_detail"),
+    [
+        ("/rebalance/runs/rr_missing", "DPM_RUN_NOT_FOUND"),
+        ("/rebalance/runs/by-correlation/corr_missing", "DPM_RUN_NOT_FOUND"),
+        ("/rebalance/runs/idempotency/idem_missing", "DPM_IDEMPOTENCY_KEY_NOT_FOUND"),
+        ("/rebalance/operations/op_missing", "DPM_ASYNC_OPERATION_NOT_FOUND"),
+        (
+            "/rebalance/operations/by-correlation/corr_missing",
+            "DPM_ASYNC_OPERATION_NOT_FOUND",
+        ),
+    ],
+)
+def test_demo_supportability_lookup_not_found_matrix(path, expected_detail):
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        try:
+            response = client.get(path)
+        finally:
+            app.dependency_overrides = original_overrides
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail
+
+
+@pytest.mark.parametrize(
+    ("env_name", "env_value", "path", "expected_detail"),
+    [
+        (
+            "DPM_ASYNC_OPERATIONS_ENABLED",
+            "false",
+            "/rebalance/operations",
+            "DPM_ASYNC_OPERATIONS_DISABLED",
+        ),
+        (
+            "DPM_LINEAGE_APIS_ENABLED",
+            "false",
+            "/rebalance/lineage/corr_missing",
+            "DPM_LINEAGE_APIS_DISABLED",
+        ),
+        (
+            "DPM_WORKFLOW_ENABLED",
+            "false",
+            "/rebalance/workflow/decisions",
+            "DPM_WORKFLOW_DISABLED",
+        ),
+    ],
+)
+def test_demo_supportability_feature_flag_guard_matrix(
+    monkeypatch, env_name, env_value, path, expected_detail
+):
+    monkeypatch.setenv(env_name, env_value)
+    with TestClient(app) as client:
+        original_overrides = dict(app.dependency_overrides)
+        app.dependency_overrides[get_db_session] = _override_get_db_session
+        try:
+            response = client.get(path)
+        finally:
+            app.dependency_overrides = original_overrides
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail

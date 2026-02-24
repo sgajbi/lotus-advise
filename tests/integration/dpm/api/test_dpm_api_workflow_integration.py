@@ -236,3 +236,93 @@ def test_workflow_actions_and_decision_list_roundtrip(monkeypatch: pytest.Monkey
     assert any(
         item["run_id"] == run_id and item["reason_code"] == "REVIEW_APPROVED" for item in items
     )
+
+
+@pytest.mark.parametrize(
+    ("env_name", "env_value", "path", "expected_detail"),
+    [
+        ("DPM_SUPPORT_APIS_ENABLED", "false", "/rebalance/runs", "DPM_SUPPORT_APIS_DISABLED"),
+        (
+            "DPM_ASYNC_OPERATIONS_ENABLED",
+            "false",
+            "/rebalance/operations",
+            "DPM_ASYNC_OPERATIONS_DISABLED",
+        ),
+        (
+            "DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED",
+            "false",
+            "/rebalance/idempotency/idem_missing/history",
+            "DPM_IDEMPOTENCY_HISTORY_APIS_DISABLED",
+        ),
+        (
+            "DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED",
+            "false",
+            "/rebalance/supportability/summary",
+            "DPM_SUPPORTABILITY_SUMMARY_APIS_DISABLED",
+        ),
+        (
+            "DPM_SUPPORT_BUNDLE_APIS_ENABLED",
+            "false",
+            "/rebalance/runs/rr_missing/support-bundle",
+            "DPM_SUPPORT_BUNDLE_APIS_DISABLED",
+        ),
+        (
+            "DPM_ARTIFACTS_ENABLED",
+            "false",
+            "/rebalance/runs/rr_missing/artifact",
+            "DPM_ARTIFACTS_DISABLED",
+        ),
+        (
+            "DPM_LINEAGE_APIS_ENABLED",
+            "false",
+            "/rebalance/lineage/corr_missing",
+            "DPM_LINEAGE_APIS_DISABLED",
+        ),
+        ("DPM_WORKFLOW_ENABLED", "false", "/rebalance/workflow/decisions", "DPM_WORKFLOW_DISABLED"),
+    ],
+)
+def test_supportability_feature_flag_guards(
+    monkeypatch: pytest.MonkeyPatch,
+    env_name: str,
+    env_value: str,
+    path: str,
+    expected_detail: str,
+) -> None:
+    monkeypatch.setenv(env_name, env_value)
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_detail"),
+    [
+        ("/rebalance/runs/rr_missing", "DPM_RUN_NOT_FOUND"),
+        ("/rebalance/runs/by-correlation/corr_missing", "DPM_RUN_NOT_FOUND"),
+        ("/rebalance/runs/by-request-hash/hash_missing", "DPM_RUN_NOT_FOUND"),
+        ("/rebalance/runs/idempotency/idem_missing", "DPM_IDEMPOTENCY_KEY_NOT_FOUND"),
+        ("/rebalance/runs/rr_missing/artifact", "DPM_RUN_NOT_FOUND"),
+        ("/rebalance/operations/op_missing", "DPM_ASYNC_OPERATION_NOT_FOUND"),
+        (
+            "/rebalance/operations/by-correlation/corr_missing",
+            "DPM_ASYNC_OPERATION_NOT_FOUND",
+        ),
+        ("/rebalance/runs/rr_missing/support-bundle", "DPM_RUN_NOT_FOUND"),
+        (
+            "/rebalance/runs/idempotency/idem_missing/support-bundle",
+            "DPM_IDEMPOTENCY_KEY_NOT_FOUND",
+        ),
+        (
+            "/rebalance/runs/by-operation/op_missing/support-bundle",
+            "DPM_ASYNC_OPERATION_NOT_FOUND",
+        ),
+    ],
+)
+def test_supportability_not_found_matrix(path: str, expected_detail: str) -> None:
+    with TestClient(app) as client:
+        response = client.get(path)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == expected_detail
