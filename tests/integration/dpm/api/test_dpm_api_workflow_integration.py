@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import DPM_IDEMPOTENCY_CACHE, app, get_db_session
@@ -81,3 +82,66 @@ def test_run_list_and_operation_lookup_integration_flow() -> None:
     assert operation.json()["operation_id"] == operation_id
     assert by_correlation.json()["operation_id"] == operation_id
     assert len(listed.json()["items"]) >= 1
+
+
+def test_support_bundle_lookup_variants_roundtrip() -> None:
+    payload = valid_api_payload()
+    payload.pop("options", None)
+    payload["scenarios"] = {"baseline": {"options": {}}}
+    headers = {
+        "Idempotency-Key": "integration-dpm-bundle-1",
+        "X-Correlation-Id": "corr-integration-dpm-bundle-1",
+    }
+
+    with TestClient(app) as client:
+        simulate = client.post("/rebalance/simulate", json=valid_api_payload(), headers=headers)
+        assert simulate.status_code == 200
+        run_id = simulate.json()["rebalance_run_id"]
+
+        accepted = client.post("/rebalance/analyze/async", json=payload, headers=headers)
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        by_run = client.get(f"/rebalance/runs/{run_id}/support-bundle")
+        by_correlation = client.get(
+            "/rebalance/runs/by-correlation/corr-integration-dpm-bundle-1/support-bundle"
+        )
+        by_idempotency = client.get(
+            "/rebalance/runs/idempotency/integration-dpm-bundle-1/support-bundle"
+        )
+        by_operation = client.get(f"/rebalance/runs/by-operation/{operation_id}/support-bundle")
+
+    assert by_run.status_code == 200
+    assert by_correlation.status_code == 200
+    assert by_idempotency.status_code == 200
+    assert by_operation.status_code == 200
+    assert by_run.json()["run"]["rebalance_run_id"] == run_id
+    assert by_correlation.json()["run"]["rebalance_run_id"] == run_id
+    assert by_idempotency.json()["run"]["rebalance_run_id"] == run_id
+
+
+def test_idempotency_history_disabled_by_feature_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    payload = valid_api_payload()
+    headers = {
+        "Idempotency-Key": "integration-dpm-idem-history-1",
+        "X-Correlation-Id": "corr-integration-dpm-idem-history-1",
+    }
+
+    with TestClient(app) as client:
+        simulate = client.post("/rebalance/simulate", json=payload, headers=headers)
+        assert simulate.status_code == 200
+
+        monkeypatch.setenv("DPM_IDEMPOTENCY_HISTORY_APIS_ENABLED", "false")
+        history = client.get("/rebalance/idempotency/integration-dpm-idem-history-1/history")
+
+    assert history.status_code == 404
+    assert history.json()["detail"] == "DPM_IDEMPOTENCY_HISTORY_APIS_DISABLED"
+
+
+def test_supportability_summary_disabled_by_feature_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DPM_SUPPORTABILITY_SUMMARY_APIS_ENABLED", "false")
+    with TestClient(app) as client:
+        response = client.get("/rebalance/supportability/summary")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "DPM_SUPPORTABILITY_SUMMARY_APIS_DISABLED"
