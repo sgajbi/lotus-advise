@@ -1,0 +1,36 @@
+from fastapi.testclient import TestClient
+
+from src.api.main import app
+
+
+def test_health_endpoints_available():
+    client = TestClient(app)
+    health = client.get("/health")
+    live = client.get("/health/live")
+    ready = client.get("/health/ready")
+
+    assert health.status_code == 200
+    assert live.status_code == 200
+    assert ready.status_code == 200
+    assert health.json() == {"status": "ok"}
+    assert live.json() == {"status": "live"}
+    assert ready.json() == {"status": "ready"}
+
+
+def test_correlation_headers_are_exposed():
+    client = TestClient(app)
+    response = client.get(
+        "/integration/capabilities?consumerSystem=BFF&tenantId=default",
+        headers={"X-Correlation-Id": "corr_dpm_1"},
+    )
+    assert response.status_code == 200
+    assert response.headers.get("X-Correlation-Id") == "corr_dpm_1"
+    assert response.headers.get("X-Request-Id")
+    assert response.headers.get("X-Trace-Id")
+
+
+def test_metrics_endpoint_available():
+    client = TestClient(app)
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "http_requests_total" in response.text or "http_request_duration" in response.text

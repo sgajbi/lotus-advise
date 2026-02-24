@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import get_db_session
+from src.api.observability import correlation_id_var, setup_observability
 from src.api.persistence_profile import validate_persistence_profile_guardrails
 from src.api.routers.advisory_simulation import (
     build_proposal_artifact_endpoint,
@@ -109,8 +110,8 @@ app = FastAPI(
     lifespan=_app_lifespan,
 )
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+setup_observability(app)
 
 app.include_router(proposal_lifecycle_router)
 app.include_router(dpm_run_support_router)
@@ -118,6 +119,21 @@ app.include_router(dpm_policy_pack_router)
 app.include_router(dpm_simulation_router)
 app.include_router(advisory_simulation_router)
 app.include_router(integration_capabilities_router)
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/health/live")
+def health_live() -> dict[str, str]:
+    return {"status": "live"}
+
+
+@app.get("/health/ready")
+def health_ready() -> dict[str, str]:
+    return {"status": "ready"}
 
 
 @app.exception_handler(Exception)
@@ -132,6 +148,7 @@ async def unhandled_exception_to_problem_details(request: Request, exc: Exceptio
             "status": 500,
             "detail": "An unexpected error occurred.",
             "instance": str(request.url.path),
+            "correlation_id": correlation_id_var.get() or "",
         },
     )
 
