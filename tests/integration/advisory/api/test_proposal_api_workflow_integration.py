@@ -151,3 +151,81 @@ def test_proposal_lifecycle_disabled_by_feature_flag(monkeypatch: pytest.MonkeyP
 
     assert response.status_code == 404
     assert response.json()["detail"] == "PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED"
+
+
+def test_proposal_async_create_and_operation_lookup_roundtrip() -> None:
+    payload = _base_create_payload("pf_integration_proposal_async_1")
+    headers = {
+        "Idempotency-Key": "integration-proposal-async-create-1",
+        "X-Correlation-Id": "corr-integration-proposal-async-create-1",
+    }
+    with TestClient(app) as client:
+        accepted = client.post("/rebalance/proposals/async", json=payload, headers=headers)
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        by_operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+        by_correlation = client.get(
+            "/rebalance/proposals/operations/by-correlation/corr-integration-proposal-async-create-1"
+        )
+
+    assert by_operation.status_code == 200
+    assert by_correlation.status_code == 200
+    assert by_operation.json()["operation_id"] == operation_id
+    assert by_correlation.json()["operation_id"] == operation_id
+    assert by_operation.json()["status"] in {"SUCCEEDED", "PENDING"}
+
+
+def test_proposal_async_version_roundtrip() -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/rebalance/proposals",
+            json=_base_create_payload("pf_integration_proposal_async_2"),
+            headers={"Idempotency-Key": "integration-proposal-async-version-create-1"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+
+        accepted = client.post(
+            f"/rebalance/proposals/{proposal_id}/versions/async",
+            json={
+                "created_by": "advisor_integration",
+                "metadata": {"title": "Async version"},
+                "simulate_request": _base_create_payload("pf_integration_proposal_async_2")[
+                    "simulate_request"
+                ],
+            },
+            headers={"X-Correlation-Id": "corr-integration-proposal-async-version-1"},
+        )
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+
+    assert operation.status_code == 200
+    assert operation.json()["operation_id"] == operation_id
+    assert operation.json()["status"] in {"SUCCEEDED", "PENDING"}
+
+
+def test_proposal_async_operations_disabled_by_feature_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PROPOSAL_ASYNC_OPERATIONS_ENABLED", "false")
+    payload = _base_create_payload("pf_integration_proposal_async_disabled")
+    with TestClient(app) as client:
+        response = client.post(
+            "/rebalance/proposals/async",
+            json=payload,
+            headers={"Idempotency-Key": "integration-proposal-async-disabled-1"},
+        )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROPOSAL_ASYNC_OPERATIONS_DISABLED"
+
+
+def test_proposal_async_operation_not_found_returns_404() -> None:
+    with TestClient(app) as client:
+        response = client.get("/rebalance/proposals/operations/pop_missing")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"

@@ -145,3 +145,95 @@ def test_supportability_summary_disabled_by_feature_flag(monkeypatch: pytest.Mon
 
     assert response.status_code == 404
     assert response.json()["detail"] == "DPM_SUPPORTABILITY_SUMMARY_APIS_DISABLED"
+
+
+def test_async_operations_disabled_by_feature_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DPM_ASYNC_OPERATIONS_ENABLED", "false")
+    with TestClient(app) as client:
+        response = client.get("/rebalance/operations")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "DPM_ASYNC_OPERATIONS_DISABLED"
+
+
+def test_support_bundle_optional_sections_can_be_disabled() -> None:
+    payload = valid_api_payload()
+    headers = {
+        "Idempotency-Key": "integration-dpm-bundle-optional-1",
+        "X-Correlation-Id": "corr-integration-dpm-bundle-optional-1",
+    }
+    with TestClient(app) as client:
+        simulate = client.post("/rebalance/simulate", json=payload, headers=headers)
+        assert simulate.status_code == 200
+        run_id = simulate.json()["rebalance_run_id"]
+
+        response = client.get(
+            f"/rebalance/runs/{run_id}/support-bundle"
+            "?include_artifact=false&include_async_operation=false&include_idempotency_history=false"
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["run"]["rebalance_run_id"] == run_id
+    assert body["artifact"] is None
+    assert body["async_operation"] is None
+    assert body["idempotency_history"] is None
+
+
+def test_lineage_edge_filtering_roundtrip_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DPM_LINEAGE_APIS_ENABLED", "true")
+    payload = valid_api_payload()
+    headers = {
+        "Idempotency-Key": "integration-dpm-lineage-filter-1",
+        "X-Correlation-Id": "corr-integration-dpm-lineage-filter-1",
+    }
+    with TestClient(app) as client:
+        simulate = client.post("/rebalance/simulate", json=payload, headers=headers)
+        assert simulate.status_code == 200
+        run_id = simulate.json()["rebalance_run_id"]
+
+        filtered = client.get(
+            "/rebalance/lineage/corr-integration-dpm-lineage-filter-1?edge_type=CORRELATION_TO_RUN"
+        )
+
+    assert filtered.status_code == 200
+    edges = filtered.json()["edges"]
+    assert len(edges) == 1
+    assert edges[0]["edge_type"] == "CORRELATION_TO_RUN"
+    assert edges[0]["target_entity_id"] == run_id
+
+
+def test_workflow_actions_and_decision_list_roundtrip(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DPM_WORKFLOW_ENABLED", "true")
+    payload = valid_api_payload()
+    payload["options"]["single_position_max_weight"] = "0.5"
+    headers = {
+        "Idempotency-Key": "integration-dpm-workflow-1",
+        "X-Correlation-Id": "corr-integration-dpm-workflow-1",
+    }
+    with TestClient(app) as client:
+        simulate = client.post("/rebalance/simulate", json=payload, headers=headers)
+        assert simulate.status_code == 200
+        run_id = simulate.json()["rebalance_run_id"]
+
+        approve = client.post(
+            f"/rebalance/runs/{run_id}/workflow/actions",
+            json={
+                "action": "APPROVE",
+                "reason_code": "REVIEW_APPROVED",
+                "comment": None,
+                "actor_id": "integration_reviewer",
+            },
+            headers={"X-Correlation-Id": "corr-integration-dpm-workflow-approve"},
+        )
+        decisions = client.get("/rebalance/workflow/decisions?action=APPROVE&limit=10")
+
+    assert approve.status_code == 200
+    assert decisions.status_code == 200
+    assert approve.json()["workflow_status"] == "APPROVED"
+    items = decisions.json()["items"]
+    assert len(items) >= 1
+    assert any(
+        item["run_id"] == run_id and item["reason_code"] == "REVIEW_APPROVED"
+        for item in items
+    )
