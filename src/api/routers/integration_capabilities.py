@@ -67,6 +67,8 @@ async def get_integration_capabilities(
         "DPM_CAP_WORKFLOW_ENABLED", _env_bool("DPM_WORKFLOW_ENABLED", False)
     )
     async_analysis_enabled = _env_bool("DPM_CAP_ASYNC_ANALYSIS_ENABLED", True)
+    pas_ref_mode_enabled = _env_bool("DPM_CAP_INPUT_MODE_PAS_REF_ENABLED", True)
+    inline_bundle_mode_enabled = _env_bool("DPM_CAP_INPUT_MODE_INLINE_BUNDLE_ENABLED", True)
 
     features = [
         FeatureCapability(
@@ -93,6 +95,18 @@ async def get_integration_capabilities(
             owner_service="DPM",
             description="Asynchronous scenario analysis execution APIs.",
         ),
+        FeatureCapability(
+            key="dpm.execution.stateful_pas_ref",
+            enabled=pas_ref_mode_enabled,
+            owner_service="DPM",
+            description="DPM resolves core inputs from PAS API contracts.",
+        ),
+        FeatureCapability(
+            key="dpm.execution.stateless_inline_bundle",
+            enabled=inline_bundle_mode_enabled,
+            owner_service="DPM",
+            description="DPM executes simulation from request-supplied inline input bundle.",
+        ),
     ]
 
     workflows = [
@@ -111,7 +125,23 @@ async def get_integration_capabilities(
             enabled=async_analysis_enabled,
             required_features=["dpm.analysis.async"],
         ),
+        WorkflowCapability(
+            workflow_key="execution_stateful_pas_ref",
+            enabled=pas_ref_mode_enabled,
+            required_features=["dpm.execution.stateful_pas_ref"],
+        ),
+        WorkflowCapability(
+            workflow_key="execution_stateless_inline_bundle",
+            enabled=inline_bundle_mode_enabled,
+            required_features=["dpm.execution.stateless_inline_bundle"],
+        ),
     ]
+
+    supported_input_modes: list[str] = []
+    if pas_ref_mode_enabled:
+        supported_input_modes.append("pas_ref")
+    if inline_bundle_mode_enabled:
+        supported_input_modes.append("inline_bundle")
 
     return IntegrationCapabilitiesResponse(
         contractVersion="v1",
@@ -121,7 +151,7 @@ async def get_integration_capabilities(
         generatedAt=datetime.now(UTC),
         asOfDate=date.today(),
         policyVersion=os.getenv("DPM_POLICY_VERSION", "tenant-default-v1"),
-        supportedInputModes=["pas_ref", "inline_bundle"],
+        supportedInputModes=supported_input_modes,
         features=features,
         workflows=workflows,
     )

@@ -16,10 +16,14 @@ def test_integration_capabilities_default_contract():
     assert "features" in body
     assert "workflows" in body
     assert body["supportedInputModes"] == ["pas_ref", "inline_bundle"]
+    feature_keys = {item["key"] for item in body["features"]}
+    assert "dpm.execution.stateful_pas_ref" in feature_keys
+    assert "dpm.execution.stateless_inline_bundle" in feature_keys
 
 
 def test_integration_capabilities_env_overrides(monkeypatch):
     monkeypatch.setenv("DPM_CAP_PROPOSAL_LIFECYCLE_ENABLED", "false")
+    monkeypatch.setenv("DPM_CAP_INPUT_MODE_INLINE_BUNDLE_ENABLED", "false")
     monkeypatch.setenv("DPM_POLICY_VERSION", "tenant-x-v2")
 
     with TestClient(app) as client:
@@ -32,3 +36,4 @@ def test_integration_capabilities_env_overrides(monkeypatch):
     assert body["policyVersion"] == "tenant-x-v2"
     features = {item["key"]: item["enabled"] for item in body["features"]}
     assert features["dpm.proposals.lifecycle"] is False
+    assert body["supportedInputModes"] == ["pas_ref"]
