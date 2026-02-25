@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
+import src.api.persistence_profile as persistence_profile
 from src.api.main import app
 from src.api.persistence_profile import (
     app_persistence_profile_name,
@@ -208,3 +209,95 @@ def test_startup_fails_fast_for_policy_pack_dsn_in_production(monkeypatch):
         with TestClient(app):
             pass
     assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN"
+
+
+def test_profile_guardrails_requires_dpm_postgres_backend_name(monkeypatch):
+    monkeypatch.setenv("APP_PERSISTENCE_PROFILE", "PRODUCTION")
+    monkeypatch.setattr(
+        persistence_profile,
+        "supportability_store_backend_name",
+        lambda: "IN_MEMORY",
+    )
+    monkeypatch.setattr(
+        persistence_profile,
+        "supportability_postgres_dsn",
+        lambda: "postgresql://u:p@localhost:5432/db",
+    )
+    monkeypatch.setattr(persistence_profile, "proposal_store_backend_name", lambda: "POSTGRES")
+    monkeypatch.setattr(
+        persistence_profile,
+        "proposal_postgres_dsn",
+        lambda: "postgresql://u:p@localhost:5432/db",
+    )
+    monkeypatch.setattr(
+        persistence_profile,
+        "policy_pack_catalog_required_in_profile",
+        lambda: False,
+    )
+
+    with pytest.raises(RuntimeError) as exc:
+        validate_persistence_profile_guardrails()
+    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES"
+
+
+def test_profile_guardrails_requires_advisory_postgres_backend_name(monkeypatch):
+    monkeypatch.setenv("APP_PERSISTENCE_PROFILE", "PRODUCTION")
+    monkeypatch.setattr(
+        persistence_profile,
+        "supportability_store_backend_name",
+        lambda: "POSTGRES",
+    )
+    monkeypatch.setattr(
+        persistence_profile,
+        "supportability_postgres_dsn",
+        lambda: "postgresql://u:p@localhost:5432/db",
+    )
+    monkeypatch.setattr(persistence_profile, "proposal_store_backend_name", lambda: "IN_MEMORY")
+    monkeypatch.setattr(
+        persistence_profile,
+        "proposal_postgres_dsn",
+        lambda: "postgresql://u:p@localhost:5432/db",
+    )
+    monkeypatch.setattr(
+        persistence_profile,
+        "policy_pack_catalog_required_in_profile",
+        lambda: False,
+    )
+
+    with pytest.raises(RuntimeError) as exc:
+        validate_persistence_profile_guardrails()
+    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES"
+
+
+def test_profile_guardrails_requires_policy_pack_postgres_backend_name(monkeypatch):
+    monkeypatch.setenv("APP_PERSISTENCE_PROFILE", "PRODUCTION")
+    monkeypatch.setattr(
+        persistence_profile,
+        "supportability_store_backend_name",
+        lambda: "POSTGRES",
+    )
+    monkeypatch.setattr(
+        persistence_profile,
+        "supportability_postgres_dsn",
+        lambda: "postgresql://u:p@localhost:5432/db",
+    )
+    monkeypatch.setattr(persistence_profile, "proposal_store_backend_name", lambda: "POSTGRES")
+    monkeypatch.setattr(
+        persistence_profile,
+        "proposal_postgres_dsn",
+        lambda: "postgresql://u:p@localhost:5432/db",
+    )
+    monkeypatch.setattr(
+        persistence_profile,
+        "policy_pack_catalog_required_in_profile",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        persistence_profile,
+        "policy_pack_catalog_backend_name",
+        lambda: "IN_MEMORY",
+    )
+
+    with pytest.raises(RuntimeError) as exc:
+        validate_persistence_profile_guardrails()
+    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES"
