@@ -1,5 +1,4 @@
 import os
-import warnings
 from typing import Annotated, Optional, cast
 
 from fastapi import APIRouter, Header, HTTPException, Path, status
@@ -20,13 +19,10 @@ from src.core.dpm.policy_packs import (
 )
 from src.core.dpm.tenant_policy_packs import build_tenant_policy_pack_resolver
 from src.infrastructure.dpm_policy_packs import (
-    EnvJsonDpmPolicyPackRepository,
     PostgresDpmPolicyPackRepository,
 )
 
 router = APIRouter(tags=["DPM Run Supportability"])
-_ENV_POLICY_PACK_REPOSITORY: EnvJsonDpmPolicyPackRepository | None = None
-_ENV_POLICY_PACK_REPOSITORY_RAW: str | None = None
 
 
 def resolve_dpm_policy_pack(
@@ -59,18 +55,10 @@ def load_dpm_policy_pack_catalog() -> dict[str, DpmPolicyPackDefinition]:
 
 
 def _policy_pack_catalog_backend_name() -> str:
-    value = os.getenv("DPM_POLICY_PACK_CATALOG_BACKEND", "ENV_JSON").strip().upper()
-    if value == "POSTGRES":
-        return "POSTGRES"
-    warnings.warn(
-        (
-            "DPM_POLICY_PACK_CATALOG_BACKEND legacy runtime backend "
-            "(ENV_JSON) is deprecated for runtime; use POSTGRES."
-        ),
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return "ENV_JSON"
+    value = os.getenv("DPM_POLICY_PACK_CATALOG_BACKEND", "POSTGRES").strip().upper()
+    if value != "POSTGRES":
+        raise RuntimeError("DPM_POLICY_PACK_CATALOG_BACKEND_UNSUPPORTED")
+    return value
 
 
 def policy_pack_catalog_backend_name() -> str:
@@ -106,24 +94,16 @@ def _postgres_connection_exception_types() -> tuple[type[BaseException], ...]:
 
 
 def _build_policy_pack_repository() -> DpmPolicyPackRepository:
-    global _ENV_POLICY_PACK_REPOSITORY
-    global _ENV_POLICY_PACK_REPOSITORY_RAW
-    backend = _policy_pack_catalog_backend_name()
-    if backend == "POSTGRES":
-        dsn = _policy_pack_postgres_dsn()
-        if not dsn:
-            raise RuntimeError("DPM_POLICY_PACK_POSTGRES_DSN_REQUIRED")
-        try:
-            return cast(DpmPolicyPackRepository, PostgresDpmPolicyPackRepository(dsn=dsn))
-        except RuntimeError:
-            raise
-        except _postgres_connection_exception_types() as exc:
-            raise RuntimeError("DPM_POLICY_PACK_POSTGRES_CONNECTION_FAILED") from exc
-    raw_catalog = os.getenv("DPM_POLICY_PACK_CATALOG_JSON")
-    if _ENV_POLICY_PACK_REPOSITORY is None or _ENV_POLICY_PACK_REPOSITORY_RAW != raw_catalog:
-        _ENV_POLICY_PACK_REPOSITORY = EnvJsonDpmPolicyPackRepository(catalog_json=raw_catalog)
-        _ENV_POLICY_PACK_REPOSITORY_RAW = raw_catalog
-    return cast(DpmPolicyPackRepository, _ENV_POLICY_PACK_REPOSITORY)
+    _ = _policy_pack_catalog_backend_name()
+    dsn = _policy_pack_postgres_dsn()
+    if not dsn:
+        raise RuntimeError("DPM_POLICY_PACK_POSTGRES_DSN_REQUIRED")
+    try:
+        return cast(DpmPolicyPackRepository, PostgresDpmPolicyPackRepository(dsn=dsn))
+    except RuntimeError:
+        raise
+    except _postgres_connection_exception_types() as exc:
+        raise RuntimeError("DPM_POLICY_PACK_POSTGRES_CONNECTION_FAILED") from exc
 
 
 def _get_policy_pack_repository() -> DpmPolicyPackRepository:
@@ -149,10 +129,8 @@ def _assert_policy_pack_admin_apis_enabled() -> None:
 
 
 def reset_dpm_policy_pack_repository_for_tests() -> None:
-    global _ENV_POLICY_PACK_REPOSITORY
-    global _ENV_POLICY_PACK_REPOSITORY_RAW
-    _ENV_POLICY_PACK_REPOSITORY = None
-    _ENV_POLICY_PACK_REPOSITORY_RAW = None
+    # no cached repository state is maintained in POSTGRES-only runtime mode
+    return None
 
 
 @router.get(

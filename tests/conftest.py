@@ -3,6 +3,7 @@ FILE: tests/conftest.py
 Shared fixtures for engine tests.
 """
 
+import os
 from decimal import Decimal
 from pathlib import Path
 
@@ -13,6 +14,9 @@ from src.core.models import (
     EngineOptions,
     PortfolioSnapshot,
 )
+from src.core.dpm.policy_packs import DpmPolicyPackDefinition, parse_policy_pack_catalog
+from src.infrastructure.dpm_runs import InMemoryDpmRunRepository
+from src.infrastructure.proposals import InMemoryProposalRepository
 
 
 def _has_marker(item: pytest.Item, name: str) -> bool:
@@ -58,4 +62,63 @@ def base_options():
         suppress_dust_trades=True,
         block_on_missing_prices=True,
         single_position_max_weight=None,
+    )
+
+
+class _TestPolicyPackRepository:
+    def __init__(self) -> None:
+        self._overrides: dict[str, DpmPolicyPackDefinition] = {}
+        self._deleted_ids: set[str] = set()
+
+    def _effective_catalog(self) -> dict[str, DpmPolicyPackDefinition]:
+        catalog = parse_policy_pack_catalog(os.getenv("DPM_POLICY_PACK_CATALOG_JSON"))
+        catalog.update(self._overrides)
+        for policy_pack_id in self._deleted_ids:
+            catalog.pop(policy_pack_id, None)
+        return catalog
+
+    def list_policy_packs(self) -> list[DpmPolicyPackDefinition]:
+        return sorted(
+            self._effective_catalog().values(), key=lambda item: item.policy_pack_id
+        )
+
+    def get_policy_pack(self, *, policy_pack_id: str) -> DpmPolicyPackDefinition | None:
+        return self._effective_catalog().get(policy_pack_id)
+
+    def upsert_policy_pack(self, policy_pack: DpmPolicyPackDefinition) -> None:
+        self._overrides[policy_pack.policy_pack_id] = policy_pack
+        self._deleted_ids.discard(policy_pack.policy_pack_id)
+
+    def delete_policy_pack(self, *, policy_pack_id: str) -> bool:
+        if self.get_policy_pack(policy_pack_id=policy_pack_id) is None:
+            return False
+        self._overrides.pop(policy_pack_id, None)
+        self._deleted_ids.add(policy_pack_id)
+        return True
+
+
+@pytest.fixture(autouse=True)
+def postgres_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
+    """Keep runtime contract POSTGRES-only while using deterministic in-memory test doubles."""
+
+    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
+    monkeypatch.setenv("DPM_POLICY_PACK_CATALOG_BACKEND", "POSTGRES")
+    monkeypatch.setenv("DPM_SUPPORTABILITY_POSTGRES_DSN", "postgresql://test:test@localhost:5432/dpm")
+    monkeypatch.setenv("PROPOSAL_POSTGRES_DSN", "postgresql://test:test@localhost:5432/proposals")
+    monkeypatch.setenv("DPM_POLICY_PACK_POSTGRES_DSN", "postgresql://test:test@localhost:5432/policy")
+
+    policy_repo = _TestPolicyPackRepository()
+
+    monkeypatch.setattr(
+        "src.api.routers.dpm_runs_config.PostgresDpmRunRepository",
+        lambda **_kwargs: InMemoryDpmRunRepository(),
+    )
+    monkeypatch.setattr(
+        "src.api.routers.proposals_config.PostgresProposalRepository",
+        lambda **_kwargs: InMemoryProposalRepository(),
+    )
+    monkeypatch.setattr(
+        "src.api.routers.dpm_policy_packs.PostgresDpmPolicyPackRepository",
+        lambda **_kwargs: policy_repo,
     )

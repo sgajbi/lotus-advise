@@ -27,8 +27,11 @@ def test_policy_pack_catalog_postgres_requires_dsn(monkeypatch):
 
 def test_policy_pack_catalog_env_json_backend_deprecated(monkeypatch):
     monkeypatch.delenv("DPM_POLICY_PACK_CATALOG_BACKEND", raising=False)
-    with pytest.warns(DeprecationWarning):
-        assert policy_pack_catalog_backend_name() == "ENV_JSON"
+    assert policy_pack_catalog_backend_name() == "POSTGRES"
+
+    monkeypatch.setenv("DPM_POLICY_PACK_CATALOG_BACKEND", "ENV_JSON")
+    with pytest.raises(RuntimeError, match="DPM_POLICY_PACK_CATALOG_BACKEND_UNSUPPORTED"):
+        policy_pack_catalog_backend_name()
 
 
 def test_policy_pack_postgres_dsn_prefers_explicit_value(monkeypatch):

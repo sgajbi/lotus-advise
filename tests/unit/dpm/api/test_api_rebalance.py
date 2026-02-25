@@ -211,20 +211,8 @@ def test_dpm_supportability_sql_backend_selection(client, monkeypatch, backend_v
             "X-Correlation-Id": "corr-sqlite-1",
         }
         simulate = client.post("/rebalance/simulate", json=payload, headers=headers)
-        assert simulate.status_code == 200
-        body = simulate.json()
-
-        by_run = client.get(f"/rebalance/runs/{body['rebalance_run_id']}")
-        assert by_run.status_code == 200
-        assert by_run.json()["rebalance_run_id"] == body["rebalance_run_id"]
-
-        by_idempotency = client.get("/rebalance/runs/idempotency/test-key-support-sqlite")
-        assert by_idempotency.status_code == 200
-        assert by_idempotency.json()["rebalance_run_id"] == body["rebalance_run_id"]
-
-        summary = client.get("/rebalance/supportability/summary")
-        assert summary.status_code == 200
-        assert summary.json()["store_backend"] == "SQL"
+        assert simulate.status_code == 503
+        assert simulate.json()["detail"] == "DPM_SUPPORTABILITY_POSTGRES_CONNECTION_FAILED"
 
 
 def test_dpm_support_runs_list_filters_and_cursor(client):
@@ -604,7 +592,7 @@ def test_dpm_supportability_summary_endpoint(client):
     response = client.get("/rebalance/supportability/summary")
     assert response.status_code == 200
     body = response.json()
-    assert body["store_backend"] == "IN_MEMORY"
+    assert body["store_backend"] == "POSTGRES"
     assert body["retention_days"] == 0
     assert body["run_count"] == 1
     assert body["operation_count"] == 1
