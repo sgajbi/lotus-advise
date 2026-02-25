@@ -1,0 +1,10 @@
+{
+  "description": "Approved baseline monetary-float findings. New findings fail CI.",
+  "allowlist": [
+    "src/core/models.py:1260:if isinstance(v, dict) and isinstance(v.get(\"amount\"), float):",
+    "src/core/target_generation.py:210:w_model = np.array([float(model_weights.get(i_id, Decimal(\"0.0\"))) for i_id in tradeable_ids])",
+    "src/core/target_generation.py:222:constraints.append(w <= float(options.single_position_max_weight))",
+    "src/core/target_generation.py:251:constraints.append(group_expr <= float(constraint.max_weight))",
+    "src/core/target_generation.py:272:solved_weight = Decimal(str(max(float(w.value[idx]), 0.0))).quantize(Decimal(\"0.0001\"))"
+  ]
+}
