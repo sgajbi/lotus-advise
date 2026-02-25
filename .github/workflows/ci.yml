@@ -63,6 +63,8 @@ jobs:
 
       - name: OpenAPI Gate
         run: make openapi-gate
+      - name: Migration Contract Smoke
+        run: make migration-smoke
 
   test-suites:
     name: Tests (${{ matrix.suite }})

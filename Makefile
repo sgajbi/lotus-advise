@@ -1,4 +1,4 @@
-.PHONY: install check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint format clean run check-deps security-audit openapi-gate pre-commit docker-up docker-down
+.PHONY: install check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint format clean run check-deps security-audit openapi-gate migration-smoke migration-apply pre-commit docker-up docker-down
 
 install:
 	pip install -r requirements.txt
@@ -11,7 +11,7 @@ pre-commit:
 
 check: lint typecheck openapi-gate test
 
-ci: lint typecheck openapi-gate test-all security-audit
+ci: lint typecheck openapi-gate migration-smoke test-all security-audit
 
 test:
 	$(MAKE) test-unit
@@ -67,6 +67,12 @@ typecheck:
 
 openapi-gate:
 	python -m pytest tests/unit/dpm/contracts/test_contract_openapi_supportability_docs.py -q
+
+migration-smoke:
+	python -m pytest tests/unit/shared/dependencies/test_postgres_migrations.py tests/unit/shared/dependencies/test_production_cutover_contract.py -q
+
+migration-apply:
+	python scripts/postgres_migrate.py --target all
 
 lint:
 	ruff check .

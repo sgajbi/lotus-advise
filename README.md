@@ -415,3 +415,14 @@ Solver-mode golden scenarios (RFC-0012):
 python update_goldens.py
 
 ```
+
+## Platform Foundation Commands
+
+- `make migration-smoke`
+- `make migration-apply`
+- `make security-audit`
+
+Standards documentation:
+
+- `docs/standards/migration-contract.md`
+- `docs/standards/data-model-ownership.md`
