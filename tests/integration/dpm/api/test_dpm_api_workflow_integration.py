@@ -84,6 +84,24 @@ def test_run_list_and_operation_lookup_integration_flow() -> None:
     assert len(listed.json()["items"]) >= 1
 
 
+def test_supportability_summary_respects_status_filter() -> None:
+    payload = valid_api_payload()
+    headers = {
+        "Idempotency-Key": "integration-dpm-summary-filter-1",
+        "X-Correlation-Id": "corr-integration-dpm-summary-filter-1",
+    }
+
+    with TestClient(app) as client:
+        simulate = client.post("/rebalance/simulate", json=payload, headers=headers)
+        assert simulate.status_code == 200
+
+        summary = client.get("/rebalance/supportability/summary?status=SUCCESS")
+
+    assert summary.status_code == 200
+    body = summary.json()
+    assert body["run_count"] >= 1
+
+
 def test_support_bundle_lookup_variants_roundtrip() -> None:
     payload = valid_api_payload()
     payload.pop("options", None)
