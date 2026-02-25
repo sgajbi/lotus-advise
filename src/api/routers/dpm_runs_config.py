@@ -1,12 +1,9 @@
 import os
-import warnings
 from typing import cast
 
 from src.core.dpm_runs.repository import DpmRunRepository
 from src.infrastructure.dpm_runs import (
-    InMemoryDpmRunRepository,
     PostgresDpmRunRepository,
-    SqliteDpmRunRepository,
 )
 
 
@@ -53,25 +50,10 @@ def artifact_store_mode() -> str:
 
 
 def supportability_store_backend_name() -> str:
-    backend = os.getenv("DPM_SUPPORTABILITY_STORE_BACKEND", "IN_MEMORY").strip().upper()
-    if backend == "POSTGRES":
-        return "POSTGRES"
-    warnings.warn(
-        (
-            "DPM_SUPPORTABILITY_STORE_BACKEND legacy runtime backends "
-            "(IN_MEMORY/SQL/SQLITE) are deprecated; use POSTGRES."
-        ),
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return "SQL" if backend in {"SQL", "SQLITE"} else "IN_MEMORY"
-
-
-def supportability_sql_path() -> str:
-    return os.getenv(
-        "DPM_SUPPORTABILITY_SQL_PATH",
-        os.getenv("DPM_SUPPORTABILITY_SQLITE_PATH", ".data/dpm_supportability.db"),
-    )
+    backend = os.getenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES").strip().upper()
+    if backend != "POSTGRES":
+        raise RuntimeError("DPM_SUPPORTABILITY_STORE_BACKEND_UNSUPPORTED")
+    return backend
 
 
 def supportability_postgres_dsn() -> str:
@@ -96,19 +78,13 @@ def _postgres_connection_exception_types() -> tuple[type[BaseException], ...]:
 
 
 def build_repository() -> DpmRunRepository:
-    backend = supportability_store_backend_name()
-    if backend == "SQL":
-        return cast(
-            DpmRunRepository, SqliteDpmRunRepository(database_path=supportability_sql_path())
-        )
-    if backend == "POSTGRES":
-        dsn = supportability_postgres_dsn()
-        if not dsn:
-            raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED")
-        try:
-            return cast(DpmRunRepository, PostgresDpmRunRepository(dsn=dsn))
-        except RuntimeError:
-            raise
-        except _postgres_connection_exception_types() as exc:
-            raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_CONNECTION_FAILED") from exc
-    return cast(DpmRunRepository, InMemoryDpmRunRepository())
+    _ = supportability_store_backend_name()
+    dsn = supportability_postgres_dsn()
+    if not dsn:
+        raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_DSN_REQUIRED")
+    try:
+        return cast(DpmRunRepository, PostgresDpmRunRepository(dsn=dsn))
+    except RuntimeError:
+        raise
+    except _postgres_connection_exception_types() as exc:
+        raise RuntimeError("DPM_SUPPORTABILITY_POSTGRES_CONNECTION_FAILED") from exc

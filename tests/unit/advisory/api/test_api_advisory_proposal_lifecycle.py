@@ -134,7 +134,7 @@ def test_proposal_supportability_config_defaults():
         response = client.get("/rebalance/proposals/supportability/config")
         assert response.status_code == 200
         body = response.json()
-        assert body["store_backend"] == "IN_MEMORY"
+        assert body["store_backend"] == "POSTGRES"
         assert body["backend_ready"] is True
         assert body["backend_init_error"] is None
         assert body["lifecycle_enabled"] is True

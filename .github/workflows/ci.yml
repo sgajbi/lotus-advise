@@ -358,7 +358,7 @@ jobs:
           exit_code=$?
           set -e
           test "$exit_code" -ne 0
-          grep -q "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES" dpm_guardrail.log
+          grep -Eq "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES|DPM_SUPPORTABILITY_STORE_BACKEND_UNSUPPORTED" dpm_guardrail.log
 
       - name: Verify Advisory Backend Guardrail
         run: |
@@ -371,7 +371,7 @@ jobs:
           exit_code=$?
           set -e
           test "$exit_code" -ne 0
-          grep -q "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES" advisory_guardrail.log
+          grep -Eq "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES|PROPOSAL_STORE_BACKEND_UNSUPPORTED" advisory_guardrail.log
 
       - name: Verify Policy Pack Backend Guardrail
         run: |
@@ -387,7 +387,7 @@ jobs:
           exit_code=$?
           set -e
           test "$exit_code" -ne 0
-          grep -q "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES" policy_pack_guardrail.log
+          grep -Eq "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES|DPM_POLICY_PACK_CATALOG_BACKEND_UNSUPPORTED" policy_pack_guardrail.log
 
       - name: Verify DPM DSN Guardrail
         run: |

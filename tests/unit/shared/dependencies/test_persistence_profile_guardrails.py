@@ -35,7 +35,7 @@ def test_production_profile_requires_dpm_postgres(monkeypatch):
 
     with pytest.raises(RuntimeError) as exc:
         validate_persistence_profile_guardrails()
-    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES"
+    assert str(exc.value) == "DPM_SUPPORTABILITY_STORE_BACKEND_UNSUPPORTED"
 
 
 def test_production_profile_requires_advisory_postgres(monkeypatch):
@@ -48,7 +48,7 @@ def test_production_profile_requires_advisory_postgres(monkeypatch):
 
     with pytest.raises(RuntimeError) as exc:
         validate_persistence_profile_guardrails()
-    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES"
+    assert str(exc.value) == "PROPOSAL_STORE_BACKEND_UNSUPPORTED"
 
 
 def test_production_profile_requires_policy_pack_postgres_when_enabled(monkeypatch):
@@ -62,7 +62,7 @@ def test_production_profile_requires_policy_pack_postgres_when_enabled(monkeypat
 
     with pytest.raises(RuntimeError) as exc:
         validate_persistence_profile_guardrails()
-    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES"
+    assert str(exc.value) == "DPM_POLICY_PACK_CATALOG_BACKEND_UNSUPPORTED"
 
 
 def test_production_profile_allows_postgres_backends(monkeypatch):
@@ -132,7 +132,7 @@ def test_startup_fails_fast_for_production_profile_misconfiguration(monkeypatch)
     with pytest.raises(RuntimeError) as exc:
         with TestClient(app):
             pass
-    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES"
+    assert str(exc.value) == "DPM_SUPPORTABILITY_STORE_BACKEND_UNSUPPORTED"
 
 
 def test_startup_fails_fast_for_advisory_backend_in_production(monkeypatch):
@@ -146,7 +146,7 @@ def test_startup_fails_fast_for_advisory_backend_in_production(monkeypatch):
     with pytest.raises(RuntimeError) as exc:
         with TestClient(app):
             pass
-    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES"
+    assert str(exc.value) == "PROPOSAL_STORE_BACKEND_UNSUPPORTED"
 
 
 def test_startup_fails_fast_for_policy_pack_backend_in_production(monkeypatch):
@@ -161,7 +161,7 @@ def test_startup_fails_fast_for_policy_pack_backend_in_production(monkeypatch):
     with pytest.raises(RuntimeError) as exc:
         with TestClient(app):
             pass
-    assert str(exc.value) == "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES"
+    assert str(exc.value) == "DPM_POLICY_PACK_CATALOG_BACKEND_UNSUPPORTED"
 
 
 def test_startup_fails_fast_for_dpm_dsn_in_production(monkeypatch):

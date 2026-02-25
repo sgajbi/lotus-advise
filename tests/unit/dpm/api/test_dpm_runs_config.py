@@ -7,35 +7,14 @@ from src.api.routers import dpm_runs_config
 
 def test_supportability_backend_aliases_and_defaults(monkeypatch):
     monkeypatch.delenv("DPM_SUPPORTABILITY_STORE_BACKEND", raising=False)
-    with pytest.warns(DeprecationWarning):
-        assert dpm_runs_config.supportability_store_backend_name() == "IN_MEMORY"
-
-    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "SQL")
-    with pytest.warns(DeprecationWarning):
-        assert dpm_runs_config.supportability_store_backend_name() == "SQL"
-
-    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "SQLITE")
-    with pytest.warns(DeprecationWarning):
-        assert dpm_runs_config.supportability_store_backend_name() == "SQL"
-
-    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "unknown")
-    with pytest.warns(DeprecationWarning):
-        assert dpm_runs_config.supportability_store_backend_name() == "IN_MEMORY"
+    assert dpm_runs_config.supportability_store_backend_name() == "POSTGRES"
 
     monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
     assert dpm_runs_config.supportability_store_backend_name() == "POSTGRES"
 
-
-def test_supportability_sql_path_prefers_new_env_var(monkeypatch):
-    monkeypatch.delenv("DPM_SUPPORTABILITY_SQL_PATH", raising=False)
-    monkeypatch.delenv("DPM_SUPPORTABILITY_SQLITE_PATH", raising=False)
-    assert dpm_runs_config.supportability_sql_path() == ".data/dpm_supportability.db"
-
-    monkeypatch.setenv("DPM_SUPPORTABILITY_SQLITE_PATH", "legacy.sqlite")
-    assert dpm_runs_config.supportability_sql_path() == "legacy.sqlite"
-
-    monkeypatch.setenv("DPM_SUPPORTABILITY_SQL_PATH", "preferred.sqlite")
-    assert dpm_runs_config.supportability_sql_path() == "preferred.sqlite"
+    monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "SQLITE")
+    with pytest.raises(RuntimeError, match="DPM_SUPPORTABILITY_STORE_BACKEND_UNSUPPORTED"):
+        dpm_runs_config.supportability_store_backend_name()
 
 
 def test_supportability_postgres_dsn(monkeypatch):
