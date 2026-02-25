@@ -15,6 +15,7 @@ from src.core.models import (
     RuleResult,
     SecurityTradeIntent,
 )
+from src.core.precision_policy import to_decimal
 
 _CURRENCY_MINOR_UNITS = {
     "BHD": 3,
@@ -72,7 +73,7 @@ def apply_fx_spot_to_portfolio(portfolio: PortfolioSnapshot, intent: ProposalOrd
 def quantize_amount_for_currency(amount: Decimal, currency: str) -> Decimal:
     digits = _CURRENCY_MINOR_UNITS.get(currency, 2)
     quantum = Decimal("1") if digits == 0 else Decimal(f"1e-{digits}")
-    return amount.quantize(quantum)
+    return to_decimal(amount).quantize(quantum)
 
 
 def sort_execution_intents(intents: list[ProposalOrderIntent]) -> list[ProposalOrderIntent]:
