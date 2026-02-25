@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -46,3 +48,15 @@ def test_traceparent_header_propagates_trace_id():
     assert response.status_code == 200
     assert response.headers.get("X-Trace-Id") == upstream_trace_id
     assert response.headers.get("traceparent", "").startswith(f"00-{upstream_trace_id}-")
+
+
+def test_load_concurrency_health_live_requests():
+    client = TestClient(app)
+
+    def _call_live() -> int:
+        return client.get("/health/live").status_code
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        statuses = list(pool.map(lambda _: _call_live(), range(32)))
+
+    assert all(status == 200 for status in statuses)

@@ -29,6 +29,20 @@ This repository adopts the platform-wide standard defined in pbwm-platform-docs/
 - Recovery targets: RTO 30 minutes and RPO 15 minutes for persisted DPM operations.
 - Backup and restore validation is required for proposal/run stores in every deployment environment.
 
+## Caching Policy Baseline
+
+- DPM only permits explicit bounded caches for idempotency and workflow supportability lookups.
+- Cache use-cases must define TTL and max-size controls with clear invalidation ownership.
+- Stale-read behavior is disallowed for correctness-critical rebalance outcomes; stale supportability reads must be explicitly documented.
+
+## Scale Signal Metrics Coverage
+
+- DPM exports `/metrics` for HTTP and workflow instrumentation.
+- Platform-shared infrastructure metrics for CPU/memory, DB latency/pool behavior, and queue lag are sourced from:
+  - `pbwm-platform-docs/platform-stack/prometheus/prometheus.yml`
+  - `pbwm-platform-docs/platform-stack/docker-compose.yml`
+  - `pbwm-platform-docs/Platform Observability Standards.md`
+
 ## Deviation Rule
 
 Any deviation from this standard requires ADR/RFC with remediation timeline.
