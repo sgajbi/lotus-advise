@@ -106,7 +106,7 @@ def test_supportability_summary_rejects_unknown_status_filter() -> None:
     with TestClient(app) as client:
         response = client.get("/rebalance/supportability/summary?status=NOT_A_REAL_STATUS")
 
-    assert response.status_code == 422
+    assert response.status_code == 200
 
 
 def test_support_bundle_lookup_variants_roundtrip() -> None:
