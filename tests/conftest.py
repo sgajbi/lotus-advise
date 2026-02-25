@@ -9,12 +9,12 @@ from pathlib import Path
 
 import pytest
 
+from src.core.dpm.policy_packs import DpmPolicyPackDefinition, parse_policy_pack_catalog
 from src.core.models import (
     CashBalance,
     EngineOptions,
     PortfolioSnapshot,
 )
-from src.core.dpm.policy_packs import DpmPolicyPackDefinition, parse_policy_pack_catalog
 from src.infrastructure.dpm_runs import InMemoryDpmRunRepository
 from src.infrastructure.proposals import InMemoryProposalRepository
 
@@ -78,9 +78,7 @@ class _TestPolicyPackRepository:
         return catalog
 
     def list_policy_packs(self) -> list[DpmPolicyPackDefinition]:
-        return sorted(
-            self._effective_catalog().values(), key=lambda item: item.policy_pack_id
-        )
+        return sorted(self._effective_catalog().values(), key=lambda item: item.policy_pack_id)
 
     def get_policy_pack(self, *, policy_pack_id: str) -> DpmPolicyPackDefinition | None:
         return self._effective_catalog().get(policy_pack_id)
@@ -104,9 +102,13 @@ def postgres_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("DPM_SUPPORTABILITY_STORE_BACKEND", "POSTGRES")
     monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
     monkeypatch.setenv("DPM_POLICY_PACK_CATALOG_BACKEND", "POSTGRES")
-    monkeypatch.setenv("DPM_SUPPORTABILITY_POSTGRES_DSN", "postgresql://test:test@localhost:5432/dpm")
+    monkeypatch.setenv(
+        "DPM_SUPPORTABILITY_POSTGRES_DSN", "postgresql://test:test@localhost:5432/dpm"
+    )
     monkeypatch.setenv("PROPOSAL_POSTGRES_DSN", "postgresql://test:test@localhost:5432/proposals")
-    monkeypatch.setenv("DPM_POLICY_PACK_POSTGRES_DSN", "postgresql://test:test@localhost:5432/policy")
+    monkeypatch.setenv(
+        "DPM_POLICY_PACK_POSTGRES_DSN", "postgresql://test:test@localhost:5432/policy"
+    )
 
     policy_repo = _TestPolicyPackRepository()
 
