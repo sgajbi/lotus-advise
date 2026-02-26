@@ -20,7 +20,7 @@ class JsonFormatter(logging.Formatter):
         payload = {
             "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
-            "service": os.getenv("SERVICE_NAME", "dpm-rebalance-engine"),
+            "service": os.getenv("SERVICE_NAME", "lotus-advise"),
             "environment": os.getenv("ENVIRONMENT", "local"),
             "logger": record.name,
             "message": record.getMessage(),

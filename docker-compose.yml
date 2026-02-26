@@ -1,9 +1,9 @@
 services:
-  dpm-rebalance-engine:
+  lotus-advise:
     build:
       context: .
       dockerfile: Dockerfile
-    image: dpm-rebalance-engine:latest
+    image: lotus-advise:latest
     init: true
     restart: unless-stopped
     ports:
@@ -55,3 +55,5 @@ services:
 
 volumes:
   dpm-postgres-data:
+
+

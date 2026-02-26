@@ -1,7 +1,7 @@
 # RFC-0036: PostgreSQL-Only Runtime Hard Cutover
 
 ## Problem Statement
-`dpm-rebalance-engine` still contains legacy runtime backend support paths (`IN_MEMORY`, `SQL`, `SQLITE`, `ENV_JSON`) even though platform direction is strict PostgreSQL-owned persistence for runtime services.
+`lotus-advise` still contains legacy runtime backend support paths (`IN_MEMORY`, `SQL`, `SQLITE`, `ENV_JSON`) even though platform direction is strict PostgreSQL-owned persistence for runtime services.
 
 ## Root Cause
 - Prior RFCs transitioned production mode first, but retained legacy runtime backends for transitional compatibility.
@@ -40,3 +40,4 @@ Mitigations:
 - Runtime backend selection no longer supports legacy values.
 - Test suites validate strict POSTGRES-only configuration.
 - Documentation consistently describes PostgreSQL-only runtime behavior.
+

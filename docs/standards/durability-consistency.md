@@ -1,6 +1,6 @@
 # Durability and Consistency Standard (DPM)
 
-- Standard reference: `pbwm-platform-docs/Durability and Consistency Standard.md`
+- Standard reference: `lotus-platform/Durability and Consistency Standard.md`
 - Scope: discretionary and advisory workflow simulation/lifecycle write operations.
 - Change control: RFC required for policy changes; ADR required for temporary exceptions.
 
@@ -64,4 +64,5 @@
 ## Deviations
 
 - Deviation from idempotent write semantics or durable workflow persistence requires ADR with expiry review date.
+
 

@@ -5,7 +5,7 @@ Standards for all current and future RFCs:
 
 Governance boundary:
 - Service-specific implementation RFCs belong in this repository.
-- Cross-cutting platform and multi-service RFCs belong in `https://github.com/sgajbi/pbwm-platform-docs`.
+- Cross-cutting platform and multi-service RFCs belong in `https://github.com/sgajbi/lotus-platform`.
 
 | RFC | Title | Status | Depends On | File |
 | --- | --- | --- | --- | --- |
@@ -50,3 +50,4 @@ Governance boundary:
 | RFC-0034 | DPM Pyramid Wave 5 (Integration Boundary Expansion) | IMPLEMENTED | RFC-0033 | `docs/rfcs/RFC-0034-dpm-pyramid-wave-5-integration-boundary-expansion.md` |
 | RFC-0035 | DPM Pyramid Wave 6 (Repository Integration Depth Expansion) | PROPOSED | RFC-0034 | `docs/rfcs/RFC-0035-dpm-pyramid-wave-6-repository-integration-depth-expansion.md` |
 | RFC-0036 | PostgreSQL-Only Runtime Hard Cutover | PROPOSED | RFC-0025, RFC-0024 | `docs/rfcs/RFC-0036-postgres-only-runtime-hard-cutover.md` |
+

@@ -1,6 +1,6 @@
 # Enterprise Readiness Baseline (DPM)
 
-- Standard reference: `pbwm-platform-docs/Enterprise Readiness Standard.md`
+- Standard reference: `lotus-platform/Enterprise Readiness Standard.md`
 - Scope: discretionary/advisory decision workflows, policy enforcement, and run supportability APIs.
 - Change control: RFC for platform-level changes, ADR for temporary exceptions.
 
@@ -62,3 +62,4 @@ Evidence:
 ## Deviations
 
 - Deviations require ADR with mitigation and expiry review date.
+
