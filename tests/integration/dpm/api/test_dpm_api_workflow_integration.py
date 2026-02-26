@@ -205,6 +205,28 @@ def test_support_bundle_optional_sections_can_be_disabled() -> None:
     assert body["idempotency_history"] is None
 
 
+def test_health_endpoints_integration_contract() -> None:
+    with TestClient(app) as client:
+        live = client.get("/health/live")
+        ready = client.get("/health/ready")
+
+    assert live.status_code == 200
+    assert ready.status_code == 200
+    assert live.json()["status"] == "live"
+    assert ready.json()["status"] == "ready"
+
+
+def test_integration_capabilities_contract_default_consumer() -> None:
+    with TestClient(app) as client:
+        response = client.get("/integration/capabilities?consumerSystem=BFF&tenantId=default")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["contractVersion"] == "v1"
+    assert body["sourceService"] == "dpm-rebalance-engine"
+    assert "pas_ref" in body["supportedInputModes"]
+
+
 def test_lineage_edge_filtering_roundtrip_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DPM_LINEAGE_APIS_ENABLED", "true")
     payload = valid_api_payload()
