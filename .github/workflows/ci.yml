@@ -1,4 +1,4 @@
-name: DPM Rebalance Engine Pipeline
+name: Lotus Advise Pipeline
 
 on:
   push:
@@ -63,6 +63,7 @@ jobs:
 
       - name: OpenAPI Gate
         run: make openapi-gate
+
       - name: Migration Contract Smoke
         run: make migration-smoke
 
@@ -193,7 +194,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t dpm-rebalance-engine:ci-test .
+          docker build -t lotus-advise:ci-test .
 
   postgres-migration-smoke:
     name: Postgres Migration Smoke
@@ -204,21 +205,19 @@ jobs:
       postgres:
         image: postgres:17.6
         env:
-          POSTGRES_DB: dpm_supportability
-          POSTGRES_USER: dpm
-          POSTGRES_PASSWORD: dpm
+          POSTGRES_DB: lotus_advise
+          POSTGRES_USER: lotus
+          POSTGRES_PASSWORD: lotus
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U dpm -d dpm_supportability"
+          --health-cmd "pg_isready -U lotus -d lotus_advise"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
     env:
-      DPM_SUPPORTABILITY_POSTGRES_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
-      PROPOSAL_POSTGRES_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
-      DPM_POSTGRES_INTEGRATION_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
-      PROPOSAL_POSTGRES_INTEGRATION_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
+      PROPOSAL_POSTGRES_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
+      PROPOSAL_POSTGRES_INTEGRATION_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -241,14 +240,12 @@ jobs:
 
       - name: Apply Postgres Migrations
         run: |
-          python scripts/postgres_migrate.py --target all
+          python scripts/postgres_migrate.py --target proposals
 
       - name: Run Postgres Integration Contract Tests
         run: |
-          test -f tests/integration/dpm/supportability/test_dpm_postgres_repository_integration.py
           test -f tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py
-          test -f tests/integration/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
-          python -m pytest -q tests/integration/dpm/supportability/test_dpm_postgres_repository_integration.py tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py tests/integration/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
+          python -m pytest -q tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py
 
   production-profile-smoke:
     name: Production Profile Startup Smoke
@@ -259,25 +256,20 @@ jobs:
       postgres:
         image: postgres:17.6
         env:
-          POSTGRES_DB: dpm_supportability
-          POSTGRES_USER: dpm
-          POSTGRES_PASSWORD: dpm
+          POSTGRES_DB: lotus_advise
+          POSTGRES_USER: lotus
+          POSTGRES_PASSWORD: lotus
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U dpm -d dpm_supportability"
+          --health-cmd "pg_isready -U lotus -d lotus_advise"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
     env:
       APP_PERSISTENCE_PROFILE: PRODUCTION
-      DPM_SUPPORTABILITY_STORE_BACKEND: POSTGRES
-      DPM_SUPPORTABILITY_POSTGRES_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
       PROPOSAL_STORE_BACKEND: POSTGRES
-      PROPOSAL_POSTGRES_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
-      DPM_POLICY_PACKS_ENABLED: "true"
-      DPM_POLICY_PACK_CATALOG_BACKEND: POSTGRES
-      DPM_POLICY_PACK_POSTGRES_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
+      PROPOSAL_POSTGRES_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -300,11 +292,7 @@ jobs:
 
       - name: Apply Postgres Migrations
         run: |
-          python scripts/postgres_migrate.py --target all
-
-      - name: Validate Production Cutover Contract
-        run: |
-          python scripts/production_cutover_check.py --check-migrations
+          python scripts/postgres_migrate.py --target proposals
 
       - name: Start API in Production Profile
         run: |
@@ -315,7 +303,7 @@ jobs:
       - name: Verify Startup and Core Endpoints
         run: |
           curl -fsS http://127.0.0.1:8002/docs > /dev/null
-          curl -fsS "http://127.0.0.1:8002/rebalance/policies/effective" > /dev/null
+          curl -fsS http://127.0.0.1:8002/health > /dev/null
           curl -fsS "http://127.0.0.1:8002/rebalance/proposals?limit=1" > /dev/null
 
       - name: Stop API
@@ -350,24 +338,10 @@ jobs:
         run: |
           pip check
 
-      - name: Verify DPM Backend Guardrail
-        run: |
-          set +e
-          APP_PERSISTENCE_PROFILE=PRODUCTION \
-          DPM_SUPPORTABILITY_STORE_BACKEND=IN_MEMORY \
-          PROPOSAL_STORE_BACKEND=POSTGRES \
-          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8003 > dpm_guardrail.log 2>&1
-          exit_code=$?
-          set -e
-          test "$exit_code" -ne 0
-          grep -Eq "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES|DPM_SUPPORTABILITY_STORE_BACKEND_UNSUPPORTED" dpm_guardrail.log
-
       - name: Verify Advisory Backend Guardrail
         run: |
           set +e
           APP_PERSISTENCE_PROFILE=PRODUCTION \
-          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
-          DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
           PROPOSAL_STORE_BACKEND=IN_MEMORY \
           python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8004 > advisory_guardrail.log 2>&1
           exit_code=$?
@@ -375,60 +349,13 @@ jobs:
           test "$exit_code" -ne 0
           grep -Eq "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES|PROPOSAL_STORE_BACKEND_UNSUPPORTED" advisory_guardrail.log
 
-      - name: Verify Policy Pack Backend Guardrail
-        run: |
-          set +e
-          APP_PERSISTENCE_PROFILE=PRODUCTION \
-          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
-          DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
-          PROPOSAL_STORE_BACKEND=POSTGRES \
-          PROPOSAL_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
-          DPM_POLICY_PACKS_ENABLED=true \
-          DPM_POLICY_PACK_CATALOG_BACKEND=ENV_JSON \
-          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8005 > policy_pack_guardrail.log 2>&1
-          exit_code=$?
-          set -e
-          test "$exit_code" -ne 0
-          grep -Eq "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES|DPM_POLICY_PACK_CATALOG_BACKEND_UNSUPPORTED" policy_pack_guardrail.log
-
-      - name: Verify DPM DSN Guardrail
-        run: |
-          set +e
-          APP_PERSISTENCE_PROFILE=PRODUCTION \
-          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
-          PROPOSAL_STORE_BACKEND=POSTGRES \
-          PROPOSAL_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
-          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8006 > dpm_dsn_guardrail.log 2>&1
-          exit_code=$?
-          set -e
-          test "$exit_code" -ne 0
-          grep -q "PERSISTENCE_PROFILE_REQUIRES_DPM_POSTGRES_DSN" dpm_dsn_guardrail.log
-
       - name: Verify Advisory DSN Guardrail
         run: |
           set +e
           APP_PERSISTENCE_PROFILE=PRODUCTION \
-          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
-          DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
           PROPOSAL_STORE_BACKEND=POSTGRES \
           python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8007 > advisory_dsn_guardrail.log 2>&1
           exit_code=$?
           set -e
           test "$exit_code" -ne 0
           grep -q "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN" advisory_dsn_guardrail.log
-
-      - name: Verify Policy Pack DSN Guardrail
-        run: |
-          set +e
-          APP_PERSISTENCE_PROFILE=PRODUCTION \
-          DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES \
-          DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
-          PROPOSAL_STORE_BACKEND=POSTGRES \
-          PROPOSAL_POSTGRES_DSN=postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability \
-          DPM_POLICY_PACKS_ENABLED=true \
-          DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES \
-          python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8008 > policy_pack_dsn_guardrail.log 2>&1
-          exit_code=$?
-          set -e
-          test "$exit_code" -ne 0
-          grep -q "PERSISTENCE_PROFILE_REQUIRES_POLICY_PACK_POSTGRES_DSN" policy_pack_dsn_guardrail.log

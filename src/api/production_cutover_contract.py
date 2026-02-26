@@ -4,7 +4,10 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
-from src.api.persistence_profile import app_persistence_profile_name, validate_persistence_profile_guardrails
+from src.api.persistence_profile import (
+    app_persistence_profile_name,
+    validate_persistence_profile_guardrails,
+)
 from src.api.routers.proposals_config import proposal_postgres_dsn
 
 
@@ -33,17 +36,24 @@ def validate_cutover_migrations_applied() -> None:
 
 
 def expected_migration_versions(*, namespace: str) -> list[str]:
-    migrations_path = Path(__file__).parents[1] / "infrastructure" / "postgres_migrations" / namespace
+    migrations_path = (
+        Path(__file__).parents[1] / "infrastructure" / "postgres_migrations" / namespace
+    )
     if not migrations_path.exists():
         raise RuntimeError(f"POSTGRES_MIGRATIONS_NAMESPACE_NOT_FOUND:{namespace}")
-    versions = [migration_path.stem.split("_", maxsplit=1)[0] for migration_path in sorted(migrations_path.glob("*.sql"))]
+    versions = [
+        migration_path.stem.split("_", maxsplit=1)[0]
+        for migration_path in sorted(migrations_path.glob("*.sql"))
+    ]
     if not versions:
         raise RuntimeError(f"CUTOVER_MIGRATIONS_EMPTY:{namespace}")
     return versions
 
 
 def applied_migration_versions(*, connection: Any, namespace: str) -> list[str]:
-    exists_row = connection.execute("SELECT to_regclass('public.schema_migrations') AS regclass").fetchone()
+    exists_row = connection.execute(
+        "SELECT to_regclass('public.schema_migrations') AS regclass"
+    ).fetchone()
     if not exists_row or exists_row["regclass"] is None:
         raise RuntimeError("CUTOVER_SCHEMA_MIGRATIONS_TABLE_MISSING")
     rows = connection.execute(
@@ -55,9 +65,12 @@ def applied_migration_versions(*, connection: Any, namespace: str) -> list[str]:
         """,
         (namespace,),
     ).fetchall()
-    return [normalize_stored_migration_version(namespace=namespace, stored_version=row["version"]) for row in rows]
+    return [
+        normalize_stored_migration_version(namespace=namespace, stored_version=row["version"])
+        for row in rows
+    ]
 
 
 def normalize_stored_migration_version(*, namespace: str, stored_version: str) -> str:
     prefix = f"{namespace}:"
-    return stored_version[len(prefix):] if stored_version.startswith(prefix) else stored_version
+    return stored_version[len(prefix) :] if stored_version.startswith(prefix) else stored_version

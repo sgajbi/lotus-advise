@@ -18,7 +18,11 @@ def _has_marker(item: pytest.Item, name: str) -> bool:
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in items:
-        if _has_marker(item, "unit") or _has_marker(item, "integration") or _has_marker(item, "e2e"):
+        if (
+            _has_marker(item, "unit")
+            or _has_marker(item, "integration")
+            or _has_marker(item, "e2e")
+        ):
             continue
         path = Path(str(item.fspath)).as_posix().lower()
         if "/tests/integration/" in path or "_integration.py" in path:

@@ -85,4 +85,3 @@ async def get_integration_capabilities(
             ),
         ],
     )
-

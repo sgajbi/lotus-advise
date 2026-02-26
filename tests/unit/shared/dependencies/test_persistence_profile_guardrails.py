@@ -3,7 +3,10 @@ from fastapi.testclient import TestClient
 
 import src.api.persistence_profile as persistence_profile
 from src.api.main import app
-from src.api.persistence_profile import app_persistence_profile_name, validate_persistence_profile_guardrails
+from src.api.persistence_profile import (
+    app_persistence_profile_name,
+    validate_persistence_profile_guardrails,
+)
 
 
 def test_persistence_profile_defaults_to_local(monkeypatch):
