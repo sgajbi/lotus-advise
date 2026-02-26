@@ -8,6 +8,10 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import get_db_session
+from src.api.enterprise_readiness import (
+    build_enterprise_audit_middleware,
+    validate_enterprise_runtime_config,
+)
 from src.api.observability import correlation_id_var, setup_observability
 from src.api.persistence_profile import validate_persistence_profile_guardrails
 from src.api.routers.advisory_simulation import (
@@ -112,6 +116,8 @@ app = FastAPI(
 
 logger = logging.getLogger(__name__)
 setup_observability(app)
+validate_enterprise_runtime_config()
+app.middleware("http")(build_enterprise_audit_middleware())
 
 app.include_router(proposal_lifecycle_router)
 app.include_router(dpm_run_support_router)
