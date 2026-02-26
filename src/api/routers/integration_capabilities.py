@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
-ConsumerSystem = Literal["BFF", "PA", "UI", "UNKNOWN"]
+ConsumerSystem = Literal["lotus-gateway", "lotus-performance", "UI", "UNKNOWN"]
 
 
 class FeatureCapability(BaseModel):
@@ -48,7 +48,7 @@ def _env_bool(name: str, default: bool) -> bool:
 
 @router.get("/platform/capabilities", response_model=IntegrationCapabilitiesResponse)
 async def get_integration_capabilities(
-    consumer_system: ConsumerSystem = Query("BFF", alias="consumerSystem"),
+    consumer_system: ConsumerSystem = Query("lotus-gateway", alias="consumerSystem"),
     tenant_id: str = Query("default", alias="tenantId"),
 ) -> IntegrationCapabilitiesResponse:
     lifecycle_enabled = _env_bool("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", True)
