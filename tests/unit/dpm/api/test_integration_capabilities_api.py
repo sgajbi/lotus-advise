@@ -37,4 +37,3 @@ def test_integration_capabilities_env_overrides(monkeypatch):
     features = {item["key"]: item["enabled"] for item in body["features"]}
     assert features["dpm.proposals.lifecycle"] is False
     assert body["supportedInputModes"] == ["pas_ref"]
-

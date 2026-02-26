@@ -155,4 +155,3 @@ async def get_integration_capabilities(
         features=features,
         workflows=workflows,
     )
-
