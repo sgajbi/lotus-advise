@@ -90,9 +90,9 @@ def test_demo_scenario_execution(filename, expected_status):
 
     result = run_simulation(portfolio, market_data, model, shelf, options)
 
-    assert (
-        result.status == expected_status
-    ), f"Scenario {filename} failed. Got {result.status}, expected {expected_status}"
+    assert result.status == expected_status, (
+        f"Scenario {filename} failed. Got {result.status}, expected {expected_status}"
+    )
 
 
 async def _override_get_db_session():
