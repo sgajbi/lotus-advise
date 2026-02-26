@@ -66,13 +66,13 @@ typecheck:
 	mypy --config-file mypy.ini
 
 openapi-gate:
-	python -m pytest tests/unit/dpm/contracts/test_contract_openapi_supportability_docs.py -q
+	python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py -q
 
 migration-smoke:
-	python -m pytest tests/unit/shared/dependencies/test_postgres_migrations.py tests/unit/shared/dependencies/test_production_cutover_contract.py -q
+	python -m pytest tests/unit/shared/dependencies/test_persistence_profile_guardrails.py -q
 
 migration-apply:
-	python scripts/postgres_migrate.py --target all
+	python scripts/postgres_migrate.py --target proposals
 
 lint:
 	ruff check .
