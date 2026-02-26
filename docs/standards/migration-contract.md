@@ -1,6 +1,6 @@
 # Migration Contract Standard
 
-- Service: `dpm-rebalance-engine`
+- Service: `lotus-advise`
 - Persistence mode: PostgreSQL with forward-only SQL migration packs.
 - Migration policy: versioned migrations with checksum validation and namespace-scoped locking.
 
@@ -17,3 +17,4 @@
 
 - Applied migration files are immutable.
 - Rollback strategy is forward-fix with a new migration plus cutover validation.
+

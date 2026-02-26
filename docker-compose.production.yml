@@ -1,5 +1,5 @@
 services:
-  dpm-rebalance-engine:
+  lotus-advise:
     environment:
       - APP_PERSISTENCE_PROFILE=PRODUCTION
       - DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES
@@ -9,3 +9,5 @@ services:
       - DPM_POLICY_PACKS_ENABLED=true
       - DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES
       - DPM_POLICY_PACK_POSTGRES_DSN=postgresql://dpm:dpm@postgres:5432/dpm_supportability
+
+

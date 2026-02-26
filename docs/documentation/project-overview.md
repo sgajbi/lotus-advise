@@ -12,7 +12,7 @@ The platform provides deterministic portfolio decisioning APIs for:
 - **Advisory proposals** (advisor-entered cash flows and manual trades).
 
 Architecture authority:
-- Platform-wide integration and architecture standards are maintained centrally in `https://github.com/sgajbi/pbwm-platform-docs`.
+- Platform-wide integration and architecture standards are maintained centrally in `https://github.com/sgajbi/lotus-platform`.
 - This repository documents service-local implementation details and service-specific RFCs only.
 
 Both flows produce structured, auditable outputs with:
@@ -101,3 +101,4 @@ Keep DPM and advisory behavior separated by business logic, while sharing:
 - control semantics,
 - deterministic primitives,
 - test and audit standards.
+

@@ -44,7 +44,7 @@ Primary implementation guide:
 * `docs/documentation/git-branch-protection-workflow.md` (daily branch + PR commands)
 
 Platform-wide architecture and cross-cutting standards authority:
-* `https://github.com/sgajbi/pbwm-platform-docs`
+* `https://github.com/sgajbi/lotus-platform`
 
 ---
 
@@ -426,3 +426,4 @@ Standards documentation:
 
 - `docs/standards/migration-contract.md`
 - `docs/standards/data-model-ownership.md`
+

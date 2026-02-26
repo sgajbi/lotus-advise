@@ -10,7 +10,7 @@ def test_integration_capabilities_default_contract():
     assert response.status_code == 200
     body = response.json()
     assert body["contractVersion"] == "v1"
-    assert body["sourceService"] == "dpm-rebalance-engine"
+    assert body["sourceService"] == "lotus-advise"
     assert body["consumerSystem"] == "BFF"
     assert body["tenantId"] == "default"
     assert "features" in body
@@ -37,3 +37,4 @@ def test_integration_capabilities_env_overrides(monkeypatch):
     features = {item["key"]: item["enabled"] for item in body["features"]}
     assert features["dpm.proposals.lifecycle"] is False
     assert body["supportedInputModes"] == ["pas_ref"]
+

@@ -1,6 +1,6 @@
 # Data Model Ownership
 
-- Service: `dpm-rebalance-engine`
+- Service: `lotus-advise`
 - Ownership: advisory/discretionary proposal and policy execution domain schema.
 
 ## Owned Domains
@@ -18,3 +18,4 @@
 
 - Namespaces (`dpm`, `proposals`) separate bounded contexts.
 - No cross-service shared database access.
+

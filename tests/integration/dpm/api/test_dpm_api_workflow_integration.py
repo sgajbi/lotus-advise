@@ -223,7 +223,7 @@ def test_integration_capabilities_contract_default_consumer() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["contractVersion"] == "v1"
-    assert body["sourceService"] == "dpm-rebalance-engine"
+    assert body["sourceService"] == "lotus-advise"
     assert "pas_ref" in body["supportedInputModes"]
 
 
@@ -491,3 +491,4 @@ def test_workflow_action_feature_flag_guard_matrix(
 
     assert response.status_code == 404
     assert response.json()["detail"] == "DPM_WORKFLOW_DISABLED"
+

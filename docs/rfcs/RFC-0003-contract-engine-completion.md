@@ -11,7 +11,7 @@
 
 ## 1. Executive Summary
 
-This RFC completes the transition of the `dpm-rebalance-engine` from a functional prototype to a **comprehensive audit engine**. It mandates a "No-Throw" policy for domain logic, ensuring that all runs—successful or blocked—return a structured HTTP 200 result containing the full decision context.
+This RFC completes the transition of the `lotus-advise` from a functional prototype to a **comprehensive audit engine**. It mandates a "No-Throw" policy for domain logic, ensuring that all runs—successful or blocked—return a structured HTTP 200 result containing the full decision context.
 
 **Critical Upgrades:**
 
@@ -131,3 +131,4 @@ The engine proceeds through stages, accumulating state. If a **Hard Block** occu
 3. **Safety:** Post-trade `SINGLE_POSITION_MAX` is evaluated on the final simulated values.
 4. **Coverage:** 100% test coverage maintained.
 5. **Lineage:** `rebalance_run_id` and `correlation_id` are present in all logs and responses.
+

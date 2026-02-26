@@ -145,7 +145,7 @@ async def get_integration_capabilities(
 
     return IntegrationCapabilitiesResponse(
         contractVersion="v1",
-        sourceService="dpm-rebalance-engine",
+        sourceService="lotus-advise",
         consumerSystem=consumer_system,
         tenantId=tenant_id,
         generatedAt=datetime.now(UTC),
@@ -155,3 +155,4 @@ async def get_integration_capabilities(
         features=features,
         workflows=workflows,
     )
+
