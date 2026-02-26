@@ -485,16 +485,33 @@ class ProposalWorkflowService:
         *,
         proposal_id: str,
         payload: ProposalStateTransitionRequest,
+        idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        replay_event = self._get_replayed_event(
+            proposal_id=proposal_id,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+        )
+        if replay_event is not None:
+            return ProposalStateTransitionResponse(
+                proposal_id=proposal_id,
+                current_state=replay_event.to_state,
+                latest_workflow_event=self._to_event(replay_event),
+            )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
 
         to_state = self._resolve_transition_state(
             current_state=proposal.current_state,
             event_type=payload.event_type,
         )
+        reason_json = dict(payload.reason)
+        if idempotency_key:
+            reason_json["idempotency_key"] = idempotency_key
+            reason_json["idempotency_request_hash"] = request_hash
         event = ProposalWorkflowEventRecord(
             event_id=f"pwe_{uuid.uuid4().hex[:12]}",
             proposal_id=proposal_id,
@@ -503,7 +520,7 @@ class ProposalWorkflowService:
             to_state=to_state,
             actor_id=payload.actor_id,
             occurred_at=_utc_now(),
-            reason_json=payload.reason,
+            reason_json=reason_json,
             related_version_no=payload.related_version_no,
         )
         proposal.current_state = to_state
@@ -521,12 +538,37 @@ class ProposalWorkflowService:
         *,
         proposal_id: str,
         payload: ProposalApprovalRequest,
+        idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        replay_approval = self._get_replayed_approval(
+            proposal_id=proposal_id,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+        )
+        if replay_approval is not None:
+            replay_event = self._get_replayed_event(
+                proposal_id=proposal_id,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+            )
+            if replay_event is None:
+                raise ProposalLifecycleError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
+            return ProposalStateTransitionResponse(
+                proposal_id=proposal_id,
+                current_state=replay_event.to_state,
+                latest_workflow_event=self._to_event(replay_event),
+                approval=self._to_approval(replay_approval),
+            )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
 
+        details_json = dict(payload.details)
+        if idempotency_key:
+            details_json["idempotency_key"] = idempotency_key
+            details_json["idempotency_request_hash"] = request_hash
         approval = ProposalApprovalRecordData(
             approval_id=f"pap_{uuid.uuid4().hex[:12]}",
             proposal_id=proposal_id,
@@ -534,7 +576,7 @@ class ProposalWorkflowService:
             approved=payload.approved,
             actor_id=payload.actor_id,
             occurred_at=_utc_now(),
-            details_json=payload.details,
+            details_json=details_json,
             related_version_no=payload.related_version_no,
         )
 
@@ -543,6 +585,10 @@ class ProposalWorkflowService:
             approval_type=payload.approval_type,
             approved=payload.approved,
         )
+        reason_json = dict(payload.details)
+        if idempotency_key:
+            reason_json["idempotency_key"] = idempotency_key
+            reason_json["idempotency_request_hash"] = request_hash
         event = ProposalWorkflowEventRecord(
             event_id=f"pwe_{uuid.uuid4().hex[:12]}",
             proposal_id=proposal_id,
@@ -551,7 +597,7 @@ class ProposalWorkflowService:
             to_state=to_state,
             actor_id=payload.actor_id,
             occurred_at=approval.occurred_at,
-            reason_json=payload.details,
+            reason_json=reason_json,
             related_version_no=payload.related_version_no,
         )
         proposal.current_state = to_state
@@ -566,6 +612,40 @@ class ProposalWorkflowService:
             latest_workflow_event=self._to_event(result.event),
             approval=self._to_approval(result.approval),
         )
+
+    def _get_replayed_event(
+        self, *, proposal_id: str, idempotency_key: Optional[str], request_hash: str
+    ) -> Optional[ProposalWorkflowEventRecord]:
+        if not idempotency_key:
+            return None
+        for event in reversed(self._repository.list_events(proposal_id=proposal_id)):
+            existing_key = event.reason_json.get("idempotency_key")
+            if existing_key != idempotency_key:
+                continue
+            existing_hash = event.reason_json.get("idempotency_request_hash")
+            if existing_hash is not None and existing_hash != request_hash:
+                raise ProposalIdempotencyConflictError(
+                    "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
+                )
+            return event
+        return None
+
+    def _get_replayed_approval(
+        self, *, proposal_id: str, idempotency_key: Optional[str], request_hash: str
+    ) -> Optional[ProposalApprovalRecordData]:
+        if not idempotency_key:
+            return None
+        for approval in reversed(self._repository.list_approvals(proposal_id=proposal_id)):
+            existing_key = approval.details_json.get("idempotency_key")
+            if existing_key != idempotency_key:
+                continue
+            existing_hash = approval.details_json.get("idempotency_request_hash")
+            if existing_hash is not None and existing_hash != request_hash:
+                raise ProposalIdempotencyConflictError(
+                    "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
+                )
+            return approval
+        return None
 
     def _read_create_response(self, *, proposal_id: str, version_no: int) -> ProposalCreateResponse:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)

@@ -241,13 +241,27 @@ def transition_proposal_state(
         Path(description="Persisted proposal identifier.", examples=["pp_001"]),
     ],
     payload: ProposalStateTransitionRequest,
+    idempotency_key: Annotated[
+        Optional[str],
+        Header(
+            alias="Idempotency-Key",
+            description="Optional idempotency key for replay-safe transition writes.",
+            examples=["proposal-transition-idem-001"],
+        ),
+    ] = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
     try:
-        return service.transition_state(proposal_id=proposal_id, payload=payload)
+        return service.transition_state(
+            proposal_id=proposal_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
     except ProposalNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ProposalIdempotencyConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ProposalStateConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ProposalTransitionError as exc:
@@ -274,13 +288,27 @@ def record_proposal_approval(
         Path(description="Persisted proposal identifier.", examples=["pp_001"]),
     ],
     payload: ProposalApprovalRequest,
+    idempotency_key: Annotated[
+        Optional[str],
+        Header(
+            alias="Idempotency-Key",
+            description="Optional idempotency key for replay-safe approval writes.",
+            examples=["proposal-approval-idem-001"],
+        ),
+    ] = None,
     service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
 ) -> ProposalStateTransitionResponse:
     shared._assert_lifecycle_enabled()
     try:
-        return service.record_approval(proposal_id=proposal_id, payload=payload)
+        return service.record_approval(
+            proposal_id=proposal_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
     except ProposalNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ProposalIdempotencyConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ProposalStateConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ProposalTransitionError as exc:

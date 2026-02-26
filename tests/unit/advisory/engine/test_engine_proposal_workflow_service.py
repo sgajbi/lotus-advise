@@ -11,6 +11,7 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
 )
 from src.core.proposals.service import (
+    ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalStateConflictError,
     ProposalTransitionError,
@@ -518,3 +519,104 @@ def test_service_lineage_skips_missing_version_rows():
     lineage = service.get_lineage(proposal_id="pp_lineage_gap")
     assert lineage.proposal.proposal_id == "pp_lineage_gap"
     assert [version.version_no for version in lineage.versions] == [1]
+
+
+def test_transition_idempotency_replay_and_conflict():
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-idem-transition",
+        correlation_id="corr-transition",
+    )
+    proposal_id = created.proposal.proposal_id
+    payload = ProposalStateTransitionRequest(
+        event_type="SUBMITTED_FOR_RISK_REVIEW",
+        actor_id="advisor_service",
+        expected_state="DRAFT",
+        reason={"comment": "first submit"},
+    )
+    first = service.transition_state(
+        proposal_id=proposal_id,
+        payload=payload,
+        idempotency_key="idem-transition-1",
+    )
+    replay = service.transition_state(
+        proposal_id=proposal_id,
+        payload=payload,
+        idempotency_key="idem-transition-1",
+    )
+    assert replay.latest_workflow_event.event_id == first.latest_workflow_event.event_id
+    assert replay.current_state == "RISK_REVIEW"
+
+    try:
+        service.transition_state(
+            proposal_id=proposal_id,
+            payload=ProposalStateTransitionRequest(
+                event_type="SUBMITTED_FOR_COMPLIANCE_REVIEW",
+                actor_id="advisor_service",
+                expected_state="RISK_REVIEW",
+                reason={"comment": "different request"},
+            ),
+            idempotency_key="idem-transition-1",
+        )
+    except ProposalIdempotencyConflictError as exc:
+        assert "IDEMPOTENCY_KEY_CONFLICT" in str(exc)
+    else:
+        raise AssertionError("Expected ProposalIdempotencyConflictError")
+
+
+def test_approval_idempotency_replay_and_conflict():
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-idem-approval",
+        correlation_id="corr-approval",
+    )
+    proposal_id = created.proposal.proposal_id
+    service.transition_state(
+        proposal_id=proposal_id,
+        payload=ProposalStateTransitionRequest(
+            event_type="SUBMITTED_FOR_RISK_REVIEW",
+            actor_id="advisor_service",
+            expected_state="DRAFT",
+            reason={},
+        ),
+    )
+    approval_payload = ProposalApprovalRequest(
+        approval_type="RISK",
+        approved=True,
+        actor_id="risk_officer",
+        expected_state="RISK_REVIEW",
+        details={"comment": "approved"},
+    )
+    first = service.record_approval(
+        proposal_id=proposal_id,
+        payload=approval_payload,
+        idempotency_key="idem-approval-1",
+    )
+    replay = service.record_approval(
+        proposal_id=proposal_id,
+        payload=approval_payload,
+        idempotency_key="idem-approval-1",
+    )
+    assert replay.latest_workflow_event.event_id == first.latest_workflow_event.event_id
+    assert replay.approval is not None
+    assert first.approval is not None
+    assert replay.approval.approval_id == first.approval.approval_id
+
+    try:
+        service.record_approval(
+            proposal_id=proposal_id,
+            payload=ProposalApprovalRequest(
+                approval_type="RISK",
+                approved=False,
+                actor_id="risk_officer",
+                expected_state="RISK_REVIEW",
+                details={"comment": "different decision"},
+            ),
+            idempotency_key="idem-approval-1",
+        )
+    except ProposalIdempotencyConflictError as exc:
+        assert "IDEMPOTENCY_KEY_CONFLICT" in str(exc)
+    else:
+        raise AssertionError("Expected ProposalIdempotencyConflictError")
