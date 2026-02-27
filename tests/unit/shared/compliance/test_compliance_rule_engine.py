@@ -156,3 +156,34 @@ def test_single_position_max_tolerance_boundary(weight, expected_status):
     )
     spm = next(r for r in results if r.rule_id == "SINGLE_POSITION_MAX")
     assert spm.status == expected_status
+
+
+def test_min_trade_size_rule_reports_suppressed_intent_count():
+    state = SimulatedState(
+        total_value=Money(amount=Decimal("1000"), currency="SGD"),
+        allocation_by_asset_class=[],
+        positions=[],
+    )
+    diagnostics = DiagnosticsData(
+        data_quality={},
+        suppressed_intents=[
+            {
+                "instrument_id": "EQ_1",
+                "reason": "MIN_NOTIONAL",
+                "intended_notional": {"amount": "5", "currency": "SGD"},
+                "threshold": {"amount": "10", "currency": "SGD"},
+            },
+            {
+                "instrument_id": "EQ_2",
+                "reason": "MIN_NOTIONAL",
+                "intended_notional": {"amount": "6", "currency": "SGD"},
+                "threshold": {"amount": "10", "currency": "SGD"},
+            },
+        ],
+        warnings=[],
+    )
+    results = RuleEngine.evaluate(state, EngineOptions(), diagnostics)
+    min_trade_size = next(result for result in results if result.rule_id == "MIN_TRADE_SIZE")
+    assert min_trade_size.status == "PASS"
+    assert min_trade_size.reason_code == "INTENTS_SUPPRESSED"
+    assert min_trade_size.measured == Decimal("2")

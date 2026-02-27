@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.routers import proposals as proposals_router
 from src.api.routers.proposals import reset_proposal_workflow_service_for_tests
+from src.core.proposals import ProposalIdempotencyConflictError
 
 
 def _base_create_payload(portfolio_id: str = "pf_lifecycle_1") -> dict:
@@ -693,3 +694,62 @@ def test_async_operation_lookup_returns_404_for_missing_operation():
         missing = client.get("/rebalance/proposals/operations/pop_missing")
         assert missing.status_code == 404
         assert missing.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"
+
+
+def test_transition_maps_idempotency_conflict_to_409():
+    detail = "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
+
+    class _ConflictService:
+        def transition_state(self, **kwargs):  # noqa: ANN003
+            raise ProposalIdempotencyConflictError(detail)
+
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = lambda: (
+        _ConflictService()
+    )
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/rebalance/proposals/pp_conflict/transitions",
+                json={
+                    "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                    "actor_id": "advisor_1",
+                    "expected_state": "DRAFT",
+                    "reason": {},
+                },
+                headers={"Idempotency-Key": "transition-conflict"},
+            )
+        assert response.status_code == 409
+        assert "IDEMPOTENCY_KEY_CONFLICT" in response.json()["detail"]
+    finally:
+        app.dependency_overrides = original_overrides
+
+
+def test_approval_maps_idempotency_conflict_to_409():
+    detail = "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
+
+    class _ConflictService:
+        def record_approval(self, **kwargs):  # noqa: ANN003
+            raise ProposalIdempotencyConflictError(detail)
+
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = lambda: (
+        _ConflictService()
+    )
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/rebalance/proposals/pp_conflict/approvals",
+                json={
+                    "approval_type": "RISK",
+                    "approved": True,
+                    "actor_id": "risk_1",
+                    "expected_state": "RISK_REVIEW",
+                    "details": {},
+                },
+                headers={"Idempotency-Key": "approval-conflict"},
+            )
+        assert response.status_code == 409
+        assert "IDEMPOTENCY_KEY_CONFLICT" in response.json()["detail"]
+    finally:
+        app.dependency_overrides = original_overrides
