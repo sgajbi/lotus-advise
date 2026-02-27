@@ -3,6 +3,7 @@ from typing import Annotated, NoReturn, Optional
 
 from fastapi import Depends, Header, HTTPException, Path, Query, status
 
+from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.routers import proposals as shared
 from src.core.proposals import (
     ProposalCreateRequest,
@@ -29,7 +30,7 @@ def _raise_transition_http_exception(exc: Exception) -> NoReturn:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     if isinstance(exc, ProposalTransitionError):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=HTTP_422_UNPROCESSABLE,
             detail=str(exc),
         ) from exc
     raise exc
@@ -76,7 +77,7 @@ def create_proposal(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ProposalValidationError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=HTTP_422_UNPROCESSABLE,
             detail=str(exc),
         ) from exc
 
@@ -234,7 +235,7 @@ def create_proposal_version(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ProposalValidationError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=HTTP_422_UNPROCESSABLE,
             detail=str(exc),
         ) from exc
 

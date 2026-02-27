@@ -183,6 +183,11 @@ def test_max_overdraft_by_ccy_rejects_empty_currency_key():
         EngineOptions(max_overdraft_by_ccy={"": Decimal("1")})
 
 
+def test_max_overdraft_by_ccy_accepts_non_negative_values():
+    options = EngineOptions(max_overdraft_by_ccy={"USD": Decimal("10.5")})
+    assert options.max_overdraft_by_ccy["USD"] == Decimal("10.5")
+
+
 def test_tax_lot_quantity_must_match_position_quantity_within_tolerance():
     Position(
         instrument_id="EQ_1",
@@ -293,6 +298,24 @@ def test_batch_request_enforces_max_scenario_count():
             shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
             scenarios=scenarios,
         )
+
+
+def test_batch_request_accepts_valid_named_scenarios():
+    request = BatchRebalanceRequest(
+        portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
+        market_data_snapshot=MarketDataSnapshot(
+            prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
+            fx_rates=[],
+        ),
+        model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
+        shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
+        scenarios={
+            "baseline": SimulationScenario(options={}),
+            "solver_case": SimulationScenario(options={"target_method": "SOLVER"}),
+        },
+    )
+
+    assert set(request.scenarios.keys()) == {"baseline", "solver_case"}
 
 
 def test_batch_scenario_metric_shape():

@@ -2,7 +2,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from src.core.advisory_engine import run_proposal_simulation
-from src.core.models import EngineOptions, Money, Reconciliation
+from src.core.models import EngineOptions, Money, Reconciliation, SecurityTradeIntent
 from tests.shared.factories import (
     cash,
     market_data_snapshot,
@@ -887,3 +887,46 @@ def test_proposal_simulation_can_disable_suitability_output():
     )
 
     assert result.suitability is None
+
+
+def test_proposal_simulation_skips_buy_intent_without_notional():
+    portfolio = portfolio_snapshot(
+        portfolio_id="pf_prop_missing_notional_buy_intent",
+        base_currency="USD",
+        positions=[],
+        cash_balances=[cash("USD", "1000")],
+    )
+    market_data = market_data_snapshot(prices=[price("EQ_1", "100", "USD")], fx_rates=[])
+    options = EngineOptions(enable_proposal_simulation=True)
+
+    with (
+        patch(
+            "src.core.advisory_engine.build_proposal_security_trade_intent",
+            return_value=(
+                SecurityTradeIntent(
+                    intent_id="oi_1",
+                    instrument_id="EQ_1",
+                    side="BUY",
+                    quantity=Decimal("1"),
+                    notional=None,
+                ),
+                None,
+            ),
+        ),
+        patch(
+            "src.core.advisory_engine.build_auto_funding_plan",
+            return_value=([], {}, set(), [], False),
+        ),
+    ):
+        result = run_proposal_simulation(
+            portfolio=portfolio,
+            market_data=market_data,
+            shelf=[shelf_entry("EQ_1", status="APPROVED")],
+            options=options,
+            proposed_cash_flows=[],
+            proposed_trades=[{"side": "BUY", "instrument_id": "EQ_1", "quantity": "1"}],
+            request_hash="proposal_hash_skip_missing_notional",
+        )
+
+    assert result.status == "READY"
+    assert result.intents == []
