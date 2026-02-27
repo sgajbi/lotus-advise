@@ -12,15 +12,15 @@ def test_parse_requirements_file_resolves_nested_requirements(tmp_path: Path) ->
     dev = tmp_path / "requirements-dev.txt"
 
     prod.write_text(
-        "fastapi==0.129.2\n" "psycopg[binary]==3.3.3\n",
+        "fastapi==0.129.2\npsycopg[binary]==3.3.3\n",
         encoding="utf-8",
     )
     dev.write_text(
-        "-r requirements-prod.txt\n" "pytest==9.0.2\n" "ruff==0.15.4\n",
+        "-r requirements-prod.txt\npytest==9.0.2\nruff==0.15.4\n",
         encoding="utf-8",
     )
     base.write_text(
-        "-r requirements-dev.txt\n" "httpx==0.28.1\n",
+        "-r requirements-dev.txt\nhttpx==0.28.1\n",
         encoding="utf-8",
     )
 
