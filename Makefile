@@ -1,4 +1,4 @@
-.PHONY: install check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard format clean run check-deps security-audit openapi-gate migration-smoke migration-apply pre-commit docker-up docker-down
+.PHONY: install check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard format clean run check-deps check-deps-strict security-audit openapi-gate migration-smoke migration-apply pre-commit docker-up docker-down
 
 install:
 	pip install -r requirements.txt
@@ -92,10 +92,13 @@ run:
 	uvicorn src.api.main:app --reload --port 8000
 
 check-deps:
-	python scripts/dependency_health_check.py --requirements requirements.txt
+	python scripts/dependency_health_check.py --requirements requirements.txt --outdated-scope direct
+
+check-deps-strict:
+	python scripts/dependency_health_check.py --requirements requirements.txt --outdated-scope direct --fail-on-outdated
 
 security-audit:
-	python scripts/dependency_health_check.py --requirements requirements.txt
+	python scripts/dependency_health_check.py --requirements requirements.txt --outdated-scope direct
 
 docker-up:
 	docker-compose up -d --build

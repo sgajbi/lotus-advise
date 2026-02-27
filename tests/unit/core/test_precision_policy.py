@@ -4,6 +4,7 @@ import pytest
 
 from src.core.precision_policy import (
     ROUNDING_POLICY_VERSION,
+    _decimal_scale,
     normalize_input,
     quantize_fx_rate,
     quantize_money,
@@ -57,3 +58,7 @@ def test_intermediate_precision_preserved_before_final_quantize() -> None:
     value = normalize_input("0.123456789012", "performance")
     assert value == Decimal("0.123456789012")
     assert quantize_performance(value) == Decimal("0.123457")
+
+
+def test_decimal_scale_handles_non_integer_exponent() -> None:
+    assert _decimal_scale(Decimal("NaN")) == 0

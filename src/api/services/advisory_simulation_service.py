@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, cast
 
 from fastapi import HTTPException, status
 
+from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.routers.proposals import get_proposal_repository
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
@@ -31,7 +32,7 @@ def simulate_proposal_response(
 ) -> ProposalResult:
     if not request.options.enable_proposal_simulation:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=HTTP_422_UNPROCESSABLE,
             detail="PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true",
         )
 
