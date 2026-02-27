@@ -1,4 +1,6 @@
+import sys
 from datetime import datetime, timezone
+from types import ModuleType
 
 import src.infrastructure.proposals.postgres as postgres_module
 from src.core.proposals.models import (
@@ -590,3 +592,45 @@ def test_postgres_repository_transition_proposal_writes_all_records(monkeypatch)
         stored_approval.approval_id
         for stored_approval in repository.list_approvals(proposal_id="pp_002")
     ] == ["pap_010"]
+
+
+def test_import_psycopg_returns_driver_and_row_factory(monkeypatch):
+    fake_psycopg = ModuleType("psycopg")
+    fake_psycopg_rows = ModuleType("psycopg.rows")
+    fake_dict_row = object()
+    fake_psycopg_rows.dict_row = fake_dict_row
+
+    monkeypatch.setitem(sys.modules, "psycopg", fake_psycopg)
+    monkeypatch.setitem(sys.modules, "psycopg.rows", fake_psycopg_rows)
+
+    psycopg, dict_row = postgres_module._import_psycopg()
+    assert psycopg is fake_psycopg
+    assert dict_row is fake_dict_row
+
+
+def test_postgres_repository_connect_uses_dsn_and_row_factory(monkeypatch):
+    captured: dict[str, object] = {}
+
+    class _FakeDriver:
+        def connect(self, dsn, row_factory):  # noqa: ANN001
+            captured["dsn"] = dsn
+            captured["row_factory"] = row_factory
+            return "connected"
+
+    fake_row_factory = object()
+    monkeypatch.setattr(
+        postgres_module,
+        "_import_psycopg",
+        lambda: (_FakeDriver(), fake_row_factory),
+    )
+
+    repository = object.__new__(PostgresProposalRepository)
+    repository._dsn = "postgresql://user:pass@localhost:5432/proposals"
+    connected = repository._connect()
+    assert connected == "connected"
+    assert captured["dsn"] == repository._dsn
+    assert captured["row_factory"] is fake_row_factory
+
+
+def test_to_proposal_returns_none_for_missing_row():
+    assert postgres_module._to_proposal(None) is None

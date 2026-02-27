@@ -1,3 +1,4 @@
+import sys
 import uuid
 from collections import OrderedDict
 from datetime import datetime, timezone
@@ -16,9 +17,8 @@ MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
 
 
 def _main_override(name: str) -> Any | None:
-    try:
-        from src.api import main as main_module
-    except ImportError:
+    main_module = sys.modules.get("src.api.main")
+    if main_module is None:
         return None
     return getattr(main_module, name, None)
 
@@ -31,7 +31,7 @@ def simulate_proposal_response(
 ) -> ProposalResult:
     if not request.options.enable_proposal_simulation:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true",
         )
 

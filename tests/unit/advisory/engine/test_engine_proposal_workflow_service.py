@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 
+from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.models import (
+    ProposalApprovalRecordData,
     ProposalApprovalRequest,
     ProposalCreateRequest,
     ProposalIdempotencyRecord,
@@ -12,6 +14,7 @@ from src.core.proposals.models import (
 )
 from src.core.proposals.service import (
     ProposalIdempotencyConflictError,
+    ProposalLifecycleError,
     ProposalNotFoundError,
     ProposalStateConflictError,
     ProposalTransitionError,
@@ -421,6 +424,35 @@ def test_service_execute_create_proposal_async_marks_failed_on_lifecycle_error()
     assert operation.error.code == "ProposalValidationError"
 
 
+def test_service_execute_create_version_async_marks_failed_on_lifecycle_error():
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    accepted = service.submit_create_version_async(
+        proposal_id="pp_missing_for_async_version",
+        payload=ProposalVersionRequest(
+            created_by="advisor_service",
+            simulate_request=_simulate_request(),
+        ),
+        correlation_id="corr-async-version-fail",
+    )
+
+    service.execute_create_version_async(
+        operation_id=accepted.operation_id,
+        proposal_id="pp_missing_for_async_version",
+        payload=ProposalVersionRequest(
+            created_by="advisor_service",
+            simulate_request=_simulate_request(),
+        ),
+        correlation_id="corr-async-version-fail",
+    )
+
+    operation = service.get_async_operation(operation_id=accepted.operation_id)
+    assert operation.status == "FAILED"
+    assert operation.error is not None
+    assert operation.error.code == "ProposalNotFoundError"
+    assert operation.error.message == "PROPOSAL_NOT_FOUND"
+
+
 def test_service_expected_state_can_be_optional_when_disabled():
     service = ProposalWorkflowService(
         repository=InMemoryProposalRepository(),
@@ -620,3 +652,118 @@ def test_approval_idempotency_replay_and_conflict():
         assert "IDEMPOTENCY_KEY_CONFLICT" in str(exc)
     else:
         raise AssertionError("Expected ProposalIdempotencyConflictError")
+
+
+def test_approval_replay_requires_matching_event_referent():
+    now = datetime.now(timezone.utc)
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="idem-approval-referent",
+        correlation_id="corr-approval-referent",
+    )
+    proposal_id = created.proposal.proposal_id
+    service.transition_state(
+        proposal_id=proposal_id,
+        payload=ProposalStateTransitionRequest(
+            event_type="SUBMITTED_FOR_RISK_REVIEW",
+            actor_id="advisor_service",
+            expected_state="DRAFT",
+            reason={},
+        ),
+    )
+
+    approval_payload = ProposalApprovalRequest(
+        approval_type="RISK",
+        approved=True,
+        actor_id="risk_officer",
+        expected_state="RISK_REVIEW",
+        details={},
+    )
+    request_hash = hash_canonical_payload(approval_payload.model_dump(mode="json"))
+
+    repo.create_approval(
+        ProposalApprovalRecordData(
+            approval_id="pap_orphan",
+            proposal_id=proposal_id,
+            approval_type="RISK",
+            approved=True,
+            actor_id="risk_officer",
+            occurred_at=now,
+            details_json={
+                "idempotency_key": "idem-approval-orphan",
+                "idempotency_request_hash": request_hash,
+            },
+            related_version_no=1,
+        )
+    )
+
+    try:
+        service.record_approval(
+            proposal_id=proposal_id,
+            payload=approval_payload,
+            idempotency_key="idem-approval-orphan",
+        )
+    except ProposalLifecycleError as exc:
+        assert str(exc) == "PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND"
+    else:
+        raise AssertionError("Expected PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
+
+
+def test_approval_replay_skips_unrelated_idempotency_records():
+    now = datetime.now(timezone.utc)
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="idem-approval-skip",
+        correlation_id="corr-approval-skip",
+    )
+    proposal_id = created.proposal.proposal_id
+    service.transition_state(
+        proposal_id=proposal_id,
+        payload=ProposalStateTransitionRequest(
+            event_type="SUBMITTED_FOR_RISK_REVIEW",
+            actor_id="advisor_service",
+            expected_state="DRAFT",
+            reason={},
+        ),
+    )
+
+    payload = ProposalApprovalRequest(
+        approval_type="RISK",
+        approved=True,
+        actor_id="risk_officer",
+        expected_state="RISK_REVIEW",
+        details={},
+    )
+    first = service.record_approval(
+        proposal_id=proposal_id,
+        payload=payload,
+        idempotency_key="idem-target",
+    )
+    repo.create_approval(
+        ProposalApprovalRecordData(
+            approval_id="pap_unrelated",
+            proposal_id=proposal_id,
+            approval_type="CLIENT_CONSENT",
+            approved=False,
+            actor_id="client_1",
+            occurred_at=now,
+            details_json={
+                "idempotency_key": "idem-unrelated",
+                "idempotency_request_hash": "sha256:unrelated",
+            },
+            related_version_no=1,
+        )
+    )
+
+    replay = service.record_approval(
+        proposal_id=proposal_id,
+        payload=payload,
+        idempotency_key="idem-target",
+    )
+    assert replay.approval is not None
+    assert first.approval is not None
+    assert replay.approval.approval_id == first.approval.approval_id

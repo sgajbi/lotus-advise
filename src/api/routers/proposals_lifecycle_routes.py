@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Optional
+from typing import Annotated, NoReturn, Optional
 
 from fastapi import Depends, Header, HTTPException, Path, Query, status
 
@@ -20,6 +20,19 @@ from src.core.proposals import (
     ProposalWorkflowService,
 )
 from src.core.proposals.models import ProposalApprovalRequest, ProposalListResponse
+
+
+def _raise_transition_http_exception(exc: Exception) -> NoReturn:
+    if isinstance(exc, ProposalNotFoundError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    if isinstance(exc, (ProposalIdempotencyConflictError, ProposalStateConflictError)):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    if isinstance(exc, ProposalTransitionError):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+    raise exc
 
 
 @shared.router.post(
@@ -63,7 +76,7 @@ def create_proposal(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ProposalValidationError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
@@ -221,7 +234,7 @@ def create_proposal_version(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ProposalValidationError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
@@ -259,16 +272,13 @@ def transition_proposal_state(
             idempotency_key=idempotency_key,
         )
     except ProposalNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        _raise_transition_http_exception(exc)
     except ProposalIdempotencyConflictError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        _raise_transition_http_exception(exc)
     except ProposalStateConflictError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        _raise_transition_http_exception(exc)
     except ProposalTransitionError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        ) from exc
+        _raise_transition_http_exception(exc)
 
 
 @shared.router.post(
@@ -306,13 +316,10 @@ def record_proposal_approval(
             idempotency_key=idempotency_key,
         )
     except ProposalNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        _raise_transition_http_exception(exc)
     except ProposalIdempotencyConflictError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        _raise_transition_http_exception(exc)
     except ProposalStateConflictError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        _raise_transition_http_exception(exc)
     except ProposalTransitionError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        ) from exc
+        _raise_transition_http_exception(exc)
