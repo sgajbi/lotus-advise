@@ -15,7 +15,7 @@ This repository adopts the platform-wide standard defined in:
 ## Execution Commands
 
 - Local health check:
-  - `python scripts/dependency_health_check.py --requirements requirements.txt`
+  - `python scripts/dependency_health_check.py --requirements requirements.txt --outdated-scope direct`
 - Environment dependency consistency:
   - `python -m pip check`
 - CI-aligned security audit target:
