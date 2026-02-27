@@ -45,7 +45,7 @@ test-all-parallel:
 	python -c "import importlib.util, subprocess, sys; args=[sys.executable,'-m','pytest','--cov=src','--cov-report=','--cov-fail-under=99']; args += (['-n','auto','--dist','loadscope'] if importlib.util.find_spec('xdist') else []); raise SystemExit(subprocess.call(args))"
 
 # Local execution flow aligned with .github/workflows/ci.yml
-ci-local: lint check-deps
+ci-local: lint check-deps-strict
 	python -m pip check
 	COVERAGE_FILE=.coverage.unit python -m pytest tests/unit --cov=src --cov-report=
 	COVERAGE_FILE=.coverage.integration python -m pytest tests/integration --cov=src --cov-report=

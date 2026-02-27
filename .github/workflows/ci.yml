@@ -56,7 +56,7 @@ jobs:
           pip check
 
       - name: Dependency Security & Freshness Check
-        run: make check-deps
+        run: make check-deps-strict
 
       - name: Run Lint Checks
         run: make lint
