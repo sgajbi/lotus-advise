@@ -1,8 +1,9 @@
 from typing import Annotated, Optional
 
-from fastapi import BackgroundTasks, Depends, Header, HTTPException, Path, status
+from fastapi import BackgroundTasks, Depends, Header, Path, status
 
 from src.api.routers import proposals as shared
+from src.api.routers.proposal_http_errors import raise_proposal_http_exception
 from src.core.proposals import (
     ProposalAsyncAcceptedResponse,
     ProposalAsyncOperationStatusResponse,
@@ -128,7 +129,7 @@ def get_proposal_async_operation(
     try:
         return service.get_async_operation(operation_id=operation_id)
     except ProposalNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise_proposal_http_exception(exc)
 
 
 @shared.router.get(
@@ -153,4 +154,4 @@ def get_proposal_async_operation_by_correlation(
     try:
         return service.get_async_operation_by_correlation(correlation_id=correlation_id)
     except ProposalNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise_proposal_http_exception(exc)

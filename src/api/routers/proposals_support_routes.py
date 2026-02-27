@@ -1,8 +1,9 @@
 from typing import Annotated, Optional
 
-from fastapi import Depends, HTTPException, Path, status
+from fastapi import Depends, Path, status
 
 from src.api.routers import proposals as shared
+from src.api.routers.proposal_http_errors import raise_proposal_http_exception
 from src.core.proposals import (
     ProposalApprovalsResponse,
     ProposalIdempotencyLookupResponse,
@@ -77,7 +78,7 @@ def get_proposal_workflow_timeline(
     try:
         return service.get_workflow_timeline(proposal_id=proposal_id)
     except ProposalNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise_proposal_http_exception(exc)
 
 
 @shared.router.get(
@@ -104,7 +105,7 @@ def get_proposal_approvals(
     try:
         return service.get_approvals(proposal_id=proposal_id)
     except ProposalNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise_proposal_http_exception(exc)
 
 
 @shared.router.get(
@@ -132,7 +133,7 @@ def get_proposal_lineage(
     try:
         return service.get_lineage(proposal_id=proposal_id)
     except ProposalNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise_proposal_http_exception(exc)
 
 
 @shared.router.get(
@@ -162,4 +163,4 @@ def get_proposal_idempotency_lookup(
     try:
         return service.get_idempotency_lookup(idempotency_key=idempotency_key)
     except ProposalNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise_proposal_http_exception(exc)
