@@ -21,8 +21,7 @@ def test_observability_headers_preserve_inbound_correlation_and_trace_id():
     assert response.headers["X-Request-Id"] == "req-inbound-123"
     assert response.headers["X-Trace-Id"] == "1234567890abcdef1234567890abcdef"
     assert (
-        response.headers["traceparent"]
-        == "00-1234567890abcdef1234567890abcdef-0000000000000001-01"
+        response.headers["traceparent"] == "00-1234567890abcdef1234567890abcdef-0000000000000001-01"
     )
 
 
