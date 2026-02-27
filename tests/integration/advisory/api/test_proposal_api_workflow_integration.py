@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -293,6 +295,40 @@ def test_proposal_idempotency_lookup_not_found_returns_404() -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"] == "PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND"
+
+
+def test_proposal_simulate_idempotency_is_stable_under_concurrency() -> None:
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_integration_concurrency_1",
+            "base_currency": "USD",
+            "positions": [],
+            "cash_balances": [{"currency": "USD", "amount": "1000"}],
+        },
+        "market_data_snapshot": {
+            "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+            "fx_rates": [],
+        },
+        "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [{"side": "BUY", "instrument_id": "EQ_1", "quantity": "1"}],
+    }
+    headers = {"Idempotency-Key": "integration-concurrency-simulate-1"}
+
+    def _call() -> tuple[int, str]:
+        with TestClient(app) as client:
+            response = client.post("/rebalance/proposals/simulate", json=payload, headers=headers)
+        body = response.json()
+        return response.status_code, body["proposal_run_id"]
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: _call(), range(24)))
+
+    statuses = [status for status, _ in results]
+    run_ids = [run_id for _, run_id in results]
+    assert all(status == 200 for status in statuses)
+    assert len(set(run_ids)) == 1
 
 
 @pytest.mark.parametrize(
