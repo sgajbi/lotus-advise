@@ -9,31 +9,68 @@ ConsumerSystem = Literal["lotus-gateway", "lotus-performance", "UI", "UNKNOWN"]
 
 
 class FeatureCapability(BaseModel):
-    key: str = Field(description="Canonical feature key.")
-    enabled: bool = Field(description="Whether this feature is enabled.")
-    owner_service: str = Field(description="Owning service for this feature.")
-    description: str = Field(description="Human-readable capability summary.")
+    key: str = Field(
+        description="Canonical feature key.", examples=["advisory.proposals.lifecycle"]
+    )
+    enabled: bool = Field(description="Whether this feature is enabled.", examples=[True])
+    owner_service: str = Field(
+        description="Owning service for this feature.", examples=["ADVISORY"]
+    )
+    description: str = Field(
+        description="Human-readable capability summary.",
+        examples=["Advisory proposal lifecycle APIs."],
+    )
 
 
 class WorkflowCapability(BaseModel):
-    workflow_key: str = Field(description="Workflow key for feature orchestration.")
-    enabled: bool = Field(description="Whether workflow is enabled.")
-    required_features: list[str] = Field(default_factory=list)
+    workflow_key: str = Field(
+        description="Workflow key for feature orchestration.",
+        examples=["advisory_proposal_lifecycle"],
+    )
+    enabled: bool = Field(description="Whether workflow is enabled.", examples=[True])
+    required_features: list[str] = Field(
+        default_factory=list,
+        description="Feature keys required by this workflow.",
+        examples=[["advisory.proposals.lifecycle"]],
+    )
 
 
 class IntegrationCapabilitiesResponse(BaseModel):
-    contract_version: str = Field(alias="contractVersion")
-    source_service: str = Field(alias="sourceService")
-    consumer_system: ConsumerSystem = Field(alias="consumerSystem")
-    tenant_id: str = Field(alias="tenantId")
-    generated_at: datetime = Field(alias="generatedAt")
-    as_of_date: date = Field(alias="asOfDate")
-    policy_version: str = Field(alias="policyVersion")
-    supported_input_modes: list[str] = Field(alias="supportedInputModes")
-    features: list[FeatureCapability]
-    workflows: list[WorkflowCapability]
-
-    model_config = {"populate_by_name": True}
+    contract_version: str = Field(description="Integration contract version.", examples=["v1"])
+    source_service: str = Field(
+        description="Source service generating this capability contract.",
+        examples=["lotus-advise"],
+    )
+    consumer_system: ConsumerSystem = Field(
+        description="Consumer system requesting capabilities.",
+        examples=["lotus-gateway"],
+    )
+    tenant_id: str = Field(
+        description="Tenant identifier used for feature policy resolution.",
+        examples=["default"],
+    )
+    generated_at: datetime = Field(
+        description="UTC timestamp when capability payload is generated.",
+        examples=["2026-03-02T00:00:00Z"],
+    )
+    as_of_date: date = Field(
+        description="Business date that the capability contract applies to.",
+        examples=["2026-03-02"],
+    )
+    policy_version: str = Field(
+        description="Capability policy pack version.",
+        examples=["advisory.v1"],
+    )
+    supported_input_modes: list[str] = Field(
+        description="Supported request input modes for integrations.",
+        examples=[["advisor_input"]],
+    )
+    features: list[FeatureCapability] = Field(
+        description="Feature-level capability flags and ownership."
+    )
+    workflows: list[WorkflowCapability] = Field(
+        description="Workflow-level capability flags and feature dependencies."
+    )
 
 
 router = APIRouter(tags=["Integration"])
@@ -46,23 +83,43 @@ def _env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-@router.get("/platform/capabilities", response_model=IntegrationCapabilitiesResponse)
+@router.get(
+    "/platform/capabilities",
+    response_model=IntegrationCapabilitiesResponse,
+    summary="Get Integration Capabilities",
+    description=(
+        "Returns integration capability flags and workflow readiness metadata for "
+        "the specified consumer system and tenant."
+    ),
+    responses={
+        200: {"description": "Integration capabilities returned."},
+        500: {"description": "Unexpected service error while building capabilities."},
+    },
+)
 async def get_integration_capabilities(
-    consumer_system: ConsumerSystem = Query("lotus-gateway", alias="consumerSystem"),
-    tenant_id: str = Query("default", alias="tenantId"),
+    consumer_system: ConsumerSystem = Query(
+        "lotus-gateway",
+        description="Consumer system requesting capabilities.",
+        examples=["lotus-gateway"],
+    ),
+    tenant_id: str = Query(
+        "default",
+        description="Tenant identifier used for policy resolution.",
+        examples=["default"],
+    ),
 ) -> IntegrationCapabilitiesResponse:
     lifecycle_enabled = _env_bool("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", True)
     async_enabled = _env_bool("PROPOSAL_ASYNC_OPERATIONS_ENABLED", True)
 
     return IntegrationCapabilitiesResponse(
-        contractVersion="v1",
-        sourceService="lotus-advise",
-        consumerSystem=consumer_system,
-        tenantId=tenant_id,
-        generatedAt=datetime.now(UTC),
-        asOfDate=date.today(),
-        policyVersion="advisory.v1",
-        supportedInputModes=["advisor_input"],
+        contract_version="v1",
+        source_service="lotus-advise",
+        consumer_system=consumer_system,
+        tenant_id=tenant_id,
+        generated_at=datetime.now(UTC),
+        as_of_date=date.today(),
+        policy_version="advisory.v1",
+        supported_input_modes=["advisor_input"],
         features=[
             FeatureCapability(
                 key="advisory.proposals.lifecycle",

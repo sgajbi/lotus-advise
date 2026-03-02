@@ -2,9 +2,10 @@
 
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import Any, AsyncIterator, cast
 
 from fastapi import FastAPI, Request, status
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import get_db_session
@@ -13,6 +14,7 @@ from src.api.enterprise_readiness import (
     validate_enterprise_runtime_config,
 )
 from src.api.observability import correlation_id_var, setup_observability
+from src.api.openapi_enrichment import enrich_openapi_schema
 from src.api.persistence_profile import validate_persistence_profile_guardrails
 from src.api.routers.advisory_simulation import (
     build_proposal_artifact_endpoint,
@@ -59,6 +61,23 @@ app.include_router(integration_capabilities_router)
 app.include_router(proposal_lifecycle_router, prefix="/api/v1")
 app.include_router(advisory_simulation_router, prefix="/api/v1")
 app.include_router(integration_capabilities_router, prefix="/api/v1")
+
+
+def custom_openapi() -> dict[str, Any]:
+    if app.openapi_schema:
+        return cast(dict[str, Any], app.openapi_schema)
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema = enrich_openapi_schema(schema, service_name="lotus-advise")
+    app.openapi_schema = schema
+    return cast(dict[str, Any], app.openapi_schema)
+
+
+app.openapi = custom_openapi
 
 
 @app.get("/health")
