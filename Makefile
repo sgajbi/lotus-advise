@@ -1,4 +1,4 @@
-.PHONY: install check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard format clean run check-deps check-deps-strict security-audit openapi-gate migration-smoke migration-apply pre-commit docker-up docker-down
+.PHONY: install check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard format clean run check-deps check-deps-strict security-audit openapi-gate no-alias-gate api-vocabulary-gate migration-smoke migration-apply pre-commit docker-up docker-down
 
 install:
 	pip install -r requirements.txt
@@ -9,9 +9,9 @@ install:
 pre-commit:
 	pre-commit run --all-files
 
-check: lint typecheck openapi-gate test
+check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate test
 
-ci: lint typecheck openapi-gate migration-smoke test-all security-audit
+ci: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate migration-smoke test-all security-audit
 
 test:
 	$(MAKE) test-unit
@@ -66,7 +66,15 @@ typecheck:
 	mypy --config-file mypy.ini
 
 openapi-gate:
+	python scripts/openapi_quality_gate.py
 	python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py -q
+
+no-alias-gate:
+	python scripts/no_alias_contract_guard.py
+
+api-vocabulary-gate:
+	python scripts/api_vocabulary_inventory.py
+	python scripts/api_vocabulary_inventory.py --validate-only
 
 migration-smoke:
 	python -m pytest tests/unit/shared/dependencies/test_persistence_profile_guardrails.py -q
