@@ -26,6 +26,8 @@ def is_candidate(path: Path) -> bool:
     parts = set(path.parts)
     if any(p in parts for p in IGNORE_DIRS):
         return False
+    if any(part.startswith(".venv") for part in path.parts):
+        return False
     return path.suffix == ".py"
 
 
@@ -35,7 +37,9 @@ def scan_repo(repo_root: Path) -> list[str]:
         if not is_candidate(file_path.relative_to(repo_root)):
             continue
         rel = file_path.relative_to(repo_root).as_posix()
-        for line_no, line in enumerate(file_path.read_text(encoding="utf-8").splitlines(), start=1):
+        for line_no, line in enumerate(
+            file_path.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1
+        ):
             lowered = line.lower()
             if not any(k in lowered for k in KEYWORDS):
                 continue
@@ -109,7 +113,7 @@ def write_allowlist(
         allowlist_entries.append(
             {
                 "finding": finding,
-                "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+                "justification": "Temporary approved float usage; convert to Decimal.",
                 "owner": "platform-governance",
                 "review_by": review_by,
             }
