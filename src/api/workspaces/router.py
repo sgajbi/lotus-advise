@@ -53,5 +53,6 @@ def create_workspace(
         ),
     ] = None,
 ) -> WorkspaceSessionCreateResponse:
+    # Correlation id is accepted now so callers can align workspace creation with broader workflow traces.
     _ = correlation_id
     return create_workspace_session(request)

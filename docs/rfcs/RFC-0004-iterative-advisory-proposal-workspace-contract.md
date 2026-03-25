@@ -326,6 +326,10 @@ This RFC will be implemented slice by slice within the same RFC.
 
 ### Slice 1: Workspace Contract Foundation
 
+Status:
+
+1. implemented
+
 Outcome:
 
 1. a first-class advisory workspace session model exists,

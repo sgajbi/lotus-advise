@@ -4,7 +4,9 @@ Implementation scope:
 - API: `src/api/main.py` (`/advisory/proposals/simulate`)
 - API: `src/api/main.py` (`/advisory/proposals/artifact`)
 - API router package: `src/api/proposals/` (`/advisory/proposals` lifecycle family)
+- API router package: `src/api/workspaces/` (`/advisory/workspaces` workspace session contract)
 - Models: `src/core/models.py`
+- Workspace models: `src/core/workspace/models.py`
 - Artifact models: `src/core/advisory/artifact_models.py`
 - Proposal lifecycle domain:
   - `src/core/proposals/models.py`
@@ -250,6 +252,9 @@ Determinism controls:
   - `tests/unit/advisory/engine/test_engine_proposal_artifact.py`
 - Proposal golden: `tests/unit/advisory/golden/test_golden_advisory_proposal_scenarios.py`
 - Artifact golden: `tests/unit/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`
+- Workspace API: `tests/unit/advisory/api/test_api_workspace.py`
+- Workspace contract: `tests/unit/advisory/contracts/test_contract_workspace_models.py`
+- Workspace OpenAPI contract: `tests/unit/advisory/contracts/test_contract_openapi_workspace_docs.py`
 
 Dependency quality gate:
 - `scripts/dependency_health_check.py --requirements requirements.txt`
