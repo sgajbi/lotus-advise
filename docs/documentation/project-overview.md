@@ -66,6 +66,7 @@ The API remains deterministic for identical inputs and options.
 
 - `POST /advisory/proposals/simulate`
 - `POST /advisory/proposals/artifact`
+- `POST /advisory/workspaces`
 - `POST /advisory/proposals`
 - `GET /advisory/proposals`
 - `GET /advisory/proposals/{proposal_id}`
@@ -74,6 +75,7 @@ The API remains deterministic for identical inputs and options.
 
 - `src/api/`: FastAPI contracts and endpoint orchestration.
 - `src/api/proposals/`: proposal lifecycle API package for runtime wiring, errors, and lifecycle/async/support routes.
+- `src/api/workspaces/`: advisory workspace API package for workspace session contract entry points.
 - `src/core/advisory/`: Advisory-specific modules (artifact, funding, intents, ids).
 - `src/core/common/`: Shared logic (simulation primitives, diagnostics, drift, suitability, canonical hashing, workflow gates).
 - `src/core/proposals/`: proposal lifecycle models, services, and repository abstractions.

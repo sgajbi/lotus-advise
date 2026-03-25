@@ -35,6 +35,7 @@ from src.api.services.advisory_simulation_service import (
 from src.api.services.advisory_simulation_service import (
     simulate_proposal_response as _simulate_proposal_response,
 )
+from src.api.workspaces.router import router as workspace_router
 
 
 @asynccontextmanager
@@ -58,9 +59,11 @@ app.middleware("http")(build_enterprise_audit_middleware())
 app.include_router(proposal_lifecycle_router)
 app.include_router(advisory_simulation_router)
 app.include_router(integration_capabilities_router)
+app.include_router(workspace_router)
 app.include_router(proposal_lifecycle_router, prefix="/api/v1")
 app.include_router(advisory_simulation_router, prefix="/api/v1")
 app.include_router(integration_capabilities_router, prefix="/api/v1")
+app.include_router(workspace_router, prefix="/api/v1")
 
 
 def custom_openapi() -> dict[str, Any]:
