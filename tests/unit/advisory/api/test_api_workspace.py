@@ -432,3 +432,88 @@ def test_workspace_evaluate_rejects_stateful_session_until_stateful_resolution_e
 
     assert response.status_code == 409
     assert response.json()["detail"] == "WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED"
+
+
+def test_workspace_save_list_resume_and_compare_saved_versions():
+    create_payload = {
+        "workspace_name": "Sandbox compare review",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        initial_action = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_1",
+                    "quantity": "2",
+                },
+            },
+        ).json()
+        save_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/save",
+            json={"saved_by": "advisor_123", "version_label": "Initial sandbox draft"},
+        )
+        saved_version_id = save_response.json()["saved_version"]["workspace_version_id"]
+        client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_CASH_FLOW",
+                "cash_flow": {
+                    "direction": "CONTRIBUTION",
+                    "amount": "3000",
+                    "currency": "USD",
+                },
+            },
+        )
+        compare_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/compare",
+            json={"workspace_version_id": saved_version_id},
+        )
+        list_response = client.get(f"/advisory/workspaces/{workspace_id}/saved-versions")
+        resume_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/resume",
+            json={"actor_id": "advisor_123", "workspace_version_id": saved_version_id},
+        )
+
+    assert initial_action["workspace"]["evaluation_summary"]["impact_summary"]["trade_count"] == 1
+    assert save_response.status_code == 200
+    assert save_response.json()["workspace"]["saved_version_count"] == 1
+    assert save_response.json()["workspace"]["latest_saved_version"]["version_label"] == "Initial sandbox draft"
+    assert save_response.json()["saved_version"]["replay_evidence"]["evaluation_request_hash"]
+    assert compare_response.status_code == 200
+    assert compare_response.json()["diff_summary"]["trade_count_delta"] == 0
+    assert compare_response.json()["diff_summary"]["cash_flow_count_delta"] == 1
+    assert list_response.status_code == 200
+    assert len(list_response.json()["saved_versions"]) == 1
+    assert list_response.json()["saved_versions"][0]["workspace_version_id"] == saved_version_id
+    assert resume_response.status_code == 200
+    assert resume_response.json()["draft_state"]["cash_flow_drafts"] == []
+    assert resume_response.json()["evaluation_summary"]["impact_summary"]["trade_count"] == 1

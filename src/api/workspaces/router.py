@@ -5,14 +5,25 @@ from fastapi import APIRouter, Header, HTTPException, Path, status
 from src.api.services.workspace_service import (
     WorkspaceEvaluationUnavailableError,
     WorkspaceNotFoundError,
+    WorkspaceSavedVersionNotFoundError,
     apply_workspace_draft_action,
+    compare_workspace_to_saved_version,
     create_workspace_session,
     get_workspace_session,
+    list_workspace_saved_versions,
     reevaluate_workspace_session,
+    resume_workspace_version,
+    save_workspace_version,
 )
 from src.core.workspace.models import (
+    WorkspaceCompareRequest,
+    WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
+    WorkspaceResumeRequest,
+    WorkspaceSavedVersionListResponse,
+    WorkspaceSaveRequest,
+    WorkspaceSaveResponse,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
@@ -49,12 +60,39 @@ _WORKSPACE_ADD_TRADE_EXAMPLE = {
     },
 }
 
+_WORKSPACE_SAVE_EXAMPLE = {
+    "summary": "Save the current advisory workspace draft",
+    "value": {
+        "saved_by": "advisor_123",
+        "version_label": "Initial sandbox draft",
+    },
+}
+
+_WORKSPACE_RESUME_EXAMPLE = {
+    "summary": "Resume a previously saved workspace version",
+    "value": {
+        "actor_id": "advisor_123",
+        "workspace_version_id": "awv_001",
+    },
+}
+
+_WORKSPACE_COMPARE_EXAMPLE = {
+    "summary": "Compare the current draft to a saved baseline",
+    "value": {
+        "workspace_version_id": "awv_001",
+    },
+}
+
 
 def _resolve_workspace_or_404(workspace_id: str) -> WorkspaceSession:
     try:
         return get_workspace_session(workspace_id)
     except WorkspaceNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+def _raise_saved_version_not_found(exc: WorkspaceSavedVersionNotFoundError) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
 
 @router.post(
@@ -169,3 +207,114 @@ def evaluate_workspace(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except WorkspaceEvaluationUnavailableError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.post(
+    "/advisory/workspaces/{workspace_id}/save",
+    response_model=WorkspaceSaveResponse,
+    tags=["Advisory Workspace"],
+    summary="Save an Advisory Workspace Version",
+    description=(
+        "Captures the current advisory workspace draft as a saved version with replay-safe evidence "
+        "for resume and compare workflows."
+    ),
+    responses={
+        200: {
+            "description": "Workspace version saved successfully.",
+            "content": {"application/json": {"examples": {"save_version": _WORKSPACE_SAVE_EXAMPLE}}},
+        },
+        404: {"description": "Workspace session not found."},
+    },
+)
+def save_workspace(
+    workspace_id: Annotated[
+        str,
+        Path(description="Workspace session identifier.", examples=["aws_001"]),
+    ],
+    request: WorkspaceSaveRequest,
+) -> WorkspaceSaveResponse:
+    try:
+        return save_workspace_version(workspace_id, request)
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/advisory/workspaces/{workspace_id}/saved-versions",
+    response_model=WorkspaceSavedVersionListResponse,
+    tags=["Advisory Workspace"],
+    summary="List Saved Advisory Workspace Versions",
+    description="Returns saved advisory workspace versions available for support, compare, and resume workflows.",
+    responses={404: {"description": "Workspace session not found."}},
+)
+def list_saved_workspace_versions(
+    workspace_id: Annotated[
+        str,
+        Path(description="Workspace session identifier.", examples=["aws_001"]),
+    ],
+) -> WorkspaceSavedVersionListResponse:
+    try:
+        return list_workspace_saved_versions(workspace_id)
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post(
+    "/advisory/workspaces/{workspace_id}/resume",
+    response_model=WorkspaceSession,
+    tags=["Advisory Workspace"],
+    summary="Resume a Saved Advisory Workspace Version",
+    description="Restores a saved advisory workspace version into the current editable draft session.",
+    responses={
+        200: {
+            "description": "Workspace version resumed successfully.",
+            "content": {"application/json": {"examples": {"resume_version": _WORKSPACE_RESUME_EXAMPLE}}},
+        },
+        404: {"description": "Workspace session or saved workspace version not found."},
+    },
+)
+def resume_workspace(
+    workspace_id: Annotated[
+        str,
+        Path(description="Workspace session identifier.", examples=["aws_001"]),
+    ],
+    request: WorkspaceResumeRequest,
+) -> WorkspaceSession:
+    try:
+        return resume_workspace_version(workspace_id, request)
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WorkspaceSavedVersionNotFoundError as exc:
+        raise _raise_saved_version_not_found(exc)
+
+
+@router.post(
+    "/advisory/workspaces/{workspace_id}/compare",
+    response_model=WorkspaceCompareResponse,
+    tags=["Advisory Workspace"],
+    summary="Compare Current Workspace Draft to a Saved Version",
+    description=(
+        "Returns a deterministic comparison between the current advisory workspace draft and a saved "
+        "workspace version baseline."
+    ),
+    responses={
+        200: {
+            "description": "Workspace comparison created successfully.",
+            "content": {"application/json": {"examples": {"compare_version": _WORKSPACE_COMPARE_EXAMPLE}}},
+        },
+        404: {"description": "Workspace session or saved workspace version not found."},
+    },
+)
+def compare_workspace(
+    workspace_id: Annotated[
+        str,
+        Path(description="Workspace session identifier.", examples=["aws_001"]),
+    ],
+    request: WorkspaceCompareRequest,
+) -> WorkspaceCompareResponse:
+    try:
+        return compare_workspace_to_saved_version(workspace_id, request)
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WorkspaceSavedVersionNotFoundError as exc:
+        raise _raise_saved_version_not_found(exc)

@@ -6,15 +6,25 @@ from uuid import uuid4
 
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
-from src.core.models import ProposalResult, ProposalSimulateRequest, RuleResult
+from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.workspace.models import (
     WorkspaceCashFlowDraft,
+    WorkspaceCompareDiffSummary,
+    WorkspaceCompareRequest,
+    WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
     WorkspaceDraftState,
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
+    WorkspaceReplayEvidence,
     WorkspaceResolvedContext,
+    WorkspaceResumeRequest,
+    WorkspaceSavedVersion,
+    WorkspaceSavedVersionListResponse,
+    WorkspaceSavedVersionSummary,
+    WorkspaceSaveRequest,
+    WorkspaceSaveResponse,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
@@ -32,6 +42,10 @@ class WorkspaceNotFoundError(Exception):
 
 
 class WorkspaceEvaluationUnavailableError(Exception):
+    pass
+
+
+class WorkspaceSavedVersionNotFoundError(Exception):
     pass
 
 
@@ -159,6 +173,42 @@ def _build_evaluation_summary(result: ProposalResult, session: WorkspaceSession)
     )
 
 
+def _build_draft_state_hash(session: WorkspaceSession) -> str:
+    return hash_canonical_payload(session.draft_state.model_dump(mode="json"))
+
+
+def _build_replay_evidence(
+    session: WorkspaceSession,
+    evaluation_request_hash: str | None = None,
+) -> WorkspaceReplayEvidence:
+    return WorkspaceReplayEvidence(
+        input_mode=session.input_mode,
+        resolved_context=(
+            session.resolved_context.model_copy(deep=True) if session.resolved_context is not None else None
+        ),
+        draft_state_hash=_build_draft_state_hash(session),
+        evaluation_request_hash=evaluation_request_hash,
+        captured_at=_utc_now_iso(),
+    )
+
+
+def _build_saved_version_summary(version: WorkspaceSavedVersion) -> WorkspaceSavedVersionSummary:
+    return WorkspaceSavedVersionSummary(
+        workspace_version_id=version.workspace_version_id,
+        version_number=version.version_number,
+        version_label=version.version_label,
+        saved_by=version.saved_by,
+        saved_at=version.saved_at,
+    )
+
+
+def _refresh_saved_version_metadata(session: WorkspaceSession) -> None:
+    session.saved_version_count = len(session.saved_versions)
+    session.latest_saved_version = (
+        _build_saved_version_summary(session.saved_versions[-1]) if session.saved_versions else None
+    )
+
+
 def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     session = get_workspace_session(workspace_id)
     simulate_request = _build_simulate_request_for_workspace(session)
@@ -179,6 +229,10 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     )
     session.latest_proposal_result = result
     session.evaluation_summary = _build_evaluation_summary(result, session)
+    session.latest_replay_evidence = _build_replay_evidence(
+        session,
+        evaluation_request_hash=request_hash,
+    )
     _save_workspace_session(session)
     return session
 
@@ -199,6 +253,40 @@ def get_workspace_session(workspace_id: str) -> WorkspaceSession:
 
 def reset_workspace_sessions_for_tests() -> None:
     WORKSPACE_SESSIONS.clear()
+
+
+def _find_saved_version(session: WorkspaceSession, workspace_version_id: str) -> WorkspaceSavedVersion:
+    saved_version = next(
+        (item for item in session.saved_versions if item.workspace_version_id == workspace_version_id),
+        None,
+    )
+    if saved_version is None:
+        raise WorkspaceSavedVersionNotFoundError("WORKSPACE_SAVED_VERSION_NOT_FOUND")
+    return saved_version
+
+
+def _find_trade_draft(session: WorkspaceSession, workspace_trade_id: str) -> WorkspaceTradeDraft:
+    trade_draft = next(
+        (item for item in session.draft_state.trade_drafts if item.workspace_trade_id == workspace_trade_id),
+        None,
+    )
+    if trade_draft is None:
+        raise WorkspaceNotFoundError("WORKSPACE_TRADE_NOT_FOUND")
+    return trade_draft
+
+
+def _find_cash_flow_draft(session: WorkspaceSession, workspace_cash_flow_id: str) -> WorkspaceCashFlowDraft:
+    cash_flow_draft = next(
+        (
+            item
+            for item in session.draft_state.cash_flow_drafts
+            if item.workspace_cash_flow_id == workspace_cash_flow_id
+        ),
+        None,
+    )
+    if cash_flow_draft is None:
+        raise WorkspaceNotFoundError("WORKSPACE_CASH_FLOW_NOT_FOUND")
+    return cash_flow_draft
 
 
 def create_workspace_session(
@@ -226,6 +314,10 @@ def create_workspace_session(
         resolved_context=resolved_context,
         evaluation_summary=None,
         latest_proposal_result=None,
+        latest_replay_evidence=None,
+        saved_version_count=0,
+        latest_saved_version=None,
+        saved_versions=[],
     )
     _save_workspace_session(session)
     return WorkspaceSessionCreateResponse(workspace=session)
@@ -248,12 +340,7 @@ def apply_workspace_draft_action(
         )
     elif request.action_type == "UPDATE_TRADE":
         assert request.trade is not None and request.workspace_trade_id is not None
-        trade_draft = next(
-            (item for item in draft_state.trade_drafts if item.workspace_trade_id == request.workspace_trade_id),
-            None,
-        )
-        if trade_draft is None:
-            raise WorkspaceNotFoundError("WORKSPACE_TRADE_NOT_FOUND")
+        trade_draft = _find_trade_draft(session, request.workspace_trade_id)
         trade_draft.trade = request.trade.model_copy(deep=True)
     elif request.action_type == "REMOVE_TRADE":
         assert request.workspace_trade_id is not None
@@ -275,16 +362,7 @@ def apply_workspace_draft_action(
         )
     elif request.action_type == "UPDATE_CASH_FLOW":
         assert request.cash_flow is not None and request.workspace_cash_flow_id is not None
-        cash_flow_draft = next(
-            (
-                item
-                for item in draft_state.cash_flow_drafts
-                if item.workspace_cash_flow_id == request.workspace_cash_flow_id
-            ),
-            None,
-        )
-        if cash_flow_draft is None:
-            raise WorkspaceNotFoundError("WORKSPACE_CASH_FLOW_NOT_FOUND")
+        cash_flow_draft = _find_cash_flow_draft(session, request.workspace_cash_flow_id)
         cash_flow_draft.cash_flow = request.cash_flow.model_copy(deep=True)
     elif request.action_type == "REMOVE_CASH_FLOW":
         assert request.workspace_cash_flow_id is not None
@@ -303,3 +381,97 @@ def apply_workspace_draft_action(
     _save_workspace_session(session)
     updated_session = reevaluate_workspace_session(workspace_id)
     return WorkspaceDraftActionResponse(workspace=updated_session)
+
+
+def save_workspace_version(workspace_id: str, request: WorkspaceSaveRequest) -> WorkspaceSaveResponse:
+    session = get_workspace_session(workspace_id)
+    replay_evidence = (
+        session.latest_replay_evidence.model_copy(deep=True)
+        if session.latest_replay_evidence is not None
+        else _build_replay_evidence(session)
+    )
+    saved_version = WorkspaceSavedVersion(
+        workspace_version_id=f"awv_{uuid4().hex[:12]}",
+        version_number=len(session.saved_versions) + 1,
+        version_label=request.version_label,
+        saved_by=request.saved_by,
+        saved_at=_utc_now_iso(),
+        draft_state=session.draft_state.model_copy(deep=True),
+        evaluation_summary=(
+            session.evaluation_summary.model_copy(deep=True) if session.evaluation_summary is not None else None
+        ),
+        latest_proposal_result=(
+            session.latest_proposal_result.model_copy(deep=True)
+            if session.latest_proposal_result is not None
+            else None
+        ),
+        replay_evidence=replay_evidence,
+    )
+    session.saved_versions.append(saved_version)
+    _refresh_saved_version_metadata(session)
+    _save_workspace_session(session)
+    return WorkspaceSaveResponse(workspace=session, saved_version=saved_version)
+
+
+def list_workspace_saved_versions(workspace_id: str) -> WorkspaceSavedVersionListResponse:
+    session = get_workspace_session(workspace_id)
+    return WorkspaceSavedVersionListResponse(
+        workspace_id=session.workspace_id,
+        saved_versions=[item.model_copy(deep=True) for item in session.saved_versions],
+    )
+
+
+def resume_workspace_version(workspace_id: str, request: WorkspaceResumeRequest) -> WorkspaceSession:
+    session = get_workspace_session(workspace_id)
+    saved_version = _find_saved_version(session, request.workspace_version_id)
+    session.draft_state = saved_version.draft_state.model_copy(deep=True)
+    session.evaluation_summary = (
+        saved_version.evaluation_summary.model_copy(deep=True)
+        if saved_version.evaluation_summary is not None
+        else None
+    )
+    session.latest_proposal_result = (
+        saved_version.latest_proposal_result.model_copy(deep=True)
+        if saved_version.latest_proposal_result is not None
+        else None
+    )
+    session.latest_replay_evidence = saved_version.replay_evidence.model_copy(deep=True)
+    _save_workspace_session(session)
+    return session
+
+
+def compare_workspace_to_saved_version(
+    workspace_id: str,
+    request: WorkspaceCompareRequest,
+) -> WorkspaceCompareResponse:
+    session = get_workspace_session(workspace_id)
+    saved_version = _find_saved_version(session, request.workspace_version_id)
+    current_status = session.evaluation_summary.status if session.evaluation_summary is not None else None
+    baseline_status = (
+        saved_version.evaluation_summary.status if saved_version.evaluation_summary is not None else None
+    )
+    return WorkspaceCompareResponse(
+        workspace_id=session.workspace_id,
+        baseline_version=saved_version.model_copy(deep=True),
+        current_evaluation_summary=(
+            session.evaluation_summary.model_copy(deep=True) if session.evaluation_summary is not None else None
+        ),
+        current_replay_evidence=(
+            session.latest_replay_evidence.model_copy(deep=True)
+            if session.latest_replay_evidence is not None
+            else None
+        ),
+        diff_summary=WorkspaceCompareDiffSummary(
+            trade_count_delta=(
+                len(session.draft_state.trade_drafts) - len(saved_version.draft_state.trade_drafts)
+            ),
+            cash_flow_count_delta=(
+                len(session.draft_state.cash_flow_drafts) - len(saved_version.draft_state.cash_flow_drafts)
+            ),
+            options_changed=session.draft_state.options != saved_version.draft_state.options,
+            reference_model_changed=(
+                session.draft_state.reference_model != saved_version.draft_state.reference_model
+            ),
+            evaluation_status_changed=current_status != baseline_status,
+        ),
+    )

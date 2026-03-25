@@ -18,11 +18,17 @@ from src.core.models import (
     SimulatedState,
 )
 from src.core.workspace.models import (
+    WorkspaceCompareRequest,
+    WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
     WorkspaceDraftState,
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
+    WorkspaceReplayEvidence,
     WorkspaceResolvedContext,
+    WorkspaceSavedVersion,
+    WorkspaceSavedVersionSummary,
+    WorkspaceSaveRequest,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceStatefulInput,
@@ -203,3 +209,72 @@ def test_workspace_draft_action_supports_update_trade_payload():
 
     assert action.workspace_trade_id == "wtd_001"
     assert action.trade is not None
+
+
+def test_workspace_save_and_compare_models_capture_replay_safe_history():
+    replay_evidence = WorkspaceReplayEvidence(
+        input_mode="stateless",
+        resolved_context=WorkspaceResolvedContext(portfolio_id="pf_advisory_01", as_of="2026-03-25"),
+        draft_state_hash="hash_001",
+        evaluation_request_hash="eval_hash_001",
+        captured_at="2026-03-25T09:45:00+00:00",
+    )
+    saved_version = WorkspaceSavedVersion(
+        workspace_version_id="awv_001",
+        version_number=1,
+        version_label="Initial sandbox draft",
+        saved_by="advisor_123",
+        saved_at="2026-03-25T09:45:00+00:00",
+        draft_state=WorkspaceDraftState(),
+        evaluation_summary=None,
+        latest_proposal_result=None,
+        replay_evidence=replay_evidence,
+    )
+    save_request = WorkspaceSaveRequest(saved_by="advisor_123", version_label="Initial sandbox draft")
+    compare_request = WorkspaceCompareRequest(workspace_version_id="awv_001")
+    summary = WorkspaceSavedVersionSummary(
+        workspace_version_id="awv_001",
+        version_number=1,
+        version_label="Initial sandbox draft",
+        saved_by="advisor_123",
+        saved_at="2026-03-25T09:45:00+00:00",
+    )
+
+    assert save_request.saved_by == "advisor_123"
+    assert compare_request.workspace_version_id == "awv_001"
+    assert saved_version.replay_evidence.evaluation_request_hash == "eval_hash_001"
+    assert summary.version_number == 1
+
+
+def test_workspace_compare_response_schema_is_instantiable():
+    response = WorkspaceCompareResponse(
+        workspace_id="aws_001",
+        baseline_version=WorkspaceSavedVersion(
+            workspace_version_id="awv_001",
+            version_number=1,
+            version_label="Initial sandbox draft",
+            saved_by="advisor_123",
+            saved_at="2026-03-25T09:45:00+00:00",
+            draft_state=WorkspaceDraftState(),
+            evaluation_summary=None,
+            latest_proposal_result=None,
+            replay_evidence=WorkspaceReplayEvidence(
+                input_mode="stateless",
+                resolved_context=None,
+                draft_state_hash="hash_001",
+                evaluation_request_hash=None,
+                captured_at="2026-03-25T09:45:00+00:00",
+            ),
+        ),
+        current_evaluation_summary=None,
+        current_replay_evidence=None,
+        diff_summary={
+            "trade_count_delta": 1,
+            "cash_flow_count_delta": 0,
+            "options_changed": False,
+            "reference_model_changed": False,
+            "evaluation_status_changed": False,
+        },
+    )
+
+    assert response.diff_summary.trade_count_delta == 1

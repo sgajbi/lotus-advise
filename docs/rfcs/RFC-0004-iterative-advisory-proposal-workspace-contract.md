@@ -367,6 +367,10 @@ Acceptance gate:
 
 ### Slice 3: Save, Resume, Compare, and Replay
 
+Status:
+
+1. implemented
+
 Outcome:
 
 1. draft workspaces can be saved and resumed,

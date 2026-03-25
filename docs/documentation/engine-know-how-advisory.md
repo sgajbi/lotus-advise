@@ -263,6 +263,10 @@ Current workspace scope:
 - `GET /advisory/workspaces/{workspace_id}` returns current draft state and latest evaluation.
 - `POST /advisory/workspaces/{workspace_id}/draft-actions` applies a single deterministic draft mutation and re-evaluates when evaluation context is available.
 - `POST /advisory/workspaces/{workspace_id}/evaluate` re-runs deterministic evaluation for the current workspace draft.
+- `POST /advisory/workspaces/{workspace_id}/save` captures a replay-safe saved workspace version.
+- `GET /advisory/workspaces/{workspace_id}/saved-versions` returns the saved version history for support, resume, and compare workflows.
+- `POST /advisory/workspaces/{workspace_id}/resume` restores a saved version into the current editable draft.
+- `POST /advisory/workspaces/{workspace_id}/compare` compares the current draft to a saved version baseline.
 
 Current Slice 2 draft actions:
 - `ADD_TRADE`
@@ -276,6 +280,11 @@ Current Slice 2 draft actions:
 Current evaluation rule:
 - stateless workspaces support full deterministic re-evaluation from the embedded simulation context
 - stateful workspaces preserve draft state but return `WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED` until upstream context resolution lands in a later architecture slice
+
+Current saved-version rule:
+- saved workspace versions are retained within the active workspace session and expose replay-safe evidence
+- resume restores the saved draft state, evaluation summary, and replay evidence without hidden reconstruction
+- compare currently returns deterministic summary deltas against a saved baseline version
 
 Dependency quality gate:
 - `scripts/dependency_health_check.py --requirements requirements.txt`

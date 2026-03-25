@@ -193,6 +193,92 @@ class WorkspaceEvaluationSummary(BaseModel):
     )
 
 
+class WorkspaceReplayEvidence(BaseModel):
+    input_mode: WorkspaceInputMode = Field(
+        description="Workspace input mode used when the draft state was evaluated or saved.",
+        examples=["stateless"],
+    )
+    resolved_context: Optional[WorkspaceResolvedContext] = Field(
+        default=None,
+        description="Resolved advisory context captured for audit and replay.",
+    )
+    draft_state_hash: str = Field(
+        description="Canonical hash of the saved workspace draft state.",
+        examples=["7f4fb61c1be6f12ab57f0b145fbe590710f535d79418a8f1ca5c9542e6d23813"],
+    )
+    evaluation_request_hash: Optional[str] = Field(
+        default=None,
+        description="Canonical hash of the simulation request used for the latest deterministic evaluation.",
+        examples=["2fd1f3c2ecde4e86fbeb5dff19df8fd5b4b9e24473e7a17f80f4d3d57f644ca8"],
+    )
+    captured_at: str = Field(
+        description="UTC ISO8601 timestamp when replay evidence was captured.",
+        examples=["2026-03-25T09:45:00+00:00"],
+    )
+
+
+class WorkspaceSavedVersionSummary(BaseModel):
+    workspace_version_id: str = Field(
+        description="Saved workspace version identifier.",
+        examples=["awv_001"],
+    )
+    version_number: int = Field(
+        description="Monotonic saved version number for the workspace session.",
+        examples=[1],
+    )
+    version_label: Optional[str] = Field(
+        default=None,
+        description="Optional advisor-facing label for the saved version.",
+        examples=["Initial sandbox draft"],
+    )
+    saved_by: str = Field(
+        description="Actor identifier that saved the workspace version.",
+        examples=["advisor_123"],
+    )
+    saved_at: str = Field(
+        description="UTC ISO8601 timestamp when the workspace version was saved.",
+        examples=["2026-03-25T09:45:00+00:00"],
+    )
+
+
+class WorkspaceSavedVersion(BaseModel):
+    workspace_version_id: str = Field(
+        description="Saved workspace version identifier.",
+        examples=["awv_001"],
+    )
+    version_number: int = Field(
+        description="Monotonic saved version number for the workspace session.",
+        examples=[1],
+    )
+    version_label: Optional[str] = Field(
+        default=None,
+        description="Optional advisor-facing label for the saved version.",
+        examples=["Initial sandbox draft"],
+    )
+    saved_by: str = Field(
+        description="Actor identifier that saved the workspace version.",
+        examples=["advisor_123"],
+    )
+    saved_at: str = Field(
+        description="UTC ISO8601 timestamp when the workspace version was saved.",
+        examples=["2026-03-25T09:45:00+00:00"],
+    )
+    draft_state: WorkspaceDraftState = Field(
+        description="Saved draft state for replay, resume, and compare workflows.",
+    )
+    evaluation_summary: Optional[WorkspaceEvaluationSummary] = Field(
+        default=None,
+        description="Saved evaluation summary associated with the version.",
+    )
+    latest_proposal_result: Optional[ProposalResult] = Field(
+        default=None,
+        description="Optional full proposal result associated with the saved version.",
+    )
+    replay_evidence: WorkspaceReplayEvidence = Field(
+        description="Replay-safe evidence bundle captured for the saved version.",
+    )
+
+
 class WorkspaceSessionCreateRequest(BaseModel):
     workspace_name: str = Field(
         description="Advisor-facing workspace name used in Lotus advisory workflows.",
@@ -301,6 +387,25 @@ class WorkspaceSession(BaseModel):
         default=None,
         description="Optional latest full proposal result associated with the workspace draft.",
     )
+    latest_replay_evidence: Optional[WorkspaceReplayEvidence] = Field(
+        default=None,
+        description="Latest replay-safe evidence captured for the current workspace draft.",
+    )
+    saved_version_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of saved workspace versions currently available for resume and compare workflows.",
+        examples=[2],
+    )
+    latest_saved_version: Optional[WorkspaceSavedVersionSummary] = Field(
+        default=None,
+        description="Latest saved workspace version summary, when one exists.",
+    )
+    saved_versions: list[WorkspaceSavedVersion] = Field(
+        default_factory=list,
+        exclude=True,
+        description="Internal saved workspace versions retained for resume and compare workflows.",
+    )
 
     @model_validator(mode="after")
     def validate_session_mode_payloads(self) -> "WorkspaceSession":
@@ -385,4 +490,97 @@ class WorkspaceDraftActionRequest(BaseModel):
 class WorkspaceDraftActionResponse(BaseModel):
     workspace: WorkspaceSession = Field(
         description="Workspace session after the draft action and optional re-evaluation.",
+    )
+
+
+class WorkspaceSaveRequest(BaseModel):
+    saved_by: str = Field(
+        description="Actor identifier saving the current workspace version.",
+        examples=["advisor_123"],
+    )
+    version_label: Optional[str] = Field(
+        default=None,
+        description="Optional advisor-facing label for the saved workspace version.",
+        examples=["Initial sandbox draft"],
+    )
+
+
+class WorkspaceSaveResponse(BaseModel):
+    workspace: WorkspaceSession = Field(
+        description="Workspace session after the save operation.",
+    )
+    saved_version: WorkspaceSavedVersion = Field(
+        description="Saved workspace version created by the request.",
+    )
+
+
+class WorkspaceSavedVersionListResponse(BaseModel):
+    workspace_id: str = Field(
+        description="Workspace session identifier.",
+        examples=["aws_001"],
+    )
+    saved_versions: list[WorkspaceSavedVersion] = Field(
+        description="Saved workspace versions available for compare and resume workflows.",
+    )
+
+
+class WorkspaceResumeRequest(BaseModel):
+    actor_id: str = Field(
+        description="Actor identifier resuming a saved workspace version.",
+        examples=["advisor_123"],
+    )
+    workspace_version_id: str = Field(
+        description="Saved workspace version identifier to restore into the current draft.",
+        examples=["awv_001"],
+    )
+
+
+class WorkspaceCompareRequest(BaseModel):
+    workspace_version_id: str = Field(
+        description="Saved workspace version identifier used as the comparison baseline.",
+        examples=["awv_001"],
+    )
+
+
+class WorkspaceCompareDiffSummary(BaseModel):
+    trade_count_delta: int = Field(
+        description="Current draft trade count minus the baseline saved version trade count.",
+        examples=[1],
+    )
+    cash_flow_count_delta: int = Field(
+        description="Current draft cash-flow count minus the baseline saved version cash-flow count.",
+        examples=[-1],
+    )
+    options_changed: bool = Field(
+        description="Whether the current workspace options differ from the baseline saved version.",
+        examples=[True],
+    )
+    reference_model_changed: bool = Field(
+        description="Whether the current reference model differs from the baseline saved version.",
+        examples=[False],
+    )
+    evaluation_status_changed: bool = Field(
+        description="Whether the current evaluation status differs from the baseline saved version.",
+        examples=[True],
+    )
+
+
+class WorkspaceCompareResponse(BaseModel):
+    workspace_id: str = Field(
+        description="Workspace session identifier.",
+        examples=["aws_001"],
+    )
+    baseline_version: WorkspaceSavedVersion = Field(
+        description="Saved workspace version used as the comparison baseline.",
+    )
+    current_evaluation_summary: Optional[WorkspaceEvaluationSummary] = Field(
+        default=None,
+        description="Current evaluation summary for the active workspace draft.",
+    )
+    current_replay_evidence: Optional[WorkspaceReplayEvidence] = Field(
+        default=None,
+        description="Current replay evidence for the active workspace draft.",
+    )
+    diff_summary: WorkspaceCompareDiffSummary = Field(
+        description="Deterministic comparison summary between the current draft and the baseline version.",
     )
