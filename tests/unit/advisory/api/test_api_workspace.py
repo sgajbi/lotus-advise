@@ -441,6 +441,112 @@ def test_workspace_evaluate_rejects_stateful_session_until_stateful_resolution_e
     assert response.json()["detail"] == "WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED"
 
 
+def test_workspace_endpoints_return_404_for_missing_workspace():
+    with TestClient(app) as client:
+        get_response = client.get("/advisory/workspaces/aws_missing")
+        evaluate_response = client.post("/advisory/workspaces/aws_missing/evaluate")
+        save_response = client.post(
+            "/advisory/workspaces/aws_missing/save",
+            json={"saved_by": "advisor_123"},
+        )
+        list_response = client.get("/advisory/workspaces/aws_missing/saved-versions")
+        handoff_response = client.post(
+            "/advisory/workspaces/aws_missing/handoff",
+            headers={"Idempotency-Key": "workspace-handoff-idem-missing"},
+            json={"handoff_by": "advisor_123"},
+        )
+
+    assert get_response.status_code == 404
+    assert evaluate_response.status_code == 404
+    assert save_response.status_code == 404
+    assert list_response.status_code == 404
+    assert handoff_response.status_code == 404
+
+
+def test_workspace_draft_action_not_found_paths_return_404():
+    create_payload = {
+        "workspace_name": "Sandbox drift review",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        update_trade = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "UPDATE_TRADE",
+                "workspace_trade_id": "wtd_missing",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_1",
+                    "quantity": "1",
+                },
+            },
+        )
+        remove_cash_flow = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "REMOVE_CASH_FLOW",
+                "workspace_cash_flow_id": "wcf_missing",
+            },
+        )
+
+    assert update_trade.status_code == 404
+    assert update_trade.json()["detail"] == "WORKSPACE_TRADE_NOT_FOUND"
+    assert remove_cash_flow.status_code == 404
+    assert remove_cash_flow.json()["detail"] == "WORKSPACE_CASH_FLOW_NOT_FOUND"
+
+
+def test_workspace_draft_action_replace_options_rejects_stateful_workspace_without_resolution():
+    create_payload = {
+        "workspace_name": "Q2 2026 growth reallocation draft",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_advisory_01",
+            "household_id": "hh_001",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "REPLACE_OPTIONS",
+                "options": {"enable_proposal_simulation": True, "auto_funding": False},
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED"
+
+
 def test_workspace_save_list_resume_and_compare_saved_versions():
     create_payload = {
         "workspace_name": "Sandbox compare review",
@@ -527,6 +633,62 @@ def test_workspace_save_list_resume_and_compare_saved_versions():
     assert resume_response.status_code == 200
     assert resume_response.json()["draft_state"]["cash_flow_drafts"] == []
     assert resume_response.json()["evaluation_summary"]["impact_summary"]["trade_count"] == 1
+
+
+def test_workspace_resume_and_compare_missing_saved_version_return_404():
+    create_payload = {
+        "workspace_name": "Sandbox compare review",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        resume_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/resume",
+            json={"actor_id": "advisor_123", "workspace_version_id": "awv_missing"},
+        )
+        compare_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/compare",
+            json={"workspace_version_id": "awv_missing"},
+        )
+
+    assert resume_response.status_code == 404
+    assert resume_response.json()["detail"] == "WORKSPACE_SAVED_VERSION_NOT_FOUND"
+    assert compare_response.status_code == 404
+    assert compare_response.json()["detail"] == "WORKSPACE_SAVED_VERSION_NOT_FOUND"
+
+
+def test_workspace_resume_and_compare_missing_workspace_return_404():
+    with TestClient(app) as client:
+        resume_response = client.post(
+            "/advisory/workspaces/aws_missing/resume",
+            json={"actor_id": "advisor_123", "workspace_version_id": "awv_001"},
+        )
+        compare_response = client.post(
+            "/advisory/workspaces/aws_missing/compare",
+            json={"workspace_version_id": "awv_001"},
+        )
+
+    assert resume_response.status_code == 404
+    assert compare_response.status_code == 404
 
 
 def test_workspace_handoff_creates_proposal_then_new_version_without_duplicating_lifecycle():
@@ -677,3 +839,44 @@ def test_workspace_handoff_rejects_stateful_workspace_until_stateful_resolution_
 
     assert response.status_code == 409
     assert response.json()["detail"] == "WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED"
+
+
+def test_workspace_handoff_returns_422_when_proposal_simulation_flag_is_disabled():
+    create_payload = {
+        "workspace_name": "Growth rotation workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": False},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            headers={"Idempotency-Key": "workspace-handoff-idem-003"},
+            json={"handoff_by": "advisor_123"},
+        )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == (
+        "PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true"
+    )

@@ -215,6 +215,130 @@ def test_workspace_draft_action_supports_update_trade_payload():
     assert action.trade is not None
 
 
+def test_workspace_create_request_rejects_missing_stateful_input():
+    with pytest.raises(ValidationError):
+        WorkspaceSessionCreateRequest(
+            workspace_name="Missing stateful payload",
+            created_by="advisor_123",
+            input_mode="stateful",
+        )
+
+
+def test_workspace_create_request_rejects_missing_stateless_input():
+    with pytest.raises(ValidationError):
+        WorkspaceSessionCreateRequest(
+            workspace_name="Missing stateless payload",
+            created_by="advisor_123",
+            input_mode="stateless",
+        )
+
+
+def test_workspace_session_rejects_missing_stateless_payload():
+    with pytest.raises(ValidationError):
+        WorkspaceSession(
+            workspace_id="aws_001",
+            workspace_name="Bad stateless workspace",
+            lifecycle_state="ACTIVE",
+            input_mode="stateless",
+            created_by="advisor_123",
+            created_at="2026-03-25T09:30:00+00:00",
+            stateless_input=None,
+            stateful_input=None,
+            draft_state=WorkspaceDraftState(),
+            resolved_context=None,
+            evaluation_summary=None,
+            latest_proposal_result=None,
+            latest_replay_evidence=None,
+            saved_version_count=0,
+            latest_saved_version=None,
+            lifecycle_link=None,
+            saved_versions=[],
+        )
+
+
+def test_workspace_session_rejects_missing_stateful_payload():
+    with pytest.raises(ValidationError):
+        WorkspaceSession(
+            workspace_id="aws_001",
+            workspace_name="Bad stateful workspace",
+            lifecycle_state="ACTIVE",
+            input_mode="stateful",
+            created_by="advisor_123",
+            created_at="2026-03-25T09:30:00+00:00",
+            stateless_input=None,
+            stateful_input=None,
+            draft_state=WorkspaceDraftState(),
+            resolved_context=None,
+            evaluation_summary=None,
+            latest_proposal_result=None,
+            latest_replay_evidence=None,
+            saved_version_count=0,
+            latest_saved_version=None,
+            lifecycle_link=None,
+            saved_versions=[],
+        )
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (
+            {"actor_id": "advisor_123", "action_type": "REMOVE_TRADE"},
+            "REMOVE_TRADE requires workspace_trade_id",
+        ),
+        (
+            {"actor_id": "advisor_123", "action_type": "UPDATE_TRADE"},
+            "UPDATE_TRADE requires workspace_trade_id and trade",
+        ),
+        (
+            {"actor_id": "advisor_123", "action_type": "ADD_CASH_FLOW"},
+            "ADD_CASH_FLOW requires cash_flow",
+        ),
+        (
+            {
+                "actor_id": "advisor_123",
+                "action_type": "UPDATE_CASH_FLOW",
+                "workspace_cash_flow_id": "wcf_001",
+            },
+            "UPDATE_CASH_FLOW requires workspace_cash_flow_id and cash_flow",
+        ),
+        (
+            {"actor_id": "advisor_123", "action_type": "REPLACE_OPTIONS"},
+            "REPLACE_OPTIONS requires options",
+        ),
+        (
+            {"actor_id": "advisor_123", "action_type": "REMOVE_CASH_FLOW"},
+            "REMOVE_CASH_FLOW requires workspace_cash_flow_id",
+        ),
+        (
+            {
+                "actor_id": "advisor_123",
+                "action_type": "ADD_CASH_FLOW",
+                "cash_flow": {"currency": "USD", "amount": "1000"},
+                "workspace_trade_id": "wtd_001",
+            },
+            "workspace_trade_id is only valid for trade actions",
+        ),
+        (
+            {
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "side": "BUY",
+                    "instrument_id": "EQ_1",
+                    "quantity": "2",
+                },
+                "workspace_cash_flow_id": "wcf_001",
+            },
+            "workspace_cash_flow_id is only valid for cash-flow actions",
+        ),
+    ],
+)
+def test_workspace_draft_action_validation_guards(payload, message):
+    with pytest.raises(ValidationError, match=message):
+        WorkspaceDraftActionRequest(**payload)
+
+
 def test_workspace_save_and_compare_models_capture_replay_safe_history():
     replay_evidence = WorkspaceReplayEvidence(
         input_mode="stateless",
