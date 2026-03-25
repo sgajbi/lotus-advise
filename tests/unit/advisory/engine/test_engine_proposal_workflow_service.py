@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
 
+import pytest
+
+from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
@@ -57,6 +60,14 @@ def _create_payload() -> ProposalCreateRequest:
     )
 
 
+@pytest.fixture(autouse=True)
+def reset_upstream_authority_overrides(monkeypatch):
+    monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
+    monkeypatch.delenv("LOTUS_RISK_BASE_URL", raising=False)
+    monkeypatch.delattr("src.api.main.simulate_with_lotus_core", raising=False)
+    monkeypatch.delattr("src.api.main.enrich_with_lotus_risk", raising=False)
+
+
 def test_service_version_payload_is_immutable_from_caller_mutation():
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())
 
@@ -74,6 +85,44 @@ def test_service_version_payload_is_immutable_from_caller_mutation():
         proposal_id=proposal_id, version_no=1, include_evidence=True
     )
     assert version_again.evidence_bundle["hashes"]["artifact_hash"].startswith("sha256:")
+
+
+def test_service_create_proposal_uses_upstream_simulation_authority_when_available(
+    monkeypatch,
+):
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    def _simulate_with_lotus_core(**kwargs):
+        request = kwargs["request"]
+        return run_proposal_simulation(
+            portfolio=request.portfolio_snapshot,
+            market_data=request.market_data_snapshot,
+            shelf=request.shelf_entries,
+            options=request.options,
+            proposed_cash_flows=request.proposed_cash_flows,
+            proposed_trades=request.proposed_trades,
+            reference_model=request.reference_model,
+            request_hash=kwargs["request_hash"],
+            idempotency_key=kwargs["idempotency_key"],
+            correlation_id=kwargs["correlation_id"],
+        )
+
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.api.main.simulate_with_lotus_core",
+        _simulate_with_lotus_core,
+        raising=False,
+    )
+
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-idem-upstream",
+        correlation_id="corr-service-upstream",
+    )
+
+    authority = created.version.proposal_result.explanation["authority_resolution"]
+    assert authority["simulation_authority"] == "lotus_core"
+    assert authority["risk_authority"] == "lotus_advise_local"
 
 
 def test_service_rejects_version_with_portfolio_context_mismatch():

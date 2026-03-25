@@ -480,6 +480,10 @@ Out of scope:
 
 ### Slice 3: Upstream Authority Realignment
 
+Status:
+
+1. implemented
+
 Outcome:
 
 1. simulation authority converges toward `lotus-core`,

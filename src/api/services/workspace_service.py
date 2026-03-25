@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import OrderedDict as OrderedDictType
 from uuid import uuid4
 
-from src.core.advisory_engine import run_proposal_simulation
+from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals import (
@@ -296,14 +296,8 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     request_payload = simulate_request.model_dump(mode="json")
     request_hash = hash_canonical_payload(request_payload)
     correlation_id = f"corr_{uuid4().hex[:12]}"
-    result = run_proposal_simulation(
-        portfolio=simulate_request.portfolio_snapshot,
-        market_data=simulate_request.market_data_snapshot,
-        shelf=simulate_request.shelf_entries,
-        options=simulate_request.options,
-        proposed_cash_flows=simulate_request.proposed_cash_flows,
-        proposed_trades=simulate_request.proposed_trades,
-        reference_model=simulate_request.reference_model,
+    result = evaluate_advisory_proposal(
+        request=simulate_request,
         request_hash=request_hash,
         idempotency_key=None,
         correlation_id=correlation_id,

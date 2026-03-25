@@ -53,6 +53,14 @@ Implementation scope:
   - Uses the same proposal simulation idempotency cache/hash behavior as `/advisory/proposals/simulate`.
   - Same key + different canonical payload returns `409 Conflict`.
 
+Authority orchestration note:
+- advisory proposal evaluation now routes through explicit Lotus authority seams
+- `lotus-core` may provide simulation authority when configured
+- `lotus-risk` may provide risk enrichment authority when configured
+- local evaluation remains the deterministic fallback, and the response explanation includes
+  `authority_resolution` metadata showing which authorities were used and whether fallback
+  degradation occurred
+
 ### `POST /advisory/proposals`
 - Purpose: run simulation+artifact and persist proposal aggregate/version/workflow event.
 - Required header: `Idempotency-Key`
@@ -122,6 +130,11 @@ Persistence note:
 - In-memory backend remains available for local/test workflows and emits deprecation warnings.
 
 ## Pipeline (`run_proposal_simulation`)
+
+Authority note:
+- `run_proposal_simulation` remains the local deterministic engine implementation
+- active API, workspace, and lifecycle flows now call it through the advisory orchestration layer
+  when upstream Lotus Core authority is not available
 
 1. Validate and gate
 - Requires `options.enable_proposal_simulation=true` at API layer.
