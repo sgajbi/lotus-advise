@@ -126,9 +126,7 @@ def test_workspace_service_replace_options_and_stateful_handoff_guard() -> None:
     ):
         handoff_workspace_to_proposal_lifecycle(
             workspace_id=session.workspace_id,
-            request=workspace_service.WorkspaceLifecycleHandoffRequest(
-                handoff_by="advisor_123"
-            ),
+            request=workspace_service.WorkspaceLifecycleHandoffRequest(handoff_by="advisor_123"),
             proposal_service=FakeProposalService(),
             idempotency_key="workspace-handoff-idem-direct",
             correlation_id=None,
