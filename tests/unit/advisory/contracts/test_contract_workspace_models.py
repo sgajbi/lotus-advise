@@ -17,6 +17,7 @@ from src.core.models import (
     ShelfEntry,
     SimulatedState,
 )
+from src.core.proposals.models import ProposalCreateResponse
 from src.core.workspace.models import (
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
@@ -24,6 +25,9 @@ from src.core.workspace.models import (
     WorkspaceDraftState,
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
+    WorkspaceLifecycleHandoffRequest,
+    WorkspaceLifecycleHandoffResponse,
+    WorkspaceLifecycleLink,
     WorkspaceReplayEvidence,
     WorkspaceResolvedContext,
     WorkspaceSavedVersion,
@@ -278,3 +282,61 @@ def test_workspace_compare_response_schema_is_instantiable():
     )
 
     assert response.diff_summary.trade_count_delta == 1
+
+
+def test_workspace_lifecycle_handoff_models_capture_linkage_without_duplicating_persistence():
+    handoff_request = WorkspaceLifecycleHandoffRequest(
+        handoff_by="advisor_123",
+        metadata={"title": "Q2 2026 growth reallocation proposal", "mandate_id": "mandate_growth_01"},
+    )
+    response = WorkspaceLifecycleHandoffResponse(
+        workspace=WorkspaceSession(
+            workspace_id="aws_001",
+            workspace_name="Q2 2026 growth reallocation draft",
+            lifecycle_state="ACTIVE",
+            input_mode="stateless",
+            created_by="advisor_123",
+            created_at="2026-03-25T09:30:00+00:00",
+            stateless_input=WorkspaceStatelessInput(
+                simulate_request={
+                    "portfolio_snapshot": {
+                        "portfolio_id": "pf_advisory_01",
+                        "base_currency": "USD",
+                        "positions": [],
+                        "cash_balances": [],
+                    },
+                    "market_data_snapshot": {"prices": [], "fx_rates": []},
+                    "shelf_entries": [],
+                    "options": {"enable_proposal_simulation": True},
+                    "proposed_cash_flows": [],
+                    "proposed_trades": [],
+                }
+            ),
+            stateful_input=None,
+            draft_state=WorkspaceDraftState(),
+            resolved_context=WorkspaceResolvedContext(portfolio_id="pf_advisory_01", as_of="2026-03-25"),
+            evaluation_summary=None,
+            latest_proposal_result=None,
+            latest_replay_evidence=None,
+            saved_version_count=0,
+            latest_saved_version=None,
+            lifecycle_link=WorkspaceLifecycleLink(
+                proposal_id="pp_001",
+                current_version_no=1,
+                last_handoff_at="2026-03-25T10:00:00+00:00",
+                last_handoff_by="advisor_123",
+            ),
+            saved_versions=[],
+        ),
+        handoff_action="CREATED_PROPOSAL",
+        proposal=ProposalCreateResponse.model_construct(
+            proposal=None,
+            version=None,
+            latest_workflow_event=None,
+        ),
+    )
+
+    assert handoff_request.metadata.mandate_id == "mandate_growth_01"
+    assert response.workspace.lifecycle_link is not None
+    assert response.workspace.lifecycle_link.proposal_id == "pp_001"
+    assert response.handoff_action == "CREATED_PROPOSAL"

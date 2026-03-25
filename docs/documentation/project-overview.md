@@ -74,6 +74,7 @@ The API remains deterministic for identical inputs and options.
 - `GET /advisory/workspaces/{workspace_id}/saved-versions`
 - `POST /advisory/workspaces/{workspace_id}/resume`
 - `POST /advisory/workspaces/{workspace_id}/compare`
+- `POST /advisory/workspaces/{workspace_id}/handoff`
 - `POST /advisory/proposals`
 - `GET /advisory/proposals`
 - `GET /advisory/proposals/{proposal_id}`

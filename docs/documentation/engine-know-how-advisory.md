@@ -267,6 +267,7 @@ Current workspace scope:
 - `GET /advisory/workspaces/{workspace_id}/saved-versions` returns the saved version history for support, resume, and compare workflows.
 - `POST /advisory/workspaces/{workspace_id}/resume` restores a saved version into the current editable draft.
 - `POST /advisory/workspaces/{workspace_id}/compare` compares the current draft to a saved version baseline.
+- `POST /advisory/workspaces/{workspace_id}/handoff` bridges the current draft into persisted proposal lifecycle without duplicating lifecycle ownership.
 
 Current Slice 2 draft actions:
 - `ADD_TRADE`
@@ -285,6 +286,11 @@ Current saved-version rule:
 - saved workspace versions are retained within the active workspace session and expose replay-safe evidence
 - resume restores the saved draft state, evaluation summary, and replay evidence without hidden reconstruction
 - compare currently returns deterministic summary deltas against a saved baseline version
+
+Current handoff rule:
+- the first workspace handoff creates a persisted proposal and records a lifecycle link on the workspace
+- later workspace handoffs create new versions on the linked proposal instead of creating duplicate proposal aggregates
+- stateless workspaces support lifecycle handoff now; stateful workspaces remain blocked until upstream context resolution lands in later architecture slices
 
 Dependency quality gate:
 - `scripts/dependency_health_check.py --requirements requirements.txt`

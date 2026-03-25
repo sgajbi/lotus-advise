@@ -7,6 +7,8 @@ from uuid import uuid4
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposals import ProposalCreateRequest, ProposalVersionRequest, ProposalWorkflowService
+from src.core.proposals.models import ProposalCreateMetadata
 from src.core.workspace.models import (
     WorkspaceCashFlowDraft,
     WorkspaceCompareDiffSummary,
@@ -17,6 +19,9 @@ from src.core.workspace.models import (
     WorkspaceDraftState,
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
+    WorkspaceLifecycleHandoffRequest,
+    WorkspaceLifecycleHandoffResponse,
+    WorkspaceLifecycleLink,
     WorkspaceReplayEvidence,
     WorkspaceResolvedContext,
     WorkspaceResumeRequest,
@@ -46,6 +51,10 @@ class WorkspaceEvaluationUnavailableError(Exception):
 
 
 class WorkspaceSavedVersionNotFoundError(Exception):
+    pass
+
+
+class WorkspaceLifecycleHandoffUnavailableError(Exception):
     pass
 
 
@@ -192,6 +201,21 @@ def _build_replay_evidence(
     )
 
 
+def _build_handoff_metadata(
+    request: WorkspaceLifecycleHandoffRequest,
+    session: WorkspaceSession,
+) -> ProposalCreateMetadata:
+    mandate_id = request.metadata.mandate_id
+    if mandate_id is None and session.stateful_input is not None:
+        mandate_id = session.stateful_input.mandate_id
+    return ProposalCreateMetadata(
+        title=request.metadata.title or session.workspace_name,
+        advisor_notes=request.metadata.advisor_notes,
+        jurisdiction=request.metadata.jurisdiction,
+        mandate_id=mandate_id,
+    )
+
+
 def _build_saved_version_summary(version: WorkspaceSavedVersion) -> WorkspaceSavedVersionSummary:
     return WorkspaceSavedVersionSummary(
         workspace_version_id=version.workspace_version_id,
@@ -206,6 +230,27 @@ def _refresh_saved_version_metadata(session: WorkspaceSession) -> None:
     session.saved_version_count = len(session.saved_versions)
     session.latest_saved_version = (
         _build_saved_version_summary(session.saved_versions[-1]) if session.saved_versions else None
+    )
+
+
+def _build_proposal_create_request(
+    session: WorkspaceSession,
+    request: WorkspaceLifecycleHandoffRequest,
+) -> ProposalCreateRequest:
+    return ProposalCreateRequest(
+        created_by=request.handoff_by,
+        simulate_request=_build_simulate_request_for_workspace(session),
+        metadata=_build_handoff_metadata(request, session),
+    )
+
+
+def _build_proposal_version_request(
+    session: WorkspaceSession,
+    request: WorkspaceLifecycleHandoffRequest,
+) -> ProposalVersionRequest:
+    return ProposalVersionRequest(
+        created_by=request.handoff_by,
+        simulate_request=_build_simulate_request_for_workspace(session),
     )
 
 
@@ -317,6 +362,7 @@ def create_workspace_session(
         latest_replay_evidence=None,
         saved_version_count=0,
         latest_saved_version=None,
+        lifecycle_link=None,
         saved_versions=[],
     )
     _save_workspace_session(session)
@@ -474,4 +520,46 @@ def compare_workspace_to_saved_version(
             ),
             evaluation_status_changed=current_status != baseline_status,
         ),
+    )
+
+
+def handoff_workspace_to_proposal_lifecycle(
+    workspace_id: str,
+    request: WorkspaceLifecycleHandoffRequest,
+    proposal_service: ProposalWorkflowService,
+    idempotency_key: str | None,
+    correlation_id: str | None,
+) -> WorkspaceLifecycleHandoffResponse:
+    session = get_workspace_session(workspace_id)
+    try:
+        if session.lifecycle_link is None:
+            if not idempotency_key:
+                raise WorkspaceLifecycleHandoffUnavailableError("WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED")
+            proposal_response = proposal_service.create_proposal(
+                payload=_build_proposal_create_request(session, request),
+                idempotency_key=idempotency_key,
+                correlation_id=correlation_id,
+            )
+            handoff_action = "CREATED_PROPOSAL"
+        else:
+            proposal_response = proposal_service.create_version(
+                proposal_id=session.lifecycle_link.proposal_id,
+                payload=_build_proposal_version_request(session, request),
+                correlation_id=correlation_id,
+            )
+            handoff_action = "CREATED_PROPOSAL_VERSION"
+    except (ValueError, WorkspaceEvaluationUnavailableError) as exc:
+        raise WorkspaceLifecycleHandoffUnavailableError(str(exc)) from exc
+
+    session.lifecycle_link = WorkspaceLifecycleLink(
+        proposal_id=proposal_response.proposal.proposal_id,
+        current_version_no=proposal_response.version.version_no,
+        last_handoff_at=_utc_now_iso(),
+        last_handoff_by=request.handoff_by,
+    )
+    _save_workspace_session(session)
+    return WorkspaceLifecycleHandoffResponse(
+        workspace=session,
+        handoff_action=handoff_action,
+        proposal=proposal_response,
     )

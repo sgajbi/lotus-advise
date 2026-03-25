@@ -30,6 +30,7 @@ def test_workspace_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(session_schema, "latest_replay_evidence")
     _assert_property_has_docs(session_schema, "saved_version_count")
     _assert_property_has_docs(session_schema, "latest_saved_version")
+    _assert_property_has_docs(session_schema, "lifecycle_link")
 
     action_request_schema = schemas["WorkspaceDraftActionRequest"]
     _assert_property_has_docs(action_request_schema, "actor_id")
@@ -51,6 +52,14 @@ def test_workspace_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(saved_version_schema, "workspace_version_id")
     _assert_property_has_docs(saved_version_schema, "version_number")
     _assert_property_has_docs(saved_version_schema, "replay_evidence")
+
+    handoff_request_schema = schemas["WorkspaceLifecycleHandoffRequest"]
+    _assert_property_has_docs(handoff_request_schema, "handoff_by")
+    _assert_property_has_docs(handoff_request_schema, "metadata")
+
+    handoff_link_schema = schemas["WorkspaceLifecycleLink"]
+    _assert_property_has_docs(handoff_link_schema, "proposal_id")
+    _assert_property_has_docs(handoff_link_schema, "current_version_no")
 
 
 def test_workspace_endpoint_has_documented_request_and_response_contracts():
@@ -108,3 +117,14 @@ def test_workspace_endpoint_has_documented_request_and_response_contracts():
     ]["$ref"]
     assert compare_request_ref.endswith("/WorkspaceCompareRequest")
     assert compare_response_ref.endswith("/WorkspaceCompareResponse")
+
+    handoff_workspace = openapi["paths"]["/advisory/workspaces/{workspace_id}/handoff"]["post"]
+    handoff_request_ref = handoff_workspace["requestBody"]["content"]["application/json"]["schema"][
+        "$ref"
+    ]
+    handoff_response_ref = handoff_workspace["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    assert handoff_request_ref.endswith("/WorkspaceLifecycleHandoffRequest")
+    assert handoff_response_ref.endswith("/WorkspaceLifecycleHandoffResponse")
+    assert handoff_workspace["summary"] == "Handoff Advisory Workspace to Proposal Lifecycle"

@@ -1,11 +1,13 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.api.services.workspace_service import reset_workspace_sessions_for_tests
 
 
 def setup_function() -> None:
     reset_workspace_sessions_for_tests()
+    reset_proposal_workflow_service_for_tests()
 
 
 def test_create_stateful_workspace_session_returns_workspace_context():
@@ -517,3 +519,153 @@ def test_workspace_save_list_resume_and_compare_saved_versions():
     assert resume_response.status_code == 200
     assert resume_response.json()["draft_state"]["cash_flow_drafts"] == []
     assert resume_response.json()["evaluation_summary"]["impact_summary"]["trade_count"] == 1
+
+
+def test_workspace_handoff_creates_proposal_then_new_version_without_duplicating_lifecycle():
+    create_payload = {
+        "workspace_name": "Growth rotation workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_1",
+                    "quantity": "2",
+                },
+            },
+        )
+        first_handoff = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            headers={"Idempotency-Key": "workspace-handoff-idem-001"},
+            json={
+                "handoff_by": "advisor_123",
+                "metadata": {
+                    "title": "Q2 2026 growth reallocation proposal",
+                    "jurisdiction": "SG",
+                    "mandate_id": "mandate_growth_01",
+                },
+            },
+        )
+        client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_CASH_FLOW",
+                "cash_flow": {
+                    "direction": "CONTRIBUTION",
+                    "amount": "1500",
+                    "currency": "USD",
+                },
+            },
+        )
+        second_handoff = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            json={"handoff_by": "advisor_123"},
+        )
+
+    assert first_handoff.status_code == 200
+    first_body = first_handoff.json()
+    assert first_body["handoff_action"] == "CREATED_PROPOSAL"
+    proposal_id = first_body["proposal"]["proposal"]["proposal_id"]
+    assert first_body["workspace"]["lifecycle_link"]["proposal_id"] == proposal_id
+    assert first_body["proposal"]["version"]["version_no"] == 1
+
+    assert second_handoff.status_code == 200
+    second_body = second_handoff.json()
+    assert second_body["handoff_action"] == "CREATED_PROPOSAL_VERSION"
+    assert second_body["proposal"]["proposal"]["proposal_id"] == proposal_id
+    assert second_body["proposal"]["version"]["version_no"] == 2
+    assert second_body["workspace"]["lifecycle_link"]["current_version_no"] == 2
+
+
+def test_workspace_handoff_requires_idempotency_key_for_first_create():
+    create_payload = {
+        "workspace_name": "Growth rotation workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            json={"handoff_by": "advisor_123"},
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED"
+
+
+def test_workspace_handoff_rejects_stateful_workspace_until_stateful_resolution_exists():
+    create_payload = {
+        "workspace_name": "Q2 2026 growth reallocation draft",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_advisory_01",
+            "household_id": "hh_001",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            headers={"Idempotency-Key": "workspace-handoff-idem-002"},
+            json={"handoff_by": "advisor_123"},
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED"

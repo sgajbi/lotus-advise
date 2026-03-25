@@ -11,6 +11,7 @@ from src.core.models import (
     ProposedTrade,
     ReferenceModel,
 )
+from src.core.proposals.models import ProposalCreateResponse
 
 WorkspaceInputMode = Literal["stateless", "stateful"]
 WorkspaceLifecycleState = Literal["ACTIVE", "PAUSED", "ARCHIVED"]
@@ -279,6 +280,25 @@ class WorkspaceSavedVersion(BaseModel):
     )
 
 
+class WorkspaceLifecycleLink(BaseModel):
+    proposal_id: str = Field(
+        description="Persisted advisory proposal identifier linked to the workspace.",
+        examples=["pp_001"],
+    )
+    current_version_no: int = Field(
+        description="Latest persisted proposal version number created from this workspace.",
+        examples=[1],
+    )
+    last_handoff_at: str = Field(
+        description="UTC ISO8601 timestamp of the latest workspace-to-lifecycle handoff.",
+        examples=["2026-03-25T10:00:00+00:00"],
+    )
+    last_handoff_by: str = Field(
+        description="Actor identifier that performed the latest workspace-to-lifecycle handoff.",
+        examples=["advisor_123"],
+    )
+
+
 class WorkspaceSessionCreateRequest(BaseModel):
     workspace_name: str = Field(
         description="Advisor-facing workspace name used in Lotus advisory workflows.",
@@ -400,6 +420,10 @@ class WorkspaceSession(BaseModel):
     latest_saved_version: Optional[WorkspaceSavedVersionSummary] = Field(
         default=None,
         description="Latest saved workspace version summary, when one exists.",
+    )
+    lifecycle_link: Optional[WorkspaceLifecycleLink] = Field(
+        default=None,
+        description="Current persisted proposal lifecycle link, when the workspace has been handed off.",
     )
     saved_versions: list[WorkspaceSavedVersion] = Field(
         default_factory=list,
@@ -583,4 +607,51 @@ class WorkspaceCompareResponse(BaseModel):
     )
     diff_summary: WorkspaceCompareDiffSummary = Field(
         description="Deterministic comparison summary between the current draft and the baseline version.",
+    )
+
+
+class WorkspaceLifecycleHandoffMetadata(BaseModel):
+    title: Optional[str] = Field(
+        default=None,
+        description="Optional advisor-facing proposal title to persist at first lifecycle handoff.",
+        examples=["Q2 2026 growth reallocation proposal"],
+    )
+    advisor_notes: Optional[str] = Field(
+        default=None,
+        description="Optional advisor notes to persist at first lifecycle handoff.",
+        examples=["Prepared after client review call with growth tilt preference."],
+    )
+    jurisdiction: Optional[str] = Field(
+        default=None,
+        description="Optional jurisdiction code to persist at first lifecycle handoff.",
+        examples=["SG"],
+    )
+    mandate_id: Optional[str] = Field(
+        default=None,
+        description="Optional mandate identifier to persist at first lifecycle handoff.",
+        examples=["mandate_growth_01"],
+    )
+
+
+class WorkspaceLifecycleHandoffRequest(BaseModel):
+    handoff_by: str = Field(
+        description="Actor identifier performing the workspace-to-lifecycle handoff.",
+        examples=["advisor_123"],
+    )
+    metadata: WorkspaceLifecycleHandoffMetadata = Field(
+        default_factory=WorkspaceLifecycleHandoffMetadata,
+        description="Optional persisted proposal metadata used when creating the first linked proposal.",
+    )
+
+
+class WorkspaceLifecycleHandoffResponse(BaseModel):
+    workspace: WorkspaceSession = Field(
+        description="Workspace session after lifecycle handoff metadata is updated.",
+    )
+    handoff_action: Literal["CREATED_PROPOSAL", "CREATED_PROPOSAL_VERSION"] = Field(
+        description="Lifecycle handoff action performed for the workspace.",
+        examples=["CREATED_PROPOSAL"],
+    )
+    proposal: ProposalCreateResponse = Field(
+        description="Persisted proposal lifecycle response payload returned by the proposal service.",
     )

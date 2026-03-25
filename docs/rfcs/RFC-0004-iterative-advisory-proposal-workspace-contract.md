@@ -1,6 +1,6 @@
 # RFC-0004: Iterative Advisory Proposal Workspace Contract
 
-- Status: Proposed
+- Status: Implemented
 - Date: 2026-02-24
 - Owners: lotus-advise advisory workflow service
 - Requires Approval From: lotus-advise maintainers
@@ -387,6 +387,10 @@ Acceptance gate:
    reconstruction logic.
 
 ### Slice 4: Lifecycle Handoff and Upstream Integration Hardening
+
+Status:
+
+1. implemented
 
 Outcome:
 

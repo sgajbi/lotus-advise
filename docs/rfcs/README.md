@@ -23,7 +23,7 @@ The sequence is organized to read in implementation order:
 | RFC-0001 | PostgreSQL-Only Production Mode Cutover | IMPLEMENTED | Active | - | `docs/rfcs/RFC-0001-postgres-only-production-mode-cutover.md` |
 | RFC-0002 | Automated Release Notes and Lightweight Release Process | PROPOSED | Deferred / low priority | RFC-0001 | `docs/rfcs/RFC-0002-automated-release-notes-and-release-process.md` |
 | RFC-0003 | Advisory Proposal Workflow Coverage Hardening (Approval Chain Paths) | IMPLEMENTED | Active | RFC-0013 | `docs/rfcs/RFC-0003-advisory-proposal-workflow-coverage-hardening.md` |
-| RFC-0004 | Iterative Advisory Proposal Workspace Contract | PROPOSED | Active future work; Slices 1-3 implemented | RFC-0013, RFC-0003 | `docs/rfcs/RFC-0004-iterative-advisory-proposal-workspace-contract.md` |
+| RFC-0004 | Iterative Advisory Proposal Workspace Contract | IMPLEMENTED | Active | RFC-0013, RFC-0003 | `docs/rfcs/RFC-0004-iterative-advisory-proposal-workspace-contract.md` |
 | RFC-0005 | PostgreSQL-Only Advisory Runtime Hard Cutover | PROPOSED | Active future work | RFC-0001 | `docs/rfcs/RFC-0005-postgres-only-advisory-runtime-hard-cutover.md` |
 | RFC-0006 | lotus-advise Target Operating Model and Integration Architecture | PROPOSED | Active architecture RFC; Slice 1 implemented | RFC-0013, RFC-0003, RFC-0004 | `docs/rfcs/RFC-0006-lotus-advise-target-operating-model-and-integration-architecture.md` |
 | RFC-0007 | Advisory Proposal Simulation MVP (Manual Trades + Cash Flows) | IMPLEMENTED | Active | - | `docs/rfcs/RFC-0007-advisory-proposal-simulate-mvp.md` |
@@ -44,6 +44,7 @@ The sequence is organized to read in implementation order:
 Implemented RFCs:
 - `RFC-0001`
 - `RFC-0003`
+- `RFC-0004`
 - `RFC-0007`
 - `RFC-0008`
 - `RFC-0009`
@@ -55,7 +56,6 @@ Implemented RFCs:
 ## Not Yet Implemented
 
 Open RFCs still relevant to the advisory roadmap:
-- `RFC-0004`
 - `RFC-0005`
 - `RFC-0006`
 - `RFC-0014`
@@ -68,7 +68,6 @@ Deferred but retained:
 - `RFC-0002`
 
 Implementation note:
-- `RFC-0004` Slices 1-3 are implemented, but later workspace slices are still pending.
 - `RFC-0006` Slice 1 is implemented, but the parent RFC remains open because later slices are still pending.
 
 ## Archived / Not Needed For Active Planning

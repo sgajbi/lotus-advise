@@ -1,9 +1,12 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Header, HTTPException, Path, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
 
+import src.api.proposals.router as proposal_shared
+from src.api.proposals.errors import raise_proposal_http_exception
 from src.api.services.workspace_service import (
     WorkspaceEvaluationUnavailableError,
+    WorkspaceLifecycleHandoffUnavailableError,
     WorkspaceNotFoundError,
     WorkspaceSavedVersionNotFoundError,
     apply_workspace_draft_action,
@@ -14,12 +17,21 @@ from src.api.services.workspace_service import (
     reevaluate_workspace_session,
     resume_workspace_version,
     save_workspace_version,
+    handoff_workspace_to_proposal_lifecycle,
+)
+from src.core.proposals import (
+    ProposalIdempotencyConflictError,
+    ProposalNotFoundError,
+    ProposalValidationError,
+    ProposalWorkflowService,
 )
 from src.core.workspace.models import (
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
+    WorkspaceLifecycleHandoffRequest,
+    WorkspaceLifecycleHandoffResponse,
     WorkspaceResumeRequest,
     WorkspaceSavedVersionListResponse,
     WorkspaceSaveRequest,
@@ -80,6 +92,19 @@ _WORKSPACE_COMPARE_EXAMPLE = {
     "summary": "Compare the current draft to a saved baseline",
     "value": {
         "workspace_version_id": "awv_001",
+    },
+}
+
+_WORKSPACE_HANDOFF_EXAMPLE = {
+    "summary": "Persist the current workspace into proposal lifecycle",
+    "value": {
+        "handoff_by": "advisor_123",
+        "metadata": {
+            "title": "Q2 2026 growth reallocation proposal",
+            "advisor_notes": "Prepared after client review call with growth tilt preference.",
+            "jurisdiction": "SG",
+            "mandate_id": "mandate_growth_01",
+        },
     },
 }
 
@@ -318,3 +343,70 @@ def compare_workspace(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except WorkspaceSavedVersionNotFoundError as exc:
         raise _raise_saved_version_not_found(exc)
+
+
+@router.post(
+    "/advisory/workspaces/{workspace_id}/handoff",
+    response_model=WorkspaceLifecycleHandoffResponse,
+    tags=["Advisory Workspace"],
+    summary="Handoff Advisory Workspace to Proposal Lifecycle",
+    description=(
+        "Persists the current advisory workspace draft into proposal lifecycle without duplicating "
+        "lifecycle ownership. The first handoff creates a proposal; later handoffs create new versions."
+    ),
+    responses={
+        200: {
+            "description": "Workspace handed off to proposal lifecycle successfully.",
+            "content": {"application/json": {"examples": {"handoff": _WORKSPACE_HANDOFF_EXAMPLE}}},
+        },
+        404: {"description": "Workspace session or linked proposal not found."},
+        409: {"description": "Workspace handoff is unavailable for the current workspace state."},
+        422: {"description": "Lifecycle validation failed for the current workspace draft."},
+    },
+)
+def handoff_workspace(
+    workspace_id: Annotated[
+        str,
+        Path(description="Workspace session identifier.", examples=["aws_001"]),
+    ],
+    request: WorkspaceLifecycleHandoffRequest,
+    idempotency_key: Annotated[
+        Optional[str],
+        Header(
+            alias="Idempotency-Key",
+            description=(
+                "Required for the first workspace handoff to create a persisted proposal; "
+                "optional for later version handoffs."
+            ),
+            examples=["workspace-handoff-idem-001"],
+        ),
+    ] = None,
+    correlation_id: Annotated[
+        Optional[str],
+        Header(
+            alias="X-Correlation-Id",
+            description="Optional correlation id captured in proposal lifecycle handoff audit.",
+            examples=["corr-workspace-handoff-001"],
+        ),
+    ] = None,
+    proposal_service: ProposalWorkflowService = Depends(proposal_shared.get_proposal_workflow_service),
+) -> WorkspaceLifecycleHandoffResponse:
+    proposal_shared._assert_lifecycle_enabled()
+    try:
+        return handoff_workspace_to_proposal_lifecycle(
+            workspace_id=workspace_id,
+            request=request,
+            proposal_service=proposal_service,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WorkspaceLifecycleHandoffUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except (
+        ProposalIdempotencyConflictError,
+        ProposalNotFoundError,
+        ProposalValidationError,
+    ) as exc:
+        raise_proposal_http_exception(exc)
