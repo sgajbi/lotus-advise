@@ -1,11 +1,10 @@
-# RFC-0007: Advisory Proposal Simulation MVP (Manual Trades + Cash Flows)
+# RFC-0007: Advisory Proposal Evaluation Contract (Manual Trades + Cash Flows)
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-0007 |
-| **Depends On** | No-throw architecture principles, after-state completeness and safety hardening |
+| **Depends On** | RFC-0004, RFC-0006 |
 | **Doc Location** | `docs/rfcs/RFC-0007-advisory-proposal-simulate-mvp.md` |
 | **Backward Compatibility** | Not required (new endpoint; app not live) |
 | **Implemented In** | 2026-02-19 |
@@ -14,26 +13,34 @@
 
 ## 0. Executive Summary
 
-This RFC introduces an **Advisory Proposal Simulation** endpoint to support the private-banking advisory workflow where an advisor proposes **specific manual trades** and **cash flows** (deposit/withdrawal) and needs to instantly visualize the portfolio impact.
+This RFC defines the advisory proposal evaluation contract for the private-banking advisory workflow
+where an advisor proposes **specific manual trades** and **cash flows** and needs to understand the
+portfolio impact immediately.
 
-This is **not** a full rebalance. It **bypasses targeting** and instead simulates the advisor's instructions deterministically, returning the same institutional audit bundle style as the rebalance engine.
+This is **not** a full rebalance. It bypasses targeting and evaluates explicit advisor instructions
+deterministically.
 
-This RFC implements only the **foundation**:
+This RFC provides the proposal-evaluation foundation:
 - `POST /advisory/proposals/simulate`
 - Supports `proposed_trades[]` and `proposed_cash_flows[]`
 - Applies cash flows **before** simulating trades
 - Produces a full **before/after simulated state**, intents, and rule results (no-throw)
 
-> The draft RFC-0014 also mentions Auto-Funding, Drift Analytics, and Suitability scanning. Those are intentionally deferred to later RFCs.
+Current implementation note:
+- the current implementation evaluates proposals inside `lotus-advise`,
+- under `RFC-0006`, long-term canonical simulation authority should converge behind `lotus-core`,
+- `lotus-advise` remains the advisory workflow and contract owner even when simulation authority is
+  sourced upstream.
 
 ---
 
 ## 1. Motivation / Problem Statement
 
-Advisors often need to pitch a **specific idea** ("sell X, buy Y, client deposits Z") rather than trigger a full algorithmic rebalance.
+Advisors often need to pitch a **specific idea** ("sell X, buy Y, client deposits Z") rather than
+trigger a full model-driven portfolio process.
 
 Key gaps this RFC closes:
-- **Operational gap:** simulate �what if� proposals without manual spreadsheet math.
+- **Operational gap:** simulate "what if" proposals without manual spreadsheet math.
 - **Workflow gap:** create a proposal artifact that can later plug into suitability, consent, and execution steps.
 - **Platform gap:** allow advisory proposals to reuse existing institutional infrastructure: deterministic simulation, after-state completeness, evidence bundle, rule results.
 
@@ -44,24 +51,35 @@ Key gaps this RFC closes:
 ### 2.1 In Scope (RFC-0007)
 1. **New endpoint**: `POST /advisory/proposals/simulate`
 2. **Inputs**:
-   - portfolio snapshot
-   - market data snapshot
-   - shelf entries (product governance)
-   - options
-   - proposed trades (manual)
-   - proposed cash flows (manual)
+   - stateless advisory inputs
+   - current implementation request payloads based on snapshots and proposal instructions
+   - proposal trades (manual)
+   - proposal cash flows (manual)
 3. **Logic**:
-   - **Bypass targeting** (no model target weights generation).
+   - bypass targeting
    - Apply cash flows **before** trade simulation.
    - Deterministic ordering of intents and deterministic output.
 4. **Outputs**:
-   - Proposal result bundle including: before, after, intents, diagnostics, rule results, reconciliation, lineage IDs
+   - proposal result bundle including: before, after, intents, diagnostics, rule results,
+     reconciliation, lineage IDs, and advisory-facing evaluation context
 
 ### 2.2 Explicitly Out of Scope (RFC-0007)
 - **Auto-funding (FX generation)** (defer to RFC-0008)
 - **Drift analytics (model alignment)** (defer to RFC-0009)
 - **Suitability scanning / new vs resolved risks** (defer to RFC-0010)
 - Persistence / DB / durable idempotency
+- Final target-state upstream simulation sourcing from `lotus-core`
+
+### 2.3 Architecture Alignment
+
+This RFC should now be interpreted under `RFC-0006`:
+
+1. `lotus-advise` owns the advisory-facing proposal evaluation contract,
+2. `lotus-core` is the target authoritative source for stateful portfolio context and long-term
+   canonical simulation authority,
+3. `lotus-risk` owns risk analytics that may enrich or validate proposal outcomes in later slices,
+4. `lotus-report` owns review/report payload generation,
+5. `lotus-ai` may explain proposal outcomes, but does not replace deterministic evaluation.
 
 ---
 
@@ -81,6 +99,9 @@ This endpoint supports the "Idea -> Proposal" stage:
    - proposal artifact packaging for client-facing documents
    - workflow gating to consent / execution
 
+The endpoint should also support the `RFC-0004` workspace model, where proposal evaluation is part
+of an iterative advisory drafting workflow rather than a one-off engine call.
+
 ---
 
 ## 4. Contract Decisions
@@ -91,7 +112,8 @@ This endpoint supports the "Idea -> Proposal" stage:
 Rationale:
 - Keep endpoint in the advisory `/advisory/...` family.
 - Use explicit `proposals` resource naming for clarity.
-- Keep clear separation of "algorithmic rebalance" vs "manual advisory proposal".
+- Keep clear separation between model-driven portfolio operations and manual advisory proposal
+  evaluation.
 
 ### 4.2 Headers
 - `Idempotency-Key` (required)
@@ -103,7 +125,9 @@ Rationale:
 - `409 Conflict`: idempotency key mismatch (same key, different canonical request hash)
 - `500`: unexpected bug (should not happen; must emit RFC7807)
 
-**Important**: This RFC follows �no-throw domain outcomes� as described in your existing architecture docs. (Domain infeasibility should be surfaced in `status=BLOCKED` + rule results/diagnostics rather than 422.)
+**Important**: This RFC follows "no-throw domain outcomes" as described in the existing
+architecture docs. Domain infeasibility should be surfaced in `status=BLOCKED` with rule results
+and diagnostics rather than `422`.
 
 ---
 
@@ -129,7 +153,8 @@ Rules:
 
 #### 5.1.2 ProposedTrade (manual)
 
-Reuse existing `SECURITY_TRADE` intent structure from rebalance outputs, but as an input.
+Reuse the existing `SECURITY_TRADE` intent structure already used by the proposal-evaluation path,
+but as an input.
 
 ```json
 {
@@ -159,7 +184,10 @@ Rules:
 
 Notes:
 
-* Keep naming aligned with your existing rebalance request (`portfolio_snapshot`, `market_data_snapshot`, `shelf_entries`, `options`) to reuse parsing, validators, and demo tooling.
+* Current implementation keeps naming aligned with the existing snapshot-style request to reuse
+  parsers, validators, and demo tooling.
+* Target-state contract direction should converge on explicit `input_mode`, `stateless_input`,
+  `stateful_input`, and `resolved_context` as described in `RFC-0006`.
 
 ### 5.3 ProposalResult (output)
 
@@ -180,6 +208,7 @@ Minimum required fields:
   * `request_hash`
   * snapshot IDs if provided
   * engine version
+* `resolved_context` (target-state requirement for stateful sourcing and replay clarity)
 
 ---
 
@@ -250,12 +279,15 @@ RFC-0007 adds these proposal-specific diagnostics codes:
 * `PROPOSAL_INVALID_TRADE_INPUT` (schema-level 422)
 * `PROPOSAL_TRADE_NOT_SUPPORTED_BY_SHELF` (hard block if BUY of disallowed instrument)
 
-Reuses existing safety reason codes from rebalance:
+Reuses existing shared safety reason codes:
 
 * `NO_SHORTING`
 * `SELL_EXCEEDS_HOLDINGS`
 * `INSUFFICIENT_CASH`
 * missing price/fx reason codes (based on existing implementation)
+
+Advisory-facing outputs should remain product-readable and suitable for later explanation layers in
+`lotus-ai`, not just engine-readable.
 
 ---
 
@@ -362,6 +394,15 @@ Scenario:
 * status READY/PENDING_REVIEW depending on configured cash band / min trade settings
 * reconciliation passes
 
+### 9.3 Gold-Standard Direction
+
+Later revisions of this RFC should also validate:
+
+1. stateful proposal sourcing via `lotus-core`,
+2. stable `resolved_context` emission for replay and supportability,
+3. normalized evaluation output quality for `lotus-workbench` and `lotus-gateway`,
+4. compatibility with `lotus-risk` enrichment and `RFC-0004` workspace reevaluation flows.
+
 ---
 
 ## 10. Rollout
@@ -369,6 +410,7 @@ Scenario:
 1. Add endpoint behind docs/demo usage (no persistence)
 2. Validate with a small scenario set (goldens)
 3. Extend with RFC-0008 (Auto-Funding) once RFC-0007 stabilizes
+4. Converge later revisions toward the `RFC-0006` stateful/stateless contract model
 
 ---
 
@@ -378,6 +420,10 @@ Scenario:
 * **RFC-0009**: Drift Analytics (Before/After vs Model alignment metrics)
 * **RFC-0010**: Suitability Scanner v1 (New/Resolved/Persistent issues)
 * **RFC-0011**: Proposal Artifact Packaging (client-ready narrative bundle)
+
+Related architecture RFCs:
+- `RFC-0004`: iterative advisory workspace contract
+- `RFC-0006`: target operating model and integration architecture
 
 ---
 
@@ -389,5 +435,7 @@ Scenario:
 3. If `proposal_block_negative_cash=true`, withdrawal-driven negative cash is hard-blocked.
 4. Final status is still derived from shared hard/soft rule semantics (`READY`, `PENDING_REVIEW`, `BLOCKED`).
 5. Idempotency behavior is deterministic: same `Idempotency-Key` plus same canonical payload returns cached-equivalent output; same key with different payload returns conflict.
+6. This RFC defines the advisory proposal evaluation surface; target-state upstream simulation
+   authority should align to `lotus-core` under `RFC-0006`.
 
 

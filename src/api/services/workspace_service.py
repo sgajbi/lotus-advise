@@ -261,8 +261,12 @@ def _build_proposal_version_request(
     session: WorkspaceSession,
     request: WorkspaceLifecycleHandoffRequest,
 ) -> ProposalVersionRequest:
+    expected_current_version_no = (
+        session.lifecycle_link.current_version_no if session.lifecycle_link is not None else None
+    )
     return ProposalVersionRequest(
         created_by=request.handoff_by,
+        expected_current_version_no=expected_current_version_no,
         simulate_request=_build_simulate_request_for_workspace(session),
     )
 
@@ -587,6 +591,8 @@ def handoff_workspace_to_proposal_lifecycle(
                 payload=_build_proposal_create_request(session, request),
                 idempotency_key=idempotency_key,
                 correlation_id=correlation_id,
+                lifecycle_origin="WORKSPACE_HANDOFF",
+                source_workspace_id=workspace_id,
             )
             handoff_action = "CREATED_PROPOSAL"
         else:

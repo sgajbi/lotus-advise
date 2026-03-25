@@ -63,6 +63,8 @@ def test_create_proposal_persists_immutable_version_and_created_event():
 
         assert body["proposal"]["current_state"] == "DRAFT"
         assert body["proposal"]["current_version_no"] == 1
+        assert body["proposal"]["lifecycle_origin"] == "DIRECT_CREATE"
+        assert body["proposal"]["source_workspace_id"] is None
         assert body["version"]["version_no"] == 1
         assert body["version"]["status_at_creation"] == "READY"
         assert body["version"]["artifact_hash"].startswith("sha256:")
@@ -145,6 +147,30 @@ def test_proposal_supportability_config_defaults():
         assert body["require_expected_state"] is True
         assert body["allow_portfolio_id_change_on_new_version"] is False
         assert body["require_proposal_simulation_flag"] is True
+        assert body["startup_validation_scope"] == "POSTGRES_REPOSITORY_BOOT"
+        assert body["migration_namespace"] == "proposals"
+        assert body["expected_migration_versions"] == ["0001", "0002", "0003"]
+        assert body["advisory_owned_tables"] == [
+            "proposal_records",
+            "proposal_versions",
+            "proposal_workflow_events",
+            "proposal_approvals",
+            "proposal_idempotency",
+            "proposal_simulation_idempotency",
+            "proposal_async_operations",
+        ]
+        assert body["deferred_advisory_persistence_domains"] == [
+            "workspace_sessions",
+            "workspace_saved_versions",
+        ]
+        assert body["upstream_owned_data_domains"] == [
+            "portfolio_positions",
+            "transactions",
+            "market_data",
+            "risk_analytics",
+            "reports",
+            "ai_runtime_state",
+        ]
 
 
 def test_proposal_supportability_config_reports_backend_error(monkeypatch):
@@ -158,6 +184,8 @@ def test_proposal_supportability_config_reports_backend_error(monkeypatch):
         assert body["store_backend"] == "POSTGRES"
         assert body["backend_ready"] is False
         assert body["backend_init_error"] == "PROPOSAL_POSTGRES_DSN_REQUIRED"
+        assert body["migration_namespace"] == "proposals"
+        assert "proposal_records" in body["advisory_owned_tables"]
 
 
 def test_proposal_supportability_config_reports_unexpected_backend_error(monkeypatch):
@@ -199,11 +227,15 @@ def test_get_list_and_version_include_and_hide_evidence():
         listed = client.get("/advisory/proposals", params={"portfolio_id": "pf_lifecycle_1"})
         assert listed.status_code == 200
         assert listed.json()["items"][0]["proposal_id"] == proposal_id
+        assert listed.json()["items"][0]["lifecycle_origin"] == "DIRECT_CREATE"
+        assert listed.json()["items"][0]["source_workspace_id"] is None
 
         detail = client.get(
             f"/advisory/proposals/{proposal_id}", params={"include_evidence": False}
         )
         assert detail.status_code == 200
+        assert detail.json()["proposal"]["lifecycle_origin"] == "DIRECT_CREATE"
+        assert detail.json()["proposal"]["source_workspace_id"] is None
         assert detail.json()["current_version"]["evidence_bundle"] == {}
 
         version = client.get(
@@ -234,6 +266,24 @@ def test_create_version_increments_version_and_preserves_state():
         assert body["proposal"]["current_state"] == "DRAFT"
         assert body["version"]["version_no"] == 2
         assert body["latest_workflow_event"]["event_type"] == "NEW_VERSION_CREATED"
+
+
+def test_create_version_returns_409_for_expected_current_version_conflict():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-create-version-conflict")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 2,
+                "simulate_request": _base_create_payload()["simulate_request"],
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "VERSION_CONFLICT: expected_current_version_no mismatch"
 
 
 def test_transition_requires_expected_state_and_rejects_invalid_transition():
@@ -558,14 +608,18 @@ def test_support_endpoints_return_timeline_approvals_lineage_and_idempotency():
         timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
         assert timeline.status_code == 200
         timeline_body = timeline.json()
-        assert timeline_body["proposal_id"] == proposal_id
+        assert timeline_body["proposal"]["proposal_id"] == proposal_id
         assert len(timeline_body["events"]) >= 3
+        assert timeline_body["event_count"] == len(timeline_body["events"])
+        assert timeline_body["latest_event"]["event_type"] == "COMPLIANCE_APPROVED"
         assert timeline_body["events"][0]["event_type"] == "CREATED"
 
         approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
         assert approvals.status_code == 200
         approvals_body = approvals.json()
-        assert approvals_body["proposal_id"] == proposal_id
+        assert approvals_body["proposal"]["proposal_id"] == proposal_id
+        assert approvals_body["approval_count"] == 1
+        assert approvals_body["latest_approval_at"] is not None
         assert len(approvals_body["approvals"]) == 1
         assert approvals_body["approvals"][0]["approval_type"] == "COMPLIANCE"
 
@@ -573,6 +627,10 @@ def test_support_endpoints_return_timeline_approvals_lineage_and_idempotency():
         assert lineage.status_code == 200
         lineage_body = lineage.json()
         assert lineage_body["proposal"]["proposal_id"] == proposal_id
+        assert lineage_body["version_count"] == 1
+        assert lineage_body["latest_version_no"] == 1
+        assert lineage_body["lineage_complete"] is True
+        assert lineage_body["missing_version_numbers"] == []
         assert lineage_body["versions"][0]["version_no"] == 1
         assert lineage_body["versions"][0]["artifact_hash"].startswith("sha256:")
 

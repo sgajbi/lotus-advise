@@ -37,6 +37,7 @@ ProposalApprovalType = Literal["RISK", "COMPLIANCE", "CLIENT_CONSENT"]
 ProposalCreationStatus = Literal["READY", "PENDING_REVIEW", "BLOCKED"]
 ProposalAsyncOperationType = Literal["CREATE_PROPOSAL", "CREATE_PROPOSAL_VERSION"]
 ProposalAsyncOperationStatus = Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]
+ProposalLifecycleOrigin = Literal["DIRECT_CREATE", "WORKSPACE_HANDOFF"]
 
 
 class ProposalCreateMetadata(BaseModel):
@@ -101,6 +102,14 @@ class ProposalVersionRequest(BaseModel):
     created_by: str = Field(
         description="Actor id creating the new proposal version.",
         examples=["advisor_456"],
+    )
+    expected_current_version_no: Optional[int] = Field(
+        default=None,
+        description=(
+            "Optional optimistic concurrency guard requiring the persisted proposal "
+            "to still be at this current version number before creating a new version."
+        ),
+        examples=[1],
     )
     simulate_request: ProposalSimulateRequest = Field(
         description="Full advisory simulation payload for the new immutable version.",
@@ -269,6 +278,17 @@ class ProposalSummary(BaseModel):
         description="Optional advisor-facing proposal title.",
         examples=["2026 client portfolio transition plan"],
     )
+    lifecycle_origin: ProposalLifecycleOrigin = Field(
+        description="How the advisory proposal first entered lifecycle ownership.",
+        examples=["WORKSPACE_HANDOFF"],
+    )
+    source_workspace_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "Workspace identifier captured when lifecycle ownership started from a workspace."
+        ),
+        examples=["aws_001"],
+    )
 
 
 class ProposalCreateResponse(BaseModel):
@@ -320,7 +340,7 @@ class ProposalListResponse(BaseModel):
 class ProposalSupportabilityConfigResponse(BaseModel):
     store_backend: str = Field(
         description="Configured proposal repository backend name.",
-        examples=["IN_MEMORY"],
+        examples=["POSTGRES"],
     )
     backend_ready: bool = Field(
         description=(
@@ -371,6 +391,64 @@ class ProposalSupportabilityConfigResponse(BaseModel):
         ),
         examples=[True],
     )
+    startup_validation_scope: str = Field(
+        description=(
+            "Lifecycle startup guardrail enforced before the API begins serving requests."
+        ),
+        examples=["POSTGRES_REPOSITORY_BOOT"],
+    )
+    migration_namespace: str = Field(
+        description="Migration namespace used for advisory proposal lifecycle persistence.",
+        examples=["proposals"],
+    )
+    expected_migration_versions: List[str] = Field(
+        default_factory=list,
+        description="Ordered migration versions expected for the advisory lifecycle namespace.",
+        examples=[["0001", "0002", "0003"]],
+    )
+    advisory_owned_tables: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Advisory-owned PostgreSQL tables that make up the active persisted proposal runtime "
+            "scope."
+        ),
+        examples=[
+            [
+                "proposal_records",
+                "proposal_versions",
+                "proposal_workflow_events",
+                "proposal_approvals",
+                "proposal_idempotency",
+                "proposal_simulation_idempotency",
+                "proposal_async_operations",
+            ]
+        ],
+    )
+    deferred_advisory_persistence_domains: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Advisory persistence domains acknowledged by the architecture but intentionally not "
+            "yet durable in PostgreSQL."
+        ),
+        examples=[["workspace_sessions", "workspace_saved_versions"]],
+    )
+    upstream_owned_data_domains: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Data domains required by advisory workflows but owned outside lotus-advise and "
+            "therefore excluded from the advisory database boundary."
+        ),
+        examples=[
+            [
+                "portfolio_positions",
+                "transactions",
+                "market_data",
+                "risk_analytics",
+                "reports",
+                "ai_runtime_state",
+            ]
+        ],
+    )
 
 
 class ProposalVersionLineageItem(BaseModel):
@@ -406,6 +484,34 @@ class ProposalLineageResponse(BaseModel):
         description="Proposal summary used as lineage root context.",
         examples=[{"proposal_id": "pp_001", "current_version_no": 2}],
     )
+    version_count: int = Field(
+        description=(
+            "Number of persisted immutable proposal versions returned in the lineage payload."
+        ),
+        examples=[2],
+    )
+    latest_version_no: Optional[int] = Field(
+        default=None,
+        description="Highest persisted proposal version number currently available in lineage.",
+        examples=[2],
+    )
+    latest_version_created_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp of the latest persisted proposal version in lineage.",
+        examples=["2026-02-19T12:10:00+00:00"],
+    )
+    lineage_complete: bool = Field(
+        description=(
+            "Whether every version number from 1 through current_version_no is present in "
+            "advisory persistence."
+        ),
+        examples=[True],
+    )
+    missing_version_numbers: List[int] = Field(
+        default_factory=list,
+        description="Missing immutable version numbers detected while assembling proposal lineage.",
+        examples=[[2]],
+    )
     versions: List[ProposalVersionLineageItem] = Field(
         default_factory=list,
         description="Immutable proposal version lineage ordered by version number ascending.",
@@ -414,10 +520,22 @@ class ProposalLineageResponse(BaseModel):
 
 
 class ProposalWorkflowTimelineResponse(BaseModel):
-    proposal_id: str = Field(description="Proposal identifier.", examples=["pp_001"])
+    proposal: ProposalSummary = Field(
+        description="Proposal summary captured at workflow timeline retrieval time.",
+        examples=[{"proposal_id": "pp_001", "current_state": "AWAITING_CLIENT_CONSENT"}],
+    )
     current_state: ProposalWorkflowState = Field(
         description="Current workflow state at retrieval time.",
         examples=["AWAITING_CLIENT_CONSENT"],
+    )
+    event_count: int = Field(
+        description="Number of append-only workflow events returned in the timeline payload.",
+        examples=[3],
+    )
+    latest_event: Optional[ProposalWorkflowEvent] = Field(
+        default=None,
+        description="Latest workflow event in the append-only timeline.",
+        examples=[{"event_type": "COMPLIANCE_APPROVED", "to_state": "AWAITING_CLIENT_CONSENT"}],
     )
     events: List[ProposalWorkflowEvent] = Field(
         default_factory=list,
@@ -427,7 +545,19 @@ class ProposalWorkflowTimelineResponse(BaseModel):
 
 
 class ProposalApprovalsResponse(BaseModel):
-    proposal_id: str = Field(description="Proposal identifier.", examples=["pp_001"])
+    proposal: ProposalSummary = Field(
+        description="Proposal summary captured at approval-read retrieval time.",
+        examples=[{"proposal_id": "pp_001", "current_state": "AWAITING_CLIENT_CONSENT"}],
+    )
+    approval_count: int = Field(
+        description="Number of structured approval or consent records returned.",
+        examples=[1],
+    )
+    latest_approval_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp of the latest returned approval or consent record.",
+        examples=["2026-02-19T12:11:00+00:00"],
+    )
     approvals: List[ProposalApprovalRecord] = Field(
         default_factory=list,
         description="Structured approval/consent records ordered by occurrence.",
@@ -653,6 +783,18 @@ class ProposalRecord(BaseModel):
         default=None,
         description="Internal advisor notes.",
         examples=["Client approved initial draft."],
+    )
+    lifecycle_origin: ProposalLifecycleOrigin = Field(
+        default="DIRECT_CREATE",
+        description="Internal advisory lifecycle origin classification.",
+        examples=["DIRECT_CREATE"],
+    )
+    source_workspace_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "Internal workspace identifier recorded when the proposal originated from handoff."
+        ),
+        examples=["aws_001"],
     )
 
 

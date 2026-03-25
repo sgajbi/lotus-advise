@@ -200,7 +200,9 @@ class PostgresProposalRepository:
                 current_state,
                 current_version_no,
                 title,
-                advisor_notes
+                advisor_notes,
+                lifecycle_origin,
+                source_workspace_id
             FROM proposal_records
             WHERE proposal_id = %s
         """
@@ -249,7 +251,9 @@ class PostgresProposalRepository:
                 current_state,
                 current_version_no,
                 title,
-                advisor_notes
+                advisor_notes,
+                lifecycle_origin,
+                source_workspace_id
             FROM proposal_records
             {where_sql}
             ORDER BY created_at DESC, proposal_id DESC
@@ -509,8 +513,10 @@ class PostgresProposalRepository:
                 current_state,
                 current_version_no,
                 title,
-                advisor_notes
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                advisor_notes,
+                lifecycle_origin,
+                source_workspace_id
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (proposal_id) DO UPDATE SET
                 portfolio_id=excluded.portfolio_id,
                 mandate_id=excluded.mandate_id,
@@ -521,7 +527,9 @@ class PostgresProposalRepository:
                 current_state=excluded.current_state,
                 current_version_no=excluded.current_version_no,
                 title=excluded.title,
-                advisor_notes=excluded.advisor_notes
+                advisor_notes=excluded.advisor_notes,
+                lifecycle_origin=excluded.lifecycle_origin,
+                source_workspace_id=excluded.source_workspace_id
         """
         connection.execute(
             query,
@@ -537,6 +545,8 @@ class PostgresProposalRepository:
                 proposal.current_version_no,
                 proposal.title,
                 proposal.advisor_notes,
+                proposal.lifecycle_origin,
+                proposal.source_workspace_id,
             ),
         )
 
@@ -683,6 +693,8 @@ def _to_proposal(row: Any) -> Optional[ProposalRecord]:
         current_version_no=int(row["current_version_no"]),
         title=row["title"],
         advisor_notes=row["advisor_notes"],
+        lifecycle_origin=row["lifecycle_origin"],
+        source_workspace_id=row["source_workspace_id"],
     )
 
 

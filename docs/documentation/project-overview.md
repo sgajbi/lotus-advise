@@ -52,7 +52,10 @@ The API remains deterministic for identical inputs and options.
 
 2. Advisory proposal lifecycle
 - Input: simulated proposal payloads plus workflow actor actions.
-- Output: persisted proposal versions, approvals, consent state, and execution readiness.
+- Output: persisted proposal versions, approvals, consent state, execution readiness, and
+  lifecycle provenance showing whether a proposal originated directly or through workspace handoff.
+- Audit/supportability reads expose lifecycle summaries, lineage completeness, and deterministic
+  workflow and approval context for investigation flows.
 
 3. Workflow semantics
 - Gate decisions provide deterministic next-step semantics:
@@ -91,6 +94,24 @@ The API remains deterministic for identical inputs and options.
 - `src/integrations/`: adapter seams for Lotus platform dependencies.
 - `src/api/capabilities/`: readiness and capability resolution seams for integration-aware platform truth.
 - `src/core/models.py`: shared request/response contracts and options.
+
+Advisory persistence boundary:
+- Active PostgreSQL persistence is proposal-lifecycle-focused and currently owns:
+  - `proposal_records`
+  - `proposal_versions`
+  - `proposal_workflow_events`
+  - `proposal_approvals`
+  - `proposal_idempotency`
+  - `proposal_simulation_idempotency`
+  - `proposal_async_operations`
+- Workspace sessions and saved workspace versions remain intentionally non-durable in the current
+  runtime slice until later advisory persistence work lands.
+- Portfolio positions, transactions, market data, risk analytics, reports, and shared AI runtime
+  state are upstream-owned and excluded from the advisory database boundary.
+- API startup now validates proposal repository boot readiness, so lifecycle PostgreSQL
+  connectivity and migration application fail fast before the service begins serving requests.
+- Proposal supportability configuration exposes the lifecycle migration namespace and expected
+  migration catalog for operational diagnostics.
 
 ## Test Strategy
 

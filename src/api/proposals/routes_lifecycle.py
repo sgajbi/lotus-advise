@@ -213,7 +213,7 @@ def create_proposal_version(
             payload=payload,
             correlation_id=correlation_id,
         )
-    except (ProposalNotFoundError, ProposalValidationError) as exc:
+    except (ProposalNotFoundError, ProposalStateConflictError, ProposalValidationError) as exc:
         raise_proposal_http_exception(exc)
 
 

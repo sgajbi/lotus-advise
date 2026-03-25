@@ -19,6 +19,7 @@ from src.core.proposals.models import (
     ProposalDetailResponse,
     ProposalIdempotencyLookupResponse,
     ProposalIdempotencyRecord,
+    ProposalLifecycleOrigin,
     ProposalLineageResponse,
     ProposalListResponse,
     ProposalRecord,
@@ -98,7 +99,13 @@ class ProposalWorkflowService:
         payload: ProposalCreateRequest,
         idempotency_key: str,
         correlation_id: Optional[str],
+        lifecycle_origin: ProposalLifecycleOrigin = "DIRECT_CREATE",
+        source_workspace_id: Optional[str] = None,
     ) -> ProposalCreateResponse:
+        self._validate_lifecycle_origin(
+            lifecycle_origin=lifecycle_origin,
+            source_workspace_id=source_workspace_id,
+        )
         now = _utc_now()
         request_payload = payload.model_dump(mode="json")
         request_hash = hash_canonical_payload(request_payload)
@@ -141,6 +148,8 @@ class ProposalWorkflowService:
             current_version_no=version_no,
             title=payload.metadata.title,
             advisor_notes=payload.metadata.advisor_notes,
+            lifecycle_origin=lifecycle_origin,
+            source_workspace_id=source_workspace_id,
         )
         version = self._to_version_record(
             proposal_id=proposal_id,
@@ -282,22 +291,30 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
         events = self._repository.list_events(proposal_id=proposal_id)
+        timeline_events = [self._to_event(event) for event in events]
         return ProposalWorkflowTimelineResponse(
-            proposal_id=proposal_id,
+            proposal=self._to_summary(proposal),
             current_state=proposal.current_state,
-            events=[self._to_event(event) for event in events],
+            event_count=len(timeline_events),
+            latest_event=timeline_events[-1] if timeline_events else None,
+            events=timeline_events,
         )
 
     def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        approvals = self._repository.list_approvals(proposal_id=proposal_id)
+        approvals = [
+            self._to_approval(approval)
+            for approval in self._repository.list_approvals(proposal_id=proposal_id)
+            if approval is not None
+        ]
+        latest_approval = approvals[-1] if approvals else None
         return ProposalApprovalsResponse(
-            proposal_id=proposal_id,
-            approvals=[
-                self._to_approval(approval) for approval in approvals if approval is not None
-            ],
+            proposal=self._to_summary(proposal),
+            approval_count=len(approvals),
+            latest_approval_at=latest_approval.occurred_at if latest_approval is not None else None,
+            approvals=approvals,
         )
 
     def get_lineage(self, *, proposal_id: str) -> ProposalLineageResponse:
@@ -306,9 +323,11 @@ class ProposalWorkflowService:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
         versions: list[ProposalVersionLineageItem] = []
+        missing_version_numbers: list[int] = []
         for version_no in range(1, proposal.current_version_no + 1):
             version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
             if version is None:
+                missing_version_numbers.append(version_no)
                 continue
             versions.append(
                 ProposalVersionLineageItem(
@@ -322,7 +341,18 @@ class ProposalWorkflowService:
                 )
             )
 
-        return ProposalLineageResponse(proposal=self._to_summary(proposal), versions=versions)
+        latest_version = versions[-1] if versions else None
+        return ProposalLineageResponse(
+            proposal=self._to_summary(proposal),
+            version_count=len(versions),
+            latest_version_no=latest_version.version_no if latest_version is not None else None,
+            latest_version_created_at=(
+                latest_version.created_at if latest_version is not None else None
+            ),
+            lineage_complete=not missing_version_numbers,
+            missing_version_numbers=missing_version_numbers,
+            versions=versions,
+        )
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
         record = self._repository.get_idempotency(idempotency_key=idempotency_key)
@@ -375,6 +405,13 @@ class ProposalWorkflowService:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
         if proposal.current_state in TERMINAL_STATES:
             raise ProposalValidationError("PROPOSAL_TERMINAL_STATE: cannot create version")
+        if (
+            payload.expected_current_version_no is not None
+            and payload.expected_current_version_no != proposal.current_version_no
+        ):
+            raise ProposalStateConflictError(
+                "VERSION_CONFLICT: expected_current_version_no mismatch"
+            )
 
         self._validate_simulation_flag(payload.simulate_request)
         request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
@@ -680,7 +717,20 @@ class ProposalWorkflowService:
             current_state=proposal.current_state,
             current_version_no=proposal.current_version_no,
             title=proposal.title,
+            lifecycle_origin=proposal.lifecycle_origin,
+            source_workspace_id=proposal.source_workspace_id,
         )
+
+    def _validate_lifecycle_origin(
+        self,
+        *,
+        lifecycle_origin: ProposalLifecycleOrigin,
+        source_workspace_id: Optional[str],
+    ) -> None:
+        if lifecycle_origin == "WORKSPACE_HANDOFF" and not source_workspace_id:
+            raise ProposalValidationError("WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED")
+        if lifecycle_origin == "DIRECT_CREATE" and source_workspace_id is not None:
+            raise ProposalValidationError("DIRECT_CREATE_CANNOT_INCLUDE_SOURCE_WORKSPACE_ID")
 
     def _to_version_detail(
         self, version: ProposalVersionRecord, *, include_evidence: bool

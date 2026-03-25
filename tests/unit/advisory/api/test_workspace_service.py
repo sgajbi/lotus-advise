@@ -209,3 +209,43 @@ def test_workspace_service_portfolio_delta_and_mandate_fallback() -> None:
             total_value = type("MoneyHolder", (), {"amount": Decimal("100.00")})()
 
     assert workspace_service._format_portfolio_delta(ResultWithoutReconciliation()) == "20.00"
+
+
+def test_workspace_service_builds_version_request_with_expected_current_version() -> None:
+    session = create_workspace_session(
+        WorkspaceSessionCreateRequest.model_validate(
+            {
+                "workspace_name": "Lifecycle-linked workspace",
+                "created_by": "advisor_123",
+                "input_mode": "stateless",
+                "stateless_input": {
+                    "simulate_request": {
+                        "portfolio_snapshot": {
+                            "portfolio_id": "pf_001",
+                            "base_currency": "USD",
+                            "positions": [],
+                            "cash_balances": [{"currency": "USD", "amount": "1000"}],
+                        },
+                        "market_data_snapshot": {"prices": [], "fx_rates": []},
+                        "shelf_entries": [],
+                        "options": {"enable_proposal_simulation": True},
+                        "proposed_cash_flows": [],
+                        "proposed_trades": [],
+                    }
+                },
+            }
+        )
+    ).workspace
+    session.lifecycle_link = workspace_service.WorkspaceLifecycleLink(
+        proposal_id="pp_001",
+        current_version_no=3,
+        last_handoff_at="2026-03-25T10:00:00+00:00",
+        last_handoff_by="advisor_123",
+    )
+
+    payload = workspace_service._build_proposal_version_request(
+        session,
+        workspace_service.WorkspaceLifecycleHandoffRequest(handoff_by="advisor_123"),
+    )
+
+    assert payload.expected_current_version_no == 3

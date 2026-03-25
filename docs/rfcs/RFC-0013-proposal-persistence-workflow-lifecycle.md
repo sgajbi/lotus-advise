@@ -1,13 +1,12 @@
 
-# RFC-0013: Proposal Persistence & Workflow Lifecycle (Institution-Grade, Audit-First)
+# RFC-0013: Advisory Proposal Persistence, Workflow Lifecycle, and Audit Model
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (MVP IN-MEMORY ADAPTER) |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-0013 |
-| **Depends On** | RFC-0007 (Proposal Simulation) |
-| **Strongly Recommended** | RFC-0011 (Proposal Artifact), RFC-0012 (GateDecision) |
+| **Depends On** | RFC-0004, RFC-0005, RFC-0006, RFC-0007 |
+| **Strongly Recommended** | RFC-0011, RFC-0012, RFC-0017 |
 | **Doc Location** | `docs/rfcs/RFC-0013-proposal-persistence-workflow-lifecycle.md` |
 | **Backward Compatibility** | Existing `/advisory/proposals/simulate` and `/advisory/proposals/artifact` unchanged |
 
@@ -15,20 +14,27 @@
 
 ## 0. Executive Summary
 
-Implementation note (2026-02-19):
-- Implemented with repository port + in-memory adapter (`src/core/proposals/*`, `src/infrastructure/proposals/in_memory.py`).
-- API endpoints delivered under `/advisory/proposals` lifecycle family in `src/api/proposals/router.py`.
-- PostgreSQL adapter/migrations intentionally deferred; architecture keeps persistence concerns behind repository interface for later adapter addition.
-- Cross-engine alignment added through shared dependency-linking utility (`src/core/common/intent_dependencies.py`) and request option `link_buy_to_same_currency_sell_dependency` with engine-specific defaults.
+Current reality note (2026-03-25):
+- the advisory proposal lifecycle APIs and repository port are implemented,
+- the repository abstraction and workflow model are valuable and should remain,
+- the RFC must now align to `RFC-0005` and `RFC-0006`, where PostgreSQL-only advisory runtime is
+  the target posture and `lotus-advise` is an advisory orchestration service in the Lotus estate,
+- in-memory implementation history is no longer the defining architecture direction for this RFC,
+- Slice 1 lifecycle provenance foundation is implemented,
+- Slice 2 audit-read hardening is implemented,
+- Slice 3 concurrency and idempotency hardening is implemented,
+- Slice 4 PostgreSQL completion and operational hardening is implemented.
 
-RFC-0013 adds **persistence and lifecycle management** for advisory proposals so they can move through a real private-banking workflow:
+RFC-0013 defines the advisory-owned persistence and workflow lifecycle model for proposals so they
+can move through a real private-banking workflow:
 
 - Save and version proposals (immutable proposal artifacts + evidence bundle)
 - Track workflow state transitions (draft → review → client consent → execution-ready → executed/expired)
 - Enforce **auditability**, **immutability**, **determinism**, and **idempotency**
 - Provide APIs for advisor apps to create, retrieve, list, transition, and attach approvals/consents
 
-This RFC is the “institution-grade backbone” that turns simulation into a usable advisory product.
+This RFC is the advisory lifecycle and audit backbone that turns simulation and workspace activity
+into a usable, reviewable advisory product.
 
 ---
 
@@ -48,12 +54,13 @@ Simulation results are ephemeral. Advisory workflows require:
 ## 2. Scope
 
 ### 2.1 In Scope
-- Lifecycle persistence via repository port with in-memory adapter for MVP:
+- Advisory-owned lifecycle persistence for:
   - proposal metadata
   - immutable proposal versions
   - append-only workflow transitions
   - approvals/consents records (structured)
   - idempotency records for create operations
+  - advisory execution handoff correlation records where later slices require them
 - APIs:
   - create proposal (runs simulation and stores artifact)
   - get proposal and versions
@@ -66,11 +73,12 @@ Simulation results are ephemeral. Advisory workflows require:
   expected-state enforcement, portfolio-context enforcement, and simulation-flag enforcement.
 
 ### 2.2 Out of Scope
-- PostgreSQL adapter + migrations (deferred to next persistence hardening RFC slice)
+- Runtime backend policy and PostgreSQL-only cutover rules, which belong to `RFC-0005`
 - Integration with external consent tools / e-signature providers
 - Integration with OMS execution confirmation (can be a later RFC)
 - Jurisdiction-specific data retention rules (config hooks only)
 - PII encryption policies beyond basic at-rest encryption (document extension points)
+- Canonical portfolio, risk, reporting, or AI ownership that belongs in other Lotus services
 
 ---
 
@@ -154,10 +162,11 @@ Store as structured entries linked to workflow events:
 
 ## 5. Persistence Design (PostgreSQL)
 
-Implementation status note:
-- This section defines the target-state database design.
-- Current implementation uses `ProposalRepository` + `InMemoryProposalRepository`.
-- API/domain behavior is aligned to this schema contract to allow a drop-in PostgreSQL adapter.
+Architecture note:
+- This section defines the advisory-owned target-state database design.
+- It should be read together with `RFC-0005`, which owns the PostgreSQL-only runtime posture.
+- The repository port remains valid, but target-state persistence is PostgreSQL-backed advisory
+  storage rather than a mixed-backend model.
 
 ### 5.1 Tables (minimal)
 1) `proposals`
@@ -445,33 +454,71 @@ Define interface hooks:
 
 ## 10. Implementation Plan (Slices)
 
-1. Persistence layer scaffolding:
-   * repository interfaces and in-memory adapter
-2. Create proposal endpoint:
+### Slice 1: Lifecycle Provenance Foundation
 
-   * simulate → artifact → persist
-3. Read endpoints:
+Outcome:
+- persisted proposals carry first-class origin metadata that distinguishes direct proposal creation
+  from workspace handoff lineage,
+- workspace-to-lifecycle handoff becomes auditable from proposal reads and list views without
+  reconstructing provenance indirectly from workflow event payloads.
 
-   * get proposal, list proposals, get version
-4. Transitions + approvals:
+Implementation shape:
+1. add advisory lifecycle provenance fields to the proposal aggregate and API read models,
+2. persist workspace-origin linkage in advisory-owned lifecycle storage,
+3. wire workspace handoff to create proposals with explicit lifecycle provenance,
+4. keep direct create flows explicitly marked as direct advisory lifecycle creation.
 
-   * state machine validation
-   * optimistic locking
-5. Tests:
+Acceptance gate:
+1. proposal create responses, get responses, and list responses expose lifecycle origin metadata,
+2. workspace handoff creates proposals that persist source workspace lineage,
+3. PostgreSQL migration coverage and repository tests validate the persisted lifecycle provenance.
 
-   * repository tests (in-memory transactional semantics)
-   * API tests (FastAPI test client)
-   * idempotency conflict tests
-6. Demo-pack live validation:
-   * `uvicorn` and Docker host execution of full demo pack
+### Slice 2: Lifecycle Contract and Audit Read Hardening
 
-7. Deferred:
-   * PostgreSQL adapter + migrations
+Outcome:
+- lifecycle supportability reads become stronger and more explicit for advisory operators,
+- proposal lineage reads are consistently shaped for incident review and replay analysis.
 
-8. Observability:
+Implementation shape:
+1. tighten proposal detail, version lineage, approval, and workflow timeline contracts,
+2. ensure supportability reads remain advisory-owned and bank-grade,
+3. strengthen OpenAPI documentation and examples for lifecycle investigation flows.
 
-   * metrics counters for create/transition outcomes
-   * structured logs with correlation_id
+Acceptance gate:
+1. lifecycle support APIs remain fully documented and Lotus-branded,
+2. lineage, approval, and workflow reads are deterministic and replay-safe,
+3. meaningful tests cover audit read invariants rather than superficial field presence.
+
+### Slice 3: Concurrency, State-Machine, and Idempotency Hardening
+
+Outcome:
+- lifecycle write paths behave predictably under retries, stale clients, and conflicting transitions.
+
+Implementation shape:
+1. tighten optimistic state checks and transition validation,
+2. harden idempotent create and approval replay behavior,
+3. keep failure semantics explicit and stable for gateway/workbench use.
+
+Acceptance gate:
+1. conflicting transition and idempotency scenarios return stable failures,
+2. workflow history remains append-only and proposal versions remain immutable,
+3. tests cover conflict and replay edge cases with real domain meaning.
+
+### Slice 4: PostgreSQL Completion and Operational Hardening
+
+Outcome:
+- lifecycle persistence is production-ready under the PostgreSQL-only runtime posture from
+  `RFC-0005`.
+
+Implementation shape:
+1. complete PostgreSQL-backed lifecycle validation and migration coverage,
+2. ensure supportability, startup, and operational guardrails reflect advisory-only persistence,
+3. keep observability and diagnostics aligned with lifecycle operations.
+
+Acceptance gate:
+1. lifecycle persistence behaves correctly under PostgreSQL integration tests,
+2. runtime supportability reads remain aligned to `RFC-0005`,
+3. the lifecycle persistence model remains advisory-only and consistent with `RFC-0006`.
 
 ---
 
@@ -488,8 +535,10 @@ Define interface hooks:
 
 ### 11.2 Integration tests (Postgres)
 
-- Deferred until PostgreSQL adapter delivery.
+- Required for target-state completion.
 - Current integration coverage uses FastAPI test client and live API calls against `uvicorn` and Docker.
+- Final closure for this RFC requires PostgreSQL-backed lifecycle validation under the runtime rules
+  from `RFC-0005`.
 
 ### 11.3 Golden tests
 
@@ -500,12 +549,14 @@ Define interface hooks:
 
 ## 12. Acceptance Criteria (DoD)
 
-* Proposals can be created idempotently and stored through repository adapter (in-memory in MVP).
+* Proposals can be created idempotently and stored through the advisory persistence model.
 * Proposal versions are immutable and include artifact + evidence bundle + hashes.
 * Workflow events are append-only; current state is consistent and derived from events.
 * Approvals/consents are recorded and produce workflow transitions.
 * Concurrency conflicts return 409 Problem Details.
 * API + engine tests and live demo-pack validation run reliably in CI/dev.
+* PostgreSQL-backed lifecycle persistence is aligned to `RFC-0005`.
+* The lifecycle persistence model remains advisory-only and consistent with `RFC-0006`.
 
 ### 12.1 MVP Runtime Config Delivered
 Configuration is implementation-faithful and currently delivered via environment variables:

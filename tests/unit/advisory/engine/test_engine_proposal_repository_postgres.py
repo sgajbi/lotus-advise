@@ -46,6 +46,16 @@ class _FakeConnection:
             return _FakeCursor()
         if sql.startswith("CREATE TABLE"):
             return _FakeCursor()
+        if sql.startswith("ALTER TABLE proposal_records ADD COLUMN IF NOT EXISTS lifecycle_origin"):
+            for row in self.proposals.values():
+                row.setdefault("lifecycle_origin", "DIRECT_CREATE")
+            return _FakeCursor()
+        if sql.startswith(
+            "ALTER TABLE proposal_records ADD COLUMN IF NOT EXISTS source_workspace_id"
+        ):
+            for row in self.proposals.values():
+                row.setdefault("source_workspace_id", None)
+            return _FakeCursor()
         if "FROM schema_migrations" in sql:
             namespace = args[0]
             rows = [
@@ -120,6 +130,8 @@ class _FakeConnection:
                 "current_version_no": args[8],
                 "title": args[9],
                 "advisor_notes": args[10],
+                "lifecycle_origin": args[11],
+                "source_workspace_id": args[12],
             }
             return _FakeCursor()
         if "FROM proposal_records WHERE proposal_id = %s" in sql:
@@ -375,6 +387,8 @@ def test_postgres_repository_proposal_create_update_get_and_list(monkeypatch):
         current_version_no=2,
         title="B",
         advisor_notes=None,
+        lifecycle_origin="WORKSPACE_HANDOFF",
+        source_workspace_id="aws_002",
     )
     repository.create_proposal(second)
 
@@ -400,6 +414,8 @@ def test_postgres_repository_proposal_create_update_get_and_list(monkeypatch):
     )
     assert len(rows) == 1
     assert rows[0].proposal_id == "pp_b"
+    assert rows[0].lifecycle_origin == "WORKSPACE_HANDOFF"
+    assert rows[0].source_workspace_id == "aws_002"
     assert next_cursor is None
 
     rows, _ = repository.list_proposals(

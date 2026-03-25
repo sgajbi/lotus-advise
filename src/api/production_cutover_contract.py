@@ -4,17 +4,12 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
-from src.api.persistence_profile import (
-    app_persistence_profile_name,
-    validate_persistence_profile_guardrails,
-)
 from src.api.proposals.runtime import proposal_postgres_dsn
+from src.api.runtime_persistence import validate_advisory_runtime_persistence
 
 
 def validate_production_cutover_contract(*, check_migrations: bool) -> None:
-    if app_persistence_profile_name() != "PRODUCTION":
-        raise RuntimeError("CUTOVER_PROFILE_NOT_PRODUCTION")
-    validate_persistence_profile_guardrails()
+    validate_advisory_runtime_persistence()
     if check_migrations:
         validate_cutover_migrations_applied()
 
