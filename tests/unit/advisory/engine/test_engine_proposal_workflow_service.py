@@ -103,6 +103,34 @@ def test_service_rejects_version_with_portfolio_context_mismatch():
         raise AssertionError("Expected PORTFOLIO_CONTEXT_MISMATCH")
 
 
+def test_service_rejects_version_when_expected_current_version_mismatches():
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-idem-version-conflict",
+        correlation_id="corr-service-version-conflict",
+    )
+    proposal_id = created.proposal.proposal_id
+
+    version_payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        expected_current_version_no=2,
+        simulate_request=_simulate_request(),
+    )
+
+    try:
+        service.create_version(
+            proposal_id=proposal_id,
+            payload=version_payload,
+            correlation_id="corr-version-conflict",
+        )
+    except ProposalStateConflictError as exc:
+        assert str(exc) == "VERSION_CONFLICT: expected_current_version_no mismatch"
+    else:
+        raise AssertionError("Expected VERSION_CONFLICT: expected_current_version_no mismatch")
+
+
 def test_service_rejects_invalid_transition_for_current_state():
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())
 
@@ -550,6 +578,10 @@ def test_service_lineage_skips_missing_version_rows():
 
     lineage = service.get_lineage(proposal_id="pp_lineage_gap")
     assert lineage.proposal.proposal_id == "pp_lineage_gap"
+    assert lineage.version_count == 1
+    assert lineage.latest_version_no == 1
+    assert lineage.lineage_complete is False
+    assert lineage.missing_version_numbers == [2]
     assert [version.version_no for version in lineage.versions] == [1]
 
 
@@ -767,3 +799,33 @@ def test_approval_replay_skips_unrelated_idempotency_records():
     assert replay.approval is not None
     assert first.approval is not None
     assert replay.approval.approval_id == first.approval.approval_id
+
+
+def test_service_create_proposal_persists_direct_create_origin_by_default():
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-origin-direct",
+        correlation_id="corr-service-origin-direct",
+    )
+
+    assert created.proposal.lifecycle_origin == "DIRECT_CREATE"
+    assert created.proposal.source_workspace_id is None
+
+
+def test_service_create_proposal_requires_workspace_reference_for_workspace_handoff_origin():
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    try:
+        service.create_proposal(
+            payload=_create_payload(),
+            idempotency_key="service-origin-workspace-missing",
+            correlation_id="corr-service-origin-workspace-missing",
+            lifecycle_origin="WORKSPACE_HANDOFF",
+            source_workspace_id=None,
+        )
+    except ProposalValidationError as exc:
+        assert str(exc) == "WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED"
+    else:
+        raise AssertionError("Expected WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED")

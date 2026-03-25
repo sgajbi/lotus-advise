@@ -100,6 +100,8 @@ def test_live_postgres_proposal_repository_parity_contract(
         current_version_no=1,
         title="Live parity proposal",
         advisor_notes="integration contract",
+        lifecycle_origin="WORKSPACE_HANDOFF",
+        source_workspace_id="aws-live-001",
     )
     repository.create_proposal(proposal)
 
@@ -155,6 +157,8 @@ def test_live_postgres_proposal_repository_parity_contract(
         current_version_no=proposal.current_version_no,
         title=proposal.title,
         advisor_notes=proposal.advisor_notes,
+        lifecycle_origin=proposal.lifecycle_origin,
+        source_workspace_id=proposal.source_workspace_id,
     )
     transition_result = repository.transition_proposal(
         proposal=transitioned,
@@ -174,6 +178,8 @@ def test_live_postgres_proposal_repository_parity_contract(
     stored_proposal = repository.get_proposal(proposal_id=proposal_id)
     assert stored_proposal is not None
     assert stored_proposal.current_state == "RISK_REVIEW"
+    assert stored_proposal.lifecycle_origin == "WORKSPACE_HANDOFF"
+    assert stored_proposal.source_workspace_id == "aws-live-001"
 
     listed, next_cursor = repository.list_proposals(
         portfolio_id="pf-live",

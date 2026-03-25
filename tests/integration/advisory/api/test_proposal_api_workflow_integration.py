@@ -106,6 +106,12 @@ def test_proposal_submit_and_support_endpoints() -> None:
     assert approvals.status_code == 200
     assert lineage.status_code == 200
     assert submit.json()["current_state"] == "RISK_REVIEW"
+    assert approvals.json()["proposal"]["proposal_id"] == proposal_id
+    assert approvals.json()["approval_count"] == 0
+    assert approvals.json()["latest_approval_at"] is None
+    assert lineage.json()["proposal"]["proposal_id"] == proposal_id
+    assert lineage.json()["version_count"] == 1
+    assert lineage.json()["lineage_complete"] is True
 
 
 def test_proposal_idempotency_lookup_and_support_config() -> None:
@@ -125,6 +131,9 @@ def test_proposal_idempotency_lookup_and_support_config() -> None:
     assert lookup.json()["idempotency_key"] == idempotency_key
     assert support_config.status_code == 200
     assert "backend_ready" in support_config.json()
+    assert support_config.json()["startup_validation_scope"] == "POSTGRES_REPOSITORY_BOOT"
+    assert support_config.json()["migration_namespace"] == "proposals"
+    assert support_config.json()["expected_migration_versions"] == ["0001", "0002", "0003"]
 
 
 def test_proposal_support_endpoints_disabled_by_feature_flag(

@@ -15,8 +15,12 @@ from src.api.enterprise_readiness import (
 )
 from src.api.observability import correlation_id_var, setup_observability
 from src.api.openapi_enrichment import enrich_openapi_schema
-from src.api.persistence_profile import validate_persistence_profile_guardrails
-from src.api.proposals.router import router as proposal_lifecycle_router
+from src.api.proposals.router import (
+    ensure_proposal_runtime_ready,
+)
+from src.api.proposals.router import (
+    router as proposal_lifecycle_router,
+)
 from src.api.routers.advisory_simulation import (
     build_proposal_artifact_endpoint,
     simulate_proposal,
@@ -27,6 +31,7 @@ from src.api.routers.advisory_simulation import (
 from src.api.routers.integration_capabilities import (
     router as integration_capabilities_router,
 )
+from src.api.runtime_persistence import validate_advisory_runtime_persistence
 from src.api.services.advisory_simulation_service import (
     MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
     PROPOSAL_IDEMPOTENCY_CACHE,
@@ -40,7 +45,8 @@ from src.api.workspaces.router import router as workspace_router
 
 @asynccontextmanager
 async def _app_lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    validate_persistence_profile_guardrails()
+    validate_advisory_runtime_persistence()
+    ensure_proposal_runtime_ready()
     yield
 
 

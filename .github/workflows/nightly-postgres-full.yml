@@ -37,7 +37,6 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      APP_PERSISTENCE_PROFILE: PRODUCTION
       DPM_SUPPORTABILITY_STORE_BACKEND: POSTGRES
       DPM_SUPPORTABILITY_POSTGRES_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
       PROPOSAL_STORE_BACKEND: POSTGRES

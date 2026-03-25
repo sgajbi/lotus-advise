@@ -2,79 +2,52 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | COMPLETED |
+| **Status** | SUPERSEDED |
 | **Created** | 2026-02-20 |
-| **Depends On** | - |
+| **Superseded By** | RFC-0005 |
 | **Doc Location** | `docs/rfcs/RFC-0001-postgres-only-production-mode-cutover.md` |
 
-## 1. Executive Summary
+## 1. Historical Purpose
 
-Define a staged production cutover plan where advisory persistence uses PostgreSQL-only backends in
-non-dev environments, while preserving a lighter local profile where explicitly allowed.
+This RFC introduced the first production-grade persistence guardrail for `lotus-advise`:
 
-## 2. Problem Statement
+- non-dev production profiles had to run with advisory PostgreSQL persistence,
+- startup had to fail fast when that requirement was violated,
+- CI and deployment flows gained the first production-profile validation path.
 
-Multiple persistence modes remain available in all environments. This increases operational
-variance and incident complexity in production.
+That transition was valuable and remains implemented history.
 
-## 3. Goals and Non-Goals
+## 2. Why It Is Superseded
 
-### 3.1 Goals
+`RFC-0001` described an intermediate state:
 
-- Enforce Postgres-only persistence in production profiles.
-- Preserve local development ergonomics where active advisory workflows still require them.
-- Provide explicit rollout gates and fail-fast guardrails.
+1. production environments were PostgreSQL-only,
+2. local and other transitional runtime modes could still remain available,
+3. stricter runtime consolidation would happen later.
 
-### 3.2 Non-Goals
+That is no longer the right source of truth for the advisory platform direction.
 
-- Remove all local developer convenience backends immediately.
-- Change public advisory API contracts.
+Under the `RFC-0006` vision, `lotus-advise` needs one unified persistence posture, not a split
+between transitional and final runtime expectations.
 
-## 4. Proposed Design
+## 3. What Remains True
 
-### 4.1 Environment Policy
+The following outcomes from this RFC remain valid:
 
-- Add runtime mode switch:
-  - `APP_PERSISTENCE_PROFILE` (`LOCAL` | `PRODUCTION`)
-- In `PRODUCTION`:
-  - `PROPOSAL_STORE_BACKEND` must be `POSTGRES`
-  - advisory Postgres DSN must be configured
+1. production-profile advisory persistence guardrails were a necessary first step,
+2. fail-fast startup validation is still the correct control pattern,
+3. migration and startup smoke validation remain required for a bank-grade service.
 
-### 4.2 Guardrails
+## 4. What Replaces It
 
-- Startup validation fails fast with explicit reason codes when policy is violated.
-- Migration checks and advisory lock controls remain mandatory for production cutover.
+`RFC-0005` is now the active source of truth for:
 
-### 4.3 Rollout Strategy
+1. PostgreSQL-only advisory runtime persistence,
+2. advisory-only database scope,
+3. final hard-cutover direction for runtime persistence behavior.
 
-1. Shadow validation in CI and non-prod.
-2. Enable `APP_PERSISTENCE_PROFILE=PRODUCTION` in non-prod.
-3. Cut over production once error budgets remain healthy.
-4. Keep `LOCAL` profile as default in local/dev docs until a stricter hard-cutover RFC lands.
+## 5. Disposition
 
-## 5. Test Plan
+Keep this RFC for historical traceability only.
 
-- Unit tests for persistence-profile guardrails.
-- API startup tests for explicit failure reason codes.
-- CI profile running with production mode plus Postgres migration smoke.
-
-## 6. Rollout/Compatibility
-
-- Additive and profile-gated.
-- No external advisory API behavior changes.
-- Local dev profile remains available until stricter cleanup is complete.
-
-## 7. Status and Reason Code Conventions
-
-- Startup reason codes:
-  - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES`
-  - `PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN`
-
-## 8. Implementation Progress
-
-- Production profile guardrails were added for advisory Postgres runtime.
-- CI startup smoke and migration validation were added for production profile.
-- Deployment docs were updated with explicit `LOCAL` versus `PRODUCTION` behavior.
-- Later cleanup RFCs can tighten or remove remaining non-production persistence paths once advisory
-  scope is fully stabilized.
-
+Do not use it as the primary persistence-direction RFC for future advisory design or delivery.

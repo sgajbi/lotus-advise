@@ -77,7 +77,7 @@ api-vocabulary-gate:
 	python scripts/api_vocabulary_inventory.py --validate-only
 
 migration-smoke:
-	python -m pytest tests/unit/shared/dependencies/test_persistence_profile_guardrails.py -q
+	python -m pytest tests/unit/shared/dependencies/test_runtime_persistence.py tests/unit/shared/dependencies/test_production_cutover_contract.py -q
 
 migration-apply:
 	python scripts/postgres_migrate.py --target proposals

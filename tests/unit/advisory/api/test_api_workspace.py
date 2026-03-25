@@ -766,6 +766,8 @@ def test_workspace_handoff_creates_proposal_then_new_version_without_duplicating
     first_body = first_handoff.json()
     assert first_body["handoff_action"] == "CREATED_PROPOSAL"
     proposal_id = first_body["proposal"]["proposal"]["proposal_id"]
+    assert first_body["proposal"]["proposal"]["lifecycle_origin"] == "WORKSPACE_HANDOFF"
+    assert first_body["proposal"]["proposal"]["source_workspace_id"] == workspace_id
     assert first_body["workspace"]["lifecycle_link"]["proposal_id"] == proposal_id
     assert first_body["proposal"]["version"]["version_no"] == 1
 
@@ -773,6 +775,8 @@ def test_workspace_handoff_creates_proposal_then_new_version_without_duplicating
     second_body = second_handoff.json()
     assert second_body["handoff_action"] == "CREATED_PROPOSAL_VERSION"
     assert second_body["proposal"]["proposal"]["proposal_id"] == proposal_id
+    assert second_body["proposal"]["proposal"]["lifecycle_origin"] == "WORKSPACE_HANDOFF"
+    assert second_body["proposal"]["proposal"]["source_workspace_id"] == workspace_id
     assert second_body["proposal"]["version"]["version_no"] == 2
     assert second_body["workspace"]["lifecycle_link"]["current_version_no"] == 2
 

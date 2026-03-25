@@ -1,11 +1,10 @@
-# RFC-0008: Advisory Proposal Auto-Funding (FX Spot Intents + Dependency Graph)
+# RFC-0008: Advisory Proposal Funding and FX Dependency Policy
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-0008 |
-| **Depends On** | RFC-0007 (Proposal Simulation MVP), safety and after-state completeness hardening |
+| **Depends On** | RFC-0006, RFC-0007 |
 | **Doc Location** | `docs/rfcs/RFC-0008-advisory-proposal-auto-funding.md` |
 | **Backward Compatibility** | Not required |
 | **Implemented In** | 2026-02-19 |
@@ -14,7 +13,8 @@
 
 ## 0. Executive Summary
 
-RFC-0008 upgrades advisory proposal simulation to be **execution-realistic** by adding **auto-funding**:
+RFC-0008 upgrades advisory proposal evaluation to be more execution-realistic by adding
+deterministic funding and FX dependency behavior:
 
 - Automatically generate **FX spot intents** required to settle manual security trades.
 - Build an explicit **dependency graph** (foreign-currency BUY depends on FX funding).
@@ -22,13 +22,19 @@ RFC-0008 upgrades advisory proposal simulation to be **execution-realistic** by 
 - Enforce deterministic ordering: **CASH_FLOW → SELL → FX → BUY**.
 - Provide clear diagnostics for missing FX, insufficient cash, and funding assumptions.
 
-This enables advisors to simulate realistic proposals in multi-currency portfolios without manually calculating conversions.
+This enables advisors to evaluate realistic multi-currency proposals without manual FX math, while
+keeping the outcome auditable and suitable for later workflow review.
+
+Current architecture note:
+- current funding logic is implemented inside `lotus-advise`,
+- under `RFC-0006`, this RFC should be treated as the advisory funding-policy and dependency
+  contract, not as a permanent claim that all underlying portfolio or execution logic belongs here.
 
 ---
 
 ## 1. Motivation / Problem Statement
 
-RFC-0007 can simulate advisor-proposed trades, but in private banking most buys are funded via:
+RFC-0007 can evaluate advisor-proposed trades, but in private banking most buys are funded via:
 - base-currency cash converted to the buy currency,
 - proceeds from sells (possibly in multiple currencies),
 - existing foreign cash pockets.
@@ -46,6 +52,8 @@ Without auto-funding:
 - Explicit dependencies from BUY intents to FX intents.
 - Partial funding from existing cash and from sell proceeds (in their respective currencies).
 - Deterministic intent ordering and deterministic FX intent grouping.
+- Advisor- and reviewer-readable funding diagnostics and rationale.
+- Funding-policy behavior that can later plug into jurisdiction, policy-pack, and execution flows.
 - Diagnostics for:
   - missing FX rates
   - insufficient cash after considering all sources
@@ -57,6 +65,18 @@ Without auto-funding:
 - transaction costs, spreads, slippage
 - margin/overdraft/credit line funding (unless already present in your engine options)
 - multi-leg FX strategies (triangulation beyond direct pair usage) unless explicitly implemented in market data
+- Final execution-provider ownership, which belongs later in `RFC-0017`
+- Jurisdiction-specific funding restrictions beyond explicit hooks and diagnostics
+
+### 2.3 Architecture Alignment
+
+This RFC should now be read under `RFC-0006`:
+
+1. `lotus-advise` owns the advisory funding-plan contract and explainability surface,
+2. canonical portfolio context and stateful sourcing belong with `lotus-core`,
+3. `lotus-risk` may later validate funding-related risk outcomes or constraints,
+4. `lotus-report` may later render funding explanation into review material,
+5. `lotus-ai` may later explain funding choices, but does not replace deterministic funding logic.
 
 ---
 
@@ -88,6 +108,11 @@ Defaults:
 * `block_on_missing_fx=true`
 
 > Note: you can simplify by omitting some options initially, but the RFC defines them so behavior is explicit and testable.
+
+Target-state note:
+- as `RFC-0007` evolves toward explicit `stateless` and `stateful` operating modes, these funding
+  options should remain part of the advisory evaluation contract rather than a service-local
+  implementation detail.
 
 ---
 
@@ -126,6 +151,12 @@ Deterministic funding-currency order for `ANY_CASH`:
 > With `fx_generation_policy=ONE_FX_PER_CCY`, the engine selects a **single** funding currency
 > per target currency using the deterministic order above. If no single source can fully fund
 > the deficit, the proposal is blocked as insufficient funding.
+
+For a gold-standard advisory product, the selected funding path should always be explainable to:
+
+1. advisors preparing a recommendation,
+2. reviewers validating operational realism,
+3. downstream client-facing explanation layers where appropriate.
 
 ### 4.3 FX generation policy
 
@@ -263,6 +294,15 @@ Add structured diagnostics sections:
 Current implementation marks missing non-blocking funding FX as `PENDING_REVIEW` and skips
 execution-intent generation for affected BUYs in the simulated executable plan.
 
+### 8.3 Gold-Standard Direction
+
+Later revisions of this RFC should also support or prepare for:
+
+1. policy-pack-aware funding restrictions,
+2. jurisdiction-aware funding behavior hooks,
+3. richer explanation of why a funding currency was chosen,
+4. explicit separation between advisory funding-plan realism and execution-provider specifics.
+
 ---
 
 ## 9. Algorithm / Processing Pipeline
@@ -297,6 +337,7 @@ execution-intent generation for affected BUYs in the simulated executable plan.
 * Cash ledger never goes negative (unless an explicit overdraft option exists).
 * All FX intents must be supported by market snapshot rates (or handled via policy).
 * Output must be deterministic.
+* Funding-path selection must be explainable and stable.
 
 ---
 
@@ -371,6 +412,9 @@ Each golden must assert:
 * Missing FX is handled per policy: blocking returns `status=BLOCKED` with clear diagnostics.
 * Insufficient cash after considering all sources returns `status=BLOCKED`.
 * Golden tests cover at least: FX needed, partial funding, missing FX.
+* Funding diagnostics are clear enough for advisor and reviewer workflows.
+* The RFC remains aligned with `RFC-0006` service boundaries and does not blur execution-provider
+  or upstream data ownership.
 
 ---
 
@@ -380,6 +424,11 @@ Each golden must assert:
 * RFC-0010: Suitability scanner (new/resolved/persistent issues)
 * RFC-0011: Proposal artifact packaging (client-ready bundle + narrative)
 * RFC-0012: Advisory workflow states + human-in-loop gates
+* RFC-0017: execution integration interface
+
+Related architecture RFCs:
+- `RFC-0006`: target operating model and integration architecture
+- `RFC-0007`: advisory proposal evaluation contract
 
 ---
 
@@ -391,5 +440,7 @@ Each golden must assert:
 3. FX funding intents are generated deterministically and BUY intents carry explicit dependencies on those FX intents.
 4. Missing required FX data follows policy: with blocking enabled the proposal is `BLOCKED`; with non-blocking policy execution intents are constrained and surfaced for review.
 5. Intent ordering remains deterministic: `CASH_FLOW -> SELL -> FX -> BUY`.
+6. This RFC defines the advisory funding and FX dependency policy; later execution ownership still
+   belongs in `RFC-0017`.
 
 

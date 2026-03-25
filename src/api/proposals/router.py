@@ -33,12 +33,27 @@ def _backend_init_error_detail(detail: str) -> str:
     )
 
 
-def get_proposal_workflow_service() -> ProposalWorkflowService:
+def _resolve_repository() -> ProposalRepository:
     global _REPOSITORY
-    global _SERVICE
     if _REPOSITORY is None:
+        _REPOSITORY = runtime.build_repository()
+    return cast(ProposalRepository, _REPOSITORY)
+
+
+def get_proposal_workflow_service() -> ProposalWorkflowService:
+    global _SERVICE
+    if _SERVICE is None:
         try:
-            _REPOSITORY = runtime.build_repository()
+            _SERVICE = ProposalWorkflowService(
+                repository=_resolve_repository(),
+                store_evidence_bundle=env_flag("PROPOSAL_STORE_EVIDENCE_BUNDLE", True),
+                require_expected_state=env_flag("PROPOSAL_REQUIRE_EXPECTED_STATE", True),
+                allow_portfolio_id_change_on_new_version=env_flag(
+                    "PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION",
+                    False,
+                ),
+                require_proposal_simulation_flag=env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
+            )
         except RuntimeError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -49,36 +64,26 @@ def get_proposal_workflow_service() -> ProposalWorkflowService:
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
             ) from exc
-    if _SERVICE is None:
-        _SERVICE = ProposalWorkflowService(
-            repository=_REPOSITORY,
-            store_evidence_bundle=env_flag("PROPOSAL_STORE_EVIDENCE_BUNDLE", True),
-            require_expected_state=env_flag("PROPOSAL_REQUIRE_EXPECTED_STATE", True),
-            allow_portfolio_id_change_on_new_version=env_flag(
-                "PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION",
-                False,
-            ),
-            require_proposal_simulation_flag=env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
-        )
     return _SERVICE
 
 
 def get_proposal_repository() -> ProposalRepository:
-    global _REPOSITORY
-    if _REPOSITORY is None:
-        try:
-            _REPOSITORY = runtime.build_repository()
-        except RuntimeError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=_backend_init_error_detail(str(exc)),
-            ) from exc
-        except (TypeError, ValueError) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
-            ) from exc
-    return cast(ProposalRepository, _REPOSITORY)
+    try:
+        return _resolve_repository()
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=_backend_init_error_detail(str(exc)),
+        ) from exc
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="PROPOSAL_POSTGRES_CONNECTION_FAILED",
+        ) from exc
+
+
+def ensure_proposal_runtime_ready() -> None:
+    _ = _resolve_repository()
 
 
 def reset_proposal_workflow_service_for_tests() -> None:

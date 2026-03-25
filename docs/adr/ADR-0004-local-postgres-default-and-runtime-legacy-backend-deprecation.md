@@ -1,4 +1,4 @@
-# ADR-0004: Local Postgres Default and Legacy Runtime Backend Deprecation
+# ADR-0004: Advisory Postgres Runtime Default and Legacy Backend Removal Direction
 
 ## Status
 
@@ -6,37 +6,35 @@ Accepted
 
 ## Context
 
-Production persistence is now enforced as Postgres-only under `APP_PERSISTENCE_PROFILE=PRODUCTION`.
-For a solo-maintained codebase prioritizing environment parity, local runtime should match production
-as closely as possible by default.
+Advisory runtime is converging on PostgreSQL-only service behavior.
+For a codebase prioritizing environment parity and bank-grade operability, active runtime should
+match that posture in every environment.
 
-The codebase still contains legacy runtime backends (`IN_MEMORY`, `SQL/SQLITE`, `ENV_JSON`) that
-remain useful for narrow unit-test scenarios and transition safety, but they should no longer be
-the primary runtime path.
+The codebase still contains test-time and historical references to legacy runtime backends
+(`IN_MEMORY`, `SQL/SQLITE`, `ENV_JSON`), but they should no longer be described as active service
+runtime choices.
 
 ## Decision
 
-1. Make Postgres-backed runtime the local default in containerized startup:
-   - `docker-compose.yml` defaults use Postgres DSNs and Postgres backends.
-2. Keep the remaining advisory runtime fallback temporarily, but mark it deprecated at runtime:
-   - `PROPOSAL_STORE_BACKEND`: `IN_MEMORY`
-3. Emit `DeprecationWarning` when legacy runtime backends are selected.
+1. Make advisory Postgres runtime the active runtime default everywhere.
+2. Keep legacy repository adapters, if needed, only for narrow test and transition scenarios.
+3. Remove documentation and runtime language that imply mixed backend support for active service
+   startup.
 
 ## Consequences
 
 Positive:
 
-- Better local-to-production parity by default.
+- Better environment parity by default.
 - Lower risk of “works locally, fails in production” persistence mismatches.
-- Migration path remains safe because legacy backends are still available during transition.
+- Clearer operational story for advisory runtime ownership and supportability.
 
 Trade-offs:
 
-- Local runtime now requires Postgres availability by default.
-- Contributors using legacy paths must explicitly accept deprecation warnings.
+- Local runtime now requires Postgres availability.
+- Test-only in-memory adapters remain clearly separated from active service runtime.
 
 ## Follow-up
 
-- Plan final removal of the remaining advisory runtime fallback in a dedicated RFC once transition
-  dependencies are cleared.
+- Complete the remaining runtime cleanup under `RFC-0005`.
 

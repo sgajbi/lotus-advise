@@ -273,7 +273,6 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      APP_PERSISTENCE_PROFILE: PRODUCTION
       PROPOSAL_STORE_BACKEND: POSTGRES
       PROPOSAL_POSTGRES_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
     steps:
@@ -347,7 +346,6 @@ jobs:
       - name: Verify Advisory Backend Guardrail
         run: |
           set +e
-          APP_PERSISTENCE_PROFILE=PRODUCTION \
           PROPOSAL_STORE_BACKEND=IN_MEMORY \
           python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8004 > advisory_guardrail.log 2>&1
           exit_code=$?
@@ -358,7 +356,6 @@ jobs:
       - name: Verify Advisory DSN Guardrail
         run: |
           set +e
-          APP_PERSISTENCE_PROFILE=PRODUCTION \
           PROPOSAL_STORE_BACKEND=POSTGRES \
           python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8007 > advisory_dsn_guardrail.log 2>&1
           exit_code=$?

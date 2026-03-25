@@ -3,6 +3,7 @@ from typing import Annotated, Optional
 from fastapi import Depends, Path, status
 
 import src.api.proposals.router as shared
+from src.api.production_cutover_contract import expected_migration_versions
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.proposals import (
     ProposalApprovalsResponse,
@@ -13,6 +14,33 @@ from src.core.proposals import (
     ProposalWorkflowService,
     ProposalWorkflowTimelineResponse,
 )
+
+_ADVISORY_OWNED_TABLES = [
+    "proposal_records",
+    "proposal_versions",
+    "proposal_workflow_events",
+    "proposal_approvals",
+    "proposal_idempotency",
+    "proposal_simulation_idempotency",
+    "proposal_async_operations",
+]
+
+_DEFERRED_ADVISORY_PERSISTENCE_DOMAINS = [
+    "workspace_sessions",
+    "workspace_saved_versions",
+]
+
+_UPSTREAM_OWNED_DATA_DOMAINS = [
+    "portfolio_positions",
+    "transactions",
+    "market_data",
+    "risk_analytics",
+    "reports",
+    "ai_runtime_state",
+]
+
+_LIFECYCLE_MIGRATION_NAMESPACE = "proposals"
+_LIFECYCLE_STARTUP_VALIDATION_SCOPE = "POSTGRES_REPOSITORY_BOOT"
 
 
 @shared.router.get(
@@ -51,6 +79,14 @@ def get_proposal_supportability_config() -> ProposalSupportabilityConfigResponse
             False,
         ),
         require_proposal_simulation_flag=shared.env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
+        startup_validation_scope=_LIFECYCLE_STARTUP_VALIDATION_SCOPE,
+        migration_namespace=_LIFECYCLE_MIGRATION_NAMESPACE,
+        expected_migration_versions=expected_migration_versions(
+            namespace=_LIFECYCLE_MIGRATION_NAMESPACE
+        ),
+        advisory_owned_tables=_ADVISORY_OWNED_TABLES,
+        deferred_advisory_persistence_domains=_DEFERRED_ADVISORY_PERSISTENCE_DOMAINS,
+        upstream_owned_data_domains=_UPSTREAM_OWNED_DATA_DOMAINS,
     )
 
 

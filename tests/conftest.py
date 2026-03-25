@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from src.core.models import CashBalance, EngineOptions, PortfolioSnapshot
-from src.infrastructure.proposals import InMemoryProposalRepository
+from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 
 def _has_marker(item: pytest.Item, name: str) -> bool:

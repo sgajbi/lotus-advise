@@ -13,6 +13,35 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     openapi = app.openapi()
     schemas = openapi["components"]["schemas"]
 
+    proposal_summary_schema = schemas["ProposalSummary"]
+    _assert_property_has_docs(proposal_summary_schema, "lifecycle_origin")
+    _assert_property_has_docs(proposal_summary_schema, "source_workspace_id")
+
+    supportability_schema = schemas["ProposalSupportabilityConfigResponse"]
+    _assert_property_has_docs(supportability_schema, "startup_validation_scope")
+    _assert_property_has_docs(supportability_schema, "migration_namespace")
+    _assert_property_has_docs(supportability_schema, "expected_migration_versions")
+
+    version_request_schema = schemas["ProposalVersionRequest"]
+    _assert_property_has_docs(version_request_schema, "expected_current_version_no")
+
+    lineage_schema = schemas["ProposalLineageResponse"]
+    _assert_property_has_docs(lineage_schema, "version_count")
+    _assert_property_has_docs(lineage_schema, "latest_version_no")
+    _assert_property_has_docs(lineage_schema, "latest_version_created_at")
+    _assert_property_has_docs(lineage_schema, "lineage_complete")
+    _assert_property_has_docs(lineage_schema, "missing_version_numbers")
+
+    timeline_schema = schemas["ProposalWorkflowTimelineResponse"]
+    _assert_property_has_docs(timeline_schema, "proposal")
+    _assert_property_has_docs(timeline_schema, "event_count")
+    _assert_property_has_docs(timeline_schema, "latest_event")
+
+    approvals_schema = schemas["ProposalApprovalsResponse"]
+    _assert_property_has_docs(approvals_schema, "proposal")
+    _assert_property_has_docs(approvals_schema, "approval_count")
+    _assert_property_has_docs(approvals_schema, "latest_approval_at")
+
     idempotency_schema = schemas["ProposalIdempotencyLookupResponse"]
     _assert_property_has_docs(idempotency_schema, "idempotency_key")
     _assert_property_has_docs(idempotency_schema, "request_hash")
