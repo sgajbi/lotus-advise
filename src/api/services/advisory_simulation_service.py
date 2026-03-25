@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional, cast
 from fastapi import HTTPException, status
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
-from src.api.routers.proposals import get_proposal_repository
+from src.api.proposals.router import get_proposal_repository
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest

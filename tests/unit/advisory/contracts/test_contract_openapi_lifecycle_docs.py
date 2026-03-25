@@ -43,9 +43,9 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     with TestClient(app) as client:
         openapi = client.get("/openapi.json").json()
 
-    create_sync = openapi["paths"]["/rebalance/proposals"]["post"]
-    create_async = openapi["paths"]["/rebalance/proposals/async"]["post"]
-    create_version_async = openapi["paths"]["/rebalance/proposals/{proposal_id}/versions/async"][
+    create_sync = openapi["paths"]["/advisory/proposals"]["post"]
+    create_async = openapi["paths"]["/advisory/proposals/async"]["post"]
+    create_version_async = openapi["paths"]["/advisory/proposals/{proposal_id}/versions/async"][
         "post"
     ]
 

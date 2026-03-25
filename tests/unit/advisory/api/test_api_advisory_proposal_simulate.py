@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app, get_db_session
-from src.api.routers.proposals import reset_proposal_workflow_service_for_tests
+from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 
 
 async def override_get_db_session():
@@ -44,7 +44,7 @@ def test_advisory_proposal_simulate_endpoint_success(client):
     }
 
     response = client.post(
-        "/rebalance/proposals/simulate",
+        "/advisory/proposals/simulate",
         json=payload,
         headers={"Idempotency-Key": "prop-key-1"},
     )
@@ -79,7 +79,7 @@ def test_advisory_proposal_simulate_requires_feature_flag(client):
     }
 
     response = client.post(
-        "/rebalance/proposals/simulate",
+        "/advisory/proposals/simulate",
         json=payload,
         headers={"Idempotency-Key": "prop-key-2"},
     )
@@ -98,11 +98,11 @@ def test_advisory_proposal_simulate_idempotency_conflict_returns_409(client):
     }
     headers = {"Idempotency-Key": "prop-key-3"}
 
-    first = client.post("/rebalance/proposals/simulate", json=payload, headers=headers)
+    first = client.post("/advisory/proposals/simulate", json=payload, headers=headers)
     assert first.status_code == 200
 
     payload["proposed_cash_flows"] = [{"currency": "USD", "amount": "1"}]
-    second = client.post("/rebalance/proposals/simulate", json=payload, headers=headers)
+    second = client.post("/advisory/proposals/simulate", json=payload, headers=headers)
     assert second.status_code == 409
     assert "IDEMPOTENCY_KEY_CONFLICT" in second.json()["detail"]
 
@@ -118,8 +118,8 @@ def test_advisory_proposal_simulate_returns_cached_response_on_same_payload(clie
     }
     headers = {"Idempotency-Key": "prop-key-4"}
 
-    first = client.post("/rebalance/proposals/simulate", json=payload, headers=headers)
-    second = client.post("/rebalance/proposals/simulate", json=payload, headers=headers)
+    first = client.post("/advisory/proposals/simulate", json=payload, headers=headers)
+    second = client.post("/advisory/proposals/simulate", json=payload, headers=headers)
     assert first.status_code == 200
     assert second.status_code == 200
     assert first.json() == second.json()
@@ -150,7 +150,7 @@ def test_advisory_proposal_simulate_returns_503_when_idempotency_store_write_fai
     )
 
     response = client.post(
-        "/rebalance/proposals/simulate",
+        "/advisory/proposals/simulate",
         json=payload,
         headers={"Idempotency-Key": "prop-key-store-error"},
     )
@@ -176,7 +176,7 @@ def test_advisory_proposal_simulate_unhandled_error_returns_problem_details(monk
 
     with TestClient(app, raise_server_exceptions=False) as test_client:
         response = test_client.post(
-            "/rebalance/proposals/simulate",
+            "/advisory/proposals/simulate",
             json=payload,
             headers={"Idempotency-Key": "prop-key-500"},
         )
@@ -186,7 +186,7 @@ def test_advisory_proposal_simulate_unhandled_error_returns_problem_details(monk
     body = response.json()
     assert body["title"] == "Internal Server Error"
     assert body["status"] == 500
-    assert body["instance"] == "/rebalance/proposals/simulate"
+    assert body["instance"] == "/advisory/proposals/simulate"
 
 
 def test_advisory_proposal_simulate_returns_drift_analysis_when_reference_model_provided(client):
@@ -217,7 +217,7 @@ def test_advisory_proposal_simulate_returns_drift_analysis_when_reference_model_
     }
 
     response = client.post(
-        "/rebalance/proposals/simulate",
+        "/advisory/proposals/simulate",
         json=payload,
         headers={"Idempotency-Key": "prop-key-14c"},
     )
@@ -273,7 +273,7 @@ def test_advisory_proposal_artifact_endpoint_success(client):
     }
 
     response = client.post(
-        "/rebalance/proposals/artifact",
+        "/advisory/proposals/artifact",
         json=payload,
         headers={"Idempotency-Key": "prop-art-key-1"},
     )
@@ -299,8 +299,8 @@ def test_advisory_proposal_artifact_reuses_idempotent_simulation_response(client
     }
     headers = {"Idempotency-Key": "prop-art-key-2"}
 
-    first = client.post("/rebalance/proposals/artifact", json=payload, headers=headers)
-    second = client.post("/rebalance/proposals/artifact", json=payload, headers=headers)
+    first = client.post("/advisory/proposals/artifact", json=payload, headers=headers)
+    second = client.post("/advisory/proposals/artifact", json=payload, headers=headers)
 
     assert first.status_code == 200
     assert second.status_code == 200
@@ -324,11 +324,11 @@ def test_advisory_proposal_artifact_idempotency_conflict_returns_409(client):
     }
     headers = {"Idempotency-Key": "prop-art-key-3"}
 
-    first = client.post("/rebalance/proposals/artifact", json=payload, headers=headers)
+    first = client.post("/advisory/proposals/artifact", json=payload, headers=headers)
     assert first.status_code == 200
 
     payload["proposed_cash_flows"] = [{"currency": "USD", "amount": "1"}]
-    second = client.post("/rebalance/proposals/artifact", json=payload, headers=headers)
+    second = client.post("/advisory/proposals/artifact", json=payload, headers=headers)
     assert second.status_code == 409
     assert "IDEMPOTENCY_KEY_CONFLICT" in second.json()["detail"]
 
@@ -344,12 +344,12 @@ def test_advisory_proposal_simulate_allows_different_idempotency_keys(client):
     }
 
     first = client.post(
-        "/rebalance/proposals/simulate",
+        "/advisory/proposals/simulate",
         json=payload,
         headers={"Idempotency-Key": "prop-cache-1"},
     )
     second = client.post(
-        "/rebalance/proposals/simulate",
+        "/advisory/proposals/simulate",
         json=payload,
         headers={"Idempotency-Key": "prop-cache-2"},
     )

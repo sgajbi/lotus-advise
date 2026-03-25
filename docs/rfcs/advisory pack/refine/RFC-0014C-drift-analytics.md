@@ -1,11 +1,11 @@
-﻿# RFC-0014C: Drift Analytics for Advisory Proposals (Before vs After vs Reference Model)
+# RFC-0014C: Drift Analytics for Advisory Proposals (Before vs After vs Reference Model)
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14C |
-| **Depends On** | RFC-0014A (Proposal Simulation), RFC-0006A (After-state completeness) |
+| **Depends On** | RFC-0014A (Proposal Simulation), after-state completeness hardening |
 | **Optional Depends On** | RFC-0014B (Auto-funding) — not required for drift math, but improves realism |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014C-drift-analytics.md` |
 | **Backward Compatibility** | Not required |
@@ -96,7 +96,7 @@ Two levels supported:
 
 ### 4.1 Request
 
-Extend `POST /rebalance/proposals/simulate` request with optional:
+Extend `POST /advisory/proposals/simulate` request with optional:
 
 * `reference_model` (object)
 * or `reference_model_id` (string) if you already have a lookup mechanism (not recommended without persistence/connector; for MVP use inline object)
@@ -294,3 +294,4 @@ Each golden asserts:
 2. Bucket universes are deterministic unions, so unmodeled exposure is explicitly surfaced instead of hidden.
 3. Drift totals and contributors are produced with stable ordering for repeatable artifacts and reviews.
 4. When no reference model is supplied, drift output is omitted by design rather than inferred.
+

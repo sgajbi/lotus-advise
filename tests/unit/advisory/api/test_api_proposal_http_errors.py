@@ -2,7 +2,7 @@ import pytest
 from fastapi import HTTPException
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
-from src.api.routers.proposal_http_errors import raise_proposal_http_exception
+from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.proposals import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,

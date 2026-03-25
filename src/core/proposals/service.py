@@ -774,7 +774,7 @@ class ProposalWorkflowService:
             status=operation.status,
             correlation_id=operation.correlation_id,
             created_at=operation.created_at.isoformat(),
-            status_url=f"/rebalance/proposals/operations/{operation.operation_id}",
+            status_url=f"/advisory/proposals/operations/{operation.operation_id}",
         )
 
     def _to_async_status(

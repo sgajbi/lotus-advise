@@ -1,9 +1,9 @@
 # Advisory Proposal Engine Know-How
 
 Implementation scope:
-- API: `src/api/main.py` (`/rebalance/proposals/simulate`)
-- API: `src/api/main.py` (`/rebalance/proposals/artifact`)
-- API router: `src/api/routers/proposals.py` (`/rebalance/proposals` lifecycle family)
+- API: `src/api/main.py` (`/advisory/proposals/simulate`)
+- API: `src/api/main.py` (`/advisory/proposals/artifact`)
+- API router package: `src/api/proposals/` (`/advisory/proposals` lifecycle family)
 - Models: `src/core/models.py`
 - Artifact models: `src/core/advisory/artifact_models.py`
 - Proposal lifecycle domain:
@@ -32,7 +32,7 @@ Implementation scope:
 
 ## API Surface
 
-### `POST /rebalance/proposals/simulate`
+### `POST /advisory/proposals/simulate`
 - Purpose: simulate advisor-entered manual cash flows and manual security trades.
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id` (generated when missing)
@@ -42,16 +42,16 @@ Implementation scope:
   - same key + same canonical payload: cached response
   - same key + different canonical payload: `409 Conflict`
 
-### `POST /rebalance/proposals/artifact`
+### `POST /advisory/proposals/artifact`
 - Purpose: run proposal simulation and build deterministic advisory proposal package.
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id` (generated when missing)
 - Output: `ProposalArtifact`
 - Idempotency behavior:
-  - Uses the same proposal simulation idempotency cache/hash behavior as `/rebalance/proposals/simulate`.
+  - Uses the same proposal simulation idempotency cache/hash behavior as `/advisory/proposals/simulate`.
   - Same key + different canonical payload returns `409 Conflict`.
 
-### `POST /rebalance/proposals`
+### `POST /advisory/proposals`
 - Purpose: run simulation+artifact and persist proposal aggregate/version/workflow event.
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id`
@@ -60,61 +60,62 @@ Implementation scope:
   - same key + same canonical request: returns same proposal/version
   - same key + different canonical request: `409 Conflict`
 
-### `POST /rebalance/proposals/async`
+### `POST /advisory/proposals/async`
 - Purpose: accept proposal create for asynchronous execution.
 - Required header: `Idempotency-Key`
 - Optional header: `X-Correlation-Id`
 - Output: async operation reference (`operation_id`, `status_url`).
 
-### `GET /rebalance/proposals/{proposal_id}`
+### `GET /advisory/proposals/{proposal_id}`
 - Purpose: read proposal summary + current version + last gate decision.
 - Query: `include_evidence=true|false` (defaults true)
 
-### `GET /rebalance/proposals`
+### `GET /advisory/proposals`
 - Purpose: list proposals with filters and cursor pagination.
 - Filters: `portfolio_id`, `state`, `created_by`, `created_from`, `created_to`, `limit`, `cursor`
 
-### `GET /rebalance/proposals/{proposal_id}/versions/{version_no}`
+### `GET /advisory/proposals/{proposal_id}/versions/{version_no}`
 - Purpose: read one immutable proposal version.
 - Query: `include_evidence=true|false`
 
-### `GET /rebalance/proposals/{proposal_id}/workflow-events`
+### `GET /advisory/proposals/{proposal_id}/workflow-events`
 - Purpose: retrieve append-only workflow timeline for operations investigation and audit.
 
-### `GET /rebalance/proposals/{proposal_id}/approvals`
+### `GET /advisory/proposals/{proposal_id}/approvals`
 - Purpose: retrieve structured approval/consent records for supportability and controls review.
 
-### `GET /rebalance/proposals/{proposal_id}/lineage`
+### `GET /advisory/proposals/{proposal_id}/lineage`
 - Purpose: retrieve immutable version lineage metadata (request/simulation/artifact hashes).
 
-### `GET /rebalance/proposals/idempotency/{idempotency_key}`
+### `GET /advisory/proposals/idempotency/{idempotency_key}`
 - Purpose: resolve idempotency-key mappings during retry and incident investigations.
 
-### `GET /rebalance/proposals/operations/{operation_id}`
+### `GET /advisory/proposals/operations/{operation_id}`
 - Purpose: retrieve asynchronous operation status and terminal result/error payload.
 
-### `GET /rebalance/proposals/operations/by-correlation/{correlation_id}`
+### `GET /advisory/proposals/operations/by-correlation/{correlation_id}`
 - Purpose: retrieve latest asynchronous operation by correlation id.
 
-### `POST /rebalance/proposals/{proposal_id}/versions`
+### `POST /advisory/proposals/{proposal_id}/versions`
 - Purpose: create immutable version `N+1` for existing proposal.
 - Guard: same `portfolio_id` as aggregate unless `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION=true`.
 
-### `POST /rebalance/proposals/{proposal_id}/versions/async`
+### `POST /advisory/proposals/{proposal_id}/versions/async`
 - Purpose: accept proposal version create for asynchronous execution.
 - Optional header: `X-Correlation-Id`
 - Output: async operation reference (`operation_id`, `status_url`).
 
-### `POST /rebalance/proposals/{proposal_id}/transitions`
+### `POST /advisory/proposals/{proposal_id}/transitions`
 - Purpose: apply one workflow transition.
 - Concurrency: `expected_state` required by default (`PROPOSAL_REQUIRE_EXPECTED_STATE=true`).
 
-### `POST /rebalance/proposals/{proposal_id}/approvals`
+### `POST /advisory/proposals/{proposal_id}/approvals`
 - Purpose: persist structured approval/consent and corresponding workflow event.
 - Approval types: `RISK`, `COMPLIANCE`, `CLIENT_CONSENT`
 
 Persistence note:
 - Lifecycle persistence supports repository backends selected by runtime config.
+- Runtime wiring and repository bootstrap live under `src/api/proposals/runtime.py`.
 - Postgres-backed persistence is implemented (`PROPOSAL_STORE_BACKEND=POSTGRES`).
 - In-memory backend remains available for local/test workflows and emits deprecation warnings.
 
@@ -125,7 +126,7 @@ Persistence note:
 - Validates proposal input models (`ProposedCashFlow`, `ProposedTrade`).
 
 2. Before-state valuation
-- Uses the same valuation stack as lotus-manage (`build_simulated_state`).
+- Uses the shared portfolio valuation stack (`build_simulated_state`).
 
 3. Apply proposal intents
 - Cash flows can be applied before trades (`proposal_apply_cash_flows_first`).
@@ -244,7 +245,9 @@ Determinism controls:
 - Engine: `tests/unit/advisory/engine/test_engine_advisory_proposal_simulation.py`
 - Engine: `tests/unit/advisory/engine/test_engine_proposal_artifact.py`
 - Engine: `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py`
-- Engine: `tests/unit/dpm/engine/test_engine_workflow_gates.py`
+- Engine: workflow-gate behavior is covered through advisory simulation and artifact tests, including:
+  - `tests/unit/advisory/api/test_api_advisory_proposal_simulate.py`
+  - `tests/unit/advisory/engine/test_engine_proposal_artifact.py`
 - Proposal golden: `tests/unit/advisory/golden/test_golden_advisory_proposal_scenarios.py`
 - Artifact golden: `tests/unit/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`
 
@@ -256,3 +259,4 @@ Dependency quality gate:
 
 - `src/core/advisory/engine.py` is a compatibility shim and emits `DeprecationWarning`.
 - Use `src/core/advisory_engine.py` as the current stable advisory engine import path.
+

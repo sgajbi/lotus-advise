@@ -5,7 +5,7 @@
 | **Status** | DRAFT |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14B |
-| **Depends On** | RFC-0014A (Proposal Simulation MVP), RFC-0006A (Safety + After-state completeness) |
+| **Depends On** | RFC-0014A (Proposal Simulation MVP), safety and after-state completeness hardening |
 | **Doc Location** | `docs/rfcs/RFC-0014B-advisory-proposal-auto-funding.md` |
 | **Backward Compatibility** | Not required |
 

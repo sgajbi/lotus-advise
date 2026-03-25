@@ -5,7 +5,7 @@
 | **Status** | DRAFT |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14A |
-| **Depends On** | RFC-0003 (No-Throw Architecture), RFC-0006A (After-state completeness & safety hardening) |
+| **Depends On** | No-throw architecture principles, after-state completeness and safety hardening |
 | **Doc Location** | `docs/rfcs/RFC-0014A-advisory-proposal-simulate-mvp.md` |
 | **Backward Compatibility** | Not required (new endpoint; app not live) |
 
@@ -88,7 +88,7 @@ This endpoint supports the “Idea → Proposal” stage:
 `POST /v1/proposal/simulate`
 
 Rationale:
-- Avoid contract ambiguity with existing `/rebalance/simulate`
+- Avoid contract ambiguity with existing `/advisory/simulate`
 - Clear separation of “algorithmic rebalance” vs “manual advisory proposal”
 
 ### 4.2 Headers
@@ -161,7 +161,7 @@ Notes:
 
 ### 5.3 ProposalResult (output)
 
-`ProposalResult` should mirror `RebalanceResult` shape to maximize reuse and maintain a consistent audit bundle across endpoints.
+`ProposalResult` should follow a stable simulation result shape to maximize reuse and maintain a consistent audit bundle across endpoints.
 
 Minimum required fields:
 
@@ -378,3 +378,4 @@ Scenario:
 * **RFC-0014E**: Proposal Artifact Packaging (client-ready narrative bundle)
 
 ---
+

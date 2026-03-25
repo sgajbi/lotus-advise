@@ -1,3 +1,1 @@
-from src.api.routers.proposals import router
-
-__all__ = ["router"]
+"""Top-level router package for non-proposal API surfaces."""

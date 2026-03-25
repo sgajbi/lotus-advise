@@ -8,7 +8,7 @@ from src.api.persistence_profile import (
     app_persistence_profile_name,
     validate_persistence_profile_guardrails,
 )
-from src.api.routers.proposals_config import proposal_postgres_dsn
+from src.api.proposals.runtime import proposal_postgres_dsn
 
 
 def validate_production_cutover_contract(*, check_migrations: bool) -> None:

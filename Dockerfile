@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
 # Create a non-root user for security compliance
-RUN adduser --disabled-password --gecos '' dpm-user
+RUN adduser --disabled-password --gecos '' lotus-advise
 
 # Set the working directory
 WORKDIR /app
@@ -22,10 +22,10 @@ RUN pip install -r requirements-prod.txt
 COPY src/ ./src/
 
 # Change ownership of the application files to the non-root user
-RUN chown -R dpm-user:dpm-user /app
+RUN chown -R lotus-advise:lotus-advise /app
 
 # Switch to the non-root user
-USER dpm-user
+USER lotus-advise
 
 # Expose the port uvicorn will listen on
 EXPOSE 8000

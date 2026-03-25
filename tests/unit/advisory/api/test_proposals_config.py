@@ -2,7 +2,7 @@ import builtins
 
 import pytest
 
-from src.api.routers import proposals_config
+from src.api.proposals import runtime as proposals_config
 
 
 def test_proposal_backend_alias_and_default(monkeypatch):

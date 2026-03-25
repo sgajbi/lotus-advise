@@ -2,7 +2,7 @@ import sys
 
 import pytest
 
-from src.api.routers.proposal_http_errors import raise_proposal_http_exception
+from src.api.proposals.errors import raise_proposal_http_exception
 from src.api.services import advisory_simulation_service
 
 

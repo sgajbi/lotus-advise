@@ -5,7 +5,7 @@
 | **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14D |
-| **Depends On** | RFC-0014A (Proposal Simulation), RFC-0006A (After-state completeness & safety) |
+| **Depends On** | RFC-0014A (Proposal Simulation), after-state completeness and safety hardening |
 | **Optional Depends On** | RFC-0014B (Auto-funding), RFC-0014C (Drift analytics) |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014D-suitability-scanner-v1.md` |
 | **Backward Compatibility** | Not required |

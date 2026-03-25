@@ -43,7 +43,7 @@ class ProposalCreateMetadata(BaseModel):
     title: Optional[str] = Field(
         default=None,
         description="Optional advisor-facing proposal title.",
-        examples=["2026 tactical rebalance plan"],
+        examples=["2026 client portfolio transition plan"],
     )
     advisor_notes: Optional[str] = Field(
         default=None,
@@ -88,7 +88,7 @@ class ProposalCreateRequest(BaseModel):
         description="Optional proposal metadata persisted alongside proposal aggregate.",
         examples=[
             {
-                "title": "2026 tactical rebalance plan",
+                "title": "2026 client portfolio transition plan",
                 "advisor_notes": "Client requested medium-risk equity rotation.",
                 "jurisdiction": "SG",
                 "mandate_id": "mandate_growth_01",
@@ -267,7 +267,7 @@ class ProposalSummary(BaseModel):
     title: Optional[str] = Field(
         default=None,
         description="Optional advisor-facing proposal title.",
-        examples=["2026 tactical rebalance plan"],
+        examples=["2026 client portfolio transition plan"],
     )
 
 
@@ -480,7 +480,7 @@ class ProposalAsyncAcceptedResponse(BaseModel):
     )
     status_url: str = Field(
         description="Relative API path for operation status retrieval.",
-        examples=["/rebalance/proposals/operations/pop_001"],
+        examples=["/advisory/proposals/operations/pop_001"],
     )
 
 
@@ -647,7 +647,7 @@ class ProposalRecord(BaseModel):
     title: Optional[str] = Field(
         default=None,
         description="Internal proposal title.",
-        examples=["2026 tactical rebalance plan"],
+        examples=["2026 client portfolio transition plan"],
     )
     advisor_notes: Optional[str] = Field(
         default=None,

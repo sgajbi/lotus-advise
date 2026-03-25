@@ -5,7 +5,7 @@
 | **Status** | DRAFT |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14C |
-| **Depends On** | RFC-0014A (Proposal Simulation), RFC-0006A (After-state completeness) |
+| **Depends On** | RFC-0014A (Proposal Simulation), after-state completeness hardening |
 | **Optional Depends On** | RFC-0014B (Auto-funding) — not required for drift math, but improves realism |
 | **Doc Location** | `docs/rfcs/RFC-0014C-drift-analytics.md` |
 | **Backward Compatibility** | Not required |

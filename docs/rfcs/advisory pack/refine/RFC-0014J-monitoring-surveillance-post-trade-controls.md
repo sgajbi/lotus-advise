@@ -1,4 +1,4 @@
-﻿# RFC-0014J: Monitoring, Surveillance & Post-Trade Controls (Institution-Grade Oversight)
+# RFC-0014J: Monitoring, Surveillance & Post-Trade Controls (Institution-Grade Oversight)
 
 | Metadata | Details |
 | --- | --- |
@@ -213,7 +213,7 @@ If RFC-0014G is implemented, store exceptions in Postgres with append-only event
 
 ### 9.1 Compute post-trade checks (on-demand)
 
-`POST /rebalance/executions/{execution_id}/post-trade/checks`
+`POST /advisory/executions/{execution_id}/post-trade/checks`
 
 Body:
 
@@ -234,11 +234,11 @@ Response includes:
 
 ### 9.2 Get exceptions
 
-`GET /rebalance/exceptions?execution_id=&status=&severity=&limit=&cursor=`
+`GET /advisory/exceptions?execution_id=&status=&severity=&limit=&cursor=`
 
 ### 9.3 Acknowledge/resolve exception
 
-`POST /rebalance/exceptions/{exception_id}/transitions`
+`POST /advisory/exceptions/{exception_id}/transitions`
 
 ---
 
@@ -299,3 +299,4 @@ Golden tests:
 * Regulatory reporting integration
 * Cross-portfolio surveillance (client-level CIF monitoring)
 * Automated remediation proposals (auto-generated unwind/rebalance suggestions)
+

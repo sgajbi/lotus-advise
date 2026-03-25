@@ -1,5 +1,5 @@
 {
-  "rebalance_run_id": "rr_24d8e9f2",
+  "proposal_run_id": "pr_24d8e9f2",
   "correlation_id": "c_none",
   "status": "READY",
   "before": {
@@ -88,7 +88,7 @@
     ]
   },
   "universe": {
-    "universe_id": "u_rr_24d8e9f2",
+    "universe_id": "u_pr_24d8e9f2",
     "eligible_for_buy": [
       "EU_BOND"
     ],
@@ -103,7 +103,7 @@
     }
   },
   "target": {
-    "target_id": "t_rr_24d8e9f2",
+    "target_id": "t_pr_24d8e9f2",
     "strategy": {},
     "targets": [
       {
@@ -147,7 +147,7 @@
       },
       "dependencies": [],
       "rationale": {
-        "code": "DRIFT_REBALANCE",
+        "code": "DRIFT_ALIGNMENT",
         "message": "Align"
       },
       "constraints_applied": []
@@ -198,7 +198,7 @@
         "oi_fx_4"
       ],
       "rationale": {
-        "code": "DRIFT_REBALANCE",
+        "code": "DRIFT_ALIGNMENT",
         "message": "Align"
       },
       "constraints_applied": []
@@ -435,3 +435,4 @@
     "request_hash": "sha256:sample"
   }
 }
+

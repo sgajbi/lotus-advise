@@ -1,26 +1,24 @@
-# Durability and Consistency Standard (lotus-manage)
+# Durability and Consistency Standard (lotus-advise)
 
 - Standard reference: `lotus-platform/Durability and Consistency Standard.md`
-- Scope: discretionary and advisory workflow simulation/lifecycle write operations.
+- Scope: advisory proposal simulation, proposal lifecycle, and advisory persistence write operations.
 - Change control: RFC required for policy changes; ADR required for temporary exceptions.
 
 ## Workflow Consistency Classification
 
 - Strong consistency:
   - proposal lifecycle writes
-  - run/workflow operation state transitions
   - idempotency mapping persistence
 - Eventual consistency:
-  - asynchronous supportability/reporting fetch paths
+  - asynchronous advisory operation fetch paths
 
 ## Idempotency and Replay Protection
 
 - Critical write APIs require `Idempotency-Key`.
 - Idempotency mapping/history repositories prevent duplicate business effects on retries.
 - Evidence:
-  - `src/api/routers/dpm_simulation.py`
-  - `src/api/routers/proposals_lifecycle_routes.py`
-  - `src/infrastructure/dpm_runs/postgres.py`
+  - `src/api/routers/advisory_simulation.py`
+  - `src/api/proposals/routes_lifecycle.py`
   - `src/infrastructure/proposals/postgres.py`
 
 ## Atomicity and Transaction Boundaries
@@ -28,15 +26,14 @@
 - Run/proposal persistence uses explicit transaction boundaries in repository implementations.
 - Partial workflow updates must fail and surface explicit errors.
 - Evidence:
-  - `src/infrastructure/dpm_runs/postgres.py`
   - `src/infrastructure/proposals/postgres.py`
 
 ## As-Of and Reproducibility Semantics
 
 - Request and response contracts preserve deterministic input scope and reproducibility metadata.
 - Evidence:
-  - `src/core/dpm_runs/models.py`
-  - `src/core/dpm_runs/artifact.py`
+  - `src/core/proposals/models.py`
+  - `src/core/advisory/artifact.py`
 
 ## Concurrency and Conflict Policy
 
@@ -44,7 +41,7 @@
 - Workflow action conflicts are exposed through deterministic API responses.
 - Evidence:
   - `src/core/advisory_engine.py`
-  - `src/core/dpm_runs/service.py`
+  - `src/core/proposals/service.py`
   - `tests/unit/core/*`
 
 ## Integrity Constraints

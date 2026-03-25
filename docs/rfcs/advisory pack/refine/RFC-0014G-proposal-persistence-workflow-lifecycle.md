@@ -1,4 +1,4 @@
-﻿
+
 # RFC-0014G: Proposal Persistence & Workflow Lifecycle (Institution-Grade, Audit-First)
 
 | Metadata | Details |
@@ -9,7 +9,7 @@
 | **Depends On** | RFC-0014A (Proposal Simulation) |
 | **Strongly Recommended** | RFC-0014E (Proposal Artifact), RFC-0014F (GateDecision) |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014G-proposal-persistence-workflow-lifecycle.md` |
-| **Backward Compatibility** | Existing `/rebalance/proposals/simulate` and `/rebalance/proposals/artifact` unchanged |
+| **Backward Compatibility** | Existing `/advisory/proposals/simulate` and `/advisory/proposals/artifact` unchanged |
 
 ---
 
@@ -17,7 +17,7 @@
 
 Implementation note (2026-02-19):
 - Implemented with repository port + in-memory adapter (`src/core/proposals/*`, `src/infrastructure/proposals/in_memory.py`).
-- API endpoints delivered under `/rebalance/proposals` lifecycle family in `src/api/routers/proposals.py`.
+- API endpoints delivered under `/advisory/proposals` lifecycle family in `src/api/proposals/router.py`.
 - PostgreSQL adapter/migrations intentionally deferred; architecture keeps persistence concerns behind repository interface for later adapter addition.
 - Cross-engine alignment added through shared dependency-linking utility (`src/core/common/intent_dependencies.py`) and request option `link_buy_to_same_currency_sell_dependency` with engine-specific defaults.
 
@@ -238,17 +238,17 @@ Policy:
 
 ## 6. API Design
 
-All endpoints follow the `/rebalance/...` route family.
+All endpoints follow the `/advisory/...` route family.
 
 ### 6.1 Create proposal (simulation + persistence)
-`POST /rebalance/proposals`
+`POST /advisory/proposals`
 
 Headers:
 - `Idempotency-Key` required
 - `X-Correlation-Id` optional
 
 Body:
-- same as `POST /rebalance/proposals/simulate` request
+- same as `POST /advisory/proposals/simulate` request
 - plus optional metadata:
   - `title`, `advisor_notes`, `jurisdiction`
 
@@ -267,7 +267,7 @@ Behavior:
    - proposal_id, version_no, current_state, artifact summary, gate_decision
 
 ### 6.2 Get proposal (metadata + current)
-`GET /rebalance/proposals/{proposal_id}`
+`GET /advisory/proposals/{proposal_id}`
 
 Returns:
 - proposal metadata
@@ -276,19 +276,19 @@ Returns:
 - last gate decision
 
 ### 6.3 List proposals
-`GET /rebalance/proposals?portfolio_id=&state=&created_by=&from=&to=&limit=&cursor=`
+`GET /advisory/proposals?portfolio_id=&state=&created_by=&from=&to=&limit=&cursor=`
 
 Returns:
 - paginated list of proposal summaries
 
 ### 6.4 Get proposal version
-`GET /rebalance/proposals/{proposal_id}/versions/{version_no}`
+`GET /advisory/proposals/{proposal_id}/versions/{version_no}`
 
 Returns:
 - full artifact + evidence bundle (or allow `?include_evidence=false`)
 
 ### 6.5 Create new version (re-simulate with changes)
-`POST /rebalance/proposals/{proposal_id}/versions`
+`POST /advisory/proposals/{proposal_id}/versions`
 
 Body:
 - same as simulate request
@@ -300,7 +300,7 @@ Behavior:
 - add workflow event `NEW_VERSION_CREATED`
 
 ### 6.6 Transition workflow state
-`POST /rebalance/proposals/{proposal_id}/transitions`
+`POST /advisory/proposals/{proposal_id}/transitions`
 
 Body:
 ```json
@@ -324,7 +324,7 @@ Return:
 
 ### 6.7 Record approval / consent
 
-`POST /rebalance/proposals/{proposal_id}/approvals`
+`POST /advisory/proposals/{proposal_id}/approvals`
 
 Body:
 
@@ -347,10 +347,10 @@ Behavior:
 ### 6.8 Supportability and investigation reads
 
 Read-only operational endpoints for support teams:
-- `GET /rebalance/proposals/{proposal_id}/workflow-events`
-- `GET /rebalance/proposals/{proposal_id}/approvals`
-- `GET /rebalance/proposals/{proposal_id}/lineage`
-- `GET /rebalance/proposals/idempotency/{idempotency_key}`
+- `GET /advisory/proposals/{proposal_id}/workflow-events`
+- `GET /advisory/proposals/{proposal_id}/approvals`
+- `GET /advisory/proposals/{proposal_id}/lineage`
+- `GET /advisory/proposals/idempotency/{idempotency_key}`
 
 These are intended for audit, incident response, and reproducibility investigation.
 
@@ -524,3 +524,4 @@ Configuration is implementation-faithful and currently delivered via environment
 * Retention & archival policy per jurisdiction
 * PII encryption and key management enhancements
 * External consent providers and document signing
+

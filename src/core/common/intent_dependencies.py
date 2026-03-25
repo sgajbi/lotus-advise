@@ -3,11 +3,11 @@ from typing import TypeAlias
 
 from src.core.models import FxSpotIntent, SecurityTradeIntent
 
-RebalanceIntent: TypeAlias = SecurityTradeIntent | FxSpotIntent
+ProposalIntent: TypeAlias = SecurityTradeIntent | FxSpotIntent
 
 
 def link_buy_intent_dependencies(
-    intents: Sequence[RebalanceIntent],
+    intents: Sequence[ProposalIntent],
     *,
     fx_intent_id_by_currency: Mapping[str, str] | None = None,
     include_same_currency_sell_dependency: bool = False,

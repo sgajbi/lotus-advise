@@ -13,12 +13,12 @@ Advisory lifecycle endpoints now include simulation, artifact generation, persis
 Introduce an operation-resource pattern for asynchronous lifecycle workflows:
 
 1. Async submission endpoints:
-- `POST /rebalance/proposals/async`
-- `POST /rebalance/proposals/{proposal_id}/versions/async`
+- `POST /advisory/proposals/async`
+- `POST /advisory/proposals/{proposal_id}/versions/async`
 
 2. Async retrieval endpoints:
-- `GET /rebalance/proposals/operations/{operation_id}`
-- `GET /rebalance/proposals/operations/by-correlation/{correlation_id}`
+- `GET /advisory/proposals/operations/{operation_id}`
+- `GET /advisory/proposals/operations/by-correlation/{correlation_id}`
 
 3. Operation statuses:
 - `PENDING`
@@ -27,8 +27,8 @@ Introduce an operation-resource pattern for asynchronous lifecycle workflows:
 - `FAILED`
 
 4. Keep transitions and approvals synchronous:
-- `POST /rebalance/proposals/{proposal_id}/transitions`
-- `POST /rebalance/proposals/{proposal_id}/approvals`
+- `POST /advisory/proposals/{proposal_id}/transitions`
+- `POST /advisory/proposals/{proposal_id}/approvals`
 
 5. Configuration flag:
 - `PROPOSAL_ASYNC_OPERATIONS_ENABLED` (default `true`)
@@ -52,7 +52,7 @@ Introduce an operation-resource pattern for asynchronous lifecycle workflows:
   - approvals/consent recording (state-sensitive and audit-critical)
   - read endpoints (already lightweight and deterministic)
 - Deferred:
-  - async lotus-manage batch analyze and async advisory simulate/artifact (can reuse same pattern later)
+  - expanded async advisory simulation and artifact workflows when proposal workloads justify it
 
 ## Consequences
 
@@ -68,4 +68,5 @@ Tradeoffs:
 
 - Add persistent operation store (PostgreSQL adapter) with retention policies.
 - Add optional callback/webhook completion pattern for external orchestrators.
-- Extend same operation pattern to selected lotus-manage workflows where latency justifies async behavior.
+- Extend the same operation pattern to additional advisory workflows where latency justifies async behavior.
+

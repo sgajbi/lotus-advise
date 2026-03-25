@@ -11,18 +11,13 @@ if str(_REPO_ROOT) not in sys.path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Apply forward-only PostgreSQL migrations for lotus-manage and advisory stores."
+        description="Apply forward-only PostgreSQL migrations for lotus-advise proposal stores."
     )
     parser.add_argument(
         "--target",
-        choices=["dpm", "proposals", "all"],
-        default="all",
+        choices=["proposals"],
+        default="proposals",
         help="Migration target namespace.",
-    )
-    parser.add_argument(
-        "--dpm-dsn",
-        default=os.getenv("DPM_SUPPORTABILITY_POSTGRES_DSN", "").strip(),
-        help="PostgreSQL DSN for lotus-manage supportability migrations.",
     )
     parser.add_argument(
         "--proposals-dsn",
@@ -38,7 +33,7 @@ def main() -> int:
 
     from src.infrastructure.postgres_migrations import apply_postgres_migrations
 
-    targets = _resolve_targets(args.target, args.dpm_dsn, args.proposals_dsn)
+    targets = _resolve_targets(args.target, args.proposals_dsn)
     for namespace, dsn in targets:
         if not dsn:
             raise RuntimeError(f"POSTGRES_MIGRATION_DSN_REQUIRED:{namespace}")
@@ -48,12 +43,9 @@ def main() -> int:
     return 0
 
 
-def _resolve_targets(target: str, dpm_dsn: str, proposals_dsn: str) -> list[tuple[str, str]]:
-    if target == "dpm":
-        return [("dpm", dpm_dsn)]
-    if target == "proposals":
-        return [("proposals", proposals_dsn)]
-    return [("dpm", dpm_dsn), ("proposals", proposals_dsn)]
+def _resolve_targets(target: str, proposals_dsn: str) -> list[tuple[str, str]]:
+    _ = target
+    return [("proposals", proposals_dsn)]
 
 
 if __name__ == "__main__":

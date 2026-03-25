@@ -9,14 +9,10 @@ from pydantic import ValidationError
 
 from src.core.models import (
     AllocationMetric,
-    BatchRebalanceRequest,
-    BatchScenarioMetric,
     DiagnosticsData,
     EngineOptions,
     GroupConstraint,
     MarketDataSnapshot,
-    ModelPortfolio,
-    ModelTarget,
     Money,
     PortfolioSnapshot,
     Position,
@@ -24,7 +20,6 @@ from src.core.models import (
     ProposedTrade,
     ShelfEntry,
     SimulatedState,
-    SimulationScenario,
     TargetMethod,
     TaxLot,
 )
@@ -229,51 +224,6 @@ def test_tax_lot_quantity_must_match_position_quantity_within_tolerance():
         )
 
 
-def test_batch_request_requires_at_least_one_scenario():
-    with pytest.raises(ValidationError):
-        BatchRebalanceRequest(
-            portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
-            market_data_snapshot=MarketDataSnapshot(
-                prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
-                fx_rates=[],
-            ),
-            model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
-            shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
-            scenarios={},
-        )
-
-
-def test_batch_request_validates_scenario_name_format():
-    with pytest.raises(ValidationError):
-        BatchRebalanceRequest(
-            portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
-            market_data_snapshot=MarketDataSnapshot(
-                prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
-                fx_rates=[],
-            ),
-            model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
-            shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
-            scenarios={"Invalid-Name": SimulationScenario(options={})},
-        )
-
-
-def test_batch_request_rejects_case_insensitive_duplicate_scenario_keys():
-    with pytest.raises(ValidationError):
-        BatchRebalanceRequest(
-            portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
-            market_data_snapshot=MarketDataSnapshot(
-                prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
-                fx_rates=[],
-            ),
-            model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
-            shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
-            scenarios={
-                "base": SimulationScenario(options={}),
-                "BASE": SimulationScenario(options={}),
-            },
-        )
-
-
 def test_snapshot_models_accept_snapshot_id():
     portfolio = PortfolioSnapshot(snapshot_id="ps_1", portfolio_id="pf", base_currency="USD")
     market = MarketDataSnapshot(
@@ -283,59 +233,6 @@ def test_snapshot_models_accept_snapshot_id():
     )
     assert portfolio.snapshot_id == "ps_1"
     assert market.snapshot_id == "md_1"
-
-
-def test_batch_request_enforces_max_scenario_count():
-    scenarios = {f"s{i}": SimulationScenario(options={}) for i in range(21)}
-    with pytest.raises(ValidationError):
-        BatchRebalanceRequest(
-            portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
-            market_data_snapshot=MarketDataSnapshot(
-                prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
-                fx_rates=[],
-            ),
-            model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
-            shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
-            scenarios=scenarios,
-        )
-
-
-def test_batch_request_accepts_valid_named_scenarios():
-    request = BatchRebalanceRequest(
-        portfolio_snapshot=PortfolioSnapshot(portfolio_id="pf", base_currency="USD"),
-        market_data_snapshot=MarketDataSnapshot(
-            prices=[Price(instrument_id="EQ_1", price=Decimal("100"), currency="USD")],
-            fx_rates=[],
-        ),
-        model_portfolio=ModelPortfolio(targets=[ModelTarget(instrument_id="EQ_1", weight=1)]),
-        shelf_entries=[ShelfEntry(instrument_id="EQ_1", status="APPROVED")],
-        scenarios={
-            "baseline": SimulationScenario(options={}),
-            "solver_case": SimulationScenario(options={"target_method": "SOLVER"}),
-        },
-    )
-
-    assert set(request.scenarios.keys()) == {"baseline", "solver_case"}
-
-
-def test_batch_scenario_metric_shape():
-    metric = BatchScenarioMetric(
-        status="READY",
-        security_intent_count=2,
-        gross_turnover_notional_base=Money(amount=Decimal("1500"), currency="USD"),
-    )
-    assert metric.status == "READY"
-    assert metric.security_intent_count == 2
-    assert metric.gross_turnover_notional_base.amount == Decimal("1500")
-
-
-def test_batch_scenario_metric_rejects_invalid_status():
-    with pytest.raises(ValidationError):
-        BatchScenarioMetric(
-            status="UNKNOWN",
-            security_intent_count=1,
-            gross_turnover_notional_base=Money(amount=Decimal("10"), currency="USD"),
-        )
 
 
 def test_suitability_thresholds_validate_liquidity_tier_keys():

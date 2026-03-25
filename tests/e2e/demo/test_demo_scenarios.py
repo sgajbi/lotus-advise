@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app, get_db_session
-from src.api.routers.proposals import reset_proposal_workflow_service_for_tests
+from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 
 DEMO_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "demo")
 
@@ -63,7 +63,7 @@ def test_demo_advisory_async_create_and_lookup_via_api():
         reset_proposal_workflow_service_for_tests()
         try:
             accepted = client.post(
-                "/rebalance/proposals/async",
+                "/advisory/proposals/async",
                 json=_proposal_create_payload("pf_demo_async_1"),
                 headers={
                     "Idempotency-Key": "demo-36-proposal-async",
@@ -72,9 +72,9 @@ def test_demo_advisory_async_create_and_lookup_via_api():
             )
             assert accepted.status_code == 202
             operation_id = accepted.json()["operation_id"]
-            by_operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+            by_operation = client.get(f"/advisory/proposals/operations/{operation_id}")
             by_correlation = client.get(
-                "/rebalance/proposals/operations/by-correlation/demo-corr-36-proposal-async"
+                "/advisory/proposals/operations/by-correlation/demo-corr-36-proposal-async"
             )
         finally:
             app.dependency_overrides = original_overrides
@@ -91,7 +91,7 @@ def test_demo_advisory_async_version_via_api():
         reset_proposal_workflow_service_for_tests()
         try:
             created = client.post(
-                "/rebalance/proposals",
+                "/advisory/proposals",
                 json=_proposal_create_payload("pf_demo_async_2"),
                 headers={"Idempotency-Key": "demo-37-proposal-async-base"},
             )
@@ -99,7 +99,7 @@ def test_demo_advisory_async_version_via_api():
             proposal_id = created.json()["proposal"]["proposal_id"]
 
             accepted = client.post(
-                f"/rebalance/proposals/{proposal_id}/versions/async",
+                f"/advisory/proposals/{proposal_id}/versions/async",
                 json={
                     "created_by": "advisor_e2e",
                     "metadata": {"title": "E2E async version"},
@@ -111,7 +111,7 @@ def test_demo_advisory_async_version_via_api():
             )
             assert accepted.status_code == 202
             operation_id = accepted.json()["operation_id"]
-            operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+            operation = client.get(f"/advisory/proposals/operations/{operation_id}")
         finally:
             app.dependency_overrides = original_overrides
             reset_proposal_workflow_service_for_tests()
@@ -141,7 +141,7 @@ def test_demo_advisory_scenarios_via_api(filename: str, expected_status: str):
         reset_proposal_workflow_service_for_tests()
         try:
             response = client.post(
-                "/rebalance/proposals/simulate",
+                "/advisory/proposals/simulate",
                 json=data,
                 headers={"Idempotency-Key": f"demo-{filename}"},
             )
@@ -161,7 +161,7 @@ def test_demo_advisory_artifact_scenario_via_api():
         reset_proposal_workflow_service_for_tests()
         try:
             response = client.post(
-                "/rebalance/proposals/artifact",
+                "/advisory/proposals/artifact",
                 json=data,
                 headers={"Idempotency-Key": "demo-19-advisory-artifact"},
             )

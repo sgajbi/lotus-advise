@@ -2,10 +2,9 @@
 FILE: src/core/models.py
 """
 
-import re
 from decimal import Decimal
 from enum import Enum
-from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, field_serializer, field_validator, model_validator
 
@@ -25,7 +24,13 @@ def _quantize_ratio(value: Decimal) -> Decimal:
 
 
 _GROUP_CONSTRAINT_KEY_FORMAT = "<attribute_key>:<attribute_value>"
-_SCENARIO_NAME_REGEX = re.compile(r"^[a-z0-9_-]{1,64}$")
+
+
+def _is_python_float(candidate: object) -> bool:
+    type_name = candidate.__class__.__name__
+    if type_name == "float":
+        return True
+    return False
 
 
 def _validate_group_constraint_keys(
@@ -485,7 +490,7 @@ class EngineOptions(BaseModel):
         default=None,
         description=(
             "Attach BUY intent dependency to a same-currency SELL intent. "
-            "When null, defaults are engine-specific: true for lotus-manage, false for advisory."
+            "When null, advisory runtime keeps the default disabled unless explicitly enabled."
         ),
         examples=[None, True, False],
     )
@@ -1150,53 +1155,6 @@ class GateDecision(BaseModel):
     summary: GateDecisionSummary = Field(description="Gate summary counters.")
 
 
-class RebalanceResult(BaseModel):
-    """The complete, auditable result of a rebalance simulation."""
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "rebalance_run_id": "rr_abc12345",
-                "status": "READY",
-                "correlation_id": "c_none",
-                "intents": [],
-                "rule_results": [],
-                "diagnostics": {
-                    "warnings": [],
-                    "data_quality": {"price_missing": [], "fx_missing": []},
-                },
-            }
-        }
-    }
-
-    rebalance_run_id: str = Field(description="Run identifier.")
-    correlation_id: str = Field(description="Correlation id used by request logging context.")
-    status: Literal["READY", "BLOCKED", "PENDING_REVIEW"] = Field(
-        description="Top-level domain outcome."
-    )
-    before: SimulatedState = Field(description="Before-state valuation snapshot.")
-    universe: UniverseData = Field(description="Universe composition and exclusions.")
-    target: TargetData = Field(description="Target generation trace.")
-    intents: List[Annotated[OrderIntent, Field(discriminator="intent_type")]]
-    after_simulated: SimulatedState = Field(description="After-state simulation snapshot.")
-    reconciliation: Optional[Reconciliation] = Field(
-        default=None, description="Reconciliation output."
-    )
-    tax_impact: Optional[TaxImpact] = Field(
-        default=None, description="Tax impact summary when tax-aware enabled."
-    )
-    rule_results: List[RuleResult] = Field(
-        default_factory=list, description="Rule engine evaluations."
-    )
-    explanation: Dict[str, Any] = Field(description="Additional explanatory payload.")
-    diagnostics: DiagnosticsData = Field(description="Diagnostics and warnings for the run.")
-    gate_decision: Optional[GateDecision] = Field(
-        default=None,
-        description="Deterministic workflow gate decision for downstream orchestration.",
-    )
-    lineage: LineageData = Field(description="Lineage identifiers and request hash.")
-
-
 class ProposedCashFlow(BaseModel):
     intent_type: Literal["CASH_FLOW"] = Field(
         default="CASH_FLOW",
@@ -1217,7 +1175,7 @@ class ProposedCashFlow(BaseModel):
     @field_validator("amount", mode="before")
     @classmethod
     def reject_float_amount(cls, v: object) -> object:
-        if isinstance(v, float):
+        if _is_python_float(v):
             raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: amount must be a decimal string")
         return v
 
@@ -1250,14 +1208,14 @@ class ProposedTrade(BaseModel):
     @field_validator("quantity", mode="before")
     @classmethod
     def reject_float_quantity(cls, v: object) -> object:
-        if isinstance(v, float):
+        if _is_python_float(v):
             raise ValueError("PROPOSAL_INVALID_TRADE_INPUT: quantity must be a decimal string")
         return v
 
     @field_validator("notional", mode="before")
     @classmethod
     def reject_float_notional_amount(cls, v: object) -> object:
-        if isinstance(v, dict) and isinstance(v.get("amount"), float):
+        if isinstance(v, dict) and _is_python_float(v.get("amount")):
             raise ValueError(
                 "PROPOSAL_INVALID_TRADE_INPUT: notional.amount must be a decimal string"
             )
@@ -1461,95 +1419,3 @@ class ProposalResult(BaseModel):
         description="Deterministic workflow gate decision for advisory workflow routing.",
     )
     lineage: LineageData = Field(description="Lineage identifiers and request hash.")
-
-
-class SimulationScenario(BaseModel):
-    description: Optional[str] = Field(default=None, description="Optional scenario description.")
-    options: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Scenario-specific EngineOptions override payload.",
-    )
-
-
-class BatchRebalanceRequest(BaseModel):
-    MAX_SCENARIOS_PER_REQUEST: ClassVar[int] = 20
-    SCENARIO_NAME_PATTERN: ClassVar[re.Pattern[str]] = _SCENARIO_NAME_REGEX
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "portfolio_snapshot": {
-                    "portfolio_id": "pf_batch",
-                    "base_currency": "USD",
-                    "positions": [],
-                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
-                },
-                "market_data_snapshot": {
-                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
-                    "fx_rates": [],
-                },
-                "model_portfolio": {"targets": [{"instrument_id": "EQ_1", "weight": "1.0"}]},
-                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
-                "scenarios": {
-                    "baseline": {"options": {}},
-                    "solver_case": {"options": {"target_method": "SOLVER"}},
-                },
-            }
-        }
-    }
-
-    portfolio_snapshot: PortfolioSnapshot = Field(
-        description="Shared portfolio snapshot for all scenarios."
-    )
-    market_data_snapshot: MarketDataSnapshot = Field(
-        description="Shared market-data snapshot for all scenarios."
-    )
-    model_portfolio: ModelPortfolio = Field(description="Shared model targets for all scenarios.")
-    shelf_entries: List[ShelfEntry] = Field(description="Shared shelf metadata for all scenarios.")
-    scenarios: Dict[str, SimulationScenario] = Field(
-        description="Named scenario map for batch analysis."
-    )
-
-    @field_validator("scenarios")
-    @classmethod
-    def validate_scenarios(
-        cls, scenarios: Dict[str, SimulationScenario]
-    ) -> Dict[str, SimulationScenario]:
-        if not scenarios:
-            raise ValueError("at least one scenario is required")
-        if len(scenarios) > cls.MAX_SCENARIOS_PER_REQUEST:
-            raise ValueError(f"scenario count exceeds maximum of {cls.MAX_SCENARIOS_PER_REQUEST}")
-
-        for scenario_name in scenarios:
-            if not cls.SCENARIO_NAME_PATTERN.fullmatch(scenario_name):
-                raise ValueError("scenario names must match regex [a-z0-9_\\-]{1,64}")
-
-        return scenarios
-
-
-class BatchScenarioMetric(BaseModel):
-    status: Literal["READY", "BLOCKED", "PENDING_REVIEW"] = Field(
-        description="Scenario run status."
-    )
-    security_intent_count: int = Field(description="Count of SECURITY_TRADE intents.")
-    gross_turnover_notional_base: Money = Field(
-        description="Gross turnover proxy in base currency."
-    )
-
-
-class BatchRebalanceResult(BaseModel):
-    batch_run_id: str = Field(description="Batch execution identifier.")
-    run_at_utc: str = Field(description="Batch execution timestamp (UTC ISO8601).")
-    base_snapshot_ids: Dict[str, str] = Field(description="Resolved base snapshot identifiers.")
-    results: Dict[str, RebalanceResult] = Field(
-        default_factory=dict,
-        description="Successful scenario results keyed by scenario name.",
-    )
-    comparison_metrics: Dict[str, BatchScenarioMetric] = Field(
-        default_factory=dict,
-        description="Per-scenario comparison metrics for successful scenarios.",
-    )
-    failed_scenarios: Dict[str, str] = Field(
-        default_factory=dict,
-        description="Validation/runtime failures keyed by scenario name.",
-    )
-    warnings: List[str] = Field(default_factory=list, description="Batch-level warning codes.")
