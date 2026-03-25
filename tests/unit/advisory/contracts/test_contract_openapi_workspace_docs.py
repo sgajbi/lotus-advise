@@ -88,23 +88,31 @@ def test_workspace_endpoint_has_documented_request_and_response_contracts():
     assert draft_action["summary"] == "Apply an Advisory Workspace Draft Action"
 
     save_workspace = openapi["paths"]["/advisory/workspaces/{workspace_id}/save"]["post"]
-    save_request_ref = save_workspace["requestBody"]["content"]["application/json"]["schema"]["$ref"]
-    save_response_ref = save_workspace["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    save_request_ref = save_workspace["requestBody"]["content"]["application/json"]["schema"][
+        "$ref"
+    ]
+    save_response_ref = save_workspace["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ]
     assert save_request_ref.endswith("/WorkspaceSaveRequest")
     assert save_response_ref.endswith("/WorkspaceSaveResponse")
     assert save_workspace["summary"] == "Save an Advisory Workspace Version"
 
-    list_saved_versions = openapi["paths"]["/advisory/workspaces/{workspace_id}/saved-versions"]["get"]
-    list_response_ref = list_saved_versions["responses"]["200"]["content"]["application/json"]["schema"][
-        "$ref"
+    list_saved_versions = openapi["paths"]["/advisory/workspaces/{workspace_id}/saved-versions"][
+        "get"
     ]
+    list_response_ref = list_saved_versions["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
     assert list_response_ref.endswith("/WorkspaceSavedVersionListResponse")
 
     resume_workspace = openapi["paths"]["/advisory/workspaces/{workspace_id}/resume"]["post"]
-    resume_request_ref = resume_workspace["requestBody"]["content"]["application/json"]["schema"]["$ref"]
-    resume_response_ref = resume_workspace["responses"]["200"]["content"]["application/json"]["schema"][
+    resume_request_ref = resume_workspace["requestBody"]["content"]["application/json"]["schema"][
         "$ref"
     ]
+    resume_response_ref = resume_workspace["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
     assert resume_request_ref.endswith("/WorkspaceResumeRequest")
     assert resume_response_ref.endswith("/WorkspaceSession")
 

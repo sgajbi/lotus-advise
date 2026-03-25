@@ -152,16 +152,16 @@ def test_workspace_session_supports_stateful_context_and_evaluation_summary():
             market_data_snapshot_id="md_001",
             risk_context_id="risk_001",
         ),
-            evaluation_summary=WorkspaceEvaluationSummary(
-                status="PENDING_REVIEW",
-                gate_decision=GateDecision(
-                    gate="RISK_REVIEW_REQUIRED",
-                    recommended_next_step="RISK_REVIEW",
-                    reasons=[
-                        GateReason(
-                            reason_code="ISSUER_CONCENTRATION",
-                            severity="HIGH",
-                            source="SUITABILITY",
+        evaluation_summary=WorkspaceEvaluationSummary(
+            status="PENDING_REVIEW",
+            gate_decision=GateDecision(
+                gate="RISK_REVIEW_REQUIRED",
+                recommended_next_step="RISK_REVIEW",
+                reasons=[
+                    GateReason(
+                        reason_code="ISSUER_CONCENTRATION",
+                        severity="HIGH",
+                        source="SUITABILITY",
                         details={"message": "Issuer concentration exceeds advisory threshold."},
                     )
                 ],
@@ -218,7 +218,9 @@ def test_workspace_draft_action_supports_update_trade_payload():
 def test_workspace_save_and_compare_models_capture_replay_safe_history():
     replay_evidence = WorkspaceReplayEvidence(
         input_mode="stateless",
-        resolved_context=WorkspaceResolvedContext(portfolio_id="pf_advisory_01", as_of="2026-03-25"),
+        resolved_context=WorkspaceResolvedContext(
+            portfolio_id="pf_advisory_01", as_of="2026-03-25"
+        ),
         draft_state_hash="hash_001",
         evaluation_request_hash="eval_hash_001",
         captured_at="2026-03-25T09:45:00+00:00",
@@ -234,7 +236,9 @@ def test_workspace_save_and_compare_models_capture_replay_safe_history():
         latest_proposal_result=None,
         replay_evidence=replay_evidence,
     )
-    save_request = WorkspaceSaveRequest(saved_by="advisor_123", version_label="Initial sandbox draft")
+    save_request = WorkspaceSaveRequest(
+        saved_by="advisor_123", version_label="Initial sandbox draft"
+    )
     compare_request = WorkspaceCompareRequest(workspace_version_id="awv_001")
     summary = WorkspaceSavedVersionSummary(
         workspace_version_id="awv_001",
@@ -287,7 +291,10 @@ def test_workspace_compare_response_schema_is_instantiable():
 def test_workspace_lifecycle_handoff_models_capture_linkage_without_duplicating_persistence():
     handoff_request = WorkspaceLifecycleHandoffRequest(
         handoff_by="advisor_123",
-        metadata={"title": "Q2 2026 growth reallocation proposal", "mandate_id": "mandate_growth_01"},
+        metadata={
+            "title": "Q2 2026 growth reallocation proposal",
+            "mandate_id": "mandate_growth_01",
+        },
     )
     response = WorkspaceLifecycleHandoffResponse(
         workspace=WorkspaceSession(
@@ -314,7 +321,9 @@ def test_workspace_lifecycle_handoff_models_capture_linkage_without_duplicating_
             ),
             stateful_input=None,
             draft_state=WorkspaceDraftState(),
-            resolved_context=WorkspaceResolvedContext(portfolio_id="pf_advisory_01", as_of="2026-03-25"),
+            resolved_context=WorkspaceResolvedContext(
+                portfolio_id="pf_advisory_01", as_of="2026-03-25"
+            ),
             evaluation_summary=None,
             latest_proposal_result=None,
             latest_replay_evidence=None,

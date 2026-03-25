@@ -7,7 +7,11 @@ from uuid import uuid4
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
-from src.core.proposals import ProposalCreateRequest, ProposalVersionRequest, ProposalWorkflowService
+from src.core.proposals import (
+    ProposalCreateRequest,
+    ProposalVersionRequest,
+    ProposalWorkflowService,
+)
 from src.core.proposals.models import ProposalCreateMetadata
 from src.core.workspace.models import (
     WorkspaceCashFlowDraft,
@@ -149,7 +153,9 @@ def _calculate_review_issue_count(result: ProposalResult) -> int:
         for rule_result in result.rule_results
         if rule_result.status == "FAIL" and rule_result.severity == "SOFT"
     )
-    suitability_issue_count = len(result.suitability.issues) if result.suitability is not None else 0
+    suitability_issue_count = (
+        len(result.suitability.issues) if result.suitability is not None else 0
+    )
     return soft_fail_count + suitability_issue_count
 
 
@@ -168,7 +174,10 @@ def _format_portfolio_delta(result: ProposalResult) -> str:
     return str(delta.quantize(Decimal("0.01")))
 
 
-def _build_evaluation_summary(result: ProposalResult, session: WorkspaceSession) -> WorkspaceEvaluationSummary:
+def _build_evaluation_summary(
+    result: ProposalResult,
+    session: WorkspaceSession,
+) -> WorkspaceEvaluationSummary:
     return WorkspaceEvaluationSummary(
         status=result.status,
         gate_decision=result.gate_decision.model_copy(deep=True) if result.gate_decision else None,
@@ -193,7 +202,9 @@ def _build_replay_evidence(
     return WorkspaceReplayEvidence(
         input_mode=session.input_mode,
         resolved_context=(
-            session.resolved_context.model_copy(deep=True) if session.resolved_context is not None else None
+            session.resolved_context.model_copy(deep=True)
+            if session.resolved_context is not None
+            else None
         ),
         draft_state_hash=_build_draft_state_hash(session),
         evaluation_request_hash=evaluation_request_hash,
@@ -216,7 +227,9 @@ def _build_handoff_metadata(
     )
 
 
-def _build_saved_version_summary(version: WorkspaceSavedVersion) -> WorkspaceSavedVersionSummary:
+def _build_saved_version_summary(
+    version: WorkspaceSavedVersion,
+) -> WorkspaceSavedVersionSummary:
     return WorkspaceSavedVersionSummary(
         workspace_version_id=version.workspace_version_id,
         version_number=version.version_number,
@@ -300,9 +313,16 @@ def reset_workspace_sessions_for_tests() -> None:
     WORKSPACE_SESSIONS.clear()
 
 
-def _find_saved_version(session: WorkspaceSession, workspace_version_id: str) -> WorkspaceSavedVersion:
+def _find_saved_version(
+    session: WorkspaceSession,
+    workspace_version_id: str,
+) -> WorkspaceSavedVersion:
     saved_version = next(
-        (item for item in session.saved_versions if item.workspace_version_id == workspace_version_id),
+        (
+            item
+            for item in session.saved_versions
+            if item.workspace_version_id == workspace_version_id
+        ),
         None,
     )
     if saved_version is None:
@@ -310,9 +330,16 @@ def _find_saved_version(session: WorkspaceSession, workspace_version_id: str) ->
     return saved_version
 
 
-def _find_trade_draft(session: WorkspaceSession, workspace_trade_id: str) -> WorkspaceTradeDraft:
+def _find_trade_draft(
+    session: WorkspaceSession,
+    workspace_trade_id: str,
+) -> WorkspaceTradeDraft:
     trade_draft = next(
-        (item for item in session.draft_state.trade_drafts if item.workspace_trade_id == workspace_trade_id),
+        (
+            item
+            for item in session.draft_state.trade_drafts
+            if item.workspace_trade_id == workspace_trade_id
+        ),
         None,
     )
     if trade_draft is None:
@@ -320,7 +347,9 @@ def _find_trade_draft(session: WorkspaceSession, workspace_trade_id: str) -> Wor
     return trade_draft
 
 
-def _find_cash_flow_draft(session: WorkspaceSession, workspace_cash_flow_id: str) -> WorkspaceCashFlowDraft:
+def _find_cash_flow_draft(
+    session: WorkspaceSession, workspace_cash_flow_id: str
+) -> WorkspaceCashFlowDraft:
     cash_flow_draft = next(
         (
             item
@@ -429,7 +458,10 @@ def apply_workspace_draft_action(
     return WorkspaceDraftActionResponse(workspace=updated_session)
 
 
-def save_workspace_version(workspace_id: str, request: WorkspaceSaveRequest) -> WorkspaceSaveResponse:
+def save_workspace_version(
+    workspace_id: str,
+    request: WorkspaceSaveRequest,
+) -> WorkspaceSaveResponse:
     session = get_workspace_session(workspace_id)
     replay_evidence = (
         session.latest_replay_evidence.model_copy(deep=True)
@@ -444,7 +476,9 @@ def save_workspace_version(workspace_id: str, request: WorkspaceSaveRequest) -> 
         saved_at=_utc_now_iso(),
         draft_state=session.draft_state.model_copy(deep=True),
         evaluation_summary=(
-            session.evaluation_summary.model_copy(deep=True) if session.evaluation_summary is not None else None
+            session.evaluation_summary.model_copy(deep=True)
+            if session.evaluation_summary is not None
+            else None
         ),
         latest_proposal_result=(
             session.latest_proposal_result.model_copy(deep=True)
@@ -459,7 +493,9 @@ def save_workspace_version(workspace_id: str, request: WorkspaceSaveRequest) -> 
     return WorkspaceSaveResponse(workspace=session, saved_version=saved_version)
 
 
-def list_workspace_saved_versions(workspace_id: str) -> WorkspaceSavedVersionListResponse:
+def list_workspace_saved_versions(
+    workspace_id: str,
+) -> WorkspaceSavedVersionListResponse:
     session = get_workspace_session(workspace_id)
     return WorkspaceSavedVersionListResponse(
         workspace_id=session.workspace_id,
@@ -467,7 +503,10 @@ def list_workspace_saved_versions(workspace_id: str) -> WorkspaceSavedVersionLis
     )
 
 
-def resume_workspace_version(workspace_id: str, request: WorkspaceResumeRequest) -> WorkspaceSession:
+def resume_workspace_version(
+    workspace_id: str,
+    request: WorkspaceResumeRequest,
+) -> WorkspaceSession:
     session = get_workspace_session(workspace_id)
     saved_version = _find_saved_version(session, request.workspace_version_id)
     session.draft_state = saved_version.draft_state.model_copy(deep=True)
@@ -492,15 +531,21 @@ def compare_workspace_to_saved_version(
 ) -> WorkspaceCompareResponse:
     session = get_workspace_session(workspace_id)
     saved_version = _find_saved_version(session, request.workspace_version_id)
-    current_status = session.evaluation_summary.status if session.evaluation_summary is not None else None
+    current_status = (
+        session.evaluation_summary.status if session.evaluation_summary is not None else None
+    )
     baseline_status = (
-        saved_version.evaluation_summary.status if saved_version.evaluation_summary is not None else None
+        saved_version.evaluation_summary.status
+        if saved_version.evaluation_summary is not None
+        else None
     )
     return WorkspaceCompareResponse(
         workspace_id=session.workspace_id,
         baseline_version=saved_version.model_copy(deep=True),
         current_evaluation_summary=(
-            session.evaluation_summary.model_copy(deep=True) if session.evaluation_summary is not None else None
+            session.evaluation_summary.model_copy(deep=True)
+            if session.evaluation_summary is not None
+            else None
         ),
         current_replay_evidence=(
             session.latest_replay_evidence.model_copy(deep=True)
@@ -512,7 +557,8 @@ def compare_workspace_to_saved_version(
                 len(session.draft_state.trade_drafts) - len(saved_version.draft_state.trade_drafts)
             ),
             cash_flow_count_delta=(
-                len(session.draft_state.cash_flow_drafts) - len(saved_version.draft_state.cash_flow_drafts)
+                len(session.draft_state.cash_flow_drafts)
+                - len(saved_version.draft_state.cash_flow_drafts)
             ),
             options_changed=session.draft_state.options != saved_version.draft_state.options,
             reference_model_changed=(
@@ -534,7 +580,9 @@ def handoff_workspace_to_proposal_lifecycle(
     try:
         if session.lifecycle_link is None:
             if not idempotency_key:
-                raise WorkspaceLifecycleHandoffUnavailableError("WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED")
+                raise WorkspaceLifecycleHandoffUnavailableError(
+                    "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED"
+                )
             proposal_response = proposal_service.create_proposal(
                 payload=_build_proposal_create_request(session, request),
                 idempotency_key=idempotency_key,

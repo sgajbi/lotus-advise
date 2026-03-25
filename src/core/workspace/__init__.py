@@ -20,12 +20,12 @@ from src.core.workspace.models import (
     WorkspaceSavedVersionSummary,
     WorkspaceSaveRequest,
     WorkspaceSaveResponse,
-    WorkspaceTradeDraft,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
     WorkspaceStatefulInput,
     WorkspaceStatelessInput,
+    WorkspaceTradeDraft,
 )
 
 __all__ = [

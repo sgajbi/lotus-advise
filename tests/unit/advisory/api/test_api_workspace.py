@@ -228,7 +228,8 @@ def test_workspace_draft_action_updates_and_removes_trade():
 
     assert update_response.status_code == 200
     assert (
-        update_response.json()["workspace"]["draft_state"]["trade_drafts"][0]["trade"]["quantity"] == "3"
+        update_response.json()["workspace"]["draft_state"]["trade_drafts"][0]["trade"]["quantity"]
+        == "3"
     )
     assert remove_response.status_code == 200
     assert remove_response.json()["workspace"]["draft_state"]["trade_drafts"] == []
@@ -303,11 +304,15 @@ def test_workspace_draft_action_updates_and_removes_cash_flow():
 
     assert update_response.status_code == 200
     assert (
-        update_response.json()["workspace"]["draft_state"]["cash_flow_drafts"][0]["cash_flow"]["amount"]
+        update_response.json()["workspace"]["draft_state"]["cash_flow_drafts"][0]["cash_flow"][
+            "amount"
+        ]
         == "3000"
     )
     assert (
-        update_response.json()["workspace"]["evaluation_summary"]["impact_summary"]["cash_flow_count"]
+        update_response.json()["workspace"]["evaluation_summary"]["impact_summary"][
+            "cash_flow_count"
+        ]
         == 1
     )
     assert remove_response.status_code == 200
@@ -508,7 +513,10 @@ def test_workspace_save_list_resume_and_compare_saved_versions():
     assert initial_action["workspace"]["evaluation_summary"]["impact_summary"]["trade_count"] == 1
     assert save_response.status_code == 200
     assert save_response.json()["workspace"]["saved_version_count"] == 1
-    assert save_response.json()["workspace"]["latest_saved_version"]["version_label"] == "Initial sandbox draft"
+    assert (
+        save_response.json()["workspace"]["latest_saved_version"]["version_label"]
+        == "Initial sandbox draft"
+    )
     assert save_response.json()["saved_version"]["replay_evidence"]["evaluation_request_hash"]
     assert compare_response.status_code == 200
     assert compare_response.json()["diff_summary"]["trade_count_delta"] == 0

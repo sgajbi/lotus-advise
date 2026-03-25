@@ -13,11 +13,11 @@ from src.api.services.workspace_service import (
     compare_workspace_to_saved_version,
     create_workspace_session,
     get_workspace_session,
+    handoff_workspace_to_proposal_lifecycle,
     list_workspace_saved_versions,
     reevaluate_workspace_session,
     resume_workspace_version,
     save_workspace_version,
-    handoff_workspace_to_proposal_lifecycle,
 )
 from src.core.proposals import (
     ProposalIdempotencyConflictError,
@@ -134,7 +134,9 @@ def _raise_saved_version_not_found(exc: WorkspaceSavedVersionNotFoundError) -> H
     responses={
         201: {
             "description": "Advisory workspace session created successfully.",
-            "content": {"application/json": {"examples": {"stateful_workspace": _WORKSPACE_CREATE_EXAMPLE}}},
+            "content": {
+                "application/json": {"examples": {"stateful_workspace": _WORKSPACE_CREATE_EXAMPLE}}
+            },
         },
         422: {"description": "Validation error for invalid workspace contract payloads."},
     },
@@ -145,7 +147,10 @@ def create_workspace(
         Optional[str],
         Header(
             alias="X-Correlation-Id",
-            description="Optional trace and correlation identifier propagated through the advisory workflow.",
+            description=(
+                "Optional trace and correlation identifier propagated through the advisory "
+                "workflow."
+            ),
             examples=["corr-workspace-1234"],
         ),
     ] = None,
@@ -159,7 +164,10 @@ def create_workspace(
     response_model=WorkspaceSession,
     tags=["Advisory Workspace"],
     summary="Get an Advisory Workspace Session",
-    description="Returns the current advisory workspace session, including draft state and latest evaluation.",
+    description=(
+        "Returns the current advisory workspace session, including draft state and latest "
+        "evaluation."
+    ),
     responses={404: {"description": "Workspace session not found."}},
 )
 def get_workspace(
@@ -183,10 +191,14 @@ def get_workspace(
     responses={
         200: {
             "description": "Workspace draft action applied successfully.",
-            "content": {"application/json": {"examples": {"add_trade": _WORKSPACE_ADD_TRADE_EXAMPLE}}},
+            "content": {
+                "application/json": {"examples": {"add_trade": _WORKSPACE_ADD_TRADE_EXAMPLE}}
+            },
         },
         404: {"description": "Workspace session or targeted draft item not found."},
-        409: {"description": "Workspace evaluation is not available for the current workspace mode."},
+        409: {
+            "description": "Workspace evaluation is not available for the current workspace mode."
+        },
         422: {"description": "Validation error for invalid draft action payloads."},
     },
 )
@@ -217,7 +229,9 @@ def apply_draft_action(
     responses={
         200: {"description": "Workspace re-evaluated successfully."},
         404: {"description": "Workspace session not found."},
-        409: {"description": "Workspace evaluation is not available for the current workspace mode."},
+        409: {
+            "description": "Workspace evaluation is not available for the current workspace mode."
+        },
     },
 )
 def evaluate_workspace(
@@ -240,13 +254,15 @@ def evaluate_workspace(
     tags=["Advisory Workspace"],
     summary="Save an Advisory Workspace Version",
     description=(
-        "Captures the current advisory workspace draft as a saved version with replay-safe evidence "
-        "for resume and compare workflows."
+        "Captures the current advisory workspace draft as a saved version with replay-safe "
+        "evidence for resume and compare workflows."
     ),
     responses={
         200: {
             "description": "Workspace version saved successfully.",
-            "content": {"application/json": {"examples": {"save_version": _WORKSPACE_SAVE_EXAMPLE}}},
+            "content": {
+                "application/json": {"examples": {"save_version": _WORKSPACE_SAVE_EXAMPLE}}
+            },
         },
         404: {"description": "Workspace session not found."},
     },
@@ -269,7 +285,10 @@ def save_workspace(
     response_model=WorkspaceSavedVersionListResponse,
     tags=["Advisory Workspace"],
     summary="List Saved Advisory Workspace Versions",
-    description="Returns saved advisory workspace versions available for support, compare, and resume workflows.",
+    description=(
+        "Returns saved advisory workspace versions available for support, compare, and resume "
+        "workflows."
+    ),
     responses={404: {"description": "Workspace session not found."}},
 )
 def list_saved_workspace_versions(
@@ -289,11 +308,15 @@ def list_saved_workspace_versions(
     response_model=WorkspaceSession,
     tags=["Advisory Workspace"],
     summary="Resume a Saved Advisory Workspace Version",
-    description="Restores a saved advisory workspace version into the current editable draft session.",
+    description=(
+        "Restores a saved advisory workspace version into the current editable draft session."
+    ),
     responses={
         200: {
             "description": "Workspace version resumed successfully.",
-            "content": {"application/json": {"examples": {"resume_version": _WORKSPACE_RESUME_EXAMPLE}}},
+            "content": {
+                "application/json": {"examples": {"resume_version": _WORKSPACE_RESUME_EXAMPLE}}
+            },
         },
         404: {"description": "Workspace session or saved workspace version not found."},
     },
@@ -319,13 +342,15 @@ def resume_workspace(
     tags=["Advisory Workspace"],
     summary="Compare Current Workspace Draft to a Saved Version",
     description=(
-        "Returns a deterministic comparison between the current advisory workspace draft and a saved "
-        "workspace version baseline."
+        "Returns a deterministic comparison between the current advisory workspace draft and a "
+        "saved workspace version baseline."
     ),
     responses={
         200: {
             "description": "Workspace comparison created successfully.",
-            "content": {"application/json": {"examples": {"compare_version": _WORKSPACE_COMPARE_EXAMPLE}}},
+            "content": {
+                "application/json": {"examples": {"compare_version": _WORKSPACE_COMPARE_EXAMPLE}}
+            },
         },
         404: {"description": "Workspace session or saved workspace version not found."},
     },
@@ -352,7 +377,8 @@ def compare_workspace(
     summary="Handoff Advisory Workspace to Proposal Lifecycle",
     description=(
         "Persists the current advisory workspace draft into proposal lifecycle without duplicating "
-        "lifecycle ownership. The first handoff creates a proposal; later handoffs create new versions."
+        "lifecycle ownership. The first handoff creates a proposal; later handoffs create new "
+        "versions."
     ),
     responses={
         200: {
@@ -389,7 +415,9 @@ def handoff_workspace(
             examples=["corr-workspace-handoff-001"],
         ),
     ] = None,
-    proposal_service: ProposalWorkflowService = Depends(proposal_shared.get_proposal_workflow_service),
+    proposal_service: ProposalWorkflowService = Depends(
+        proposal_shared.get_proposal_workflow_service
+    ),
 ) -> WorkspaceLifecycleHandoffResponse:
     proposal_shared._assert_lifecycle_enabled()
     try:

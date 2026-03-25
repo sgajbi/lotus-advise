@@ -102,7 +102,9 @@ class WorkspaceResolvedContext(BaseModel):
     )
     reporting_context_id: Optional[str] = Field(
         default=None,
-        description="Optional reporting-context identifier used to correlate downstream report generation.",
+        description=(
+            "Optional reporting-context identifier used to correlate downstream report generation."
+        ),
         examples=["report_ctx_001"],
     )
 
@@ -148,7 +150,10 @@ class WorkspaceDraftState(BaseModel):
 
 class WorkspaceEvaluationImpactSummary(BaseModel):
     portfolio_value_delta_base_ccy: str = Field(
-        description="Formatted base-currency delta between source portfolio value and current draft evaluation.",
+        description=(
+            "Formatted base-currency delta between source portfolio value and current draft "
+            "evaluation."
+        ),
         examples=["-1250.50"],
     )
     trade_count: int = Field(
@@ -179,7 +184,10 @@ class WorkspaceEvaluationSummary(BaseModel):
     review_issue_count: int = Field(
         default=0,
         ge=0,
-        description="Count of review issues that currently require human review but do not block evaluation.",
+        description=(
+            "Count of review issues that currently require human review but do not block "
+            "evaluation."
+        ),
         examples=[2],
     )
     impact_summary: WorkspaceEvaluationImpactSummary = Field(
@@ -209,7 +217,9 @@ class WorkspaceReplayEvidence(BaseModel):
     )
     evaluation_request_hash: Optional[str] = Field(
         default=None,
-        description="Canonical hash of the simulation request used for the latest deterministic evaluation.",
+        description=(
+            "Canonical hash of the simulation request used for the latest deterministic evaluation."
+        ),
         examples=["2fd1f3c2ecde4e86fbeb5dff19df8fd5b4b9e24473e7a17f80f4d3d57f644ca8"],
     )
     captured_at: str = Field(
@@ -309,7 +319,10 @@ class WorkspaceSessionCreateRequest(BaseModel):
         examples=["advisor_123"],
     )
     input_mode: WorkspaceInputMode = Field(
-        description="Workspace input mode determining whether context is supplied directly or resolved upstream.",
+        description=(
+            "Workspace input mode determining whether context is supplied directly or resolved "
+            "upstream."
+        ),
         examples=["stateful"],
     )
     stateless_input: Optional[WorkspaceStatelessInput] = Field(
@@ -349,12 +362,14 @@ class WorkspaceSessionCreateRequest(BaseModel):
         if self.input_mode == "stateless":
             if self.stateless_input is None or self.stateful_input is not None:
                 raise ValueError(
-                    "stateless workspaces require stateless_input and must not include stateful_input"
+                    "stateless workspaces require stateless_input and must not include "
+                    "stateful_input"
                 )
         if self.input_mode == "stateful":
             if self.stateful_input is None or self.stateless_input is not None:
                 raise ValueError(
-                    "stateful workspaces require stateful_input and must not include stateless_input"
+                    "stateful workspaces require stateful_input and must not include "
+                    "stateless_input"
                 )
         return self
 
@@ -414,7 +429,10 @@ class WorkspaceSession(BaseModel):
     saved_version_count: int = Field(
         default=0,
         ge=0,
-        description="Number of saved workspace versions currently available for resume and compare workflows.",
+        description=(
+            "Number of saved workspace versions currently available for resume and compare "
+            "workflows."
+        ),
         examples=[2],
     )
     latest_saved_version: Optional[WorkspaceSavedVersionSummary] = Field(
@@ -423,7 +441,9 @@ class WorkspaceSession(BaseModel):
     )
     lifecycle_link: Optional[WorkspaceLifecycleLink] = Field(
         default=None,
-        description="Current persisted proposal lifecycle link, when the workspace has been handed off.",
+        description=(
+            "Current persisted proposal lifecycle link, when the workspace has been handed off."
+        ),
     )
     saved_versions: list[WorkspaceSavedVersion] = Field(
         default_factory=list,
@@ -436,12 +456,14 @@ class WorkspaceSession(BaseModel):
         if self.input_mode == "stateless":
             if self.stateless_input is None or self.stateful_input is not None:
                 raise ValueError(
-                    "stateless workspace sessions require stateless_input and must not include stateful_input"
+                    "stateless workspace sessions require stateless_input and must not include "
+                    "stateful_input"
                 )
         if self.input_mode == "stateful":
             if self.stateful_input is None or self.stateless_input is not None:
                 raise ValueError(
-                    "stateful workspace sessions require stateful_input and must not include stateless_input"
+                    "stateful workspace sessions require stateful_input and must not include "
+                    "stateless_input"
                 )
         return self
 
@@ -572,7 +594,9 @@ class WorkspaceCompareDiffSummary(BaseModel):
         examples=[1],
     )
     cash_flow_count_delta: int = Field(
-        description="Current draft cash-flow count minus the baseline saved version cash-flow count.",
+        description=(
+            "Current draft cash-flow count minus the baseline saved version cash-flow count."
+        ),
         examples=[-1],
     )
     options_changed: bool = Field(
@@ -584,7 +608,9 @@ class WorkspaceCompareDiffSummary(BaseModel):
         examples=[False],
     )
     evaluation_status_changed: bool = Field(
-        description="Whether the current evaluation status differs from the baseline saved version.",
+        description=(
+            "Whether the current evaluation status differs from the baseline saved version."
+        ),
         examples=[True],
     )
 
@@ -606,7 +632,9 @@ class WorkspaceCompareResponse(BaseModel):
         description="Current replay evidence for the active workspace draft.",
     )
     diff_summary: WorkspaceCompareDiffSummary = Field(
-        description="Deterministic comparison summary between the current draft and the baseline version.",
+        description=(
+            "Deterministic comparison summary between the current draft and the baseline version."
+        ),
     )
 
 
@@ -640,7 +668,9 @@ class WorkspaceLifecycleHandoffRequest(BaseModel):
     )
     metadata: WorkspaceLifecycleHandoffMetadata = Field(
         default_factory=WorkspaceLifecycleHandoffMetadata,
-        description="Optional persisted proposal metadata used when creating the first linked proposal.",
+        description=(
+            "Optional persisted proposal metadata used when creating the first linked proposal."
+        ),
     )
 
 
@@ -653,5 +683,7 @@ class WorkspaceLifecycleHandoffResponse(BaseModel):
         examples=["CREATED_PROPOSAL"],
     )
     proposal: ProposalCreateResponse = Field(
-        description="Persisted proposal lifecycle response payload returned by the proposal service.",
+        description=(
+            "Persisted proposal lifecycle response payload returned by the proposal service."
+        ),
     )
