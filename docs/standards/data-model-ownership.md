@@ -1,21 +1,22 @@
 # Data Model Ownership
 
 - Service: `lotus-advise`
-- Ownership: advisory/discretionary proposal and policy execution domain schema.
+- Ownership: advisory proposal workflow and execution-readiness domain schema.
 
 ## Owned Domains
 
-- lotus-manage policy-pack persistence model.
 - Advisory proposal workflow persistence model.
-- Schema migration history (`schema_migrations`) for lotus-manage namespaces.
+- Schema migration history (`schema_migrations`) for advisory namespaces.
 
 ## Service Boundaries
 
 - Core portfolio ledger, valuation, and transaction source data remains lotus-core-owned.
-- Advanced analytics are lotus-performance-owned and consumed through APIs where needed.
+- Risk analytics remain lotus-risk-owned and consumed through APIs where needed.
+- Performance analytics remain lotus-performance-owned and consumed through APIs where needed.
+- Reporting payload generation remains lotus-report-owned.
 
 ## Schema Rules
 
-- Namespaces (`dpm`, `proposals`) separate bounded contexts.
+- Advisory runtime data uses advisory-owned namespaces and tables only.
 - No cross-service shared database access.
 

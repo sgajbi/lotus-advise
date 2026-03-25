@@ -1,4 +1,4 @@
-﻿# RFC-0014K: Data Quality, Snapshots & Replayability (Institution-Grade Determinism)
+# RFC-0014K: Data Quality, Snapshots & Replayability (Institution-Grade Determinism)
 
 | Metadata | Details |
 | --- | --- |
@@ -254,7 +254,7 @@ Compute hashes for each snapshot:
 
 ### 7.1 API
 
-`POST /rebalance/proposals/replay`
+`POST /advisory/proposals/replay`
 
 Body:
 
@@ -353,3 +353,4 @@ Golden tests:
 * Integration with an enterprise snapshot store (object storage)
 * Data lineage persistence and governance hooks
 * Expand DQ to cover corporate actions and reference-data mismatches
+

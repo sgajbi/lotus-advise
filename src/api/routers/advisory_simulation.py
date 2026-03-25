@@ -18,7 +18,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/rebalance/proposals/simulate",
+    "/advisory/proposals/simulate",
     response_model=ProposalResult,
     status_code=status.HTTP_200_OK,
     tags=["Advisory Simulation"],
@@ -82,7 +82,7 @@ def simulate_proposal(
 
 
 @router.post(
-    "/rebalance/proposals/artifact",
+    "/advisory/proposals/artifact",
     response_model=ProposalArtifact,
     status_code=status.HTTP_200_OK,
     tags=["Advisory Simulation"],

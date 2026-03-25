@@ -58,6 +58,6 @@ def postgres_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
     monkeypatch.setenv("PROPOSAL_POSTGRES_DSN", "postgresql://test:test@localhost:5432/proposals")
     monkeypatch.setattr(
-        "src.api.routers.proposals_config.PostgresProposalRepository",
+        "src.api.proposals.runtime.PostgresProposalRepository",
         lambda **_kwargs: InMemoryProposalRepository(),
     )

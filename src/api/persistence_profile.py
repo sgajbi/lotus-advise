@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from src.api.routers.proposals_config import proposal_postgres_dsn, proposal_store_backend_name
+from src.api.proposals.runtime import proposal_postgres_dsn, proposal_store_backend_name
 
 _PRODUCTION_PROFILE = "PRODUCTION"
 _LOCAL_PROFILE = "LOCAL"

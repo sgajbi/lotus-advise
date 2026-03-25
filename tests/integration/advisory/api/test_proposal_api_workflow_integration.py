@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
-from src.api.routers.proposals import reset_proposal_workflow_service_for_tests
+from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 
 
 def _base_create_payload(portfolio_id: str = "pf_integration_proposal_1") -> dict:
@@ -54,7 +54,7 @@ def teardown_function() -> None:
 def test_proposal_create_list_get_and_version_roundtrip() -> None:
     with TestClient(app) as client:
         created = client.post(
-            "/rebalance/proposals",
+            "/advisory/proposals",
             json=_base_create_payload(),
             headers={"Idempotency-Key": "integration-proposal-create-1"},
         )
@@ -63,12 +63,12 @@ def test_proposal_create_list_get_and_version_roundtrip() -> None:
         proposal_id = created_body["proposal"]["proposal_id"]
 
         listed = client.get(
-            "/rebalance/proposals",
+            "/advisory/proposals",
             params={"portfolio_id": "pf_integration_proposal_1"},
         )
-        detail = client.get(f"/rebalance/proposals/{proposal_id}")
-        version = client.get(f"/rebalance/proposals/{proposal_id}/versions/1")
-        workflow_events = client.get(f"/rebalance/proposals/{proposal_id}/workflow-events")
+        detail = client.get(f"/advisory/proposals/{proposal_id}")
+        version = client.get(f"/advisory/proposals/{proposal_id}/versions/1")
+        workflow_events = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
 
     assert listed.status_code == 200
     assert detail.status_code == 200
@@ -83,7 +83,7 @@ def test_proposal_create_list_get_and_version_roundtrip() -> None:
 def test_proposal_submit_and_support_endpoints() -> None:
     with TestClient(app) as client:
         created = client.post(
-            "/rebalance/proposals",
+            "/advisory/proposals",
             json=_base_create_payload("pf_integration_proposal_2"),
             headers={"Idempotency-Key": "integration-proposal-submit-1"},
         )
@@ -91,7 +91,7 @@ def test_proposal_submit_and_support_endpoints() -> None:
         proposal_id = created.json()["proposal"]["proposal_id"]
 
         submit = client.post(
-            f"/rebalance/proposals/{proposal_id}/transitions",
+            f"/advisory/proposals/{proposal_id}/transitions",
             json={
                 "event_type": "SUBMITTED_FOR_RISK_REVIEW",
                 "actor_id": "advisor_integration",
@@ -99,8 +99,8 @@ def test_proposal_submit_and_support_endpoints() -> None:
                 "reason": {"comment": "integration submit"},
             },
         )
-        approvals = client.get(f"/rebalance/proposals/{proposal_id}/approvals")
-        lineage = client.get(f"/rebalance/proposals/{proposal_id}/lineage")
+        approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
+        lineage = client.get(f"/advisory/proposals/{proposal_id}/lineage")
 
     assert submit.status_code == 200
     assert approvals.status_code == 200
@@ -112,14 +112,14 @@ def test_proposal_idempotency_lookup_and_support_config() -> None:
     idempotency_key = "integration-proposal-idem-lookup-1"
     with TestClient(app) as client:
         created = client.post(
-            "/rebalance/proposals",
+            "/advisory/proposals",
             json=_base_create_payload("pf_integration_proposal_3"),
             headers={"Idempotency-Key": idempotency_key},
         )
         assert created.status_code == 200
 
-        lookup = client.get(f"/rebalance/proposals/idempotency/{idempotency_key}")
-        support_config = client.get("/rebalance/proposals/supportability/config")
+        lookup = client.get(f"/advisory/proposals/idempotency/{idempotency_key}")
+        support_config = client.get("/advisory/proposals/supportability/config")
 
     assert lookup.status_code == 200
     assert lookup.json()["idempotency_key"] == idempotency_key
@@ -132,7 +132,7 @@ def test_proposal_support_endpoints_disabled_by_feature_flag(
 ) -> None:
     with TestClient(app) as client:
         created = client.post(
-            "/rebalance/proposals",
+            "/advisory/proposals",
             json=_base_create_payload("pf_integration_proposal_4"),
             headers={"Idempotency-Key": "integration-proposal-support-disabled-1"},
         )
@@ -140,7 +140,7 @@ def test_proposal_support_endpoints_disabled_by_feature_flag(
         proposal_id = created.json()["proposal"]["proposal_id"]
 
         monkeypatch.setenv("PROPOSAL_SUPPORT_APIS_ENABLED", "false")
-        approvals = client.get(f"/rebalance/proposals/{proposal_id}/approvals")
+        approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
 
     assert approvals.status_code == 404
     assert approvals.json()["detail"] == "PROPOSAL_SUPPORT_APIS_DISABLED"
@@ -149,7 +149,7 @@ def test_proposal_support_endpoints_disabled_by_feature_flag(
 def test_proposal_lifecycle_disabled_by_feature_flag(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", "false")
     with TestClient(app) as client:
-        response = client.get("/rebalance/proposals")
+        response = client.get("/advisory/proposals")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED"
@@ -162,13 +162,13 @@ def test_proposal_async_create_and_operation_lookup_roundtrip() -> None:
         "X-Correlation-Id": "corr-integration-proposal-async-create-1",
     }
     with TestClient(app) as client:
-        accepted = client.post("/rebalance/proposals/async", json=payload, headers=headers)
+        accepted = client.post("/advisory/proposals/async", json=payload, headers=headers)
         assert accepted.status_code == 202
         operation_id = accepted.json()["operation_id"]
 
-        by_operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+        by_operation = client.get(f"/advisory/proposals/operations/{operation_id}")
         by_correlation = client.get(
-            "/rebalance/proposals/operations/by-correlation/corr-integration-proposal-async-create-1"
+            "/advisory/proposals/operations/by-correlation/corr-integration-proposal-async-create-1"
         )
 
     assert by_operation.status_code == 200
@@ -181,7 +181,7 @@ def test_proposal_async_create_and_operation_lookup_roundtrip() -> None:
 def test_proposal_async_version_roundtrip() -> None:
     with TestClient(app) as client:
         created = client.post(
-            "/rebalance/proposals",
+            "/advisory/proposals",
             json=_base_create_payload("pf_integration_proposal_async_2"),
             headers={"Idempotency-Key": "integration-proposal-async-version-create-1"},
         )
@@ -189,7 +189,7 @@ def test_proposal_async_version_roundtrip() -> None:
         proposal_id = created.json()["proposal"]["proposal_id"]
 
         accepted = client.post(
-            f"/rebalance/proposals/{proposal_id}/versions/async",
+            f"/advisory/proposals/{proposal_id}/versions/async",
             json={
                 "created_by": "advisor_integration",
                 "metadata": {"title": "Async version"},
@@ -202,7 +202,7 @@ def test_proposal_async_version_roundtrip() -> None:
         assert accepted.status_code == 202
         operation_id = accepted.json()["operation_id"]
 
-        operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
 
     assert operation.status_code == 200
     assert operation.json()["operation_id"] == operation_id
@@ -216,7 +216,7 @@ def test_proposal_async_operations_disabled_by_feature_flag(
     payload = _base_create_payload("pf_integration_proposal_async_disabled")
     with TestClient(app) as client:
         response = client.post(
-            "/rebalance/proposals/async",
+            "/advisory/proposals/async",
             json=payload,
             headers={"Idempotency-Key": "integration-proposal-async-disabled-1"},
         )
@@ -227,7 +227,7 @@ def test_proposal_async_operations_disabled_by_feature_flag(
 
 def test_proposal_async_operation_not_found_returns_404() -> None:
     with TestClient(app) as client:
-        response = client.get("/rebalance/proposals/operations/pop_missing")
+        response = client.get("/advisory/proposals/operations/pop_missing")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"
@@ -239,19 +239,19 @@ def test_proposal_async_operation_not_found_returns_404() -> None:
         (
             "PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED",
             "false",
-            "/rebalance/proposals",
+            "/advisory/proposals",
             "PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED",
         ),
         (
             "PROPOSAL_SUPPORT_APIS_ENABLED",
             "false",
-            "/rebalance/proposals/p_missing/approvals",
+            "/advisory/proposals/p_missing/approvals",
             "PROPOSAL_SUPPORT_APIS_DISABLED",
         ),
         (
             "PROPOSAL_ASYNC_OPERATIONS_ENABLED",
             "false",
-            "/rebalance/proposals/operations/pop_missing",
+            "/advisory/proposals/operations/pop_missing",
             "PROPOSAL_ASYNC_OPERATIONS_DISABLED",
         ),
     ],
@@ -274,11 +274,11 @@ def test_proposal_feature_flag_guard_matrix(
 @pytest.mark.parametrize(
     ("path", "expected_detail"),
     [
-        ("/rebalance/proposals/p_missing", "PROPOSAL_NOT_FOUND"),
-        ("/rebalance/proposals/p_missing/versions/1", "PROPOSAL_VERSION_NOT_FOUND"),
-        ("/rebalance/proposals/p_missing/workflow-events", "PROPOSAL_NOT_FOUND"),
-        ("/rebalance/proposals/p_missing/approvals", "PROPOSAL_NOT_FOUND"),
-        ("/rebalance/proposals/p_missing/lineage", "PROPOSAL_NOT_FOUND"),
+        ("/advisory/proposals/p_missing", "PROPOSAL_NOT_FOUND"),
+        ("/advisory/proposals/p_missing/versions/1", "PROPOSAL_VERSION_NOT_FOUND"),
+        ("/advisory/proposals/p_missing/workflow-events", "PROPOSAL_NOT_FOUND"),
+        ("/advisory/proposals/p_missing/approvals", "PROPOSAL_NOT_FOUND"),
+        ("/advisory/proposals/p_missing/lineage", "PROPOSAL_NOT_FOUND"),
     ],
 )
 def test_proposal_not_found_matrix(path: str, expected_detail: str) -> None:
@@ -291,7 +291,7 @@ def test_proposal_not_found_matrix(path: str, expected_detail: str) -> None:
 
 def test_proposal_idempotency_lookup_not_found_returns_404() -> None:
     with TestClient(app) as client:
-        response = client.get("/rebalance/proposals/idempotency/idem_missing")
+        response = client.get("/advisory/proposals/idempotency/idem_missing")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND"
@@ -318,7 +318,7 @@ def test_proposal_simulate_idempotency_is_stable_under_concurrency() -> None:
 
     def _call() -> tuple[int, str]:
         with TestClient(app) as client:
-            response = client.post("/rebalance/proposals/simulate", json=payload, headers=headers)
+            response = client.post("/advisory/proposals/simulate", json=payload, headers=headers)
         body = response.json()
         return response.status_code, body["proposal_run_id"]
 
@@ -334,10 +334,10 @@ def test_proposal_simulate_idempotency_is_stable_under_concurrency() -> None:
 @pytest.mark.parametrize(
     "path",
     [
-        "/rebalance/proposals/p_missing/workflow-events",
-        "/rebalance/proposals/p_missing/approvals",
-        "/rebalance/proposals/p_missing/lineage",
-        "/rebalance/proposals/idempotency/idem_missing",
+        "/advisory/proposals/p_missing/workflow-events",
+        "/advisory/proposals/p_missing/approvals",
+        "/advisory/proposals/p_missing/lineage",
+        "/advisory/proposals/idempotency/idem_missing",
     ],
 )
 def test_proposal_support_api_guard_matrix(
@@ -355,14 +355,14 @@ def test_proposal_support_api_guard_matrix(
 @pytest.mark.parametrize(
     "path",
     [
-        "/rebalance/proposals",
-        "/rebalance/proposals/p_missing",
-        "/rebalance/proposals/p_missing/versions/1",
-        "/rebalance/proposals/p_missing/workflow-events",
-        "/rebalance/proposals/p_missing/approvals",
-        "/rebalance/proposals/p_missing/lineage",
-        "/rebalance/proposals/operations/pop_missing",
-        "/rebalance/proposals/operations/by-correlation/corr_missing",
+        "/advisory/proposals",
+        "/advisory/proposals/p_missing",
+        "/advisory/proposals/p_missing/versions/1",
+        "/advisory/proposals/p_missing/workflow-events",
+        "/advisory/proposals/p_missing/approvals",
+        "/advisory/proposals/p_missing/lineage",
+        "/advisory/proposals/operations/pop_missing",
+        "/advisory/proposals/operations/by-correlation/corr_missing",
     ],
 )
 def test_proposal_lifecycle_guard_matrix(
@@ -380,8 +380,8 @@ def test_proposal_lifecycle_guard_matrix(
 @pytest.mark.parametrize(
     "path",
     [
-        "/rebalance/proposals/operations/pop_missing",
-        "/rebalance/proposals/operations/by-correlation/corr_missing",
+        "/advisory/proposals/operations/pop_missing",
+        "/advisory/proposals/operations/by-correlation/corr_missing",
     ],
 )
 def test_proposal_async_api_guard_matrix(
@@ -399,8 +399,8 @@ def test_proposal_async_api_guard_matrix(
 @pytest.mark.parametrize(
     ("path", "expected_detail"),
     [
-        ("/rebalance/proposals/p_missing/transitions", "PROPOSAL_NOT_FOUND"),
-        ("/rebalance/proposals/p_missing/approvals", "PROPOSAL_NOT_FOUND"),
+        ("/advisory/proposals/p_missing/transitions", "PROPOSAL_NOT_FOUND"),
+        ("/advisory/proposals/p_missing/approvals", "PROPOSAL_NOT_FOUND"),
     ],
 )
 def test_proposal_post_not_found_matrix(path: str, expected_detail: str) -> None:

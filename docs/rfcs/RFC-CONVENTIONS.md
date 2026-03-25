@@ -10,9 +10,9 @@ This document defines the required language and contract conventions for all RFC
 
 ## 2. Canonical API Conventions
 
-1. Canonical simulate endpoint is `POST /rebalance/simulate`.
-2. Do not introduce `/v1/rebalance/simulate` unless a dedicated versioning RFC is approved and all clients/tests are migrated together.
-3. Batch/analysis endpoints should follow the same route family style (`/rebalance/...`).
+1. Canonical simulate endpoint is `POST /advisory/simulate`.
+2. Do not introduce `/v1/advisory/simulate` unless a dedicated versioning RFC is approved and all clients/tests are migrated together.
+3. Advisory simulation, proposal, execution, and support endpoints should follow the same route family style (`/advisory/...`).
 4. Domain outcomes for valid payloads are represented in response `status`, not as separate HTTP domain error contracts.
 
 ## 3. Status Vocabulary
@@ -22,7 +22,7 @@ Use only:
 2. `PENDING_REVIEW`
 3. `BLOCKED`
 
-Do not invent alternatives like `READY_WITH_WARNINGS` or `PARTIAL_REBALANCE` as top-level run statuses. Use diagnostics warnings/reason codes instead.
+Do not invent alternatives like `READY_WITH_WARNINGS` or `PARTIAL_PROPOSAL` as top-level run statuses. Use diagnostics warnings/reason codes instead.
 
 ## 4. Intent and Model Naming
 
@@ -66,3 +66,4 @@ Each RFC should include:
 1. New RFCs must state which previous RFCs they extend.
 2. If there is pending work in implemented RFCs that is required for correctness, add a carry-forward section.
 3. Cross-RFC conflicts must be resolved in the newer RFC text explicitly.
+

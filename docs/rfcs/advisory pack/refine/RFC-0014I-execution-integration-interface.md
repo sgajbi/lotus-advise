@@ -1,4 +1,4 @@
-﻿# RFC-0014I: Execution Integration Interface (OMS / Broker) + Trade Ticket & Acknowledgement Lifecycle
+# RFC-0014I: Execution Integration Interface (OMS / Broker) + Trade Ticket & Acknowledgement Lifecycle
 
 | Metadata | Details |
 | --- | --- |
@@ -89,10 +89,10 @@ A set of states and events representing order submission and fills.
 
 ## 5. API Design
 
-All endpoints follow the `/rebalance/...` route family.
+All endpoints follow the `/advisory/...` route family.
 
 ### 5.1 Create execution request
-`POST /rebalance/executions`
+`POST /advisory/executions`
 
 Headers:
 - `Idempotency-Key` required
@@ -131,7 +131,7 @@ Response:
 
 ### 5.2 Get execution
 
-`GET /rebalance/executions/{execution_id}`
+`GET /advisory/executions/{execution_id}`
 
 Returns:
 
@@ -141,14 +141,14 @@ Returns:
 
 ### 5.3 List executions
 
-`GET /rebalance/executions?proposal_id=&status=&from=&to=&limit=&cursor=`
+`GET /advisory/executions?proposal_id=&status=&from=&to=&limit=&cursor=`
 
 ### 5.4 Receive external updates (webhook / callback)
 
 Two models:
 
 **Option A (preferred):** webhook endpoint exposed by this service
-`POST /rebalance/executions/{execution_id}/events`
+`POST /advisory/executions/{execution_id}/events`
 
 Body:
 
@@ -379,3 +379,4 @@ Not required for execution pipeline beyond determinism of tickets, but can snaps
 * Allocation to accounts, settlement instructions
 * Multi-day execution, slicing, time windows
 * Real OMS/FIX integration adapters
+

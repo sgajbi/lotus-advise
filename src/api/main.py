@@ -16,6 +16,7 @@ from src.api.enterprise_readiness import (
 from src.api.observability import correlation_id_var, setup_observability
 from src.api.openapi_enrichment import enrich_openapi_schema
 from src.api.persistence_profile import validate_persistence_profile_guardrails
+from src.api.proposals.router import router as proposal_lifecycle_router
 from src.api.routers.advisory_simulation import (
     build_proposal_artifact_endpoint,
     simulate_proposal,
@@ -26,7 +27,6 @@ from src.api.routers.advisory_simulation import (
 from src.api.routers.integration_capabilities import (
     router as integration_capabilities_router,
 )
-from src.api.routers.proposals import router as proposal_lifecycle_router
 from src.api.services.advisory_simulation_service import (
     MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
     PROPOSAL_IDEMPOTENCY_CACHE,

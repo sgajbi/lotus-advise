@@ -41,3 +41,26 @@ def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_on
     assert "tenant_id" in parameter_names
     assert "consumerSystem" not in parameter_names
     assert "tenantId" not in parameter_names
+
+
+def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch):
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.delenv("LOTUS_REPORT_BASE_URL", raising=False)
+    monkeypatch.delenv("LOTUS_AI_BASE_URL", raising=False)
+    monkeypatch.delenv("LOTUS_PERFORMANCE_BASE_URL", raising=False)
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["readiness"]["degraded"] is True
+    assert payload["readiness"]["operational_ready"] is False
+
+    dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
+    assert dependencies["lotus_core"]["configured"] is True
+    assert dependencies["lotus_core"]["operational_ready"] is True
+    assert dependencies["lotus_risk"]["configured"] is True
+    assert dependencies["lotus_report"]["configured"] is False
+    assert dependencies["lotus_ai"]["configured"] is False

@@ -5,6 +5,8 @@ from typing import Literal
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
+from src.api.capabilities import build_operational_readiness
+
 ConsumerSystem = Literal["lotus-gateway", "lotus-performance", "UI", "UNKNOWN"]
 
 
@@ -35,7 +37,131 @@ class WorkflowCapability(BaseModel):
     )
 
 
+class DependencyReadiness(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "dependency_key": "lotus_core",
+                "service_name": "lotus-core",
+                "description": ("Canonical portfolio state and portfolio simulation authority."),
+                "base_url_env": "LOTUS_CORE_BASE_URL",
+                "configured": True,
+                "operational_ready": True,
+            }
+        }
+    }
+
+    dependency_key: str = Field(
+        description="Canonical dependency key for the Lotus platform integration seam.",
+        examples=["lotus_core"],
+    )
+    service_name: str = Field(
+        description="Lotus service name for the dependency.",
+        examples=["lotus-core"],
+    )
+    description: str = Field(
+        description="Lotus-branded summary of what this dependency provides.",
+        examples=["Canonical portfolio state and portfolio simulation authority."],
+    )
+    base_url_env: str = Field(
+        description="Environment variable used to configure the dependency base URL.",
+        examples=["LOTUS_CORE_BASE_URL"],
+    )
+    configured: bool = Field(
+        description="Whether the dependency base URL is configured for this lotus-advise runtime.",
+        examples=[True],
+    )
+    operational_ready: bool = Field(
+        description="Whether the dependency seam is currently ready for use by lotus-advise.",
+        examples=[True],
+    )
+
+
+class OperationalReadiness(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "operational_ready": False,
+                "degraded": True,
+                "dependencies": [
+                    {
+                        "dependency_key": "lotus_core",
+                        "service_name": "lotus-core",
+                        "description": (
+                            "Canonical portfolio state and portfolio simulation authority."
+                        ),
+                        "base_url_env": "LOTUS_CORE_BASE_URL",
+                        "configured": False,
+                        "operational_ready": False,
+                    }
+                ],
+            }
+        }
+    }
+
+    operational_ready: bool = Field(
+        description=(
+            "Whether the current lotus-advise runtime has all configured integration seams ready."
+        ),
+        examples=[False],
+    )
+    degraded: bool = Field(
+        description="Whether lotus-advise is running in a degraded integration posture.",
+        examples=[True],
+    )
+    dependencies: list[DependencyReadiness] = Field(
+        default_factory=list,
+        description="Lotus platform dependency readiness details for advisory integration seams.",
+    )
+
+
 class IntegrationCapabilitiesResponse(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "contract_version": "v1",
+                "source_service": "lotus-advise",
+                "consumer_system": "lotus-gateway",
+                "tenant_id": "default",
+                "generated_at": "2026-03-25T00:00:00Z",
+                "as_of_date": "2026-03-25",
+                "policy_version": "advisory.v1",
+                "supported_input_modes": ["advisor_input"],
+                "features": [
+                    {
+                        "key": "advisory.proposals.lifecycle",
+                        "enabled": True,
+                        "owner_service": "ADVISORY",
+                        "description": "Advisory proposal lifecycle APIs.",
+                    }
+                ],
+                "workflows": [
+                    {
+                        "workflow_key": "advisory_proposal_lifecycle",
+                        "enabled": True,
+                        "required_features": ["advisory.proposals.lifecycle"],
+                    }
+                ],
+                "readiness": {
+                    "operational_ready": False,
+                    "degraded": True,
+                    "dependencies": [
+                        {
+                            "dependency_key": "lotus_core",
+                            "service_name": "lotus-core",
+                            "description": (
+                                "Canonical portfolio state and portfolio simulation authority."
+                            ),
+                            "base_url_env": "LOTUS_CORE_BASE_URL",
+                            "configured": False,
+                            "operational_ready": False,
+                        }
+                    ],
+                },
+            }
+        }
+    }
+
     contract_version: str = Field(description="Integration contract version.", examples=["v1"])
     source_service: str = Field(
         description="Source service generating this capability contract.",
@@ -71,6 +197,9 @@ class IntegrationCapabilitiesResponse(BaseModel):
     workflows: list[WorkflowCapability] = Field(
         description="Workflow-level capability flags and feature dependencies."
     )
+    readiness: OperationalReadiness = Field(
+        description="Operational readiness metadata for Lotus platform dependency seams."
+    )
 
 
 router = APIRouter(tags=["Integration"])
@@ -92,7 +221,11 @@ def _env_bool(name: str, default: bool) -> bool:
         "the specified consumer system and tenant."
     ),
     responses={
-        200: {"description": "Integration capabilities returned."},
+        200: {
+            "description": (
+                "Lotus-branded advisory capability contract returned with readiness metadata."
+            )
+        },
         500: {"description": "Unexpected service error while building capabilities."},
     },
 )
@@ -110,6 +243,7 @@ async def get_integration_capabilities(
 ) -> IntegrationCapabilitiesResponse:
     lifecycle_enabled = _env_bool("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", True)
     async_enabled = _env_bool("PROPOSAL_ASYNC_OPERATIONS_ENABLED", True)
+    readiness = build_operational_readiness()
 
     return IntegrationCapabilitiesResponse(
         contract_version="v1",
@@ -141,4 +275,5 @@ async def get_integration_capabilities(
                 required_features=["advisory.proposals.lifecycle"],
             ),
         ],
+        readiness=OperationalReadiness.model_validate(readiness),
     )

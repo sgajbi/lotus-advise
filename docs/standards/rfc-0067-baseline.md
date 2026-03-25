@@ -27,7 +27,7 @@ Source of truth: `lotus-platform/rfcs/RFC-0067-centralized-api-vocabulary-invent
 - alias-based query parameters (`consumerSystem`, `tenantId`)
 
 4. Non-canonical public terms existed in docs:
-- camelCase contract terms persisted in `docs/rfcs/RFC-0028-dpm-integration-capabilities-contract.md`
+- camelCase contract terms persisted in older advisory capability documentation before RFC-0067 cleanup
 
 5. Inventory artifacts were not present:
 - app-local inventory file under `docs/standards/api-vocabulary/`

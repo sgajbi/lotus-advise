@@ -124,7 +124,7 @@ This is acceptable, but tends to bloat the simulate response. Prefer Option A.
 
 ```json
 "summary": {
-  "title": "Rebalance toward Balanced Model",
+  "title": "Advisory Proposal toward Balanced Model",
   "objective_tags": ["DRIFT_REDUCTION", "RISK_ALIGNMENT", "CASH_DEPLOYMENT"],
   "advisor_notes": [
     { "code": "NOTE", "text": "Client increased risk appetite slightly; deploying excess cash." }
@@ -370,3 +370,4 @@ Goldens should assert:
 * RFC-0014F: Workflow state machine + consent/execution lifecycle (with persistence later)
 * RFC-0014G: Client document rendering (PDF/Word/email templates)
 * RFC-0014H: Jurisdiction-specific disclosure packs and suitability mapping
+

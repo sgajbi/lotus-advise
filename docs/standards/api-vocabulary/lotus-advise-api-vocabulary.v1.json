@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-03-02T13:45:33.250077+00:00",
+  "generatedAt": "2026-03-25T12:27:57.908236+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.actor_id",
@@ -481,6 +481,20 @@
       ]
     },
     {
+      "semanticId": "lotus.base_url_env",
+      "canonicalTerm": "base_url_env",
+      "preferredName": "base_url_env",
+      "description": "Environment variable used to configure the dependency base URL.",
+      "example": "example_base_url_env",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.before",
       "canonicalTerm": "before",
       "preferredName": "before",
@@ -697,6 +711,20 @@
       ],
       "observedTypes": [
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.configured",
+      "canonicalTerm": "configured",
+      "preferredName": "configured",
+      "description": "Whether the dependency base URL is configured for this lotus-advise runtime.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
       ]
     },
     {
@@ -962,6 +990,20 @@
       ]
     },
     {
+      "semanticId": "lotus.degraded",
+      "canonicalTerm": "degraded",
+      "preferredName": "degraded",
+      "description": "Whether lotus-advise is running in a degraded integration posture.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
       "semanticId": "lotus.delta",
       "canonicalTerm": "delta",
       "preferredName": "delta",
@@ -992,6 +1034,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.dependency_key",
+      "canonicalTerm": "dependency_key",
+      "preferredName": "dependency_key",
+      "description": "Canonical dependency key for the Lotus platform integration seam.",
+      "example": "example_dependency_key",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -2253,7 +2309,7 @@
       "semanticId": "lotus.link_buy_to_same_currency_sell_dependency",
       "canonicalTerm": "link_buy_to_same_currency_sell_dependency",
       "preferredName": "link_buy_to_same_currency_sell_dependency",
-      "description": "Attach BUY intent dependency to a same-currency SELL intent. When null, defaults are engine-specific: true for lotus-manage, false for advisory.",
+      "description": "Attach BUY intent dependency to a same-currency SELL intent. When null, advisory runtime keeps the default disabled unless explicitly enabled.",
       "example": "USD",
       "type": "object",
       "locations": [
@@ -2695,6 +2751,20 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.operational_ready",
+      "canonicalTerm": "operational_ready",
+      "preferredName": "operational_ready",
+      "description": "Whether the current lotus-advise runtime has all configured integration seams ready.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
       ]
     },
     {
@@ -3225,6 +3295,33 @@
       ]
     },
     {
+      "semanticId": "lotus.readiness",
+      "canonicalTerm": "readiness",
+      "preferredName": "readiness",
+      "description": "Canonical readiness used by lotus-advise APIs.",
+      "example": {
+        "degraded": true,
+        "dependencies": [
+          {
+            "base_url_env": "LOTUS_CORE_BASE_URL",
+            "configured": false,
+            "dependency_key": "lotus_core",
+            "description": "Canonical portfolio state and portfolio simulation authority.",
+            "operational_ready": false,
+            "service_name": "lotus-core"
+          }
+        ],
+        "operational_ready": false
+      },
+      "type": "OperationalReadiness",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "OperationalReadiness"
+      ]
+    },
+    {
       "semanticId": "lotus.reason",
       "canonicalTerm": "reason",
       "preferredName": "reason",
@@ -3547,6 +3644,20 @@
       "preferredName": "sell_amount_estimated",
       "description": "Estimated sell amount in funding currency as a decimal string.",
       "example": "example_sell_amount_estimated",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.service_name",
+      "canonicalTerm": "service_name",
+      "preferredName": "service_name",
+      "description": "Lotus service name for the dependency.",
+      "example": "example_service_name",
       "type": "string",
       "locations": [
         "body"
@@ -5406,8 +5517,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/rebalance/proposals",
-      "operationId": "create_proposal_rebalance_proposals_post",
+      "path": "/advisory/proposals",
+      "operationId": "create_proposal_advisory_proposals_post",
       "summary": "Create and Persist Advisory Proposal",
       "request": {
         "fields": [
@@ -8853,8 +8964,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals",
-      "operationId": "list_proposals_rebalance_proposals_get",
+      "path": "/advisory/proposals",
+      "operationId": "list_proposals_advisory_proposals_get",
       "summary": "List Proposals",
       "request": {
         "fields": [
@@ -9020,8 +9131,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals/{proposal_id}",
-      "operationId": "get_proposal_rebalance_proposals__proposal_id__get",
+      "path": "/advisory/proposals/{proposal_id}",
+      "operationId": "get_proposal_advisory_proposals__proposal_id__get",
       "summary": "Get Proposal",
       "request": {
         "fields": [
@@ -11563,8 +11674,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals/{proposal_id}/versions/{version_no}",
-      "operationId": "get_proposal_version_rebalance_proposals__proposal_id__versions__version_no__get",
+      "path": "/advisory/proposals/{proposal_id}/versions/{version_no}",
+      "operationId": "get_proposal_version_advisory_proposals__proposal_id__versions__version_no__get",
       "summary": "Get Proposal Version",
       "request": {
         "fields": [
@@ -14010,8 +14121,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/rebalance/proposals/{proposal_id}/versions",
-      "operationId": "create_proposal_version_rebalance_proposals__proposal_id__versions_post",
+      "path": "/advisory/proposals/{proposal_id}/versions",
+      "operationId": "create_proposal_version_advisory_proposals__proposal_id__versions_post",
       "summary": "Create Proposal Version",
       "request": {
         "fields": [
@@ -17417,8 +17528,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/rebalance/proposals/{proposal_id}/transitions",
-      "operationId": "transition_proposal_state_rebalance_proposals__proposal_id__transitions_post",
+      "path": "/advisory/proposals/{proposal_id}/transitions",
+      "operationId": "transition_proposal_state_advisory_proposals__proposal_id__transitions_post",
       "summary": "Transition Proposal State",
       "request": {
         "fields": [
@@ -17592,8 +17703,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/rebalance/proposals/{proposal_id}/approvals",
-      "operationId": "record_proposal_approval_rebalance_proposals__proposal_id__approvals_post",
+      "path": "/advisory/proposals/{proposal_id}/approvals",
+      "operationId": "record_proposal_approval_advisory_proposals__proposal_id__approvals_post",
       "summary": "Record Proposal Approval",
       "request": {
         "fields": [
@@ -17775,8 +17886,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals/{proposal_id}/approvals",
-      "operationId": "get_proposal_approvals_rebalance_proposals__proposal_id__approvals_get",
+      "path": "/advisory/proposals/{proposal_id}/approvals",
+      "operationId": "get_proposal_approvals_advisory_proposals__proposal_id__approvals_get",
       "summary": "Get Proposal Approvals",
       "request": {
         "fields": [
@@ -17878,8 +17989,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/rebalance/proposals/async",
-      "operationId": "create_proposal_async_rebalance_proposals_async_post",
+      "path": "/advisory/proposals/async",
+      "operationId": "create_proposal_async_advisory_proposals_async_post",
       "summary": "Create and Persist Advisory Proposal Asynchronously",
       "request": {
         "fields": [
@@ -18789,8 +18900,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/rebalance/proposals/{proposal_id}/versions/async",
-      "operationId": "create_proposal_version_async_rebalance_proposals__proposal_id__versions_async_post",
+      "path": "/advisory/proposals/{proposal_id}/versions/async",
+      "operationId": "create_proposal_version_async_advisory_proposals__proposal_id__versions_async_post",
       "summary": "Create Proposal Version Asynchronously",
       "request": {
         "fields": [
@@ -19660,8 +19771,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals/operations/{operation_id}",
-      "operationId": "get_proposal_async_operation_rebalance_proposals_operations__operation_id__get",
+      "path": "/advisory/proposals/operations/{operation_id}",
+      "operationId": "get_proposal_async_operation_advisory_proposals_operations__operation_id__get",
       "summary": "Get Proposal Async Operation",
       "request": {
         "fields": [
@@ -19779,8 +19890,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals/operations/by-correlation/{correlation_id}",
-      "operationId": "get_proposal_async_operation_by_correlation_rebalance_proposals_operations_by_correlation__correlation_id__get",
+      "path": "/advisory/proposals/operations/by-correlation/{correlation_id}",
+      "operationId": "get_proposal_async_operation_by_correlation_advisory_proposals_operations_by_correlation__correlation_id__get",
       "summary": "Get Proposal Async Operation by Correlation Id",
       "request": {
         "fields": [
@@ -19898,8 +20009,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals/supportability/config",
-      "operationId": "get_proposal_supportability_config_rebalance_proposals_supportability_config_get",
+      "path": "/advisory/proposals/supportability/config",
+      "operationId": "get_proposal_supportability_config_advisory_proposals_supportability_config_get",
       "summary": "Get Proposal Supportability Configuration",
       "request": {
         "fields": []
@@ -19992,8 +20103,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals/{proposal_id}/workflow-events",
-      "operationId": "get_proposal_workflow_timeline_rebalance_proposals__proposal_id__workflow_events_get",
+      "path": "/advisory/proposals/{proposal_id}/workflow-events",
+      "operationId": "get_proposal_workflow_timeline_advisory_proposals__proposal_id__workflow_events_get",
       "summary": "Get Proposal Workflow Timeline",
       "request": {
         "fields": [
@@ -20111,8 +20222,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals/{proposal_id}/lineage",
-      "operationId": "get_proposal_lineage_rebalance_proposals__proposal_id__lineage_get",
+      "path": "/advisory/proposals/{proposal_id}/lineage",
+      "operationId": "get_proposal_lineage_advisory_proposals__proposal_id__lineage_get",
       "summary": "Get Proposal Lineage",
       "request": {
         "fields": [
@@ -20286,8 +20397,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/rebalance/proposals/idempotency/{idempotency_key}",
-      "operationId": "get_proposal_idempotency_lookup_rebalance_proposals_idempotency__idempotency_key__get",
+      "path": "/advisory/proposals/idempotency/{idempotency_key}",
+      "operationId": "get_proposal_idempotency_lookup_advisory_proposals_idempotency__idempotency_key__get",
       "summary": "Lookup Proposal Idempotency Mapping",
       "request": {
         "fields": [
@@ -20349,8 +20460,8 @@
     {
       "domain": "advisory_simulation",
       "method": "POST",
-      "path": "/rebalance/proposals/simulate",
-      "operationId": "simulate_proposal_rebalance_proposals_simulate_post",
+      "path": "/advisory/proposals/simulate",
+      "operationId": "simulate_proposal_advisory_proposals_simulate_post",
       "summary": "Simulate an Advisory Proposal",
       "request": {
         "fields": [
@@ -22412,8 +22523,8 @@
     {
       "domain": "advisory_simulation",
       "method": "POST",
-      "path": "/rebalance/proposals/artifact",
-      "operationId": "build_proposal_artifact_endpoint_rebalance_proposals_artifact_post",
+      "path": "/advisory/proposals/artifact",
+      "operationId": "build_proposal_artifact_endpoint_advisory_proposals_artifact_post",
       "summary": "Build Advisory Proposal Artifact",
       "request": {
         "fields": [
@@ -24435,6 +24546,86 @@
             "type": "array",
             "semanticId": "lotus.required_features",
             "attributeRef": "#/attributeCatalog/lotus.required_features"
+          },
+          {
+            "name": "readiness",
+            "location": "body",
+            "required": true,
+            "type": "OperationalReadiness",
+            "semanticId": "lotus.readiness",
+            "attributeRef": "#/attributeCatalog/lotus.readiness"
+          },
+          {
+            "name": "readiness.operational_ready",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.operational_ready",
+            "attributeRef": "#/attributeCatalog/lotus.operational_ready"
+          },
+          {
+            "name": "readiness.degraded",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.degraded",
+            "attributeRef": "#/attributeCatalog/lotus.degraded"
+          },
+          {
+            "name": "readiness.dependencies",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.dependencies",
+            "attributeRef": "#/attributeCatalog/lotus.dependencies"
+          },
+          {
+            "name": "readiness.dependencies[].dependency_key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dependency_key",
+            "attributeRef": "#/attributeCatalog/lotus.dependency_key"
+          },
+          {
+            "name": "readiness.dependencies[].service_name",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.service_name",
+            "attributeRef": "#/attributeCatalog/lotus.service_name"
+          },
+          {
+            "name": "readiness.dependencies[].description",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.description",
+            "attributeRef": "#/attributeCatalog/lotus.description"
+          },
+          {
+            "name": "readiness.dependencies[].base_url_env",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.base_url_env",
+            "attributeRef": "#/attributeCatalog/lotus.base_url_env"
+          },
+          {
+            "name": "readiness.dependencies[].configured",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.configured",
+            "attributeRef": "#/attributeCatalog/lotus.configured"
+          },
+          {
+            "name": "readiness.dependencies[].operational_ready",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.operational_ready",
+            "attributeRef": "#/attributeCatalog/lotus.operational_ready"
           }
         ]
       }
@@ -24442,8 +24633,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/api/v1/rebalance/proposals",
-      "operationId": "create_proposal_api_v1_rebalance_proposals_post",
+      "path": "/api/v1/advisory/proposals",
+      "operationId": "create_proposal_api_v1_advisory_proposals_post",
       "summary": "Create and Persist Advisory Proposal",
       "request": {
         "fields": [
@@ -27889,8 +28080,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals",
-      "operationId": "list_proposals_api_v1_rebalance_proposals_get",
+      "path": "/api/v1/advisory/proposals",
+      "operationId": "list_proposals_api_v1_advisory_proposals_get",
       "summary": "List Proposals",
       "request": {
         "fields": [
@@ -28056,8 +28247,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals/{proposal_id}",
-      "operationId": "get_proposal_api_v1_rebalance_proposals__proposal_id__get",
+      "path": "/api/v1/advisory/proposals/{proposal_id}",
+      "operationId": "get_proposal_api_v1_advisory_proposals__proposal_id__get",
       "summary": "Get Proposal",
       "request": {
         "fields": [
@@ -30599,8 +30790,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals/{proposal_id}/versions/{version_no}",
-      "operationId": "get_proposal_version_api_v1_rebalance_proposals__proposal_id__versions__version_no__get",
+      "path": "/api/v1/advisory/proposals/{proposal_id}/versions/{version_no}",
+      "operationId": "get_proposal_version_api_v1_advisory_proposals__proposal_id__versions__version_no__get",
       "summary": "Get Proposal Version",
       "request": {
         "fields": [
@@ -33046,8 +33237,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/api/v1/rebalance/proposals/{proposal_id}/versions",
-      "operationId": "create_proposal_version_api_v1_rebalance_proposals__proposal_id__versions_post",
+      "path": "/api/v1/advisory/proposals/{proposal_id}/versions",
+      "operationId": "create_proposal_version_api_v1_advisory_proposals__proposal_id__versions_post",
       "summary": "Create Proposal Version",
       "request": {
         "fields": [
@@ -36453,8 +36644,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/api/v1/rebalance/proposals/{proposal_id}/transitions",
-      "operationId": "transition_proposal_state_api_v1_rebalance_proposals__proposal_id__transitions_post",
+      "path": "/api/v1/advisory/proposals/{proposal_id}/transitions",
+      "operationId": "transition_proposal_state_api_v1_advisory_proposals__proposal_id__transitions_post",
       "summary": "Transition Proposal State",
       "request": {
         "fields": [
@@ -36628,8 +36819,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/api/v1/rebalance/proposals/{proposal_id}/approvals",
-      "operationId": "record_proposal_approval_api_v1_rebalance_proposals__proposal_id__approvals_post",
+      "path": "/api/v1/advisory/proposals/{proposal_id}/approvals",
+      "operationId": "record_proposal_approval_api_v1_advisory_proposals__proposal_id__approvals_post",
       "summary": "Record Proposal Approval",
       "request": {
         "fields": [
@@ -36811,8 +37002,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals/{proposal_id}/approvals",
-      "operationId": "get_proposal_approvals_api_v1_rebalance_proposals__proposal_id__approvals_get",
+      "path": "/api/v1/advisory/proposals/{proposal_id}/approvals",
+      "operationId": "get_proposal_approvals_api_v1_advisory_proposals__proposal_id__approvals_get",
       "summary": "Get Proposal Approvals",
       "request": {
         "fields": [
@@ -36914,8 +37105,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/api/v1/rebalance/proposals/async",
-      "operationId": "create_proposal_async_api_v1_rebalance_proposals_async_post",
+      "path": "/api/v1/advisory/proposals/async",
+      "operationId": "create_proposal_async_api_v1_advisory_proposals_async_post",
       "summary": "Create and Persist Advisory Proposal Asynchronously",
       "request": {
         "fields": [
@@ -37825,8 +38016,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "POST",
-      "path": "/api/v1/rebalance/proposals/{proposal_id}/versions/async",
-      "operationId": "create_proposal_version_async_api_v1_rebalance_proposals__proposal_id__versions_async_post",
+      "path": "/api/v1/advisory/proposals/{proposal_id}/versions/async",
+      "operationId": "create_proposal_version_async_api_v1_advisory_proposals__proposal_id__versions_async_post",
       "summary": "Create Proposal Version Asynchronously",
       "request": {
         "fields": [
@@ -38696,8 +38887,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals/operations/{operation_id}",
-      "operationId": "get_proposal_async_operation_api_v1_rebalance_proposals_operations__operation_id__get",
+      "path": "/api/v1/advisory/proposals/operations/{operation_id}",
+      "operationId": "get_proposal_async_operation_api_v1_advisory_proposals_operations__operation_id__get",
       "summary": "Get Proposal Async Operation",
       "request": {
         "fields": [
@@ -38815,8 +39006,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals/operations/by-correlation/{correlation_id}",
-      "operationId": "get_proposal_async_operation_by_correlation_api_v1_rebalance_proposals_operations_by_correlation__correlation_id__get",
+      "path": "/api/v1/advisory/proposals/operations/by-correlation/{correlation_id}",
+      "operationId": "get_proposal_async_operation_by_correlation_api_v1_advisory_proposals_operations_by_correlation__correlation_id__get",
       "summary": "Get Proposal Async Operation by Correlation Id",
       "request": {
         "fields": [
@@ -38934,8 +39125,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals/supportability/config",
-      "operationId": "get_proposal_supportability_config_api_v1_rebalance_proposals_supportability_config_get",
+      "path": "/api/v1/advisory/proposals/supportability/config",
+      "operationId": "get_proposal_supportability_config_api_v1_advisory_proposals_supportability_config_get",
       "summary": "Get Proposal Supportability Configuration",
       "request": {
         "fields": []
@@ -39028,8 +39219,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals/{proposal_id}/workflow-events",
-      "operationId": "get_proposal_workflow_timeline_api_v1_rebalance_proposals__proposal_id__workflow_events_get",
+      "path": "/api/v1/advisory/proposals/{proposal_id}/workflow-events",
+      "operationId": "get_proposal_workflow_timeline_api_v1_advisory_proposals__proposal_id__workflow_events_get",
       "summary": "Get Proposal Workflow Timeline",
       "request": {
         "fields": [
@@ -39147,8 +39338,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals/{proposal_id}/lineage",
-      "operationId": "get_proposal_lineage_api_v1_rebalance_proposals__proposal_id__lineage_get",
+      "path": "/api/v1/advisory/proposals/{proposal_id}/lineage",
+      "operationId": "get_proposal_lineage_api_v1_advisory_proposals__proposal_id__lineage_get",
       "summary": "Get Proposal Lineage",
       "request": {
         "fields": [
@@ -39322,8 +39513,8 @@
     {
       "domain": "advisory_proposal_lifecycle",
       "method": "GET",
-      "path": "/api/v1/rebalance/proposals/idempotency/{idempotency_key}",
-      "operationId": "get_proposal_idempotency_lookup_api_v1_rebalance_proposals_idempotency__idempotency_key__get",
+      "path": "/api/v1/advisory/proposals/idempotency/{idempotency_key}",
+      "operationId": "get_proposal_idempotency_lookup_api_v1_advisory_proposals_idempotency__idempotency_key__get",
       "summary": "Lookup Proposal Idempotency Mapping",
       "request": {
         "fields": [
@@ -39385,8 +39576,8 @@
     {
       "domain": "advisory_simulation",
       "method": "POST",
-      "path": "/api/v1/rebalance/proposals/simulate",
-      "operationId": "simulate_proposal_api_v1_rebalance_proposals_simulate_post",
+      "path": "/api/v1/advisory/proposals/simulate",
+      "operationId": "simulate_proposal_api_v1_advisory_proposals_simulate_post",
       "summary": "Simulate an Advisory Proposal",
       "request": {
         "fields": [
@@ -41448,8 +41639,8 @@
     {
       "domain": "advisory_simulation",
       "method": "POST",
-      "path": "/api/v1/rebalance/proposals/artifact",
-      "operationId": "build_proposal_artifact_endpoint_api_v1_rebalance_proposals_artifact_post",
+      "path": "/api/v1/advisory/proposals/artifact",
+      "operationId": "build_proposal_artifact_endpoint_api_v1_advisory_proposals_artifact_post",
       "summary": "Build Advisory Proposal Artifact",
       "request": {
         "fields": [
@@ -43471,6 +43662,86 @@
             "type": "array",
             "semanticId": "lotus.required_features",
             "attributeRef": "#/attributeCatalog/lotus.required_features"
+          },
+          {
+            "name": "readiness",
+            "location": "body",
+            "required": true,
+            "type": "OperationalReadiness",
+            "semanticId": "lotus.readiness",
+            "attributeRef": "#/attributeCatalog/lotus.readiness"
+          },
+          {
+            "name": "readiness.operational_ready",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.operational_ready",
+            "attributeRef": "#/attributeCatalog/lotus.operational_ready"
+          },
+          {
+            "name": "readiness.degraded",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.degraded",
+            "attributeRef": "#/attributeCatalog/lotus.degraded"
+          },
+          {
+            "name": "readiness.dependencies",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.dependencies",
+            "attributeRef": "#/attributeCatalog/lotus.dependencies"
+          },
+          {
+            "name": "readiness.dependencies[].dependency_key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dependency_key",
+            "attributeRef": "#/attributeCatalog/lotus.dependency_key"
+          },
+          {
+            "name": "readiness.dependencies[].service_name",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.service_name",
+            "attributeRef": "#/attributeCatalog/lotus.service_name"
+          },
+          {
+            "name": "readiness.dependencies[].description",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.description",
+            "attributeRef": "#/attributeCatalog/lotus.description"
+          },
+          {
+            "name": "readiness.dependencies[].base_url_env",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.base_url_env",
+            "attributeRef": "#/attributeCatalog/lotus.base_url_env"
+          },
+          {
+            "name": "readiness.dependencies[].configured",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.configured",
+            "attributeRef": "#/attributeCatalog/lotus.configured"
+          },
+          {
+            "name": "readiness.dependencies[].operational_ready",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.operational_ready",
+            "attributeRef": "#/attributeCatalog/lotus.operational_ready"
           }
         ]
       }

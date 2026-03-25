@@ -33,7 +33,7 @@ This repository adopts the platform-wide standard defined in lotus-platform/Scal
 
 - lotus-advise only permits explicit bounded caches for idempotency and workflow supportability lookups.
 - Cache use-cases must define TTL and max-size controls with clear invalidation ownership.
-- Stale-read behavior is disallowed for correctness-critical rebalance outcomes; stale supportability reads must be explicitly documented.
+- Stale-read behavior is disallowed for correctness-critical advisory proposal outcomes; stale supportability reads must be explicitly documented.
 
 ## Scale Signal Metrics Coverage
 

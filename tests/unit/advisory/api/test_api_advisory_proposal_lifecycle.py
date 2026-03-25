@@ -2,9 +2,9 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+import src.api.proposals.router as proposals_router
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
-from src.api.routers import proposals as proposals_router
-from src.api.routers.proposals import reset_proposal_workflow_service_for_tests
+from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.proposals import ProposalIdempotencyConflictError
 
 
@@ -44,7 +44,7 @@ def _base_create_payload(portfolio_id: str = "pf_lifecycle_1") -> dict:
 
 def _create(client: TestClient, idempotency_key: str, payload: dict | None = None) -> dict:
     response = client.post(
-        "/rebalance/proposals",
+        "/advisory/proposals",
         json=payload or _base_create_payload(),
         headers={"Idempotency-Key": idempotency_key},
     )
@@ -75,7 +75,7 @@ def test_get_proposal_repository_maps_runtime_and_value_errors(monkeypatch):
     def _raise_runtime():
         raise RuntimeError("PROPOSAL_POSTGRES_DSN_REQUIRED")
 
-    monkeypatch.setattr(proposals_router.proposals_config, "build_repository", _raise_runtime)
+    monkeypatch.setattr(proposals_router.runtime, "build_repository", _raise_runtime)
     with pytest.raises(HTTPException) as runtime_exc:
         proposals_router.get_proposal_repository()
     assert runtime_exc.value.status_code == 503
@@ -86,7 +86,7 @@ def test_get_proposal_repository_maps_runtime_and_value_errors(monkeypatch):
     def _raise_value():
         raise ValueError("invalid")
 
-    monkeypatch.setattr(proposals_router.proposals_config, "build_repository", _raise_value)
+    monkeypatch.setattr(proposals_router.runtime, "build_repository", _raise_value)
     with pytest.raises(HTTPException) as value_exc:
         proposals_router.get_proposal_repository()
     assert value_exc.value.status_code == 503
@@ -99,7 +99,7 @@ def test_proposal_repository_backend_init_errors_return_503(monkeypatch):
         monkeypatch.delenv("PROPOSAL_POSTGRES_DSN", raising=False)
         reset_proposal_workflow_service_for_tests()
 
-        missing_dsn = client.get("/rebalance/proposals")
+        missing_dsn = client.get("/advisory/proposals")
         assert missing_dsn.status_code == 503
         assert missing_dsn.json()["detail"] == "PROPOSAL_POSTGRES_DSN_REQUIRED"
 
@@ -108,11 +108,11 @@ def test_proposal_repository_backend_init_errors_return_503(monkeypatch):
             "postgresql://user:pass@localhost:5432/proposals",
         )
         monkeypatch.setattr(
-            "src.api.routers.proposals_config.PostgresProposalRepository",
+            "src.api.proposals.runtime.PostgresProposalRepository",
             lambda *args, **kwargs: (_ for _ in ()).throw(ConnectionError("boom")),
         )
         reset_proposal_workflow_service_for_tests()
-        not_implemented = client.get("/rebalance/proposals")
+        not_implemented = client.get("/advisory/proposals")
         assert not_implemented.status_code == 503
         assert not_implemented.json()["detail"] == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
 
@@ -120,19 +120,19 @@ def test_proposal_repository_backend_init_errors_return_503(monkeypatch):
 def test_proposal_repository_unexpected_init_error_mapped_to_503(monkeypatch):
     with TestClient(app) as client:
         monkeypatch.setattr(
-            "src.api.routers.proposals.proposals_config.build_repository",
+            "src.api.proposals.router.runtime.build_repository",
             lambda: (_ for _ in ()).throw(ValueError("boom")),
         )
         reset_proposal_workflow_service_for_tests()
 
-        response = client.get("/rebalance/proposals")
+        response = client.get("/advisory/proposals")
         assert response.status_code == 503
         assert response.json()["detail"] == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
 
 
 def test_proposal_supportability_config_defaults():
     with TestClient(app) as client:
-        response = client.get("/rebalance/proposals/supportability/config")
+        response = client.get("/advisory/proposals/supportability/config")
         assert response.status_code == 200
         body = response.json()
         assert body["store_backend"] == "POSTGRES"
@@ -152,7 +152,7 @@ def test_proposal_supportability_config_reports_backend_error(monkeypatch):
         monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
         monkeypatch.delenv("PROPOSAL_POSTGRES_DSN", raising=False)
 
-        response = client.get("/rebalance/proposals/supportability/config")
+        response = client.get("/advisory/proposals/supportability/config")
         assert response.status_code == 200
         body = response.json()
         assert body["store_backend"] == "POSTGRES"
@@ -163,10 +163,10 @@ def test_proposal_supportability_config_reports_backend_error(monkeypatch):
 def test_proposal_supportability_config_reports_unexpected_backend_error(monkeypatch):
     with TestClient(app) as client:
         monkeypatch.setattr(
-            "src.api.routers.proposals.proposals_config.build_repository",
+            "src.api.proposals.router.runtime.build_repository",
             lambda: (_ for _ in ()).throw(ValueError("boom")),
         )
-        response = client.get("/rebalance/proposals/supportability/config")
+        response = client.get("/advisory/proposals/supportability/config")
         assert response.status_code == 200
         body = response.json()
         assert body["backend_ready"] is False
@@ -183,7 +183,7 @@ def test_create_proposal_idempotency_reuses_existing_proposal_and_detects_confli
         changed = _base_create_payload()
         changed["simulate_request"]["proposed_cash_flows"] = [{"currency": "USD", "amount": "777"}]
         conflict = client.post(
-            "/rebalance/proposals",
+            "/advisory/proposals",
             json=changed,
             headers={"Idempotency-Key": "lifecycle-create-2"},
         )
@@ -196,18 +196,18 @@ def test_get_list_and_version_include_and_hide_evidence():
         created = _create(client, "lifecycle-create-3")
         proposal_id = created["proposal"]["proposal_id"]
 
-        listed = client.get("/rebalance/proposals", params={"portfolio_id": "pf_lifecycle_1"})
+        listed = client.get("/advisory/proposals", params={"portfolio_id": "pf_lifecycle_1"})
         assert listed.status_code == 200
         assert listed.json()["items"][0]["proposal_id"] == proposal_id
 
         detail = client.get(
-            f"/rebalance/proposals/{proposal_id}", params={"include_evidence": False}
+            f"/advisory/proposals/{proposal_id}", params={"include_evidence": False}
         )
         assert detail.status_code == 200
         assert detail.json()["current_version"]["evidence_bundle"] == {}
 
         version = client.get(
-            f"/rebalance/proposals/{proposal_id}/versions/1",
+            f"/advisory/proposals/{proposal_id}/versions/1",
             params={"include_evidence": True},
         )
         assert version.status_code == 200
@@ -227,7 +227,7 @@ def test_create_version_increments_version_and_preserves_state():
             {"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "3"}
         ]
 
-        response = client.post(f"/rebalance/proposals/{proposal_id}/versions", json=version_payload)
+        response = client.post(f"/advisory/proposals/{proposal_id}/versions", json=version_payload)
         assert response.status_code == 200
         body = response.json()
         assert body["proposal"]["current_version_no"] == 2
@@ -242,7 +242,7 @@ def test_transition_requires_expected_state_and_rejects_invalid_transition():
         proposal_id = created["proposal"]["proposal_id"]
 
         missing_expected = client.post(
-            f"/rebalance/proposals/{proposal_id}/transitions",
+            f"/advisory/proposals/{proposal_id}/transitions",
             json={
                 "event_type": "SUBMITTED_FOR_RISK_REVIEW",
                 "actor_id": "advisor_1",
@@ -253,7 +253,7 @@ def test_transition_requires_expected_state_and_rejects_invalid_transition():
         assert "expected_state is required" in missing_expected.json()["detail"]
 
         invalid = client.post(
-            f"/rebalance/proposals/{proposal_id}/transitions",
+            f"/advisory/proposals/{proposal_id}/transitions",
             json={
                 "event_type": "EXECUTED",
                 "actor_id": "advisor_1",
@@ -271,7 +271,7 @@ def test_workflow_transitions_and_approvals_happy_path_to_executed():
         proposal_id = created["proposal"]["proposal_id"]
 
         to_compliance = client.post(
-            f"/rebalance/proposals/{proposal_id}/transitions",
+            f"/advisory/proposals/{proposal_id}/transitions",
             json={
                 "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
                 "actor_id": "advisor_1",
@@ -284,7 +284,7 @@ def test_workflow_transitions_and_approvals_happy_path_to_executed():
         assert to_compliance.json()["current_state"] == "COMPLIANCE_REVIEW"
 
         compliance_approved = client.post(
-            f"/rebalance/proposals/{proposal_id}/approvals",
+            f"/advisory/proposals/{proposal_id}/approvals",
             json={
                 "approval_type": "COMPLIANCE",
                 "approved": True,
@@ -299,7 +299,7 @@ def test_workflow_transitions_and_approvals_happy_path_to_executed():
         assert compliance_approved.json()["approval"]["approval_type"] == "COMPLIANCE"
 
         consent = client.post(
-            f"/rebalance/proposals/{proposal_id}/approvals",
+            f"/advisory/proposals/{proposal_id}/approvals",
             json={
                 "approval_type": "CLIENT_CONSENT",
                 "approved": True,
@@ -313,7 +313,7 @@ def test_workflow_transitions_and_approvals_happy_path_to_executed():
         assert consent.json()["current_state"] == "EXECUTION_READY"
 
         executed = client.post(
-            f"/rebalance/proposals/{proposal_id}/transitions",
+            f"/advisory/proposals/{proposal_id}/transitions",
             json={
                 "event_type": "EXECUTED",
                 "actor_id": "ops_1",
@@ -332,7 +332,7 @@ def test_workflow_transitions_happy_path_via_risk_to_execution_ready():
         proposal_id = created["proposal"]["proposal_id"]
 
         to_risk = client.post(
-            f"/rebalance/proposals/{proposal_id}/transitions",
+            f"/advisory/proposals/{proposal_id}/transitions",
             json={
                 "event_type": "SUBMITTED_FOR_RISK_REVIEW",
                 "actor_id": "advisor_1",
@@ -345,7 +345,7 @@ def test_workflow_transitions_happy_path_via_risk_to_execution_ready():
         assert to_risk.json()["current_state"] == "RISK_REVIEW"
 
         risk_approved = client.post(
-            f"/rebalance/proposals/{proposal_id}/approvals",
+            f"/advisory/proposals/{proposal_id}/approvals",
             json={
                 "approval_type": "RISK",
                 "approved": True,
@@ -360,7 +360,7 @@ def test_workflow_transitions_happy_path_via_risk_to_execution_ready():
         assert risk_approved.json()["latest_workflow_event"]["event_type"] == "RISK_APPROVED"
 
         consent = client.post(
-            f"/rebalance/proposals/{proposal_id}/approvals",
+            f"/advisory/proposals/{proposal_id}/approvals",
             json={
                 "approval_type": "CLIENT_CONSENT",
                 "approved": True,
@@ -380,7 +380,7 @@ def test_workflow_rejection_path_transitions_to_rejected_terminal_state():
         proposal_id = created["proposal"]["proposal_id"]
 
         to_risk = client.post(
-            f"/rebalance/proposals/{proposal_id}/transitions",
+            f"/advisory/proposals/{proposal_id}/transitions",
             json={
                 "event_type": "SUBMITTED_FOR_RISK_REVIEW",
                 "actor_id": "advisor_1",
@@ -392,7 +392,7 @@ def test_workflow_rejection_path_transitions_to_rejected_terminal_state():
         assert to_risk.json()["current_state"] == "RISK_REVIEW"
 
         rejected = client.post(
-            f"/rebalance/proposals/{proposal_id}/approvals",
+            f"/advisory/proposals/{proposal_id}/approvals",
             json={
                 "approval_type": "RISK",
                 "approved": False,
@@ -406,7 +406,7 @@ def test_workflow_rejection_path_transitions_to_rejected_terminal_state():
         assert rejected.json()["latest_workflow_event"]["event_type"] == "REJECTED"
 
         invalid_after_terminal = client.post(
-            f"/rebalance/proposals/{proposal_id}/transitions",
+            f"/advisory/proposals/{proposal_id}/transitions",
             json={
                 "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
                 "actor_id": "advisor_1",
@@ -424,7 +424,7 @@ def test_approval_requires_matching_expected_state():
         proposal_id = created["proposal"]["proposal_id"]
 
         approval = client.post(
-            f"/rebalance/proposals/{proposal_id}/approvals",
+            f"/advisory/proposals/{proposal_id}/approvals",
             json={
                 "approval_type": "CLIENT_CONSENT",
                 "approved": True,
@@ -441,7 +441,7 @@ def test_lifecycle_router_returns_404_when_disabled(monkeypatch):
     monkeypatch.setenv("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", "false")
     reset_proposal_workflow_service_for_tests()
     with TestClient(app) as client:
-        response = client.get("/rebalance/proposals")
+        response = client.get("/advisory/proposals")
     assert response.status_code == 404
     assert response.json()["detail"] == "PROPOSAL_WORKFLOW_LIFECYCLE_DISABLED"
 
@@ -451,7 +451,7 @@ def test_create_proposal_returns_422_when_simulation_flag_disabled():
         payload = _base_create_payload()
         payload["simulate_request"]["options"] = {"enable_proposal_simulation": False}
         response = client.post(
-            "/rebalance/proposals",
+            "/advisory/proposals",
             json=payload,
             headers={"Idempotency-Key": "lifecycle-create-disabled"},
         )
@@ -461,8 +461,8 @@ def test_create_proposal_returns_422_when_simulation_flag_disabled():
 
 def test_get_and_get_version_return_404_for_missing_proposal():
     with TestClient(app) as client:
-        proposal_response = client.get("/rebalance/proposals/pp_missing_1")
-        version_response = client.get("/rebalance/proposals/pp_missing_1/versions/1")
+        proposal_response = client.get("/advisory/proposals/pp_missing_1")
+        version_response = client.get("/advisory/proposals/pp_missing_1/versions/1")
     assert proposal_response.status_code == 404
     assert version_response.status_code == 404
 
@@ -474,13 +474,13 @@ def test_create_version_not_found_and_context_validation_paths():
             "simulate_request": _base_create_payload()["simulate_request"],
         }
 
-        missing = client.post("/rebalance/proposals/pp_missing_2/versions", json=version_payload)
+        missing = client.post("/advisory/proposals/pp_missing_2/versions", json=version_payload)
         assert missing.status_code == 404
 
         created = _create(client, "lifecycle-create-ctx-1")
         proposal_id = created["proposal"]["proposal_id"]
         version_payload["simulate_request"]["portfolio_snapshot"]["portfolio_id"] = "pf_other"
-        invalid = client.post(f"/rebalance/proposals/{proposal_id}/versions", json=version_payload)
+        invalid = client.post(f"/advisory/proposals/{proposal_id}/versions", json=version_payload)
         assert invalid.status_code == 422
         assert invalid.json()["detail"] == "PORTFOLIO_CONTEXT_MISMATCH"
 
@@ -488,7 +488,7 @@ def test_create_version_not_found_and_context_validation_paths():
 def test_transition_and_approval_not_found_and_invalid_approval_state_paths():
     with TestClient(app) as client:
         missing_transition = client.post(
-            "/rebalance/proposals/pp_missing_3/transitions",
+            "/advisory/proposals/pp_missing_3/transitions",
             json={
                 "event_type": "SUBMITTED_FOR_RISK_REVIEW",
                 "actor_id": "advisor_1",
@@ -499,7 +499,7 @@ def test_transition_and_approval_not_found_and_invalid_approval_state_paths():
         assert missing_transition.status_code == 404
 
         missing_approval = client.post(
-            "/rebalance/proposals/pp_missing_3/approvals",
+            "/advisory/proposals/pp_missing_3/approvals",
             json={
                 "approval_type": "RISK",
                 "approved": True,
@@ -513,7 +513,7 @@ def test_transition_and_approval_not_found_and_invalid_approval_state_paths():
         created = _create(client, "lifecycle-create-approval-422")
         proposal_id = created["proposal"]["proposal_id"]
         invalid_state = client.post(
-            f"/rebalance/proposals/{proposal_id}/approvals",
+            f"/advisory/proposals/{proposal_id}/approvals",
             json={
                 "approval_type": "COMPLIANCE",
                 "approved": True,
@@ -532,7 +532,7 @@ def test_support_endpoints_return_timeline_approvals_lineage_and_idempotency():
         proposal_id = created["proposal"]["proposal_id"]
 
         submit = client.post(
-            f"/rebalance/proposals/{proposal_id}/transitions",
+            f"/advisory/proposals/{proposal_id}/transitions",
             json={
                 "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
                 "actor_id": "advisor_1",
@@ -543,7 +543,7 @@ def test_support_endpoints_return_timeline_approvals_lineage_and_idempotency():
         )
         assert submit.status_code == 200
         approval = client.post(
-            f"/rebalance/proposals/{proposal_id}/approvals",
+            f"/advisory/proposals/{proposal_id}/approvals",
             json={
                 "approval_type": "COMPLIANCE",
                 "approved": True,
@@ -555,28 +555,28 @@ def test_support_endpoints_return_timeline_approvals_lineage_and_idempotency():
         )
         assert approval.status_code == 200
 
-        timeline = client.get(f"/rebalance/proposals/{proposal_id}/workflow-events")
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
         assert timeline.status_code == 200
         timeline_body = timeline.json()
         assert timeline_body["proposal_id"] == proposal_id
         assert len(timeline_body["events"]) >= 3
         assert timeline_body["events"][0]["event_type"] == "CREATED"
 
-        approvals = client.get(f"/rebalance/proposals/{proposal_id}/approvals")
+        approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
         assert approvals.status_code == 200
         approvals_body = approvals.json()
         assert approvals_body["proposal_id"] == proposal_id
         assert len(approvals_body["approvals"]) == 1
         assert approvals_body["approvals"][0]["approval_type"] == "COMPLIANCE"
 
-        lineage = client.get(f"/rebalance/proposals/{proposal_id}/lineage")
+        lineage = client.get(f"/advisory/proposals/{proposal_id}/lineage")
         assert lineage.status_code == 200
         lineage_body = lineage.json()
         assert lineage_body["proposal"]["proposal_id"] == proposal_id
         assert lineage_body["versions"][0]["version_no"] == 1
         assert lineage_body["versions"][0]["artifact_hash"].startswith("sha256:")
 
-        idem_lookup = client.get("/rebalance/proposals/idempotency/lifecycle-support-1")
+        idem_lookup = client.get("/advisory/proposals/idempotency/lifecycle-support-1")
         assert idem_lookup.status_code == 200
         idem_body = idem_lookup.json()
         assert idem_body["idempotency_key"] == "lifecycle-support-1"
@@ -586,16 +586,16 @@ def test_support_endpoints_return_timeline_approvals_lineage_and_idempotency():
 
 def test_support_endpoints_404_for_missing_entities():
     with TestClient(app) as client:
-        missing_timeline = client.get("/rebalance/proposals/pp_missing_support/workflow-events")
+        missing_timeline = client.get("/advisory/proposals/pp_missing_support/workflow-events")
         assert missing_timeline.status_code == 404
 
-        missing_approvals = client.get("/rebalance/proposals/pp_missing_support/approvals")
+        missing_approvals = client.get("/advisory/proposals/pp_missing_support/approvals")
         assert missing_approvals.status_code == 404
 
-        missing_lineage = client.get("/rebalance/proposals/pp_missing_support/lineage")
+        missing_lineage = client.get("/advisory/proposals/pp_missing_support/lineage")
         assert missing_lineage.status_code == 404
 
-        missing_idempotency = client.get("/rebalance/proposals/idempotency/missing-idem")
+        missing_idempotency = client.get("/advisory/proposals/idempotency/missing-idem")
         assert missing_idempotency.status_code == 404
         assert missing_idempotency.json()["detail"] == "PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND"
 
@@ -607,7 +607,7 @@ def test_support_endpoints_return_404_when_support_apis_disabled(monkeypatch):
         created = _create(client, "lifecycle-support-disabled")
         proposal_id = created["proposal"]["proposal_id"]
 
-        timeline = client.get(f"/rebalance/proposals/{proposal_id}/workflow-events")
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
         assert timeline.status_code == 404
         assert timeline.json()["detail"] == "PROPOSAL_SUPPORT_APIS_DISABLED"
 
@@ -616,7 +616,7 @@ def test_async_create_and_lookup_by_operation_and_correlation():
     with TestClient(app) as client:
         payload = _base_create_payload()
         accepted = client.post(
-            "/rebalance/proposals/async",
+            "/advisory/proposals/async",
             json=payload,
             headers={
                 "Idempotency-Key": "lifecycle-async-create-1",
@@ -629,20 +629,20 @@ def test_async_create_and_lookup_by_operation_and_correlation():
         assert accepted_body["correlation_id"] == "corr-async-create-1"
 
         operation_id = accepted_body["operation_id"]
-        by_operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+        by_operation = client.get(f"/advisory/proposals/operations/{operation_id}")
         assert by_operation.status_code == 200
         op_body = by_operation.json()
         assert op_body["status"] == "SUCCEEDED"
         assert op_body["result"]["proposal"]["proposal_id"].startswith("pp_")
 
         by_correlation = client.get(
-            "/rebalance/proposals/operations/by-correlation/corr-async-create-1"
+            "/advisory/proposals/operations/by-correlation/corr-async-create-1"
         )
         assert by_correlation.status_code == 200
         assert by_correlation.json()["operation_id"] == operation_id
 
         missing_by_correlation = client.get(
-            "/rebalance/proposals/operations/by-correlation/corr-missing"
+            "/advisory/proposals/operations/by-correlation/corr-missing"
         )
         assert missing_by_correlation.status_code == 404
         assert missing_by_correlation.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"
@@ -660,14 +660,14 @@ def test_async_create_version_and_lookup():
             {"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "4"}
         ]
         accepted = client.post(
-            f"/rebalance/proposals/{proposal_id}/versions/async",
+            f"/advisory/proposals/{proposal_id}/versions/async",
             json=payload,
             headers={"X-Correlation-Id": "corr-async-version-1"},
         )
         assert accepted.status_code == 202
         operation_id = accepted.json()["operation_id"]
 
-        operation = client.get(f"/rebalance/proposals/operations/{operation_id}")
+        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
         assert operation.status_code == 200
         body = operation.json()
         assert body["operation_type"] == "CREATE_PROPOSAL_VERSION"
@@ -681,7 +681,7 @@ def test_async_operation_endpoints_return_404_when_disabled(monkeypatch):
     with TestClient(app) as client:
         payload = _base_create_payload()
         response = client.post(
-            "/rebalance/proposals/async",
+            "/advisory/proposals/async",
             json=payload,
             headers={"Idempotency-Key": "lifecycle-async-disabled"},
         )
@@ -691,7 +691,7 @@ def test_async_operation_endpoints_return_404_when_disabled(monkeypatch):
 
 def test_async_operation_lookup_returns_404_for_missing_operation():
     with TestClient(app) as client:
-        missing = client.get("/rebalance/proposals/operations/pop_missing")
+        missing = client.get("/advisory/proposals/operations/pop_missing")
         assert missing.status_code == 404
         assert missing.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"
 
@@ -710,7 +710,7 @@ def test_transition_maps_idempotency_conflict_to_409():
     try:
         with TestClient(app) as client:
             response = client.post(
-                "/rebalance/proposals/pp_conflict/transitions",
+                "/advisory/proposals/pp_conflict/transitions",
                 json={
                     "event_type": "SUBMITTED_FOR_RISK_REVIEW",
                     "actor_id": "advisor_1",
@@ -739,7 +739,7 @@ def test_approval_maps_idempotency_conflict_to_409():
     try:
         with TestClient(app) as client:
             response = client.post(
-                "/rebalance/proposals/pp_conflict/approvals",
+                "/advisory/proposals/pp_conflict/approvals",
                 json={
                     "approval_type": "RISK",
                     "approved": True,

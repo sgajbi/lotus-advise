@@ -1,7 +1,7 @@
-# Enterprise Readiness Baseline (lotus-manage)
+# Enterprise Readiness Baseline (lotus-advise)
 
 - Standard reference: `lotus-platform/Enterprise Readiness Standard.md`
-- Scope: discretionary/advisory decision workflows, policy enforcement, and run supportability APIs.
+- Scope: advisory workflow APIs, proposal lifecycle operations, and integration-aware readiness controls.
 - Change control: RFC for platform-level changes, ADR for temporary exceptions.
 
 ## Security and IAM Baseline
@@ -12,7 +12,7 @@
 Evidence:
 - `src/api/enterprise_readiness.py`
 - `src/api/main.py`
-- `tests/unit/api/test_enterprise_readiness.py`
+- `tests/unit/advisory/api/test_api_internal_guards.py`
 
 ## API Governance Baseline
 
@@ -21,7 +21,7 @@ Evidence:
 
 Evidence:
 - `src/api/main.py`
-- `tests/unit/dpm/contracts`
+- `tests/unit/advisory/contracts`
 - `tests/integration`
 
 ## Configuration and Feature Management Baseline
@@ -31,7 +31,7 @@ Evidence:
 
 Evidence:
 - `src/api/enterprise_readiness.py`
-- `tests/unit/api/test_enterprise_readiness.py`
+- `tests/unit/advisory/api/test_api_internal_guards.py`
 
 ## Data Quality and Reconciliation Baseline
 
@@ -40,7 +40,7 @@ Evidence:
 
 Evidence:
 - `docs/standards/durability-consistency.md`
-- `tests/unit/dpm/engine`
+- `tests/unit/advisory/engine`
 
 ## Reliability and Operations Baseline
 
@@ -57,7 +57,7 @@ Evidence:
 
 Evidence:
 - `src/api/enterprise_readiness.py`
-- `tests/unit/api/test_enterprise_readiness.py`
+- `tests/unit/advisory/api/test_api_internal_guards.py`
 
 ## Deviations
 

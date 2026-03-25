@@ -1,4 +1,4 @@
-﻿# RFC-0014F: Advisory Workflow Gates & Next-Step Semantics (Stateless, Pre-Persistence)
+# RFC-0014F: Advisory Workflow Gates & Next-Step Semantics (Stateless, Pre-Persistence)
 
 | Metadata | Details |
 | --- | --- |
@@ -28,9 +28,8 @@ This is a stateless “workflow brain” that interprets:
 - suitability issues (NEW / RESOLVED / PERSISTENT with severity)
 
 and returns a consistent **GateDecision** block in both:
-- `/rebalance/proposals/simulate` response
-- `/rebalance/proposals/artifact` (if implemented)
- - `/rebalance/simulate` response (shared lotus-manage vocabulary)
+- `/advisory/proposals/simulate` response
+- `/advisory/proposals/artifact` (if implemented)
 
 ---
 
@@ -52,7 +51,6 @@ Without explicit gates, UIs and downstream systems must infer workflow from raw 
 ### 2.1 In Scope
 - Define `GateDecision` schema and deterministic evaluation logic.
 - Add `gate_decision` to proposal simulation result and proposal artifact.
-- Add `gate_decision` to lotus-manage rebalance simulation result for shared workflow semantics.
 - Define mapping rules from:
   - rule_results (HARD/FAIL, SOFT/FAIL)
   - suitability summary (new issues and severities)
@@ -243,14 +241,6 @@ If RFC-0014E implemented:
 * include the same `gate_decision` in `summary.recommended_next_step`
 * include full block in artifact top-level to support workflow routing
 
-### 7.3 lotus-manage simulate response
-
-Add `gate_decision` to lotus-manage `/rebalance/simulate` response with shared semantics:
-- clean discretionary runs default to `EXECUTION_READY` unless consent policy is enabled
-- blocked and pending-review flows map to deterministic workflow gates
-
----
-
 ## 8. Implementation Plan
 
 1. Implement shared gate evaluator in `src/core/common/workflow_gates.py`.
@@ -262,7 +252,6 @@ Add `gate_decision` to lotus-manage `/rebalance/simulate` response with shared s
 4. Wire into:
    * advisory simulate (`ProposalResult.gate_decision`)
    * advisory artifact (`ProposalArtifact.gate_decision`)
-   * lotus-manage simulate (`RebalanceResult.gate_decision`)
 5. Add unit/API/contract coverage.
 
 ---
@@ -299,7 +288,7 @@ Each asserts:
 * Implemented: responses include `gate_decision` with stable schema.
 * Implemented: deterministic gate policy with test coverage.
 * Implemented: standardized reason codes and deterministic sorting.
-* Implemented: advisory artifact and simulate include gate decision; lotus-manage simulate includes shared gate decision.
+* Implemented: advisory artifact and simulate include gate decision.
 
 ---
 
@@ -316,4 +305,5 @@ Each asserts:
 1. Workflow gates are derived from deterministic policy evaluation over status, rule outcomes, suitability severity, and key diagnostics.
 2. `BLOCKED` always dominates gate outcomes and routes to input-fix workflow.
 3. Clean feasible proposals route to client-consent or execution-ready based on consent options.
-4. Shared gate vocabulary is applied consistently in advisory simulate, advisory artifact, and lotus-manage simulate responses.
+4. Shared gate vocabulary is applied consistently across advisory simulate and advisory artifact responses.
+

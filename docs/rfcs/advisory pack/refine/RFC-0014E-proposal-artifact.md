@@ -1,4 +1,4 @@
-﻿# RFC-0014E: Advisory Proposal Artifact (Client-Ready Package + Evidence Bundle)
+# RFC-0014E: Advisory Proposal Artifact (Client-Ready Package + Evidence Bundle)
 
 | Metadata | Details |
 | --- | --- |
@@ -45,7 +45,7 @@ The Proposal Artifact standardizes these elements in a deterministic structure.
 
 ### 2.1 In Scope
 - Define a canonical `ProposalArtifact` schema.
-- Add endpoint: `POST /rebalance/proposals/artifact` OR enhance `POST /rebalance/proposals/simulate` to optionally return `artifact`.
+- Add endpoint: `POST /advisory/proposals/artifact` OR enhance `POST /advisory/proposals/simulate` to optionally return `artifact`.
   - Recommended approach: keep simulate lean; expose a separate artifact endpoint that takes a simulation result (or the same request) and returns the artifact.
 - Produce:
   - a proposal summary
@@ -78,10 +78,10 @@ The Proposal Artifact standardizes these elements in a deterministic structure.
 ## 4. API Design
 
 ### 4.1 Option A (Implemented): Dedicated artifact endpoint
-**Endpoint:** `POST /rebalance/proposals/artifact`
+**Endpoint:** `POST /advisory/proposals/artifact`
 
 **Request options:**
-- **A1:** Provide `proposal_simulate_request` (same as `/rebalance/proposals/simulate`) and internally call simulation first.
+- **A1:** Provide `proposal_simulate_request` (same as `/advisory/proposals/simulate`) and internally call simulation first.
 - **A2:** Provide `proposal_result` (the output of simulate) to avoid re-simulating.
 
 For MVP, **A1 is implemented** (simpler for callers; artifact always matches simulation).
@@ -94,7 +94,7 @@ Response:
 - `200 OK` with `ProposalArtifact`
 
 ### 4.2 Option B: Embed artifact in simulate response
-Add `options.include_artifact=true` to `/rebalance/proposals/simulate`.
+Add `options.include_artifact=true` to `/advisory/proposals/simulate`.
 
 This is acceptable, but tends to bloat the simulate response. Prefer Option A.
 
@@ -126,7 +126,7 @@ This is acceptable, but tends to bloat the simulate response. Prefer Option A.
 
 ```json
 "summary": {
-  "title": "Rebalance toward Balanced Model",
+  "title": "Advisory Proposal toward Balanced Model",
   "objective_tags": ["DRIFT_REDUCTION", "RISK_ALIGNMENT", "CASH_DEPLOYMENT"],
   "advisor_notes": [
     { "code": "NOTE", "text": "Client increased risk appetite slightly; deploying excess cash." }
@@ -366,7 +366,7 @@ Goldens should assert:
 
 ## 8. Acceptance Criteria (DoD)
 
-* Implemented: `/rebalance/proposals/artifact` returns a deterministic `ProposalArtifact`.
+* Implemented: `/advisory/proposals/artifact` returns a deterministic `ProposalArtifact`.
 * Implemented: artifact includes summary, portfolio_impact (before/after/delta), trades_and_funding, assumptions, disclosures placeholders, evidence bundle.
 * Implemented: if suitability is available, artifact includes suitability summary; otherwise section status is `NOT_AVAILABLE`.
 * Implemented: evidence bundle includes full reproducibility payloads (inputs + engine outputs).
@@ -389,3 +389,4 @@ Goldens should assert:
 2. Hashing uses canonical JSON and excludes volatile fields so equivalent inputs produce stable artifact hashes.
 3. If optional analytics (for example suitability) are unavailable, artifact sections are explicitly marked unavailable instead of silently omitted.
 4. `evidence_bundle` includes reproducibility payloads (inputs + engine outputs) to support audit and replay.
+

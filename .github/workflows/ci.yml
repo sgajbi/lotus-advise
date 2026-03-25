@@ -310,7 +310,7 @@ jobs:
         run: |
           curl -fsS http://127.0.0.1:8002/docs > /dev/null
           curl -fsS http://127.0.0.1:8002/health > /dev/null
-          curl -fsS "http://127.0.0.1:8002/rebalance/proposals?limit=1" > /dev/null
+          curl -fsS "http://127.0.0.1:8002/advisory/proposals?limit=1" > /dev/null
 
       - name: Stop API
         if: always()
@@ -365,3 +365,4 @@ jobs:
           set -e
           test "$exit_code" -ne 0
           grep -q "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN" advisory_dsn_guardrail.log
+

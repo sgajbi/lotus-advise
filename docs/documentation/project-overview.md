@@ -7,19 +7,27 @@ This document explains the system at a high level for three audiences:
 
 ## What This Platform Does
 
-The platform provides deterministic portfolio decisioning APIs for:
-- **lotus-manage rebalancing** (model-driven discretionary portfolio management),
-- **Advisory proposals** (advisor-entered cash flows and manual trades).
+The platform provides advisory workflow APIs for:
+- advisory proposal simulation from advisor-entered cash flows and manual trades,
+- proposal lifecycle progression for review, approval, consent, and execution readiness,
+- advisory-facing orchestration seams for Lotus platform integrations.
 
 Architecture authority:
 - Platform-wide integration and architecture standards are maintained centrally in `https://github.com/sgajbi/lotus-platform`.
 - This repository documents service-local implementation details and service-specific RFCs only.
 
-Both flows produce structured, auditable outputs with:
+Current advisory flows produce structured, auditable outputs with:
 - before/after portfolio states,
 - intent-level actions,
 - rules and diagnostics,
 - lineage identifiers and deterministic hashes.
+
+Target operating model:
+- `lotus-advise` owns advisory workflow orchestration and proposal lifecycle,
+- `lotus-core` owns canonical portfolio state and portfolio simulation authority,
+- `lotus-risk` owns risk analytics,
+- `lotus-report` owns reporting outputs,
+- `lotus-ai` provides governed AI infrastructure for advisor-assistive features.
 
 ## Why It Matters
 
@@ -38,15 +46,15 @@ The API remains deterministic for identical inputs and options.
 
 ## Core Business Flows
 
-1. lotus-manage flow
-- Input: portfolio snapshot, market snapshot, model targets, shelf, options.
-- Output: optimized rebalance intents with controls (tax, turnover, settlement, constraints).
-
-2. Advisory flow
+1. Advisory proposal simulation
 - Input: portfolio snapshot, market snapshot, shelf, advisor cash/trade proposals, options.
 - Output: proposal simulation plus optional artifact package for client/reviewer workflow.
 
-3. Workflow semantics (shared)
+2. Advisory proposal lifecycle
+- Input: simulated proposal payloads plus workflow actor actions.
+- Output: persisted proposal versions, approvals, consent state, and execution readiness.
+
+3. Workflow semantics
 - Gate decisions provide deterministic next-step semantics:
   - blocked,
   - risk review,
@@ -56,31 +64,32 @@ The API remains deterministic for identical inputs and options.
 
 ## API Surface
 
-- `POST /rebalance/simulate`
-- `POST /rebalance/analyze`
-- `POST /rebalance/proposals/simulate`
-- `POST /rebalance/proposals/artifact`
+- `POST /advisory/proposals/simulate`
+- `POST /advisory/proposals/artifact`
+- `POST /advisory/proposals`
+- `GET /advisory/proposals`
+- `GET /advisory/proposals/{proposal_id}`
 
 ## Architecture Summary
 
 - `src/api/`: FastAPI contracts and endpoint orchestration.
-- `src/core/dpm/`: lotus-manage-specific engine modules.
+- `src/api/proposals/`: proposal lifecycle API package for runtime wiring, errors, and lifecycle/async/support routes.
 - `src/core/advisory/`: Advisory-specific modules (artifact, funding, intents, ids).
 - `src/core/common/`: Shared logic (simulation primitives, diagnostics, drift, suitability, canonical hashing, workflow gates).
+- `src/core/proposals/`: proposal lifecycle models, services, and repository abstractions.
+- `src/integrations/`: adapter seams for Lotus platform dependencies.
+- `src/api/capabilities/`: readiness and capability resolution seams for integration-aware platform truth.
 - `src/core/models.py`: shared request/response contracts and options.
 
 ## Test Strategy
 
 Tests are organized by responsibility:
-- `tests/unit/dpm/`: lotus-manage API, engine, and lotus-manage golden tests.
 - `tests/unit/advisory/`: advisory API, engine, contracts, and advisory golden tests.
 - `tests/unit/shared/`: shared contracts/compliance/dependencies tests.
 - `tests/e2e/`: end-to-end workflow/demo scenario tests.
 - `tests/shared/`: shared test helpers (factories/assertions).
 
-Golden fixtures are split by domain:
-- `tests/unit/dpm/golden_data/`
-- `tests/unit/advisory/golden_data/`
+Golden fixtures and lifecycle scenarios should focus on advisory flows and shared invariants.
 
 CI test execution model:
 - runs `tests/unit`, `tests/integration`, and `tests/e2e` in parallel matrix jobs,
@@ -96,9 +105,10 @@ CI test execution model:
 
 ## Current Delivery Principle
 
-Keep lotus-manage and advisory behavior separated by business logic, while sharing:
+Keep `lotus-advise` advisory-only while sharing Lotus platform standards for:
 - vocabulary,
 - control semantics,
 - deterministic primitives,
 - test and audit standards.
+
 

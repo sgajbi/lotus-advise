@@ -1,11 +1,11 @@
-﻿# RFC-0014B: Advisory Proposal Auto-Funding (FX Spot Intents + Dependency Graph)
+# RFC-0014B: Advisory Proposal Auto-Funding (FX Spot Intents + Dependency Graph)
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14B |
-| **Depends On** | RFC-0014A (Proposal Simulation MVP), RFC-0006A (Safety + After-state completeness) |
+| **Depends On** | RFC-0014A (Proposal Simulation MVP), safety and after-state completeness hardening |
 | **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014B-advisory-proposal-auto-funding.md` |
 | **Backward Compatibility** | Not required |
 | **Implemented In** | 2026-02-19 |
@@ -64,7 +64,7 @@ Without auto-funding:
 
 ### 3.1 Endpoint
 Continues to use:
-- `POST /rebalance/proposals/simulate`
+- `POST /advisory/proposals/simulate`
 
 ### 3.2 Inputs
 No breaking changes required, but RFC-0014B introduces/standardizes these **options**:
@@ -391,3 +391,4 @@ Each golden must assert:
 3. FX funding intents are generated deterministically and BUY intents carry explicit dependencies on those FX intents.
 4. Missing required FX data follows policy: with blocking enabled the proposal is `BLOCKED`; with non-blocking policy execution intents are constrained and surfaced for review.
 5. Intent ordering remains deterministic: `CASH_FLOW -> SELL -> FX -> BUY`.
+
