@@ -2,14 +2,13 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED |
+| **Status** | DRAFT |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14E |
 | **Depends On** | RFC-0014A (Proposal Simulation) |
 | **Strongly Recommended** | RFC-0014B (Auto-Funding), RFC-0014C (Drift Analytics), RFC-0014D (Suitability Scanner) |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014E-proposal-artifact.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014E-proposal-artifact.md` |
 | **Backward Compatibility** | Not required |
-| **Implemented In** | 2026-02-19 |
 
 ---
 
@@ -45,7 +44,7 @@ The Proposal Artifact standardizes these elements in a deterministic structure.
 
 ### 2.1 In Scope
 - Define a canonical `ProposalArtifact` schema.
-- Add endpoint: `POST /advisory/proposals/artifact` OR enhance `POST /advisory/proposals/simulate` to optionally return `artifact`.
+- Add endpoint: `POST /v1/proposal/artifact` OR enhance `POST /v1/proposal/simulate` to optionally return `artifact`.
   - Recommended approach: keep simulate lean; expose a separate artifact endpoint that takes a simulation result (or the same request) and returns the artifact.
 - Produce:
   - a proposal summary
@@ -77,14 +76,14 @@ The Proposal Artifact standardizes these elements in a deterministic structure.
 
 ## 4. API Design
 
-### 4.1 Option A (Implemented): Dedicated artifact endpoint
-**Endpoint:** `POST /advisory/proposals/artifact`
+### 4.1 Option A (Recommended): Dedicated artifact endpoint
+**Endpoint:** `POST /v1/proposal/artifact`
 
 **Request options:**
-- **A1:** Provide `proposal_simulate_request` (same as `/advisory/proposals/simulate`) and internally call simulation first.
+- **A1:** Provide `proposal_simulate_request` (same as `/proposal/simulate`) and internally call simulation first.
 - **A2:** Provide `proposal_result` (the output of simulate) to avoid re-simulating.
 
-For MVP, **A1 is implemented** (simpler for callers; artifact always matches simulation).
+For MVP, choose **A1** (simpler for callers; artifact always matches simulation).
 
 Headers:
 - `Idempotency-Key` required
@@ -94,7 +93,7 @@ Response:
 - `200 OK` with `ProposalArtifact`
 
 ### 4.2 Option B: Embed artifact in simulate response
-Add `options.include_artifact=true` to `/advisory/proposals/simulate`.
+Add `options.include_artifact=true` to `/proposal/simulate`.
 
 This is acceptable, but tends to bloat the simulate response. Prefer Option A.
 
@@ -110,7 +109,6 @@ This is acceptable, but tends to bloat the simulate response. Prefer Option A.
   "correlation_id": "corr_...",
   "created_at": "2026-02-18T09:12:00Z",
   "status": "READY|PENDING_REVIEW|BLOCKED",
-  "gate_decision": { ... },
 
   "summary": { ... },
   "portfolio_impact": { ... },
@@ -232,14 +230,6 @@ If scanner not present:
 
 * omit this section or set `{ "status": "NOT_AVAILABLE" }`.
 
-### 5.5B `gate_decision` (if RFC-0014F present)
-
-When workflow gates are enabled, include deterministic workflow routing payload:
-- `gate`
-- `recommended_next_step`
-- `reasons[]`
-- `summary`
-
 ### 5.6 `assumptions_and_limits`
 
 Must include explicit deterministic assumptions:
@@ -296,12 +286,12 @@ This is the institutional core. It ensures reproducibility:
 
 Rules:
 
-* `artifact_hash` is computed from canonical JSON serialization of the artifact payload excluding volatile fields.
+* `artifact_hash` must be computed from canonical JSON serialization of the artifact (excluding volatile timestamps if needed).
 * Ensure determinism: timestamps may break hash determinism; either:
 
   * exclude created_at from hash, or
   * use a deterministic created_at from request (not recommended)
-    For MVP (implemented): **exclude volatile fields from hashing** (`created_at`, `artifact_hash`).
+    For MVP: **exclude volatile fields from hashing** and document it.
 
 ---
 
@@ -366,12 +356,12 @@ Goldens should assert:
 
 ## 8. Acceptance Criteria (DoD)
 
-* Implemented: `/advisory/proposals/artifact` returns a deterministic `ProposalArtifact`.
-* Implemented: artifact includes summary, portfolio_impact (before/after/delta), trades_and_funding, assumptions, disclosures placeholders, evidence bundle.
-* Implemented: if suitability is available, artifact includes suitability summary; otherwise section status is `NOT_AVAILABLE`.
-* Implemented: evidence bundle includes full reproducibility payloads (inputs + engine outputs).
-* Implemented: artifact hashing is deterministic and documented (canonical JSON excluding volatile fields).
-* Implemented: golden tests cover multiple artifact scenarios end-to-end.
+* New endpoint `/v1/proposal/artifact` returns a deterministic `ProposalArtifact`.
+* Artifact includes: summary, portfolio_impact (before/after/delta), trades_and_funding, assumptions, disclosures placeholders, evidence bundle.
+* If drift and suitability are available, artifact includes those summaries.
+* Evidence bundle enables full reproducibility (inputs + engine outputs included).
+* Artifact hashing is deterministic and documented.
+* Golden tests cover at least one artifact scenario end-to-end.
 
 ---
 
@@ -381,12 +371,4 @@ Goldens should assert:
 * RFC-0014G: Client document rendering (PDF/Word/email templates)
 * RFC-0014H: Jurisdiction-specific disclosure packs and suitability mapping
 
-
-
-## Behavior Reference (Implemented)
-
-1. Artifact generation reuses proposal simulation outputs, then builds deterministic business sections from those facts.
-2. Hashing uses canonical JSON and excludes volatile fields so equivalent inputs produce stable artifact hashes.
-3. If optional analytics (for example suitability) are unavailable, artifact sections are explicitly marked unavailable instead of silently omitted.
-4. `evidence_bundle` includes reproducibility payloads (inputs + engine outputs) to support audit and replay.
 

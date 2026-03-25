@@ -1,13 +1,13 @@
-# RFC-0014F: Advisory Workflow Gates & Next-Step Semantics (Stateless, Pre-Persistence)
+# RFC-0012: Advisory Workflow Gates & Next-Step Semantics (Stateless, Pre-Persistence)
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14F |
-| **Depends On** | RFC-0014A (Proposal Simulation) |
-| **Strongly Recommended** | RFC-0014D (Suitability Scanner), RFC-0014E (Proposal Artifact) |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014F-advisory-workflow-gates.md` |
+| **Target Release** | MVP-0012 |
+| **Depends On** | RFC-0007 (Proposal Simulation) |
+| **Strongly Recommended** | RFC-0010 (Suitability Scanner), RFC-0011 (Proposal Artifact) |
+| **Doc Location** | `docs/rfcs/RFC-0012-advisory-workflow-gates.md` |
 | **Backward Compatibility** | Not required |
 | **Implemented In** | 2026-02-19 |
 
@@ -15,7 +15,7 @@
 
 ## 0. Executive Summary
 
-RFC-0014F introduces **workflow semantics** for advisory proposals—without persistence—by defining:
+RFC-0012 introduces **workflow semantics** for advisory proposals—without persistence—by defining:
 
 - a clear **gate decision**: what review/approval is required before proceeding
 - a deterministic **recommended next step** for advisor workflow:
@@ -236,7 +236,7 @@ Add `gate_decision` to the response alongside:
 
 ### 7.2 Proposal artifact
 
-If RFC-0014E implemented:
+If RFC-0011 implemented:
 
 * include the same `gate_decision` in `summary.recommended_next_step`
 * include full block in artifact top-level to support workflow routing
@@ -294,9 +294,9 @@ Each asserts:
 
 ## 11. Follow-ups
 
-* RFC-0014G: Persist workflow state (proposal saved, approval tracking)
-* RFC-0014H: Jurisdiction-specific gate policies
-* RFC-0014I: Integration with consent and execution systems
+* RFC-0013: Persist workflow state (proposal saved, approval tracking)
+* RFC-0015: Jurisdiction-specific gate policies
+* RFC-0017: Integration with consent and execution systems
 
 
 
@@ -306,4 +306,5 @@ Each asserts:
 2. `BLOCKED` always dominates gate outcomes and routes to input-fix workflow.
 3. Clean feasible proposals route to client-consent or execution-ready based on consent options.
 4. Shared gate vocabulary is applied consistently across advisory simulate and advisory artifact responses.
+
 

@@ -1,20 +1,20 @@
-# RFC-0014K: Data Quality, Snapshots & Replayability (Institution-Grade Determinism)
+# RFC-0014: Data Quality, Snapshots & Replayability (Institution-Grade Determinism)
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | DRAFT |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14K |
-| **Depends On** | RFC-0014A (Proposal Simulation) |
-| **Strongly Recommended** | RFC-0014E (Proposal Artifact), RFC-0014G (Persistence), RFC-0014H (Policy Packs) |
-| **Doc Location** | `docs/rfcs/RFC-0014K-data-quality-snapshots-replayability.md` |
+| **Target Release** | MVP-0014 |
+| **Depends On** | RFC-0007 (Proposal Simulation) |
+| **Strongly Recommended** | RFC-0011 (Proposal Artifact), RFC-0013 (Persistence), RFC-0015 (Policy Packs) |
+| **Doc Location** | `docs/rfcs/RFC-0014-data-quality-snapshots-replayability.md` |
 | **Backward Compatibility** | Not required |
 
 ---
 
 ## 0. Executive Summary
 
-RFC-0014K makes the system **institution-grade** by formalizing:
+RFC-0014 makes the system **institution-grade** by formalizing:
 
 - **Snapshot contracts** (portfolio, prices, FX, shelf)
 - **Data Quality (DQ) policy**: what is required vs optional
@@ -125,7 +125,7 @@ Must include:
 
 ## 4. Data Quality Policy (Config-Driven)
 
-DQ policy belongs in Policy Pack (RFC-0014H), but this RFC defines baseline defaults.
+DQ policy belongs in Policy Pack (RFC-0015), but this RFC defines baseline defaults.
 
 ### 4.1 Required vs Optional data
 
@@ -254,7 +254,7 @@ Compute hashes for each snapshot:
 
 ### 7.1 API
 
-`POST /v1/proposal/replay`
+`POST /advisory/proposals/replay`
 
 Body:
 
@@ -353,3 +353,5 @@ Golden tests:
 * Integration with an enterprise snapshot store (object storage)
 * Data lineage persistence and governance hooks
 * Expand DQ to cover corporate actions and reference-data mismatches
+
+

@@ -10,9 +10,9 @@ This document defines the required language and contract conventions for all RFC
 
 ## 2. Canonical API Conventions
 
-1. Canonical simulate endpoint is `POST /advisory/simulate`.
-2. Do not introduce `/v1/advisory/simulate` unless a dedicated versioning RFC is approved and all clients/tests are migrated together.
-3. Advisory simulation, proposal, execution, and support endpoints should follow the same route family style (`/advisory/...`).
+1. Canonical advisory simulation endpoint is `POST /advisory/proposals/simulate`.
+2. Do not introduce `/v1/...` route families unless a dedicated versioning RFC is approved and all clients/tests are migrated together.
+3. Advisory simulation, workspace, proposal, execution, and support endpoints should follow the same advisory route family style (`/advisory/...`).
 4. Domain outcomes for valid payloads are represented in response `status`, not as separate HTTP domain error contracts.
 
 ## 3. Status Vocabulary
@@ -45,7 +45,8 @@ All future RFCs must preserve and explicitly acknowledge:
 
 Use:
 1. `RFC-XXXX-topic-in-lowercase-kebab.md`
-2. Suffix letters allowed for branch RFCs (for example `RFC-0006A-...`).
+2. Prefer one parent RFC with embedded implementation slices when a topic is a single coherent program of work.
+3. Suffix letters are allowed only when a child RFC is genuinely needed as a separate governing document.
 
 Titles can be human-readable; filenames should remain machine-friendly and stable.
 
@@ -53,13 +54,20 @@ Titles can be human-readable; filenames should remain machine-friendly and stabl
 
 Each RFC should include:
 1. Metadata (`Status`, `Created`, `Depends On`, optional `Doc Location`).
-2. Executive Summary.
+2. Summary or Executive Summary.
 3. Problem Statement.
 4. Goals and Non-Goals.
-5. Proposed Design.
-6. Test Plan.
-7. Rollout/Compatibility.
-8. Status/Reason code conventions (if introducing new diagnostics).
+5. Decision or Proposed Design.
+6. Architecture direction and ownership boundaries where relevant.
+7. Delivery slices when the RFC is intended to be implemented progressively.
+8. Test and validation expectations.
+9. Rollout/Compatibility.
+10. Status/Reason code conventions when introducing new diagnostics.
+
+Slice convention:
+1. If an RFC is executed in stages, prefer `Slice 1`, `Slice 2`, and so on inside the same RFC.
+2. Each slice should state outcome, acceptance gate, and out-of-scope boundaries when useful.
+3. Child RFCs should not be created by default when slices inside one RFC are sufficient.
 
 ## 8. Dependency and Extension Rule
 

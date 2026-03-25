@@ -7,7 +7,7 @@
 | **Target Release** | MVP-14J |
 | **Depends On** | RFC-0014I (Execution Integration) |
 | **Strongly Recommended** | RFC-0014G (Persistence), RFC-0014H (Policy Packs) |
-| **Doc Location** | `docs/rfcs/RFC-0014J-monitoring-surveillance-post-trade-controls.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014J-monitoring-surveillance-post-trade-controls.md` |
 | **Backward Compatibility** | Not required |
 
 ---
@@ -299,3 +299,4 @@ Golden tests:
 * Regulatory reporting integration
 * Cross-portfolio surveillance (client-level CIF monitoring)
 * Automated remediation proposals (auto-generated unwind/rebalance suggestions)
+

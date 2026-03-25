@@ -1,20 +1,20 @@
-# RFC-0014J: Monitoring, Surveillance & Post-Trade Controls (Institution-Grade Oversight)
+# RFC-0018: Monitoring, Surveillance & Post-Trade Controls (Institution-Grade Oversight)
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | DRAFT |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14J |
-| **Depends On** | RFC-0014I (Execution Integration) |
-| **Strongly Recommended** | RFC-0014G (Persistence), RFC-0014H (Policy Packs) |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014J-monitoring-surveillance-post-trade-controls.md` |
+| **Target Release** | MVP-0018 |
+| **Depends On** | RFC-0017 (Execution Integration) |
+| **Strongly Recommended** | RFC-0013 (Persistence), RFC-0015 (Policy Packs) |
+| **Doc Location** | `docs/rfcs/RFC-0018-monitoring-surveillance-post-trade-controls.md` |
 | **Backward Compatibility** | Not required |
 
 ---
 
 ## 0. Executive Summary
 
-RFC-0014J adds **institution-grade oversight** after proposals enter execution:
+RFC-0018 adds **institution-grade oversight** after proposals enter execution:
 
 - **Post-trade reconciliation**: compare expected vs executed positions/cash
 - **Surveillance signals**: unusual trading patterns, concentration spikes, liquidity breaches
@@ -35,7 +35,7 @@ In production private banking, the biggest risks are often not “making a propo
 - data gaps cause silent drift or misreporting
 - operational issues (timeouts, retries) cause duplicate orders or missing audit trails
 
-RFC-0014J closes the loop with monitoring + controls.
+RFC-0018 closes the loop with monitoring + controls.
 
 ---
 
@@ -127,7 +127,7 @@ Classification rules:
 
 ## 6. Post-Trade Policy Checks (Breach Detection)
 
-Re-run selected checks against the realized post-trade state (using RFC-0014H policy packs):
+Re-run selected checks against the realized post-trade state (using RFC-0015 policy packs):
 
 * Single position concentration
 * Issuer concentration
@@ -205,7 +205,7 @@ Schema:
 
 ### 8.2 Persistence
 
-If RFC-0014G is implemented, store exceptions in Postgres with append-only event history.
+If RFC-0013 is implemented, store exceptions in Postgres with append-only event history.
 
 ---
 
@@ -299,4 +299,5 @@ Golden tests:
 * Regulatory reporting integration
 * Cross-portfolio surveillance (client-level CIF monitoring)
 * Automated remediation proposals (auto-generated unwind/rebalance suggestions)
+
 

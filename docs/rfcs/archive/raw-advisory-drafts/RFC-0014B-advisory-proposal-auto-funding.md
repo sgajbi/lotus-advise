@@ -2,13 +2,12 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED |
+| **Status** | DRAFT |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14B |
 | **Depends On** | RFC-0014A (Proposal Simulation MVP), safety and after-state completeness hardening |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014B-advisory-proposal-auto-funding.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014B-advisory-proposal-auto-funding.md` |
 | **Backward Compatibility** | Not required |
-| **Implemented In** | 2026-02-19 |
 
 ---
 
@@ -64,7 +63,7 @@ Without auto-funding:
 
 ### 3.1 Endpoint
 Continues to use:
-- `POST /advisory/proposals/simulate`
+- `POST /v1/proposal/simulate`
 
 ### 3.2 Inputs
 No breaking changes required, but RFC-0014B introduces/standardizes these **options**:
@@ -121,11 +120,6 @@ Deterministic funding-currency order for `ANY_CASH`:
 
 1. base currency
 2. other currencies sorted lexicographically by currency code (excluding target `CCY`)
-
-> Implementation alignment note (current project slice):
-> With `fx_generation_policy=ONE_FX_PER_CCY`, the engine selects a **single** funding currency
-> per target currency using the deterministic order above. If no single source can fully fund
-> the deficit, the proposal is blocked as insufficient funding.
 
 ### 4.3 FX generation policy
 
@@ -260,9 +254,6 @@ Add structured diagnostics sections:
   * `status=PENDING_REVIEW`
   * and rule result `DATA_QUALITY` FAIL (or WARNING, depending on your rule taxonomy)
 
-Current implementation marks missing non-blocking funding FX as `PENDING_REVIEW` and skips
-execution-intent generation for affected BUYs in the simulated executable plan.
-
 ---
 
 ## 9. Algorithm / Processing Pipeline
@@ -382,13 +373,4 @@ Each golden must assert:
 * RFC-0014F: Advisory workflow states + human-in-loop gates
 
 ---
-
-
-## Behavior Reference (Implemented)
-
-1. Auto-funding is option-controlled and runs only for BUY currency deficits.
-2. Existing trade-currency cash is consumed before generating FX funding intents.
-3. FX funding intents are generated deterministically and BUY intents carry explicit dependencies on those FX intents.
-4. Missing required FX data follows policy: with blocking enabled the proposal is `BLOCKED`; with non-blocking policy execution intents are constrained and surfaced for review.
-5. Intent ordering remains deterministic: `CASH_FLOW -> SELL -> FX -> BUY`.
 

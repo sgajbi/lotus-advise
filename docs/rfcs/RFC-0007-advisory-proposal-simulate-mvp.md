@@ -1,12 +1,12 @@
-# RFC-0014A: Advisory Proposal Simulation MVP (Manual Trades + Cash Flows)
+# RFC-0007: Advisory Proposal Simulation MVP (Manual Trades + Cash Flows)
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14A |
+| **Target Release** | MVP-0007 |
 | **Depends On** | No-throw architecture principles, after-state completeness and safety hardening |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014A-advisory-proposal-simulate-mvp.md` |
+| **Doc Location** | `docs/rfcs/RFC-0007-advisory-proposal-simulate-mvp.md` |
 | **Backward Compatibility** | Not required (new endpoint; app not live) |
 | **Implemented In** | 2026-02-19 |
 
@@ -41,7 +41,7 @@ Key gaps this RFC closes:
 
 ## 2. Scope
 
-### 2.1 In Scope (RFC-0014A)
+### 2.1 In Scope (RFC-0007)
 1. **New endpoint**: `POST /advisory/proposals/simulate`
 2. **Inputs**:
    - portfolio snapshot
@@ -57,10 +57,10 @@ Key gaps this RFC closes:
 4. **Outputs**:
    - Proposal result bundle including: before, after, intents, diagnostics, rule results, reconciliation, lineage IDs
 
-### 2.2 Explicitly Out of Scope (RFC-0014A)
-- **Auto-funding (FX generation)** (defer to RFC-0014B)
-- **Drift analytics (model alignment)** (defer to RFC-0014C)
-- **Suitability scanning / new vs resolved risks** (defer to RFC-0014D)
+### 2.2 Explicitly Out of Scope (RFC-0007)
+- **Auto-funding (FX generation)** (defer to RFC-0008)
+- **Drift analytics (model alignment)** (defer to RFC-0009)
+- **Suitability scanning / new vs resolved risks** (defer to RFC-0010)
 - Persistence / DB / durable idempotency
 
 ---
@@ -193,7 +193,7 @@ To avoid ambiguity and support deterministic goldens, intent ordering must be:
 2. `SECURITY_TRADE` SELL intents (instrument_id ascending)
 3. `SECURITY_TRADE` BUY intents (instrument_id ascending)
 
-> Auto-generated FX intents are not part of 14A (added in 14B).
+> Auto-generated FX intents are not part of RFC-0007 (added in RFC-0008).
 
 ### 6.2 Core flow
 
@@ -244,7 +244,7 @@ To avoid ambiguity and support deterministic goldens, intent ordering must be:
 
 ## 7. Diagnostics and Reason Codes
 
-RFC-0014A adds these proposal-specific diagnostics codes:
+RFC-0007 adds these proposal-specific diagnostics codes:
 
 * `PROPOSAL_WITHDRAWAL_NEGATIVE_CASH` (hard block)
 * `PROPOSAL_INVALID_TRADE_INPUT` (schema-level 422)
@@ -368,16 +368,16 @@ Scenario:
 
 1. Add endpoint behind docs/demo usage (no persistence)
 2. Validate with a small scenario set (goldens)
-3. Extend with RFC-0014B (Auto-Funding) once 14A stabilizes
+3. Extend with RFC-0008 (Auto-Funding) once RFC-0007 stabilizes
 
 ---
 
 ## 11. Follow-up RFCs (Planned)
 
-* **RFC-0014B**: Auto-Funding for Proposals (FX spot intent generation + dependencies)
-* **RFC-0014C**: Drift Analytics (Before/After vs Model alignment metrics)
-* **RFC-0014D**: Suitability Scanner v1 (New/Resolved/Persistent issues)
-* **RFC-0014E**: Proposal Artifact Packaging (client-ready narrative bundle)
+* **RFC-0008**: Auto-Funding for Proposals (FX spot intent generation + dependencies)
+* **RFC-0009**: Drift Analytics (Before/After vs Model alignment metrics)
+* **RFC-0010**: Suitability Scanner v1 (New/Resolved/Persistent issues)
+* **RFC-0011**: Proposal Artifact Packaging (client-ready narrative bundle)
 
 ---
 
@@ -389,4 +389,5 @@ Scenario:
 3. If `proposal_block_negative_cash=true`, withdrawal-driven negative cash is hard-blocked.
 4. Final status is still derived from shared hard/soft rule semantics (`READY`, `PENDING_REVIEW`, `BLOCKED`).
 5. Idempotency behavior is deterministic: same `Idempotency-Key` plus same canonical payload returns cached-equivalent output; same key with different payload returns conflict.
+
 

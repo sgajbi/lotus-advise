@@ -7,7 +7,7 @@
 | **Target Release** | MVP-14H |
 | **Depends On** | RFC-0014D (Suitability Scanner v1), RFC-0014E (Proposal Artifact), RFC-0014F (GateDecision) |
 | **Recommended** | RFC-0014G (Persistence) for full auditability across jurisdictions |
-| **Doc Location** | `docs/rfcs/RFC-0014H-jurisdiction-policy-packs.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014H-jurisdiction-policy-packs.md` |
 | **Backward Compatibility** | Not required |
 
 ---
@@ -363,3 +363,4 @@ Assert that for the same proposal:
 * Policy approvals workflow (four-eyes)
 * Localization for disclosures (en, zh, etc.)
 * Jurisdiction-specific suitability mappings (client profile → allowed products)
+

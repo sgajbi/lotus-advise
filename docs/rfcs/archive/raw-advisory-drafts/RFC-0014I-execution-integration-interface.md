@@ -7,7 +7,7 @@
 | **Target Release** | MVP-14I |
 | **Depends On** | RFC-0014E (Proposal Artifact) |
 | **Strongly Recommended** | RFC-0014F (GateDecision), RFC-0014G (Persistence) |
-| **Doc Location** | `docs/rfcs/RFC-0014I-execution-integration-interface.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014I-execution-integration-interface.md` |
 | **Backward Compatibility** | Not required |
 
 ---
@@ -379,3 +379,4 @@ Not required for execution pipeline beyond determinism of tickets, but can snaps
 * Allocation to accounts, settlement instructions
 * Multi-day execution, slicing, time windows
 * Real OMS/FIX integration adapters
+

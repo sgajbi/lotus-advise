@@ -3,23 +3,17 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED (MVP IN-MEMORY ADAPTER) |
+| **Status** | DRAFT |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14G |
 | **Depends On** | RFC-0014A (Proposal Simulation) |
 | **Strongly Recommended** | RFC-0014E (Proposal Artifact), RFC-0014F (GateDecision) |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014G-proposal-persistence-workflow-lifecycle.md` |
-| **Backward Compatibility** | Existing `/advisory/proposals/simulate` and `/advisory/proposals/artifact` unchanged |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014G-proposal-persistence-workflow-lifecycle.md` |
+| **Backward Compatibility** | Not required |
 
 ---
 
 ## 0. Executive Summary
-
-Implementation note (2026-02-19):
-- Implemented with repository port + in-memory adapter (`src/core/proposals/*`, `src/infrastructure/proposals/in_memory.py`).
-- API endpoints delivered under `/advisory/proposals` lifecycle family in `src/api/proposals/router.py`.
-- PostgreSQL adapter/migrations intentionally deferred; architecture keeps persistence concerns behind repository interface for later adapter addition.
-- Cross-engine alignment added through shared dependency-linking utility (`src/core/common/intent_dependencies.py`) and request option `link_buy_to_same_currency_sell_dependency` with engine-specific defaults.
 
 RFC-0014G adds **persistence and lifecycle management** for advisory proposals so they can move through a real private-banking workflow:
 
@@ -48,10 +42,10 @@ Simulation results are ephemeral. Advisory workflows require:
 ## 2. Scope
 
 ### 2.1 In Scope
-- Lifecycle persistence via repository port with in-memory adapter for MVP:
+- PostgreSQL persistence for:
   - proposal metadata
-  - immutable proposal versions
-  - append-only workflow transitions
+  - proposal versions
+  - workflow state transitions
   - approvals/consents records (structured)
   - idempotency records for create operations
 - APIs:
@@ -60,13 +54,9 @@ Simulation results are ephemeral. Advisory workflows require:
   - list proposals with filters
   - transition workflow state
   - attach approvals/consent
-  - supportability reads: workflow timeline, approvals list, lineage hashes, idempotency lookup
-- Audit logging in repository storage (append-only workflow event log)
-- Runtime configurability via environment variables for lifecycle enablement, evidence storage,
-  expected-state enforcement, portfolio-context enforcement, and simulation-flag enforcement.
+- Audit logging in DB (append-only event log)
 
 ### 2.2 Out of Scope
-- PostgreSQL adapter + migrations (deferred to next persistence hardening RFC slice)
 - Integration with external consent tools / e-signature providers
 - Integration with OMS execution confirmation (can be a later RFC)
 - Jurisdiction-specific data retention rules (config hooks only)
@@ -154,11 +144,6 @@ Store as structured entries linked to workflow events:
 
 ## 5. Persistence Design (PostgreSQL)
 
-Implementation status note:
-- This section defines the target-state database design.
-- Current implementation uses `ProposalRepository` + `InMemoryProposalRepository`.
-- API/domain behavior is aligned to this schema contract to allow a drop-in PostgreSQL adapter.
-
 ### 5.1 Tables (minimal)
 1) `proposals`
 2) `proposal_versions`
@@ -238,17 +223,17 @@ Policy:
 
 ## 6. API Design
 
-All endpoints follow the `/advisory/...` route family.
+All endpoints are versioned under `/v1`.
 
 ### 6.1 Create proposal (simulation + persistence)
-`POST /advisory/proposals`
+`POST /v1/proposals`
 
 Headers:
 - `Idempotency-Key` required
 - `X-Correlation-Id` optional
 
 Body:
-- same as `POST /advisory/proposals/simulate` request
+- same as `POST /v1/proposal/simulate` request
 - plus optional metadata:
   - `title`, `advisor_notes`, `jurisdiction`
 
@@ -267,7 +252,7 @@ Behavior:
    - proposal_id, version_no, current_state, artifact summary, gate_decision
 
 ### 6.2 Get proposal (metadata + current)
-`GET /advisory/proposals/{proposal_id}`
+`GET /v1/proposals/{proposal_id}`
 
 Returns:
 - proposal metadata
@@ -276,19 +261,19 @@ Returns:
 - last gate decision
 
 ### 6.3 List proposals
-`GET /advisory/proposals?portfolio_id=&state=&created_by=&from=&to=&limit=&cursor=`
+`GET /v1/proposals?portfolio_id=&state=&created_by=&from=&to=&limit=&cursor=`
 
 Returns:
 - paginated list of proposal summaries
 
 ### 6.4 Get proposal version
-`GET /advisory/proposals/{proposal_id}/versions/{version_no}`
+`GET /v1/proposals/{proposal_id}/versions/{version_no}`
 
 Returns:
 - full artifact + evidence bundle (or allow `?include_evidence=false`)
 
 ### 6.5 Create new version (re-simulate with changes)
-`POST /advisory/proposals/{proposal_id}/versions`
+`POST /v1/proposals/{proposal_id}/versions`
 
 Body:
 - same as simulate request
@@ -300,7 +285,7 @@ Behavior:
 - add workflow event `NEW_VERSION_CREATED`
 
 ### 6.6 Transition workflow state
-`POST /advisory/proposals/{proposal_id}/transitions`
+`POST /v1/proposals/{proposal_id}/transitions`
 
 Body:
 ```json
@@ -324,7 +309,7 @@ Return:
 
 ### 6.7 Record approval / consent
 
-`POST /advisory/proposals/{proposal_id}/approvals`
+`POST /v1/proposals/{proposal_id}/approvals`
 
 Body:
 
@@ -343,16 +328,6 @@ Behavior:
 * write approval record
 * write workflow event `CLIENT_CONSENT_RECORDED`
 * update current_state accordingly
-
-### 6.8 Supportability and investigation reads
-
-Read-only operational endpoints for support teams:
-- `GET /advisory/proposals/{proposal_id}/workflow-events`
-- `GET /advisory/proposals/{proposal_id}/approvals`
-- `GET /advisory/proposals/{proposal_id}/lineage`
-- `GET /advisory/proposals/idempotency/{idempotency_key}`
-
-These are intended for audit, incident response, and reproducibility investigation.
 
 ---
 
@@ -446,29 +421,25 @@ Define interface hooks:
 ## 10. Implementation Plan (Slices)
 
 1. Persistence layer scaffolding:
-   * repository interfaces and in-memory adapter
-2. Create proposal endpoint:
+
+   * DB connection, migrations, repository interfaces
+2. Tables + migrations for proposals/versions/events/approvals/idempotency
+3. Create proposal endpoint:
 
    * simulate → artifact → persist
-3. Read endpoints:
+4. Read endpoints:
 
    * get proposal, list proposals, get version
-4. Transitions + approvals:
+5. Transitions + approvals:
 
    * state machine validation
    * optimistic locking
-5. Tests:
+6. Tests:
 
-   * repository tests (in-memory transactional semantics)
+   * repository tests (transactional)
    * API tests (FastAPI test client)
    * idempotency conflict tests
-6. Demo-pack live validation:
-   * `uvicorn` and Docker host execution of full demo pack
-
-7. Deferred:
-   * PostgreSQL adapter + migrations
-
-8. Observability:
+7. Observability:
 
    * metrics counters for create/transition outcomes
    * structured logs with correlation_id
@@ -488,8 +459,10 @@ Define interface hooks:
 
 ### 11.2 Integration tests (Postgres)
 
-- Deferred until PostgreSQL adapter delivery.
-- Current integration coverage uses FastAPI test client and live API calls against `uvicorn` and Docker.
+* use testcontainers (recommended) or ephemeral DB in CI
+* create proposal persists all rows correctly
+* transitions append events and update current_state
+* approvals create records and appropriate workflow event
 
 ### 11.3 Golden tests
 
@@ -500,21 +473,12 @@ Define interface hooks:
 
 ## 12. Acceptance Criteria (DoD)
 
-* Proposals can be created idempotently and stored through repository adapter (in-memory in MVP).
+* Proposals can be created idempotently and stored in Postgres.
 * Proposal versions are immutable and include artifact + evidence bundle + hashes.
 * Workflow events are append-only; current state is consistent and derived from events.
 * Approvals/consents are recorded and produce workflow transitions.
 * Concurrency conflicts return 409 Problem Details.
-* API + engine tests and live demo-pack validation run reliably in CI/dev.
-
-### 12.1 MVP Runtime Config Delivered
-Configuration is implementation-faithful and currently delivered via environment variables:
-- `PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED` (default `true`)
-- `PROPOSAL_STORE_EVIDENCE_BUNDLE` (default `true`)
-- `PROPOSAL_REQUIRE_EXPECTED_STATE` (default `true`)
-- `PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION` (default `false`)
-- `PROPOSAL_REQUIRE_SIMULATION_FLAG` (default `true`)
-- `PROPOSAL_SUPPORT_APIS_ENABLED` (default `true`)
+* Integration tests run reliably in CI.
 
 ---
 

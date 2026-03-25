@@ -7,7 +7,7 @@
 | **Target Release** | MVP-14L |
 | **Depends On** | RFC-0014A (Proposal Simulation), RFC-0014B (Auto-funding) |
 | **Strongly Recommended** | RFC-0014E (Proposal Artifact), RFC-0014K (DQ + Lineage) |
-| **Doc Location** | `docs/rfcs/RFC-0014L-costs-fees-frictions-v1.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014L-costs-fees-frictions-v1.md` |
 | **Backward Compatibility** | Not required |
 
 ---
@@ -276,3 +276,4 @@ Each asserts:
 * Custody fees
 * Performance net-of-fees reporting
 * TCA and realized cost comparison using fills (RFC-0014J)
+

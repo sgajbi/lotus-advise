@@ -6,7 +6,7 @@
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14A |
 | **Depends On** | No-throw architecture principles, after-state completeness and safety hardening |
-| **Doc Location** | `docs/rfcs/RFC-0014A-advisory-proposal-simulate-mvp.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014A-advisory-proposal-simulate-mvp.md` |
 | **Backward Compatibility** | Not required (new endpoint; app not live) |
 
 ---
@@ -378,4 +378,5 @@ Scenario:
 * **RFC-0014E**: Proposal Artifact Packaging (client-ready narrative bundle)
 
 ---
+
 

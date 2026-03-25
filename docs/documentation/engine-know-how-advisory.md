@@ -17,16 +17,16 @@ Implementation scope:
 - Advisory modular internals:
   - `src/core/advisory/ids.py` (deterministic run id generation)
   - `src/core/advisory/intents.py` (proposal cash/trade intent construction helpers)
-  - `src/core/advisory/funding.py` (RFC-0014B auto-funding planner)
-  - `src/core/advisory/artifact.py` (RFC-0014E artifact builder)
+  - `src/core/advisory/funding.py` (RFC-0008 auto-funding planner)
+  - `src/core/advisory/artifact.py` (RFC-0011 artifact builder)
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
 - Shared intent dependency linker: `src/core/common/intent_dependencies.py`
 - Shared diagnostics builders: `src/core/common/diagnostics.py`
 - Shared deterministic canonical serialization/hash: `src/core/common/canonical.py`
 - Shared workflow gate evaluator: `src/core/common/workflow_gates.py`
 - Shared advisory analytics:
-  - `src/core/common/drift_analytics.py` (RFC-0014C drift analytics)
-  - `src/core/common/suitability.py` (RFC-0014D suitability scanner)
+  - `src/core/common/drift_analytics.py` (RFC-0009 drift analytics)
+  - `src/core/common/suitability.py` (RFC-0010 suitability scanner)
 - Valuation: `src/core/valuation.py`
 - Rules: `src/core/compliance.py`
 
@@ -132,7 +132,7 @@ Persistence note:
 - Cash flows can be applied before trades (`proposal_apply_cash_flows_first`).
 - Trades are manually supplied and priced from market data.
 - For notional-driven trades, `notional.currency` must match priced instrument currency; mismatch blocks with `PROPOSAL_INVALID_TRADE_INPUT`.
-- RFC-0014B auto-funding:
+- RFC-0008 auto-funding:
   - Build funding plan per BUY currency.
   - Generate `FX_SPOT` intents for deficits using `BASE_ONLY` or `ANY_CASH` policy.
   - Apply deterministic dependencies from BUY intents to generated FX intent ids.
@@ -217,7 +217,7 @@ Swagger contract quality:
   - `recommended_gate` (`NONE`, `RISK_REVIEW`, `COMPLIANCE_REVIEW`)
 - standard safety/data-quality rules continue to apply (`NO_SHORTING`, `INSUFFICIENT_CASH`, etc.)
 
-## Proposal Artifact (RFC-0014E)
+## Proposal Artifact (RFC-0011)
 
 Deterministic sections:
 - `gate_decision`

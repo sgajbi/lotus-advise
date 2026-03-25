@@ -2,14 +2,13 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED |
+| **Status** | DRAFT |
 | **Created** | 2026-02-18 |
 | **Target Release** | MVP-14C |
 | **Depends On** | RFC-0014A (Proposal Simulation), after-state completeness hardening |
 | **Optional Depends On** | RFC-0014B (Auto-funding) — not required for drift math, but improves realism |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014C-drift-analytics.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014C-drift-analytics.md` |
 | **Backward Compatibility** | Not required |
-| **Implemented In** | 2026-02-19 |
 
 ---
 
@@ -96,7 +95,7 @@ Two levels supported:
 
 ### 4.1 Request
 
-Extend `POST /advisory/proposals/simulate` request with optional:
+Extend `POST /v1/proposal/simulate` request with optional:
 
 * `reference_model` (object)
 * or `reference_model_id` (string) if you already have a lookup mechanism (not recommended without persistence/connector; for MVP use inline object)
@@ -229,18 +228,17 @@ These are not “LLM text”; they are structured facts an advisor UI can render
 
 ## 8. Implementation Plan
 
-1. Add `ReferenceModel` and drift output models under `src/core/models.py` (Pydantic v2, decimals)
-2. Add drift analytics module at `src/core/common/drift_analytics.py`:
+1. Add `ReferenceModel` model under `src/domain/` (Pydantic v2, decimals)
+2. Add `DriftAnalyzer` under `src/core/analytics/`:
 
-   * method: `compute_drift_analysis(...)` with asset-class and optional instrument dimensions
+   * method: `compute_asset_class_drift(before_alloc, after_alloc, model_targets)`
+   * method: `compute_instrument_drift(before_alloc, after_alloc, model_targets, traded_instruments)`
 3. Ensure allocation inputs are taken from:
 
    * `before.allocation_by_asset_class`
    * `after_simulated.allocation_by_asset_class`
      and similarly for instruments.
 4. Add output wiring in proposal response builder
-   * `src/core/advisory_engine.py`
-   * `src/api/main.py`
 5. Add tests + goldens
 
 ---
@@ -286,12 +284,4 @@ Each golden asserts:
 * RFC-0014D: Suitability Scanner v1 (new/resolved/persistent)
 * RFC-0014E: Proposal Artifact packaging (client-ready report bundle)
 * RFC-0014F: Workflow gating (PENDING_REVIEW triggers)
-
-
-## Behavior Reference (Implemented)
-
-1. Drift analysis is computed only when a `reference_model` is provided and drift analytics is enabled.
-2. Bucket universes are deterministic unions, so unmodeled exposure is explicitly surfaced instead of hidden.
-3. Drift totals and contributors are produced with stable ordering for repeatable artifacts and reviews.
-4. When no reference model is supplied, drift output is omitted by design rather than inferred.
 

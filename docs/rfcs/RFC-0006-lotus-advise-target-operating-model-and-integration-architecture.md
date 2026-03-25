@@ -1,230 +1,241 @@
 # RFC-0006: lotus-advise Target Operating Model and Integration Architecture
 
-- Status: PROPOSED
-- Created: 2026-03-25
-- Depends On: RFC-0014G, RFC-0003, RFC-0004
-- Doc Location: `docs/rfcs/RFC-0006-lotus-advise-target-operating-model-and-integration-architecture.md`
+- Status: Proposed
+- Date: 2026-03-25
+- Owners: lotus-advise
+- Requires Approval From: lotus-advise maintainers
+- Depends On: RFC-0013, RFC-0003, RFC-0004
 
-## 1. Executive Summary
+## Summary
 
 `lotus-advise` should become the advisory workflow and orchestration service for the Lotus estate,
-not a second portfolio simulation or risk-calculation engine.
+not a second portfolio simulation engine, not a second risk engine, and not a mixed-scope
+repository with legacy ownership drift.
 
-This RFC resets the service boundary around that principle and defines the first-order architecture:
+This RFC defines the target architecture for `lotus-advise`:
 
-1. `lotus-advise` owns advisory workspace, proposal lifecycle, approvals, consent, and execution
-   handoff orchestration.
-2. `lotus-core` remains the authoritative owner of canonical portfolio state and portfolio
-   simulation.
-3. `lotus-risk` owns risk calculations and risk analytics consumed by advisory workflows.
-4. `lotus-report` owns portfolio review and report payload generation.
-5. `lotus-ai` provides governed AI infrastructure for advisor-assistive features.
-6. `lotus-advise` must support both `stateless` and `stateful` operating modes.
-7. Stale legacy runtime elements that no longer belong to advisory must be removed from
-   `lotus-advise`.
-8. Common vocabulary and engineering standards must remain governed centrally by
-   `lotus-platform`, not reinvented locally in `lotus-advise`.
+1. advisory-business workflow ownership stays in `lotus-advise`,
+2. canonical portfolio state and simulation authority stay in `lotus-core`,
+3. risk calculations stay in `lotus-risk`,
+4. report-generation ownership stays in `lotus-report`,
+5. governed AI runtime and controls stay in `lotus-ai`,
+6. common vocabulary, API quality, and platform standards stay governed by `lotus-platform`.
 
-This RFC is the architecture foundation for subsequent implementation RFCs. It defines what
-`lotus-advise` is, what it is not, how it fits into the platform, and which seams must exist before
-we add interactive workspace, AI-native features, or scaled production rollout.
+This RFC is the architecture program for making `lotus-advise` a bank-grade, marketable advisory
+application that fits cleanly into the Lotus ecosystem.
 
-This RFC also establishes that cross-application vocabulary, API naming, OpenAPI documentation
-quality, and other shared standards are governed by `lotus-platform` and must be consumed by
-`lotus-advise` as platform rules rather than redefined in service-local conventions.
+It also defines delivery slices inside one RFC so the architecture can evolve without proliferating
+child RFCs.
 
-## 2. Problem Statement
+## Why This RFC Exists
 
-The current `lotus-advise` repository contains a valuable advisory proposal engine and workflow
-surface, but its architecture still reflects an earlier combined repository shape with legacy
-runtime and documentation drift.
+`lotus-advise` has valuable advisory capabilities today, but its architecture still risks drifting
+toward the wrong shape if we do not set a strong operating model.
 
-This creates five core problems:
+Without this RFC:
 
-1. ownership boundaries are blurred, especially around simulation and older DPM-aligned concepts,
-2. real advisory workflows are not yet centered on stateful portfolio sourcing from `lotus-core`,
-3. risk and reporting responsibilities are not yet enforced as external service boundaries,
-4. AI opportunities are not yet framed as governed cross-service capabilities through `lotus-ai`,
-5. stale legacy artifacts and naming continue to signal scope that no longer belongs in this
-   service.
+1. service boundaries remain blurry,
+2. advisory workflows risk accumulating duplicate simulation or risk logic,
+3. legacy scope can continue leaking into advisory runtime and docs,
+4. stateful portfolio-sourced advisory workflows will be harder to implement cleanly,
+5. platform integrations may become ad hoc rather than bank-grade and governable.
 
-If this is not corrected now, `lotus-advise` risks becoming:
+This RFC exists to stop that drift and define the target architecture clearly enough that we can
+build with confidence.
 
-- an orchestration service with hidden duplicate domain logic,
-- a simulation surface that cannot scale cleanly across the platform,
-- a service that competes with `lotus-core`, `lotus-risk`, and `lotus-report` instead of composing
-  them.
+## Problem Statement
 
-## 3. Goals
+The current repository still reflects earlier structure and assumptions that are no longer right
+for the target product.
 
-This RFC has the following goals:
+Current problems include:
 
-1. define the authoritative service boundary for `lotus-advise`,
-2. establish the upstream and downstream integration model across Lotus services,
-3. standardize `stateless` and `stateful` advisory operating modes,
-4. define the role of `lotus-ai` in advisory workflows,
-5. define the cleanup direction for stale legacy scope and code,
-6. anchor `lotus-advise` to Lotus-wide vocabulary and standards governed by `lotus-platform`,
-7. provide the architecture baseline for follow-on RFCs.
+1. architecture still carries traces of older mixed-scope or DPM-adjacent history,
+2. `lotus-advise` has not yet fully converged on orchestrating upstream domain authorities,
+3. the service needs a stronger model for stateless and stateful operation,
+4. readiness and capability truth need to become dependency-aware rather than locally asserted,
+5. AI opportunities need to be framed as governed assistance rather than domain-logic replacement.
 
-## 4. Non-Goals
+If left unresolved, `lotus-advise` risks becoming a hard-to-maintain orchestration layer with
+unclear ownership, inconsistent product contracts, and weak platform discipline.
 
-This RFC does not:
+## Goals
 
-1. implement interactive workspace APIs,
-2. define the final AI feature payload schemas,
-3. define broker/OMS connector details,
-4. replace existing advisory proposal lifecycle APIs immediately,
-5. move database tables or rewrite historical artifacts in this document,
-6. force `lotus-performance` integration in v1 if no advisory workflow needs it yet.
+1. Define the authoritative service boundary for `lotus-advise`.
+2. Define the target integration model across `lotus-core`, `lotus-risk`, `lotus-report`,
+   optional `lotus-performance`, `lotus-ai`, `lotus-gateway`, and `lotus-workbench`.
+3. Establish a clean stateless and stateful advisory operating model.
+4. Make `lotus-advise` advisory-first, not rebalance-first and not DPM-shaped.
+5. Keep vocabulary, API standards, and platform rules aligned with `lotus-platform`.
+6. Define architecture slices that can be implemented progressively without weakening the target
+   design.
+7. Keep the codebase, docs, and persistence model clean enough for a gold-standard advisory app.
 
-Those concerns should be addressed by follow-on RFCs that build on this architecture baseline.
+## Non-Goals
 
-## 5. Platform Governance Baseline
+1. Defining every future API payload in this RFC.
+2. Replacing `RFC-0004`, which remains the detailed workspace product contract.
+3. Replacing implementation RFCs for reporting, execution, costs, policy packs, or surveillance.
+4. Re-implementing upstream domain ownership inside `lotus-advise`.
+5. Forcing optional `lotus-performance` integration where no advisory workflow needs it yet.
 
-`lotus-advise` must conform to cross-application governance defined in `lotus-platform`.
+## Decision
 
-This includes, at minimum:
+`lotus-advise` will be the advisory workflow and orchestration service in the Lotus platform.
 
-1. canonical domain vocabulary,
-2. cross-app API naming rules,
-3. OpenAPI quality requirements,
-4. API vocabulary inventory governance,
-5. dependency hygiene and security standards,
-6. migration, durability, testing, and enterprise-readiness standards where applicable.
+Its role is to own:
 
-The governing source for shared vocabulary and standards is `lotus-platform`, including:
+1. advisory workspace and draft workflow,
+2. proposal lifecycle and workflow transitions,
+3. advisory-facing orchestration across upstream domain services,
+4. explanation assembly for advisors, reviewers, and operations,
+5. execution handoff readiness and advisory audit correlation.
 
-1. `RFC-0003: Canonical Domain Vocabulary`,
-2. `RFC-0067: Centralized API Vocabulary Inventory and OpenAPI Documentation Governance`,
-3. platform standards documents such as domain vocabulary, migration, durability, observability,
-   and testing standards.
+It will not own:
 
-Rule:
+1. canonical portfolio state,
+2. authoritative portfolio simulation math,
+3. risk engines,
+4. report-generation ownership,
+5. AI runtime and governance infrastructure.
 
-- `lotus-advise` may define advisory-specific concepts,
-- but it must not invent alternative names for platform-wide concepts that already have a canonical
-  Lotus term.
+The service must remain platform-governed, bank-grade, and modular enough to take to market as a
+serious advisory product.
 
-## 6. Proposed Operating Model
+## Operating Principles
 
-### 5.1 Service Mission
+1. Advisory-first product design:
+   contracts, modules, and naming must reflect advisory workflows and business language.
+2. Clean domain ownership:
+   `lotus-advise` orchestrates advisory workflow and does not silently absorb upstream engines.
+3. Deterministic evidence:
+   evaluation posture, workflow routing, and advisory outcomes must be replayable and auditable.
+4. Platform governance:
+   cross-app vocabulary, OpenAPI standards, and shared engineering rules come from
+   `lotus-platform`.
+5. Bank-grade control posture:
+   readiness, reviewability, auditability, and lifecycle traceability must be first-class.
+6. Modular delivery:
+   architecture slices should leave the repository cleaner and more understandable after each
+   change.
+
+## Service Mission and Ownership
 
 `lotus-advise` is the advisory workflow service for:
 
-1. advisor proposal drafting,
-2. proposal evaluation orchestration,
-3. workflow gates and review routing,
-4. proposal versioning, approvals, and client consent,
-5. execution handoff readiness and execution-state aggregation,
-6. explainability assembly for advisor and reviewer workflows.
-
-`lotus-advise` is not the system of record for portfolio data, not the owner of core portfolio
-simulation, not the owner of risk analytics, and not the owner of reporting outputs.
-
-### 5.2 Service Ownership Boundaries
+1. advisor proposal drafting and evaluation orchestration,
+2. proposal workflow gates and next-step routing,
+3. proposal versioning, approvals, and client-consent workflow,
+4. execution handoff readiness and advisory execution-state correlation,
+5. advisor and reviewer explanation assembly.
 
 `lotus-advise` owns:
 
 1. advisory workspace sessions and draft mutations,
-2. proposal drafts, immutable proposal versions, and lifecycle transitions,
-3. workflow decisions that combine upstream portfolio, risk, and policy evidence into advisory
-   next-step outcomes,
-4. orchestration of upstream service calls needed for proposal evaluation,
-5. advisor/reviewer-facing explanation assembly,
-6. execution handoff requests and execution audit correlation for advisory proposals.
+2. proposal drafts and immutable proposal versions,
+3. workflow decisions derived from upstream evidence,
+4. orchestration of upstream service calls for advisory workflows,
+5. advisory-facing explainability and evidence assembly,
+6. advisory execution handoff coordination.
 
 `lotus-advise` does not own:
 
-1. canonical portfolio positions, transactions, cash ledgers, valuations, or benchmark source data,
-2. authoritative portfolio simulation math if already provided by `lotus-core`,
+1. canonical positions, cash ledgers, transactions, valuations, or benchmark source data,
+2. long-term authoritative simulation ownership if `lotus-core` already provides it,
 3. risk calculations that belong in `lotus-risk`,
-4. report-generation payload ownership that belongs in `lotus-report`,
-5. shared AI runtime, provider, retrieval, prompt, or safety infrastructure that belongs in
-   `lotus-ai`.
+4. final reporting payload ownership that belongs in `lotus-report`,
+5. shared AI runtime, retrieval, provider, safety, or rollout governance owned by `lotus-ai`.
 
-## 7. Platform Integration Boundaries
+## Integration Boundaries
 
-### 6.1 lotus-core
+### lotus-core
 
 `lotus-core` is the authoritative dependency for:
 
 1. canonical portfolio snapshot assembly,
-2. current holdings, transactions, cash, valuation, and benchmark context,
-3. stateful portfolio sourcing by `portfolio_id` and `as_of`,
-4. canonical portfolio simulation capability for advisory before/after state evaluation.
+2. holdings, transactions, cash, valuation, and benchmark context,
+3. stateful portfolio sourcing by identifiers and as-of date,
+4. canonical portfolio simulation for advisory before/after evaluation.
 
-`lotus-advise` must reuse `lotus-core` portfolio simulation capability rather than maintain a
-long-term duplicate portfolio simulation engine.
+Target rule:
 
-Short-term note:
+`lotus-advise` should reuse `lotus-core` simulation capability rather than maintain long-term
+duplicate simulation ownership.
 
-- existing deterministic advisory simulation behavior may remain as a transitional compatibility
-  path while `lotus-core` integration is introduced,
-- but the target architecture is clear: `lotus-core` owns the canonical simulation contract.
+### lotus-risk
 
-### 6.2 lotus-risk
-
-`lotus-risk` owns all risk-related calculations consumed by advisory workflows, including but not
-limited to:
+`lotus-risk` owns all risk-related calculations consumed by advisory workflows, including:
 
 1. concentration and issuer exposure,
-2. factor and scenario exposures,
+2. scenario and factor exposures,
 3. stress and risk-limit checks,
 4. pre-trade and post-simulation risk analytics,
-5. risk deltas between before and after portfolio states.
+5. before/after risk deltas.
 
-`lotus-advise` may orchestrate, display, and route risk outcomes, but it must not become a second
-risk engine.
+`lotus-advise` may orchestrate, present, route, and explain those results, but it must not become
+a second risk engine.
 
-### 6.3 lotus-report
+### lotus-report
 
 `lotus-report` owns portfolio review and reporting payload generation.
 
-`lotus-advise` may request reporting artifacts or assemble workflow references to them, but
-portfolio review report ownership stays in `lotus-report`.
+`lotus-advise` may request, reference, or package report outputs in workflow context, but the
+reporting domain remains owned by `lotus-report`.
 
-### 6.4 lotus-performance
+### lotus-performance
 
-`lotus-performance` is optional for the first advisory architecture slice.
+`lotus-performance` is optional for the early architecture slices.
 
-It should be integrated only where advisory workflows clearly benefit from:
+It becomes relevant when advisory workflows clearly benefit from:
 
 1. return context,
 2. benchmark-relative context,
 3. contribution or attribution context,
-4. proposal comparison across performance-oriented analytics dimensions.
+4. performance-aware proposal storytelling.
 
-This RFC intentionally leaves `lotus-performance` as an optional but architecturally supported seam.
+The architecture must support this seam without making it mandatory prematurely.
 
-### 6.5 lotus-ai
+### lotus-ai
 
-`lotus-ai` is a strategic dependency for governed AI-native advisory workflows.
+`lotus-ai` is the governed AI dependency for advisory-assistive workflows.
 
-`lotus-advise` remains the domain owner, while `lotus-ai` supplies:
+`lotus-ai` should provide:
 
-1. task execution runtime,
+1. runtime execution,
 2. prompt and rollout governance,
 3. retrieval and grounding infrastructure,
 4. safety controls,
-5. audit and observability for AI actions.
+5. AI audit and observability.
 
-## 8. Advisory Operating Modes
+`lotus-advise` remains the advisory domain owner and should use `lotus-ai` to make workflows more
+useful, not less deterministic.
+
+### lotus-gateway and lotus-workbench
+
+`lotus-gateway` and `lotus-workbench` are the primary UI-facing consumers of `lotus-advise`.
+
+Architecture implication:
+
+1. `lotus-advise` contracts must be strong enough for gateway and workbench adoption,
+2. the UI should not be forced to compensate for under-specified or engineering-centric contracts,
+3. normalized advisory responses should be designed for product workflows, not only backend purity.
+
+## Operating Modes
 
 `lotus-advise` must support two explicit operating modes.
 
-### 7.1 Stateless Mode
+### Stateless Mode
 
 Purpose:
 
-- deterministic replay,
-- partner integration,
-- testability,
-- sandbox and what-if exploration.
+1. deterministic replay,
+2. sandbox and what-if workflows,
+3. external or partner integrations,
+4. targeted testing and reproducibility.
 
-In `stateless` mode, the caller provides the advisory evaluation inputs directly in the request.
+In stateless mode, the caller provides advisory evaluation inputs directly.
 
-Examples:
+Typical stateless inputs include:
 
 1. portfolio snapshot,
 2. market-data snapshot,
@@ -232,131 +243,110 @@ Examples:
 4. proposal deltas,
 5. optional reference model or benchmark context.
 
-### 7.2 Stateful Mode
+### Stateful Mode
 
 Purpose:
 
-- production advisory workflows,
-- UI-driven advisor experience,
-- live portfolio review and proposal creation from Lotus system-of-record data.
+1. production advisory workflows,
+2. live portfolio review in Lotus applications,
+3. advisor-driven proposal creation from system-of-record data.
 
-In `stateful` mode, `lotus-advise` receives identity and selection inputs, then resolves canonical
-state through upstream services, especially `lotus-core`.
+In stateful mode, `lotus-advise` receives identity and selection inputs, then resolves canonical
+context through upstream services, especially `lotus-core`.
+
+Typical stateful inputs include:
+
+1. `portfolio_id`,
+2. `household_id` where supported,
+3. `as_of`,
+4. proposal deltas or overrides,
+5. optional benchmark, mandate, policy, or scenario selectors.
+
+### Required Contract Direction
+
+All new advisory evaluation contracts should converge on:
+
+1. `input_mode: "stateless" | "stateful"`,
+2. `stateless_input`,
+3. `stateful_input`,
+4. explicit `resolved_context` in responses,
+5. stable lineage references to upstream snapshot identifiers and dependency versions.
+
+## Platform Governance Baseline
+
+`lotus-advise` must conform to cross-application governance defined in `lotus-platform`.
+
+This includes:
+
+1. canonical domain vocabulary,
+2. cross-app API naming rules,
+3. OpenAPI quality requirements,
+4. API vocabulary inventory governance,
+5. dependency hygiene and security standards,
+6. migration, durability, testing, and observability standards where applicable.
+
+Rule:
+
+`lotus-advise` may define advisory-specific concepts, but it must not invent conflicting local
+aliases for platform-wide concepts that already have canonical Lotus terms.
+
+## API Documentation and Contract Quality
+
+All architecture work and implementation slices under this RFC must preserve Lotus API quality.
+
+Minimum requirements:
+
+1. every operation has `summary`, `description`, tags, and documented success and error responses,
+2. every request and response field has type, description, and example,
+3. every schema has a purpose statement and meaningful request/response examples,
+4. examples must be Lotus-branded and advisory-business relevant,
+5. OpenAPI and vocabulary governance should fail when required descriptions or examples are missing.
+
+The resulting API surface should be usable without source-code spelunking.
+
+## AI Direction
+
+AI in `lotus-advise` should be advisor-assistive, evidence-grounded, and operationally governed.
+
+Target AI feature families include:
+
+1. proposal rationale generation from deterministic facts,
+2. meeting-prep summaries,
+3. note-to-proposal drafting assistance,
+4. policy and exception explanation,
+5. client communication drafting,
+6. scenario exploration assistance,
+7. reviewer copilot flows.
+
+Guardrails:
+
+1. AI must not silently replace deterministic portfolio, risk, or workflow truth,
+2. evidence references must be retained for AI-assisted workflow outputs,
+3. final domain decisions remain grounded in deterministic service outputs and policy gates.
+
+## Capability and Readiness Model
+
+The service must evolve from local flag truth toward dependency-aware capability truth.
+
+Target dimensions include:
+
+1. `feature_enabled`,
+2. `operational_ready`,
+3. `degraded`,
+4. `dependency_requirements`,
+5. `dependency_status`,
+6. `fallback_mode`,
+7. `degraded_reason`.
 
 Examples:
 
-1. `portfolio_id`,
-2. `household_id` when supported,
-3. `as_of`,
-4. proposal deltas or intent overrides,
-5. optional mandate, benchmark, policy pack, or scenario inputs.
+1. advisory workspace can be enabled while stateful sourcing is degraded,
+2. proposal lifecycle can be enabled while risk enrichment is unavailable,
+3. AI drafting can be enabled only for specific tenants or workflows.
 
-### 7.3 Required Contract Direction
+## Target Internal Architecture
 
-All new advisory evaluation RFCs must converge on:
-
-1. `input_mode: "stateless" | "stateful"`,
-2. `stateless_input` for direct payload sourcing,
-3. `stateful_input` for Lotus-sourced portfolio resolution,
-4. explicit `resolved_context` in responses for replayability and audit,
-5. stable lineage references to upstream snapshot identifiers and dependency versions.
-
-## 9. AI-Driven Advisory Opportunities
-
-AI in `lotus-advise` must be advisor-assistive, evidence-grounded, and operationally governed.
-
-The target AI feature families are:
-
-1. proposal rationale generation from deterministic upstream evidence,
-2. meeting-prep summaries for advisors and relationship managers,
-3. note-to-proposal drafting from structured or semi-structured advisor notes,
-4. policy and exception explanation in plain language,
-5. client communication drafting grounded in approved proposal facts,
-6. scenario exploration assistance that maps natural language to deterministic advisory actions,
-7. reviewer copilot workflows for risk and compliance review.
-
-Guardrail:
-
-- AI must not silently replace deterministic portfolio, risk, or workflow truth,
-- all AI outputs used in workflow decisions must retain evidence references,
-- final domain decisions remain grounded in deterministic service outputs and policy gates.
-
-## 10. Vocabulary and Contract Governance
-
-All new `lotus-advise` contracts introduced under this architecture must align to `lotus-platform`
-governance.
-
-Required contract rules:
-
-1. use Lotus canonical snake_case field names,
-2. use Lotus canonical headers such as `X-Correlation-Id` and `Idempotency-Key`,
-3. reject aliases when a canonical term already exists,
-4. use shared business-meaningful identifiers such as `portfolio_id`, `client_id`, `proposal_id`,
-   `proposal_version_no`, and `correlation_id`,
-5. document attributes through the platform-governed vocabulary inventory model rather than through
-   disconnected local descriptions,
-6. keep OpenAPI documentation compliant with platform quality gates,
-7. present Lotus-branded API documentation and examples suitable for external and internal platform
-   consumers.
-
-Examples of implications for `lotus-advise`:
-
-1. `stateful_input` must use canonical identity fields already governed at platform level,
-2. advisory lifecycle and workspace contracts must not introduce local aliases for existing
-   portfolio, client, proposal, or calculation concepts,
-3. any AI workflow contract must use platform-governed naming and evidence identifiers,
-4. service-local convenience naming that conflicts with `lotus-platform` is forbidden.
-
-### 10.1 API Documentation Standard
-
-All `lotus-advise` APIs implemented under this architecture must be fully documented in a
-Lotus-branded way.
-
-Minimum documentation requirements for every API operation:
-
-1. `summary`,
-2. `description`,
-3. tags,
-4. success response documentation,
-5. error response documentation,
-6. Lotus-branded examples that reflect real advisory workflows and Lotus terminology.
-
-Minimum documentation requirements for every request and response field:
-
-1. field name,
-2. type,
-3. description,
-4. example.
-
-Minimum documentation requirements for every request and response schema:
-
-1. schema-level purpose,
-2. request example,
-3. response example,
-4. documented required versus optional fields,
-5. linkage to canonical vocabulary inventory entries where applicable.
-
-Documentation rules:
-
-1. examples must be business-meaningful, not placeholder-only,
-2. descriptions must explain domain intent, not only implementation mechanics,
-3. request and response examples must use Lotus terminology and realistic advisory scenarios,
-4. OpenAPI must remain consistent with code and generated vocabulary inventory artifacts,
-5. platform conformance gates should fail if required descriptions or examples are missing.
-
-Lotus branding expectation:
-
-1. the API surface should present itself as part of the Lotus platform,
-2. examples and descriptions should refer to Lotus advisory workflows, Lotus identifiers, and Lotus
-   service interactions where appropriate,
-3. generic or vendor-template wording should be avoided when a Lotus-specific domain description is
-   available.
-
-## 11. Target Microservice Architecture
-
-### 9.1 Internal Modules
-
-The target internal architecture for `lotus-advise` should include:
+The target internal architecture should include these clear areas:
 
 1. `workspace`
    - draft sessions
@@ -368,12 +358,12 @@ The target internal architecture for `lotus-advise` should include:
    - consent
    - lifecycle transitions
 3. `integration_orchestrator`
-   - `lotus-core` adapter
-   - `lotus-risk` adapter
-   - `lotus-report` adapter
-   - optional `lotus-performance` adapter
-   - `lotus-ai` adapter
-   - execution adapter seam
+   - `lotus-core` adapters
+   - `lotus-risk` adapters
+   - `lotus-report` adapters
+   - optional `lotus-performance` adapters
+   - `lotus-ai` adapters
+   - execution adapters
 4. `capability_and_readiness`
    - dependency-aware capability truth
    - degraded-mode diagnostics
@@ -383,149 +373,218 @@ The target internal architecture for `lotus-advise` should include:
 6. `explainability`
    - advisor and reviewer explanation assembly
 
-### 9.2 Scalability Principles
+## Scalability and Microservice Rules
 
 `lotus-advise` must be designed for:
 
-1. stateless API horizontal scaling for evaluation requests,
-2. async job offload for heavier multi-service orchestration,
-3. replay-safe request and workspace mutation persistence,
-4. explicit dependency timeouts and degradation handling,
+1. stateless API horizontal scaling,
+2. async offload for heavier orchestration,
+3. replay-safe request and mutation persistence,
+4. explicit dependency timeouts and degraded-mode handling,
 5. no shared-database coupling with other services,
 6. append-only or immutable records for critical lifecycle and audit paths,
-7. capability reporting that reflects operational dependency truth, not only local feature flags.
+7. operational truth based on dependency reality rather than local optimism.
 
-## 12. Cleanup of Legacy Advisory-External Scope
+## Data and Cleanup Rules
 
-The repository must remove stale legacy scope that no longer belongs in `lotus-advise`.
+The repository and persistence model must remain advisory-only.
 
 This includes:
 
-1. removing stale legacy runtime remnants,
-2. removing or rewriting documentation that still presents `lotus-advise` as anything other than
-   an advisory service,
+1. removing stale legacy runtime remnants that no longer belong to advisory,
+2. removing or rewriting active docs that imply mixed ownership,
 3. renaming APIs, docs, and modules where needed to reflect advisory-only ownership,
-4. preserving historical artifacts only where required for traceability, not as active runtime
-   structure.
+4. preserving historical artifacts only where needed for traceability,
+5. keeping the database intentionally minimal and advisory-relevant.
 
-Follow-on RFCs should identify the exact migration slices for these removals.
+No new work under this RFC should reintroduce DPM-era structure, language, or persistence scope.
 
-## 13. Capability and Readiness Model
+## Delivery Slices
 
-The current local-feature-flag capability model is insufficient for the target platform posture.
+This RFC will be implemented slice by slice within the same RFC.
 
-`lotus-advise` must evolve toward a capability contract that distinguishes:
+### Slice 1: Advisory-Only Architecture Reset and Integration Seams
 
-1. `feature_enabled`
-2. `operational_ready`
-3. `degraded`
-4. `dependency_requirements`
-5. `dependency_status`
-6. `fallback_mode`
+Status:
 
-Examples:
+1. implemented
 
-1. advisory workspace may be enabled while stateful portfolio sourcing is degraded,
-2. proposal lifecycle may be enabled while risk enrichment is unavailable,
-3. AI drafting may be enabled only for allowlisted tenants or workflows.
+Outcome:
 
-## 14. Phased Implementation Plan
+1. stale active runtime remnants are removed from the advisory service,
+2. repository and runtime language are made advisory-only,
+3. initial integration seams exist for `lotus-core`, `lotus-risk`, `lotus-report`, `lotus-ai`,
+   and optional `lotus-performance`,
+4. a readiness-focused seam exists for dependency-aware capability truth,
+5. docs and structure are aligned to platform vocabulary and standards.
 
-### Phase 1: Architecture Reset
+Implementation shape:
 
-1. approve this RFC,
-2. remove stale DPM scope markers and repo leftovers,
-3. introduce explicit advisory-only architecture language,
-4. align service docs and contracts to `lotus-platform` vocabulary and standards,
-5. define adapter seams for `lotus-core`, `lotus-risk`, `lotus-report`, optional
-   `lotus-performance`, and `lotus-ai`.
+1. active legacy runtime remnants are removed from the current source layout,
+2. repository-overview and architecture docs present `lotus-advise` as advisory-only,
+3. explicit seam packages exist for key Lotus dependencies,
+4. readiness-related logic has a clear home instead of being spread through unrelated modules,
+5. naming and directory structure better reflect advisory ownership.
 
-### Phase 2: Operating Mode Contract
+Acceptance gate:
 
-1. introduce `input_mode`,
-2. add `stateless_input` and `stateful_input`,
-3. add `resolved_context`,
-4. support stateful sourcing from `lotus-core`,
-5. add platform-governed OpenAPI and API-vocabulary conformance for new advisory contracts,
-6. ensure every new request and response schema includes descriptions, types, and Lotus-branded
-   examples.
+1. active non-advisory remnants are removed from current runtime structure,
+2. advisory-only ownership is clear in repository docs and architecture language,
+3. integration seam packages or equivalent adapter boundaries exist,
+4. capability/readiness has an explicit implementation seam,
+5. platform vocabulary and documentation standards are respected,
+6. the slice leaves the codebase cleaner without introducing behavior drift.
 
-### Phase 3: Upstream Authority Realignment
+Out of scope:
 
-1. route portfolio simulation through `lotus-core`,
-2. route risk analytics through `lotus-risk`,
-3. remove duplicated long-term simulation and risk ownership from `lotus-advise`.
+1. stateful sourcing contract redesign,
+2. simulation authority cutover,
+3. live risk enrichment cutover,
+4. AI workflow delivery,
+5. major client-facing workflow redesign.
 
-### Phase 4: Advisory Workspace and AI
+### Slice 2: Operating Mode Contract and Context Resolution
 
-1. implement iterative workspace contracts,
-2. add AI-assisted but evidence-grounded advisor workflows through `lotus-ai`,
-3. add dependency-aware capability and degraded-mode reporting.
+Outcome:
 
-### Phase 5: Reporting and Execution Completion
+1. advisory contracts support both `stateless` and `stateful` modes,
+2. stateful sourcing flows cleanly from Lotus system-of-record services,
+3. `resolved_context` and lineage become first-class advisory outputs.
 
-1. integrate `lotus-report` review/report payloads,
-2. implement execution handoff and execution-state lifecycle,
-3. expand production-readiness and observability posture.
+Implementation shape:
 
-## 15. Test Plan
+1. contract vocabulary is standardized around `input_mode`, `stateless_input`, `stateful_input`,
+   and `resolved_context`,
+2. stateful inputs use canonical Lotus identity fields,
+3. response payloads explicitly show what upstream context was resolved,
+4. request and response examples make the difference between stateless and stateful usage obvious.
 
-This RFC requires follow-on implementation RFCs to include:
+Acceptance gate:
+
+1. `input_mode`, `stateless_input`, `stateful_input`, and `resolved_context` are explicit,
+2. contracts are fully documented and Lotus-branded,
+3. stateful sourcing is auditable and replay-friendly,
+4. the contract is usable by gateway and workbench without ad hoc patching,
+5. stateless and stateful flows do not fork into inconsistent business semantics.
+
+Out of scope:
+
+1. full simulation authority migration,
+2. deep workspace mutation flows,
+3. execution connectors,
+4. report payload ownership changes.
+
+### Slice 3: Upstream Authority Realignment
+
+Outcome:
+
+1. simulation authority converges toward `lotus-core`,
+2. risk authority converges toward `lotus-risk`,
+3. duplicate long-term ownership is removed from `lotus-advise`.
+
+Implementation shape:
+
+1. `lotus-advise` integrates with `lotus-core` simulation through explicit adapters,
+2. risk enrichment paths move behind `lotus-risk` boundaries,
+3. transitional compatibility bridges are reduced or retired deliberately,
+4. retained advisory behaviors are validated against the new upstream authority model.
+
+Acceptance gate:
+
+1. `lotus-advise` no longer acts as a long-term duplicate simulation or risk owner,
+2. orchestration boundaries are explicit and modular,
+3. retained behavior is validated with meaningful tests,
+4. migration remains product-safe and explainable,
+5. operational fallback and degradation behavior are explicit when dependencies are unavailable.
+
+Out of scope:
+
+1. final reporting completion,
+2. full execution-state lifecycle,
+3. broad AI product rollout.
+
+### Slice 4: Workspace, AI, and Readiness Hardening
+
+Outcome:
+
+1. the advisory workspace runs on top of the target architecture,
+2. AI-assisted workflows can be introduced safely through `lotus-ai`,
+3. readiness and degraded-mode truth are stronger and more operationally honest.
+
+Implementation shape:
+
+1. `RFC-0004` workspace contracts are implemented on the architecture seams defined here,
+2. AI-assistive features consume deterministic advisory facts rather than bypassing them,
+3. capability responses distinguish feature enablement from operational readiness,
+4. degraded and fallback states are surfaced in a way the UI and operators can trust.
+
+Acceptance gate:
+
+1. `RFC-0004` workspace direction fits cleanly into the architecture,
+2. AI remains evidence-grounded and governed,
+3. capability truth reflects dependency reality,
+4. the codebase becomes more modular, not more entangled,
+5. advisory users and control users can both understand the resulting workflow posture.
+
+Out of scope:
+
+1. final production hard cutover,
+2. long-tail advisory feature families beyond the scoped workspace and readiness needs.
+
+### Slice 5: Reporting, Execution, and Production Completion
+
+Outcome:
+
+1. reporting and execution seams are completed,
+2. advisory production posture is stronger end to end,
+3. the service is operationally credible as a marketable advisory platform capability.
+
+Implementation shape:
+
+1. reporting seams are completed without moving reporting ownership into `lotus-advise`,
+2. execution handoff and execution-state correlation are completed in advisory-owned boundaries,
+3. operational validation is tightened across docs, tests, build, and production posture,
+4. the service is prepared for hardening steps such as final runtime cutovers and broader rollout.
+
+Acceptance gate:
+
+1. reporting ownership remains in `lotus-report`,
+2. execution handoff and state correlation are explicit and auditable,
+3. production-readiness and observability expectations validate cleanly,
+4. the resulting platform fit is bank-grade rather than merely functional,
+5. the service can be presented as a serious advisory product capability with clean boundaries and
+   operational credibility.
+
+## Test and Validation Expectations
+
+Implementation under this RFC should include:
 
 1. unit tests for mode resolution and adapter orchestration,
-2. integration tests against `lotus-core` stateful sourcing,
-3. integration tests against `lotus-risk` risk-enrichment paths,
-4. integration tests for capability/readiness truth under dependency degradation,
-5. end-to-end tests through `lotus-gateway` and `lotus-workbench`,
-6. audit and replay validation for both `stateless` and `stateful` modes,
-7. OpenAPI and API vocabulary conformance validation against `lotus-platform` governance,
-8. schema and operation documentation validation for descriptions, examples, and Lotus branding
-   quality.
+2. integration tests for `lotus-core` sourcing and simulation flows,
+3. integration tests for `lotus-risk` enrichment paths,
+4. readiness and degraded-mode validation under dependency failure,
+5. end-to-end tests through `lotus-gateway` and `lotus-workbench` where applicable,
+6. audit and replay validation for both operating modes,
+7. OpenAPI and vocabulary conformance validation against platform governance,
+8. schema and operation documentation validation for descriptions, examples, and branding quality.
 
-## 16. Rollout and Compatibility
+Tests must be meaningful and aligned to retained advisory features, never superficial.
 
-Compatibility expectations:
+## Risks
 
-1. existing advisory lifecycle APIs may remain during migration,
-2. new mode-aware APIs may coexist with transitional contracts temporarily,
-3. duplication in simulation or risk logic is tolerated only as a temporary compatibility bridge,
-4. long-term authority must converge to the ownership boundaries defined here.
+1. If service boundaries are not enforced, `lotus-advise` will accumulate duplicate domain logic.
+2. If stateful and stateless modes diverge too much, the service will become harder to maintain.
+3. If readiness truth remains locally optimistic, operators and UI consumers will be misled.
+4. If legacy scope is not removed aggressively enough, the repository will continue signaling the
+   wrong ownership model.
+5. If AI is introduced without strong guardrails, deterministic advisory truth could be weakened.
 
-## 17. Status and Reason Code Conventions
+## Success Criteria
 
-This RFC does not introduce new top-level domain statuses.
+This RFC is successful when:
 
-All follow-on RFCs must preserve:
-
-1. `READY`
-2. `PENDING_REVIEW`
-3. `BLOCKED`
-
-Any new advisory diagnostics must:
-
-1. use upper snake case reason codes,
-2. distinguish dependency failures from domain rule failures,
-3. identify whether fallback, degraded, or blocking behavior was applied.
-
-## 18. Open Questions
-
-1. whether `lotus-core` portfolio simulation should be consumed synchronously for small requests and
-   asynchronously for larger requests,
-2. which advisory workflows should require `lotus-performance` in the first commercial release,
-3. whether execution-state tracking remains inside `lotus-advise` or should later split into a
-   dedicated execution service,
-4. whether household-level advisory context is introduced in the first stateful slice or later.
-
-## 19. Follow-On RFCs Required
-
-This RFC should be followed by at least:
-
-1. an RFC for `stateless` and `stateful` advisory contract implementation,
-2. an RFC for `lotus-core` simulation integration and local simulation de-duplication,
-3. an RFC for `lotus-risk` risk-enrichment integration,
-4. an RFC for advisory workspace APIs,
-5. an RFC for AI-native advisory workflows through `lotus-ai`,
-6. an RFC for legacy advisory-external cleanup and repository restructuring,
-7. an RFC or implementation slice for full `lotus-platform` vocabulary and standards conformance in
-   `lotus-advise`.
-
+1. `lotus-advise` has a clear, defendable advisory-service boundary,
+2. upstream and downstream ownership across Lotus apps is explicit and respected,
+3. stateful and stateless advisory workflows fit one coherent operating model,
+4. the repository, runtime, and persistence model are cleanly advisory-only,
+5. the architecture is strong enough to support a bank-grade, marketable advisory product.

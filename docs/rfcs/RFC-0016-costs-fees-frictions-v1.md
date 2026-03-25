@@ -1,20 +1,20 @@
-﻿# RFC-0014L: Cost, Fees, and Transaction Frictions v1 (Net-of-Cost Proposal Simulation)
+# RFC-0016: Cost, Fees, and Transaction Frictions v1 (Net-of-Cost Proposal Simulation)
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | DRAFT |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14L |
-| **Depends On** | RFC-0014A (Proposal Simulation), RFC-0014B (Auto-funding) |
-| **Strongly Recommended** | RFC-0014E (Proposal Artifact), RFC-0014K (DQ + Lineage) |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014L-costs-fees-frictions-v1.md` |
+| **Target Release** | MVP-0016 |
+| **Depends On** | RFC-0007 (Proposal Simulation), RFC-0008 (Auto-funding) |
+| **Strongly Recommended** | RFC-0011 (Proposal Artifact), RFC-0014 (DQ + Lineage) |
+| **Doc Location** | `docs/rfcs/RFC-0016-costs-fees-frictions-v1.md` |
 | **Backward Compatibility** | Not required |
 
 ---
 
 ## 0. Executive Summary
 
-RFC-0014L adds **transaction frictions** so advisory proposals reflect more realistic outcomes:
+RFC-0016 adds **transaction frictions** so advisory proposals reflect more realistic outcomes:
 
 - trading commissions / brokerage
 - stamp duties / levies (simple jurisdiction rules)
@@ -65,7 +65,7 @@ Institutions require at least a v1 cost model for proposal artifacts:
 
 ## 3. Inputs / Config
 
-Costs must be driven by **Policy Packs** (RFC-0014H) and/or request options.
+Costs must be driven by **Policy Packs** (RFC-0015) and/or request options.
 
 ### 3.1 CostPolicy schema (policy pack section)
 ```json
@@ -206,7 +206,7 @@ Add:
 
 ### 5.3 Proposal Artifact integration
 
-In RFC-0014E artifact:
+In RFC-0011 artifact:
 
 * include “Estimated implementation cost” section
 * include per-trade cost disclosure in trade list
@@ -218,7 +218,7 @@ In RFC-0014E artifact:
 
 * If missing price: cost calculation cannot proceed → follow DQ policy (often block)
 * If notional too small: min fee dominates; highlight this in line item
-* If partial fills: post-trade reconciliation (RFC-0014J) should compare expected vs realized costs later
+* If partial fills: post-trade reconciliation (RFC-0018) should compare expected vs realized costs later
 
 ---
 
@@ -275,4 +275,5 @@ Each asserts:
 * Management fees and retrocessions modeling
 * Custody fees
 * Performance net-of-fees reporting
-* TCA and realized cost comparison using fills (RFC-0014J)
+* TCA and realized cost comparison using fills (RFC-0018)
+

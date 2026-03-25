@@ -7,7 +7,7 @@
 | **Target Release** | MVP-14K |
 | **Depends On** | RFC-0014A (Proposal Simulation) |
 | **Strongly Recommended** | RFC-0014E (Proposal Artifact), RFC-0014G (Persistence), RFC-0014H (Policy Packs) |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014K-data-quality-snapshots-replayability.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014K-data-quality-snapshots-replayability.md` |
 | **Backward Compatibility** | Not required |
 
 ---
@@ -254,7 +254,7 @@ Compute hashes for each snapshot:
 
 ### 7.1 API
 
-`POST /advisory/proposals/replay`
+`POST /v1/proposal/replay`
 
 Body:
 

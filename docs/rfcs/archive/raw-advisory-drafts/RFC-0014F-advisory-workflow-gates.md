@@ -7,7 +7,7 @@
 | **Target Release** | MVP-14F |
 | **Depends On** | RFC-0014A (Proposal Simulation) |
 | **Strongly Recommended** | RFC-0014D (Suitability Scanner), RFC-0014E (Proposal Artifact) |
-| **Doc Location** | `docs/rfcs/RFC-0014F-advisory-workflow-gates.md` |
+| **Doc Location** | `docs/rfcs/archive/raw-advisory-drafts/RFC-0014F-advisory-workflow-gates.md` |
 | **Backward Compatibility** | Not required |
 
 ---
@@ -298,3 +298,4 @@ Each asserts:
 * RFC-0014G: Persist workflow state (proposal saved, approval tracking)
 * RFC-0014H: Jurisdiction-specific gate policies
 * RFC-0014I: Integration with consent and execution systems
+

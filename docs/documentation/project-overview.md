@@ -99,8 +99,10 @@ CI test execution model:
 ## Governance and RFCs
 
 - RFCs under `docs/rfcs/` define scope and acceptance.
-- Advisory refinement RFCs are under:
-  - `docs/rfcs/advisory pack/refine/`
+- `docs/rfcs/README.md` is the authoritative index for:
+  - implemented RFCs,
+  - active future work,
+  - archived material that is no longer needed for active planning.
 - Current implementation status is tracked in RFC metadata (`Status`, `Implemented In`).
 
 ## Current Delivery Principle

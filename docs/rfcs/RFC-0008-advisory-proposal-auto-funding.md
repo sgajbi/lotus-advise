@@ -1,19 +1,20 @@
-# RFC-0014B: Advisory Proposal Auto-Funding (FX Spot Intents + Dependency Graph)
+# RFC-0008: Advisory Proposal Auto-Funding (FX Spot Intents + Dependency Graph)
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14B |
-| **Depends On** | RFC-0014A (Proposal Simulation MVP), safety and after-state completeness hardening |
-| **Doc Location** | `docs/rfcs/RFC-0014B-advisory-proposal-auto-funding.md` |
+| **Target Release** | MVP-0008 |
+| **Depends On** | RFC-0007 (Proposal Simulation MVP), safety and after-state completeness hardening |
+| **Doc Location** | `docs/rfcs/RFC-0008-advisory-proposal-auto-funding.md` |
 | **Backward Compatibility** | Not required |
+| **Implemented In** | 2026-02-19 |
 
 ---
 
 ## 0. Executive Summary
 
-RFC-0014B upgrades advisory proposal simulation to be **execution-realistic** by adding **auto-funding**:
+RFC-0008 upgrades advisory proposal simulation to be **execution-realistic** by adding **auto-funding**:
 
 - Automatically generate **FX spot intents** required to settle manual security trades.
 - Build an explicit **dependency graph** (foreign-currency BUY depends on FX funding).
@@ -27,7 +28,7 @@ This enables advisors to simulate realistic proposals in multi-currency portfoli
 
 ## 1. Motivation / Problem Statement
 
-RFC-0014A can simulate advisor-proposed trades, but in private banking most buys are funded via:
+RFC-0007 can simulate advisor-proposed trades, but in private banking most buys are funded via:
 - base-currency cash converted to the buy currency,
 - proceeds from sells (possibly in multiple currencies),
 - existing foreign cash pockets.
@@ -63,10 +64,10 @@ Without auto-funding:
 
 ### 3.1 Endpoint
 Continues to use:
-- `POST /v1/proposal/simulate`
+- `POST /advisory/proposals/simulate`
 
 ### 3.2 Inputs
-No breaking changes required, but RFC-0014B introduces/standardizes these **options**:
+No breaking changes required, but RFC-0008 introduces/standardizes these **options**:
 
 ```json
 "options": {
@@ -120,6 +121,11 @@ Deterministic funding-currency order for `ANY_CASH`:
 
 1. base currency
 2. other currencies sorted lexicographically by currency code (excluding target `CCY`)
+
+> Implementation alignment note (current project slice):
+> With `fx_generation_policy=ONE_FX_PER_CCY`, the engine selects a **single** funding currency
+> per target currency using the deterministic order above. If no single source can fully fund
+> the deficit, the proposal is blocked as insufficient funding.
 
 ### 4.3 FX generation policy
 
@@ -254,6 +260,9 @@ Add structured diagnostics sections:
   * `status=PENDING_REVIEW`
   * and rule result `DATA_QUALITY` FAIL (or WARNING, depending on your rule taxonomy)
 
+Current implementation marks missing non-blocking funding FX as `PENDING_REVIEW` and skips
+execution-intent generation for affected BUYs in the simulated executable plan.
+
 ---
 
 ## 9. Algorithm / Processing Pipeline
@@ -367,9 +376,20 @@ Each golden must assert:
 
 ## 13. Follow-ups (Next RFCs)
 
-* RFC-0014C: Drift analytics (before/after vs model alignment)
-* RFC-0014D: Suitability scanner (new/resolved/persistent issues)
-* RFC-0014E: Proposal artifact packaging (client-ready bundle + narrative)
-* RFC-0014F: Advisory workflow states + human-in-loop gates
+* RFC-0009: Drift analytics (before/after vs model alignment)
+* RFC-0010: Suitability scanner (new/resolved/persistent issues)
+* RFC-0011: Proposal artifact packaging (client-ready bundle + narrative)
+* RFC-0012: Advisory workflow states + human-in-loop gates
 
 ---
+
+
+## Behavior Reference (Implemented)
+
+1. Auto-funding is option-controlled and runs only for BUY currency deficits.
+2. Existing trade-currency cash is consumed before generating FX funding intents.
+3. FX funding intents are generated deterministically and BUY intents carry explicit dependencies on those FX intents.
+4. Missing required FX data follows policy: with blocking enabled the proposal is `BLOCKED`; with non-blocking policy execution intents are constrained and surfaced for review.
+5. Intent ordering remains deterministic: `CASH_FLOW -> SELL -> FX -> BUY`.
+
+

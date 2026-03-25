@@ -1,20 +1,21 @@
-# RFC-0014C: Drift Analytics for Advisory Proposals (Before vs After vs Reference Model)
+# RFC-0009: Drift Analytics for Advisory Proposals (Before vs After vs Reference Model)
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14C |
-| **Depends On** | RFC-0014A (Proposal Simulation), after-state completeness hardening |
-| **Optional Depends On** | RFC-0014B (Auto-funding) — not required for drift math, but improves realism |
-| **Doc Location** | `docs/rfcs/RFC-0014C-drift-analytics.md` |
+| **Target Release** | MVP-0009 |
+| **Depends On** | RFC-0007 (Proposal Simulation), after-state completeness hardening |
+| **Optional Depends On** | RFC-0008 (Auto-funding) — not required for drift math, but improves realism |
+| **Doc Location** | `docs/rfcs/RFC-0009-drift-analytics.md` |
 | **Backward Compatibility** | Not required |
+| **Implemented In** | 2026-02-19 |
 
 ---
 
 ## 0. Executive Summary
 
-RFC-0014C adds **drift analytics** to the advisory proposal workflow to quantify:
+RFC-0009 adds **drift analytics** to the advisory proposal workflow to quantify:
 
 - how far the **current portfolio** is from a **reference target model** (Before drift)
 - how far the **simulated proposal** is from that model (After drift)
@@ -95,7 +96,7 @@ Two levels supported:
 
 ### 4.1 Request
 
-Extend `POST /v1/proposal/simulate` request with optional:
+Extend `POST /advisory/proposals/simulate` request with optional:
 
 * `reference_model` (object)
 * or `reference_model_id` (string) if you already have a lookup mechanism (not recommended without persistence/connector; for MVP use inline object)
@@ -228,17 +229,18 @@ These are not “LLM text”; they are structured facts an advisor UI can render
 
 ## 8. Implementation Plan
 
-1. Add `ReferenceModel` model under `src/domain/` (Pydantic v2, decimals)
-2. Add `DriftAnalyzer` under `src/core/analytics/`:
+1. Add `ReferenceModel` and drift output models under `src/core/models.py` (Pydantic v2, decimals)
+2. Add drift analytics module at `src/core/common/drift_analytics.py`:
 
-   * method: `compute_asset_class_drift(before_alloc, after_alloc, model_targets)`
-   * method: `compute_instrument_drift(before_alloc, after_alloc, model_targets, traded_instruments)`
+   * method: `compute_drift_analysis(...)` with asset-class and optional instrument dimensions
 3. Ensure allocation inputs are taken from:
 
    * `before.allocation_by_asset_class`
    * `after_simulated.allocation_by_asset_class`
      and similarly for instruments.
 4. Add output wiring in proposal response builder
+   * `src/core/advisory_engine.py`
+   * `src/api/main.py`
 5. Add tests + goldens
 
 ---
@@ -281,6 +283,16 @@ Each golden asserts:
 
 ## 11. Follow-ups
 
-* RFC-0014D: Suitability Scanner v1 (new/resolved/persistent)
-* RFC-0014E: Proposal Artifact packaging (client-ready report bundle)
-* RFC-0014F: Workflow gating (PENDING_REVIEW triggers)
+* RFC-0010: Suitability Scanner v1 (new/resolved/persistent)
+* RFC-0011: Proposal Artifact packaging (client-ready report bundle)
+* RFC-0012: Workflow gating (PENDING_REVIEW triggers)
+
+
+## Behavior Reference (Implemented)
+
+1. Drift analysis is computed only when a `reference_model` is provided and drift analytics is enabled.
+2. Bucket universes are deterministic unions, so unmodeled exposure is explicitly surfaced instead of hidden.
+3. Drift totals and contributors are produced with stable ordering for repeatable artifacts and reviews.
+4. When no reference model is supplied, drift output is omitted by design rather than inferred.
+
+

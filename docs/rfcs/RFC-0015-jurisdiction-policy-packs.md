@@ -1,20 +1,20 @@
-﻿# RFC-0014H: Jurisdiction & Policy Packs (Suitability, Disclosures, and Gating Rules)
+# RFC-0015: Jurisdiction & Policy Packs (Suitability, Disclosures, and Gating Rules)
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | DRAFT |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14H |
-| **Depends On** | RFC-0014D (Suitability Scanner v1), RFC-0014E (Proposal Artifact), RFC-0014F (GateDecision) |
-| **Recommended** | RFC-0014G (Persistence) for full auditability across jurisdictions |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014H-jurisdiction-policy-packs.md` |
+| **Target Release** | MVP-0015 |
+| **Depends On** | RFC-0010 (Suitability Scanner v1), RFC-0011 (Proposal Artifact), RFC-0012 (GateDecision) |
+| **Recommended** | RFC-0013 (Persistence) for full auditability across jurisdictions |
+| **Doc Location** | `docs/rfcs/RFC-0015-jurisdiction-policy-packs.md` |
 | **Backward Compatibility** | Not required |
 
 ---
 
 ## 0. Executive Summary
 
-RFC-0014H introduces **Jurisdiction Policy Packs** to make the advisory proposal system production-grade across regions (e.g., SG, HK, CH, UK, EU).
+RFC-0015 introduces **Jurisdiction Policy Packs** to make the advisory proposal system production-grade across regions (e.g., SG, HK, CH, UK, EU).
 
 A Policy Pack is a versioned configuration bundle that defines:
 
@@ -363,3 +363,4 @@ Assert that for the same proposal:
 * Policy approvals workflow (four-eyes)
 * Localization for disclosures (en, zh, etc.)
 * Jurisdiction-specific suitability mappings (client profile → allowed products)
+

@@ -1,20 +1,21 @@
-# RFC-0014D: Suitability Scanner v1 for Advisory Proposals (New / Resolved / Persistent Issues)
+# RFC-0010: Suitability Scanner v1 for Advisory Proposals (New / Resolved / Persistent Issues)
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | IMPLEMENTED |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14D |
-| **Depends On** | RFC-0014A (Proposal Simulation), after-state completeness and safety hardening |
-| **Optional Depends On** | RFC-0014B (Auto-funding), RFC-0014C (Drift analytics) |
-| **Doc Location** | `docs/rfcs/RFC-0014D-suitability-scanner-v1.md` |
+| **Target Release** | MVP-0010 |
+| **Depends On** | RFC-0007 (Proposal Simulation), after-state completeness and safety hardening |
+| **Optional Depends On** | RFC-0008 (Auto-funding), RFC-0009 (Drift analytics) |
+| **Doc Location** | `docs/rfcs/RFC-0010-suitability-scanner-v1.md` |
 | **Backward Compatibility** | Not required |
+| **Implemented In** | 2026-02-19 |
 
 ---
 
 ## 0. Executive Summary
 
-RFC-0014D adds a **Suitability Scanner v1** to the advisory proposal workflow. It evaluates the portfolio **before** and **after** simulation and produces a structured list of suitability issues, categorized as:
+RFC-0010 adds a **Suitability Scanner v1** to the advisory proposal workflow. It evaluates the portfolio **before** and **after** simulation and produces a structured list of suitability issues, categorized as:
 
 - **NEW** (introduced by the proposal)
 - **RESOLVED** (fixed by the proposal)
@@ -35,7 +36,7 @@ In private banking advisory, an “investment proposal” must be paired with:
 - explicit disclosure of any new risks introduced.
 
 Your rough RFC idea references a “5-point scan” concept and highlights that suitability should compare current vs proposed state.
-RFC-0014D formalizes that scanner in a deterministic, testable way.
+RFC-0010 formalizes that scanner in a deterministic, testable way.
 
 ---
 
@@ -199,6 +200,10 @@ Use shelf status for each instrument:
 * If **RESTRICTED** and increases and `allow_restricted=false` => issue HIGH (proposal violates restriction)
 * If **RESTRICTED** and increases and allow is true => issue MEDIUM with disclosure (“restricted allowed”)
 
+Implementation alignment note:
+- Advisory execution guards can block disallowed BUYs before they change after-state holdings.
+- Suitability scanner therefore also emits governance issues for attempted BUYs in `SELL_ONLY` and `RESTRICTED` instruments so NEW violations remain visible in blocked proposals.
+
 ### 6.5 Cash Band (Suitability View)
 
 Compute cash weight after proposal.
@@ -351,5 +356,14 @@ Each golden asserts:
 
 ## 12. Follow-ups
 
-* RFC-0014E: Proposal Artifact Packaging (client-ready narrative sections)
-* RFC-0014F: Workflow gating as first-class state machine (with persistence later)
+* RFC-0011: Proposal Artifact Packaging (client-ready narrative sections)
+* RFC-0012: Workflow gating as first-class state machine (with persistence later)
+
+
+## Behavior Reference (Implemented)
+
+1. Suitability scanner is deterministic and classifies issues as `NEW`, `PERSISTENT`, or `RESOLVED` by comparing before vs after states.
+2. Scanner output is advisory-focused and complements, rather than replaces, hard/soft rule-engine status decisions.
+3. Governance-related attempted violations are still surfaced as suitability issues even when execution guards block the trade.
+4. `recommended_gate` is derived from new-issue severity and consumed by shared workflow-gate policy.
+

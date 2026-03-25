@@ -1,20 +1,20 @@
-# RFC-0014I: Execution Integration Interface (OMS / Broker) + Trade Ticket & Acknowledgement Lifecycle
+# RFC-0017: Execution Integration Interface (OMS / Broker) + Trade Ticket & Acknowledgement Lifecycle
 
 | Metadata | Details |
 | --- | --- |
 | **Status** | DRAFT |
 | **Created** | 2026-02-18 |
-| **Target Release** | MVP-14I |
-| **Depends On** | RFC-0014E (Proposal Artifact) |
-| **Strongly Recommended** | RFC-0014F (GateDecision), RFC-0014G (Persistence) |
-| **Doc Location** | `docs/rfcs/advisory pack/refine/RFC-0014I-execution-integration-interface.md` |
+| **Target Release** | MVP-0017 |
+| **Depends On** | RFC-0011 (Proposal Artifact) |
+| **Strongly Recommended** | RFC-0012 (GateDecision), RFC-0013 (Persistence) |
+| **Doc Location** | `docs/rfcs/RFC-0017-execution-integration-interface.md` |
 | **Backward Compatibility** | Not required |
 
 ---
 
 ## 0. Executive Summary
 
-RFC-0014I defines how an approved advisory proposal becomes **executed orders** by integrating with an OMS/broker layer.
+RFC-0017 defines how an approved advisory proposal becomes **executed orders** by integrating with an OMS/broker layer.
 
 It introduces:
 - a canonical **Execution Request** API
@@ -35,7 +35,7 @@ A proposal engine is only valuable in production if it can:
 - receive acknowledgements and fills,
 - update the lifecycle state with full auditability.
 
-The proposal artifact already contains deterministic intent ordering and dependencies. RFC-0014I turns that into an execution pipeline.
+The proposal artifact already contains deterministic intent ordering and dependencies. RFC-0017 turns that into an execution pipeline.
 
 ---
 
@@ -317,7 +317,7 @@ Store:
 * external_order_ids mapping
 * events append-only
 
-If RFC-0014G already introduced a shared idempotency table, reuse it with a type discriminator.
+If RFC-0013 already introduced a shared idempotency table, reuse it with a type discriminator.
 
 ---
 
@@ -379,4 +379,5 @@ Not required for execution pipeline beyond determinism of tickets, but can snaps
 * Allocation to accounts, settlement instructions
 * Multi-day execution, slicing, time windows
 * Real OMS/FIX integration adapters
+
 
