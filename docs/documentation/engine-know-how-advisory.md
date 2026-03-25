@@ -280,7 +280,8 @@ Current Slice 2 draft actions:
 
 Current evaluation rule:
 - stateless workspaces support full deterministic re-evaluation from the embedded simulation context
-- stateful workspaces preserve draft state but return `WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED` until upstream context resolution lands in a later architecture slice
+- stateful workspaces can resolve deterministic evaluation context through the Lotus Core advisory context seam when it is configured
+- unresolved stateful workspaces fail explicitly with `WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE`
 
 Current saved-version rule:
 - saved workspace versions are retained within the active workspace session and expose replay-safe evidence
@@ -290,7 +291,8 @@ Current saved-version rule:
 Current handoff rule:
 - the first workspace handoff creates a persisted proposal and records a lifecycle link on the workspace
 - later workspace handoffs create new versions on the linked proposal instead of creating duplicate proposal aggregates
-- stateless workspaces support lifecycle handoff now; stateful workspaces remain blocked until upstream context resolution lands in later architecture slices
+- stateless workspaces support lifecycle handoff directly from embedded simulation payloads
+- stateful workspaces support lifecycle handoff when the Lotus Core advisory context seam can resolve replay-safe simulation inputs
 
 Dependency quality gate:
 - `scripts/dependency_health_check.py --requirements requirements.txt`

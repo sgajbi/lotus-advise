@@ -25,7 +25,7 @@ The sequence is organized to read in implementation order:
 | RFC-0003 | Advisory Proposal Workflow Coverage Hardening (Approval Chain Paths) | IMPLEMENTED | Active | RFC-0013 | `docs/rfcs/RFC-0003-advisory-proposal-workflow-coverage-hardening.md` |
 | RFC-0004 | Iterative Advisory Proposal Workspace Contract | IMPLEMENTED | Active | RFC-0013, RFC-0003 | `docs/rfcs/RFC-0004-iterative-advisory-proposal-workspace-contract.md` |
 | RFC-0005 | Advisory PostgreSQL Runtime and Persistence Cutover | IMPLEMENTED | Active runtime persistence source of truth | RFC-0004, RFC-0006 | `docs/rfcs/RFC-0005-postgres-only-advisory-runtime-hard-cutover.md` |
-| RFC-0006 | lotus-advise Target Operating Model and Integration Architecture | PROPOSED | Active architecture RFC; Slice 1 implemented | RFC-0013, RFC-0003, RFC-0004 | `docs/rfcs/RFC-0006-lotus-advise-target-operating-model-and-integration-architecture.md` |
+| RFC-0006 | lotus-advise Target Operating Model and Integration Architecture | PROPOSED | Active architecture RFC; Slices 1-2 implemented | RFC-0013, RFC-0003, RFC-0004 | `docs/rfcs/RFC-0006-lotus-advise-target-operating-model-and-integration-architecture.md` |
 | RFC-0007 | Advisory Proposal Simulation MVP (Manual Trades + Cash Flows) | IMPLEMENTED | Active | - | `docs/rfcs/RFC-0007-advisory-proposal-simulate-mvp.md` |
 | RFC-0008 | Advisory Proposal Auto-Funding (FX Spot Intents + Dependency Graph) | IMPLEMENTED | Active | RFC-0007 | `docs/rfcs/RFC-0008-advisory-proposal-auto-funding.md` |
 | RFC-0009 | Drift Analytics for Advisory Proposals (Before vs After vs Reference Model) | IMPLEMENTED | Active | RFC-0007 | `docs/rfcs/RFC-0009-drift-analytics.md` |
@@ -67,7 +67,7 @@ Deferred but retained:
 - `RFC-0002`
 
 Implementation note:
-- `RFC-0006` Slice 1 is implemented, but the parent RFC remains open because later slices are still pending.
+- `RFC-0006` Slices 1-2 are implemented, but the parent RFC remains open because later slices are still pending.
 
 ## Archived / Not Needed For Active Planning
 

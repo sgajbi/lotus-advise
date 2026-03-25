@@ -92,6 +92,7 @@ The API remains deterministic for identical inputs and options.
 - `src/core/proposals/`: proposal lifecycle models, services, and repository abstractions.
 - `src/core/workspace/`: advisory workspace contract models for stateless/stateful draft sessions and evaluation summaries.
 - `src/integrations/`: adapter seams for Lotus platform dependencies.
+- `src/integrations/lotus_core/context_resolution.py`: explicit stateful advisory context seam used to resolve replay-safe portfolio evaluation context from Lotus Core.
 - `src/api/capabilities/`: readiness and capability resolution seams for integration-aware platform truth.
 - `src/core/models.py`: shared request/response contracts and options.
 

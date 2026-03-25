@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -10,7 +12,44 @@ def setup_function() -> None:
     reset_proposal_workflow_service_for_tests()
 
 
-def test_create_stateful_workspace_session_returns_workspace_context():
+def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict[str, Any]:
+    return {
+        "simulate_request": {
+            "portfolio_snapshot": {
+                "snapshot_id": f"ps_{portfolio_id}_{as_of}",
+                "portfolio_id": portfolio_id,
+                "base_currency": "USD",
+                "positions": [],
+                "cash_balances": [{"currency": "USD", "amount": "10000"}],
+            },
+            "market_data_snapshot": {
+                "snapshot_id": f"md_{as_of}",
+                "prices": [],
+                "fx_rates": [],
+            },
+            "shelf_entries": [],
+            "options": {"enable_proposal_simulation": True},
+            "proposed_cash_flows": [],
+            "proposed_trades": [],
+        },
+        "resolved_context": {
+            "portfolio_id": portfolio_id,
+            "as_of": as_of,
+            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
+            "market_data_snapshot_id": f"md_{as_of}",
+        },
+    }
+
+
+def test_create_stateful_workspace_session_returns_workspace_context(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
     payload = {
         "workspace_name": "Q2 2026 growth reallocation draft",
         "created_by": "advisor_123",
@@ -32,6 +71,9 @@ def test_create_stateful_workspace_session_returns_workspace_context():
     assert body["workspace"]["input_mode"] == "stateful"
     assert body["workspace"]["stateful_input"]["portfolio_id"] == "pf_advisory_01"
     assert body["workspace"]["resolved_context"]["portfolio_id"] == "pf_advisory_01"
+    assert body["workspace"]["resolved_context"]["portfolio_snapshot_id"] == (
+        "ps_pf_advisory_01_2026-03-25"
+    )
     assert body["workspace"]["draft_state"]["trade_drafts"] == []
     assert body["workspace"]["evaluation_summary"] is None
 
@@ -419,7 +461,15 @@ def test_workspace_evaluate_reruns_stateless_workspace_successfully():
     assert body["latest_proposal_result"]["status"] == "READY"
 
 
-def test_workspace_evaluate_rejects_stateful_session_until_stateful_resolution_exists():
+def test_workspace_evaluate_uses_stateful_context_resolution(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
     create_payload = {
         "workspace_name": "Q2 2026 growth reallocation draft",
         "created_by": "advisor_123",
@@ -437,8 +487,11 @@ def test_workspace_evaluate_rejects_stateful_session_until_stateful_resolution_e
         ]
         response = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
 
-    assert response.status_code == 409
-    assert response.json()["detail"] == "WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED"
+    assert response.status_code == 200
+    assert response.json()["evaluation_summary"]["status"] == "READY"
+    assert response.json()["resolved_context"]["portfolio_snapshot_id"] == (
+        "ps_pf_advisory_01_2026-03-25"
+    )
 
 
 def test_workspace_endpoints_return_404_for_missing_workspace():
@@ -544,7 +597,50 @@ def test_workspace_draft_action_replace_options_rejects_stateful_workspace_witho
         )
 
     assert response.status_code == 409
-    assert response.json()["detail"] == "WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED"
+    assert response.json()["detail"] == "WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+
+
+def test_workspace_draft_action_replace_options_uses_stateful_context_resolution(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    create_payload = {
+        "workspace_name": "Q2 2026 growth reallocation draft",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_advisory_01",
+            "household_id": "hh_001",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "REPLACE_OPTIONS",
+                "options": {"enable_proposal_simulation": True, "auto_funding": False},
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workspace"]["draft_state"]["options"]["auto_funding"] is False
+    assert body["workspace"]["resolved_context"]["portfolio_snapshot_id"] == (
+        "ps_pf_advisory_01_2026-03-25"
+    )
 
 
 def test_workspace_save_list_resume_and_compare_saved_versions():
@@ -819,7 +915,15 @@ def test_workspace_handoff_requires_idempotency_key_for_first_create():
     assert response.json()["detail"] == "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED"
 
 
-def test_workspace_handoff_rejects_stateful_workspace_until_stateful_resolution_exists():
+def test_workspace_handoff_uses_stateful_context_resolution(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
     create_payload = {
         "workspace_name": "Q2 2026 growth reallocation draft",
         "created_by": "advisor_123",
@@ -841,8 +945,12 @@ def test_workspace_handoff_rejects_stateful_workspace_until_stateful_resolution_
             json={"handoff_by": "advisor_123"},
         )
 
-    assert response.status_code == 409
-    assert response.json()["detail"] == "WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED"
+    assert response.status_code == 200
+    body = response.json()
+    assert body["proposal"]["proposal"]["lifecycle_origin"] == "WORKSPACE_HANDOFF"
+    assert body["workspace"]["resolved_context"]["portfolio_snapshot_id"] == (
+        "ps_pf_advisory_01_2026-03-25"
+    )
 
 
 def test_workspace_handoff_returns_422_when_proposal_simulation_flag_is_disabled():

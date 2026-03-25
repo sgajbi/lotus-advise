@@ -41,6 +41,10 @@ from src.core.workspace.models import (
     WorkspaceStatelessInput,
     WorkspaceTradeDraft,
 )
+from src.integrations.lotus_core import (
+    LotusCoreContextResolutionError,
+    resolve_lotus_core_advisory_context,
+)
 
 MAX_WORKSPACE_SESSION_CACHE_SIZE = 500
 WORKSPACE_SESSIONS: "OrderedDictType[str, WorkspaceSession]" = OrderedDict()
@@ -87,10 +91,13 @@ def _build_stateless_resolved_context(
 def _build_stateful_resolved_context(
     stateful_input: WorkspaceStatefulInput,
 ) -> WorkspaceResolvedContext:
-    return WorkspaceResolvedContext(
-        portfolio_id=stateful_input.portfolio_id,
-        as_of=stateful_input.as_of,
-    )
+    try:
+        return resolve_lotus_core_advisory_context(stateful_input).resolved_context
+    except LotusCoreContextResolutionError:
+        return WorkspaceResolvedContext(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        )
 
 
 def _build_initial_draft_state(request: WorkspaceSessionCreateRequest) -> WorkspaceDraftState:
@@ -124,8 +131,20 @@ def _build_initial_draft_state(request: WorkspaceSessionCreateRequest) -> Worksp
 
 
 def _build_simulate_request_for_workspace(session: WorkspaceSession) -> ProposalSimulateRequest:
-    if session.input_mode != "stateless" or session.stateless_input is None:
-        raise WorkspaceEvaluationUnavailableError("WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED")
+    if session.input_mode == "stateful":
+        if session.stateful_input is None:
+            raise WorkspaceEvaluationUnavailableError("WORKSPACE_STATEFUL_INPUT_MISSING")
+        try:
+            resolved_stateful_context = resolve_lotus_core_advisory_context(session.stateful_input)
+        except LotusCoreContextResolutionError as exc:
+            raise WorkspaceEvaluationUnavailableError(
+                "WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+            ) from exc
+        session.resolved_context = resolved_stateful_context.resolved_context
+        return resolved_stateful_context.simulate_request
+
+    if session.stateless_input is None:
+        raise WorkspaceEvaluationUnavailableError("WORKSPACE_STATELESS_INPUT_MISSING")
 
     source_request = session.stateless_input.simulate_request
     return ProposalSimulateRequest(

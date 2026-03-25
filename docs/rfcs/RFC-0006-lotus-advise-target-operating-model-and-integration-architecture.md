@@ -445,6 +445,10 @@ Out of scope:
 
 ### Slice 2: Operating Mode Contract and Context Resolution
 
+Status:
+
+1. implemented
+
 Outcome:
 
 1. advisory contracts support both `stateless` and `stateful` modes,
