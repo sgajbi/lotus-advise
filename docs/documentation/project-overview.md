@@ -66,6 +66,15 @@ The API remains deterministic for identical inputs and options.
 
 - `POST /advisory/proposals/simulate`
 - `POST /advisory/proposals/artifact`
+- `POST /advisory/workspaces`
+- `GET /advisory/workspaces/{workspace_id}`
+- `POST /advisory/workspaces/{workspace_id}/draft-actions`
+- `POST /advisory/workspaces/{workspace_id}/evaluate`
+- `POST /advisory/workspaces/{workspace_id}/save`
+- `GET /advisory/workspaces/{workspace_id}/saved-versions`
+- `POST /advisory/workspaces/{workspace_id}/resume`
+- `POST /advisory/workspaces/{workspace_id}/compare`
+- `POST /advisory/workspaces/{workspace_id}/handoff`
 - `POST /advisory/proposals`
 - `GET /advisory/proposals`
 - `GET /advisory/proposals/{proposal_id}`
@@ -74,9 +83,11 @@ The API remains deterministic for identical inputs and options.
 
 - `src/api/`: FastAPI contracts and endpoint orchestration.
 - `src/api/proposals/`: proposal lifecycle API package for runtime wiring, errors, and lifecycle/async/support routes.
+- `src/api/workspaces/`: advisory workspace API package for workspace session contract entry points.
 - `src/core/advisory/`: Advisory-specific modules (artifact, funding, intents, ids).
 - `src/core/common/`: Shared logic (simulation primitives, diagnostics, drift, suitability, canonical hashing, workflow gates).
 - `src/core/proposals/`: proposal lifecycle models, services, and repository abstractions.
+- `src/core/workspace/`: advisory workspace contract models for stateless/stateful draft sessions and evaluation summaries.
 - `src/integrations/`: adapter seams for Lotus platform dependencies.
 - `src/api/capabilities/`: readiness and capability resolution seams for integration-aware platform truth.
 - `src/core/models.py`: shared request/response contracts and options.
@@ -99,8 +110,10 @@ CI test execution model:
 ## Governance and RFCs
 
 - RFCs under `docs/rfcs/` define scope and acceptance.
-- Advisory refinement RFCs are under:
-  - `docs/rfcs/advisory pack/refine/`
+- `docs/rfcs/README.md` is the authoritative index for:
+  - implemented RFCs,
+  - active future work,
+  - archived material that is no longer needed for active planning.
 - Current implementation status is tracked in RFC metadata (`Status`, `Implemented In`).
 
 ## Current Delivery Principle

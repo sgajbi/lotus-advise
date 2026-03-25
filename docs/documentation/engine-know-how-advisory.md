@@ -4,7 +4,9 @@ Implementation scope:
 - API: `src/api/main.py` (`/advisory/proposals/simulate`)
 - API: `src/api/main.py` (`/advisory/proposals/artifact`)
 - API router package: `src/api/proposals/` (`/advisory/proposals` lifecycle family)
+- API router package: `src/api/workspaces/` (`/advisory/workspaces` workspace session, draft action, and re-evaluation contract)
 - Models: `src/core/models.py`
+- Workspace models: `src/core/workspace/models.py`
 - Artifact models: `src/core/advisory/artifact_models.py`
 - Proposal lifecycle domain:
   - `src/core/proposals/models.py`
@@ -17,16 +19,16 @@ Implementation scope:
 - Advisory modular internals:
   - `src/core/advisory/ids.py` (deterministic run id generation)
   - `src/core/advisory/intents.py` (proposal cash/trade intent construction helpers)
-  - `src/core/advisory/funding.py` (RFC-0014B auto-funding planner)
-  - `src/core/advisory/artifact.py` (RFC-0014E artifact builder)
+  - `src/core/advisory/funding.py` (RFC-0008 auto-funding planner)
+  - `src/core/advisory/artifact.py` (RFC-0011 artifact builder)
 - Shared simulation primitives: `src/core/common/simulation_shared.py`
 - Shared intent dependency linker: `src/core/common/intent_dependencies.py`
 - Shared diagnostics builders: `src/core/common/diagnostics.py`
 - Shared deterministic canonical serialization/hash: `src/core/common/canonical.py`
 - Shared workflow gate evaluator: `src/core/common/workflow_gates.py`
 - Shared advisory analytics:
-  - `src/core/common/drift_analytics.py` (RFC-0014C drift analytics)
-  - `src/core/common/suitability.py` (RFC-0014D suitability scanner)
+  - `src/core/common/drift_analytics.py` (RFC-0009 drift analytics)
+  - `src/core/common/suitability.py` (RFC-0010 suitability scanner)
 - Valuation: `src/core/valuation.py`
 - Rules: `src/core/compliance.py`
 
@@ -132,7 +134,7 @@ Persistence note:
 - Cash flows can be applied before trades (`proposal_apply_cash_flows_first`).
 - Trades are manually supplied and priced from market data.
 - For notional-driven trades, `notional.currency` must match priced instrument currency; mismatch blocks with `PROPOSAL_INVALID_TRADE_INPUT`.
-- RFC-0014B auto-funding:
+- RFC-0008 auto-funding:
   - Build funding plan per BUY currency.
   - Generate `FX_SPOT` intents for deficits using `BASE_ONLY` or `ANY_CASH` policy.
   - Apply deterministic dependencies from BUY intents to generated FX intent ids.
@@ -217,7 +219,7 @@ Swagger contract quality:
   - `recommended_gate` (`NONE`, `RISK_REVIEW`, `COMPLIANCE_REVIEW`)
 - standard safety/data-quality rules continue to apply (`NO_SHORTING`, `INSUFFICIENT_CASH`, etc.)
 
-## Proposal Artifact (RFC-0014E)
+## Proposal Artifact (RFC-0011)
 
 Deterministic sections:
 - `gate_decision`
@@ -250,6 +252,45 @@ Determinism controls:
   - `tests/unit/advisory/engine/test_engine_proposal_artifact.py`
 - Proposal golden: `tests/unit/advisory/golden/test_golden_advisory_proposal_scenarios.py`
 - Artifact golden: `tests/unit/advisory/golden/test_golden_advisory_proposal_artifact_scenarios.py`
+- Workspace API: `tests/unit/advisory/api/test_api_workspace.py`
+- Workspace contract: `tests/unit/advisory/contracts/test_contract_workspace_models.py`
+- Workspace OpenAPI contract: `tests/unit/advisory/contracts/test_contract_openapi_workspace_docs.py`
+
+## Workspace Foundation and Mutation Loop
+
+Current workspace scope:
+- `POST /advisory/workspaces` creates a draft workspace session in `stateless` or `stateful` mode.
+- `GET /advisory/workspaces/{workspace_id}` returns current draft state and latest evaluation.
+- `POST /advisory/workspaces/{workspace_id}/draft-actions` applies a single deterministic draft mutation and re-evaluates when evaluation context is available.
+- `POST /advisory/workspaces/{workspace_id}/evaluate` re-runs deterministic evaluation for the current workspace draft.
+- `POST /advisory/workspaces/{workspace_id}/save` captures a replay-safe saved workspace version.
+- `GET /advisory/workspaces/{workspace_id}/saved-versions` returns the saved version history for support, resume, and compare workflows.
+- `POST /advisory/workspaces/{workspace_id}/resume` restores a saved version into the current editable draft.
+- `POST /advisory/workspaces/{workspace_id}/compare` compares the current draft to a saved version baseline.
+- `POST /advisory/workspaces/{workspace_id}/handoff` bridges the current draft into persisted proposal lifecycle without duplicating lifecycle ownership.
+
+Current Slice 2 draft actions:
+- `ADD_TRADE`
+- `UPDATE_TRADE`
+- `REMOVE_TRADE`
+- `ADD_CASH_FLOW`
+- `UPDATE_CASH_FLOW`
+- `REMOVE_CASH_FLOW`
+- `REPLACE_OPTIONS`
+
+Current evaluation rule:
+- stateless workspaces support full deterministic re-evaluation from the embedded simulation context
+- stateful workspaces preserve draft state but return `WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED` until upstream context resolution lands in a later architecture slice
+
+Current saved-version rule:
+- saved workspace versions are retained within the active workspace session and expose replay-safe evidence
+- resume restores the saved draft state, evaluation summary, and replay evidence without hidden reconstruction
+- compare currently returns deterministic summary deltas against a saved baseline version
+
+Current handoff rule:
+- the first workspace handoff creates a persisted proposal and records a lifecycle link on the workspace
+- later workspace handoffs create new versions on the linked proposal instead of creating duplicate proposal aggregates
+- stateless workspaces support lifecycle handoff now; stateful workspaces remain blocked until upstream context resolution lands in later architecture slices
 
 Dependency quality gate:
 - `scripts/dependency_health_check.py --requirements requirements.txt`

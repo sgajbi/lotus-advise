@@ -4,7 +4,7 @@
 | --- | --- |
 | Status | IMPLEMENTED |
 | Created | 2026-02-22 |
-| Depends On | RFC-0014G |
+| Depends On | RFC-0013 |
 
 ## 1. Context
 
