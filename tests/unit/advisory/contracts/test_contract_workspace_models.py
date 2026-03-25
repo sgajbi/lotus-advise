@@ -18,6 +18,8 @@ from src.core.models import (
     SimulatedState,
 )
 from src.core.workspace.models import (
+    WorkspaceDraftActionRequest,
+    WorkspaceDraftState,
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
     WorkspaceResolvedContext,
@@ -132,6 +134,7 @@ def test_workspace_session_supports_stateful_context_and_evaluation_summary():
             as_of="2026-03-25",
             mandate_id="mandate_growth_01",
         ),
+        draft_state=WorkspaceDraftState(),
         resolved_context=WorkspaceResolvedContext(
             portfolio_id="pf_advisory_01",
             as_of="2026-03-25",
@@ -183,3 +186,20 @@ def test_workspace_schema_exposes_examples_and_descriptions():
     assert properties["workspace_name"]["description"]
     assert properties["input_mode"]["examples"] == ["stateful"]
     assert "examples" in properties["stateless_input"]
+
+
+def test_workspace_draft_action_requires_trade_for_add_trade():
+    with pytest.raises(ValidationError):
+        WorkspaceDraftActionRequest(actor_id="advisor_123", action_type="ADD_TRADE")
+
+
+def test_workspace_draft_action_supports_update_trade_payload():
+    action = WorkspaceDraftActionRequest(
+        actor_id="advisor_123",
+        action_type="UPDATE_TRADE",
+        workspace_trade_id="wtd_001",
+        trade={"side": "BUY", "instrument_id": "EQ_1", "quantity": "2"},
+    )
+
+    assert action.workspace_trade_id == "wtd_001"
+    assert action.trade is not None

@@ -1,7 +1,12 @@
 from src.core.workspace.models import (
+    WorkspaceCashFlowDraft,
+    WorkspaceDraftActionRequest,
+    WorkspaceDraftActionResponse,
+    WorkspaceDraftState,
     WorkspaceEvaluationImpactSummary,
     WorkspaceEvaluationSummary,
     WorkspaceResolvedContext,
+    WorkspaceTradeDraft,
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
@@ -10,9 +15,14 @@ from src.core.workspace.models import (
 )
 
 __all__ = [
+    "WorkspaceCashFlowDraft",
+    "WorkspaceDraftActionRequest",
+    "WorkspaceDraftActionResponse",
+    "WorkspaceDraftState",
     "WorkspaceEvaluationImpactSummary",
     "WorkspaceEvaluationSummary",
     "WorkspaceResolvedContext",
+    "WorkspaceTradeDraft",
     "WorkspaceSession",
     "WorkspaceSessionCreateRequest",
     "WorkspaceSessionCreateResponse",

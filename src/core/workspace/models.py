@@ -2,10 +2,27 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from src.core.models import GateDecision, ProposalResult, ProposalSimulateRequest
+from src.core.models import (
+    EngineOptions,
+    GateDecision,
+    ProposalResult,
+    ProposalSimulateRequest,
+    ProposedCashFlow,
+    ProposedTrade,
+    ReferenceModel,
+)
 
 WorkspaceInputMode = Literal["stateless", "stateful"]
 WorkspaceLifecycleState = Literal["ACTIVE", "PAUSED", "ARCHIVED"]
+WorkspaceDraftActionType = Literal[
+    "ADD_TRADE",
+    "UPDATE_TRADE",
+    "REMOVE_TRADE",
+    "ADD_CASH_FLOW",
+    "UPDATE_CASH_FLOW",
+    "REMOVE_CASH_FLOW",
+    "REPLACE_OPTIONS",
+]
 
 
 class WorkspaceStatelessInput(BaseModel):
@@ -86,6 +103,45 @@ class WorkspaceResolvedContext(BaseModel):
         default=None,
         description="Optional reporting-context identifier used to correlate downstream report generation.",
         examples=["report_ctx_001"],
+    )
+
+
+class WorkspaceTradeDraft(BaseModel):
+    workspace_trade_id: str = Field(
+        description="Workspace-local trade identifier used for deterministic draft editing.",
+        examples=["wtd_001"],
+    )
+    trade: ProposedTrade = Field(
+        description="Advisor-entered trade currently included in the workspace draft.",
+    )
+
+
+class WorkspaceCashFlowDraft(BaseModel):
+    workspace_cash_flow_id: str = Field(
+        description="Workspace-local cash-flow identifier used for deterministic draft editing.",
+        examples=["wcf_001"],
+    )
+    cash_flow: ProposedCashFlow = Field(
+        description="Advisor-entered cash-flow currently included in the workspace draft.",
+    )
+
+
+class WorkspaceDraftState(BaseModel):
+    options: EngineOptions = Field(
+        default_factory=EngineOptions,
+        description="Current workspace-level evaluation options.",
+    )
+    reference_model: Optional[ReferenceModel] = Field(
+        default=None,
+        description="Optional reference model currently attached to the workspace draft.",
+    )
+    trade_drafts: list[WorkspaceTradeDraft] = Field(
+        default_factory=list,
+        description="Current ordered trade draft items in the workspace.",
+    )
+    cash_flow_drafts: list[WorkspaceCashFlowDraft] = Field(
+        default_factory=list,
+        description="Current ordered cash-flow draft items in the workspace.",
     )
 
 
@@ -230,6 +286,9 @@ class WorkspaceSession(BaseModel):
         default=None,
         description="Identifier-based input payload for stateful workspaces.",
     )
+    draft_state: WorkspaceDraftState = Field(
+        description="Current editable workspace draft state.",
+    )
     resolved_context: Optional[WorkspaceResolvedContext] = Field(
         default=None,
         description="Resolved advisory context captured for replay and audit.",
@@ -261,4 +320,69 @@ class WorkspaceSession(BaseModel):
 class WorkspaceSessionCreateResponse(BaseModel):
     workspace: WorkspaceSession = Field(
         description="Created advisory workspace session.",
+    )
+
+
+class WorkspaceDraftActionRequest(BaseModel):
+    actor_id: str = Field(
+        description="Actor identifier applying the workspace draft action.",
+        examples=["advisor_123"],
+    )
+    action_type: WorkspaceDraftActionType = Field(
+        description="Workspace draft action to apply.",
+        examples=["ADD_TRADE"],
+    )
+    workspace_trade_id: Optional[str] = Field(
+        default=None,
+        description="Workspace trade identifier used by trade update and remove actions.",
+        examples=["wtd_001"],
+    )
+    workspace_cash_flow_id: Optional[str] = Field(
+        default=None,
+        description="Workspace cash-flow identifier used by cash-flow update and remove actions.",
+        examples=["wcf_001"],
+    )
+    trade: Optional[ProposedTrade] = Field(
+        default=None,
+        description="Trade payload used by add or update trade actions.",
+    )
+    cash_flow: Optional[ProposedCashFlow] = Field(
+        default=None,
+        description="Cash-flow payload used by add or update cash-flow actions.",
+    )
+    options: Optional[EngineOptions] = Field(
+        default=None,
+        description="Replacement workspace options payload used by REPLACE_OPTIONS.",
+    )
+
+    @model_validator(mode="after")
+    def validate_action_payload(self) -> "WorkspaceDraftActionRequest":
+        trade_actions = {"ADD_TRADE", "UPDATE_TRADE", "REMOVE_TRADE"}
+        cash_flow_actions = {"ADD_CASH_FLOW", "UPDATE_CASH_FLOW", "REMOVE_CASH_FLOW"}
+        if self.action_type == "ADD_TRADE" and self.trade is None:
+            raise ValueError("ADD_TRADE requires trade")
+        if self.action_type == "UPDATE_TRADE":
+            if self.trade is None or self.workspace_trade_id is None:
+                raise ValueError("UPDATE_TRADE requires workspace_trade_id and trade")
+        if self.action_type == "REMOVE_TRADE" and self.workspace_trade_id is None:
+            raise ValueError("REMOVE_TRADE requires workspace_trade_id")
+        if self.action_type == "ADD_CASH_FLOW" and self.cash_flow is None:
+            raise ValueError("ADD_CASH_FLOW requires cash_flow")
+        if self.action_type == "UPDATE_CASH_FLOW":
+            if self.cash_flow is None or self.workspace_cash_flow_id is None:
+                raise ValueError("UPDATE_CASH_FLOW requires workspace_cash_flow_id and cash_flow")
+        if self.action_type == "REMOVE_CASH_FLOW" and self.workspace_cash_flow_id is None:
+            raise ValueError("REMOVE_CASH_FLOW requires workspace_cash_flow_id")
+        if self.action_type == "REPLACE_OPTIONS" and self.options is None:
+            raise ValueError("REPLACE_OPTIONS requires options")
+        if self.action_type not in trade_actions and self.workspace_trade_id is not None:
+            raise ValueError("workspace_trade_id is only valid for trade actions")
+        if self.action_type not in cash_flow_actions and self.workspace_cash_flow_id is not None:
+            raise ValueError("workspace_cash_flow_id is only valid for cash-flow actions")
+        return self
+
+
+class WorkspaceDraftActionResponse(BaseModel):
+    workspace: WorkspaceSession = Field(
+        description="Workspace session after the draft action and optional re-evaluation.",
     )

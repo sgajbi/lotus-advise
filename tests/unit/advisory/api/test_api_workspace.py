@@ -1,6 +1,11 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.services.workspace_service import reset_workspace_sessions_for_tests
+
+
+def setup_function() -> None:
+    reset_workspace_sessions_for_tests()
 
 
 def test_create_stateful_workspace_session_returns_workspace_context():
@@ -25,6 +30,7 @@ def test_create_stateful_workspace_session_returns_workspace_context():
     assert body["workspace"]["input_mode"] == "stateful"
     assert body["workspace"]["stateful_input"]["portfolio_id"] == "pf_advisory_01"
     assert body["workspace"]["resolved_context"]["portfolio_id"] == "pf_advisory_01"
+    assert body["workspace"]["draft_state"]["trade_drafts"] == []
     assert body["workspace"]["evaluation_summary"] is None
 
 
@@ -63,6 +69,7 @@ def test_create_stateless_workspace_session_returns_snapshot_context():
     assert body["workspace"]["input_mode"] == "stateless"
     assert body["workspace"]["resolved_context"]["portfolio_snapshot_id"] == "ps_001"
     assert body["workspace"]["resolved_context"]["market_data_snapshot_id"] == "md_001"
+    assert body["workspace"]["draft_state"]["trade_drafts"] == []
 
 
 def test_create_workspace_rejects_mixed_mode_payloads():
@@ -95,3 +102,333 @@ def test_create_workspace_rejects_mixed_mode_payloads():
         response = client.post("/advisory/workspaces", json=payload)
 
     assert response.status_code == 422
+
+
+def test_workspace_draft_action_adds_trade_and_reevaluates_stateless_workspace():
+    create_payload = {
+        "workspace_name": "Sandbox drift review",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "snapshot_id": "ps_001",
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "snapshot_id": "md_001",
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        create_response = client.post("/advisory/workspaces", json=create_payload)
+        workspace_id = create_response.json()["workspace"]["workspace_id"]
+
+        action_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_1",
+                    "quantity": "2",
+                },
+            },
+        )
+
+    assert action_response.status_code == 200
+    body = action_response.json()
+    assert len(body["workspace"]["draft_state"]["trade_drafts"]) == 1
+    assert body["workspace"]["evaluation_summary"]["status"] == "READY"
+    assert body["workspace"]["evaluation_summary"]["impact_summary"]["trade_count"] == 1
+    assert body["workspace"]["latest_proposal_result"]["status"] == "READY"
+
+
+def test_workspace_draft_action_updates_and_removes_trade():
+    create_payload = {
+        "workspace_name": "Sandbox drift review",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        add_body = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_1",
+                    "quantity": "2",
+                },
+            },
+        ).json()
+        trade_id = add_body["workspace"]["draft_state"]["trade_drafts"][0]["workspace_trade_id"]
+
+        update_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "UPDATE_TRADE",
+                "workspace_trade_id": trade_id,
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_1",
+                    "quantity": "3",
+                },
+            },
+        )
+        remove_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "REMOVE_TRADE",
+                "workspace_trade_id": trade_id,
+            },
+        )
+
+    assert update_response.status_code == 200
+    assert (
+        update_response.json()["workspace"]["draft_state"]["trade_drafts"][0]["trade"]["quantity"] == "3"
+    )
+    assert remove_response.status_code == 200
+    assert remove_response.json()["workspace"]["draft_state"]["trade_drafts"] == []
+
+
+def test_workspace_draft_action_updates_and_removes_cash_flow():
+    create_payload = {
+        "workspace_name": "Sandbox funding review",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        add_body = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_CASH_FLOW",
+                "cash_flow": {
+                    "direction": "CONTRIBUTION",
+                    "amount": "2500",
+                    "currency": "USD",
+                },
+            },
+        ).json()
+        cash_flow_id = add_body["workspace"]["draft_state"]["cash_flow_drafts"][0][
+            "workspace_cash_flow_id"
+        ]
+
+        update_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "UPDATE_CASH_FLOW",
+                "workspace_cash_flow_id": cash_flow_id,
+                "cash_flow": {
+                    "direction": "CONTRIBUTION",
+                    "amount": "3000",
+                    "currency": "USD",
+                },
+            },
+        )
+        remove_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "REMOVE_CASH_FLOW",
+                "workspace_cash_flow_id": cash_flow_id,
+            },
+        )
+
+    assert update_response.status_code == 200
+    assert (
+        update_response.json()["workspace"]["draft_state"]["cash_flow_drafts"][0]["cash_flow"]["amount"]
+        == "3000"
+    )
+    assert (
+        update_response.json()["workspace"]["evaluation_summary"]["impact_summary"]["cash_flow_count"]
+        == 1
+    )
+    assert remove_response.status_code == 200
+    assert remove_response.json()["workspace"]["draft_state"]["cash_flow_drafts"] == []
+
+
+def test_workspace_get_returns_latest_workspace_state_after_mutation():
+    create_payload = {
+        "workspace_name": "Sandbox drift review",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_1",
+                    "quantity": "2",
+                },
+            },
+        )
+        get_response = client.get(f"/advisory/workspaces/{workspace_id}")
+
+    assert get_response.status_code == 200
+    body = get_response.json()
+    assert len(body["draft_state"]["trade_drafts"]) == 1
+    assert body["evaluation_summary"]["impact_summary"]["trade_count"] == 1
+
+
+def test_workspace_evaluate_reruns_stateless_workspace_successfully():
+    create_payload = {
+        "workspace_name": "Sandbox drift review",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_1",
+                    "quantity": "2",
+                },
+            },
+        )
+        response = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["evaluation_summary"]["status"] == "READY"
+    assert body["latest_proposal_result"]["status"] == "READY"
+
+
+def test_workspace_evaluate_rejects_stateful_session_until_stateful_resolution_exists():
+    create_payload = {
+        "workspace_name": "Q2 2026 growth reallocation draft",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_advisory_01",
+            "household_id": "hh_001",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED"

@@ -347,6 +347,10 @@ Acceptance gate:
 
 ### Slice 2: Draft Mutation and Re-Evaluation Loop
 
+Status:
+
+1. implemented
+
 Outcome:
 
 1. draft mutations become first-class operations,

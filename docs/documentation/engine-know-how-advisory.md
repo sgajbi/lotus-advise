@@ -4,7 +4,7 @@ Implementation scope:
 - API: `src/api/main.py` (`/advisory/proposals/simulate`)
 - API: `src/api/main.py` (`/advisory/proposals/artifact`)
 - API router package: `src/api/proposals/` (`/advisory/proposals` lifecycle family)
-- API router package: `src/api/workspaces/` (`/advisory/workspaces` workspace session contract)
+- API router package: `src/api/workspaces/` (`/advisory/workspaces` workspace session, draft action, and re-evaluation contract)
 - Models: `src/core/models.py`
 - Workspace models: `src/core/workspace/models.py`
 - Artifact models: `src/core/advisory/artifact_models.py`
@@ -255,6 +255,27 @@ Determinism controls:
 - Workspace API: `tests/unit/advisory/api/test_api_workspace.py`
 - Workspace contract: `tests/unit/advisory/contracts/test_contract_workspace_models.py`
 - Workspace OpenAPI contract: `tests/unit/advisory/contracts/test_contract_openapi_workspace_docs.py`
+
+## Workspace Foundation and Mutation Loop
+
+Current workspace scope:
+- `POST /advisory/workspaces` creates a draft workspace session in `stateless` or `stateful` mode.
+- `GET /advisory/workspaces/{workspace_id}` returns current draft state and latest evaluation.
+- `POST /advisory/workspaces/{workspace_id}/draft-actions` applies a single deterministic draft mutation and re-evaluates when evaluation context is available.
+- `POST /advisory/workspaces/{workspace_id}/evaluate` re-runs deterministic evaluation for the current workspace draft.
+
+Current Slice 2 draft actions:
+- `ADD_TRADE`
+- `UPDATE_TRADE`
+- `REMOVE_TRADE`
+- `ADD_CASH_FLOW`
+- `UPDATE_CASH_FLOW`
+- `REMOVE_CASH_FLOW`
+- `REPLACE_OPTIONS`
+
+Current evaluation rule:
+- stateless workspaces support full deterministic re-evaluation from the embedded simulation context
+- stateful workspaces preserve draft state but return `WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED` until upstream context resolution lands in a later architecture slice
 
 Dependency quality gate:
 - `scripts/dependency_health_check.py --requirements requirements.txt`
