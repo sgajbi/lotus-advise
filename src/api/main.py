@@ -35,12 +35,12 @@ from src.api.runtime_persistence import validate_advisory_runtime_persistence
 from src.api.services.advisory_simulation_service import (
     MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
     PROPOSAL_IDEMPOTENCY_CACHE,
-    run_proposal_simulation,
 )
 from src.api.services.advisory_simulation_service import (
     simulate_proposal_response as _simulate_proposal_response,
 )
 from src.api.workspaces.router import router as workspace_router
+from src.core.advisory_engine import run_proposal_simulation
 
 
 @asynccontextmanager

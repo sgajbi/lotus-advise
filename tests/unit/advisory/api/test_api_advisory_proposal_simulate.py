@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app, get_db_session
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.advisory_engine import run_proposal_simulation
 
 
 async def override_get_db_session():
@@ -172,7 +173,7 @@ def test_advisory_proposal_simulate_unhandled_error_returns_problem_details(monk
     def _raise_unhandled(*args, **kwargs):
         raise RuntimeError("boom")
 
-    monkeypatch.setattr("src.api.main.run_proposal_simulation", _raise_unhandled)
+    monkeypatch.setattr("src.api.main.simulate_with_lotus_core", _raise_unhandled, raising=False)
 
     with TestClient(app, raise_server_exceptions=False) as test_client:
         response = test_client.post(
@@ -187,6 +188,94 @@ def test_advisory_proposal_simulate_unhandled_error_returns_problem_details(monk
     assert body["title"] == "Internal Server Error"
     assert body["status"] == 500
     assert body["instance"] == "/advisory/proposals/simulate"
+
+
+def test_advisory_proposal_simulate_uses_upstream_authorities_when_available(client, monkeypatch):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_upstream", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    def _simulate_with_lotus_core(**kwargs):
+        request = kwargs["request"]
+        return run_proposal_simulation(
+            portfolio=request.portfolio_snapshot,
+            market_data=request.market_data_snapshot,
+            shelf=request.shelf_entries,
+            options=request.options,
+            proposed_cash_flows=request.proposed_cash_flows,
+            proposed_trades=request.proposed_trades,
+            reference_model=request.reference_model,
+            request_hash=kwargs["request_hash"],
+            idempotency_key=kwargs["idempotency_key"],
+            correlation_id=kwargs["correlation_id"],
+        )
+
+    def _enrich_with_lotus_risk(**kwargs):
+        return kwargs["proposal_result"]
+
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.api.main.simulate_with_lotus_core",
+        _simulate_with_lotus_core,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "src.api.main.enrich_with_lotus_risk",
+        _enrich_with_lotus_risk,
+        raising=False,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-upstream"},
+    )
+
+    assert response.status_code == 200
+    authority = response.json()["explanation"]["authority_resolution"]
+    assert authority["simulation_authority"] == "lotus_core"
+    assert authority["risk_authority"] == "lotus_risk"
+    assert authority["degraded"] is False
+
+
+def test_advisory_proposal_simulate_reports_local_fallback_when_upstream_unavailable(
+    client, monkeypatch
+):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_fallback", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.delattr("src.api.main.simulate_with_lotus_core", raising=False)
+    monkeypatch.delattr("src.api.main.enrich_with_lotus_risk", raising=False)
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-fallback"},
+    )
+
+    assert response.status_code == 200
+    authority = response.json()["explanation"]["authority_resolution"]
+    assert authority["simulation_authority"] == "lotus_advise_local"
+    assert authority["risk_authority"] == "lotus_advise_local"
+    assert authority["degraded"] is True
+    assert authority["degraded_reasons"] == [
+        "LOTUS_CORE_SIMULATION_UNAVAILABLE",
+        "LOTUS_RISK_ENRICHMENT_UNAVAILABLE",
+    ]
 
 
 def test_advisory_proposal_simulate_returns_drift_analysis_when_reference_model_provided(client):

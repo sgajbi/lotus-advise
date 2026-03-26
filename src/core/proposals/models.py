@@ -38,6 +38,8 @@ ProposalCreationStatus = Literal["READY", "PENDING_REVIEW", "BLOCKED"]
 ProposalAsyncOperationType = Literal["CREATE_PROPOSAL", "CREATE_PROPOSAL_VERSION"]
 ProposalAsyncOperationStatus = Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]
 ProposalLifecycleOrigin = Literal["DIRECT_CREATE", "WORKSPACE_HANDOFF"]
+ProposalReportType = Literal["PORTFOLIO_REVIEW", "CLIENT_PROPOSAL_SUMMARY"]
+ProposalExecutionHandoffStatus = Literal["NOT_REQUESTED", "REQUESTED", "EXECUTED"]
 
 
 class ProposalCreateMetadata(BaseModel):
@@ -446,7 +448,201 @@ class ProposalSupportabilityConfigResponse(BaseModel):
                 "risk_analytics",
                 "reports",
                 "ai_runtime_state",
+                "execution_provider_state",
             ]
+        ],
+    )
+
+
+class ProposalReportRequest(BaseModel):
+    report_type: ProposalReportType = Field(
+        description="Lotus-branded advisory report payload requested from lotus-report.",
+        examples=["CLIENT_PROPOSAL_SUMMARY"],
+    )
+    requested_by: str = Field(
+        description="Actor id requesting advisory report generation.",
+        examples=["advisor_123"],
+    )
+    related_version_no: Optional[int] = Field(
+        default=None,
+        description=(
+            "Optional immutable proposal version number to anchor the reporting payload. "
+            "Defaults to the current proposal version when omitted."
+        ),
+        examples=[1],
+    )
+    include_execution_summary: bool = Field(
+        default=True,
+        description=(
+            "Whether advisory execution-state summary should be included in report context."
+        ),
+        examples=[True],
+    )
+
+
+class ProposalReportResponse(BaseModel):
+    proposal: ProposalSummary = Field(
+        description="Proposal summary used as advisory reporting context.",
+        examples=[{"proposal_id": "pp_001", "current_state": "EXECUTION_READY"}],
+    )
+    report_request_id: str = Field(
+        description="Advisory correlation id for the lotus-report request.",
+        examples=["prr_001"],
+    )
+    report_type: ProposalReportType = Field(
+        description="Lotus-branded report payload requested from lotus-report.",
+        examples=["CLIENT_PROPOSAL_SUMMARY"],
+    )
+    report_service: str = Field(
+        description="Authoritative downstream report service used for generation.",
+        examples=["lotus-report"],
+    )
+    status: str = Field(
+        description="Current report request status returned by the reporting seam.",
+        examples=["READY"],
+    )
+    generated_at: str = Field(
+        description="UTC ISO8601 timestamp when the report payload was generated.",
+        examples=["2026-03-26T09:00:00+00:00"],
+    )
+    report_reference_id: str = Field(
+        description="Opaque lotus-report reference id for downstream retrieval or audit.",
+        examples=["lotus_report_artifact_001"],
+    )
+    artifact_url: Optional[str] = Field(
+        default=None,
+        description="Optional lotus-report artifact URL when available.",
+        examples=["https://lotus-report.local/artifacts/lotus_report_artifact_001"],
+    )
+    explanation: Dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Structured advisory explanation of the report assembly and ownership boundary."
+        ),
+        examples=[
+            {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": 1,
+                "include_execution_summary": True,
+            }
+        ],
+    )
+
+
+class ProposalExecutionHandoffRequest(BaseModel):
+    actor_id: str = Field(
+        description="Actor id requesting execution handoff for the advisory proposal.",
+        examples=["ops_001"],
+    )
+    execution_provider: str = Field(
+        description="Execution venue or OMS receiving the handoff.",
+        examples=["lotus-manage"],
+    )
+    related_version_no: Optional[int] = Field(
+        default=None,
+        description=(
+            "Optional immutable proposal version number being handed to execution. "
+            "Defaults to the current version when omitted."
+        ),
+        examples=[1],
+    )
+    expected_state: Optional[ProposalWorkflowState] = Field(
+        default=None,
+        description="Optimistic concurrency check against the current lifecycle state.",
+        examples=["EXECUTION_READY"],
+    )
+    correlation_id: Optional[str] = Field(
+        default=None,
+        description="Optional correlation id propagated into advisory execution audit history.",
+        examples=["corr-exec-handoff-001"],
+    )
+    external_request_id: Optional[str] = Field(
+        default=None,
+        description="Optional external execution request id supplied by the execution provider.",
+        examples=["oms_req_001"],
+    )
+    notes: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured advisory handoff notes captured for execution audit.",
+        examples=[{"channel": "OMS", "priority": "STANDARD"}],
+    )
+
+
+class ProposalExecutionHandoffResponse(BaseModel):
+    proposal: ProposalSummary = Field(
+        description="Proposal summary after execution handoff request processing.",
+        examples=[{"proposal_id": "pp_001", "current_state": "EXECUTION_READY"}],
+    )
+    execution_request_id: str = Field(
+        description="Advisory execution handoff correlation identifier.",
+        examples=["pex_001"],
+    )
+    handoff_status: ProposalExecutionHandoffStatus = Field(
+        description="Execution handoff status after the request is recorded.",
+        examples=["REQUESTED"],
+    )
+    execution_provider: str = Field(
+        description="Execution venue or OMS receiving the advisory handoff.",
+        examples=["lotus-manage"],
+    )
+    latest_workflow_event: ProposalWorkflowEvent = Field(
+        description="Append-only workflow event created for the execution handoff.",
+        examples=[{"event_type": "EXECUTION_REQUESTED", "to_state": "EXECUTION_READY"}],
+    )
+
+
+class ProposalExecutionStatusResponse(BaseModel):
+    proposal: ProposalSummary = Field(
+        description="Proposal summary captured at execution-status retrieval time.",
+        examples=[{"proposal_id": "pp_001", "current_state": "EXECUTED"}],
+    )
+    handoff_status: ProposalExecutionHandoffStatus = Field(
+        description="Derived advisory execution handoff status.",
+        examples=["EXECUTED"],
+    )
+    execution_request_id: Optional[str] = Field(
+        default=None,
+        description="Latest advisory execution handoff identifier when a handoff was recorded.",
+        examples=["pex_001"],
+    )
+    execution_provider: Optional[str] = Field(
+        default=None,
+        description="Execution venue or OMS associated with the latest handoff.",
+        examples=["lotus-manage"],
+    )
+    related_version_no: Optional[int] = Field(
+        default=None,
+        description="Immutable proposal version currently correlated to execution status.",
+        examples=[1],
+    )
+    handoff_requested_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp of the latest execution handoff request.",
+        examples=["2026-03-26T09:00:00+00:00"],
+    )
+    executed_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp when execution completed, when known.",
+        examples=["2026-03-26T09:15:00+00:00"],
+    )
+    external_execution_id: Optional[str] = Field(
+        default=None,
+        description="External execution identifier captured from advisory workflow events.",
+        examples=["oms_fill_001"],
+    )
+    latest_workflow_event: Optional[ProposalWorkflowEvent] = Field(
+        default=None,
+        description="Latest execution-related workflow event correlated for advisory audit.",
+        examples=[{"event_type": "EXECUTED", "to_state": "EXECUTED"}],
+    )
+    explanation: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured explanation of how advisory execution status was correlated.",
+        examples=[
+            {
+                "source": "ADVISORY_WORKFLOW_EVENTS",
+                "state_correlation": "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS",
+            }
         ],
     )
 

@@ -3,7 +3,10 @@ import sys
 import pytest
 
 from src.api.proposals.errors import raise_proposal_http_exception
-from src.api.services import advisory_simulation_service
+from src.integrations.lotus_core.simulation import (
+    LotusCoreSimulationUnavailableError,
+    simulate_with_lotus_core,
+)
 
 
 def test_raise_proposal_http_exception_re_raises_unknown_exception():
@@ -11,6 +14,15 @@ def test_raise_proposal_http_exception_re_raises_unknown_exception():
         raise_proposal_http_exception(ValueError("unexpected"))
 
 
-def test_main_override_returns_none_when_main_module_not_loaded(monkeypatch):
+def test_lotus_core_simulation_override_raises_when_main_module_not_loaded(monkeypatch):
     monkeypatch.delitem(sys.modules, "src.api.main", raising=False)
-    assert advisory_simulation_service._main_override("run_proposal_simulation") is None
+    with pytest.raises(
+        LotusCoreSimulationUnavailableError,
+        match="LOTUS_CORE_SIMULATION_UNAVAILABLE",
+    ):
+        simulate_with_lotus_core(
+            request=object(),  # type: ignore[arg-type]
+            request_hash="hash",
+            idempotency_key=None,
+            correlation_id="corr-test",
+        )

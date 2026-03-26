@@ -4,6 +4,10 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
 
 import src.api.proposals.router as proposal_shared
 from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.services.workspace_ai_service import (
+    WorkspaceAssistantUnavailableError,
+    generate_workspace_rationale,
+)
 from src.api.services.workspace_service import (
     WorkspaceEvaluationUnavailableError,
     WorkspaceLifecycleHandoffUnavailableError,
@@ -26,6 +30,8 @@ from src.core.proposals import (
     ProposalWorkflowService,
 )
 from src.core.workspace.models import (
+    WorkspaceAssistantRequest,
+    WorkspaceAssistantResponse,
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
@@ -105,6 +111,14 @@ _WORKSPACE_HANDOFF_EXAMPLE = {
             "jurisdiction": "SG",
             "mandate_id": "mandate_growth_01",
         },
+    },
+}
+
+_WORKSPACE_AI_RATIONALE_EXAMPLE = {
+    "summary": "Generate an evidence-grounded workspace rationale",
+    "value": {
+        "requested_by": "advisor_123",
+        "instruction": "Summarize the proposal rationale for an advisor review note.",
     },
 }
 
@@ -368,6 +382,51 @@ def compare_workspace(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except WorkspaceSavedVersionNotFoundError as exc:
         raise _raise_saved_version_not_found(exc)
+
+
+@router.post(
+    "/advisory/workspaces/{workspace_id}/assistant/rationale",
+    response_model=WorkspaceAssistantResponse,
+    tags=["Advisory Workspace"],
+    summary="Generate an Advisory Workspace Rationale",
+    description=(
+        "Builds an evidence-grounded workspace rationale through the Lotus AI seam using the "
+        "current evaluated workspace state. The returned output always includes the deterministic "
+        "evidence bundle that was supplied to the AI workflow."
+    ),
+    responses={
+        200: {
+            "description": "Workspace rationale generated successfully.",
+            "content": {
+                "application/json": {
+                    "examples": {"workspace_rationale": _WORKSPACE_AI_RATIONALE_EXAMPLE}
+                }
+            },
+        },
+        404: {"description": "Workspace session not found."},
+        409: {"description": "Workspace is not yet ready for AI assistance."},
+        503: {"description": "Lotus AI assistance is unavailable for this runtime."},
+    },
+)
+def generate_workspace_rationale_endpoint(
+    workspace_id: Annotated[
+        str,
+        Path(description="Workspace session identifier.", examples=["aws_001"]),
+    ],
+    request: WorkspaceAssistantRequest,
+) -> WorkspaceAssistantResponse:
+    try:
+        return generate_workspace_rationale(workspace_id, request)
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WorkspaceAssistantUnavailableError as exc:
+        detail = str(exc)
+        if detail == "LOTUS_AI_RATIONALE_UNAVAILABLE":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=detail,
+            ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
 
 
 @router.post(

@@ -1,4 +1,7 @@
 from src.core.workspace.models import (
+    WorkspaceAssistantEvidence,
+    WorkspaceAssistantRequest,
+    WorkspaceAssistantResponse,
     WorkspaceCashFlowDraft,
     WorkspaceCompareDiffSummary,
     WorkspaceCompareRequest,
@@ -29,6 +32,9 @@ from src.core.workspace.models import (
 )
 
 __all__ = [
+    "WorkspaceAssistantEvidence",
+    "WorkspaceAssistantRequest",
+    "WorkspaceAssistantResponse",
     "WorkspaceCashFlowDraft",
     "WorkspaceCompareDiffSummary",
     "WorkspaceCompareRequest",

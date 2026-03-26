@@ -1,27 +1,19 @@
-import sys
 import uuid
 from collections import OrderedDict
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, cast
+from typing import Dict, Optional, cast
 
 from fastapi import HTTPException, status
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.router import get_proposal_repository
-from src.core.advisory_engine import run_proposal_simulation
+from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.models import ProposalSimulationIdempotencyRecord
 
 PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, object]]" = OrderedDict()
 MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
-
-
-def _main_override(name: str) -> Any | None:
-    main_module = sys.modules.get("src.api.main")
-    if main_module is None:
-        return None
-    return getattr(main_module, name, None)
 
 
 def simulate_proposal_response(
@@ -49,16 +41,9 @@ def simulate_proposal_response(
     if existing is not None:
         return cast(ProposalResult, ProposalResult.model_validate(existing.response_json))
 
-    run_fn = _main_override("run_proposal_simulation") or run_proposal_simulation
     resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
-    result = run_fn(
-        portfolio=request.portfolio_snapshot,
-        market_data=request.market_data_snapshot,
-        shelf=request.shelf_entries,
-        options=request.options,
-        proposed_cash_flows=request.proposed_cash_flows,
-        proposed_trades=request.proposed_trades,
-        reference_model=request.reference_model,
+    result = evaluate_advisory_proposal(
+        request=request,
         request_hash=request_hash,
         idempotency_key=idempotency_key,
         correlation_id=resolved_correlation_id,

@@ -1,6 +1,6 @@
 # RFC-0006: lotus-advise Target Operating Model and Integration Architecture
 
-- Status: Proposed
+- Status: Implemented
 - Date: 2026-03-25
 - Owners: lotus-advise
 - Requires Approval From: lotus-advise maintainers
@@ -445,6 +445,10 @@ Out of scope:
 
 ### Slice 2: Operating Mode Contract and Context Resolution
 
+Status:
+
+1. implemented
+
 Outcome:
 
 1. advisory contracts support both `stateless` and `stateful` modes,
@@ -476,6 +480,10 @@ Out of scope:
 
 ### Slice 3: Upstream Authority Realignment
 
+Status:
+
+1. implemented
+
 Outcome:
 
 1. simulation authority converges toward `lotus-core`,
@@ -505,6 +513,10 @@ Out of scope:
 
 ### Slice 4: Workspace, AI, and Readiness Hardening
 
+Status:
+
+1. implemented
+
 Outcome:
 
 1. the advisory workspace runs on top of the target architecture,
@@ -532,6 +544,10 @@ Out of scope:
 2. long-tail advisory feature families beyond the scoped workspace and readiness needs.
 
 ### Slice 5: Reporting, Execution, and Production Completion
+
+Status:
+
+1. implemented
 
 Outcome:
 

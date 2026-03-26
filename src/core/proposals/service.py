@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from src.core.advisory.artifact import build_proposal_artifact
-from src.core.advisory_engine import run_proposal_simulation
+from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.models import (
@@ -17,6 +17,9 @@ from src.core.proposals.models import (
     ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalDetailResponse,
+    ProposalExecutionHandoffRequest,
+    ProposalExecutionHandoffResponse,
+    ProposalExecutionStatusResponse,
     ProposalIdempotencyLookupResponse,
     ProposalIdempotencyRecord,
     ProposalLifecycleOrigin,
@@ -48,6 +51,7 @@ TRANSITION_MAP: dict[tuple[ProposalWorkflowState, str], ProposalWorkflowState] =
     ("COMPLIANCE_REVIEW", "REJECTED"): "REJECTED",
     ("AWAITING_CLIENT_CONSENT", "CLIENT_CONSENT_RECORDED"): "EXECUTION_READY",
     ("AWAITING_CLIENT_CONSENT", "REJECTED"): "REJECTED",
+    ("EXECUTION_READY", "EXECUTION_REQUESTED"): "EXECUTION_READY",
     ("EXECUTION_READY", "EXECUTED"): "EXECUTED",
     ("EXECUTION_READY", "EXPIRED"): "EXPIRED",
 }
@@ -352,6 +356,143 @@ class ProposalWorkflowService:
             lineage_complete=not missing_version_numbers,
             missing_version_numbers=missing_version_numbers,
             versions=versions,
+        )
+
+    def request_execution_handoff(
+        self,
+        *,
+        proposal_id: str,
+        payload: ProposalExecutionHandoffRequest,
+        idempotency_key: Optional[str] = None,
+    ) -> ProposalExecutionHandoffResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        replay_event = self._get_replayed_event(
+            proposal_id=proposal_id,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+        )
+        if replay_event is not None:
+            return ProposalExecutionHandoffResponse(
+                proposal=self._to_summary(proposal),
+                execution_request_id=(
+                    str(replay_event.reason_json.get("execution_request_id"))
+                    if replay_event.reason_json.get("execution_request_id") is not None
+                    else ""
+                ),
+                handoff_status="REQUESTED",
+                execution_provider=str(replay_event.reason_json.get("execution_provider")),
+                latest_workflow_event=self._to_event(replay_event),
+            )
+        self._validate_expected_state(proposal.current_state, payload.expected_state)
+        if proposal.current_state != "EXECUTION_READY":
+            raise ProposalStateConflictError(
+                "STATE_CONFLICT: proposal must be EXECUTION_READY for execution handoff"
+            )
+
+        occurred_at = _utc_now()
+        execution_request_id = payload.external_request_id or f"pex_{uuid.uuid4().hex[:12]}"
+        reason_json = {
+            "execution_request_id": execution_request_id,
+            "execution_provider": payload.execution_provider,
+            "correlation_id": payload.correlation_id,
+            "external_request_id": payload.external_request_id,
+            "notes": payload.notes,
+        }
+        if idempotency_key:
+            reason_json["idempotency_key"] = idempotency_key
+            reason_json["idempotency_request_hash"] = request_hash
+        event = ProposalWorkflowEventRecord(
+            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            proposal_id=proposal_id,
+            event_type="EXECUTION_REQUESTED",
+            from_state=proposal.current_state,
+            to_state="EXECUTION_READY",
+            actor_id=payload.actor_id,
+            occurred_at=occurred_at,
+            reason_json={k: v for k, v in reason_json.items() if v is not None},
+            related_version_no=payload.related_version_no or proposal.current_version_no,
+        )
+        proposal.last_event_at = occurred_at
+        result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        return ProposalExecutionHandoffResponse(
+            proposal=self._to_summary(result.proposal),
+            execution_request_id=execution_request_id,
+            handoff_status="REQUESTED",
+            execution_provider=payload.execution_provider,
+            latest_workflow_event=self._to_event(result.event),
+        )
+
+    def get_execution_status(self, *, proposal_id: str) -> ProposalExecutionStatusResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+
+        events = self._repository.list_events(proposal_id=proposal_id)
+        latest_execution_requested: ProposalWorkflowEventRecord | None = None
+        latest_execution_event: ProposalWorkflowEventRecord | None = None
+        for event in events:
+            if event.event_type == "EXECUTION_REQUESTED":
+                latest_execution_requested = event
+                latest_execution_event = event
+            elif event.event_type == "EXECUTED":
+                latest_execution_event = event
+
+        handoff_status = "NOT_REQUESTED"
+        execution_request_id: str | None = None
+        execution_provider: str | None = None
+        related_version_no: int | None = None
+        handoff_requested_at: str | None = None
+        executed_at: str | None = None
+        external_execution_id: str | None = None
+        if latest_execution_requested is not None:
+            handoff_status = "REQUESTED"
+            execution_request_id = latest_execution_requested.reason_json.get(
+                "execution_request_id"
+            )
+            execution_provider = latest_execution_requested.reason_json.get("execution_provider")
+            related_version_no = latest_execution_requested.related_version_no
+            handoff_requested_at = latest_execution_requested.occurred_at.isoformat()
+
+        if latest_execution_event is not None and latest_execution_event.event_type == "EXECUTED":
+            handoff_status = "EXECUTED"
+            executed_at = latest_execution_event.occurred_at.isoformat()
+            external_execution_id = latest_execution_event.reason_json.get("execution_id")
+            related_version_no = latest_execution_event.related_version_no or related_version_no
+            if latest_execution_requested is None:
+                execution_request_id = latest_execution_event.reason_json.get(
+                    "execution_request_id"
+                )
+                execution_provider = latest_execution_event.reason_json.get("execution_provider")
+
+        return ProposalExecutionStatusResponse(
+            proposal=self._to_summary(proposal),
+            handoff_status=handoff_status,
+            execution_request_id=execution_request_id,
+            execution_provider=execution_provider,
+            related_version_no=related_version_no,
+            handoff_requested_at=handoff_requested_at,
+            executed_at=executed_at,
+            external_execution_id=external_execution_id,
+            latest_workflow_event=(
+                self._to_event(latest_execution_event)
+                if latest_execution_event is not None
+                else None
+            ),
+            explanation={
+                "source": "ADVISORY_WORKFLOW_EVENTS",
+                "state_correlation": (
+                    "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS"
+                    if handoff_status == "EXECUTED"
+                    else (
+                        "EXECUTION_REQUESTED_EVENT"
+                        if handoff_status == "REQUESTED"
+                        else "NO_EXECUTION_EVENTS_RECORDED"
+                    )
+                ),
+            },
         )
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
@@ -858,14 +999,8 @@ class ProposalWorkflowService:
         correlation_id: Optional[str],
     ) -> ProposalResult:
         resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
-        return run_proposal_simulation(
-            portfolio=request.portfolio_snapshot,
-            market_data=request.market_data_snapshot,
-            shelf=request.shelf_entries,
-            options=request.options,
-            proposed_cash_flows=request.proposed_cash_flows,
-            proposed_trades=request.proposed_trades,
-            reference_model=request.reference_model,
+        return evaluate_advisory_proposal(
+            request=request,
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=resolved_correlation_id,

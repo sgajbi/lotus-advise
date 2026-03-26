@@ -48,6 +48,15 @@ def test_workspace_schemas_have_descriptions_and_examples():
     compare_request_schema = schemas["WorkspaceCompareRequest"]
     _assert_property_has_docs(compare_request_schema, "workspace_version_id")
 
+    assistant_request_schema = schemas["WorkspaceAssistantRequest"]
+    _assert_property_has_docs(assistant_request_schema, "requested_by")
+    _assert_property_has_docs(assistant_request_schema, "instruction")
+
+    assistant_response_schema = schemas["WorkspaceAssistantResponse"]
+    _assert_property_has_docs(assistant_response_schema, "assistant_output")
+    _assert_property_has_docs(assistant_response_schema, "generated_by")
+    _assert_property_has_docs(assistant_response_schema, "evidence")
+
     saved_version_schema = schemas["WorkspaceSavedVersion"]
     _assert_property_has_docs(saved_version_schema, "workspace_version_id")
     _assert_property_has_docs(saved_version_schema, "version_number")
@@ -125,6 +134,19 @@ def test_workspace_endpoint_has_documented_request_and_response_contracts():
     ]["$ref"]
     assert compare_request_ref.endswith("/WorkspaceCompareRequest")
     assert compare_response_ref.endswith("/WorkspaceCompareResponse")
+
+    assistant_rationale = openapi["paths"][
+        "/advisory/workspaces/{workspace_id}/assistant/rationale"
+    ]["post"]
+    assistant_request_ref = assistant_rationale["requestBody"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    assistant_response_ref = assistant_rationale["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assert assistant_request_ref.endswith("/WorkspaceAssistantRequest")
+    assert assistant_response_ref.endswith("/WorkspaceAssistantResponse")
+    assert assistant_rationale["summary"] == "Generate an Advisory Workspace Rationale"
 
     handoff_workspace = openapi["paths"]["/advisory/workspaces/{workspace_id}/handoff"]["post"]
     handoff_request_ref = handoff_workspace["requestBody"]["content"]["application/json"]["schema"][

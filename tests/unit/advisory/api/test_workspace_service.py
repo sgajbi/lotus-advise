@@ -1,7 +1,12 @@
 from decimal import Decimal
+from typing import Any
 
 import pytest
 
+from src.api.proposals.router import (
+    get_proposal_workflow_service,
+    reset_proposal_workflow_service_for_tests,
+)
 from src.api.services import workspace_service
 from src.api.services.workspace_service import (
     WorkspaceDraftActionRequest,
@@ -16,6 +21,36 @@ from src.api.services.workspace_service import (
 
 def setup_function() -> None:
     reset_workspace_sessions_for_tests()
+    reset_proposal_workflow_service_for_tests()
+
+
+def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict[str, Any]:
+    return {
+        "simulate_request": {
+            "portfolio_snapshot": {
+                "snapshot_id": f"ps_{portfolio_id}_{as_of}",
+                "portfolio_id": portfolio_id,
+                "base_currency": "USD",
+                "positions": [],
+                "cash_balances": [{"currency": "USD", "amount": "1000"}],
+            },
+            "market_data_snapshot": {
+                "snapshot_id": f"md_{as_of}",
+                "prices": [],
+                "fx_rates": [],
+            },
+            "shelf_entries": [],
+            "options": {"enable_proposal_simulation": True},
+            "proposed_cash_flows": [],
+            "proposed_trades": [],
+        },
+        "resolved_context": {
+            "portfolio_id": portfolio_id,
+            "as_of": as_of,
+            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
+            "market_data_snapshot_id": f"md_{as_of}",
+        },
+    }
 
 
 def test_workspace_session_cache_evicts_oldest_entry() -> None:
@@ -75,7 +110,7 @@ def test_create_workspace_session_rejects_malformed_constructed_requests() -> No
         create_workspace_session(malformed_stateful)
 
 
-def test_workspace_service_replace_options_and_stateful_handoff_guard() -> None:
+def test_workspace_service_replace_options_and_stateful_handoff_guard(monkeypatch) -> None:
     session = create_workspace_session(
         WorkspaceSessionCreateRequest.model_validate(
             {
@@ -94,9 +129,23 @@ def test_workspace_service_replace_options_and_stateful_handoff_guard() -> None:
 
     with pytest.raises(
         WorkspaceEvaluationUnavailableError,
-        match="WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED",
+        match="WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE",
     ):
         workspace_service._build_simulate_request_for_workspace(session)
+
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+
+    resolved_request = workspace_service._build_simulate_request_for_workspace(session)
+    assert resolved_request.portfolio_snapshot.snapshot_id == "ps_pf_001_2026-03-25"
+    assert session.resolved_context is not None
+    assert session.resolved_context.portfolio_snapshot_id == "ps_pf_001_2026-03-25"
 
     request = WorkspaceDraftActionRequest.model_validate(
         {
@@ -113,24 +162,18 @@ def test_workspace_service_replace_options_and_stateful_handoff_guard() -> None:
     assert session.draft_state.options.auto_funding is False
     assert session.draft_state.options.fx_buffer_pct == Decimal("0.02")
 
-    class FakeProposalService:
-        def create_proposal(self, *args, **kwargs):  # pragma: no cover - should not be reached
-            raise AssertionError("create_proposal should not be called for stateful handoff guard")
-
-        def create_version(self, *args, **kwargs):  # pragma: no cover - should not be reached
-            raise AssertionError("create_version should not be called for stateful handoff guard")
-
-    with pytest.raises(
-        workspace_service.WorkspaceLifecycleHandoffUnavailableError,
-        match="WORKSPACE_STATEFUL_EVALUATION_NOT_IMPLEMENTED",
-    ):
-        handoff_workspace_to_proposal_lifecycle(
-            workspace_id=session.workspace_id,
-            request=workspace_service.WorkspaceLifecycleHandoffRequest(handoff_by="advisor_123"),
-            proposal_service=FakeProposalService(),
-            idempotency_key="workspace-handoff-idem-direct",
-            correlation_id=None,
-        )
+    handoff_response = handoff_workspace_to_proposal_lifecycle(
+        workspace_id=session.workspace_id,
+        request=workspace_service.WorkspaceLifecycleHandoffRequest(handoff_by="advisor_123"),
+        proposal_service=get_proposal_workflow_service(),
+        idempotency_key="workspace-handoff-idem-direct",
+        correlation_id=None,
+    )
+    assert handoff_response.proposal.proposal.lifecycle_origin == "WORKSPACE_HANDOFF"
+    assert handoff_response.workspace.resolved_context is not None
+    assert (
+        handoff_response.workspace.resolved_context.portfolio_snapshot_id == "ps_pf_001_2026-03-25"
+    )
 
 
 def test_workspace_service_trade_and_cash_flow_not_found_guards() -> None:

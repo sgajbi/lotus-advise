@@ -49,6 +49,9 @@ The API remains deterministic for identical inputs and options.
 1. Advisory proposal simulation
 - Input: portfolio snapshot, market snapshot, shelf, advisor cash/trade proposals, options.
 - Output: proposal simulation plus optional artifact package for client/reviewer workflow.
+- Authority posture: upstream Lotus Core simulation and Lotus Risk enrichment are preferred through
+  explicit adapter seams; local deterministic evaluation remains the fallback when those upstream
+  authorities are unavailable.
 
 2. Advisory proposal lifecycle
 - Input: simulated proposal payloads plus workflow actor actions.
@@ -77,21 +80,31 @@ The API remains deterministic for identical inputs and options.
 - `GET /advisory/workspaces/{workspace_id}/saved-versions`
 - `POST /advisory/workspaces/{workspace_id}/resume`
 - `POST /advisory/workspaces/{workspace_id}/compare`
+- `POST /advisory/workspaces/{workspace_id}/assistant/rationale`
 - `POST /advisory/workspaces/{workspace_id}/handoff`
 - `POST /advisory/proposals`
 - `GET /advisory/proposals`
 - `GET /advisory/proposals/{proposal_id}`
+- `POST /advisory/proposals/{proposal_id}/report-requests`
+- `POST /advisory/proposals/{proposal_id}/execution-handoffs`
+- `GET /advisory/proposals/{proposal_id}/execution-status`
+- `GET /platform/capabilities`
 
 ## Architecture Summary
 
 - `src/api/`: FastAPI contracts and endpoint orchestration.
 - `src/api/proposals/`: proposal lifecycle API package for runtime wiring, errors, and lifecycle/async/support routes.
 - `src/api/workspaces/`: advisory workspace API package for workspace session contract entry points.
-- `src/core/advisory/`: Advisory-specific modules (artifact, funding, intents, ids).
+- `src/core/advisory/`: advisory-specific modules (artifact, funding, intents, ids, orchestration).
 - `src/core/common/`: Shared logic (simulation primitives, diagnostics, drift, suitability, canonical hashing, workflow gates).
 - `src/core/proposals/`: proposal lifecycle models, services, and repository abstractions.
 - `src/core/workspace/`: advisory workspace contract models for stateless/stateful draft sessions and evaluation summaries.
 - `src/integrations/`: adapter seams for Lotus platform dependencies.
+- `src/integrations/lotus_core/context_resolution.py`: explicit stateful advisory context seam used to resolve replay-safe portfolio evaluation context from Lotus Core.
+- `src/integrations/lotus_core/simulation.py`: explicit Lotus Core simulation authority seam for advisory proposal evaluation.
+- `src/integrations/lotus_risk/enrichment.py`: explicit Lotus Risk enrichment seam for advisory proposal evaluation.
+- `src/integrations/lotus_ai/rationale.py`: explicit Lotus AI rationale seam for evidence-grounded workspace assistance.
+- `src/integrations/lotus_report/adapter.py`: explicit Lotus Report seam for advisory report requests without moving reporting ownership into lotus-advise.
 - `src/api/capabilities/`: readiness and capability resolution seams for integration-aware platform truth.
 - `src/core/models.py`: shared request/response contracts and options.
 
@@ -108,6 +121,8 @@ Advisory persistence boundary:
   runtime slice until later advisory persistence work lands.
 - Portfolio positions, transactions, market data, risk analytics, reports, and shared AI runtime
   state are upstream-owned and excluded from the advisory database boundary.
+- External execution-provider state also remains upstream-owned; lotus-advise only records
+  advisory handoff and execution-correlation metadata through workflow history.
 - API startup now validates proposal repository boot readiness, so lifecycle PostgreSQL
   connectivity and migration application fail fast before the service begins serving requests.
 - Proposal supportability configuration exposes the lifecycle migration namespace and expected
