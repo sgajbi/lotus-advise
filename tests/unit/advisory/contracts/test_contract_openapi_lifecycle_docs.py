@@ -42,6 +42,32 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(approvals_schema, "approval_count")
     _assert_property_has_docs(approvals_schema, "latest_approval_at")
 
+    report_request_schema = schemas["ProposalReportRequest"]
+    _assert_property_has_docs(report_request_schema, "report_type")
+    _assert_property_has_docs(report_request_schema, "requested_by")
+    _assert_property_has_docs(report_request_schema, "related_version_no")
+    _assert_property_has_docs(report_request_schema, "include_execution_summary")
+
+    report_response_schema = schemas["ProposalReportResponse"]
+    _assert_property_has_docs(report_response_schema, "proposal")
+    _assert_property_has_docs(report_response_schema, "report_request_id")
+    _assert_property_has_docs(report_response_schema, "report_service")
+    _assert_property_has_docs(report_response_schema, "report_reference_id")
+    _assert_property_has_docs(report_response_schema, "explanation")
+
+    execution_handoff_schema = schemas["ProposalExecutionHandoffRequest"]
+    _assert_property_has_docs(execution_handoff_schema, "actor_id")
+    _assert_property_has_docs(execution_handoff_schema, "execution_provider")
+    _assert_property_has_docs(execution_handoff_schema, "expected_state")
+    _assert_property_has_docs(execution_handoff_schema, "notes")
+
+    execution_status_schema = schemas["ProposalExecutionStatusResponse"]
+    _assert_property_has_docs(execution_status_schema, "handoff_status")
+    _assert_property_has_docs(execution_status_schema, "execution_request_id")
+    _assert_property_has_docs(execution_status_schema, "execution_provider")
+    _assert_property_has_docs(execution_status_schema, "external_execution_id")
+    _assert_property_has_docs(execution_status_schema, "explanation")
+
     idempotency_schema = schemas["ProposalIdempotencyLookupResponse"]
     _assert_property_has_docs(idempotency_schema, "idempotency_key")
     _assert_property_has_docs(idempotency_schema, "request_hash")
@@ -104,3 +130,25 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     ]["schema"]["$ref"]
     assert create_version_async_body_ref.endswith("/ProposalVersionRequest")
     assert create_version_async_response_ref.endswith("/ProposalAsyncAcceptedResponse")
+
+    report_request = openapi["paths"]["/advisory/proposals/{proposal_id}/report-requests"]["post"]
+    report_request_body_ref = report_request["requestBody"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    report_request_response_ref = report_request["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assert report_request_body_ref.endswith("/ProposalReportRequest")
+    assert report_request_response_ref.endswith("/ProposalReportResponse")
+
+    execution_handoff = openapi["paths"]["/advisory/proposals/{proposal_id}/execution-handoffs"][
+        "post"
+    ]
+    execution_handoff_body_ref = execution_handoff["requestBody"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    execution_handoff_response_ref = execution_handoff["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assert execution_handoff_body_ref.endswith("/ProposalExecutionHandoffRequest")
+    assert execution_handoff_response_ref.endswith("/ProposalExecutionHandoffResponse")

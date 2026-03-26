@@ -37,6 +37,7 @@ _UPSTREAM_OWNED_DATA_DOMAINS = [
     "risk_analytics",
     "reports",
     "ai_runtime_state",
+    "execution_provider_state",
 ]
 
 _LIFECYCLE_MIGRATION_NAMESPACE = "proposals"

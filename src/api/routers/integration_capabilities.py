@@ -32,7 +32,9 @@ class FeatureCapability(BaseModel):
     )
     degraded_reason: str | None = Field(
         default=None,
-        description="Optional degraded-mode reason when the feature is enabled but not fully ready.",
+        description=(
+            "Optional degraded-mode reason when the feature is enabled but not fully ready."
+        ),
         examples=["LOTUS_AI_DEPENDENCY_UNAVAILABLE"],
     )
 
@@ -59,7 +61,9 @@ class WorkflowCapability(BaseModel):
     )
     degraded_reason: str | None = Field(
         default=None,
-        description="Optional degraded-mode reason when the workflow is enabled but not fully ready.",
+        description=(
+            "Optional degraded-mode reason when the workflow is enabled but not fully ready."
+        ),
         examples=["LOTUS_CORE_DEPENDENCY_UNAVAILABLE"],
     )
 
@@ -295,6 +299,7 @@ async def get_integration_capabilities(
     dependencies = {item["dependency_key"]: item for item in dependency_rows}
     lotus_core_ready = bool(dependencies["lotus_core"]["operational_ready"])
     lotus_ai_ready = bool(dependencies["lotus_ai"]["operational_ready"])
+    lotus_report_ready = bool(dependencies["lotus_report"]["operational_ready"])
 
     return IntegrationCapabilitiesResponse(
         contract_version="v1",
@@ -329,7 +334,10 @@ async def get_integration_capabilities(
                 enabled=True,
                 operational_ready=lotus_core_ready,
                 owner_service="ADVISORY",
-                description="Stateful advisory workspace evaluation through Lotus Core context resolution.",
+                description=(
+                    "Stateful advisory workspace evaluation through Lotus Core context "
+                    "resolution."
+                ),
                 fallback_mode="LOCAL_SIMULATION_FALLBACK",
                 degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
             ),
@@ -345,6 +353,26 @@ async def get_integration_capabilities(
                     if not ai_rationale_enabled or lotus_ai_ready
                     else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
                 ),
+            ),
+            FeatureCapability(
+                key="advisory.proposals.reporting",
+                enabled=True,
+                operational_ready=lotus_report_ready,
+                owner_service="LOTUS_REPORT",
+                description="Advisory proposal report-request seam through lotus-report.",
+                fallback_mode="NONE",
+                degraded_reason=(
+                    None if lotus_report_ready else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+                ),
+            ),
+            FeatureCapability(
+                key="advisory.proposals.execution_handoff",
+                enabled=lifecycle_enabled,
+                operational_ready=lifecycle_enabled,
+                owner_service="ADVISORY",
+                description="Advisory execution handoff and execution-state correlation APIs.",
+                fallback_mode="NONE",
+                degraded_reason=None,
             ),
         ],
         workflows=[
@@ -375,6 +403,24 @@ async def get_integration_capabilities(
                     if not ai_rationale_enabled or lotus_ai_ready
                     else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
                 ),
+            ),
+            WorkflowCapability(
+                workflow_key="advisory_proposal_reporting",
+                enabled=True,
+                operational_ready=lotus_report_ready,
+                required_features=["advisory.proposals.reporting"],
+                dependency_keys=["lotus_report"],
+                degraded_reason=(
+                    None if lotus_report_ready else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+                ),
+            ),
+            WorkflowCapability(
+                workflow_key="advisory_proposal_execution_handoff",
+                enabled=lifecycle_enabled,
+                operational_ready=lifecycle_enabled,
+                required_features=["advisory.proposals.execution_handoff"],
+                dependency_keys=[],
+                degraded_reason=None,
             ),
         ],
         readiness=OperationalReadiness.model_validate(readiness),

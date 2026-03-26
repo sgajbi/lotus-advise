@@ -76,7 +76,15 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         features["advisory.workspaces.ai_rationale"]["degraded_reason"]
         == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
     )
+    assert features["advisory.proposals.reporting"]["operational_ready"] is False
+    assert (
+        features["advisory.proposals.reporting"]["degraded_reason"]
+        == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+    )
+    assert features["advisory.proposals.execution_handoff"]["operational_ready"] is True
 
     workflows = {item["workflow_key"]: item for item in payload["workflows"]}
     assert workflows["advisory_workspace_stateful"]["operational_ready"] is True
     assert workflows["advisory_workspace_ai_rationale"]["operational_ready"] is False
+    assert workflows["advisory_proposal_reporting"]["operational_ready"] is False
+    assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True

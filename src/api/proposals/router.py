@@ -120,3 +120,4 @@ def _assert_async_operations_enabled() -> None:
 importlib.import_module("src.api.proposals.routes_lifecycle")
 importlib.import_module("src.api.proposals.routes_async")
 importlib.import_module("src.api.proposals.routes_support")
+importlib.import_module("src.api.proposals.routes_delivery")
