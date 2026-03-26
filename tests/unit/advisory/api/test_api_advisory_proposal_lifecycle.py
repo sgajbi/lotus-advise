@@ -427,6 +427,7 @@ def test_workflow_transitions_happy_path_via_risk_to_execution_ready():
 
 def test_execution_handoff_and_status_are_auditable(monkeypatch):
     def _request_proposal_report_with_lotus_report(*, request):
+        assert request["proposal_version"]["version_no"] == 1
         return {
             "proposal": request["proposal"],
             "report_request_id": request["report_request_id"],
@@ -580,6 +581,135 @@ def test_execution_handoff_requires_execution_ready_state():
 
     assert handoff.status_code == 409
     assert "EXECUTION_READY" in handoff.json()["detail"]
+
+
+def test_execution_handoff_is_replay_safe_with_idempotency_key():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-execution-handoff-idem-create")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
+                "actor_id": "advisor_1",
+                "expected_state": "DRAFT",
+                "reason": {"comment": "needs compliance"},
+                "related_version_no": 1,
+            },
+        )
+        client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "COMPLIANCE",
+                "approved": True,
+                "actor_id": "compliance_user",
+                "expected_state": "COMPLIANCE_REVIEW",
+                "details": {"comment": "ok"},
+                "related_version_no": 1,
+            },
+        )
+        client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "CLIENT_CONSENT",
+                "approved": True,
+                "actor_id": "client_1",
+                "expected_state": "AWAITING_CLIENT_CONSENT",
+                "details": {"channel": "IN_PERSON"},
+                "related_version_no": 1,
+            },
+        )
+
+        payload = {
+            "actor_id": "ops_001",
+            "execution_provider": "lotus-manage",
+            "expected_state": "EXECUTION_READY",
+            "related_version_no": 1,
+            "external_request_id": "oms_req_idem_001",
+            "notes": {"channel": "OMS"},
+        }
+        first = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json=payload,
+            headers={"Idempotency-Key": "handoff-idem-001"},
+        )
+        second = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json=payload,
+            headers={"Idempotency-Key": "handoff-idem-001"},
+        )
+        assert first.status_code == 200
+        assert second.status_code == 200
+        assert first.json() == second.json()
+
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+        assert timeline.status_code == 200
+        execution_requested = [
+            event
+            for event in timeline.json()["events"]
+            if event["event_type"] == "EXECUTION_REQUESTED"
+        ]
+        assert len(execution_requested) == 1
+
+
+def test_report_request_uses_requested_immutable_version(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def _request_proposal_report_with_lotus_report(*, request):
+        seen.update(request)
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T09:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_002",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-report-version-anchor")
+        proposal_id = created["proposal"]["proposal_id"]
+        version_response = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "simulate_request": {
+                    **_base_create_payload()["simulate_request"],
+                    "proposed_trades": [
+                        {"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "3"}
+                    ],
+                },
+            },
+        )
+        assert version_response.status_code == 200
+
+        report_response = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                "requested_by": "advisor_1",
+                "related_version_no": 1,
+                "include_execution_summary": False,
+            },
+        )
+
+    assert report_response.status_code == 200
+    assert seen["related_version_no"] == 1
+    assert seen["proposal_version"]["version_no"] == 1
 
 
 def test_report_request_returns_503_when_lotus_report_is_unavailable(monkeypatch):

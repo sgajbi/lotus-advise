@@ -144,6 +144,8 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     execution_handoff = openapi["paths"]["/advisory/proposals/{proposal_id}/execution-handoffs"][
         "post"
     ]
+    parameter_names = [param["name"] for param in execution_handoff["parameters"]]
+    assert "Idempotency-Key" in parameter_names
     execution_handoff_body_ref = execution_handoff["requestBody"]["content"]["application/json"][
         "schema"
     ]["$ref"]

@@ -88,3 +88,21 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert workflows["advisory_workspace_ai_rationale"]["operational_ready"] is False
     assert workflows["advisory_proposal_reporting"]["operational_ready"] is False
     assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True
+
+
+def test_integration_capabilities_disable_reporting_and_execution_with_lifecycle(monkeypatch):
+    monkeypatch.setenv("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", "false")
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://lotus-report:8300")
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    features = {item["key"]: item for item in payload["features"]}
+    workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+    assert features["advisory.proposals.reporting"]["enabled"] is False
+    assert features["advisory.proposals.reporting"]["operational_ready"] is False
+    assert features["advisory.proposals.execution_handoff"]["enabled"] is False
+    assert workflows["advisory_proposal_reporting"]["enabled"] is False
+    assert workflows["advisory_proposal_execution_handoff"]["enabled"] is False

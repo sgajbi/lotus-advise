@@ -356,13 +356,15 @@ async def get_integration_capabilities(
             ),
             FeatureCapability(
                 key="advisory.proposals.reporting",
-                enabled=True,
-                operational_ready=lotus_report_ready,
+                enabled=lifecycle_enabled,
+                operational_ready=lifecycle_enabled and lotus_report_ready,
                 owner_service="LOTUS_REPORT",
                 description="Advisory proposal report-request seam through lotus-report.",
                 fallback_mode="NONE",
                 degraded_reason=(
-                    None if lotus_report_ready else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+                    None
+                    if not lifecycle_enabled or lotus_report_ready
+                    else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
                 ),
             ),
             FeatureCapability(
@@ -406,12 +408,14 @@ async def get_integration_capabilities(
             ),
             WorkflowCapability(
                 workflow_key="advisory_proposal_reporting",
-                enabled=True,
-                operational_ready=lotus_report_ready,
+                enabled=lifecycle_enabled,
+                operational_ready=lifecycle_enabled and lotus_report_ready,
                 required_features=["advisory.proposals.reporting"],
                 dependency_keys=["lotus_report"],
                 degraded_reason=(
-                    None if lotus_report_ready else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+                    None
+                    if not lifecycle_enabled or lotus_report_ready
+                    else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
                 ),
             ),
             WorkflowCapability(

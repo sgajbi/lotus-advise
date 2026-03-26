@@ -363,10 +363,29 @@ class ProposalWorkflowService:
         *,
         proposal_id: str,
         payload: ProposalExecutionHandoffRequest,
+        idempotency_key: Optional[str] = None,
     ) -> ProposalExecutionHandoffResponse:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        replay_event = self._get_replayed_event(
+            proposal_id=proposal_id,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+        )
+        if replay_event is not None:
+            return ProposalExecutionHandoffResponse(
+                proposal=self._to_summary(proposal),
+                execution_request_id=(
+                    str(replay_event.reason_json.get("execution_request_id"))
+                    if replay_event.reason_json.get("execution_request_id") is not None
+                    else ""
+                ),
+                handoff_status="REQUESTED",
+                execution_provider=str(replay_event.reason_json.get("execution_provider")),
+                latest_workflow_event=self._to_event(replay_event),
+            )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
         if proposal.current_state != "EXECUTION_READY":
             raise ProposalStateConflictError(
@@ -382,6 +401,9 @@ class ProposalWorkflowService:
             "external_request_id": payload.external_request_id,
             "notes": payload.notes,
         }
+        if idempotency_key:
+            reason_json["idempotency_key"] = idempotency_key
+            reason_json["idempotency_request_hash"] = request_hash
         event = ProposalWorkflowEventRecord(
             event_id=f"pwe_{uuid.uuid4().hex[:12]}",
             proposal_id=proposal_id,

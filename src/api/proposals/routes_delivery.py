@@ -1,6 +1,6 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import Depends, HTTPException, Path, status
+from fastapi import Depends, Header, HTTPException, Path, status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import raise_proposal_http_exception
@@ -72,10 +72,22 @@ def request_execution_handoff(
         ProposalWorkflowService,
         Depends(shared.get_proposal_workflow_service),
     ],
+    idempotency_key: Annotated[
+        Optional[str],
+        Header(
+            alias="Idempotency-Key",
+            description="Optional idempotency key for replay-safe execution handoff writes.",
+            examples=["proposal-execution-handoff-idem-001"],
+        ),
+    ] = None,
 ) -> ProposalExecutionHandoffResponse:
     shared._assert_lifecycle_enabled()
     try:
-        return service.request_execution_handoff(proposal_id=proposal_id, payload=payload)
+        return service.request_execution_handoff(
+            proposal_id=proposal_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
     except (ProposalNotFoundError, ProposalStateConflictError, ProposalValidationError) as exc:
         raise_proposal_http_exception(exc)
 
