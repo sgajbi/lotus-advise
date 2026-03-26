@@ -80,10 +80,12 @@ The API remains deterministic for identical inputs and options.
 - `GET /advisory/workspaces/{workspace_id}/saved-versions`
 - `POST /advisory/workspaces/{workspace_id}/resume`
 - `POST /advisory/workspaces/{workspace_id}/compare`
+- `POST /advisory/workspaces/{workspace_id}/assistant/rationale`
 - `POST /advisory/workspaces/{workspace_id}/handoff`
 - `POST /advisory/proposals`
 - `GET /advisory/proposals`
 - `GET /advisory/proposals/{proposal_id}`
+- `GET /platform/capabilities`
 
 ## Architecture Summary
 
@@ -98,6 +100,7 @@ The API remains deterministic for identical inputs and options.
 - `src/integrations/lotus_core/context_resolution.py`: explicit stateful advisory context seam used to resolve replay-safe portfolio evaluation context from Lotus Core.
 - `src/integrations/lotus_core/simulation.py`: explicit Lotus Core simulation authority seam for advisory proposal evaluation.
 - `src/integrations/lotus_risk/enrichment.py`: explicit Lotus Risk enrichment seam for advisory proposal evaluation.
+- `src/integrations/lotus_ai/rationale.py`: explicit Lotus AI rationale seam for evidence-grounded workspace assistance.
 - `src/api/capabilities/`: readiness and capability resolution seams for integration-aware platform truth.
 - `src/core/models.py`: shared request/response contracts and options.
 

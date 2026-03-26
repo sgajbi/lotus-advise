@@ -513,6 +513,10 @@ Out of scope:
 
 ### Slice 4: Workspace, AI, and Readiness Hardening
 
+Status:
+
+1. implemented
+
 Outcome:
 
 1. the advisory workspace runs on top of the target architecture,

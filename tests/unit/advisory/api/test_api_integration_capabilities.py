@@ -19,6 +19,7 @@ def test_integration_capabilities_response_uses_canonical_snake_case_fields():
     assert "as_of_date" in payload
     assert "policy_version" in payload
     assert "supported_input_modes" in payload
+    assert payload["supported_input_modes"] == ["stateless", "stateful"]
 
     for legacy_key in (
         "contractVersion",
@@ -57,10 +58,25 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     payload = response.json()
     assert payload["readiness"]["degraded"] is True
     assert payload["readiness"]["operational_ready"] is False
+    assert "LOTUS_AI_DEPENDENCY_UNAVAILABLE" in payload["readiness"]["degraded_reasons"]
 
     dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
     assert dependencies["lotus_core"]["configured"] is True
     assert dependencies["lotus_core"]["operational_ready"] is True
+    assert dependencies["lotus_core"]["fallback_mode"] == "LOCAL_SIMULATION_FALLBACK"
     assert dependencies["lotus_risk"]["configured"] is True
+    assert dependencies["lotus_risk"]["fallback_mode"] == "LOCAL_RISK_FALLBACK"
     assert dependencies["lotus_report"]["configured"] is False
     assert dependencies["lotus_ai"]["configured"] is False
+
+    features = {item["key"]: item for item in payload["features"]}
+    assert features["advisory.workspaces.stateful"]["operational_ready"] is True
+    assert features["advisory.workspaces.ai_rationale"]["operational_ready"] is False
+    assert (
+        features["advisory.workspaces.ai_rationale"]["degraded_reason"]
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
+
+    workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+    assert workflows["advisory_workspace_stateful"]["operational_ready"] is True
+    assert workflows["advisory_workspace_ai_rationale"]["operational_ready"] is False

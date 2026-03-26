@@ -1,6 +1,6 @@
 import os
 from datetime import UTC, date, datetime
-from typing import Literal
+from typing import Literal, cast
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
@@ -15,12 +15,25 @@ class FeatureCapability(BaseModel):
         description="Canonical feature key.", examples=["advisory.proposals.lifecycle"]
     )
     enabled: bool = Field(description="Whether this feature is enabled.", examples=[True])
+    operational_ready: bool = Field(
+        description="Whether the feature is operationally ready in the current runtime posture.",
+        examples=[True],
+    )
     owner_service: str = Field(
         description="Owning service for this feature.", examples=["ADVISORY"]
     )
     description: str = Field(
         description="Human-readable capability summary.",
         examples=["Advisory proposal lifecycle APIs."],
+    )
+    fallback_mode: str = Field(
+        description="Fallback posture when a required upstream dependency is unavailable.",
+        examples=["LOCAL_SIMULATION_FALLBACK"],
+    )
+    degraded_reason: str | None = Field(
+        default=None,
+        description="Optional degraded-mode reason when the feature is enabled but not fully ready.",
+        examples=["LOTUS_AI_DEPENDENCY_UNAVAILABLE"],
     )
 
 
@@ -30,10 +43,24 @@ class WorkflowCapability(BaseModel):
         examples=["advisory_proposal_lifecycle"],
     )
     enabled: bool = Field(description="Whether workflow is enabled.", examples=[True])
+    operational_ready: bool = Field(
+        description="Whether the workflow is operationally ready in the current runtime posture.",
+        examples=[False],
+    )
     required_features: list[str] = Field(
         default_factory=list,
         description="Feature keys required by this workflow.",
         examples=[["advisory.proposals.lifecycle"]],
+    )
+    dependency_keys: list[str] = Field(
+        default_factory=list,
+        description="Dependency keys that materially affect workflow readiness.",
+        examples=[["lotus_core"]],
+    )
+    degraded_reason: str | None = Field(
+        default=None,
+        description="Optional degraded-mode reason when the workflow is enabled but not fully ready.",
+        examples=["LOTUS_CORE_DEPENDENCY_UNAVAILABLE"],
     )
 
 
@@ -75,6 +102,10 @@ class DependencyReadiness(BaseModel):
         description="Whether the dependency seam is currently ready for use by lotus-advise.",
         examples=[True],
     )
+    fallback_mode: str = Field(
+        description="Fallback posture used when the dependency is unavailable.",
+        examples=["LOCAL_SIMULATION_FALLBACK"],
+    )
 
 
 class OperationalReadiness(BaseModel):
@@ -83,6 +114,7 @@ class OperationalReadiness(BaseModel):
             "example": {
                 "operational_ready": False,
                 "degraded": True,
+                "degraded_reasons": ["LOTUS_CORE_DEPENDENCY_UNAVAILABLE"],
                 "dependencies": [
                     {
                         "dependency_key": "lotus_core",
@@ -93,6 +125,7 @@ class OperationalReadiness(BaseModel):
                         "base_url_env": "LOTUS_CORE_BASE_URL",
                         "configured": False,
                         "operational_ready": False,
+                        "fallback_mode": "LOCAL_SIMULATION_FALLBACK",
                     }
                 ],
             }
@@ -108,6 +141,11 @@ class OperationalReadiness(BaseModel):
     degraded: bool = Field(
         description="Whether lotus-advise is running in a degraded integration posture.",
         examples=[True],
+    )
+    degraded_reasons: list[str] = Field(
+        default_factory=list,
+        description="Structured reasons describing why the runtime is degraded.",
+        examples=[["LOTUS_CORE_DEPENDENCY_UNAVAILABLE"]],
     )
     dependencies: list[DependencyReadiness] = Field(
         default_factory=list,
@@ -126,25 +164,32 @@ class IntegrationCapabilitiesResponse(BaseModel):
                 "generated_at": "2026-03-25T00:00:00Z",
                 "as_of_date": "2026-03-25",
                 "policy_version": "advisory.v1",
-                "supported_input_modes": ["advisor_input"],
+                "supported_input_modes": ["stateless", "stateful"],
                 "features": [
                     {
                         "key": "advisory.proposals.lifecycle",
                         "enabled": True,
+                        "operational_ready": True,
                         "owner_service": "ADVISORY",
                         "description": "Advisory proposal lifecycle APIs.",
+                        "fallback_mode": "NONE",
+                        "degraded_reason": None,
                     }
                 ],
                 "workflows": [
                     {
                         "workflow_key": "advisory_proposal_lifecycle",
                         "enabled": True,
+                        "operational_ready": True,
                         "required_features": ["advisory.proposals.lifecycle"],
+                        "dependency_keys": [],
+                        "degraded_reason": None,
                     }
                 ],
                 "readiness": {
                     "operational_ready": False,
                     "degraded": True,
+                    "degraded_reasons": ["LOTUS_CORE_DEPENDENCY_UNAVAILABLE"],
                     "dependencies": [
                         {
                             "dependency_key": "lotus_core",
@@ -155,6 +200,7 @@ class IntegrationCapabilitiesResponse(BaseModel):
                             "base_url_env": "LOTUS_CORE_BASE_URL",
                             "configured": False,
                             "operational_ready": False,
+                            "fallback_mode": "LOCAL_SIMULATION_FALLBACK",
                         }
                     ],
                 },
@@ -189,7 +235,7 @@ class IntegrationCapabilitiesResponse(BaseModel):
     )
     supported_input_modes: list[str] = Field(
         description="Supported request input modes for integrations.",
-        examples=[["advisor_input"]],
+        examples=[["stateless", "stateful"]],
     )
     features: list[FeatureCapability] = Field(
         description="Feature-level capability flags and ownership."
@@ -243,7 +289,12 @@ async def get_integration_capabilities(
 ) -> IntegrationCapabilitiesResponse:
     lifecycle_enabled = _env_bool("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", True)
     async_enabled = _env_bool("PROPOSAL_ASYNC_OPERATIONS_ENABLED", True)
+    ai_rationale_enabled = _env_bool("LOTUS_AI_WORKSPACE_RATIONALE_ENABLED", True)
     readiness = build_operational_readiness()
+    dependency_rows = cast(list[dict[str, object]], readiness["dependencies"])
+    dependencies = {item["dependency_key"]: item for item in dependency_rows}
+    lotus_core_ready = bool(dependencies["lotus_core"]["operational_ready"])
+    lotus_ai_ready = bool(dependencies["lotus_ai"]["operational_ready"])
 
     return IntegrationCapabilitiesResponse(
         contract_version="v1",
@@ -253,26 +304,77 @@ async def get_integration_capabilities(
         generated_at=datetime.now(UTC),
         as_of_date=date.today(),
         policy_version="advisory.v1",
-        supported_input_modes=["advisor_input"],
+        supported_input_modes=["stateless", "stateful"],
         features=[
             FeatureCapability(
                 key="advisory.proposals.lifecycle",
                 enabled=lifecycle_enabled,
+                operational_ready=lifecycle_enabled,
                 owner_service="ADVISORY",
                 description="Advisory proposal lifecycle APIs.",
+                fallback_mode="NONE",
+                degraded_reason=None,
             ),
             FeatureCapability(
                 key="advisory.proposals.async_operations",
                 enabled=async_enabled,
+                operational_ready=async_enabled,
                 owner_service="ADVISORY",
                 description="Async advisory proposal operations.",
+                fallback_mode="NONE",
+                degraded_reason=None,
+            ),
+            FeatureCapability(
+                key="advisory.workspaces.stateful",
+                enabled=True,
+                operational_ready=lotus_core_ready,
+                owner_service="ADVISORY",
+                description="Stateful advisory workspace evaluation through Lotus Core context resolution.",
+                fallback_mode="LOCAL_SIMULATION_FALLBACK",
+                degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+            ),
+            FeatureCapability(
+                key="advisory.workspaces.ai_rationale",
+                enabled=ai_rationale_enabled,
+                operational_ready=ai_rationale_enabled and lotus_ai_ready,
+                owner_service="ADVISORY",
+                description="Evidence-grounded advisory workspace rationale through Lotus AI.",
+                fallback_mode="NONE",
+                degraded_reason=(
+                    None
+                    if not ai_rationale_enabled or lotus_ai_ready
+                    else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+                ),
             ),
         ],
         workflows=[
             WorkflowCapability(
                 workflow_key="advisory_proposal_lifecycle",
                 enabled=lifecycle_enabled,
+                operational_ready=lifecycle_enabled,
                 required_features=["advisory.proposals.lifecycle"],
+                dependency_keys=[],
+                degraded_reason=None,
+            ),
+            WorkflowCapability(
+                workflow_key="advisory_workspace_stateful",
+                enabled=True,
+                operational_ready=lotus_core_ready,
+                required_features=["advisory.workspaces.stateful"],
+                dependency_keys=["lotus_core"],
+                degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+            ),
+            WorkflowCapability(
+                workflow_key="advisory_workspace_ai_rationale",
+                enabled=ai_rationale_enabled,
+                operational_ready=ai_rationale_enabled and lotus_ai_ready,
+                required_features=["advisory.workspaces.ai_rationale"],
+                dependency_keys=["lotus_ai"],
+                degraded_reason=(
+                    None
+                    if not ai_rationale_enabled or lotus_ai_ready
+                    else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+                ),
             ),
         ],
         readiness=OperationalReadiness.model_validate(readiness),

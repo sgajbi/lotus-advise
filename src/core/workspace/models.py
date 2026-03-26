@@ -638,6 +638,53 @@ class WorkspaceCompareResponse(BaseModel):
     )
 
 
+class WorkspaceAssistantRequest(BaseModel):
+    requested_by: str = Field(
+        description="Actor identifier requesting the advisory AI assistance output.",
+        examples=["advisor_123"],
+    )
+    instruction: str = Field(
+        description="Advisor instruction for the evidence-grounded workspace rationale request.",
+        examples=["Summarize the proposal rationale for an advisor review note."],
+    )
+
+
+class WorkspaceAssistantEvidence(BaseModel):
+    workspace_id: str = Field(
+        description="Workspace session identifier used to build the AI evidence bundle.",
+        examples=["aws_001"],
+    )
+    input_mode: WorkspaceInputMode = Field(
+        description="Workspace input mode for the evaluated advisory draft.",
+        examples=["stateful"],
+    )
+    resolved_context: Optional[WorkspaceResolvedContext] = Field(
+        default=None,
+        description="Resolved advisory context attached to the evaluated workspace.",
+    )
+    evaluation_summary: WorkspaceEvaluationSummary = Field(
+        description="Current deterministic evaluation summary supplied to the AI assist seam.",
+    )
+    proposal_status: str = Field(
+        description="Current deterministic proposal status from the evaluated workspace result.",
+        examples=["READY"],
+    )
+
+
+class WorkspaceAssistantResponse(BaseModel):
+    assistant_output: str = Field(
+        description="Evidence-grounded advisory rationale produced through the Lotus AI seam.",
+        examples=["The draft remains READY and proposes a modest growth reallocation."],
+    )
+    generated_by: str = Field(
+        description="Authority used to generate the advisory assistant output.",
+        examples=["lotus-ai"],
+    )
+    evidence: WorkspaceAssistantEvidence = Field(
+        description="Deterministic evidence bundle supplied to the AI assistance workflow.",
+    )
+
+
 class WorkspaceLifecycleHandoffMetadata(BaseModel):
     title: Optional[str] = Field(
         default=None,

@@ -280,6 +280,7 @@ Current workspace scope:
 - `GET /advisory/workspaces/{workspace_id}/saved-versions` returns the saved version history for support, resume, and compare workflows.
 - `POST /advisory/workspaces/{workspace_id}/resume` restores a saved version into the current editable draft.
 - `POST /advisory/workspaces/{workspace_id}/compare` compares the current draft to a saved version baseline.
+- `POST /advisory/workspaces/{workspace_id}/assistant/rationale` generates an evidence-grounded workspace rationale through the Lotus AI seam.
 - `POST /advisory/workspaces/{workspace_id}/handoff` bridges the current draft into persisted proposal lifecycle without duplicating lifecycle ownership.
 
 Current Slice 2 draft actions:
@@ -306,6 +307,16 @@ Current handoff rule:
 - later workspace handoffs create new versions on the linked proposal instead of creating duplicate proposal aggregates
 - stateless workspaces support lifecycle handoff directly from embedded simulation payloads
 - stateful workspaces support lifecycle handoff when the Lotus Core advisory context seam can resolve replay-safe simulation inputs
+
+Current AI assistance rule:
+- workspace AI rationale is available only for evaluated workspaces
+- the Lotus AI seam receives a deterministic evidence bundle containing workspace identity, resolved context, evaluation summary, and proposal status
+- the response always includes that evidence bundle so the AI output remains reviewable and grounded
+
+Current capability-truth rule:
+- `/platform/capabilities` reports supported input modes as `stateless` and `stateful`
+- feature enablement is separated from operational readiness
+- workflow readiness now exposes dependency keys, degraded reasons, and fallback posture where applicable
 
 Dependency quality gate:
 - `scripts/dependency_health_check.py --requirements requirements.txt`

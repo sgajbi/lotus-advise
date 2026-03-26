@@ -992,3 +992,137 @@ def test_workspace_handoff_returns_422_when_proposal_simulation_flag_is_disabled
     assert response.json()["detail"] == (
         "PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true"
     )
+
+
+def test_workspace_ai_rationale_returns_evidence_grounded_output(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "src.api.main.generate_workspace_rationale_with_lotus_ai",
+        lambda request, evidence: {
+            "assistant_output": (
+                f"{request.requested_by} requested a rationale "
+                f"for workspace {evidence.workspace_id}"
+            ),
+            "generated_by": "lotus-ai",
+            "evidence": evidence.model_dump(mode="json"),
+        },
+        raising=False,
+    )
+    create_payload = {
+        "workspace_name": "AI rationale workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_ai_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/assistant/rationale",
+            json={
+                "requested_by": "advisor_123",
+                "instruction": "Summarize the proposal rationale for an advisor review note.",
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["generated_by"] == "lotus-ai"
+    assert body["evidence"]["workspace_id"] == workspace_id
+    assert body["evidence"]["proposal_status"] == "READY"
+
+
+def test_workspace_ai_rationale_requires_evaluated_workspace() -> None:
+    create_payload = {
+        "workspace_name": "AI rationale workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_ai_02",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/assistant/rationale",
+            json={
+                "requested_by": "advisor_123",
+                "instruction": "Summarize the proposal rationale for an advisor review note.",
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "WORKSPACE_AI_REQUIRES_EVALUATED_WORKSPACE"
+
+
+def test_workspace_ai_rationale_returns_503_when_lotus_ai_is_unavailable() -> None:
+    create_payload = {
+        "workspace_name": "AI rationale workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_ai_03",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/assistant/rationale",
+            json={
+                "requested_by": "advisor_123",
+                "instruction": "Summarize the proposal rationale for an advisor review note.",
+            },
+        )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "LOTUS_AI_RATIONALE_UNAVAILABLE"
