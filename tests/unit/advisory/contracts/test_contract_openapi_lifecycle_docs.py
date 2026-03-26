@@ -135,9 +135,9 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     report_request_body_ref = report_request["requestBody"]["content"]["application/json"][
         "schema"
     ]["$ref"]
-    report_request_response_ref = report_request["responses"]["200"]["content"][
-        "application/json"
-    ]["schema"]["$ref"]
+    report_request_response_ref = report_request["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
     assert report_request_body_ref.endswith("/ProposalReportRequest")
     assert report_request_response_ref.endswith("/ProposalReportResponse")
 
