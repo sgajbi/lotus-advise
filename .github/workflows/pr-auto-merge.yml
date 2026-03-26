@@ -35,7 +35,7 @@ jobs:
             echo "$output"
             exit 0
           fi
-          if echo "$output" | grep -Eqi "auto-merge is disabled|merge queue is not enabled|pull request is not in the correct state"; then
+          if echo "$output" | grep -Eqi "auto-merge is disabled|merge queue is not enabled|pull request is not in the correct state|protected branch rules not configured for this branch"; then
             echo "$output"
             exit 0
           fi
