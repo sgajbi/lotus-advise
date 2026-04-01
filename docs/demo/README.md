@@ -2,12 +2,15 @@
 
 This folder contains advisory-only demo payloads for the Lotus Advise service.
 
+Canonical local service identity:
+- `http://advise.dev.lotus`
+
 ## Running Scenarios
 
 For advisory proposal simulation demos, POST to `/advisory/proposals/simulate`:
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/advisory/proposals/simulate" \
+curl -X POST "http://advise.dev.lotus/advisory/proposals/simulate" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: demo-proposal-01" \
   --data-binary "@docs/demo/10_advisory_proposal_simulate.json"
@@ -16,7 +19,7 @@ curl -X POST "http://127.0.0.1:8000/advisory/proposals/simulate" \
 For advisory proposal artifact demos, POST to `/advisory/proposals/artifact`:
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/advisory/proposals/artifact" \
+curl -X POST "http://advise.dev.lotus/advisory/proposals/artifact" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: demo-proposal-artifact-01" \
   --data-binary "@docs/demo/19_advisory_proposal_artifact.json"
@@ -25,7 +28,7 @@ curl -X POST "http://127.0.0.1:8000/advisory/proposals/artifact" \
 For advisory proposal lifecycle creation demos, POST to `/advisory/proposals`:
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/advisory/proposals" \
+curl -X POST "http://advise.dev.lotus/advisory/proposals" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: demo-proposal-persist-01" \
   --data-binary "@docs/demo/20_advisory_proposal_persist_create.json"
