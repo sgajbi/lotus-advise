@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-05T13:42:14.364489+00:00",
+  "generatedAt": "2026-04-05T14:02:24.034579+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -3947,7 +3947,7 @@
             "configured": false,
             "dependency_key": "lotus_core",
             "description": "Canonical portfolio state and portfolio simulation authority.",
-            "fallback_mode": "LOCAL_SIMULATION_FALLBACK",
+            "fallback_mode": "CONTROLLED_LOCAL_SIMULATION_FALLBACK",
             "operational_ready": false,
             "service_name": "lotus-core"
           }

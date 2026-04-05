@@ -66,6 +66,27 @@ def reset_upstream_authority_overrides(monkeypatch):
     monkeypatch.delenv("LOTUS_RISK_BASE_URL", raising=False)
     monkeypatch.delenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", raising=False)
 
+    def _simulate_with_lotus_core(**kwargs):
+        request = kwargs["request"]
+        return run_proposal_simulation(
+            portfolio=request.portfolio_snapshot,
+            market_data=request.market_data_snapshot,
+            shelf=request.shelf_entries,
+            options=request.options,
+            proposed_cash_flows=request.proposed_cash_flows,
+            proposed_trades=request.proposed_trades,
+            reference_model=request.reference_model,
+            request_hash=kwargs["request_hash"],
+            idempotency_key=kwargs["idempotency_key"],
+            correlation_id=kwargs["correlation_id"],
+            simulation_contract_version="advisory-simulation.v1",
+        )
+
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.simulate_with_lotus_core",
+        _simulate_with_lotus_core,
+    )
+
 
 def test_service_version_payload_is_immutable_from_caller_mutation():
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())

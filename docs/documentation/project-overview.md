@@ -55,6 +55,9 @@ The API remains deterministic for identical inputs and options.
 - Contract governance: the `lotus-core` simulation seam is pinned to
   `X-Lotus-Contract-Version: advisory-simulation.v1`, and the returned lineage must carry the same
   `simulation_contract_version` for replay-safe parity.
+- Fallback posture: local advisory execution is no longer a normal runtime mode. It is retained
+  only as a controlled migration fallback and test oracle behind
+  `LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK`.
 
 2. Advisory proposal lifecycle
 - Input: simulated proposal payloads plus workflow actor actions.
@@ -107,6 +110,8 @@ The API remains deterministic for identical inputs and options.
 - `src/integrations/lotus_core/simulation.py`: explicit Lotus Core simulation authority seam for advisory proposal evaluation.
   - The canonical upstream execution contract is versioned and validated through
     `X-Lotus-Contract-Version`.
+  - When the seam is unavailable, `lotus-advise` returns an upstream dependency error unless the
+    controlled local fallback switch is explicitly enabled.
 - `src/integrations/lotus_risk/enrichment.py`: explicit Lotus Risk enrichment seam for advisory proposal evaluation.
 - `src/integrations/lotus_ai/rationale.py`: explicit Lotus AI rationale seam for evidence-grounded workspace assistance.
 - `src/integrations/lotus_report/adapter.py`: explicit Lotus Report seam for advisory report requests without moving reporting ownership into lotus-advise.

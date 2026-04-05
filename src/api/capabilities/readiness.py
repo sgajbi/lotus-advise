@@ -1,21 +1,8 @@
-import os
-
 from src.integrations.lotus_ai import build_lotus_ai_dependency_state
-from src.integrations.lotus_core import build_lotus_core_dependency_state
+from src.integrations.lotus_core import build_lotus_core_dependency_state, lotus_core_fallback_mode
 from src.integrations.lotus_performance import build_lotus_performance_dependency_state
 from src.integrations.lotus_report import build_lotus_report_dependency_state
 from src.integrations.lotus_risk import build_lotus_risk_dependency_state
-
-
-def _lotus_core_fallback_mode() -> str:
-    if os.getenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "false").lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }:
-        return "LOCAL_SIMULATION_FALLBACK"
-    return "NONE"
 
 
 def build_operational_readiness() -> dict[str, object]:
@@ -34,7 +21,7 @@ def build_operational_readiness() -> dict[str, object]:
     ]
 
     fallback_modes = {
-        "lotus_core": _lotus_core_fallback_mode(),
+        "lotus_core": lotus_core_fallback_mode(),
         "lotus_risk": "LOCAL_RISK_FALLBACK",
         "lotus_ai": "NONE",
         "lotus_report": "NONE",

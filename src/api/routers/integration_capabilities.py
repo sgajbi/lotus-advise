@@ -6,6 +6,10 @@ from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
 from src.api.capabilities import build_operational_readiness
+from src.integrations.lotus_core import (
+    CONTROLLED_LOCAL_SIMULATION_FALLBACK,
+    lotus_core_fallback_mode,
+)
 
 ConsumerSystem = Literal["lotus-gateway", "lotus-performance", "UI", "UNKNOWN"]
 
@@ -28,7 +32,7 @@ class FeatureCapability(BaseModel):
     )
     fallback_mode: str = Field(
         description="Fallback posture when a required upstream dependency is unavailable.",
-        examples=["LOCAL_SIMULATION_FALLBACK"],
+        examples=[CONTROLLED_LOCAL_SIMULATION_FALLBACK],
     )
     degraded_reason: str | None = Field(
         default=None,
@@ -108,7 +112,7 @@ class DependencyReadiness(BaseModel):
     )
     fallback_mode: str = Field(
         description="Fallback posture used when the dependency is unavailable.",
-        examples=["LOCAL_SIMULATION_FALLBACK"],
+        examples=[CONTROLLED_LOCAL_SIMULATION_FALLBACK],
     )
 
 
@@ -129,7 +133,7 @@ class OperationalReadiness(BaseModel):
                         "base_url_env": "LOTUS_CORE_BASE_URL",
                         "configured": False,
                         "operational_ready": False,
-                        "fallback_mode": "LOCAL_SIMULATION_FALLBACK",
+                        "fallback_mode": "CONTROLLED_LOCAL_SIMULATION_FALLBACK",
                     }
                 ],
             }
@@ -204,7 +208,7 @@ class IntegrationCapabilitiesResponse(BaseModel):
                             "base_url_env": "LOTUS_CORE_BASE_URL",
                             "configured": False,
                             "operational_ready": False,
-                            "fallback_mode": "LOCAL_SIMULATION_FALLBACK",
+                            "fallback_mode": "CONTROLLED_LOCAL_SIMULATION_FALLBACK",
                         }
                     ],
                 },
@@ -261,15 +265,6 @@ def _env_bool(name: str, default: bool) -> bool:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
-
-def _lotus_core_fallback_mode() -> str:
-    return (
-        "LOCAL_SIMULATION_FALLBACK"
-        if _env_bool("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", False)
-        else "NONE"
-    )
-
-
 @router.get(
     "/platform/capabilities",
     response_model=IntegrationCapabilitiesResponse,
@@ -320,6 +315,20 @@ async def get_integration_capabilities(
         supported_input_modes=["stateless", "stateful"],
         features=[
             FeatureCapability(
+                key="advisory.proposals.simulation",
+                enabled=True,
+                operational_ready=lotus_core_ready,
+                owner_service="LOTUS_CORE",
+                description=(
+                    "Canonical advisory proposal simulation through lotus-core; "
+                    "lotus-advise remains the workflow and API owner."
+                ),
+                fallback_mode=lotus_core_fallback_mode(),
+                degraded_reason=(
+                    None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+                ),
+            ),
+            FeatureCapability(
                 key="advisory.proposals.lifecycle",
                 enabled=lifecycle_enabled,
                 operational_ready=lifecycle_enabled,
@@ -345,7 +354,7 @@ async def get_integration_capabilities(
                 description=(
                     "Stateful advisory workspace evaluation through Lotus Core context resolution."
                 ),
-                fallback_mode=_lotus_core_fallback_mode(),
+                fallback_mode=lotus_core_fallback_mode(),
                 degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
             ),
             FeatureCapability(
@@ -385,6 +394,16 @@ async def get_integration_capabilities(
             ),
         ],
         workflows=[
+            WorkflowCapability(
+                workflow_key="advisory_proposal_simulation",
+                enabled=True,
+                operational_ready=lotus_core_ready,
+                required_features=["advisory.proposals.simulation"],
+                dependency_keys=["lotus_core"],
+                degraded_reason=(
+                    None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+                ),
+            ),
             WorkflowCapability(
                 workflow_key="advisory_proposal_lifecycle",
                 enabled=lifecycle_enabled,
