@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-05T11:22:34.200481+00:00",
+  "generatedAt": "2026-04-05T11:34:15.123880+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -202,8 +202,7 @@
         "body"
       ],
       "observedTypes": [
-        "string",
-        "object"
+        "string"
       ]
     },
     {
@@ -466,22 +465,6 @@
       ]
     },
     {
-      "semanticId": "lotus.attributes",
-      "canonicalTerm": "attributes",
-      "preferredName": "attributes",
-      "description": "Attribute tags used for group constraints (for example sector, region).",
-      "example": {
-        "key": "sample_text"
-      },
-      "type": "object",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "object"
-      ]
-    },
-    {
       "semanticId": "lotus.auto_funding",
       "canonicalTerm": "auto_funding",
       "preferredName": "auto_funding",
@@ -501,20 +484,6 @@
       "preferredName": "available_before_fx",
       "description": "Available amount in target currency before generated FX.",
       "example": "example_available_before_fx",
-      "type": "string",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.base_currency",
-      "canonicalTerm": "base_currency",
-      "preferredName": "base_currency",
-      "description": "Base reporting currency for valuation and rules.",
-      "example": "USD",
       "type": "string",
       "locations": [
         "body"
@@ -689,13 +658,12 @@
       "canonicalTerm": "cash_band_max_weight",
       "preferredName": "cash_band_max_weight",
       "description": "Upper soft bound for cash weight.",
-      "example": "cash_band_max_weight_example",
-      "type": "object",
+      "example": "example_cash_band_max_weight",
+      "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
-        "object",
         "string"
       ]
     },
@@ -704,13 +672,12 @@
       "canonicalTerm": "cash_band_min_weight",
       "preferredName": "cash_band_min_weight",
       "description": "Lower soft bound for cash weight.",
-      "example": "cash_band_min_weight_example",
-      "type": "object",
+      "example": "example_cash_band_min_weight",
+      "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
-        "object",
         "string"
       ]
     },
@@ -854,13 +821,12 @@
       "canonicalTerm": "compare_target_methods_tolerance",
       "preferredName": "compare_target_methods_tolerance",
       "description": "Tolerance used when comparing method outputs.",
-      "example": "compare_target_methods_tolerance_example",
-      "type": "object",
+      "example": "example_compare_target_methods_tolerance",
+      "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
-        "object",
         "string"
       ]
     },
@@ -1297,15 +1263,15 @@
       "semanticId": "lotus.description",
       "canonicalTerm": "description",
       "preferredName": "description",
-      "description": "Optional advisor-entered narrative for this cash flow.",
-      "example": "description_example",
-      "type": "object",
+      "description": "Human-readable capability summary.",
+      "example": "example_description",
+      "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
-        "object",
-        "string"
+        "string",
+        "object"
       ]
     },
     {
@@ -1464,13 +1430,12 @@
       "canonicalTerm": "drift_unmodeled_exposure_threshold",
       "preferredName": "drift_unmodeled_exposure_threshold",
       "description": "Minimum exposure threshold for unmodeled-exposure highlights.",
-      "example": "drift_unmodeled_exposure_threshold_example",
-      "type": "object",
+      "example": "example_drift_unmodeled_exposure_threshold",
+      "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
-        "object",
         "string"
       ]
     },
@@ -2094,13 +2059,12 @@
       "canonicalTerm": "fx_buffer_pct",
       "preferredName": "fx_buffer_pct",
       "description": "Buffer applied when generating FX funding intents.",
-      "example": "fx_buffer_pct_example",
-      "type": "object",
+      "example": "example_fx_buffer_pct",
+      "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
-        "object",
         "string"
       ]
     },
@@ -2174,22 +2138,6 @@
       ],
       "observedTypes": [
         "object"
-      ]
-    },
-    {
-      "semanticId": "lotus.fx_rates",
-      "canonicalTerm": "fx_rates",
-      "preferredName": "fx_rates",
-      "description": "FX rates for currency conversion.",
-      "example": [
-        "fx_rates_item_example"
-      ],
-      "type": "array",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "array"
       ]
     },
     {
@@ -2640,7 +2588,7 @@
       "semanticId": "lotus.intent_type",
       "canonicalTerm": "intent_type",
       "preferredName": "intent_type",
-      "description": "Intent discriminator for advisory cash-flow proposals.",
+      "description": "Intent discriminator for advisory security trades.",
       "example": "example_intent_type",
       "type": "string",
       "locations": [
@@ -2695,31 +2643,16 @@
       ]
     },
     {
-      "semanticId": "lotus.issuer_id",
-      "canonicalTerm": "issuer_id",
-      "preferredName": "issuer_id",
-      "description": "Issuer identifier used for concentration analytics and suitability checks.",
-      "example": "ISSUER_001",
-      "type": "object",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "object"
-      ]
-    },
-    {
       "semanticId": "lotus.issuer_max_weight",
       "canonicalTerm": "issuer_max_weight",
       "preferredName": "issuer_max_weight",
       "description": "Maximum advisory suitability aggregate weight per issuer.",
-      "example": "issuer_max_weight_example",
-      "type": "object",
+      "example": "example_issuer_max_weight",
+      "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
-        "object",
         "string"
       ]
     },
@@ -3074,50 +3007,6 @@
       ]
     },
     {
-      "semanticId": "lotus.liquidity_tier",
-      "canonicalTerm": "liquidity_tier",
-      "preferredName": "liquidity_tier",
-      "description": "Liquidity tier label used for suitability liquidity exposure checks.",
-      "example": "liquidity_tier_example",
-      "type": "object",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "object"
-      ]
-    },
-    {
-      "semanticId": "lotus.lot_id",
-      "canonicalTerm": "lot_id",
-      "preferredName": "lot_id",
-      "description": "Unique lot identifier within instrument.",
-      "example": "LOT_001",
-      "type": "string",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.lots",
-      "canonicalTerm": "lots",
-      "preferredName": "lots",
-      "description": "Optional tax-lot breakdown for tax-aware sell allocation.",
-      "example": [
-        "lots_item_example"
-      ],
-      "type": "array",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "array"
-      ]
-    },
-    {
       "semanticId": "lotus.mandate_id",
       "canonicalTerm": "mandate_id",
       "preferredName": "mandate_id",
@@ -3144,8 +3033,7 @@
         "body"
       ],
       "observedTypes": [
-        "object",
-        "MarketDataSnapshot-Input"
+        "object"
       ]
     },
     {
@@ -3160,20 +3048,6 @@
       ],
       "observedTypes": [
         "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.market_value",
-      "canonicalTerm": "market_value",
-      "preferredName": "market_value",
-      "description": "Optional trusted market value used when valuation_mode=TRUST_SNAPSHOT.",
-      "example": "market_value_example",
-      "type": "object",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "object"
       ]
     },
     {
@@ -3314,28 +3188,13 @@
       "canonicalTerm": "min_cash_buffer_pct",
       "preferredName": "min_cash_buffer_pct",
       "description": "Minimum cash buffer preserved during target generation.",
-      "example": "min_cash_buffer_pct_example",
-      "type": "object",
+      "example": "example_min_cash_buffer_pct",
+      "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
-        "object",
         "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.min_notional",
-      "canonicalTerm": "min_notional",
-      "preferredName": "min_notional",
-      "description": "Optional per-instrument minimum trade notional.",
-      "example": "min_notional_example",
-      "type": "object",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "object"
       ]
     },
     {
@@ -3558,7 +3417,6 @@
       ],
       "observedTypes": [
         "object",
-        "EngineOptions-Input",
         "EngineOptions-Output"
       ]
     },
@@ -3705,8 +3563,7 @@
         "body"
       ],
       "observedTypes": [
-        "object",
-        "PortfolioSnapshot-Input"
+        "object"
       ]
     },
     {
@@ -3781,22 +3638,6 @@
       ],
       "observedTypes": [
         "object"
-      ]
-    },
-    {
-      "semanticId": "lotus.prices",
-      "canonicalTerm": "prices",
-      "preferredName": "prices",
-      "description": "Instrument prices.",
-      "example": [
-        "prices_item_example"
-      ],
-      "type": "array",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "array"
       ]
     },
     {
@@ -4043,20 +3884,6 @@
       ],
       "observedTypes": [
         "array"
-      ]
-    },
-    {
-      "semanticId": "lotus.purchase_date",
-      "canonicalTerm": "purchase_date",
-      "preferredName": "purchase_date",
-      "description": "Lot purchase date (ISO date string).",
-      "example": "2026-03-02",
-      "type": "string",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "string"
       ]
     },
     {
@@ -4684,20 +4511,6 @@
       ]
     },
     {
-      "semanticId": "lotus.settlement_days",
-      "canonicalTerm": "settlement_days",
-      "preferredName": "settlement_days",
-      "description": "Settlement lag in business-day offsets used by settlement ladder.",
-      "example": 24,
-      "type": "integer",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "integer"
-      ]
-    },
-    {
       "semanticId": "lotus.settlement_horizon_days",
       "canonicalTerm": "settlement_horizon_days",
       "preferredName": "settlement_horizon_days",
@@ -4799,20 +4612,6 @@
       "observedTypes": [
         "object",
         "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.snapshot_id",
-      "canonicalTerm": "snapshot_id",
-      "preferredName": "snapshot_id",
-      "description": "Optional immutable snapshot identifier for lineage.",
-      "example": "SNAPSHOT_001",
-      "type": "object",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "object"
       ]
     },
     {
@@ -5053,12 +4852,11 @@
       "example": {
         "key": "sample_text"
       },
-      "type": "SuitabilityThresholds-Input",
+      "type": "SuitabilityThresholds-Output",
       "locations": [
         "body"
       ],
       "observedTypes": [
-        "SuitabilityThresholds-Input",
         "SuitabilityThresholds-Output"
       ]
     },
@@ -5398,22 +5196,6 @@
       ],
       "observedTypes": [
         "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.unit_cost",
-      "canonicalTerm": "unit_cost",
-      "preferredName": "unit_cost",
-      "description": "Canonical unit cost used by lotus-advise APIs.",
-      "example": {
-        "key": "sample_text"
-      },
-      "type": "Money-Input",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "Money-Input"
       ]
     },
     {
@@ -20319,780 +20101,36 @@
             "attributeRef": "#/attributeCatalog/lotus.x_correlation_id"
           },
           {
-            "name": "portfolio_snapshot",
-            "location": "body",
-            "required": true,
-            "type": "PortfolioSnapshot-Input",
-            "semanticId": "lotus.portfolio_snapshot",
-            "attributeRef": "#/attributeCatalog/lotus.portfolio_snapshot"
-          },
-          {
-            "name": "portfolio_snapshot.snapshot_id",
+            "name": "input_mode",
             "location": "body",
             "required": false,
             "type": "object",
-            "semanticId": "lotus.snapshot_id",
-            "attributeRef": "#/attributeCatalog/lotus.snapshot_id"
+            "semanticId": "lotus.input_mode",
+            "attributeRef": "#/attributeCatalog/lotus.input_mode"
           },
           {
-            "name": "portfolio_snapshot.portfolio_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.portfolio_id",
-            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
-          },
-          {
-            "name": "portfolio_snapshot.base_currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.base_currency",
-            "attributeRef": "#/attributeCatalog/lotus.base_currency"
-          },
-          {
-            "name": "portfolio_snapshot.positions",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.positions",
-            "attributeRef": "#/attributeCatalog/lotus.positions"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].instrument_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.instrument_id",
-            "attributeRef": "#/attributeCatalog/lotus.instrument_id"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].quantity",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.quantity",
-            "attributeRef": "#/attributeCatalog/lotus.quantity"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].market_value",
+            "name": "simulate_request",
             "location": "body",
             "required": false,
             "type": "object",
-            "semanticId": "lotus.market_value",
-            "attributeRef": "#/attributeCatalog/lotus.market_value"
+            "semanticId": "lotus.simulate_request",
+            "attributeRef": "#/attributeCatalog/lotus.simulate_request"
           },
           {
-            "name": "portfolio_snapshot.positions[].lots",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.lots",
-            "attributeRef": "#/attributeCatalog/lotus.lots"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].lot_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.lot_id",
-            "attributeRef": "#/attributeCatalog/lotus.lot_id"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].quantity",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.quantity",
-            "attributeRef": "#/attributeCatalog/lotus.quantity"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].unit_cost",
-            "location": "body",
-            "required": true,
-            "type": "Money-Input",
-            "semanticId": "lotus.unit_cost",
-            "attributeRef": "#/attributeCatalog/lotus.unit_cost"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].unit_cost.amount",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.amount",
-            "attributeRef": "#/attributeCatalog/lotus.amount"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].unit_cost.currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.currency",
-            "attributeRef": "#/attributeCatalog/lotus.currency"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].purchase_date",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.purchase_date",
-            "attributeRef": "#/attributeCatalog/lotus.purchase_date"
-          },
-          {
-            "name": "portfolio_snapshot.cash_balances",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.cash_balances",
-            "attributeRef": "#/attributeCatalog/lotus.cash_balances"
-          },
-          {
-            "name": "portfolio_snapshot.cash_balances[].currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.currency",
-            "attributeRef": "#/attributeCatalog/lotus.currency"
-          },
-          {
-            "name": "portfolio_snapshot.cash_balances[].amount",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.amount",
-            "attributeRef": "#/attributeCatalog/lotus.amount"
-          },
-          {
-            "name": "portfolio_snapshot.cash_balances[].settled",
+            "name": "stateless_input",
             "location": "body",
             "required": false,
             "type": "object",
-            "semanticId": "lotus.settled",
-            "attributeRef": "#/attributeCatalog/lotus.settled"
+            "semanticId": "lotus.stateless_input",
+            "attributeRef": "#/attributeCatalog/lotus.stateless_input"
           },
           {
-            "name": "portfolio_snapshot.cash_balances[].pending",
+            "name": "stateful_input",
             "location": "body",
             "required": false,
             "type": "object",
-            "semanticId": "lotus.pending",
-            "attributeRef": "#/attributeCatalog/lotus.pending"
-          },
-          {
-            "name": "market_data_snapshot",
-            "location": "body",
-            "required": true,
-            "type": "MarketDataSnapshot-Input",
-            "semanticId": "lotus.market_data_snapshot",
-            "attributeRef": "#/attributeCatalog/lotus.market_data_snapshot"
-          },
-          {
-            "name": "market_data_snapshot.snapshot_id",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.snapshot_id",
-            "attributeRef": "#/attributeCatalog/lotus.snapshot_id"
-          },
-          {
-            "name": "market_data_snapshot.prices",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.prices",
-            "attributeRef": "#/attributeCatalog/lotus.prices"
-          },
-          {
-            "name": "market_data_snapshot.prices[].instrument_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.instrument_id",
-            "attributeRef": "#/attributeCatalog/lotus.instrument_id"
-          },
-          {
-            "name": "market_data_snapshot.prices[].price",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.price",
-            "attributeRef": "#/attributeCatalog/lotus.price"
-          },
-          {
-            "name": "market_data_snapshot.prices[].currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.currency",
-            "attributeRef": "#/attributeCatalog/lotus.currency"
-          },
-          {
-            "name": "market_data_snapshot.fx_rates",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.fx_rates",
-            "attributeRef": "#/attributeCatalog/lotus.fx_rates"
-          },
-          {
-            "name": "market_data_snapshot.fx_rates[].pair",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.pair",
-            "attributeRef": "#/attributeCatalog/lotus.pair"
-          },
-          {
-            "name": "market_data_snapshot.fx_rates[].rate",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.rate",
-            "attributeRef": "#/attributeCatalog/lotus.rate"
-          },
-          {
-            "name": "shelf_entries",
-            "location": "body",
-            "required": true,
-            "type": "array",
-            "semanticId": "lotus.shelf_entries",
-            "attributeRef": "#/attributeCatalog/lotus.shelf_entries"
-          },
-          {
-            "name": "shelf_entries[].instrument_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.instrument_id",
-            "attributeRef": "#/attributeCatalog/lotus.instrument_id"
-          },
-          {
-            "name": "shelf_entries[].status",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.status",
-            "attributeRef": "#/attributeCatalog/lotus.status"
-          },
-          {
-            "name": "shelf_entries[].asset_class",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.asset_class",
-            "attributeRef": "#/attributeCatalog/lotus.asset_class"
-          },
-          {
-            "name": "shelf_entries[].issuer_id",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.issuer_id",
-            "attributeRef": "#/attributeCatalog/lotus.issuer_id"
-          },
-          {
-            "name": "shelf_entries[].liquidity_tier",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.liquidity_tier",
-            "attributeRef": "#/attributeCatalog/lotus.liquidity_tier"
-          },
-          {
-            "name": "shelf_entries[].settlement_days",
-            "location": "body",
-            "required": false,
-            "type": "integer",
-            "semanticId": "lotus.settlement_days",
-            "attributeRef": "#/attributeCatalog/lotus.settlement_days"
-          },
-          {
-            "name": "shelf_entries[].min_notional",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.min_notional",
-            "attributeRef": "#/attributeCatalog/lotus.min_notional"
-          },
-          {
-            "name": "shelf_entries[].attributes",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.attributes",
-            "attributeRef": "#/attributeCatalog/lotus.attributes"
-          },
-          {
-            "name": "options",
-            "location": "body",
-            "required": false,
-            "type": "EngineOptions-Input",
-            "semanticId": "lotus.options",
-            "attributeRef": "#/attributeCatalog/lotus.options"
-          },
-          {
-            "name": "options.valuation_mode",
-            "location": "body",
-            "required": false,
-            "type": "ValuationMode",
-            "semanticId": "lotus.valuation_mode",
-            "attributeRef": "#/attributeCatalog/lotus.valuation_mode"
-          },
-          {
-            "name": "options.target_method",
-            "location": "body",
-            "required": false,
-            "type": "TargetMethod",
-            "semanticId": "lotus.target_method",
-            "attributeRef": "#/attributeCatalog/lotus.target_method"
-          },
-          {
-            "name": "options.compare_target_methods",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.compare_target_methods",
-            "attributeRef": "#/attributeCatalog/lotus.compare_target_methods"
-          },
-          {
-            "name": "options.compare_target_methods_tolerance",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.compare_target_methods_tolerance",
-            "attributeRef": "#/attributeCatalog/lotus.compare_target_methods_tolerance"
-          },
-          {
-            "name": "options.cash_band_min_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.cash_band_min_weight",
-            "attributeRef": "#/attributeCatalog/lotus.cash_band_min_weight"
-          },
-          {
-            "name": "options.cash_band_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.cash_band_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.cash_band_max_weight"
-          },
-          {
-            "name": "options.single_position_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.single_position_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.single_position_max_weight"
-          },
-          {
-            "name": "options.min_trade_notional",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.min_trade_notional",
-            "attributeRef": "#/attributeCatalog/lotus.min_trade_notional"
-          },
-          {
-            "name": "options.allow_restricted",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.allow_restricted",
-            "attributeRef": "#/attributeCatalog/lotus.allow_restricted"
-          },
-          {
-            "name": "options.suppress_dust_trades",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.suppress_dust_trades",
-            "attributeRef": "#/attributeCatalog/lotus.suppress_dust_trades"
-          },
-          {
-            "name": "options.dust_trade_threshold",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.dust_trade_threshold",
-            "attributeRef": "#/attributeCatalog/lotus.dust_trade_threshold"
-          },
-          {
-            "name": "options.fx_buffer_pct",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.fx_buffer_pct",
-            "attributeRef": "#/attributeCatalog/lotus.fx_buffer_pct"
-          },
-          {
-            "name": "options.block_on_missing_prices",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.block_on_missing_prices",
-            "attributeRef": "#/attributeCatalog/lotus.block_on_missing_prices"
-          },
-          {
-            "name": "options.block_on_missing_fx",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.block_on_missing_fx",
-            "attributeRef": "#/attributeCatalog/lotus.block_on_missing_fx"
-          },
-          {
-            "name": "options.min_cash_buffer_pct",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.min_cash_buffer_pct",
-            "attributeRef": "#/attributeCatalog/lotus.min_cash_buffer_pct"
-          },
-          {
-            "name": "options.max_turnover_pct",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.max_turnover_pct",
-            "attributeRef": "#/attributeCatalog/lotus.max_turnover_pct"
-          },
-          {
-            "name": "options.enable_tax_awareness",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_tax_awareness",
-            "attributeRef": "#/attributeCatalog/lotus.enable_tax_awareness"
-          },
-          {
-            "name": "options.max_realized_capital_gains",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.max_realized_capital_gains",
-            "attributeRef": "#/attributeCatalog/lotus.max_realized_capital_gains"
-          },
-          {
-            "name": "options.enable_settlement_awareness",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_settlement_awareness",
-            "attributeRef": "#/attributeCatalog/lotus.enable_settlement_awareness"
-          },
-          {
-            "name": "options.enable_proposal_simulation",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_proposal_simulation",
-            "attributeRef": "#/attributeCatalog/lotus.enable_proposal_simulation"
-          },
-          {
-            "name": "options.enable_workflow_gates",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_workflow_gates",
-            "attributeRef": "#/attributeCatalog/lotus.enable_workflow_gates"
-          },
-          {
-            "name": "options.workflow_requires_client_consent",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.workflow_requires_client_consent",
-            "attributeRef": "#/attributeCatalog/lotus.workflow_requires_client_consent"
-          },
-          {
-            "name": "options.client_consent_already_obtained",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.client_consent_already_obtained",
-            "attributeRef": "#/attributeCatalog/lotus.client_consent_already_obtained"
-          },
-          {
-            "name": "options.proposal_apply_cash_flows_first",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.proposal_apply_cash_flows_first",
-            "attributeRef": "#/attributeCatalog/lotus.proposal_apply_cash_flows_first"
-          },
-          {
-            "name": "options.proposal_block_negative_cash",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.proposal_block_negative_cash",
-            "attributeRef": "#/attributeCatalog/lotus.proposal_block_negative_cash"
-          },
-          {
-            "name": "options.link_buy_to_same_currency_sell_dependency",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.link_buy_to_same_currency_sell_dependency",
-            "attributeRef": "#/attributeCatalog/lotus.link_buy_to_same_currency_sell_dependency"
-          },
-          {
-            "name": "options.enable_drift_analytics",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_drift_analytics",
-            "attributeRef": "#/attributeCatalog/lotus.enable_drift_analytics"
-          },
-          {
-            "name": "options.enable_suitability_scanner",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_suitability_scanner",
-            "attributeRef": "#/attributeCatalog/lotus.enable_suitability_scanner"
-          },
-          {
-            "name": "options.suitability_thresholds",
-            "location": "body",
-            "required": false,
-            "type": "SuitabilityThresholds-Input",
-            "semanticId": "lotus.suitability_thresholds",
-            "attributeRef": "#/attributeCatalog/lotus.suitability_thresholds"
-          },
-          {
-            "name": "options.suitability_thresholds.single_position_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.single_position_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.single_position_max_weight"
-          },
-          {
-            "name": "options.suitability_thresholds.issuer_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.issuer_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.issuer_max_weight"
-          },
-          {
-            "name": "options.suitability_thresholds.max_weight_by_liquidity_tier",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.max_weight_by_liquidity_tier",
-            "attributeRef": "#/attributeCatalog/lotus.max_weight_by_liquidity_tier"
-          },
-          {
-            "name": "options.suitability_thresholds.cash_band_min_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.cash_band_min_weight",
-            "attributeRef": "#/attributeCatalog/lotus.cash_band_min_weight"
-          },
-          {
-            "name": "options.suitability_thresholds.cash_band_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.cash_band_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.cash_band_max_weight"
-          },
-          {
-            "name": "options.suitability_thresholds.data_quality_issue_severity",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.data_quality_issue_severity",
-            "attributeRef": "#/attributeCatalog/lotus.data_quality_issue_severity"
-          },
-          {
-            "name": "options.enable_instrument_drift",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_instrument_drift",
-            "attributeRef": "#/attributeCatalog/lotus.enable_instrument_drift"
-          },
-          {
-            "name": "options.drift_top_contributors_limit",
-            "location": "body",
-            "required": false,
-            "type": "integer",
-            "semanticId": "lotus.drift_top_contributors_limit",
-            "attributeRef": "#/attributeCatalog/lotus.drift_top_contributors_limit"
-          },
-          {
-            "name": "options.drift_unmodeled_exposure_threshold",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.drift_unmodeled_exposure_threshold",
-            "attributeRef": "#/attributeCatalog/lotus.drift_unmodeled_exposure_threshold"
-          },
-          {
-            "name": "options.auto_funding",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.auto_funding",
-            "attributeRef": "#/attributeCatalog/lotus.auto_funding"
-          },
-          {
-            "name": "options.funding_mode",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.funding_mode",
-            "attributeRef": "#/attributeCatalog/lotus.funding_mode"
-          },
-          {
-            "name": "options.fx_funding_source_currency",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.fx_funding_source_currency",
-            "attributeRef": "#/attributeCatalog/lotus.fx_funding_source_currency"
-          },
-          {
-            "name": "options.fx_generation_policy",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.fx_generation_policy",
-            "attributeRef": "#/attributeCatalog/lotus.fx_generation_policy"
-          },
-          {
-            "name": "options.settlement_horizon_days",
-            "location": "body",
-            "required": false,
-            "type": "integer",
-            "semanticId": "lotus.settlement_horizon_days",
-            "attributeRef": "#/attributeCatalog/lotus.settlement_horizon_days"
-          },
-          {
-            "name": "options.fx_settlement_days",
-            "location": "body",
-            "required": false,
-            "type": "integer",
-            "semanticId": "lotus.fx_settlement_days",
-            "attributeRef": "#/attributeCatalog/lotus.fx_settlement_days"
-          },
-          {
-            "name": "options.max_overdraft_by_ccy",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.max_overdraft_by_ccy",
-            "attributeRef": "#/attributeCatalog/lotus.max_overdraft_by_ccy"
-          },
-          {
-            "name": "options.group_constraints",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.group_constraints",
-            "attributeRef": "#/attributeCatalog/lotus.group_constraints"
-          },
-          {
-            "name": "proposed_cash_flows",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.proposed_cash_flows",
-            "attributeRef": "#/attributeCatalog/lotus.proposed_cash_flows"
-          },
-          {
-            "name": "proposed_cash_flows[].intent_type",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.intent_type",
-            "attributeRef": "#/attributeCatalog/lotus.intent_type"
-          },
-          {
-            "name": "proposed_cash_flows[].currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.currency",
-            "attributeRef": "#/attributeCatalog/lotus.currency"
-          },
-          {
-            "name": "proposed_cash_flows[].amount",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.amount",
-            "attributeRef": "#/attributeCatalog/lotus.amount"
-          },
-          {
-            "name": "proposed_cash_flows[].description",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.description",
-            "attributeRef": "#/attributeCatalog/lotus.description"
-          },
-          {
-            "name": "proposed_trades",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.proposed_trades",
-            "attributeRef": "#/attributeCatalog/lotus.proposed_trades"
-          },
-          {
-            "name": "proposed_trades[].intent_type",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.intent_type",
-            "attributeRef": "#/attributeCatalog/lotus.intent_type"
-          },
-          {
-            "name": "proposed_trades[].side",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.side",
-            "attributeRef": "#/attributeCatalog/lotus.side"
-          },
-          {
-            "name": "proposed_trades[].instrument_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.instrument_id",
-            "attributeRef": "#/attributeCatalog/lotus.instrument_id"
-          },
-          {
-            "name": "proposed_trades[].quantity",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.quantity",
-            "attributeRef": "#/attributeCatalog/lotus.quantity"
-          },
-          {
-            "name": "proposed_trades[].notional",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.notional",
-            "attributeRef": "#/attributeCatalog/lotus.notional"
-          },
-          {
-            "name": "reference_model",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.reference_model",
-            "attributeRef": "#/attributeCatalog/lotus.reference_model"
+            "semanticId": "lotus.stateful_input",
+            "attributeRef": "#/attributeCatalog/lotus.stateful_input"
           }
         ]
       },
@@ -22382,780 +21420,36 @@
             "attributeRef": "#/attributeCatalog/lotus.x_correlation_id"
           },
           {
-            "name": "portfolio_snapshot",
-            "location": "body",
-            "required": true,
-            "type": "PortfolioSnapshot-Input",
-            "semanticId": "lotus.portfolio_snapshot",
-            "attributeRef": "#/attributeCatalog/lotus.portfolio_snapshot"
-          },
-          {
-            "name": "portfolio_snapshot.snapshot_id",
+            "name": "input_mode",
             "location": "body",
             "required": false,
             "type": "object",
-            "semanticId": "lotus.snapshot_id",
-            "attributeRef": "#/attributeCatalog/lotus.snapshot_id"
+            "semanticId": "lotus.input_mode",
+            "attributeRef": "#/attributeCatalog/lotus.input_mode"
           },
           {
-            "name": "portfolio_snapshot.portfolio_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.portfolio_id",
-            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
-          },
-          {
-            "name": "portfolio_snapshot.base_currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.base_currency",
-            "attributeRef": "#/attributeCatalog/lotus.base_currency"
-          },
-          {
-            "name": "portfolio_snapshot.positions",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.positions",
-            "attributeRef": "#/attributeCatalog/lotus.positions"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].instrument_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.instrument_id",
-            "attributeRef": "#/attributeCatalog/lotus.instrument_id"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].quantity",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.quantity",
-            "attributeRef": "#/attributeCatalog/lotus.quantity"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].market_value",
+            "name": "simulate_request",
             "location": "body",
             "required": false,
             "type": "object",
-            "semanticId": "lotus.market_value",
-            "attributeRef": "#/attributeCatalog/lotus.market_value"
+            "semanticId": "lotus.simulate_request",
+            "attributeRef": "#/attributeCatalog/lotus.simulate_request"
           },
           {
-            "name": "portfolio_snapshot.positions[].lots",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.lots",
-            "attributeRef": "#/attributeCatalog/lotus.lots"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].lot_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.lot_id",
-            "attributeRef": "#/attributeCatalog/lotus.lot_id"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].quantity",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.quantity",
-            "attributeRef": "#/attributeCatalog/lotus.quantity"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].unit_cost",
-            "location": "body",
-            "required": true,
-            "type": "Money-Input",
-            "semanticId": "lotus.unit_cost",
-            "attributeRef": "#/attributeCatalog/lotus.unit_cost"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].unit_cost.amount",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.amount",
-            "attributeRef": "#/attributeCatalog/lotus.amount"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].unit_cost.currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.currency",
-            "attributeRef": "#/attributeCatalog/lotus.currency"
-          },
-          {
-            "name": "portfolio_snapshot.positions[].lots[].purchase_date",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.purchase_date",
-            "attributeRef": "#/attributeCatalog/lotus.purchase_date"
-          },
-          {
-            "name": "portfolio_snapshot.cash_balances",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.cash_balances",
-            "attributeRef": "#/attributeCatalog/lotus.cash_balances"
-          },
-          {
-            "name": "portfolio_snapshot.cash_balances[].currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.currency",
-            "attributeRef": "#/attributeCatalog/lotus.currency"
-          },
-          {
-            "name": "portfolio_snapshot.cash_balances[].amount",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.amount",
-            "attributeRef": "#/attributeCatalog/lotus.amount"
-          },
-          {
-            "name": "portfolio_snapshot.cash_balances[].settled",
+            "name": "stateless_input",
             "location": "body",
             "required": false,
             "type": "object",
-            "semanticId": "lotus.settled",
-            "attributeRef": "#/attributeCatalog/lotus.settled"
+            "semanticId": "lotus.stateless_input",
+            "attributeRef": "#/attributeCatalog/lotus.stateless_input"
           },
           {
-            "name": "portfolio_snapshot.cash_balances[].pending",
+            "name": "stateful_input",
             "location": "body",
             "required": false,
             "type": "object",
-            "semanticId": "lotus.pending",
-            "attributeRef": "#/attributeCatalog/lotus.pending"
-          },
-          {
-            "name": "market_data_snapshot",
-            "location": "body",
-            "required": true,
-            "type": "MarketDataSnapshot-Input",
-            "semanticId": "lotus.market_data_snapshot",
-            "attributeRef": "#/attributeCatalog/lotus.market_data_snapshot"
-          },
-          {
-            "name": "market_data_snapshot.snapshot_id",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.snapshot_id",
-            "attributeRef": "#/attributeCatalog/lotus.snapshot_id"
-          },
-          {
-            "name": "market_data_snapshot.prices",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.prices",
-            "attributeRef": "#/attributeCatalog/lotus.prices"
-          },
-          {
-            "name": "market_data_snapshot.prices[].instrument_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.instrument_id",
-            "attributeRef": "#/attributeCatalog/lotus.instrument_id"
-          },
-          {
-            "name": "market_data_snapshot.prices[].price",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.price",
-            "attributeRef": "#/attributeCatalog/lotus.price"
-          },
-          {
-            "name": "market_data_snapshot.prices[].currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.currency",
-            "attributeRef": "#/attributeCatalog/lotus.currency"
-          },
-          {
-            "name": "market_data_snapshot.fx_rates",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.fx_rates",
-            "attributeRef": "#/attributeCatalog/lotus.fx_rates"
-          },
-          {
-            "name": "market_data_snapshot.fx_rates[].pair",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.pair",
-            "attributeRef": "#/attributeCatalog/lotus.pair"
-          },
-          {
-            "name": "market_data_snapshot.fx_rates[].rate",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.rate",
-            "attributeRef": "#/attributeCatalog/lotus.rate"
-          },
-          {
-            "name": "shelf_entries",
-            "location": "body",
-            "required": true,
-            "type": "array",
-            "semanticId": "lotus.shelf_entries",
-            "attributeRef": "#/attributeCatalog/lotus.shelf_entries"
-          },
-          {
-            "name": "shelf_entries[].instrument_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.instrument_id",
-            "attributeRef": "#/attributeCatalog/lotus.instrument_id"
-          },
-          {
-            "name": "shelf_entries[].status",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.status",
-            "attributeRef": "#/attributeCatalog/lotus.status"
-          },
-          {
-            "name": "shelf_entries[].asset_class",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.asset_class",
-            "attributeRef": "#/attributeCatalog/lotus.asset_class"
-          },
-          {
-            "name": "shelf_entries[].issuer_id",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.issuer_id",
-            "attributeRef": "#/attributeCatalog/lotus.issuer_id"
-          },
-          {
-            "name": "shelf_entries[].liquidity_tier",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.liquidity_tier",
-            "attributeRef": "#/attributeCatalog/lotus.liquidity_tier"
-          },
-          {
-            "name": "shelf_entries[].settlement_days",
-            "location": "body",
-            "required": false,
-            "type": "integer",
-            "semanticId": "lotus.settlement_days",
-            "attributeRef": "#/attributeCatalog/lotus.settlement_days"
-          },
-          {
-            "name": "shelf_entries[].min_notional",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.min_notional",
-            "attributeRef": "#/attributeCatalog/lotus.min_notional"
-          },
-          {
-            "name": "shelf_entries[].attributes",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.attributes",
-            "attributeRef": "#/attributeCatalog/lotus.attributes"
-          },
-          {
-            "name": "options",
-            "location": "body",
-            "required": false,
-            "type": "EngineOptions-Input",
-            "semanticId": "lotus.options",
-            "attributeRef": "#/attributeCatalog/lotus.options"
-          },
-          {
-            "name": "options.valuation_mode",
-            "location": "body",
-            "required": false,
-            "type": "ValuationMode",
-            "semanticId": "lotus.valuation_mode",
-            "attributeRef": "#/attributeCatalog/lotus.valuation_mode"
-          },
-          {
-            "name": "options.target_method",
-            "location": "body",
-            "required": false,
-            "type": "TargetMethod",
-            "semanticId": "lotus.target_method",
-            "attributeRef": "#/attributeCatalog/lotus.target_method"
-          },
-          {
-            "name": "options.compare_target_methods",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.compare_target_methods",
-            "attributeRef": "#/attributeCatalog/lotus.compare_target_methods"
-          },
-          {
-            "name": "options.compare_target_methods_tolerance",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.compare_target_methods_tolerance",
-            "attributeRef": "#/attributeCatalog/lotus.compare_target_methods_tolerance"
-          },
-          {
-            "name": "options.cash_band_min_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.cash_band_min_weight",
-            "attributeRef": "#/attributeCatalog/lotus.cash_band_min_weight"
-          },
-          {
-            "name": "options.cash_band_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.cash_band_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.cash_band_max_weight"
-          },
-          {
-            "name": "options.single_position_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.single_position_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.single_position_max_weight"
-          },
-          {
-            "name": "options.min_trade_notional",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.min_trade_notional",
-            "attributeRef": "#/attributeCatalog/lotus.min_trade_notional"
-          },
-          {
-            "name": "options.allow_restricted",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.allow_restricted",
-            "attributeRef": "#/attributeCatalog/lotus.allow_restricted"
-          },
-          {
-            "name": "options.suppress_dust_trades",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.suppress_dust_trades",
-            "attributeRef": "#/attributeCatalog/lotus.suppress_dust_trades"
-          },
-          {
-            "name": "options.dust_trade_threshold",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.dust_trade_threshold",
-            "attributeRef": "#/attributeCatalog/lotus.dust_trade_threshold"
-          },
-          {
-            "name": "options.fx_buffer_pct",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.fx_buffer_pct",
-            "attributeRef": "#/attributeCatalog/lotus.fx_buffer_pct"
-          },
-          {
-            "name": "options.block_on_missing_prices",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.block_on_missing_prices",
-            "attributeRef": "#/attributeCatalog/lotus.block_on_missing_prices"
-          },
-          {
-            "name": "options.block_on_missing_fx",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.block_on_missing_fx",
-            "attributeRef": "#/attributeCatalog/lotus.block_on_missing_fx"
-          },
-          {
-            "name": "options.min_cash_buffer_pct",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.min_cash_buffer_pct",
-            "attributeRef": "#/attributeCatalog/lotus.min_cash_buffer_pct"
-          },
-          {
-            "name": "options.max_turnover_pct",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.max_turnover_pct",
-            "attributeRef": "#/attributeCatalog/lotus.max_turnover_pct"
-          },
-          {
-            "name": "options.enable_tax_awareness",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_tax_awareness",
-            "attributeRef": "#/attributeCatalog/lotus.enable_tax_awareness"
-          },
-          {
-            "name": "options.max_realized_capital_gains",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.max_realized_capital_gains",
-            "attributeRef": "#/attributeCatalog/lotus.max_realized_capital_gains"
-          },
-          {
-            "name": "options.enable_settlement_awareness",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_settlement_awareness",
-            "attributeRef": "#/attributeCatalog/lotus.enable_settlement_awareness"
-          },
-          {
-            "name": "options.enable_proposal_simulation",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_proposal_simulation",
-            "attributeRef": "#/attributeCatalog/lotus.enable_proposal_simulation"
-          },
-          {
-            "name": "options.enable_workflow_gates",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_workflow_gates",
-            "attributeRef": "#/attributeCatalog/lotus.enable_workflow_gates"
-          },
-          {
-            "name": "options.workflow_requires_client_consent",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.workflow_requires_client_consent",
-            "attributeRef": "#/attributeCatalog/lotus.workflow_requires_client_consent"
-          },
-          {
-            "name": "options.client_consent_already_obtained",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.client_consent_already_obtained",
-            "attributeRef": "#/attributeCatalog/lotus.client_consent_already_obtained"
-          },
-          {
-            "name": "options.proposal_apply_cash_flows_first",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.proposal_apply_cash_flows_first",
-            "attributeRef": "#/attributeCatalog/lotus.proposal_apply_cash_flows_first"
-          },
-          {
-            "name": "options.proposal_block_negative_cash",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.proposal_block_negative_cash",
-            "attributeRef": "#/attributeCatalog/lotus.proposal_block_negative_cash"
-          },
-          {
-            "name": "options.link_buy_to_same_currency_sell_dependency",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.link_buy_to_same_currency_sell_dependency",
-            "attributeRef": "#/attributeCatalog/lotus.link_buy_to_same_currency_sell_dependency"
-          },
-          {
-            "name": "options.enable_drift_analytics",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_drift_analytics",
-            "attributeRef": "#/attributeCatalog/lotus.enable_drift_analytics"
-          },
-          {
-            "name": "options.enable_suitability_scanner",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_suitability_scanner",
-            "attributeRef": "#/attributeCatalog/lotus.enable_suitability_scanner"
-          },
-          {
-            "name": "options.suitability_thresholds",
-            "location": "body",
-            "required": false,
-            "type": "SuitabilityThresholds-Input",
-            "semanticId": "lotus.suitability_thresholds",
-            "attributeRef": "#/attributeCatalog/lotus.suitability_thresholds"
-          },
-          {
-            "name": "options.suitability_thresholds.single_position_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.single_position_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.single_position_max_weight"
-          },
-          {
-            "name": "options.suitability_thresholds.issuer_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.issuer_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.issuer_max_weight"
-          },
-          {
-            "name": "options.suitability_thresholds.max_weight_by_liquidity_tier",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.max_weight_by_liquidity_tier",
-            "attributeRef": "#/attributeCatalog/lotus.max_weight_by_liquidity_tier"
-          },
-          {
-            "name": "options.suitability_thresholds.cash_band_min_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.cash_band_min_weight",
-            "attributeRef": "#/attributeCatalog/lotus.cash_band_min_weight"
-          },
-          {
-            "name": "options.suitability_thresholds.cash_band_max_weight",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.cash_band_max_weight",
-            "attributeRef": "#/attributeCatalog/lotus.cash_band_max_weight"
-          },
-          {
-            "name": "options.suitability_thresholds.data_quality_issue_severity",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.data_quality_issue_severity",
-            "attributeRef": "#/attributeCatalog/lotus.data_quality_issue_severity"
-          },
-          {
-            "name": "options.enable_instrument_drift",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.enable_instrument_drift",
-            "attributeRef": "#/attributeCatalog/lotus.enable_instrument_drift"
-          },
-          {
-            "name": "options.drift_top_contributors_limit",
-            "location": "body",
-            "required": false,
-            "type": "integer",
-            "semanticId": "lotus.drift_top_contributors_limit",
-            "attributeRef": "#/attributeCatalog/lotus.drift_top_contributors_limit"
-          },
-          {
-            "name": "options.drift_unmodeled_exposure_threshold",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.drift_unmodeled_exposure_threshold",
-            "attributeRef": "#/attributeCatalog/lotus.drift_unmodeled_exposure_threshold"
-          },
-          {
-            "name": "options.auto_funding",
-            "location": "body",
-            "required": false,
-            "type": "boolean",
-            "semanticId": "lotus.auto_funding",
-            "attributeRef": "#/attributeCatalog/lotus.auto_funding"
-          },
-          {
-            "name": "options.funding_mode",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.funding_mode",
-            "attributeRef": "#/attributeCatalog/lotus.funding_mode"
-          },
-          {
-            "name": "options.fx_funding_source_currency",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.fx_funding_source_currency",
-            "attributeRef": "#/attributeCatalog/lotus.fx_funding_source_currency"
-          },
-          {
-            "name": "options.fx_generation_policy",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.fx_generation_policy",
-            "attributeRef": "#/attributeCatalog/lotus.fx_generation_policy"
-          },
-          {
-            "name": "options.settlement_horizon_days",
-            "location": "body",
-            "required": false,
-            "type": "integer",
-            "semanticId": "lotus.settlement_horizon_days",
-            "attributeRef": "#/attributeCatalog/lotus.settlement_horizon_days"
-          },
-          {
-            "name": "options.fx_settlement_days",
-            "location": "body",
-            "required": false,
-            "type": "integer",
-            "semanticId": "lotus.fx_settlement_days",
-            "attributeRef": "#/attributeCatalog/lotus.fx_settlement_days"
-          },
-          {
-            "name": "options.max_overdraft_by_ccy",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.max_overdraft_by_ccy",
-            "attributeRef": "#/attributeCatalog/lotus.max_overdraft_by_ccy"
-          },
-          {
-            "name": "options.group_constraints",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.group_constraints",
-            "attributeRef": "#/attributeCatalog/lotus.group_constraints"
-          },
-          {
-            "name": "proposed_cash_flows",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.proposed_cash_flows",
-            "attributeRef": "#/attributeCatalog/lotus.proposed_cash_flows"
-          },
-          {
-            "name": "proposed_cash_flows[].intent_type",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.intent_type",
-            "attributeRef": "#/attributeCatalog/lotus.intent_type"
-          },
-          {
-            "name": "proposed_cash_flows[].currency",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.currency",
-            "attributeRef": "#/attributeCatalog/lotus.currency"
-          },
-          {
-            "name": "proposed_cash_flows[].amount",
-            "location": "body",
-            "required": true,
-            "type": "object",
-            "semanticId": "lotus.amount",
-            "attributeRef": "#/attributeCatalog/lotus.amount"
-          },
-          {
-            "name": "proposed_cash_flows[].description",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.description",
-            "attributeRef": "#/attributeCatalog/lotus.description"
-          },
-          {
-            "name": "proposed_trades",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.proposed_trades",
-            "attributeRef": "#/attributeCatalog/lotus.proposed_trades"
-          },
-          {
-            "name": "proposed_trades[].intent_type",
-            "location": "body",
-            "required": false,
-            "type": "string",
-            "semanticId": "lotus.intent_type",
-            "attributeRef": "#/attributeCatalog/lotus.intent_type"
-          },
-          {
-            "name": "proposed_trades[].side",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.side",
-            "attributeRef": "#/attributeCatalog/lotus.side"
-          },
-          {
-            "name": "proposed_trades[].instrument_id",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.instrument_id",
-            "attributeRef": "#/attributeCatalog/lotus.instrument_id"
-          },
-          {
-            "name": "proposed_trades[].quantity",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.quantity",
-            "attributeRef": "#/attributeCatalog/lotus.quantity"
-          },
-          {
-            "name": "proposed_trades[].notional",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.notional",
-            "attributeRef": "#/attributeCatalog/lotus.notional"
-          },
-          {
-            "name": "reference_model",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.reference_model",
-            "attributeRef": "#/attributeCatalog/lotus.reference_model"
+            "semanticId": "lotus.stateful_input",
+            "attributeRef": "#/attributeCatalog/lotus.stateful_input"
           }
         ]
       },

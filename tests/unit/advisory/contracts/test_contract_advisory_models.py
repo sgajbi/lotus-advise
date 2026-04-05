@@ -21,6 +21,7 @@ from src.core.models import (
     ShelfEntry,
     SimulatedState,
 )
+from src.core.proposals.models import ProposalSimulationRequest
 
 
 def test_advisory_engine_options_defaults():
@@ -88,6 +89,32 @@ def test_advisory_proposal_request_shape():
     assert request.proposed_cash_flows[0].intent_type == "CASH_FLOW"
     assert request.proposed_trades[0].intent_type == "SECURITY_TRADE"
     assert request.reference_model.model_id == "mdl_1"
+
+
+def test_advisory_simulation_request_normalizes_legacy_and_stateful_contracts():
+    legacy = ProposalSimulationRequest.model_validate(
+        {
+            "portfolio_snapshot": {"portfolio_id": "pf", "base_currency": "USD"},
+            "market_data_snapshot": {"prices": [], "fx_rates": []},
+            "shelf_entries": [],
+            "options": {"enable_proposal_simulation": True},
+            "proposed_cash_flows": [],
+            "proposed_trades": [],
+        }
+    )
+    assert legacy.input_mode is None
+    assert legacy.simulate_request is not None
+    assert legacy.simulate_request.portfolio_snapshot.portfolio_id == "pf"
+
+    stateful = ProposalSimulationRequest.model_validate(
+        {
+            "input_mode": "stateful",
+            "stateful_input": {"portfolio_id": "pf_stateful", "as_of": "2026-03-25"},
+        }
+    )
+    assert stateful.input_mode == "stateful"
+    assert stateful.stateful_input is not None
+    assert stateful.stateful_input.portfolio_id == "pf_stateful"
 
 
 def test_advisory_proposal_result_accepts_fx_spot_intents():

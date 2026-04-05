@@ -48,6 +48,13 @@ def _normalize_proposal_result_for_parity(body: dict[str, Any]) -> dict[str, Any
     lineage = dict(body["lineage"])
     lineage.pop("idempotency_key", None)
     normalized["lineage"] = lineage
+    explanation = dict(normalized.get("explanation", {}))
+    context_resolution = explanation.get("context_resolution")
+    if isinstance(context_resolution, dict):
+        normalized_context_resolution = dict(context_resolution)
+        normalized_context_resolution.pop("used_legacy_contract", None)
+        explanation["context_resolution"] = normalized_context_resolution
+        normalized["explanation"] = explanation
     return normalized
 
 

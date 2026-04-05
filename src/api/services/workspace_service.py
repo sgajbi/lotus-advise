@@ -12,7 +12,12 @@ from src.core.proposals import (
     ProposalVersionRequest,
     ProposalWorkflowService,
 )
-from src.core.proposals.models import ProposalCreateMetadata
+from src.core.proposals.context import (
+    ResolvedSimulationContext,
+    build_context_resolution_evidence,
+    canonicalize_simulation_request_payload,
+)
+from src.core.proposals.models import ProposalCreateMetadata, ProposalResolvedContext
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import build_workspace_saved_version_replay_response
 from src.core.workspace.models import (
@@ -355,8 +360,21 @@ def _build_proposal_version_request(
 def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     session = get_workspace_session(workspace_id)
     simulate_request = _build_simulate_request_for_workspace(session)
-    request_payload = simulate_request.model_dump(mode="json")
-    request_hash = hash_canonical_payload(request_payload)
+    if session.resolved_context is None:
+        raise WorkspaceEvaluationUnavailableError("WORKSPACE_RESOLVED_CONTEXT_MISSING")
+    proposal_resolved_context = ProposalResolvedContext.model_validate(
+        session.resolved_context.model_dump(mode="json")
+    )
+    resolved_request = ResolvedSimulationContext(
+        input_mode=session.input_mode,
+        resolution_source="LOTUS_CORE" if session.input_mode == "stateful" else "DIRECT_REQUEST",
+        simulate_request=simulate_request,
+        resolved_context=proposal_resolved_context,
+        used_legacy_contract=False,
+    )
+    request_hash = hash_canonical_payload(
+        canonicalize_simulation_request_payload(resolved=resolved_request)
+    )
     correlation_id = f"corr_{uuid4().hex[:12]}"
     result = evaluate_advisory_proposal(
         request=simulate_request,
@@ -364,6 +382,7 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
         idempotency_key=None,
         correlation_id=correlation_id,
     )
+    result.explanation["context_resolution"] = build_context_resolution_evidence(resolved_request)
     session.latest_proposal_result = result
     session.evaluation_summary = _build_evaluation_summary(result, session)
     session.latest_replay_evidence = _build_replay_evidence(

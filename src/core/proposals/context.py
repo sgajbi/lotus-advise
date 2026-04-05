@@ -10,6 +10,7 @@ from src.core.proposals.models import (
     ProposalCreateRequest,
     ProposalInputMode,
     ProposalResolvedContext,
+    ProposalSimulationRequest,
     ProposalStatefulInput,
     ProposalVersionRequest,
 )
@@ -30,6 +31,15 @@ class ResolvedProposalContext:
     simulate_request: ProposalSimulateRequest
     resolved_context: ProposalResolvedContext
     metadata: ProposalCreateMetadata
+    used_legacy_contract: bool
+
+
+@dataclass(frozen=True)
+class ResolvedSimulationContext:
+    input_mode: ProposalInputMode
+    resolution_source: str
+    simulate_request: ProposalSimulateRequest
+    resolved_context: ProposalResolvedContext
     used_legacy_contract: bool
 
 
@@ -115,6 +125,40 @@ def resolve_create_request(payload: ProposalCreateRequest) -> ResolvedProposalCo
     )
 
 
+def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSimulationContext:
+    if payload.input_mode == "stateful":
+        assert payload.stateful_input is not None
+        simulate_request, resolved_context = _resolve_stateful_input(payload.stateful_input)
+        return ResolvedSimulationContext(
+            input_mode="stateful",
+            resolution_source="LOTUS_CORE",
+            simulate_request=simulate_request,
+            resolved_context=resolved_context,
+            used_legacy_contract=False,
+        )
+
+    if payload.input_mode == "stateless":
+        assert payload.stateless_input is not None
+        simulate_request = payload.stateless_input.simulate_request.model_copy(deep=True)
+        return ResolvedSimulationContext(
+            input_mode="stateless",
+            resolution_source="DIRECT_REQUEST",
+            simulate_request=simulate_request,
+            resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+            used_legacy_contract=False,
+        )
+
+    assert payload.simulate_request is not None
+    simulate_request = payload.simulate_request.model_copy(deep=True)
+    return ResolvedSimulationContext(
+        input_mode="stateless",
+        resolution_source="DIRECT_REQUEST",
+        simulate_request=simulate_request,
+        resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+        used_legacy_contract=True,
+    )
+
+
 def resolve_version_request(payload: ProposalVersionRequest) -> ResolvedProposalContext:
     metadata = ProposalCreateMetadata()
     if payload.input_mode == "stateful":
@@ -170,6 +214,20 @@ def canonicalize_create_request_payload(
     }
 
 
+def canonicalize_simulation_request_payload(
+    *,
+    resolved: ResolvedSimulationContext,
+) -> dict[str, Any]:
+    return {
+        "advisory_context": {
+            "input_mode": resolved.input_mode,
+            "resolution_source": resolved.resolution_source,
+            "resolved_context": resolved.resolved_context.model_dump(mode="json"),
+            "simulate_request": resolved.simulate_request.model_dump(mode="json"),
+        }
+    }
+
+
 def canonicalize_version_request_payload(
     *,
     payload: ProposalVersionRequest,
@@ -187,7 +245,9 @@ def canonicalize_version_request_payload(
     }
 
 
-def build_context_resolution_evidence(resolved: ResolvedProposalContext) -> dict[str, Any]:
+def build_context_resolution_evidence(
+    resolved: ResolvedProposalContext | ResolvedSimulationContext,
+) -> dict[str, Any]:
     return {
         "input_mode": resolved.input_mode,
         "resolution_source": resolved.resolution_source,
