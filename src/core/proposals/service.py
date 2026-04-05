@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.orchestration import evaluate_advisory_proposal
-from src.core.common.canonical import hash_canonical_payload
+from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.models import (
     ProposalApprovalRecord,
@@ -935,7 +935,11 @@ class ProposalWorkflowService:
         created_at: datetime,
     ) -> ProposalVersionRecord:
         simulation_payload = proposal_result.model_dump(mode="json")
-        simulation_hash = hash_canonical_payload(simulation_payload)
+        simulation_hash_payload = strip_keys(
+            simulation_payload,
+            exclude={"correlation_id", "idempotency_key"},
+        )
+        simulation_hash = hash_canonical_payload(simulation_hash_payload)
         artifact_hash = artifact["evidence_bundle"]["hashes"]["artifact_hash"]
         return ProposalVersionRecord(
             proposal_version_id=f"ppv_{uuid.uuid4().hex[:12]}",
