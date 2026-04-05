@@ -154,3 +154,10 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     ]["schema"]["$ref"]
     assert execution_handoff_body_ref.endswith("/ProposalExecutionHandoffRequest")
     assert execution_handoff_response_ref.endswith("/ProposalExecutionHandoffResponse")
+
+
+def test_openapi_does_not_expose_api_v1_compatibility_paths():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    assert not any(path.startswith("/api/v1/") for path in openapi["paths"])

@@ -60,7 +60,7 @@
 - Finding Class: modularity problem
 - Summary: The advisory public surface and active top-level governance docs were renamed away from inherited rebalance-era numbering and route-family language.
 - Evidence:
-  - Advisory endpoints now use `/advisory/proposals/...` and `/api/v1/advisory/proposals/...`.
+  - Advisory endpoints now use the canonical `/advisory/...` route family.
   - Active top-level RFCs were renumbered into a contiguous advisory sequence ending at `RFC-0006A`.
   - Active ADRs were renumbered into a contiguous advisory sequence ending at `ADR-0004`.
   - Repository-wide scans no longer find old top-level RFC/ADR numbers or rebalance proposal route family strings in the active advisory surface.

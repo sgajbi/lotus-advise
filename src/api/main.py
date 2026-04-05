@@ -66,10 +66,6 @@ app.include_router(proposal_lifecycle_router)
 app.include_router(advisory_simulation_router)
 app.include_router(integration_capabilities_router)
 app.include_router(workspace_router)
-app.include_router(proposal_lifecycle_router, prefix="/api/v1")
-app.include_router(advisory_simulation_router, prefix="/api/v1")
-app.include_router(integration_capabilities_router, prefix="/api/v1")
-app.include_router(workspace_router, prefix="/api/v1")
 
 
 def custom_openapi() -> dict[str, Any]:
@@ -89,22 +85,44 @@ def custom_openapi() -> dict[str, Any]:
 app.openapi = custom_openapi
 
 
+def _readiness_probe() -> tuple[bool, str | None]:
+    try:
+        validate_advisory_runtime_persistence()
+        ensure_proposal_runtime_ready()
+    except RuntimeError as exc:
+        return False, str(exc)
+    except (TypeError, ValueError):
+        return False, "PROPOSAL_POSTGRES_CONNECTION_FAILED"
+    return True, None
+
+
 @app.get("/health")
-@app.get("/api/v1/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.get("/health/live")
-@app.get("/api/v1/health/live")
 def health_live() -> dict[str, str]:
     return {"status": "live"}
 
 
 @app.get("/health/ready")
-@app.get("/api/v1/health/ready")
-def health_ready() -> dict[str, str]:
-    return {"status": "ready"}
+def health_ready() -> JSONResponse:
+    ready, detail = _readiness_probe()
+    if ready:
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        media_type="application/problem+json",
+        content={
+            "type": "about:blank",
+            "title": "Service Unavailable",
+            "status": 503,
+            "detail": detail or "READINESS_CHECK_FAILED",
+            "instance": "/health/ready",
+            "correlation_id": correlation_id_var.get() or "",
+        },
+    )
 
 
 @app.exception_handler(Exception)
