@@ -1,10 +1,16 @@
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
-from src.api.services.workspace_service import reset_workspace_sessions_for_tests
+from src.api.services.workspace_service import (
+    WorkspaceEvaluationUnavailableError,
+    get_workspace_session,
+    reevaluate_workspace_session,
+    reset_workspace_sessions_for_tests,
+)
 
 
 def setup_function() -> None:
@@ -579,6 +585,40 @@ def test_workspace_evaluate_uses_stateful_context_resolution(monkeypatch) -> Non
     assert response.json()["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_advisory_01_2026-03-25"
     )
+
+
+def test_workspace_evaluate_rejects_missing_resolved_context() -> None:
+    create_payload = {
+        "workspace_name": "Broken workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_missing_context",
+                    "base_currency": "USD",
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+
+    session = get_workspace_session(workspace_id)
+    session.resolved_context = None
+
+    with pytest.raises(WorkspaceEvaluationUnavailableError) as exc:
+        reevaluate_workspace_session(workspace_id)
+
+    assert str(exc.value) == "WORKSPACE_RESOLVED_CONTEXT_MISSING"
 
 
 def test_workspace_endpoints_return_404_for_missing_workspace():

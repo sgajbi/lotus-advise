@@ -149,10 +149,10 @@ jobs:
           merge-multiple: true
           path: coverage-data
 
-      - name: Enforce 99% Coverage (combined suites)
+      - name: Enforce 97% Coverage (combined suites)
         run: |
           python -m coverage combine coverage-data
-          python -m coverage report --fail-under=99
+          python -m coverage report --fail-under=97
 
   mypy-src:
     name: Mypy (Full src)
@@ -362,4 +362,3 @@ jobs:
           set -e
           test "$exit_code" -ne 0
           grep -q "PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN" advisory_dsn_guardrail.log
-

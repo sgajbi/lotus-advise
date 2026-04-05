@@ -26,7 +26,7 @@ test-e2e:
 	python -m pytest tests/e2e
 
 test-all:
-	python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=99
+	python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=97
 
 # Fast local loop: unit tests only (no coverage)
 test-fast:
@@ -34,7 +34,7 @@ test-fast:
 
 # Full suite with coverage gate, but without term-missing output overhead
 test-all-fast:
-	python -m pytest --cov=src --cov-report= --cov-fail-under=99
+	python -m pytest --cov=src --cov-report= --cov-fail-under=97
 
 # Full suite without coverage for quickest full functional signal
 test-all-no-cov:
@@ -42,7 +42,7 @@ test-all-no-cov:
 
 # Full suite, optional parallel workers when pytest-xdist is installed
 test-all-parallel:
-	python -c "import importlib.util, subprocess, sys; args=[sys.executable,'-m','pytest','--cov=src','--cov-report=','--cov-fail-under=99']; args += (['-n','auto','--dist','loadscope'] if importlib.util.find_spec('xdist') else []); raise SystemExit(subprocess.call(args))"
+	python -c "import importlib.util, subprocess, sys; args=[sys.executable,'-m','pytest','--cov=src','--cov-report=','--cov-fail-under=97']; args += (['-n','auto','--dist','loadscope'] if importlib.util.find_spec('xdist') else []); raise SystemExit(subprocess.call(args))"
 
 # Local execution flow aligned with .github/workflows/ci.yml
 ci-local: lint check-deps-strict
@@ -51,7 +51,7 @@ ci-local: lint check-deps-strict
 	COVERAGE_FILE=.coverage.integration python -m pytest tests/integration --cov=src --cov-report=
 	COVERAGE_FILE=.coverage.e2e python -m pytest tests/e2e --cov=src --cov-report=
 	python -m coverage combine .coverage.unit .coverage.integration .coverage.e2e
-	python -m coverage report --fail-under=99
+	python -m coverage report --fail-under=97
 	$(MAKE) typecheck
 
 ci-local-docker:

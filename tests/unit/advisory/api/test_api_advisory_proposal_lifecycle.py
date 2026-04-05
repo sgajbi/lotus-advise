@@ -693,6 +693,28 @@ def test_execution_handoff_requires_execution_ready_state():
     assert "EXECUTION_READY" in handoff.json()["detail"]
 
 
+def test_execution_status_returns_404_for_missing_proposal():
+    with TestClient(app) as client:
+        response = client.get("/advisory/proposals/pp_missing/execution-status")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROPOSAL_NOT_FOUND"
+
+
+def test_report_request_returns_404_for_missing_proposal():
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/proposals/pp_missing/report-requests",
+            json={
+                "report_type": "PORTFOLIO_REVIEW",
+                "requested_by": "advisor_1",
+            },
+        )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "PROPOSAL_NOT_FOUND"
+
+
 @pytest.mark.parametrize(
     ("update_status", "expected_handoff_status", "expected_state", "expected_correlation"),
     [
