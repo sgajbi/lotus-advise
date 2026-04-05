@@ -16,6 +16,7 @@ from src.api.services.workspace_service import (
     apply_workspace_draft_action,
     compare_workspace_to_saved_version,
     create_workspace_session,
+    get_workspace_saved_version_replay,
     get_workspace_session,
     handoff_workspace_to_proposal_lifecycle,
     list_workspace_saved_versions,
@@ -29,6 +30,7 @@ from src.core.proposals import (
     ProposalValidationError,
     ProposalWorkflowService,
 )
+from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.workspace.models import (
     WorkspaceAssistantRequest,
     WorkspaceAssistantResponse,
@@ -315,6 +317,35 @@ def list_saved_workspace_versions(
         return list_workspace_saved_versions(workspace_id)
     except WorkspaceNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/advisory/workspaces/{workspace_id}/saved-versions/{workspace_version_id}/replay-evidence",
+    response_model=AdvisoryReplayEvidenceResponse,
+    tags=["Advisory Operations & Support"],
+    summary="Get Saved Workspace Replay Evidence",
+    description=(
+        "Returns normalized replay evidence for a saved workspace version so support and audit "
+        "users can trace workspace evidence continuity into lifecycle flows."
+    ),
+    responses={404: {"description": "Workspace session or saved workspace version not found."}},
+)
+def get_saved_workspace_version_replay_evidence(
+    workspace_id: Annotated[
+        str,
+        Path(description="Workspace session identifier.", examples=["aws_001"]),
+    ],
+    workspace_version_id: Annotated[
+        str,
+        Path(description="Saved workspace version identifier.", examples=["awv_001"]),
+    ],
+) -> AdvisoryReplayEvidenceResponse:
+    try:
+        return get_workspace_saved_version_replay(workspace_id, workspace_version_id)
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WorkspaceSavedVersionNotFoundError as exc:
+        raise _raise_saved_version_not_found(exc)
 
 
 @router.post(

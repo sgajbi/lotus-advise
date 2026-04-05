@@ -9,8 +9,18 @@ from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.router import get_proposal_repository
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
-from src.core.models import ProposalResult, ProposalSimulateRequest
-from src.core.proposals.models import ProposalSimulationIdempotencyRecord
+from src.core.models import ProposalResult
+from src.core.proposals.context import (
+    ProposalContextResolutionError,
+    ResolvedSimulationContext,
+    build_context_resolution_evidence,
+    canonicalize_simulation_request_payload,
+    resolve_simulation_request,
+)
+from src.core.proposals.models import (
+    ProposalSimulationIdempotencyRecord,
+    ProposalSimulationRequest,
+)
 
 PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, object]]" = OrderedDict()
 MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
@@ -18,17 +28,22 @@ MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
 
 def simulate_proposal_response(
     *,
-    request: ProposalSimulateRequest,
+    request: ProposalSimulationRequest,
     idempotency_key: str,
     correlation_id: Optional[str],
+    resolved_request: ResolvedSimulationContext | None = None,
 ) -> ProposalResult:
-    if not request.options.enable_proposal_simulation:
+    resolved_request = resolved_request or resolve_simulation_input(request)
+
+    if not resolved_request.simulate_request.options.enable_proposal_simulation:
         raise HTTPException(
             status_code=HTTP_422_UNPROCESSABLE,
             detail="PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true",
         )
 
-    request_payload = request.model_dump(mode="json")
+    request_payload = canonicalize_simulation_request_payload(
+        resolved=resolved_request,
+    )
     request_hash = hash_canonical_payload(request_payload)
     repository = get_proposal_repository()
 
@@ -43,11 +58,12 @@ def simulate_proposal_response(
 
     resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
     result = evaluate_advisory_proposal(
-        request=request,
+        request=resolved_request.simulate_request,
         request_hash=request_hash,
         idempotency_key=idempotency_key,
         correlation_id=resolved_correlation_id,
     )
+    result.explanation["context_resolution"] = build_context_resolution_evidence(resolved_request)
 
     try:
         repository.save_simulation_idempotency(
@@ -64,3 +80,12 @@ def simulate_proposal_response(
             detail="PROPOSAL_IDEMPOTENCY_STORE_WRITE_FAILED",
         ) from exc
     return result
+
+
+def resolve_simulation_input(
+    request: ProposalSimulationRequest,
+) -> ResolvedSimulationContext:
+    try:
+        return resolve_simulation_request(request)
+    except ProposalContextResolutionError as exc:
+        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE, detail=str(exc)) from exc

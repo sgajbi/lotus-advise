@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.models import GateDecision, ProposalResult, ProposalSimulateRequest
@@ -27,6 +27,11 @@ ProposalWorkflowEventType = Literal[
     "COMPLIANCE_APPROVED",
     "CLIENT_CONSENT_RECORDED",
     "EXECUTION_REQUESTED",
+    "EXECUTION_ACCEPTED",
+    "EXECUTION_PARTIALLY_EXECUTED",
+    "EXECUTION_REJECTED",
+    "EXECUTION_CANCELLED",
+    "EXECUTION_EXPIRED",
     "EXECUTED",
     "REJECTED",
     "EXPIRED",
@@ -39,7 +44,25 @@ ProposalAsyncOperationType = Literal["CREATE_PROPOSAL", "CREATE_PROPOSAL_VERSION
 ProposalAsyncOperationStatus = Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]
 ProposalLifecycleOrigin = Literal["DIRECT_CREATE", "WORKSPACE_HANDOFF"]
 ProposalReportType = Literal["PORTFOLIO_REVIEW", "CLIENT_PROPOSAL_SUMMARY"]
-ProposalExecutionHandoffStatus = Literal["NOT_REQUESTED", "REQUESTED", "EXECUTED"]
+ProposalExecutionHandoffStatus = Literal[
+    "NOT_REQUESTED",
+    "REQUESTED",
+    "ACCEPTED",
+    "PARTIALLY_EXECUTED",
+    "EXECUTED",
+    "REJECTED",
+    "CANCELLED",
+    "EXPIRED",
+]
+ProposalExecutionUpdateStatus = Literal[
+    "ACCEPTED",
+    "PARTIALLY_EXECUTED",
+    "REJECTED",
+    "CANCELLED",
+    "EXPIRED",
+    "EXECUTED",
+]
+ProposalInputMode = Literal["stateless", "stateful"]
 
 
 class ProposalCreateMetadata(BaseModel):
@@ -65,13 +88,12 @@ class ProposalCreateMetadata(BaseModel):
     )
 
 
-class ProposalCreateRequest(BaseModel):
-    created_by: str = Field(
-        description="Actor id creating the proposal record.",
-        examples=["advisor_123"],
-    )
+class ProposalStatelessInput(BaseModel):
     simulate_request: ProposalSimulateRequest = Field(
-        description="Full advisory simulation payload persisted as version evidence input.",
+        description=(
+            "Full advisory simulation payload supplied directly by the caller for deterministic "
+            "proposal create and replay-safe lifecycle workflows."
+        ),
         examples=[
             {
                 "portfolio_snapshot": {
@@ -86,6 +108,222 @@ class ProposalCreateRequest(BaseModel):
             }
         ],
     )
+
+
+class ProposalStatefulInput(BaseModel):
+    portfolio_id: str = Field(
+        description="Canonical Lotus portfolio identifier resolved through upstream services.",
+        examples=["pf_advisory_01"],
+    )
+    as_of: str = Field(
+        description="Business date or timestamp used to resolve the authoritative source context.",
+        examples=["2026-03-25"],
+    )
+    household_id: Optional[str] = Field(
+        default=None,
+        description="Optional household identifier when the advisory workflow is household-scoped.",
+        examples=["hh_001"],
+    )
+    mandate_id: Optional[str] = Field(
+        default=None,
+        description="Optional mandate identifier used to enrich the advisory context.",
+        examples=["mandate_growth_01"],
+    )
+    benchmark_id: Optional[str] = Field(
+        default=None,
+        description="Optional benchmark identifier for context-aware evaluation and comparison.",
+        examples=["benchmark_balanced_usd"],
+    )
+
+
+class ProposalResolvedContext(BaseModel):
+    portfolio_id: str = Field(
+        description="Resolved portfolio identifier used by proposal evaluation.",
+        examples=["pf_advisory_01"],
+    )
+    as_of: str = Field(
+        description="Resolved business date or timestamp used during evaluation.",
+        examples=["2026-03-25"],
+    )
+    portfolio_snapshot_id: Optional[str] = Field(
+        default=None,
+        description="Upstream portfolio snapshot identifier captured for replay and audit.",
+        examples=["ps_20260325_001"],
+    )
+    market_data_snapshot_id: Optional[str] = Field(
+        default=None,
+        description="Upstream market-data snapshot identifier captured for replay and audit.",
+        examples=["md_20260325_001"],
+    )
+    risk_context_id: Optional[str] = Field(
+        default=None,
+        description="Optional upstream risk-context identifier used for advisory enrichment.",
+        examples=["risk_ctx_001"],
+    )
+    reporting_context_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional reporting-context identifier used to correlate downstream report generation."
+        ),
+        examples=["report_ctx_001"],
+    )
+
+
+class ProposalSimulationRequest(BaseModel):
+    input_mode: Optional[ProposalInputMode] = Field(
+        default=None,
+        description=(
+            "Optional simulation input mode. Omit for legacy direct simulation payloads, or set "
+            "explicitly to `stateless`/`stateful` for the normalized simulation contract."
+        ),
+        examples=["stateful"],
+    )
+    simulate_request: Optional[ProposalSimulateRequest] = Field(
+        default=None,
+        description=(
+            "Legacy full advisory simulation payload. Prefer `stateless_input` or "
+            "`stateful_input` for new simulation callers."
+        ),
+        examples=[
+            {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        ],
+    )
+    stateless_input: Optional[ProposalStatelessInput] = Field(
+        default=None,
+        description="Direct advisory payload for normalized stateless simulation requests.",
+        examples=[
+            {
+                "simulate_request": {
+                    "portfolio_snapshot": {
+                        "portfolio_id": "pf_advisory_01",
+                        "base_currency": "USD",
+                    },
+                    "market_data_snapshot": {"prices": [], "fx_rates": []},
+                    "shelf_entries": [],
+                    "options": {"enable_proposal_simulation": True},
+                    "proposed_cash_flows": [],
+                    "proposed_trades": [],
+                }
+            }
+        ],
+    )
+    stateful_input: Optional[ProposalStatefulInput] = Field(
+        default=None,
+        description=(
+            "Identifier-based authoritative input payload for normalized stateful simulation "
+            "requests."
+        ),
+        examples=[
+            {
+                "portfolio_id": "pf_advisory_01",
+                "as_of": "2026-03-25",
+                "mandate_id": "mandate_growth_01",
+            }
+        ],
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_legacy_top_level_simulation_payload(
+        cls, value: object
+    ) -> object:
+        if not isinstance(value, dict):
+            return value
+        envelope_keys = {"input_mode", "simulate_request", "stateless_input", "stateful_input"}
+        if envelope_keys.intersection(value):
+            return value
+        return {"simulate_request": value}
+
+    @model_validator(mode="after")
+    def validate_input_contract(self) -> "ProposalSimulationRequest":
+        if self.input_mode is None:
+            if self.simulate_request is None or self.stateless_input is not None:
+                raise ValueError(
+                    "legacy simulation requests require simulate_request and must not include "
+                    "stateless_input"
+                )
+            if self.stateful_input is not None:
+                raise ValueError(
+                    "legacy simulation requests must not include stateful_input"
+                )
+            return self
+        if self.input_mode == "stateless":
+            if (
+                self.stateless_input is None
+                or self.simulate_request is not None
+                or self.stateful_input is not None
+            ):
+                raise ValueError(
+                    "stateless simulation requests require stateless_input and must not include "
+                    "simulate_request or stateful_input"
+                )
+            return self
+        if (
+            self.stateful_input is None
+            or self.simulate_request is not None
+            or self.stateless_input is not None
+        ):
+            raise ValueError(
+                "stateful simulation requests require stateful_input and must not include "
+                "simulate_request or stateless_input"
+            )
+        return self
+
+
+class ProposalCreateRequest(BaseModel):
+    created_by: str = Field(
+        description="Actor id creating the proposal record.",
+        examples=["advisor_123"],
+    )
+    input_mode: Optional[ProposalInputMode] = Field(
+        default=None,
+        description=(
+            "Optional proposal input mode. Omit for legacy direct `simulate_request` create "
+            "requests, or set explicitly to `stateless`/`stateful` for the normalized contract."
+        ),
+        examples=["stateful"],
+    )
+    simulate_request: Optional[ProposalSimulateRequest] = Field(
+        default=None,
+        description=(
+            "Legacy full advisory simulation payload persisted as version evidence input. "
+            "Prefer `stateless_input` or `stateful_input` for new proposal create callers."
+        ),
+        examples=[
+            {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        ],
+    )
+    stateless_input: Optional[ProposalStatelessInput] = Field(
+        default=None,
+        description="Direct advisory payload for normalized stateless proposal create requests.",
+    )
+    stateful_input: Optional[ProposalStatefulInput] = Field(
+        default=None,
+        description=(
+            "Identifier-based authoritative input payload for normalized stateful proposal create "
+            "requests."
+        ),
+    )
     metadata: ProposalCreateMetadata = Field(
         default_factory=ProposalCreateMetadata,
         description="Optional proposal metadata persisted alongside proposal aggregate.",
@@ -98,6 +336,41 @@ class ProposalCreateRequest(BaseModel):
             }
         ],
     )
+
+    @model_validator(mode="after")
+    def validate_input_contract(self) -> "ProposalCreateRequest":
+        if self.input_mode is None:
+            if (
+                self.simulate_request is None
+                or self.stateless_input is not None
+                or self.stateful_input is not None
+            ):
+                raise ValueError(
+                    "legacy proposal create requests require simulate_request and must not "
+                    "include stateless_input or stateful_input"
+                )
+            return self
+        if self.input_mode == "stateless":
+            if (
+                self.stateless_input is None
+                or self.simulate_request is not None
+                or self.stateful_input is not None
+            ):
+                raise ValueError(
+                    "stateless proposal create requests require stateless_input and must not "
+                    "include simulate_request or stateful_input"
+                )
+            return self
+        if (
+            self.stateful_input is None
+            or self.simulate_request is not None
+            or self.stateless_input is not None
+        ):
+            raise ValueError(
+                "stateful proposal create requests require stateful_input and must not include "
+                "simulate_request or stateless_input"
+            )
+        return self
 
 
 class ProposalVersionRequest(BaseModel):
@@ -113,8 +386,21 @@ class ProposalVersionRequest(BaseModel):
         ),
         examples=[1],
     )
-    simulate_request: ProposalSimulateRequest = Field(
-        description="Full advisory simulation payload for the new immutable version.",
+    input_mode: Optional[ProposalInputMode] = Field(
+        default=None,
+        description=(
+            "Optional proposal version input mode. Omit for legacy direct `simulate_request` "
+            "version requests, or set explicitly to `stateless`/`stateful` for the normalized "
+            "contract."
+        ),
+        examples=["stateful"],
+    )
+    simulate_request: Optional[ProposalSimulateRequest] = Field(
+        default=None,
+        description=(
+            "Legacy full advisory simulation payload for the new immutable version. Prefer "
+            "`stateless_input` or `stateful_input` for new proposal version callers."
+        ),
         examples=[
             {
                 "portfolio_snapshot": {
@@ -129,6 +415,52 @@ class ProposalVersionRequest(BaseModel):
             }
         ],
     )
+    stateless_input: Optional[ProposalStatelessInput] = Field(
+        default=None,
+        description="Direct advisory payload for normalized stateless proposal version requests.",
+    )
+    stateful_input: Optional[ProposalStatefulInput] = Field(
+        default=None,
+        description=(
+            "Identifier-based authoritative input payload for normalized stateful proposal "
+            "version requests."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_input_contract(self) -> "ProposalVersionRequest":
+        if self.input_mode is None:
+            if (
+                self.simulate_request is None
+                or self.stateless_input is not None
+                or self.stateful_input is not None
+            ):
+                raise ValueError(
+                    "legacy proposal version requests require simulate_request and must not "
+                    "include stateless_input or stateful_input"
+                )
+            return self
+        if self.input_mode == "stateless":
+            if (
+                self.stateless_input is None
+                or self.simulate_request is not None
+                or self.stateful_input is not None
+            ):
+                raise ValueError(
+                    "stateless proposal version requests require stateless_input and must not "
+                    "include simulate_request or stateful_input"
+                )
+            return self
+        if (
+            self.stateful_input is None
+            or self.simulate_request is not None
+            or self.stateless_input is not None
+        ):
+            raise ValueError(
+                "stateful proposal version requests require stateful_input and must not include "
+                "simulate_request or stateless_input"
+            )
+        return self
 
 
 class ProposalWorkflowEvent(BaseModel):
@@ -339,121 +671,6 @@ class ProposalListResponse(BaseModel):
     )
 
 
-class ProposalSupportabilityConfigResponse(BaseModel):
-    store_backend: str = Field(
-        description="Configured proposal repository backend name.",
-        examples=["POSTGRES"],
-    )
-    backend_ready: bool = Field(
-        description=(
-            "Whether repository backend initialized successfully with current runtime settings."
-        ),
-        examples=[True],
-    )
-    backend_init_error: Optional[str] = Field(
-        default=None,
-        description=(
-            "Stable initialization error code when backend is not ready. "
-            "Null when initialization succeeds."
-        ),
-        examples=["PROPOSAL_POSTGRES_DSN_REQUIRED"],
-    )
-    lifecycle_enabled: bool = Field(
-        description="Whether proposal workflow lifecycle APIs are enabled.",
-        examples=[True],
-    )
-    support_apis_enabled: bool = Field(
-        description="Whether proposal supportability investigation endpoints are enabled.",
-        examples=[True],
-    )
-    async_operations_enabled: bool = Field(
-        description="Whether proposal asynchronous operation endpoints are enabled.",
-        examples=[True],
-    )
-    store_evidence_bundle: bool = Field(
-        description="Whether immutable evidence bundle JSON is persisted for versions.",
-        examples=[True],
-    )
-    require_expected_state: bool = Field(
-        description=(
-            "Whether state-transition and approval APIs enforce expected_state concurrency checks."
-        ),
-        examples=[True],
-    )
-    allow_portfolio_id_change_on_new_version: bool = Field(
-        description=(
-            "Whether proposal version creation allows portfolio id changes "
-            "against original proposal."
-        ),
-        examples=[False],
-    )
-    require_proposal_simulation_flag: bool = Field(
-        description=(
-            "Whether proposal simulation requests require options.enable_proposal_simulation=true."
-        ),
-        examples=[True],
-    )
-    startup_validation_scope: str = Field(
-        description=(
-            "Lifecycle startup guardrail enforced before the API begins serving requests."
-        ),
-        examples=["POSTGRES_REPOSITORY_BOOT"],
-    )
-    migration_namespace: str = Field(
-        description="Migration namespace used for advisory proposal lifecycle persistence.",
-        examples=["proposals"],
-    )
-    expected_migration_versions: List[str] = Field(
-        default_factory=list,
-        description="Ordered migration versions expected for the advisory lifecycle namespace.",
-        examples=[["0001", "0002", "0003"]],
-    )
-    advisory_owned_tables: List[str] = Field(
-        default_factory=list,
-        description=(
-            "Advisory-owned PostgreSQL tables that make up the active persisted proposal runtime "
-            "scope."
-        ),
-        examples=[
-            [
-                "proposal_records",
-                "proposal_versions",
-                "proposal_workflow_events",
-                "proposal_approvals",
-                "proposal_idempotency",
-                "proposal_simulation_idempotency",
-                "proposal_async_operations",
-            ]
-        ],
-    )
-    deferred_advisory_persistence_domains: List[str] = Field(
-        default_factory=list,
-        description=(
-            "Advisory persistence domains acknowledged by the architecture but intentionally not "
-            "yet durable in PostgreSQL."
-        ),
-        examples=[["workspace_sessions", "workspace_saved_versions"]],
-    )
-    upstream_owned_data_domains: List[str] = Field(
-        default_factory=list,
-        description=(
-            "Data domains required by advisory workflows but owned outside lotus-advise and "
-            "therefore excluded from the advisory database boundary."
-        ),
-        examples=[
-            [
-                "portfolio_positions",
-                "transactions",
-                "market_data",
-                "risk_analytics",
-                "reports",
-                "ai_runtime_state",
-                "execution_provider_state",
-            ]
-        ],
-    )
-
-
 class ProposalReportRequest(BaseModel):
     report_type: ProposalReportType = Field(
         description="Lotus-branded advisory report payload requested from lotus-report.",
@@ -565,6 +782,52 @@ class ProposalExecutionHandoffRequest(BaseModel):
         default_factory=dict,
         description="Structured advisory handoff notes captured for execution audit.",
         examples=[{"channel": "OMS", "priority": "STANDARD"}],
+    )
+
+
+class ProposalExecutionUpdateRequest(BaseModel):
+    update_id: str = Field(
+        description="Stable downstream execution update identifier used for idempotent ingestion.",
+        examples=["exec_update_001"],
+    )
+    actor_id: str = Field(
+        description="Actor or system identifier recording the downstream execution update.",
+        examples=["lotus-manage"],
+    )
+    execution_request_id: str = Field(
+        description="Advisory execution request identifier previously recorded at handoff.",
+        examples=["oms_req_001"],
+    )
+    execution_provider: str = Field(
+        description="Execution venue or OMS that produced the downstream update.",
+        examples=["lotus-manage"],
+    )
+    update_status: ProposalExecutionUpdateStatus = Field(
+        description="Normalized downstream execution posture being ingested.",
+        examples=["PARTIALLY_EXECUTED"],
+    )
+    related_version_no: Optional[int] = Field(
+        default=None,
+        description="Immutable proposal version number the downstream execution update applies to.",
+        examples=[1],
+    )
+    external_execution_id: Optional[str] = Field(
+        default=None,
+        description="External downstream execution or ticket identifier when supplied.",
+        examples=["oms_fill_001"],
+    )
+    occurred_at: Optional[str] = Field(
+        default=None,
+        description="Optional UTC ISO8601 timestamp supplied by the downstream execution system.",
+        examples=["2026-03-26T09:10:00+00:00"],
+    )
+    details: Dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Structured downstream execution metadata preserved for audit and "
+            "reconciliation."
+        ),
+        examples=[{"filled_quantity": "50", "remaining_quantity": "25"}],
     )
 
 
@@ -804,6 +1067,14 @@ class ProposalAsyncAcceptedResponse(BaseModel):
         description="UTC ISO8601 timestamp when operation was accepted.",
         examples=["2026-02-20T10:00:00+00:00"],
     )
+    attempt_count: int = Field(
+        description="Number of execution attempts already recorded for this operation.",
+        examples=[0],
+    )
+    max_attempts: int = Field(
+        description="Maximum number of runtime execution attempts before terminal failure.",
+        examples=[3],
+    )
     status_url: str = Field(
         description="Relative API path for operation status retrieval.",
         examples=["/advisory/proposals/operations/pop_001"],
@@ -865,6 +1136,19 @@ class ProposalAsyncOperationStatusResponse(BaseModel):
         default=None,
         description="UTC ISO8601 timestamp when execution finished.",
         examples=["2026-02-20T10:00:02+00:00"],
+    )
+    attempt_count: int = Field(
+        description="Number of execution attempts already recorded for this operation.",
+        examples=[1],
+    )
+    max_attempts: int = Field(
+        description="Maximum number of runtime execution attempts before terminal failure.",
+        examples=[3],
+    )
+    lease_expires_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp when the current execution lease expires, when running.",
+        examples=["2026-02-20T10:01:01+00:00"],
     )
     result: Optional[ProposalCreateResponse] = Field(
         default=None,
@@ -1152,10 +1436,32 @@ class ProposalAsyncOperationRecord(BaseModel):
         description="Internal operation acceptance timestamp.",
         examples=["2026-02-20T10:00:00+00:00"],
     )
+    payload_json: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Internal normalized request payload used for restart-safe execution.",
+        examples=[{"created_by": "advisor_123"}],
+    )
+    attempt_count: int = Field(
+        default=0,
+        ge=0,
+        description="Internal execution attempt count.",
+        examples=[0],
+    )
+    max_attempts: int = Field(
+        default=3,
+        ge=1,
+        description="Internal maximum number of runtime execution attempts.",
+        examples=[3],
+    )
     started_at: Optional[datetime] = Field(
         default=None,
         description="Internal operation start timestamp.",
         examples=["2026-02-20T10:00:01+00:00"],
+    )
+    lease_expires_at: Optional[datetime] = Field(
+        default=None,
+        description="Internal execution lease expiry timestamp while an attempt is running.",
+        examples=["2026-02-20T10:01:01+00:00"],
     )
     finished_at: Optional[datetime] = Field(
         default=None,

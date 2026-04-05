@@ -142,7 +142,11 @@ class PostgresProposalRepository:
                 proposal_id,
                 created_by,
                 created_at,
+                payload_json,
+                attempt_count,
+                max_attempts,
                 started_at,
+                lease_expires_at,
                 finished_at,
                 result_json,
                 error_json
@@ -166,7 +170,11 @@ class PostgresProposalRepository:
                 proposal_id,
                 created_by,
                 created_at,
+                payload_json,
+                attempt_count,
+                max_attempts,
                 started_at,
+                lease_expires_at,
                 finished_at,
                 result_json,
                 error_json
@@ -176,6 +184,44 @@ class PostgresProposalRepository:
         with closing(self._connect()) as connection:
             row = connection.execute(query, (correlation_id,)).fetchone()
         return _to_operation(row)
+
+    def list_recoverable_operations(self, *, as_of: datetime) -> list[ProposalAsyncOperationRecord]:
+        query = """
+            SELECT
+                operation_id,
+                operation_type,
+                status,
+                correlation_id,
+                idempotency_key,
+                proposal_id,
+                created_by,
+                created_at,
+                payload_json,
+                attempt_count,
+                max_attempts,
+                started_at,
+                lease_expires_at,
+                finished_at,
+                result_json,
+                error_json
+            FROM proposal_async_operations
+            WHERE
+                status = 'PENDING'
+                OR (
+                    status = 'RUNNING'
+                    AND finished_at IS NULL
+                    AND lease_expires_at IS NOT NULL
+                    AND lease_expires_at <= %s
+                )
+            ORDER BY created_at ASC, operation_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (as_of.isoformat(),)).fetchall()
+        return [
+            operation
+            for operation in (_to_operation(row) for row in rows)
+            if operation is not None
+        ]
 
     def create_proposal(self, proposal: ProposalRecord) -> None:
         with closing(self._connect()) as connection:
@@ -462,11 +508,15 @@ class PostgresProposalRepository:
                 proposal_id,
                 created_by,
                 created_at,
+                payload_json,
+                attempt_count,
+                max_attempts,
                 started_at,
+                lease_expires_at,
                 finished_at,
                 result_json,
                 error_json
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (operation_id) DO UPDATE SET
                 operation_type=excluded.operation_type,
                 status=excluded.status,
@@ -475,7 +525,11 @@ class PostgresProposalRepository:
                 proposal_id=excluded.proposal_id,
                 created_by=excluded.created_by,
                 created_at=excluded.created_at,
+                payload_json=excluded.payload_json,
+                attempt_count=excluded.attempt_count,
+                max_attempts=excluded.max_attempts,
                 started_at=excluded.started_at,
+                lease_expires_at=excluded.lease_expires_at,
                 finished_at=excluded.finished_at,
                 result_json=excluded.result_json,
                 error_json=excluded.error_json
@@ -492,7 +546,11 @@ class PostgresProposalRepository:
                     operation.proposal_id,
                     operation.created_by,
                     operation.created_at.isoformat(),
+                    _json_dump(operation.payload_json),
+                    operation.attempt_count,
+                    operation.max_attempts,
                     _optional_iso(operation.started_at),
+                    _optional_iso(operation.lease_expires_at),
                     _optional_iso(operation.finished_at),
                     _optional_json(operation.result_json),
                     _optional_json(operation.error_json),
@@ -659,7 +717,11 @@ def _to_operation(row: Any) -> Optional[ProposalAsyncOperationRecord]:
         proposal_id=row["proposal_id"],
         created_by=row["created_by"],
         created_at=datetime.fromisoformat(row["created_at"]),
+        payload_json=_optional_load_json(row["payload_json"]) or {},
+        attempt_count=int(row["attempt_count"]),
+        max_attempts=int(row["max_attempts"]),
         started_at=_optional_datetime(row["started_at"]),
+        lease_expires_at=_optional_datetime(row["lease_expires_at"]),
         finished_at=_optional_datetime(row["finished_at"]),
         result_json=_optional_load_json(row["result_json"]),
         error_json=_optional_load_json(row["error_json"]),

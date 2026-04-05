@@ -125,6 +125,35 @@ def test_service_create_proposal_uses_upstream_simulation_authority_when_availab
     assert authority["risk_authority"] == "lotus_advise_local"
 
 
+def test_service_request_hash_is_stable_between_legacy_and_stateless_create_contracts():
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    legacy_payload = ProposalCreateRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+        metadata={"title": "Service test"},
+    )
+    stateless_payload = ProposalCreateRequest(
+        created_by="advisor_service",
+        input_mode="stateless",
+        stateless_input={"simulate_request": _simulate_request()},
+        metadata={"title": "Service test"},
+    )
+
+    legacy = service.create_proposal(
+        payload=legacy_payload,
+        idempotency_key="service-idem-legacy-hash",
+        correlation_id="corr-service-legacy-hash",
+    )
+    stateless = service.create_proposal(
+        payload=stateless_payload,
+        idempotency_key="service-idem-stateless-hash",
+        correlation_id="corr-service-stateless-hash",
+    )
+
+    assert legacy.version.request_hash == stateless.version.request_hash
+    assert legacy.version.simulation_hash == stateless.version.simulation_hash
+
+
 def test_service_rejects_version_with_portfolio_context_mismatch():
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())
 
@@ -462,18 +491,9 @@ def test_service_execute_async_returns_when_operation_missing():
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())
     service.execute_create_proposal_async(
         operation_id="pop_missing",
-        payload=_create_payload(),
-        idempotency_key="idem-missing",
-        correlation_id="corr-missing",
     )
     service.execute_create_version_async(
         operation_id="pop_missing",
-        proposal_id="pp_missing",
-        payload=ProposalVersionRequest(
-            created_by="advisor_service",
-            simulate_request=_simulate_request(),
-        ),
-        correlation_id="corr-missing",
     )
 
 
@@ -486,19 +506,22 @@ def test_service_execute_create_proposal_async_marks_failed_on_lifecycle_error()
         correlation_id="corr-async-fail",
     )
 
-    payload = _create_payload()
-    payload.simulate_request.options.enable_proposal_simulation = False
-    service.execute_create_proposal_async(
-        operation_id=accepted.operation_id,
-        payload=payload,
-        idempotency_key="idem-async-fail",
-        correlation_id="corr-async-fail",
-    )
+    stored_operation = repo.get_operation(operation_id=accepted.operation_id)
+    assert stored_operation is not None
+    stored_operation.payload_json["payload"]["simulate_request"]["options"][
+        "enable_proposal_simulation"
+    ] = False
+    repo.update_operation(stored_operation)
+
+    service.execute_create_proposal_async(operation_id=accepted.operation_id)
 
     operation = service.get_async_operation(operation_id=accepted.operation_id)
     assert operation.status == "FAILED"
     assert operation.error is not None
     assert operation.error.code == "ProposalValidationError"
+    assert operation.attempt_count == 1
+    assert operation.max_attempts == 3
+    assert operation.lease_expires_at is None
 
 
 def test_service_execute_create_version_async_marks_failed_on_lifecycle_error():
@@ -528,6 +551,111 @@ def test_service_execute_create_version_async_marks_failed_on_lifecycle_error():
     assert operation.error is not None
     assert operation.error.code == "ProposalNotFoundError"
     assert operation.error.message == "PROPOSAL_NOT_FOUND"
+    assert operation.attempt_count == 1
+    assert operation.max_attempts == 3
+    assert operation.lease_expires_at is None
+
+
+def test_service_submit_async_create_persists_restart_safe_payload():
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+
+    accepted = service.submit_create_proposal_async(
+        payload=payload,
+        idempotency_key="idem-async-persisted-payload",
+        correlation_id="corr-async-persisted-payload",
+    )
+
+    stored = repo.get_operation(operation_id=accepted.operation_id)
+    assert stored is not None
+    assert stored.payload_json["idempotency_key"] == "idem-async-persisted-payload"
+    assert stored.payload_json["payload"]["created_by"] == payload.created_by
+    assert stored.attempt_count == 0
+    assert stored.max_attempts == 3
+    assert accepted.attempt_count == 0
+    assert accepted.max_attempts == 3
+
+
+def test_service_execute_create_proposal_async_retries_runtime_failure(monkeypatch):
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    accepted = service.submit_create_proposal_async(
+        payload=_create_payload(),
+        idempotency_key="idem-async-runtime-retry",
+        correlation_id="corr-async-runtime-retry",
+    )
+
+    original_create_proposal = service.create_proposal
+    attempts = {"count": 0}
+
+    def flaky_create_proposal(**kwargs):
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise RuntimeError("transient runtime outage")
+        return original_create_proposal(**kwargs)
+
+    monkeypatch.setattr(service, "create_proposal", flaky_create_proposal)
+
+    service.execute_create_proposal_async(operation_id=accepted.operation_id)
+
+    operation = service.get_async_operation(operation_id=accepted.operation_id)
+    assert operation.status == "SUCCEEDED"
+    assert operation.result is not None
+    assert operation.error is None
+    assert operation.attempt_count == 2
+    assert attempts["count"] == 2
+
+
+def test_service_recover_async_operations_replays_pending_create_from_persisted_payload():
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    accepted = service.submit_create_proposal_async(
+        payload=_create_payload(),
+        idempotency_key="idem-async-recover-pending",
+        correlation_id="corr-async-recover-pending",
+    )
+
+    recovered = service.recover_async_operations()
+
+    operation = service.get_async_operation(operation_id=accepted.operation_id)
+    assert recovered == 1
+    assert operation.status == "SUCCEEDED"
+    assert operation.result is not None
+    assert operation.result.proposal.proposal_id
+
+
+def test_service_recover_async_operations_replays_expired_running_version_operation():
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="idem-async-expired-running-base",
+        correlation_id="corr-async-expired-running-base",
+    )
+    accepted = service.submit_create_version_async(
+        proposal_id=created.proposal.proposal_id,
+        payload=ProposalVersionRequest(
+            created_by="advisor_service",
+            simulate_request=_simulate_request(),
+        ),
+        correlation_id="corr-async-expired-running-version",
+    )
+    operation = repo.get_operation(operation_id=accepted.operation_id)
+    assert operation is not None
+    operation.status = "RUNNING"
+    operation.attempt_count = 1
+    operation.started_at = datetime.now(timezone.utc)
+    operation.lease_expires_at = datetime.now(timezone.utc)
+    repo.update_operation(operation)
+
+    recovered = service.recover_async_operations()
+
+    status = service.get_async_operation(operation_id=accepted.operation_id)
+    assert recovered == 1
+    assert status.status == "SUCCEEDED"
+    assert status.attempt_count == 2
+    assert status.result is not None
 
 
 def test_service_expected_state_can_be_optional_when_disabled():

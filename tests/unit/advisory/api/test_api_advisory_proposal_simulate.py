@@ -26,10 +26,10 @@ def client():
         yield test_client
 
 
-def test_advisory_proposal_simulate_endpoint_success(client):
-    payload = {
+def _base_simulation_payload(portfolio_id: str = "pf_prop_api_1") -> dict:
+    return {
         "portfolio_snapshot": {
-            "portfolio_id": "pf_prop_api_1",
+            "portfolio_id": portfolio_id,
             "base_currency": "USD",
             "positions": [],
             "cash_balances": [{"currency": "USD", "amount": "1000"}],
@@ -43,6 +43,27 @@ def test_advisory_proposal_simulate_endpoint_success(client):
         "proposed_cash_flows": [{"currency": "USD", "amount": "200"}],
         "proposed_trades": [{"side": "BUY", "instrument_id": "EQ_1", "quantity": "2"}],
     }
+
+
+def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict:
+    payload = _base_simulation_payload(portfolio_id=portfolio_id)
+    payload["portfolio_snapshot"]["snapshot_id"] = f"ps_{portfolio_id}_{as_of}"
+    payload["market_data_snapshot"]["snapshot_id"] = f"md_{as_of}"
+    return {
+        "simulate_request": payload,
+        "resolved_context": {
+            "portfolio_id": portfolio_id,
+            "as_of": as_of,
+            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
+            "market_data_snapshot_id": f"md_{as_of}",
+            "risk_context_id": "risk_ctx_001",
+            "reporting_context_id": "report_ctx_001",
+        },
+    }
+
+
+def test_advisory_proposal_simulate_endpoint_success(client):
+    payload = _base_simulation_payload()
 
     response = client.post(
         "/advisory/proposals/simulate",
@@ -67,6 +88,9 @@ def test_advisory_proposal_simulate_endpoint_success(client):
         "CLIENT_CONSENT_REQUIRED",
         "EXECUTION_READY",
     }
+    assert body["explanation"]["context_resolution"]["input_mode"] == "stateless"
+    assert body["explanation"]["context_resolution"]["resolution_source"] == "DIRECT_REQUEST"
+    assert body["explanation"]["context_resolution"]["used_legacy_contract"] is True
 
 
 def test_advisory_proposal_simulate_requires_feature_flag(client):
@@ -86,6 +110,74 @@ def test_advisory_proposal_simulate_requires_feature_flag(client):
     )
     assert response.status_code == 422
     assert "PROPOSAL_SIMULATION_DISABLED" in response.json()["detail"]
+
+
+def test_advisory_proposal_simulate_supports_stateful_context_resolution(client, monkeypatch):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    payload = {
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_prop_api_stateful",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_stateful_001",
+        },
+    }
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-stateful"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["lineage"]["portfolio_snapshot_id"] == "ps_pf_prop_api_stateful_2026-03-25"
+    assert body["lineage"]["market_data_snapshot_id"] == "md_2026-03-25"
+    assert body["explanation"]["context_resolution"]["input_mode"] == "stateful"
+    assert body["explanation"]["context_resolution"]["resolution_source"] == "LOTUS_CORE"
+    assert body["explanation"]["context_resolution"]["used_legacy_contract"] is False
+
+
+def test_advisory_proposal_simulate_rejects_stateful_request_when_resolution_unavailable(client):
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json={
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": "pf_prop_api_stateful_missing",
+                "as_of": "2026-03-25",
+            },
+        },
+        headers={"Idempotency-Key": "prop-key-stateful-missing"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+
+
+def test_advisory_proposal_simulate_normalized_stateless_contract_matches_legacy_payload(client):
+    legacy_payload = _base_simulation_payload(portfolio_id="pf_prop_api_equivalent")
+    normalized_payload = {
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": _base_simulation_payload(portfolio_id="pf_prop_api_equivalent")
+        },
+    }
+    headers = {"Idempotency-Key": "prop-key-equivalent"}
+
+    first = client.post("/advisory/proposals/simulate", json=legacy_payload, headers=headers)
+    second = client.post("/advisory/proposals/simulate", json=normalized_payload, headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == second.json()
 
 
 def test_advisory_proposal_simulate_idempotency_conflict_returns_409(client):
@@ -374,6 +466,35 @@ def test_advisory_proposal_artifact_endpoint_success(client):
     assert body["summary"]["recommended_next_step"] == "CLIENT_CONSENT"
     assert body["gate_decision"]["gate"] == "CLIENT_CONSENT_REQUIRED"
     assert body["trades_and_funding"]["trade_list"][0]["instrument_id"] == "US_EQ"
+    assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
+
+
+def test_advisory_proposal_artifact_supports_stateful_context_resolution(client, monkeypatch):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+
+    response = client.post(
+        "/advisory/proposals/artifact",
+        json={
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": "pf_prop_api_art_stateful",
+                "as_of": "2026-03-25",
+            },
+        },
+        headers={"Idempotency-Key": "prop-art-key-stateful"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["evidence_bundle"]["hashes"]["request_hash"].startswith("sha256:")
+    assert body["summary"]["title"] == "Proposal for pf_prop_api_art_stateful"
     assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
 
 

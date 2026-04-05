@@ -1,357 +1,213 @@
-# RFC-0014: Data Quality, Snapshots & Replayability (Institution-Grade Determinism)
+# RFC-0014: Data Quality, Snapshots, and Replayability
 
-| Metadata | Details |
-| --- | --- |
-| **Status** | DRAFT |
-| **Created** | 2026-02-18 |
-| **Target Release** | MVP-0014 |
-| **Depends On** | RFC-0007 (Proposal Simulation) |
-| **Strongly Recommended** | RFC-0011 (Proposal Artifact), RFC-0013 (Persistence), RFC-0015 (Policy Packs) |
-| **Doc Location** | `docs/rfcs/RFC-0014-data-quality-snapshots-replayability.md` |
-| **Backward Compatibility** | Not required |
+- Status: DRAFT
+- Date: 2026-04-05
+- Owners: lotus-advise
+- Requires Approval From: lotus-advise maintainers
+- Depends On: RFC-0007, RFC-0011, RFC-0013
 
----
+## Summary
 
-## 0. Executive Summary
+`lotus-advise` already produces deterministic proposal outputs, proposal artifacts, lineage
+hashes, and replay-oriented evidence. It also supports `stateful` workspace context through the
+Lotus Core seam.
 
-RFC-0014 makes the system **institution-grade** by formalizing:
+What is still missing is one normalized replay and data-quality baseline that all advisory flows
+can rely on.
 
-- **Snapshot contracts** (portfolio, prices, FX, shelf)
-- **Data Quality (DQ) policy**: what is required vs optional
-- **Replayability / reproducibility** guarantees via canonical hashing and snapshot lineage
-- **DQ scoring + diagnostics** so every proposal clearly states its data confidence level
-- Standard behavior for **missing prices/FX**, stale timestamps, inconsistent currencies, and incomplete coverage
+This RFC defines that baseline:
 
-This RFC is the “truth layer” that prevents the engine from producing plausible but unverifiable outputs.
+1. canonical snapshot identity and provenance,
+2. explicit data-quality posture for advisory inputs,
+3. deterministic replay expectations across advisory outcomes,
+4. stable evidence conventions that other RFCs can build on.
 
----
+This RFC should be treated as the minimal truth-layer prerequisite for the next closure work in
+`RFC-0019`.
 
-## 1. Motivation / Problem Statement
+## Why This Is Next
 
-In real private banking systems:
-- portfolio snapshots can be partial or stale,
-- market data can be incomplete,
-- FX can be missing or inconsistent across pairs,
-- product governance data can lag.
+`lotus-advise` now has enough implemented lifecycle and workspace behavior that replayability can
+no longer remain an implicit property.
 
-If the engine silently proceeds, you get:
-- proposals that cannot be executed,
-- audit failure (“how did you calculate this?”),
-- inconsistent outputs over time.
+Without this RFC:
 
-This RFC ensures every output is:
-- reproducible,
-- evidence-backed,
-- and explicitly labeled with data confidence.
+1. authoritative context resolution can expand without one stable evidence vocabulary,
+2. workspace replay and proposal replay can drift into different conventions,
+3. execution reconciliation will have weaker before/after evidence anchors,
+4. audit and support workflows will remain more manual than they should be.
 
----
+## Problem Statement
 
-## 2. Scope
+Replay-related information exists today, but it is still fragmented:
 
-### 2.1 In Scope
-- Define snapshot schemas with `snapshot_id`, `as_of`, and `source` metadata.
-- Define DQ policy and enforcement:
-  - missing prices / FX
-  - missing instrument currency
-  - missing issuer_id / liquidity_tier (for suitability)
-  - stale market data
-  - inconsistent base currency conversions
-- Add canonical **Request Hash** and **Snapshot Hash** computation rules.
-- Add **Replay Mode**: run engine in “replay” using stored evidence bundle and require identical results.
+1. proposal lineage and artifact hashes exist,
+2. workspace saved versions carry replay evidence,
+3. stateful workspaces return resolved context,
+4. async operations carry their own status payloads.
 
-### 2.2 Out of Scope
-- Building a full data platform (ingestion pipelines, real-time feeds)
-- Vendor-specific data mapping (Bloomberg/Reuters etc.)
-- Mastering instrument reference data in this RFC (only interfaces)
+What is not yet fully defined is:
 
----
+1. the canonical snapshot identity model,
+2. the minimum advisory data-quality contract,
+3. the exact replay invariants shared across workspace, proposal, and async surfaces.
 
-## 3. Snapshot Contracts
+## Decision
 
-### 3.1 Common Snapshot Header
-All snapshots MUST include:
-```json
-{
-  "snapshot_id": "md_20260218_001",
-  "as_of": "2026-02-18T08:00:00Z",
-  "source": "VENDOR_X|INTERNAL_Y",
-  "schema_version": "1.0.0"
-}
-````
+`lotus-advise` should introduce one explicit replay and data-quality baseline that every advisory
+surface can reuse.
 
-### 3.2 Portfolio Snapshot
+The first version should stay narrow and practical.
 
-Add/require:
+It should define:
 
-* `portfolio_id`
-* `base_currency`
-* `positions[]` with `instrument_id`, `quantity`, and **instrument_currency**
-* `cash_balances[]` with `currency`, `amount`
-* Optional:
+1. snapshot identity, source, and `as_of` semantics,
+2. minimum required versus advisory-enrichment-only fields,
+3. deterministic request and snapshot lineage hashing rules,
+4. replay evidence references for workspace, proposal, and execution-adjacent flows,
+5. stable data-quality diagnostics for missing, stale, or incomplete advisory inputs.
 
-  * `tax_lots[]` (later)
-  * `accounts[]` (multi-entity later)
+## Cross-RFC Boundaries
 
-DQ requirements:
+### This RFC owns
 
-* `instrument_currency` is REQUIRED for positions (or derivable from shelf/instrument master; if not, DQ fail)
-* `base_currency` must be a valid currency code
+1. snapshot identity and provenance semantics,
+2. minimum replay invariants,
+3. minimum advisory data-quality diagnostics and blocking posture,
+4. the shared evidence vocabulary that later closure work can reference.
 
-### 3.3 Market Data Snapshot
+### This RFC does not own
 
-Must include:
+1. workspace contract shape, which remains under
+   [RFC-0004](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0004-iterative-advisory-proposal-workspace-contract.md),
+2. lifecycle aggregate and audit ownership, which remains under
+   [RFC-0013](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0013-proposal-persistence-workflow-lifecycle.md),
+3. policy-pack and jurisdiction behavior, which remains under
+   [RFC-0015](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0015-jurisdiction-policy-packs.md),
+4. costs and frictions, which remain under
+   [RFC-0016](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0016-costs-fees-frictions-v1.md),
+5. execution integration specifics, which remain under
+   [RFC-0017](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0017-execution-integration-interface.md),
+6. broader runtime closure, which remains under
+   [RFC-0019](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0019-authoritative-context-runtime-and-workspace-closure.md).
 
-* `prices[]`: instrument_id, price, currency
-* `fx_rates[]`: pair, rate, as_of (optional per-rate)
+## Architecture Direction
 
-DQ requirements:
+### 1. Snapshot Identity
 
-* every traded/held instrument requires a price
-* every required conversion requires an FX rate (direct or invertible)
-* prices/FX must not be stale beyond policy threshold
+Every major advisory input snapshot should carry stable provenance:
 
-### 3.4 Shelf Snapshot (Product Governance)
+1. snapshot identifier,
+2. source system or authority,
+3. `as_of` timestamp,
+4. schema version where needed,
+5. canonical lineage hash or equivalent stable evidence reference.
 
-Must include:
+### 2. Minimum Data-Quality Contract
 
-* `instrument_id`, `status`, `asset_class`, `currency`
-* optional but recommended (needed for suitability):
+The advisory runtime should distinguish:
 
-  * `issuer_id`
-  * `liquidity_tier`
-  * `product_type`
+1. data required for simulation correctness,
+2. data required for suitability or gating quality,
+3. enrichment that improves explanation but should not silently redefine core validity.
 
----
+Missing or stale data should not produce ambiguous behavior. It should either:
 
-## 4. Data Quality Policy (Config-Driven)
+1. block deterministically, or
+2. degrade explicitly with stable advisory diagnostics.
 
-DQ policy belongs in Policy Pack (RFC-0015), but this RFC defines baseline defaults.
+### 3. Replay Invariants
 
-### 4.1 Required vs Optional data
+The replay model should define which evidence elements are required to explain an advisory outcome:
 
-Required for simulation correctness:
+1. request lineage,
+2. snapshot lineage,
+3. policy and configuration lineage where relevant,
+4. result and artifact lineage,
+5. resolved-context lineage for `stateful` operation.
 
-* prices for all held/traded instruments
-* FX rates for all required conversions (including funding FX)
-* instrument currency for all positions/trades
+### 4. Shared Evidence Vocabulary
 
-Required for suitability (if enabled):
+The replay and data-quality contract should become the common evidence vocabulary reused by:
 
-* issuer_id
-* liquidity_tier
-* governance status
+1. workspace save, compare, resume, and handoff,
+2. proposal create and version flows,
+3. async operation status and recovery,
+4. future execution reconciliation.
 
-Optional:
+## Delivery Slices
 
-* sector/region classifications
-* risk rating
-* document references
+### Slice 1: Snapshot Identity and Lineage Baseline
 
-### 4.2 Staleness rules
+Outcome:
 
-Define a maximum staleness in minutes:
+1. one documented identity model for advisory snapshots and resolved context,
+2. stable lineage references across proposal and workspace evidence.
 
-* prices_max_age_minutes = 1440 (1 day) default
-* fx_max_age_minutes = 1440 default
+Acceptance gate:
 
-If snapshot `as_of` older than threshold:
+1. proposal and workspace evidence reference the same snapshot lineage vocabulary,
+2. tests verify deterministic lineage generation.
 
-* if `block_on_stale_market_data=true` → BLOCKED
-* else → PENDING_REVIEW + diagnostics
+### Slice 2: Minimum Data-Quality Posture
 
----
+Outcome:
 
-## 5. DQ Scoring & Diagnostics
+1. explicit advisory diagnostics for missing, stale, or incomplete inputs,
+2. clear blocking versus degraded behavior for core data-quality failures.
 
-### 5.1 DQ Report schema
+Acceptance gate:
 
-Add to response:
+1. missing and stale data behaviors are explicit and tested,
+2. no advisory flow silently succeeds with unverifiable core inputs.
 
-```json
-"data_quality": {
-  "overall": {
-    "score": "0.92",
-    "grade": "A|B|C|D",
-    "blocking": false
-  },
-  "coverage": {
-    "price_coverage_pct": "0.98",
-    "fx_coverage_pct": "1.00",
-    "shelf_enrichment_pct": "0.85"
-  },
-  "issues": [
-    {
-      "dq_code": "MISSING_PRICE",
-      "severity": "HIGH",
-      "entity": { "instrument_id": "ABC" },
-      "message": "No price found for ABC in market snapshot."
-    }
-  ]
-}
-```
+### Slice 3: Replay Contract Alignment
 
-### 5.2 Scoring rules (deterministic)
+Outcome:
 
-* Start score = 1.00
-* Deduct fixed penalties per issue type:
+1. workspace and lifecycle replay expectations align,
+2. the evidence model is documented clearly enough for `RFC-0019` to build on directly.
 
-  * missing price: -0.20 (HIGH)
-  * missing FX: -0.20 (HIGH)
-  * stale prices: -0.10 (MEDIUM)
-  * missing issuer_id: -0.05 (LOW/MEDIUM depending on suitability enabled)
-* Clamp score to [0,1]
-* Grade mapping:
+Acceptance gate:
 
-  * A: ≥0.95
-  * B: ≥0.85
-  * C: ≥0.70
-  * D: <0.70
+1. one saved workspace and one persisted proposal version can each be explained through the same
+   replay vocabulary,
+2. the documentation no longer leaves replay semantics implicit.
 
-Policy packs may override penalties and thresholds.
+## Test and Validation Expectations
 
----
+1. Unit tests for deterministic lineage and data-quality classification rules.
+2. Contract tests for replay-oriented evidence fields in advisory models and OpenAPI docs.
+3. Integration tests for replay-safe stateful context lineage where applicable.
 
-## 6. Canonical Hashing & Lineage
+## Rollout and Compatibility
 
-### 6.1 Canonical Request Hash
+1. This RFC should be implemented narrowly first.
+2. Existing evidence fields may remain during transition, but the documented replay vocabulary
+   should converge rather than proliferate.
+3. `RFC-0019` should not be implemented beyond planning depth until the minimum slices here are
+   stable.
 
-Compute sha256 over canonical JSON serialization of:
+## Risks
 
-* proposal request body
-* excluding volatile fields (e.g., comments)
-* sorted keys
-* normalized decimals
+1. replay scope could expand into a full data-platform RFC,
+2. data-quality policy could overlap too heavily with policy-pack ownership,
+3. evidence models could become too verbose if payload design is not disciplined.
 
-Store/return:
+Mitigations:
 
-* `request_hash = "sha256:<hex>"`
+1. keep this RFC focused on minimum replay and DQ invariants,
+2. leave jurisdiction-specific policy under RFC-0015,
+3. prefer stable references and concise diagnostics over oversized raw payload duplication.
 
-### 6.2 Snapshot Hashes
+## Acceptance Criteria
 
-Compute hashes for each snapshot:
+1. `lotus-advise` has one documented snapshot and replay baseline.
+2. Minimum data-quality behavior is explicit for advisory-critical inputs.
+3. Workspace and proposal evidence use the same replay vocabulary.
+4. RFC-0019 can depend on this RFC without redefining replay semantics.
 
-* portfolio_snapshot_hash
-* market_data_snapshot_hash
-* shelf_snapshot_hash
+## Approval Requested
 
-### 6.3 Lineage block (mandatory)
-
-```json
-"lineage": {
-  "request_hash": "sha256:...",
-  "snapshots": {
-    "portfolio": { "snapshot_id": "...", "as_of": "...", "hash": "sha256:..." },
-    "market_data": { "snapshot_id": "...", "as_of": "...", "hash": "sha256:..." },
-    "shelf": { "snapshot_id": "...", "as_of": "...", "hash": "sha256:..." }
-  },
-  "engine_version": "..."
-}
-```
-
----
-
-## 7. Replay Mode (Reproducibility)
-
-### 7.1 API
-
-`POST /advisory/proposals/replay`
-
-Body:
-
-* `evidence_bundle` (stored from ProposalArtifact / persistence)
-
-Behavior:
-
-* validate hashes and schema versions
-* run simulation using evidence snapshots
-* produce output and compare with stored artifact/simulation hash
-* return:
-
-  * `REPLAY_MATCHED` or `REPLAY_MISMATCHED`
-  * diff summary (structured, not huge text)
-
-### 7.2 Tolerances
-
-Replays should match exactly if:
-
-* deterministic ordering + quantization rules are enforced
-
-If non-deterministic elements exist (timestamps), exclude them from hash and replay comparisons.
-
----
-
-## 8. Missing Data Behavior (Standardized)
-
-### 8.1 Missing price
-
-* If `block_on_missing_prices=true`: BLOCKED + dq issue
-* Else:
-
-  * treat instrument as “unvalued” and mark PENDING_REVIEW (not recommended for institutional default)
-
-### 8.2 Missing FX
-
-Same as above; missing FX for funding is typically blocking.
-
-### 8.3 Missing enrichment (issuer/liquidity)
-
-* Does not block simulation by default
-* But:
-
-  * emits DQ issues
-  * suitability section marks DATA_QUALITY issues
-  * may trigger risk/compliance gate depending on policy pack
-
----
-
-## 9. Implementation Plan
-
-1. Introduce snapshot header models and enforce presence.
-2. Implement canonical JSON serializer + Decimal normalization helper.
-3. Implement request and snapshot hashing.
-4. Implement DQ issue detection and DQ score calculation.
-5. Wire DQ into proposal simulate response and artifact evidence bundle.
-6. Implement replay endpoint (optional if persistence not ready; still valuable for tests).
-7. Add tests + goldens focused on:
-
-   * missing price
-   * missing FX
-   * stale market data
-   * replay matched
-
----
-
-## 10. Testing Plan
-
-Unit tests:
-
-* canonical hash stable for equivalent inputs
-* DQ scoring deterministic
-* staleness detection correct with fixed clock
-* missing FX inversion logic covered
-
-Golden tests:
-
-* `scenario_14K_missing_price_blocked.json`
-* `scenario_14K_stale_market_pending_review.json`
-* `scenario_14K_replay_matched.json`
-
----
-
-## 11. Acceptance Criteria (DoD)
-
-* Responses include `data_quality` and `lineage` blocks.
-* Request hash and snapshot hashes are computed deterministically.
-* DQ issues are detected and scored deterministically.
-* Staleness and missing data behaviors follow explicit options/policy.
-* Replay endpoint can verify reproducibility against stored evidence.
-
----
-
-## 12. Follow-ups
-
-* Integration with an enterprise snapshot store (object storage)
-* Data lineage persistence and governance hooks
-* Expand DQ to cover corporate actions and reference-data mismatches
-
-
+Approve RFC-0014 as the minimum replay and data-quality backbone required before broader runtime
+closure work proceeds.

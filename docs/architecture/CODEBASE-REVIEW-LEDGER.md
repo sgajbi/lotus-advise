@@ -60,7 +60,7 @@
 - Finding Class: modularity problem
 - Summary: The advisory public surface and active top-level governance docs were renamed away from inherited rebalance-era numbering and route-family language.
 - Evidence:
-  - Advisory endpoints now use `/advisory/proposals/...` and `/api/v1/advisory/proposals/...`.
+  - Advisory endpoints now use the canonical `/advisory/...` route family.
   - Active top-level RFCs were renumbered into a contiguous advisory sequence ending at `RFC-0006A`.
   - Active ADRs were renumbered into a contiguous advisory sequence ending at `ADR-0004`.
   - Repository-wide scans no longer find old top-level RFC/ADR numbers or rebalance proposal route family strings in the active advisory surface.
@@ -84,4 +84,38 @@
   - New contributors can find proposal API wiring in one place, and the top-level API layout better reflects service boundaries.
 - Follow-Up:
   - Preserve the cleaned public route family and keep future proposal APIs inside the dedicated proposal package unless a stronger bounded-context split is introduced.
+
+## LA-REV-006
+
+- Scope: Public API surface hygiene
+- Pattern: stale code / backend leakage
+- Status: Signed Off
+- Finding Class: stale code
+- Summary: The proposal supportability configuration endpoint was removed because it exposed runtime configuration and migration internals as a public advisory contract.
+- Evidence:
+  - `/advisory/proposals/supportability/config` returned backend readiness flags, migration namespace details, expected migration versions, and advisory-owned table names.
+  - The endpoint did not support an advisor workflow, integration handshake, or client-facing decision.
+  - The response model and generated vocabulary inventory carried internal persistence terminology into the public contract.
+  - OpenAPI tags now include explicit descriptions so operational and business API categories remain self-explanatory without leaking internals through a dedicated supportability config route.
+- Consequence:
+  - The public API is narrower, easier to reason about, and less coupled to runtime implementation details.
+- Follow-Up:
+  - Keep internal diagnostics in logs, metrics, startup validation, and private runbooks rather than expanding public contract surface with backend configuration introspection.
+
+## LA-REV-007
+
+- Scope: RFC-0019 closure quality gate
+- Pattern: architecture hardening / contract convergence
+- Status: Signed Off
+- Finding Class: modularity problem
+- Summary: RFC-0019 closure work is complete and the remaining contract divergence between direct simulation and workspace evaluation was removed before closeout.
+- Evidence:
+  - Direct `simulate`, artifact generation, workspace reevaluation, and lifecycle create/version flows now share the same normalized `stateless` and `stateful` advisory context contract.
+  - Canonical request hashing now aligns across direct simulation and workspace reevaluation for equivalent advisory inputs.
+  - Async runtime recovery, replay evidence endpoints, and downstream execution update reconciliation are covered by unit, integration, and end-to-end tests.
+  - Final repository gates passed with `375` tests plus `ruff`, `mypy`, OpenAPI quality, no-alias governance, and vocabulary drift validation.
+- Consequence:
+  - `lotus-advise` now closes the advisory runtime loop defined by RFC-0019 without leaving workspace, simulation, async, and execution surfaces on inconsistent underlying rules.
+- Follow-Up:
+  - Move on to `RFC-0014` and `RFC-0017` follow-on work rather than reopening RFC-0019 scope.
 

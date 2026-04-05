@@ -13,17 +13,22 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     openapi = app.openapi()
     schemas = openapi["components"]["schemas"]
 
+    create_request_schema = schemas["ProposalCreateRequest"]
+    _assert_property_has_docs(create_request_schema, "input_mode")
+    _assert_property_has_docs(create_request_schema, "simulate_request")
+    _assert_property_has_docs(create_request_schema, "stateless_input")
+    _assert_property_has_docs(create_request_schema, "stateful_input")
+
     proposal_summary_schema = schemas["ProposalSummary"]
     _assert_property_has_docs(proposal_summary_schema, "lifecycle_origin")
     _assert_property_has_docs(proposal_summary_schema, "source_workspace_id")
 
-    supportability_schema = schemas["ProposalSupportabilityConfigResponse"]
-    _assert_property_has_docs(supportability_schema, "startup_validation_scope")
-    _assert_property_has_docs(supportability_schema, "migration_namespace")
-    _assert_property_has_docs(supportability_schema, "expected_migration_versions")
-
     version_request_schema = schemas["ProposalVersionRequest"]
+    _assert_property_has_docs(version_request_schema, "input_mode")
     _assert_property_has_docs(version_request_schema, "expected_current_version_no")
+    _assert_property_has_docs(version_request_schema, "simulate_request")
+    _assert_property_has_docs(version_request_schema, "stateless_input")
+    _assert_property_has_docs(version_request_schema, "stateful_input")
 
     lineage_schema = schemas["ProposalLineageResponse"]
     _assert_property_has_docs(lineage_schema, "version_count")
@@ -61,6 +66,15 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(execution_handoff_schema, "expected_state")
     _assert_property_has_docs(execution_handoff_schema, "notes")
 
+    execution_update_schema = schemas["ProposalExecutionUpdateRequest"]
+    _assert_property_has_docs(execution_update_schema, "update_id")
+    _assert_property_has_docs(execution_update_schema, "execution_request_id")
+    _assert_property_has_docs(execution_update_schema, "execution_provider")
+    _assert_property_has_docs(execution_update_schema, "update_status")
+    _assert_property_has_docs(execution_update_schema, "external_execution_id")
+    _assert_property_has_docs(execution_update_schema, "occurred_at")
+    _assert_property_has_docs(execution_update_schema, "details")
+
     execution_status_schema = schemas["ProposalExecutionStatusResponse"]
     _assert_property_has_docs(execution_status_schema, "handoff_status")
     _assert_property_has_docs(execution_status_schema, "execution_request_id")
@@ -81,6 +95,8 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(async_accepted_schema, "status")
     _assert_property_has_docs(async_accepted_schema, "correlation_id")
     _assert_property_has_docs(async_accepted_schema, "created_at")
+    _assert_property_has_docs(async_accepted_schema, "attempt_count")
+    _assert_property_has_docs(async_accepted_schema, "max_attempts")
     _assert_property_has_docs(async_accepted_schema, "status_url")
 
     async_status_schema = schemas["ProposalAsyncOperationStatusResponse"]
@@ -90,8 +106,19 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(async_status_schema, "correlation_id")
     _assert_property_has_docs(async_status_schema, "created_by")
     _assert_property_has_docs(async_status_schema, "created_at")
+    _assert_property_has_docs(async_status_schema, "attempt_count")
+    _assert_property_has_docs(async_status_schema, "max_attempts")
+    _assert_property_has_docs(async_status_schema, "lease_expires_at")
     _assert_property_has_docs(async_status_schema, "result")
     _assert_property_has_docs(async_status_schema, "error")
+
+    replay_schema = schemas["AdvisoryReplayEvidenceResponse"]
+    _assert_property_has_docs(replay_schema, "subject")
+    _assert_property_has_docs(replay_schema, "resolved_context")
+    _assert_property_has_docs(replay_schema, "hashes")
+    _assert_property_has_docs(replay_schema, "continuity")
+    _assert_property_has_docs(replay_schema, "evidence")
+    _assert_property_has_docs(replay_schema, "explanation")
 
 
 def test_lifecycle_endpoints_use_separate_request_and_response_objects():
@@ -141,6 +168,22 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     assert report_request_body_ref.endswith("/ProposalReportRequest")
     assert report_request_response_ref.endswith("/ProposalReportResponse")
 
+    proposal_replay = openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+    ]["get"]
+    proposal_replay_ref = proposal_replay["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    assert proposal_replay_ref.endswith("/AdvisoryReplayEvidenceResponse")
+
+    async_replay = openapi["paths"][
+        "/advisory/proposals/operations/{operation_id}/replay-evidence"
+    ]["get"]
+    async_replay_ref = async_replay["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ]
+    assert async_replay_ref.endswith("/AdvisoryReplayEvidenceResponse")
+
     execution_handoff = openapi["paths"]["/advisory/proposals/{proposal_id}/execution-handoffs"][
         "post"
     ]
@@ -154,3 +197,83 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     ]["schema"]["$ref"]
     assert execution_handoff_body_ref.endswith("/ProposalExecutionHandoffRequest")
     assert execution_handoff_response_ref.endswith("/ProposalExecutionHandoffResponse")
+
+    execution_update = openapi["paths"]["/advisory/proposals/{proposal_id}/execution-updates"][
+        "post"
+    ]
+    execution_update_body_ref = execution_update["requestBody"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    execution_update_response_ref = execution_update["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assert execution_update_body_ref.endswith("/ProposalExecutionUpdateRequest")
+    assert execution_update_response_ref.endswith("/ProposalExecutionStatusResponse")
+
+
+def test_openapi_does_not_expose_api_v1_compatibility_paths():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    assert not any(path.startswith("/api/v1/") for path in openapi["paths"])
+
+
+def test_openapi_tag_groups_are_documented_for_self_service_discovery():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    tags = {item["name"]: item["description"] for item in openapi["tags"]}
+
+    assert "Advisory Simulation" in tags
+    assert "evaluate a proposed set of portfolio actions" in tags["Advisory Simulation"]
+    assert "Advisory Proposal Lifecycle" in tags
+    assert (
+        "creation, versioning, state transitions, approvals, report requests, and execution "
+        "handoff"
+    ) in tags[
+        "Advisory Proposal Lifecycle"
+    ]
+    assert "Advisory Operations & Support" in tags
+    assert (
+        "async status, workflow history, lineage, approval history, idempotency tracing"
+    ) in tags[
+        "Advisory Operations & Support"
+    ]
+    assert "Advisory Workspace" in tags
+    assert "iterative advisory preparation" in tags["Advisory Workspace"]
+    assert "Integration" in tags
+    assert "service capability and contract discovery" in tags["Integration"]
+    assert "Health" in tags
+    assert "liveness and readiness probes" in tags["Health"]
+    assert "Monitoring" in tags
+    assert "metrics scraping and observability tooling" in tags["Monitoring"]
+
+
+def test_openapi_separates_business_and_support_proposal_tags():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    assert openapi["paths"]["/advisory/proposals"]["post"]["tags"] == [
+        "Advisory Proposal Lifecycle"
+    ]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/approvals"]["post"]["tags"] == [
+        "Advisory Proposal Lifecycle"
+    ]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/report-requests"]["post"][
+        "tags"
+    ] == ["Advisory Proposal Lifecycle"]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/execution-updates"]["post"][
+        "tags"
+    ] == ["Advisory Proposal Lifecycle"]
+    assert openapi["paths"]["/advisory/proposals/operations/{operation_id}"]["get"]["tags"] == [
+        "Advisory Operations & Support"
+    ]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/workflow-events"]["get"][
+        "tags"
+    ] == ["Advisory Operations & Support"]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/execution-status"]["get"][
+        "tags"
+    ] == ["Advisory Operations & Support"]
+    assert openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+    ]["get"]["tags"] == ["Advisory Operations & Support"]

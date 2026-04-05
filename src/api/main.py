@@ -17,6 +17,7 @@ from src.api.observability import correlation_id_var, setup_observability
 from src.api.openapi_enrichment import enrich_openapi_schema
 from src.api.proposals.router import (
     ensure_proposal_runtime_ready,
+    recover_proposal_async_runtime,
 )
 from src.api.proposals.router import (
     router as proposal_lifecycle_router,
@@ -47,6 +48,7 @@ from src.core.advisory_engine import run_proposal_simulation
 async def _app_lifespan(_app: FastAPI) -> AsyncIterator[None]:
     validate_advisory_runtime_persistence()
     ensure_proposal_runtime_ready()
+    recover_proposal_async_runtime()
     yield
 
 
@@ -55,6 +57,55 @@ app = FastAPI(
     version="0.1.0",
     description="Advisor-led proposal simulation and lifecycle service.",
     lifespan=_app_lifespan,
+    openapi_tags=[
+        {
+            "name": "Advisory Simulation",
+            "description": (
+                "Core advisory proposal simulation endpoints used to evaluate a proposed set of "
+                "portfolio actions and generate a client-ready artifact."
+            ),
+        },
+        {
+            "name": "Advisory Proposal Lifecycle",
+            "description": (
+                "Persisted advisory proposal workflow endpoints covering creation, versioning, "
+                "state transitions, approvals, report requests, and execution handoff."
+            ),
+        },
+        {
+            "name": "Advisory Operations & Support",
+            "description": (
+                "Operational lookup and investigation endpoints for async status, workflow "
+                "history, lineage, approval history, idempotency tracing, and execution support."
+            ),
+        },
+        {
+            "name": "Advisory Workspace",
+            "description": (
+                "Workspace-oriented drafting endpoints for iterative advisory preparation before "
+                "formal proposal lifecycle ownership begins."
+            ),
+        },
+        {
+            "name": "Integration",
+            "description": (
+                "Platform-facing service capability and contract discovery endpoints used by "
+                "other Lotus services and orchestration layers."
+            ),
+        },
+        {
+            "name": "Health",
+            "description": (
+                "Operational liveness and readiness probes for runtime health verification."
+            ),
+        },
+        {
+            "name": "Monitoring",
+            "description": (
+                "Operational telemetry endpoints for metrics scraping and observability tooling."
+            ),
+        },
+    ],
 )
 
 logger = logging.getLogger(__name__)
@@ -66,10 +117,6 @@ app.include_router(proposal_lifecycle_router)
 app.include_router(advisory_simulation_router)
 app.include_router(integration_capabilities_router)
 app.include_router(workspace_router)
-app.include_router(proposal_lifecycle_router, prefix="/api/v1")
-app.include_router(advisory_simulation_router, prefix="/api/v1")
-app.include_router(integration_capabilities_router, prefix="/api/v1")
-app.include_router(workspace_router, prefix="/api/v1")
 
 
 def custom_openapi() -> dict[str, Any]:
@@ -80,6 +127,7 @@ def custom_openapi() -> dict[str, Any]:
         version=app.version,
         description=app.description,
         routes=app.routes,
+        tags=app.openapi_tags,
     )
     schema = enrich_openapi_schema(schema, service_name="lotus-advise")
     app.openapi_schema = schema
@@ -89,22 +137,44 @@ def custom_openapi() -> dict[str, Any]:
 app.openapi = custom_openapi
 
 
+def _readiness_probe() -> tuple[bool, str | None]:
+    try:
+        validate_advisory_runtime_persistence()
+        ensure_proposal_runtime_ready()
+    except RuntimeError as exc:
+        return False, str(exc)
+    except (TypeError, ValueError):
+        return False, "PROPOSAL_POSTGRES_CONNECTION_FAILED"
+    return True, None
+
+
 @app.get("/health")
-@app.get("/api/v1/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.get("/health/live")
-@app.get("/api/v1/health/live")
 def health_live() -> dict[str, str]:
     return {"status": "live"}
 
 
 @app.get("/health/ready")
-@app.get("/api/v1/health/ready")
-def health_ready() -> dict[str, str]:
-    return {"status": "ready"}
+def health_ready() -> JSONResponse:
+    ready, detail = _readiness_probe()
+    if ready:
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        media_type="application/problem+json",
+        content={
+            "type": "about:blank",
+            "title": "Service Unavailable",
+            "status": 503,
+            "detail": detail or "READINESS_CHECK_FAILED",
+            "instance": "/health/ready",
+            "correlation_id": correlation_id_var.get() or "",
+        },
+    )
 
 
 @app.exception_handler(Exception)

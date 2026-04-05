@@ -41,6 +41,27 @@ def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict[str, Any]:
     }
 
 
+def _normalize_proposal_result_for_parity(body: dict[str, Any]) -> dict[str, Any]:
+    normalized = {
+        key: value for key, value in body.items() if key not in {"correlation_id", "lineage"}
+    }
+    lineage = dict(body["lineage"])
+    lineage.pop("idempotency_key", None)
+    normalized["lineage"] = lineage
+    explanation = dict(normalized.get("explanation", {}))
+    context_resolution = explanation.get("context_resolution")
+    if isinstance(context_resolution, dict):
+        normalized_context_resolution = dict(context_resolution)
+        normalized_context_resolution.pop("used_legacy_contract", None)
+        explanation["context_resolution"] = normalized_context_resolution
+        normalized["explanation"] = explanation
+    return normalized
+
+
+def _normalize_created_version_result_for_parity(body: dict[str, Any]) -> dict[str, Any]:
+    return _normalize_proposal_result_for_parity(body["version"]["proposal_result"])
+
+
 def test_create_stateful_workspace_session_returns_workspace_context(monkeypatch) -> None:
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
@@ -461,6 +482,72 @@ def test_workspace_evaluate_reruns_stateless_workspace_successfully():
     assert body["latest_proposal_result"]["status"] == "READY"
 
 
+def test_stateless_workspace_evaluate_matches_direct_simulation_for_equivalent_input():
+    simulate_request = {
+        "portfolio_snapshot": {
+            "snapshot_id": "ps_parity_001",
+            "portfolio_id": "pf_parity_001",
+            "base_currency": "USD",
+            "positions": [{"instrument_id": "EQ_OLD", "quantity": "10"}],
+            "cash_balances": [{"currency": "USD", "amount": "10000"}],
+        },
+        "market_data_snapshot": {
+            "snapshot_id": "md_parity_001",
+            "prices": [
+                {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"},
+                {"instrument_id": "EQ_NEW", "price": "50", "currency": "USD"},
+            ],
+            "fx_rates": [],
+        },
+        "shelf_entries": [
+            {"instrument_id": "EQ_OLD", "status": "APPROVED"},
+            {"instrument_id": "EQ_NEW", "status": "APPROVED"},
+        ],
+        "options": {
+            "enable_proposal_simulation": True,
+            "enable_workflow_gates": True,
+            "enable_suitability_scanner": True,
+        },
+        "proposed_cash_flows": [{"direction": "CONTRIBUTION", "amount": "250", "currency": "USD"}],
+        "proposed_trades": [
+            {
+                "intent_type": "SECURITY_TRADE",
+                "side": "BUY",
+                "instrument_id": "EQ_NEW",
+                "quantity": "4",
+            }
+        ],
+    }
+    create_payload = {
+        "workspace_name": "Parity workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {"simulate_request": simulate_request},
+    }
+
+    with TestClient(app) as client:
+        simulate_response = client.post(
+            "/advisory/proposals/simulate",
+            json=simulate_request,
+            headers={"Idempotency-Key": "parity-simulate-001"},
+        )
+        assert simulate_response.status_code == 200
+
+        workspace_create_response = client.post("/advisory/workspaces", json=create_payload)
+        assert workspace_create_response.status_code == 201
+        workspace_id = workspace_create_response.json()["workspace"]["workspace_id"]
+
+        workspace_evaluate_response = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        assert workspace_evaluate_response.status_code == 200
+
+    direct_result = _normalize_proposal_result_for_parity(simulate_response.json())
+    workspace_result = _normalize_proposal_result_for_parity(
+        workspace_evaluate_response.json()["latest_proposal_result"]
+    )
+
+    assert workspace_result == direct_result
+
+
 def test_workspace_evaluate_uses_stateful_context_resolution(monkeypatch) -> None:
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
@@ -877,6 +964,65 @@ def test_workspace_handoff_creates_proposal_then_new_version_without_duplicating
     assert second_body["workspace"]["lifecycle_link"]["current_version_no"] == 2
 
 
+def test_workspace_saved_version_replay_evidence_preserves_handoff_continuity():
+    payload = {
+        "workspace_name": "Replay continuity workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_replay_workspace_001",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        created = client.post("/advisory/workspaces", json=payload)
+        workspace_id = created.json()["workspace"]["workspace_id"]
+        evaluated = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        assert evaluated.status_code == 200
+        saved = client.post(
+            f"/advisory/workspaces/{workspace_id}/save",
+            json={"saved_by": "advisor_123", "version_label": "Replay baseline"},
+        )
+        assert saved.status_code == 200
+        workspace_version_id = saved.json()["saved_version"]["workspace_version_id"]
+
+        handoff = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            headers={"Idempotency-Key": "workspace-replay-handoff-001"},
+            json={"handoff_by": "advisor_123"},
+        )
+        assert handoff.status_code == 200
+        proposal_id = handoff.json()["proposal"]["proposal"]["proposal_id"]
+        proposal_version_no = handoff.json()["proposal"]["version"]["version_no"]
+
+        replay = client.get(
+            f"/advisory/workspaces/{workspace_id}/saved-versions/{workspace_version_id}/replay-evidence"
+        )
+
+    assert replay.status_code == 200
+    body = replay.json()
+    assert body["subject"]["scope"] == "WORKSPACE_SAVED_VERSION"
+    assert body["subject"]["workspace_id"] == workspace_id
+    assert body["subject"]["workspace_version_id"] == workspace_version_id
+    assert body["subject"]["proposal_id"] == proposal_id
+    assert body["subject"]["proposal_version_no"] == proposal_version_no
+    assert body["continuity"]["handoff_action"] == "CREATED_PROPOSAL"
+    assert body["hashes"]["draft_state_hash"]
+    assert body["hashes"]["evaluation_request_hash"]
+
+
 def test_workspace_handoff_requires_idempotency_key_for_first_create():
     create_payload = {
         "workspace_name": "Growth rotation workspace",
@@ -951,6 +1097,97 @@ def test_workspace_handoff_uses_stateful_context_resolution(monkeypatch) -> None
     assert body["workspace"]["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_advisory_01_2026-03-25"
     )
+
+
+def test_stateless_workspace_handoff_matches_direct_proposal_create_for_equivalent_input():
+    simulate_request = {
+        "portfolio_snapshot": {
+            "snapshot_id": "ps_handoff_parity_001",
+            "portfolio_id": "pf_handoff_parity_001",
+            "base_currency": "USD",
+            "positions": [{"instrument_id": "EQ_OLD", "quantity": "10"}],
+            "cash_balances": [{"currency": "USD", "amount": "10000"}],
+        },
+        "market_data_snapshot": {
+            "snapshot_id": "md_handoff_parity_001",
+            "prices": [
+                {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"},
+                {"instrument_id": "EQ_NEW", "price": "50", "currency": "USD"},
+            ],
+            "fx_rates": [],
+        },
+        "shelf_entries": [
+            {"instrument_id": "EQ_OLD", "status": "APPROVED"},
+            {"instrument_id": "EQ_NEW", "status": "APPROVED"},
+        ],
+        "options": {
+            "enable_proposal_simulation": True,
+            "enable_workflow_gates": True,
+            "enable_suitability_scanner": True,
+        },
+        "proposed_cash_flows": [{"direction": "CONTRIBUTION", "amount": "250", "currency": "USD"}],
+        "proposed_trades": [
+            {
+                "intent_type": "SECURITY_TRADE",
+                "side": "BUY",
+                "instrument_id": "EQ_NEW",
+                "quantity": "4",
+            }
+        ],
+    }
+    metadata = {
+        "title": "Parity handoff proposal",
+        "advisor_notes": "Workspace and lifecycle create should match.",
+        "jurisdiction": "SG",
+        "mandate_id": "mandate_parity_001",
+    }
+    direct_create_payload = {
+        "created_by": "advisor_123",
+        "simulate_request": simulate_request,
+        "metadata": metadata,
+    }
+    workspace_create_payload = {
+        "workspace_name": "Parity handoff workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {"simulate_request": simulate_request},
+    }
+
+    with TestClient(app) as client:
+        direct_create_response = client.post(
+            "/advisory/proposals",
+            json=direct_create_payload,
+            headers={"Idempotency-Key": "parity-direct-create-001"},
+        )
+        assert direct_create_response.status_code == 200
+
+        workspace_create_response = client.post(
+            "/advisory/workspaces",
+            json=workspace_create_payload,
+        )
+        assert workspace_create_response.status_code == 201
+        workspace_id = workspace_create_response.json()["workspace"]["workspace_id"]
+
+        workspace_handoff_response = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            headers={"Idempotency-Key": "parity-workspace-handoff-001"},
+            json={"handoff_by": "advisor_123", "metadata": metadata},
+        )
+        assert workspace_handoff_response.status_code == 200
+
+    direct_body = direct_create_response.json()
+    handoff_body = workspace_handoff_response.json()["proposal"]
+
+    assert _normalize_created_version_result_for_parity(handoff_body) == (
+        _normalize_created_version_result_for_parity(direct_body)
+    )
+    assert handoff_body["version"]["request_hash"] == direct_body["version"]["request_hash"]
+    assert handoff_body["version"]["simulation_hash"] == direct_body["version"]["simulation_hash"]
+    assert handoff_body["version"]["artifact_hash"].startswith("sha256:")
+    assert direct_body["version"]["artifact_hash"].startswith("sha256:")
+    assert handoff_body["proposal"]["portfolio_id"] == direct_body["proposal"]["portfolio_id"]
+    assert handoff_body["proposal"]["current_version_no"] == 1
+    assert handoff_body["proposal"]["lifecycle_origin"] == "WORKSPACE_HANDOFF"
 
 
 def test_workspace_handoff_returns_422_when_proposal_simulation_flag_is_disabled():

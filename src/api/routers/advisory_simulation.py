@@ -12,7 +12,8 @@ from src.api.simulation_examples import (
 )
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.artifact_models import ProposalArtifact
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.models import ProposalResult
+from src.core.proposals import ProposalSimulationRequest
 
 router = APIRouter()
 
@@ -24,8 +25,14 @@ router = APIRouter()
     tags=["Advisory Simulation"],
     summary="Simulate an Advisory Proposal",
     description=(
-        "Runs deterministic advisory proposal simulation from advisor-entered cash flows "
-        "and manual security trades.\\n\\n"
+        "Runs deterministic advisory proposal simulation from either a legacy direct payload or "
+        "the normalized `stateless`/`stateful` advisory context contract.\\n\\n"
+        "Normalized modes:\\n"
+        "1) `stateless_input` for direct request-supplied simulation payloads\\n"
+        "2) `stateful_input` for authoritative Lotus Core context resolution\\n\\n"
+        "Legacy mode:\\n"
+        "1) omit `input_mode` and send the direct simulation payload under `simulate_request` or "
+        "as the historical top-level body shape\\n\\n"
         "Processing order:\\n"
         "1) Cash flows (if `proposal_apply_cash_flows_first=true`)\\n"
         "2) Manual security sells (instrument ascending)\\n"
@@ -55,7 +62,7 @@ router = APIRouter()
     },
 )
 def simulate_proposal(
-    request: ProposalSimulateRequest,
+    request: ProposalSimulationRequest,
     idempotency_key: Annotated[
         str,
         Header(
@@ -88,8 +95,9 @@ def simulate_proposal(
     tags=["Advisory Simulation"],
     summary="Build Advisory Proposal Artifact",
     description=(
-        "Runs advisory proposal simulation and returns a deterministic "
-        "proposal artifact package.\\n\\n"
+        "Runs advisory proposal simulation from the same normalized `stateless`/`stateful` "
+        "contract used by lifecycle flows and returns a deterministic proposal artifact "
+        "package. Legacy direct simulation payloads remain supported.\\n\\n"
         "Required header: `Idempotency-Key`.\\n"
         "Optional header: `X-Correlation-Id` (auto-generated when omitted).\\n\\n"
         "Requires `options.enable_proposal_simulation=true`."
@@ -104,7 +112,7 @@ def simulate_proposal(
     },
 )
 def build_proposal_artifact_endpoint(
-    request: ProposalSimulateRequest,
+    request: ProposalSimulationRequest,
     idempotency_key: Annotated[
         str,
         Header(
@@ -123,9 +131,14 @@ def build_proposal_artifact_endpoint(
     ] = None,
     db: Annotated[None, Depends(get_db_session)] = None,
 ) -> ProposalArtifact:
+    resolved_request = service.resolve_simulation_input(request)
     proposal_result = service.simulate_proposal_response(
         request=request,
         idempotency_key=idempotency_key,
         correlation_id=correlation_id,
+        resolved_request=resolved_request,
     )
-    return build_proposal_artifact(request=request, proposal_result=proposal_result)
+    return build_proposal_artifact(
+        request=resolved_request.simulate_request,
+        proposal_result=proposal_result,
+    )

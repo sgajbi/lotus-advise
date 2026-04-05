@@ -1,11 +1,19 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.orchestration import evaluate_advisory_proposal
-from src.core.common.canonical import hash_canonical_payload
+from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposals.context import (
+    ProposalContextResolutionError,
+    build_context_resolution_evidence,
+    canonicalize_create_request_payload,
+    canonicalize_version_request_payload,
+    resolve_create_request,
+    resolve_version_request,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
@@ -20,6 +28,7 @@ from src.core.proposals.models import (
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
     ProposalExecutionStatusResponse,
+    ProposalExecutionUpdateRequest,
     ProposalIdempotencyLookupResponse,
     ProposalIdempotencyRecord,
     ProposalLifecycleOrigin,
@@ -39,8 +48,16 @@ from src.core.proposals.models import (
     ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.repository import ProposalRepository
+from src.core.replay.models import AdvisoryReplayEvidenceResponse
+from src.core.replay.service import (
+    build_async_operation_replay_response,
+    build_proposal_version_replay_response,
+)
 
 TERMINAL_STATES = {"EXECUTED", "REJECTED", "CANCELLED", "EXPIRED"}
+ASYNC_TERMINAL_STATUSES = {"SUCCEEDED", "FAILED"}
+ASYNC_DEFAULT_MAX_ATTEMPTS = 3
+ASYNC_OPERATION_LEASE_SECONDS = 60
 
 TRANSITION_MAP: dict[tuple[ProposalWorkflowState, str], ProposalWorkflowState] = {
     ("DRAFT", "SUBMITTED_FOR_RISK_REVIEW"): "RISK_REVIEW",
@@ -54,6 +71,25 @@ TRANSITION_MAP: dict[tuple[ProposalWorkflowState, str], ProposalWorkflowState] =
     ("EXECUTION_READY", "EXECUTION_REQUESTED"): "EXECUTION_READY",
     ("EXECUTION_READY", "EXECUTED"): "EXECUTED",
     ("EXECUTION_READY", "EXPIRED"): "EXPIRED",
+}
+
+EXECUTION_STATUS_EVENT_TYPES = {
+    "EXECUTION_REQUESTED",
+    "EXECUTION_ACCEPTED",
+    "EXECUTION_PARTIALLY_EXECUTED",
+    "EXECUTION_REJECTED",
+    "EXECUTION_CANCELLED",
+    "EXECUTION_EXPIRED",
+    "EXECUTED",
+}
+
+EXECUTION_UPDATE_EVENT_MAP: dict[str, tuple[str, ProposalWorkflowState]] = {
+    "ACCEPTED": ("EXECUTION_ACCEPTED", "EXECUTION_READY"),
+    "PARTIALLY_EXECUTED": ("EXECUTION_PARTIALLY_EXECUTED", "EXECUTION_READY"),
+    "REJECTED": ("EXECUTION_REJECTED", "REJECTED"),
+    "CANCELLED": ("EXECUTION_CANCELLED", "CANCELLED"),
+    "EXPIRED": ("EXECUTION_EXPIRED", "EXPIRED"),
+    "EXECUTED": ("EXECUTED", "EXECUTED"),
 }
 
 
@@ -105,13 +141,21 @@ class ProposalWorkflowService:
         correlation_id: Optional[str],
         lifecycle_origin: ProposalLifecycleOrigin = "DIRECT_CREATE",
         source_workspace_id: Optional[str] = None,
+        replay_lineage: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
         self._validate_lifecycle_origin(
             lifecycle_origin=lifecycle_origin,
             source_workspace_id=source_workspace_id,
         )
         now = _utc_now()
-        request_payload = payload.model_dump(mode="json")
+        try:
+            resolved_request = resolve_create_request(payload)
+        except ProposalContextResolutionError as exc:
+            raise ProposalValidationError(str(exc)) from exc
+        request_payload = canonicalize_create_request_payload(
+            payload=payload,
+            resolved=resolved_request,
+        )
         request_hash = hash_canonical_payload(request_payload)
 
         existing = self._repository.get_idempotency(idempotency_key=idempotency_key)
@@ -125,33 +169,37 @@ class ProposalWorkflowService:
                 version_no=existing.proposal_version_no,
             )
 
-        self._validate_simulation_flag(payload.simulate_request)
+        self._validate_simulation_flag(resolved_request.simulate_request)
         proposal_result = self._run_simulation(
-            request=payload.simulate_request,
+            request=resolved_request.simulate_request,
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
         artifact = build_proposal_artifact(
-            request=payload.simulate_request,
+            request=resolved_request.simulate_request,
             proposal_result=proposal_result,
             created_at=now.isoformat(),
         )
+        evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
+        evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        if replay_lineage:
+            evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
         proposal_id = f"pp_{uuid.uuid4().hex[:12]}"
         version_no = 1
         proposal = ProposalRecord(
             proposal_id=proposal_id,
-            portfolio_id=payload.simulate_request.portfolio_snapshot.portfolio_id,
-            mandate_id=payload.metadata.mandate_id,
-            jurisdiction=payload.metadata.jurisdiction,
+            portfolio_id=resolved_request.simulate_request.portfolio_snapshot.portfolio_id,
+            mandate_id=resolved_request.metadata.mandate_id,
+            jurisdiction=resolved_request.metadata.jurisdiction,
             created_by=payload.created_by,
             created_at=now,
             last_event_at=now,
             current_state="DRAFT",
             current_version_no=version_no,
-            title=payload.metadata.title,
-            advisor_notes=payload.metadata.advisor_notes,
+            title=resolved_request.metadata.title,
+            advisor_notes=resolved_request.metadata.advisor_notes,
             lifecycle_origin=lifecycle_origin,
             source_workspace_id=source_workspace_id,
         )
@@ -161,7 +209,7 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             proposal_result=proposal_result,
             artifact=artifact.model_dump(mode="json"),
-            evidence_bundle=artifact.evidence_bundle.model_dump(mode="json"),
+            evidence_bundle=evidence_bundle,
             created_at=now,
         )
         created_event = ProposalWorkflowEventRecord(
@@ -210,7 +258,14 @@ class ProposalWorkflowService:
             proposal_id=None,
             created_by=payload.created_by,
             created_at=_utc_now(),
+            payload_json={
+                "payload": payload.model_dump(mode="json"),
+                "idempotency_key": idempotency_key,
+            },
+            attempt_count=0,
+            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
             started_at=None,
+            lease_expires_at=None,
             finished_at=None,
             result_json=None,
             error_json=None,
@@ -222,32 +277,30 @@ class ProposalWorkflowService:
         self,
         *,
         operation_id: str,
-        payload: ProposalCreateRequest,
-        idempotency_key: str,
-        correlation_id: str,
+        payload: Optional[ProposalCreateRequest] = None,
+        idempotency_key: Optional[str] = None,
+        correlation_id: Optional[str] = None,
     ) -> None:
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
             return
-        operation.status = "RUNNING"
-        operation.started_at = _utc_now()
-        self._repository.update_operation(operation)
-        try:
-            response = self.create_proposal(
-                payload=payload,
-                idempotency_key=idempotency_key,
-                correlation_id=correlation_id,
-            )
-            operation.status = "SUCCEEDED"
-            operation.proposal_id = response.proposal.proposal_id
-            operation.result_json = response.model_dump(mode="json")
-            operation.error_json = None
-        except ProposalLifecycleError as exc:
-            operation.status = "FAILED"
-            operation.error_json = {"code": type(exc).__name__, "message": str(exc)}
-            operation.result_json = None
-        operation.finished_at = _utc_now()
-        self._repository.update_operation(operation)
+        recovered_payload = self._resolve_create_async_payload(
+            operation=operation,
+            fallback_payload=payload,
+            fallback_idempotency_key=idempotency_key,
+        )
+        if recovered_payload is None:
+            return
+        request_payload, resolved_idempotency_key = recovered_payload
+        self._run_async_operation(
+            operation_id=operation_id,
+            executor=lambda: self.create_proposal(
+                payload=request_payload,
+                idempotency_key=resolved_idempotency_key,
+                correlation_id=correlation_id or operation.correlation_id,
+                replay_lineage=self._build_async_replay_lineage(operation),
+            ),
+        )
 
     def get_proposal(
         self, *, proposal_id: str, include_evidence: bool = True
@@ -431,14 +484,8 @@ class ProposalWorkflowService:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
         events = self._repository.list_events(proposal_id=proposal_id)
-        latest_execution_requested: ProposalWorkflowEventRecord | None = None
-        latest_execution_event: ProposalWorkflowEventRecord | None = None
-        for event in events:
-            if event.event_type == "EXECUTION_REQUESTED":
-                latest_execution_requested = event
-                latest_execution_event = event
-            elif event.event_type == "EXECUTED":
-                latest_execution_event = event
+        latest_execution_requested = self._latest_execution_requested_event(events)
+        latest_execution_event = self._latest_execution_status_event(events)
 
         handoff_status = "NOT_REQUESTED"
         execution_request_id: str | None = None
@@ -456,10 +503,14 @@ class ProposalWorkflowService:
             related_version_no = latest_execution_requested.related_version_no
             handoff_requested_at = latest_execution_requested.occurred_at.isoformat()
 
-        if latest_execution_event is not None and latest_execution_event.event_type == "EXECUTED":
-            handoff_status = "EXECUTED"
-            executed_at = latest_execution_event.occurred_at.isoformat()
-            external_execution_id = latest_execution_event.reason_json.get("execution_id")
+        if latest_execution_event is not None:
+            handoff_status = self._execution_status_for_event(latest_execution_event.event_type)
+            if latest_execution_event.event_type == "EXECUTED":
+                executed_at = latest_execution_event.occurred_at.isoformat()
+            external_execution_id = (
+                latest_execution_event.reason_json.get("external_execution_id")
+                or latest_execution_event.reason_json.get("execution_id")
+            )
             related_version_no = latest_execution_event.related_version_no or related_version_no
             if latest_execution_requested is None:
                 execution_request_id = latest_execution_event.reason_json.get(
@@ -483,17 +534,82 @@ class ProposalWorkflowService:
             ),
             explanation={
                 "source": "ADVISORY_WORKFLOW_EVENTS",
-                "state_correlation": (
-                    "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS"
-                    if handoff_status == "EXECUTED"
-                    else (
-                        "EXECUTION_REQUESTED_EVENT"
-                        if handoff_status == "REQUESTED"
-                        else "NO_EXECUTION_EVENTS_RECORDED"
-                    )
+                "state_correlation": self._execution_state_correlation(
+                    handoff_status=handoff_status
                 ),
             },
         )
+
+    def record_execution_update(
+        self,
+        *,
+        proposal_id: str,
+        payload: ProposalExecutionUpdateRequest,
+    ) -> ProposalExecutionStatusResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        events = self._repository.list_events(proposal_id=proposal_id)
+        latest_execution_requested = self._latest_execution_requested_event(events)
+        if latest_execution_requested is None:
+            raise ProposalValidationError("EXECUTION_HANDOFF_NOT_FOUND")
+
+        expected_execution_request_id = latest_execution_requested.reason_json.get(
+            "execution_request_id"
+        )
+        if expected_execution_request_id != payload.execution_request_id:
+            raise ProposalStateConflictError("EXECUTION_REQUEST_ID_MISMATCH")
+        expected_execution_provider = latest_execution_requested.reason_json.get(
+            "execution_provider"
+        )
+        if expected_execution_provider != payload.execution_provider:
+            raise ProposalStateConflictError("EXECUTION_PROVIDER_MISMATCH")
+
+        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        replay_event = self._get_replayed_event(
+            proposal_id=proposal_id,
+            idempotency_key=f"execution-update:{payload.update_id}",
+            request_hash=request_hash,
+        )
+        if replay_event is not None:
+            return self.get_execution_status(proposal_id=proposal_id)
+
+        event_type, to_state = EXECUTION_UPDATE_EVENT_MAP[payload.update_status]
+        if proposal.current_state in TERMINAL_STATES:
+            raise ProposalStateConflictError("PROPOSAL_TERMINAL_STATE: execution update rejected")
+
+        occurred_at = (
+            datetime.fromisoformat(payload.occurred_at)
+            if payload.occurred_at is not None
+            else _utc_now()
+        )
+        reason_json = {
+            "update_id": payload.update_id,
+            "execution_request_id": payload.execution_request_id,
+            "execution_provider": payload.execution_provider,
+            "external_execution_id": payload.external_execution_id,
+            "details": payload.details,
+            "idempotency_key": f"execution-update:{payload.update_id}",
+            "idempotency_request_hash": request_hash,
+        }
+        event = ProposalWorkflowEventRecord(
+            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            proposal_id=proposal_id,
+            event_type=event_type,
+            from_state=proposal.current_state,
+            to_state=to_state,
+            actor_id=payload.actor_id,
+            occurred_at=occurred_at,
+            reason_json={k: v for k, v in reason_json.items() if v is not None},
+            related_version_no=(
+                payload.related_version_no
+                or latest_execution_requested.related_version_no
+            ),
+        )
+        proposal.current_state = to_state
+        proposal.last_event_at = occurred_at
+        self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        return self.get_execution_status(proposal_id=proposal_id)
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
         record = self._repository.get_idempotency(idempotency_key=idempotency_key)
@@ -512,6 +628,40 @@ class ProposalWorkflowService:
         if operation is None:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
         return self._to_async_status(operation)
+
+    def get_async_operation_replay(
+        self, *, operation_id: str
+    ) -> AdvisoryReplayEvidenceResponse:
+        operation = self._repository.get_operation(operation_id=operation_id)
+        if operation is None:
+            raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
+
+        proposal = None
+        version = None
+        if operation.proposal_id is not None:
+            proposal = self._repository.get_proposal(proposal_id=operation.proposal_id)
+            if proposal is not None:
+                version_no = None
+                if operation.result_json is not None:
+                    version_payload = operation.result_json.get("version")
+                    if isinstance(version_payload, dict) and isinstance(
+                        version_payload.get("version_no"), int
+                    ):
+                        version_no = version_payload["version_no"]
+                if version_no is not None:
+                    version = self._repository.get_version(
+                        proposal_id=operation.proposal_id,
+                        version_no=version_no,
+                    )
+                if version is None:
+                    version = self._repository.get_current_version(
+                        proposal_id=operation.proposal_id
+                    )
+        return build_async_operation_replay_response(
+            operation=operation,
+            proposal=proposal,
+            version=version,
+        )
 
     def get_async_operation_by_correlation(
         self, *, correlation_id: str
@@ -539,6 +689,7 @@ class ProposalWorkflowService:
         proposal_id: str,
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
+        replay_lineage: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
         now = _utc_now()
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
@@ -554,25 +705,39 @@ class ProposalWorkflowService:
                 "VERSION_CONFLICT: expected_current_version_no mismatch"
             )
 
-        self._validate_simulation_flag(payload.simulate_request)
-        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        try:
+            resolved_request = resolve_version_request(payload)
+        except ProposalContextResolutionError as exc:
+            raise ProposalValidationError(str(exc)) from exc
+        self._validate_simulation_flag(resolved_request.simulate_request)
+        request_hash = hash_canonical_payload(
+            canonicalize_version_request_payload(
+                payload=payload,
+                resolved=resolved_request,
+            )
+        )
         if (
             not self._allow_portfolio_id_change_on_new_version
-            and payload.simulate_request.portfolio_snapshot.portfolio_id != proposal.portfolio_id
+            and resolved_request.simulate_request.portfolio_snapshot.portfolio_id
+            != proposal.portfolio_id
         ):
             raise ProposalValidationError("PORTFOLIO_CONTEXT_MISMATCH")
 
         proposal_result = self._run_simulation(
-            request=payload.simulate_request,
+            request=resolved_request.simulate_request,
             request_hash=request_hash,
             idempotency_key=None,
             correlation_id=correlation_id,
         )
         artifact = build_proposal_artifact(
-            request=payload.simulate_request,
+            request=resolved_request.simulate_request,
             proposal_result=proposal_result,
             created_at=now.isoformat(),
         )
+        evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
+        evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        if replay_lineage:
+            evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
         next_version_no = proposal.current_version_no + 1
         version = self._to_version_record(
@@ -581,7 +746,7 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             proposal_result=proposal_result,
             artifact=artifact.model_dump(mode="json"),
-            evidence_bundle=artifact.evidence_bundle.model_dump(mode="json"),
+            evidence_bundle=evidence_bundle,
             created_at=now,
         )
         event = ProposalWorkflowEventRecord(
@@ -619,7 +784,14 @@ class ProposalWorkflowService:
             proposal_id=proposal_id,
             created_by=payload.created_by,
             created_at=_utc_now(),
+            payload_json={
+                "proposal_id": proposal_id,
+                "payload": payload.model_dump(mode="json"),
+            },
+            attempt_count=0,
+            max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
             started_at=None,
+            lease_expires_at=None,
             finished_at=None,
             result_json=None,
             error_json=None,
@@ -631,32 +803,48 @@ class ProposalWorkflowService:
         self,
         *,
         operation_id: str,
-        proposal_id: str,
-        payload: ProposalVersionRequest,
-        correlation_id: str,
+        proposal_id: Optional[str] = None,
+        payload: Optional[ProposalVersionRequest] = None,
+        correlation_id: Optional[str] = None,
     ) -> None:
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
             return
-        operation.status = "RUNNING"
-        operation.started_at = _utc_now()
-        self._repository.update_operation(operation)
-        try:
-            response = self.create_version(
-                proposal_id=proposal_id,
-                payload=payload,
-                correlation_id=correlation_id,
+        recovered_payload = self._resolve_version_async_payload(
+            operation=operation,
+            fallback_proposal_id=proposal_id,
+            fallback_payload=payload,
+        )
+        if recovered_payload is None:
+            return
+        resolved_proposal_id, request_payload = recovered_payload
+        self._run_async_operation(
+            operation_id=operation_id,
+            executor=lambda: self.create_version(
+                proposal_id=resolved_proposal_id,
+                payload=request_payload,
+                correlation_id=correlation_id or operation.correlation_id,
+                replay_lineage=self._build_async_replay_lineage(operation),
+            ),
+        )
+
+    def recover_async_operations(self) -> int:
+        recovered = 0
+        for operation in self._repository.list_recoverable_operations(as_of=_utc_now()):
+            if operation.operation_type == "CREATE_PROPOSAL":
+                self.execute_create_proposal_async(operation_id=operation.operation_id)
+                recovered += 1
+                continue
+            if operation.operation_type == "CREATE_PROPOSAL_VERSION":
+                self.execute_create_version_async(operation_id=operation.operation_id)
+                recovered += 1
+                continue
+            self._mark_operation_failed(
+                operation=operation,
+                code="ProposalLifecycleError",
+                message="PROPOSAL_ASYNC_OPERATION_TYPE_UNSUPPORTED",
             )
-            operation.status = "SUCCEEDED"
-            operation.proposal_id = response.proposal.proposal_id
-            operation.result_json = response.model_dump(mode="json")
-            operation.error_json = None
-        except ProposalLifecycleError as exc:
-            operation.status = "FAILED"
-            operation.error_json = {"code": type(exc).__name__, "message": str(exc)}
-            operation.result_json = None
-        operation.finished_at = _utc_now()
-        self._repository.update_operation(operation)
+        return recovered
 
     def transition_state(
         self,
@@ -935,7 +1123,11 @@ class ProposalWorkflowService:
         created_at: datetime,
     ) -> ProposalVersionRecord:
         simulation_payload = proposal_result.model_dump(mode="json")
-        simulation_hash = hash_canonical_payload(simulation_payload)
+        simulation_hash_payload = strip_keys(
+            simulation_payload,
+            exclude={"correlation_id", "idempotency_key"},
+        )
+        simulation_hash = hash_canonical_payload(simulation_hash_payload)
         artifact_hash = artifact["evidence_bundle"]["hashes"]["artifact_hash"]
         return ProposalVersionRecord(
             proposal_version_id=f"ppv_{uuid.uuid4().hex[:12]}",
@@ -965,6 +1157,8 @@ class ProposalWorkflowService:
             status=operation.status,
             correlation_id=operation.correlation_id,
             created_at=operation.created_at.isoformat(),
+            attempt_count=operation.attempt_count,
+            max_attempts=operation.max_attempts,
             status_url=f"/advisory/proposals/operations/{operation.operation_id}",
         )
 
@@ -982,6 +1176,11 @@ class ProposalWorkflowService:
             created_at=operation.created_at.isoformat(),
             started_at=(operation.started_at.isoformat() if operation.started_at else None),
             finished_at=(operation.finished_at.isoformat() if operation.finished_at else None),
+            attempt_count=operation.attempt_count,
+            max_attempts=operation.max_attempts,
+            lease_expires_at=(
+                operation.lease_expires_at.isoformat() if operation.lease_expires_at else None
+            ),
             result=(
                 ProposalCreateResponse.model_validate(operation.result_json)
                 if operation.result_json is not None
@@ -989,6 +1188,204 @@ class ProposalWorkflowService:
             ),
             error=operation.error_json,
         )
+
+    def get_version_replay(
+        self,
+        *,
+        proposal_id: str,
+        version_no: int,
+    ) -> AdvisoryReplayEvidenceResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
+        if version is None:
+            raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
+        return build_proposal_version_replay_response(proposal=proposal, version=version)
+
+    def _resolve_create_async_payload(
+        self,
+        *,
+        operation: ProposalAsyncOperationRecord,
+        fallback_payload: Optional[ProposalCreateRequest],
+        fallback_idempotency_key: Optional[str],
+    ) -> tuple[ProposalCreateRequest, str] | None:
+        payload_json = operation.payload_json.get("payload")
+        if not isinstance(payload_json, dict):
+            if fallback_payload is None:
+                self._mark_operation_failed(
+                    operation=operation,
+                    code="ProposalLifecycleError",
+                    message="PROPOSAL_ASYNC_PAYLOAD_INVALID",
+                )
+                return None
+            payload = fallback_payload
+        else:
+            try:
+                payload = ProposalCreateRequest.model_validate(payload_json)
+            except Exception:
+                self._mark_operation_failed(
+                    operation=operation,
+                    code="ProposalLifecycleError",
+                    message="PROPOSAL_ASYNC_PAYLOAD_INVALID",
+                )
+                return None
+
+        resolved_idempotency_key = (
+            operation.payload_json.get("idempotency_key")
+            or operation.idempotency_key
+            or fallback_idempotency_key
+        )
+        if not isinstance(resolved_idempotency_key, str) or not resolved_idempotency_key:
+            self._mark_operation_failed(
+                operation=operation,
+                code="ProposalLifecycleError",
+                message="PROPOSAL_ASYNC_IDEMPOTENCY_KEY_REQUIRED",
+            )
+            return None
+        return payload, resolved_idempotency_key
+
+    def _resolve_version_async_payload(
+        self,
+        *,
+        operation: ProposalAsyncOperationRecord,
+        fallback_proposal_id: Optional[str],
+        fallback_payload: Optional[ProposalVersionRequest],
+    ) -> tuple[str, ProposalVersionRequest] | None:
+        payload_json = operation.payload_json.get("payload")
+        if not isinstance(payload_json, dict):
+            if fallback_payload is None:
+                self._mark_operation_failed(
+                    operation=operation,
+                    code="ProposalLifecycleError",
+                    message="PROPOSAL_ASYNC_PAYLOAD_INVALID",
+                )
+                return None
+            payload = fallback_payload
+        else:
+            try:
+                payload = ProposalVersionRequest.model_validate(payload_json)
+            except Exception:
+                self._mark_operation_failed(
+                    operation=operation,
+                    code="ProposalLifecycleError",
+                    message="PROPOSAL_ASYNC_PAYLOAD_INVALID",
+                )
+                return None
+
+        resolved_proposal_id = operation.payload_json.get("proposal_id") or operation.proposal_id
+        if not isinstance(resolved_proposal_id, str) or not resolved_proposal_id:
+            resolved_proposal_id = fallback_proposal_id or ""
+        if not resolved_proposal_id:
+            self._mark_operation_failed(
+                operation=operation,
+                code="ProposalLifecycleError",
+                message="PROPOSAL_ASYNC_PROPOSAL_ID_REQUIRED",
+            )
+            return None
+        return resolved_proposal_id, payload
+
+    def _run_async_operation(
+        self,
+        *,
+        operation_id: str,
+        executor: Any,
+    ) -> None:
+        while True:
+            operation = self._repository.get_operation(operation_id=operation_id)
+            if operation is None or operation.status in ASYNC_TERMINAL_STATUSES:
+                return
+
+            self._begin_async_attempt(operation)
+            try:
+                response = executor()
+            except ProposalLifecycleError as exc:
+                self._mark_operation_failed(
+                    operation=operation,
+                    code=type(exc).__name__,
+                    message=str(exc),
+                )
+                return
+            except Exception as exc:
+                if self._requeue_or_fail_runtime_exception(operation=operation, exc=exc):
+                    continue
+                return
+
+            self._mark_operation_succeeded(operation=operation, response=response)
+            return
+
+    def _begin_async_attempt(self, operation: ProposalAsyncOperationRecord) -> None:
+        attempt_started_at = _utc_now()
+        operation.status = "RUNNING"
+        operation.attempt_count += 1
+        operation.started_at = attempt_started_at
+        operation.lease_expires_at = _utc_after(seconds=ASYNC_OPERATION_LEASE_SECONDS)
+        operation.finished_at = None
+        operation.result_json = None
+        operation.error_json = None
+        self._repository.update_operation(operation)
+
+    def _mark_operation_succeeded(
+        self,
+        *,
+        operation: ProposalAsyncOperationRecord,
+        response: ProposalCreateResponse,
+    ) -> None:
+        operation.status = "SUCCEEDED"
+        operation.proposal_id = response.proposal.proposal_id
+        operation.result_json = response.model_dump(mode="json")
+        operation.error_json = None
+        operation.lease_expires_at = None
+        operation.finished_at = _utc_now()
+        self._repository.update_operation(operation)
+
+    def _mark_operation_failed(
+        self,
+        *,
+        operation: ProposalAsyncOperationRecord,
+        code: str,
+        message: str,
+    ) -> None:
+        operation.status = "FAILED"
+        operation.result_json = None
+        operation.error_json = {"code": code, "message": message}
+        operation.lease_expires_at = None
+        operation.finished_at = _utc_now()
+        self._repository.update_operation(operation)
+
+    def _requeue_or_fail_runtime_exception(
+        self,
+        *,
+        operation: ProposalAsyncOperationRecord,
+        exc: Exception,
+    ) -> bool:
+        operation.result_json = None
+        operation.lease_expires_at = None
+        operation.error_json = {
+            "code": type(exc).__name__,
+            "message": str(exc) or type(exc).__name__,
+        }
+        if operation.attempt_count < operation.max_attempts:
+            operation.status = "PENDING"
+            operation.finished_at = None
+            self._repository.update_operation(operation)
+            return True
+
+        operation.status = "FAILED"
+        operation.finished_at = _utc_now()
+        self._repository.update_operation(operation)
+        return False
+
+    def _build_async_replay_lineage(
+        self,
+        operation: ProposalAsyncOperationRecord,
+    ) -> dict[str, Any]:
+        return {
+            "async_operation_id": operation.operation_id,
+            "async_operation_type": operation.operation_type,
+            "correlation_id": operation.correlation_id,
+            "idempotency_key": operation.idempotency_key,
+        }
 
     def _run_simulation(
         self,
@@ -1071,6 +1468,50 @@ class ProposalWorkflowService:
 
         raise ProposalTransitionError("INVALID_APPROVAL_TYPE")
 
+    def _latest_execution_requested_event(
+        self, events: list[ProposalWorkflowEventRecord]
+    ) -> ProposalWorkflowEventRecord | None:
+        for event in reversed(events):
+            if event.event_type == "EXECUTION_REQUESTED":
+                return event
+        return None
+
+    def _latest_execution_status_event(
+        self, events: list[ProposalWorkflowEventRecord]
+    ) -> ProposalWorkflowEventRecord | None:
+        for event in reversed(events):
+            if event.event_type in EXECUTION_STATUS_EVENT_TYPES:
+                return event
+        return None
+
+    def _execution_status_for_event(self, event_type: str) -> str:
+        mapping = {
+            "EXECUTION_REQUESTED": "REQUESTED",
+            "EXECUTION_ACCEPTED": "ACCEPTED",
+            "EXECUTION_PARTIALLY_EXECUTED": "PARTIALLY_EXECUTED",
+            "EXECUTION_REJECTED": "REJECTED",
+            "EXECUTION_CANCELLED": "CANCELLED",
+            "EXECUTION_EXPIRED": "EXPIRED",
+            "EXECUTED": "EXECUTED",
+        }
+        return mapping.get(event_type, "NOT_REQUESTED")
+
+    def _execution_state_correlation(self, *, handoff_status: str) -> str:
+        mapping = {
+            "REQUESTED": "EXECUTION_REQUESTED_EVENT",
+            "ACCEPTED": "EXECUTION_REQUESTED_AND_ACCEPTED_EVENTS",
+            "PARTIALLY_EXECUTED": "EXECUTION_REQUESTED_AND_PARTIAL_EXECUTION_EVENTS",
+            "EXECUTED": "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS",
+            "REJECTED": "EXECUTION_REQUESTED_AND_REJECTED_EVENTS",
+            "CANCELLED": "EXECUTION_REQUESTED_AND_CANCELLED_EVENTS",
+            "EXPIRED": "EXECUTION_REQUESTED_AND_EXPIRED_EVENTS",
+        }
+        return mapping.get(handoff_status, "NO_EXECUTION_EVENTS_RECORDED")
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _utc_after(*, seconds: int) -> datetime:
+    return _utc_now().replace(microsecond=0) + timedelta(seconds=seconds)

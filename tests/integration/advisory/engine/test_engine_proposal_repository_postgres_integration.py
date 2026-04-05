@@ -68,14 +68,23 @@ def test_live_postgres_proposal_repository_parity_contract(
         proposal_id=None,
         created_by="advisor_live",
         created_at=now,
+        payload_json={
+            "payload": {"created_by": "advisor_live"},
+            "idempotency_key": idempotency_key,
+        },
+        attempt_count=0,
+        max_attempts=3,
         started_at=None,
+        lease_expires_at=None,
         finished_at=None,
         result_json=None,
         error_json=None,
     )
     repository.create_operation(operation)
     operation.status = "SUCCEEDED"
+    operation.attempt_count = 1
     operation.started_at = now
+    operation.lease_expires_at = now + timedelta(seconds=30)
     operation.finished_at = now + timedelta(seconds=1)
     operation.proposal_id = proposal_id
     operation.result_json = {"proposal_id": proposal_id}
@@ -84,6 +93,8 @@ def test_live_postgres_proposal_repository_parity_contract(
     loaded_operation = repository.get_operation(operation_id=operation_id)
     assert loaded_operation is not None
     assert loaded_operation.status == "SUCCEEDED"
+    assert loaded_operation.attempt_count == 1
+    assert loaded_operation.payload_json["idempotency_key"] == idempotency_key
     by_correlation = repository.get_operation_by_correlation(correlation_id=correlation_id)
     assert by_correlation is not None
     assert by_correlation.operation_id == operation_id

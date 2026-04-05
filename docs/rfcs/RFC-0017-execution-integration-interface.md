@@ -1,383 +1,201 @@
-# RFC-0017: Execution Integration Interface (OMS / Broker) + Trade Ticket & Acknowledgement Lifecycle
+# RFC-0017: Execution Integration Interface
 
-| Metadata | Details |
-| --- | --- |
-| **Status** | DRAFT |
-| **Created** | 2026-02-18 |
-| **Target Release** | MVP-0017 |
-| **Depends On** | RFC-0011 (Proposal Artifact) |
-| **Strongly Recommended** | RFC-0012 (GateDecision), RFC-0013 (Persistence) |
-| **Doc Location** | `docs/rfcs/RFC-0017-execution-integration-interface.md` |
-| **Backward Compatibility** | Not required |
+- Status: DRAFT
+- Date: 2026-04-05
+- Owners: lotus-advise
+- Requires Approval From: lotus-advise maintainers
+- Depends On: RFC-0011, RFC-0012, RFC-0013
 
----
+## Summary
 
-## 0. Executive Summary
+`lotus-advise` already exposes advisory-side execution-handoff APIs and execution-status reads.
 
-RFC-0017 defines how an approved advisory proposal becomes **executed orders** by integrating with an OMS/broker layer.
+What it does not yet have is a finalized execution integration contract covering:
 
-It introduces:
-- a canonical **Execution Request** API
-- deterministic conversion from intents → **trade tickets**
-- **dependency-aware** execution ordering (FX before BUYs)
-- idempotent submit + acknowledgement lifecycle
-- status tracking model (submitted/accepted/partially-filled/filled/rejected/cancelled)
+1. normalized execution request identity,
+2. downstream execution update ingestion,
+3. advisory-side reconciliation semantics,
+4. clean separation between advisory ownership and OMS or broker ownership.
 
-This RFC is intentionally integration-first and remains vendor-neutral.
+This RFC should now be interpreted as the execution-boundary RFC for `lotus-advise`, not as a
+placeholder for full broker implementation detail.
 
----
+## Why This Is Next
 
-## 1. Motivation / Problem Statement
-
-A proposal engine is only valuable in production if it can:
-- produce executable trade instructions,
-- submit them safely (idempotent),
-- receive acknowledgements and fills,
-- update the lifecycle state with full auditability.
+Execution is no longer hypothetical in the advisory model:
 
-The proposal artifact already contains deterministic intent ordering and dependencies. RFC-0017 turns that into an execution pipeline.
+1. lifecycle already includes execution-ready posture,
+2. execution handoff is already part of the shipped advisory surface,
+3. `RFC-0019` needs a stable execution contract before it can close the reconciliation loop.
 
----
+Without this RFC:
 
-## 2. Scope
+1. advisory execution ownership stays underspecified,
+2. downstream status updates will be implemented ad hoc,
+3. lifecycle and execution reconciliation risk drifting into mixed ownership.
 
-### 2.1 In Scope
-- Define an **Execution Integration Interface** (port) and baseline HTTP APIs.
-- Create **trade tickets** from `ProposalArtifact.trades_and_funding`.
-- Submit execution requests idempotently.
-- Track execution lifecycle events (accept/reject/fill/cancel).
-- Support dependency graph execution sequencing:
-  - CASH_FLOW (if applicable) → SELL → FX → BUY
+## Problem Statement
 
-### 2.2 Out of Scope
-- Real broker connectivity details (FIX, proprietary)
-- Best execution / smart routing logic
-- Settlement, allocations, confirmations beyond basic status
-- Partial order slicing logic (can be later RFC)
-- Multi-day execution and time-in-force complexity (later RFC)
+The current service can record advisory intent to hand off execution, but it does not yet define
+the full authoritative contract for what happens next.
 
----
+The unresolved questions are:
 
-## 3. Preconditions
+1. what is the canonical advisory execution request identity,
+2. what execution states and events are stable enough for advisory-side lifecycle reconciliation,
+3. how should downstream systems return updates,
+4. what data belongs in `lotus-advise` versus what remains external execution truth.
 
-This RFC assumes:
-- Proposal has passed required gates (GateDecision indicates EXECUTION_READY or equivalent).
-- Proposal version is immutable and persisted (strongly recommended) so execution refers to a stable artifact.
+## Decision
 
-If persistence is not yet implemented:
-- execution request must carry the complete artifact + evidence bundle (heavier but possible).
+`lotus-advise` should define one vendor-neutral execution integration contract with two clear
+boundaries:
 
----
+1. advisory-owned execution handoff and reconciliation,
+2. downstream-owned order routing and fill execution.
 
-## 4. Core Concepts
+The first implementation should stay narrow:
 
-### 4.1 Trade Ticket
-A normalized instruction derived from intents that can be sent to OMS/broker.
+1. deterministic execution request and ticket lineage,
+2. idempotent handoff semantics,
+3. downstream update ingestion contract,
+4. advisory-side execution status and reconciliation model.
 
-Ticket types:
-- `SECURITY_ORDER`
-- `FX_SPOT_ORDER`
-- (optional later) `CASH_TRANSFER`
+## Cross-RFC Boundaries
 
-### 4.2 Execution Request
-A request to execute the tickets associated with a specific proposal/version.
+### This RFC owns
 
-### 4.3 Execution Lifecycle
-A set of states and events representing order submission and fills.
+1. advisory execution request shape,
+2. execution ticket and dependency lineage,
+3. downstream execution update contract,
+4. advisory-side execution state and reconciliation semantics.
 
----
+### This RFC does not own
 
-## 5. API Design
+1. proposal artifact structure, which remains under
+   [RFC-0011](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0011-proposal-artifact.md),
+2. workflow gate semantics, which remain under
+   [RFC-0012](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0012-advisory-workflow-gates.md),
+3. lifecycle persistence and audit ownership, which remain under
+   [RFC-0013](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0013-proposal-persistence-workflow-lifecycle.md),
+4. broad runtime closure and evidence convergence, which remain under
+   [RFC-0019](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0019-authoritative-context-runtime-and-workspace-closure.md),
+5. post-trade surveillance and oversight, which remain under
+   [RFC-0018](C:/Users/Sandeep/projects/lotus-advise/docs/rfcs/RFC-0018-monitoring-surveillance-post-trade-controls.md).
 
-All endpoints follow the `/advisory/...` route family.
+## Architecture Direction
 
-### 5.1 Create execution request
-`POST /advisory/executions`
+### 1. Canonical Execution Request
 
-Headers:
-- `Idempotency-Key` required
-- `X-Correlation-Id` optional
+An execution request should identify:
 
-Body:
-```json
-{
-  "proposal_id": "prop_123",
-  "version_no": 2,
-  "execution_policy": {
-    "time_in_force": "DAY",
-    "allow_partial_fills": true,
-    "max_slippage_bps": "25",
-    "dry_run": false
-  },
-  "actor": {
-    "requested_by": "advisor_001",
-    "channel": "ADVISOR_APP"
-  }
-}
-````
-
-Response:
-
-```json
-{
-  "execution_id": "exec_20260218_abc",
-  "proposal_id": "prop_123",
-  "version_no": 2,
-  "status": "SUBMITTED",
-  "tickets": [ ... ],
-  "lineage": { "request_hash": "sha256:..." }
-}
-```
-
-### 5.2 Get execution
-
-`GET /advisory/executions/{execution_id}`
-
-Returns:
-
-* execution summary
-* tickets + per-ticket status
-* lifecycle events
-
-### 5.3 List executions
-
-`GET /advisory/executions?proposal_id=&status=&from=&to=&limit=&cursor=`
-
-### 5.4 Receive external updates (webhook / callback)
-
-Two models:
-
-**Option A (preferred):** webhook endpoint exposed by this service
-`POST /advisory/executions/{execution_id}/events`
-
-Body:
-
-```json
-{
-  "source": "OMS_X",
-  "event_type": "ORDER_ACCEPTED|ORDER_REJECTED|PARTIAL_FILL|FILLED|CANCELLED",
-  "external_order_id": "OMS12345",
-  "ticket_id": "tkt_001",
-  "occurred_at": "2026-02-18T10:00:00Z",
-  "details": { "filled_qty": "5", "avg_price": "149.80" }
-}
-```
-
-**Option B:** this service polls OMS (later)
-
----
+1. proposal aggregate and immutable version,
+2. advisory actor and submission context,
+3. execution policy options,
+4. deterministic lineage to the advisory artifact and intent ordering.
 
-## 6. Ticket Generation (Deterministic)
+### 2. Deterministic Ticket Model
 
-### 6.1 Ticket ordering
+Trade tickets should remain deterministic and dependency-aware.
 
-Tickets must preserve proposal dependency order:
+Required direction:
 
-1. SELL security orders
-2. FX spot orders
-3. BUY security orders
+1. stable ticket identity derived from advisory lineage,
+2. explicit dependency ordering,
+3. explicit mapping from advisory intents to execution requests.
 
-(If cash flows are part of the execution system, place them ahead.)
+### 3. Downstream Update Contract
 
-### 6.2 Ticket identity
+`lotus-advise` should define one stable ingestion path for downstream execution events.
 
-Ticket IDs must be deterministic to support idempotency and audit:
+Required direction:
 
-* `ticket_id = "tkt_" + sha1(proposal_version_hash + intent_id)[:12]`
+1. idempotent update handling,
+2. stable correlation keys,
+3. append-only event posture for support and audit,
+4. explicit terminal and non-terminal execution outcomes.
 
-### 6.3 Ticket schema
+### 4. Advisory-Side Reconciliation
 
-#### 6.3.1 Security Order Ticket
+`lotus-advise` should reconcile execution outcomes back into advisory lifecycle truth without
+claiming to be the execution engine itself.
 
-```json
-{
-  "ticket_id": "tkt_...",
-  "ticket_type": "SECURITY_ORDER",
-  "intent_id": "oi_...",
-  "instrument_id": "US_EQ_ETF",
-  "side": "BUY",
-  "quantity": "10",
-  "currency": "USD",
-  "order_type": "MARKET",
-  "time_in_force": "DAY",
-  "dependencies": ["tkt_fx_..."],
-  "constraints": {
-    "max_slippage_bps": "25"
-  }
-}
-```
+Required direction:
 
-#### 6.3.2 FX Spot Ticket
+1. accepted, rejected, partial, executed, cancelled, and expired outcomes must be explicit,
+2. lifecycle and execution posture must remain explainable from durable evidence,
+3. unmatched or inconsistent downstream updates must surface as reviewable exceptions.
 
-```json
-{
-  "ticket_id": "tkt_fx_...",
-  "ticket_type": "FX_SPOT_ORDER",
-  "intent_id": "oi_fx_...",
-  "pair": "USD/SGD",
-  "buy_currency": "USD",
-  "buy_amount": "1500.00",
-  "sell_currency": "SGD",
-  "sell_amount_estimated": "2025.00",
-  "order_type": "MARKET",
-  "time_in_force": "DAY",
-  "dependencies": []
-}
-```
+## Delivery Slices
 
----
+### Slice 1: Canonical Handoff and Ticket Contract
 
-## 7. Execution State Machine
+Outcome:
 
-### 7.1 Execution (aggregate) states
+1. finalize advisory execution request identity,
+2. finalize deterministic ticket and dependency lineage.
 
-* `CREATED`
-* `SUBMITTED`
-* `ACCEPTED` (all tickets accepted)
-* `PARTIALLY_FILLED`
-* `FILLED`
-* `REJECTED` (any critical ticket rejected)
-* `CANCELLED`
+Acceptance gate:
 
-### 7.2 Ticket states
+1. handoff payload and execution lineage are documented and tested,
+2. the advisory contract stays vendor-neutral.
 
-* `PENDING_SUBMIT`
-* `SUBMITTED`
-* `ACCEPTED`
-* `REJECTED`
-* `PARTIAL_FILL`
-* `FILLED`
-* `CANCELLED`
+### Slice 2: Downstream Update Ingestion Contract
 
-### 7.3 State transition rules
+Outcome:
 
-* Execution becomes `REJECTED` if:
+1. one stable webhook or ingestion contract for downstream execution updates,
+2. idempotent event handling and durable event history.
 
-  * FX ticket rejected and BUY depends on it (cannot proceed)
-  * critical SELL rejected (policy configurable)
-* Execution becomes `FILLED` only when all tickets reach terminal filled/cancelled states as permitted by policy.
+Acceptance gate:
 
----
+1. downstream updates can be correlated deterministically to advisory execution requests,
+2. duplicate updates do not create ambiguous execution state.
 
-## 8. Idempotency & Safety
+### Slice 3: Advisory Reconciliation Baseline
 
-### 8.1 Execution create idempotency
+Outcome:
 
-* Idempotency-Key + canonical request hash ensures retries do not create duplicate executions.
-* If a create request repeats with same key but differs:
+1. advisory execution posture derives from handoff plus downstream updates,
+2. lifecycle reconciliation semantics are explicit enough for `RFC-0019` slice 4.
 
-  * 409 Problem Details
+Acceptance gate:
 
-### 8.2 Exactly-once submission semantics (best effort)
+1. accepted, rejected, partial, executed, cancelled, and expired postures are supported,
+2. advisory-side execution state is explainable from persisted evidence.
 
-If persistence exists:
+## Test and Validation Expectations
 
-* store execution + tickets in a single transaction
-* submit to OMS after commit
-* track submission attempts in an outbox table (later enhancement)
+1. Unit tests for deterministic ticket generation and execution-state transitions.
+2. Integration tests for idempotent downstream update ingestion.
+3. Contract tests for execution-handoff and update payloads.
 
-For MVP:
+## Rollout and Compatibility
 
-* at least ensure ticket IDs are deterministic so OMS can deduplicate if supported.
+1. Existing execution-handoff APIs should be extended, not replaced.
+2. External OMS-specific adapters should remain a later implementation detail.
+3. `RFC-0019` execution-reconciliation work should build on this RFC rather than redefining the
+   execution contract itself.
 
----
+## Risks
 
-## 9. Integration Port (Adapter Pattern)
+1. execution scope could drift into OMS implementation detail,
+2. lifecycle ownership and execution ownership could blur,
+3. reconciliation could be attempted before durable evidence is strong enough.
 
-Define a port interface:
+Mitigations:
 
-* `ExecutionProvider.submit_tickets(execution_id, tickets) -> SubmitResult`
-* `ExecutionProvider.cancel_ticket(ticket_id) -> CancelResult`
-* `ExecutionProvider.fetch_status(external_order_id) -> Status`
+1. keep the contract vendor-neutral,
+2. keep order execution ownership downstream,
+3. align closely with RFC-0013 lifecycle evidence and RFC-0019 closure sequencing.
 
-Provide an initial adapter stub:
+## Acceptance Criteria
 
-* `MockExecutionProvider` for tests/demo
-* later adapters:
+1. `lotus-advise` has one stable execution integration contract.
+2. Downstream execution update ingestion and advisory reconciliation semantics are explicit.
+3. RFC-0019 can build execution closure on top of this RFC without redefining execution basics.
 
-  * FIX adapter
-  * REST OMS adapter
-  * internal broker adapter
+## Approval Requested
 
----
-
-## 10. Persistence (Recommended)
-
-Add tables:
-
-* `executions`
-* `execution_tickets`
-* `execution_events`
-* `execution_idempotency_keys`
-
-Store:
-
-* proposal_id/version_no
-* tickets JSONB
-* external_order_ids mapping
-* events append-only
-
-If RFC-0013 already introduced a shared idempotency table, reuse it with a type discriminator.
-
----
-
-## 11. Observability
-
-Metrics:
-
-* executions_created_total{status=...}
-* tickets_submitted_total{type=...}
-* tickets_rejected_total{reason=...}
-* execution_latency_ms{stage=submit|ack|fill}
-
-Logs:
-
-* correlation_id
-* execution_id
-* proposal_id/version_no
-* ticket_id/external_order_id
-
----
-
-## 12. Testing Plan
-
-### 12.1 Unit tests
-
-* ticket generation determinism
-* dependency mapping correctness
-* execution state machine transitions
-* idempotency conflicts
-
-### 12.2 Integration tests
-
-* using MockExecutionProvider:
-
-  * accept all tickets
-  * reject FX ticket
-  * partial fill then fill
-
-### 12.3 Golden tests
-
-Not required for execution pipeline beyond determinism of tickets, but can snapshot generated tickets for demo scenarios.
-
----
-
-## 13. Acceptance Criteria (DoD)
-
-* System can create an execution request for a proposal version.
-* Tickets are generated deterministically and include dependencies.
-* Execution submission is idempotent.
-* Status events update ticket and execution states deterministically.
-* Rejection handling respects dependency constraints (FX rejection blocks dependent buys).
-* Tests cover happy path + rejection + partial fill.
-
----
-
-## 14. Follow-ups
-
-* Outbox pattern for resilient submission
-* Allocation to accounts, settlement instructions
-* Multi-day execution, slicing, time windows
-* Real OMS/FIX integration adapters
-
-
+Approve RFC-0017 as the execution-boundary RFC that stabilizes advisory-side handoff, downstream
+update ingestion, and reconciliation semantics.

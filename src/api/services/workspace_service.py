@@ -12,7 +12,14 @@ from src.core.proposals import (
     ProposalVersionRequest,
     ProposalWorkflowService,
 )
-from src.core.proposals.models import ProposalCreateMetadata
+from src.core.proposals.context import (
+    ResolvedSimulationContext,
+    build_context_resolution_evidence,
+    canonicalize_simulation_request_payload,
+)
+from src.core.proposals.models import ProposalCreateMetadata, ProposalResolvedContext
+from src.core.replay.models import AdvisoryReplayEvidenceResponse
+from src.core.replay.service import build_workspace_saved_version_replay_response
 from src.core.workspace.models import (
     WorkspaceCashFlowDraft,
     WorkspaceCompareDiffSummary,
@@ -228,7 +235,67 @@ def _build_replay_evidence(
         draft_state_hash=_build_draft_state_hash(session),
         evaluation_request_hash=evaluation_request_hash,
         captured_at=_utc_now_iso(),
+        continuity={},
     )
+
+
+def _find_matching_saved_version(session: WorkspaceSession) -> WorkspaceSavedVersion | None:
+    draft_state_hash = _build_draft_state_hash(session)
+    evaluation_request_hash = (
+        session.latest_replay_evidence.evaluation_request_hash
+        if session.latest_replay_evidence is not None
+        else None
+    )
+    for saved_version in reversed(session.saved_versions):
+        if saved_version.replay_evidence.draft_state_hash != draft_state_hash:
+            continue
+        if (
+            evaluation_request_hash is not None
+            and saved_version.replay_evidence.evaluation_request_hash != evaluation_request_hash
+        ):
+            continue
+        return saved_version
+    return None
+
+
+def _build_workspace_handoff_replay_lineage(
+    session: WorkspaceSession,
+    request: WorkspaceLifecycleHandoffRequest,
+    handoff_action: str,
+    proposal_id: str,
+    proposal_version_no: int,
+) -> dict[str, str | int | None]:
+    matched_saved_version = _find_matching_saved_version(session)
+    return {
+        "workspace_id": session.workspace_id,
+        "workspace_version_id": (
+            matched_saved_version.workspace_version_id
+            if matched_saved_version is not None
+            else None
+        ),
+        "draft_state_hash": _build_draft_state_hash(session),
+        "evaluation_request_hash": (
+            session.latest_replay_evidence.evaluation_request_hash
+            if session.latest_replay_evidence is not None
+            else None
+        ),
+        "handoff_action": handoff_action,
+        "handoff_at": _utc_now_iso(),
+        "handoff_by": request.handoff_by,
+        "proposal_id": proposal_id,
+        "proposal_version_no": proposal_version_no,
+    }
+
+
+def _apply_workspace_handoff_replay_lineage(
+    session: WorkspaceSession,
+    replay_lineage: dict[str, str | int | None],
+) -> None:
+    if session.latest_replay_evidence is not None:
+        session.latest_replay_evidence.continuity = dict(replay_lineage)
+    matched_saved_version = _find_matching_saved_version(session)
+    if matched_saved_version is not None:
+        matched_saved_version.replay_evidence.continuity = dict(replay_lineage)
 
 
 def _build_handoff_metadata(
@@ -293,8 +360,21 @@ def _build_proposal_version_request(
 def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     session = get_workspace_session(workspace_id)
     simulate_request = _build_simulate_request_for_workspace(session)
-    request_payload = simulate_request.model_dump(mode="json")
-    request_hash = hash_canonical_payload(request_payload)
+    if session.resolved_context is None:
+        raise WorkspaceEvaluationUnavailableError("WORKSPACE_RESOLVED_CONTEXT_MISSING")
+    proposal_resolved_context = ProposalResolvedContext.model_validate(
+        session.resolved_context.model_dump(mode="json")
+    )
+    resolved_request = ResolvedSimulationContext(
+        input_mode=session.input_mode,
+        resolution_source="LOTUS_CORE" if session.input_mode == "stateful" else "DIRECT_REQUEST",
+        simulate_request=simulate_request,
+        resolved_context=proposal_resolved_context,
+        used_legacy_contract=False,
+    )
+    request_hash = hash_canonical_payload(
+        canonicalize_simulation_request_payload(resolved=resolved_request)
+    )
     correlation_id = f"corr_{uuid4().hex[:12]}"
     result = evaluate_advisory_proposal(
         request=simulate_request,
@@ -302,6 +382,7 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
         idempotency_key=None,
         correlation_id=correlation_id,
     )
+    result.explanation["context_resolution"] = build_context_resolution_evidence(resolved_request)
     session.latest_proposal_result = result
     session.evaluation_summary = _build_evaluation_summary(result, session)
     session.latest_replay_evidence = _build_replay_evidence(
@@ -520,6 +601,18 @@ def list_workspace_saved_versions(
     )
 
 
+def get_workspace_saved_version_replay(
+    workspace_id: str,
+    workspace_version_id: str,
+) -> AdvisoryReplayEvidenceResponse:
+    session = get_workspace_session(workspace_id)
+    saved_version = _find_saved_version(session, workspace_version_id)
+    return build_workspace_saved_version_replay_response(
+        session=session,
+        saved_version=saved_version,
+    )
+
+
 def resume_workspace_version(
     workspace_id: str,
     request: WorkspaceResumeRequest,
@@ -600,24 +693,43 @@ def handoff_workspace_to_proposal_lifecycle(
                 raise WorkspaceLifecycleHandoffUnavailableError(
                     "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED"
                 )
+            replay_lineage = _build_workspace_handoff_replay_lineage(
+                session,
+                request,
+                "CREATED_PROPOSAL",
+                proposal_id="",
+                proposal_version_no=1,
+            )
             proposal_response = proposal_service.create_proposal(
                 payload=_build_proposal_create_request(session, request),
                 idempotency_key=idempotency_key,
                 correlation_id=correlation_id,
                 lifecycle_origin="WORKSPACE_HANDOFF",
                 source_workspace_id=workspace_id,
+                replay_lineage=replay_lineage,
             )
             handoff_action = "CREATED_PROPOSAL"
         else:
+            replay_lineage = _build_workspace_handoff_replay_lineage(
+                session,
+                request,
+                "CREATED_PROPOSAL_VERSION",
+                proposal_id=session.lifecycle_link.proposal_id,
+                proposal_version_no=session.lifecycle_link.current_version_no + 1,
+            )
             proposal_response = proposal_service.create_version(
                 proposal_id=session.lifecycle_link.proposal_id,
                 payload=_build_proposal_version_request(session, request),
                 correlation_id=correlation_id,
+                replay_lineage=replay_lineage,
             )
             handoff_action = "CREATED_PROPOSAL_VERSION"
     except (ValueError, WorkspaceEvaluationUnavailableError) as exc:
         raise WorkspaceLifecycleHandoffUnavailableError(str(exc)) from exc
 
+    replay_lineage["proposal_id"] = proposal_response.proposal.proposal_id
+    replay_lineage["proposal_version_no"] = proposal_response.version.version_no
+    _apply_workspace_handoff_replay_lineage(session, replay_lineage)
     session.lifecycle_link = WorkspaceLifecycleLink(
         proposal_id=proposal_response.proposal.proposal_id,
         current_version_no=proposal_response.version.version_no,

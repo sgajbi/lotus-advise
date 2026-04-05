@@ -1,100 +1,25 @@
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import Depends, Path, status
 
 import src.api.proposals.router as shared
-from src.api.production_cutover_contract import expected_migration_versions
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.proposals import (
     ProposalApprovalsResponse,
     ProposalIdempotencyLookupResponse,
     ProposalLineageResponse,
     ProposalNotFoundError,
-    ProposalSupportabilityConfigResponse,
     ProposalWorkflowService,
     ProposalWorkflowTimelineResponse,
 )
-
-_ADVISORY_OWNED_TABLES = [
-    "proposal_records",
-    "proposal_versions",
-    "proposal_workflow_events",
-    "proposal_approvals",
-    "proposal_idempotency",
-    "proposal_simulation_idempotency",
-    "proposal_async_operations",
-]
-
-_DEFERRED_ADVISORY_PERSISTENCE_DOMAINS = [
-    "workspace_sessions",
-    "workspace_saved_versions",
-]
-
-_UPSTREAM_OWNED_DATA_DOMAINS = [
-    "portfolio_positions",
-    "transactions",
-    "market_data",
-    "risk_analytics",
-    "reports",
-    "ai_runtime_state",
-    "execution_provider_state",
-]
-
-_LIFECYCLE_MIGRATION_NAMESPACE = "proposals"
-_LIFECYCLE_STARTUP_VALIDATION_SCOPE = "POSTGRES_REPOSITORY_BOOT"
-
-
-@shared.router.get(
-    "/advisory/proposals/supportability/config",
-    response_model=ProposalSupportabilityConfigResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Get Proposal Supportability Configuration",
-    description=(
-        "Returns proposal supportability runtime configuration and backend initialization status "
-        "for operational diagnostics without direct database access."
-    ),
-)
-def get_proposal_supportability_config() -> ProposalSupportabilityConfigResponse:
-    backend_error: Optional[str] = None
-    backend_ready = True
-    try:
-        shared.runtime.build_repository()
-    except RuntimeError as exc:
-        backend_ready = False
-        backend_error = str(exc)
-    except (TypeError, ValueError):
-        backend_ready = False
-        backend_error = "PROPOSAL_POSTGRES_CONNECTION_FAILED"
-
-    return ProposalSupportabilityConfigResponse(
-        store_backend=shared._proposal_store_backend_name(),
-        backend_ready=backend_ready,
-        backend_init_error=backend_error,
-        lifecycle_enabled=shared.env_flag("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", True),
-        support_apis_enabled=shared.env_flag("PROPOSAL_SUPPORT_APIS_ENABLED", True),
-        async_operations_enabled=shared.env_flag("PROPOSAL_ASYNC_OPERATIONS_ENABLED", True),
-        store_evidence_bundle=shared.env_flag("PROPOSAL_STORE_EVIDENCE_BUNDLE", True),
-        require_expected_state=shared.env_flag("PROPOSAL_REQUIRE_EXPECTED_STATE", True),
-        allow_portfolio_id_change_on_new_version=shared.env_flag(
-            "PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION",
-            False,
-        ),
-        require_proposal_simulation_flag=shared.env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
-        startup_validation_scope=_LIFECYCLE_STARTUP_VALIDATION_SCOPE,
-        migration_namespace=_LIFECYCLE_MIGRATION_NAMESPACE,
-        expected_migration_versions=expected_migration_versions(
-            namespace=_LIFECYCLE_MIGRATION_NAMESPACE
-        ),
-        advisory_owned_tables=_ADVISORY_OWNED_TABLES,
-        deferred_advisory_persistence_domains=_DEFERRED_ADVISORY_PERSISTENCE_DOMAINS,
-        upstream_owned_data_domains=_UPSTREAM_OWNED_DATA_DOMAINS,
-    )
+from src.core.replay.models import AdvisoryReplayEvidenceResponse
 
 
 @shared.router.get(
     "/advisory/proposals/{proposal_id}/workflow-events",
     response_model=ProposalWorkflowTimelineResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Get Proposal Workflow Timeline",
     description=(
         "Returns append-only workflow event timeline for investigation, supportability, and audit."
@@ -122,6 +47,7 @@ def get_proposal_workflow_timeline(
     "/advisory/proposals/{proposal_id}/approvals",
     response_model=ProposalApprovalsResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Get Proposal Approvals",
     description=(
         "Returns approval/consent records for support investigations and workflow audit traces."
@@ -149,6 +75,7 @@ def get_proposal_approvals(
     "/advisory/proposals/{proposal_id}/lineage",
     response_model=ProposalLineageResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Get Proposal Lineage",
     description=(
         "Returns immutable version lineage metadata with hashes "
@@ -174,9 +101,43 @@ def get_proposal_lineage(
 
 
 @shared.router.get(
+    "/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence",
+    response_model=AdvisoryReplayEvidenceResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
+    summary="Get Proposal Version Replay Evidence",
+    description=(
+        "Returns normalized replay evidence for an immutable proposal version, including "
+        "context resolution, continuity links, and canonical hashes."
+    ),
+)
+def get_proposal_version_replay_evidence(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    version_no: Annotated[
+        int,
+        Path(description="Immutable proposal version number.", examples=[1]),
+    ],
+    service: Annotated[
+        ProposalWorkflowService,
+        Depends(shared.get_proposal_workflow_service),
+    ],
+) -> AdvisoryReplayEvidenceResponse:
+    shared._assert_lifecycle_enabled()
+    shared._assert_support_apis_enabled()
+    try:
+        return service.get_version_replay(proposal_id=proposal_id, version_no=version_no)
+    except ProposalNotFoundError as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.get(
     "/advisory/proposals/idempotency/{idempotency_key}",
     response_model=ProposalIdempotencyLookupResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Lookup Proposal Idempotency Mapping",
     description=(
         "Returns idempotency-to-proposal mapping for support and retry investigation workflows."
@@ -199,5 +160,34 @@ def get_proposal_idempotency_lookup(
     shared._assert_support_apis_enabled()
     try:
         return service.get_idempotency_lookup(idempotency_key=idempotency_key)
+    except ProposalNotFoundError as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.get(
+    "/advisory/proposals/operations/{operation_id}/replay-evidence",
+    response_model=AdvisoryReplayEvidenceResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
+    summary="Get Proposal Async Replay Evidence",
+    description=(
+        "Returns normalized replay evidence for an async proposal operation, linking async "
+        "runtime truth to proposal version evidence when a terminal proposal result exists."
+    ),
+)
+def get_proposal_async_replay_evidence(
+    operation_id: Annotated[
+        str,
+        Path(description="Asynchronous operation identifier.", examples=["pop_001"]),
+    ],
+    service: Annotated[
+        ProposalWorkflowService,
+        Depends(shared.get_proposal_workflow_service),
+    ],
+) -> AdvisoryReplayEvidenceResponse:
+    shared._assert_lifecycle_enabled()
+    shared._assert_support_apis_enabled()
+    try:
+        return service.get_async_operation_replay(operation_id=operation_id)
     except ProposalNotFoundError as exc:
         raise_proposal_http_exception(exc)
