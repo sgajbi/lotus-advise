@@ -70,6 +70,9 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert dependencies["lotus_ai"]["configured"] is False
 
     features = {item["key"]: item for item in payload["features"]}
+    assert features["advisory.proposals.simulation"]["operational_ready"] is True
+    assert features["advisory.proposals.simulation"]["owner_service"] == "LOTUS_CORE"
+    assert features["advisory.proposals.simulation"]["fallback_mode"] == "NONE"
     assert features["advisory.workspaces.stateful"]["operational_ready"] is True
     assert features["advisory.workspaces.stateful"]["fallback_mode"] == "NONE"
     assert features["advisory.workspaces.ai_rationale"]["operational_ready"] is False
@@ -85,10 +88,57 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert features["advisory.proposals.execution_handoff"]["operational_ready"] is True
 
     workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+    assert workflows["advisory_proposal_simulation"]["operational_ready"] is True
     assert workflows["advisory_workspace_stateful"]["operational_ready"] is True
     assert workflows["advisory_workspace_ai_rationale"]["operational_ready"] is False
     assert workflows["advisory_proposal_reporting"]["operational_ready"] is False
     assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True
+
+
+def test_integration_capabilities_mark_simulation_degraded_when_core_missing(monkeypatch):
+    monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    features = {item["key"]: item for item in payload["features"]}
+    workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+    dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
+
+    assert features["advisory.proposals.simulation"]["operational_ready"] is False
+    assert (
+        features["advisory.proposals.simulation"]["fallback_mode"]
+        == "CONTROLLED_LOCAL_SIMULATION_FALLBACK"
+    )
+    assert (
+        features["advisory.proposals.simulation"]["degraded_reason"]
+        == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+    )
+    assert workflows["advisory_proposal_simulation"]["operational_ready"] is False
+    assert dependencies["lotus_core"]["fallback_mode"] == "CONTROLLED_LOCAL_SIMULATION_FALLBACK"
+
+
+def test_integration_capabilities_quarantine_local_fallback_in_production(monkeypatch):
+    monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
+    monkeypatch.setenv("ENVIRONMENT", "production")
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    features = {item["key"]: item for item in payload["features"]}
+    workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+    dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
+
+    assert features["advisory.proposals.simulation"]["operational_ready"] is False
+    assert features["advisory.proposals.simulation"]["fallback_mode"] == "NONE"
+    assert workflows["advisory_proposal_simulation"]["operational_ready"] is False
+    assert dependencies["lotus_core"]["fallback_mode"] == "NONE"
 
 
 def test_integration_capabilities_disable_reporting_and_execution_with_lifecycle(monkeypatch):
