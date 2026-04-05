@@ -102,3 +102,20 @@
 - Follow-Up:
   - Keep internal diagnostics in logs, metrics, startup validation, and private runbooks rather than expanding public contract surface with backend configuration introspection.
 
+## LA-REV-007
+
+- Scope: RFC-0019 closure quality gate
+- Pattern: architecture hardening / contract convergence
+- Status: Signed Off
+- Finding Class: modularity problem
+- Summary: RFC-0019 closure work is complete and the remaining contract divergence between direct simulation and workspace evaluation was removed before closeout.
+- Evidence:
+  - Direct `simulate`, artifact generation, workspace reevaluation, and lifecycle create/version flows now share the same normalized `stateless` and `stateful` advisory context contract.
+  - Canonical request hashing now aligns across direct simulation and workspace reevaluation for equivalent advisory inputs.
+  - Async runtime recovery, replay evidence endpoints, and downstream execution update reconciliation are covered by unit, integration, and end-to-end tests.
+  - Final repository gates passed with `375` tests plus `ruff`, `mypy`, OpenAPI quality, no-alias governance, and vocabulary drift validation.
+- Consequence:
+  - `lotus-advise` now closes the advisory runtime loop defined by RFC-0019 without leaving workspace, simulation, async, and execution surfaces on inconsistent underlying rules.
+- Follow-Up:
+  - Move on to `RFC-0014` and `RFC-0017` follow-on work rather than reopening RFC-0019 scope.
+

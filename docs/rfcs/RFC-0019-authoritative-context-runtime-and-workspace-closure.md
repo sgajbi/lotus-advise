@@ -1,6 +1,6 @@
 # RFC-0019: Authoritative Context, Durable Runtime, and Workspace Closure
 
-- Status: DRAFT
+- Status: IMPLEMENTED
 - Date: 2026-04-05
 - Owners: lotus-advise
 - Requires Approval From: lotus-advise maintainers
@@ -281,7 +281,25 @@ Mitigations:
    evaluation contract.
 6. New contracts and docs remain aligned with `lotus-platform` and RFC-0067.
 
-## Approval Requested
+## Implementation Record
 
-Approve RFC-0019 as the closure program for moving `lotus-advise` from strong advisory foundation
-to authoritative advisory runtime.
+RFC-0019 is now implemented in `lotus-advise`.
+
+Delivered closure:
+
+1. proposal lifecycle create/version flows now support normalized `stateless` and `stateful`
+   advisory context resolution through the same Lotus Core seam used by workspace flows,
+2. direct `simulate` and artifact generation now support the same normalized context contract while
+   preserving legacy payload compatibility,
+3. async proposal operations are restart-safe and derived from persisted runtime truth,
+4. workspace, lifecycle, and async surfaces now share normalized replay evidence contracts,
+5. execution handoff is extended with downstream update ingestion and deterministic reconciliation.
+
+Validation evidence:
+
+1. `python -m pytest` -> `375 passed`
+2. `python -m ruff check src tests` -> passed
+3. `python -m mypy src` -> passed
+4. `python scripts/openapi_quality_gate.py` -> passed
+5. `python scripts/no_alias_contract_guard.py` -> passed
+6. `python scripts/api_vocabulary_inventory.py --validate-only` -> passed
