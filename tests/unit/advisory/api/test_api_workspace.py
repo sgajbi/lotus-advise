@@ -41,6 +41,16 @@ def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict[str, Any]:
     }
 
 
+def _normalize_proposal_result_for_parity(body: dict[str, Any]) -> dict[str, Any]:
+    normalized = {
+        key: value for key, value in body.items() if key not in {"correlation_id", "lineage"}
+    }
+    lineage = dict(body["lineage"])
+    lineage.pop("idempotency_key", None)
+    normalized["lineage"] = lineage
+    return normalized
+
+
 def test_create_stateful_workspace_session_returns_workspace_context(monkeypatch) -> None:
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
@@ -459,6 +469,72 @@ def test_workspace_evaluate_reruns_stateless_workspace_successfully():
     body = response.json()
     assert body["evaluation_summary"]["status"] == "READY"
     assert body["latest_proposal_result"]["status"] == "READY"
+
+
+def test_stateless_workspace_evaluate_matches_direct_simulation_for_equivalent_input():
+    simulate_request = {
+        "portfolio_snapshot": {
+            "snapshot_id": "ps_parity_001",
+            "portfolio_id": "pf_parity_001",
+            "base_currency": "USD",
+            "positions": [{"instrument_id": "EQ_OLD", "quantity": "10"}],
+            "cash_balances": [{"currency": "USD", "amount": "10000"}],
+        },
+        "market_data_snapshot": {
+            "snapshot_id": "md_parity_001",
+            "prices": [
+                {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"},
+                {"instrument_id": "EQ_NEW", "price": "50", "currency": "USD"},
+            ],
+            "fx_rates": [],
+        },
+        "shelf_entries": [
+            {"instrument_id": "EQ_OLD", "status": "APPROVED"},
+            {"instrument_id": "EQ_NEW", "status": "APPROVED"},
+        ],
+        "options": {
+            "enable_proposal_simulation": True,
+            "enable_workflow_gates": True,
+            "enable_suitability_scanner": True,
+        },
+        "proposed_cash_flows": [{"direction": "CONTRIBUTION", "amount": "250", "currency": "USD"}],
+        "proposed_trades": [
+            {
+                "intent_type": "SECURITY_TRADE",
+                "side": "BUY",
+                "instrument_id": "EQ_NEW",
+                "quantity": "4",
+            }
+        ],
+    }
+    create_payload = {
+        "workspace_name": "Parity workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {"simulate_request": simulate_request},
+    }
+
+    with TestClient(app) as client:
+        simulate_response = client.post(
+            "/advisory/proposals/simulate",
+            json=simulate_request,
+            headers={"Idempotency-Key": "parity-simulate-001"},
+        )
+        assert simulate_response.status_code == 200
+
+        workspace_create_response = client.post("/advisory/workspaces", json=create_payload)
+        assert workspace_create_response.status_code == 201
+        workspace_id = workspace_create_response.json()["workspace"]["workspace_id"]
+
+        workspace_evaluate_response = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        assert workspace_evaluate_response.status_code == 200
+
+    direct_result = _normalize_proposal_result_for_parity(simulate_response.json())
+    workspace_result = _normalize_proposal_result_for_parity(
+        workspace_evaluate_response.json()["latest_proposal_result"]
+    )
+
+    assert workspace_result == direct_result
 
 
 def test_workspace_evaluate_uses_stateful_context_resolution(monkeypatch) -> None:

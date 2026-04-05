@@ -126,7 +126,21 @@ Required direction:
 1. proposal simulation, create, and version-create flows should support identifier-based context
    resolution through the same Lotus Core seam already used by stateful workspaces,
 2. explicit overrides and fallback behavior must be captured in evidence,
-3. no proposal flow should silently degrade from authoritative context to local assumptions.
+3. no proposal flow should silently degrade from authoritative context to local assumptions,
+4. `simulate` and `workspace` must remain two API surfaces for different operating modes, but
+   they must converge on one evaluation contract underneath,
+5. when `simulate` and `workspace` evaluate the same canonical `ProposalSimulateRequest`, they
+   must produce the same advisory result semantics, subject only to intentionally different
+   envelope metadata such as correlation id, workspace session metadata, or replay evidence.
+
+Consistency rule:
+
+1. `simulate` is the stateless deterministic evaluation contract,
+2. `workspace` is the stateful drafting contract,
+3. both must resolve to the same canonical evaluation request shape and invoke the same
+   authoritative evaluation logic,
+4. differences between the two surfaces must be limited to state-management concerns, not
+   advisory calculation behavior.
 
 ### 2. Durable Async Runtime Truth
 
@@ -176,7 +190,9 @@ Acceptance gate:
 
 1. proposal APIs run in `stateless` and `stateful` modes with stable evidence,
 2. context-resolution failure modes are explicit and tested,
-3. OpenAPI and vocabulary artifacts remain RFC-0067-compliant.
+3. OpenAPI and vocabulary artifacts remain RFC-0067-compliant,
+4. contract and integration tests prove that a stateless workspace evaluation and direct
+   simulation produce equivalent advisory outcomes when given the same canonical input.
 
 ### Slice 2: Async Runtime Hardening
 
@@ -227,6 +243,11 @@ Acceptance gate:
    1. `stateful` workspace to lifecycle handoff,
    2. durable async proposal create,
    3. execution handoff followed by downstream status reconciliation.
+5. Explicit parity tests for:
+   1. direct `simulate` versus `workspace` reevaluation on identical canonical input,
+   2. lifecycle create/version versus reevaluated workspace handoff input equivalence,
+   3. degraded-resolution and authoritative-resolution evidence differences without calculation
+      drift.
 
 ## Rollout and Compatibility
 
@@ -256,7 +277,9 @@ Mitigations:
 2. Async proposal operations are durable, restart-safe, and supportable from persisted state.
 3. Workspace, proposal lifecycle, and async evidence share one documented replay model.
 4. Execution handoff is extended with downstream update and reconciliation semantics.
-5. New contracts and docs remain aligned with `lotus-platform` and RFC-0067.
+5. `simulate` and `workspace` are documented as different operating surfaces over one consistent
+   evaluation contract.
+6. New contracts and docs remain aligned with `lotus-platform` and RFC-0067.
 
 ## Approval Requested
 
