@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-05T09:22:00.872393+00:00",
+  "generatedAt": "2026-04-05T09:31:41.133525+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -50,22 +50,6 @@
       ],
       "observedTypes": [
         "object",
-        "array"
-      ]
-    },
-    {
-      "semanticId": "lotus.advisory_owned_tables",
-      "canonicalTerm": "advisory_owned_tables",
-      "preferredName": "advisory_owned_tables",
-      "description": "Advisory-owned PostgreSQL tables that make up the active persisted proposal runtime scope.",
-      "example": [
-        "example_advisory_owned_tables_item"
-      ],
-      "type": "array",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
         "array"
       ]
     },
@@ -163,20 +147,6 @@
       ],
       "observedTypes": [
         "array"
-      ]
-    },
-    {
-      "semanticId": "lotus.allow_portfolio_id_change_on_new_version",
-      "canonicalTerm": "allow_portfolio_id_change_on_new_version",
-      "preferredName": "allow_portfolio_id_change_on_new_version",
-      "description": "Whether proposal version creation allows portfolio id changes against original proposal.",
-      "example": true,
-      "type": "boolean",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "boolean"
       ]
     },
     {
@@ -453,20 +423,6 @@
       ]
     },
     {
-      "semanticId": "lotus.async_operations_enabled",
-      "canonicalTerm": "async_operations_enabled",
-      "preferredName": "async_operations_enabled",
-      "description": "Whether proposal asynchronous operation endpoints are enabled.",
-      "example": true,
-      "type": "boolean",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "boolean"
-      ]
-    },
-    {
       "semanticId": "lotus.attributes",
       "canonicalTerm": "attributes",
       "preferredName": "attributes",
@@ -508,34 +464,6 @@
       ],
       "observedTypes": [
         "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.backend_init_error",
-      "canonicalTerm": "backend_init_error",
-      "preferredName": "backend_init_error",
-      "description": "Stable initialization error code when backend is not ready. Null when initialization succeeds.",
-      "example": "backend_init_error_example",
-      "type": "object",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "object"
-      ]
-    },
-    {
-      "semanticId": "lotus.backend_ready",
-      "canonicalTerm": "backend_ready",
-      "preferredName": "backend_ready",
-      "description": "Whether repository backend initialized successfully with current runtime settings.",
-      "example": true,
-      "type": "boolean",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "boolean"
       ]
     },
     {
@@ -1182,22 +1110,6 @@
       ],
       "observedTypes": [
         "integer"
-      ]
-    },
-    {
-      "semanticId": "lotus.deferred_advisory_persistence_domains",
-      "canonicalTerm": "deferred_advisory_persistence_domains",
-      "preferredName": "deferred_advisory_persistence_domains",
-      "description": "Advisory persistence domains acknowledged by the architecture but intentionally not yet durable in PostgreSQL.",
-      "example": [
-        "example_deferred_advisory_persistence_domains_item"
-      ],
-      "type": "array",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "array"
       ]
     },
     {
@@ -1939,22 +1851,6 @@
       ],
       "observedTypes": [
         "object"
-      ]
-    },
-    {
-      "semanticId": "lotus.expected_migration_versions",
-      "canonicalTerm": "expected_migration_versions",
-      "preferredName": "expected_migration_versions",
-      "description": "Ordered migration versions expected for the advisory lifecycle namespace.",
-      "example": [
-        "example_expected_migration_versions_item"
-      ],
-      "type": "array",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "array"
       ]
     },
     {
@@ -2983,20 +2879,6 @@
       ]
     },
     {
-      "semanticId": "lotus.lifecycle_enabled",
-      "canonicalTerm": "lifecycle_enabled",
-      "preferredName": "lifecycle_enabled",
-      "description": "Whether proposal workflow lifecycle APIs are enabled.",
-      "example": true,
-      "type": "boolean",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "boolean"
-      ]
-    },
-    {
       "semanticId": "lotus.lifecycle_link",
       "canonicalTerm": "lifecycle_link",
       "preferredName": "lifecycle_link",
@@ -3328,20 +3210,6 @@
       "observedTypes": [
         "ProposalCreateMetadata",
         "WorkspaceLifecycleHandoffMetadata"
-      ]
-    },
-    {
-      "semanticId": "lotus.migration_namespace",
-      "canonicalTerm": "migration_namespace",
-      "preferredName": "migration_namespace",
-      "description": "Migration namespace used for advisory proposal lifecycle persistence.",
-      "example": "example_migration_namespace",
-      "type": "string",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "string"
       ]
     },
     {
@@ -4453,34 +4321,6 @@
       ]
     },
     {
-      "semanticId": "lotus.require_expected_state",
-      "canonicalTerm": "require_expected_state",
-      "preferredName": "require_expected_state",
-      "description": "Whether state-transition and approval APIs enforce expected_state concurrency checks.",
-      "example": true,
-      "type": "boolean",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "boolean"
-      ]
-    },
-    {
-      "semanticId": "lotus.require_proposal_simulation_flag",
-      "canonicalTerm": "require_proposal_simulation_flag",
-      "preferredName": "require_proposal_simulation_flag",
-      "description": "Whether proposal simulation requests require options.enable_proposal_simulation=true.",
-      "example": true,
-      "type": "boolean",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "boolean"
-      ]
-    },
-    {
       "semanticId": "lotus.required",
       "canonicalTerm": "required",
       "preferredName": "required",
@@ -5021,20 +4861,6 @@
       ]
     },
     {
-      "semanticId": "lotus.startup_validation_scope",
-      "canonicalTerm": "startup_validation_scope",
-      "preferredName": "startup_validation_scope",
-      "description": "Lifecycle startup guardrail enforced before the API begins serving requests.",
-      "example": "example_startup_validation_scope",
-      "type": "string",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "string"
-      ]
-    },
-    {
       "semanticId": "lotus.state",
       "canonicalTerm": "state",
       "preferredName": "state",
@@ -5133,34 +4959,6 @@
       ]
     },
     {
-      "semanticId": "lotus.store_backend",
-      "canonicalTerm": "store_backend",
-      "preferredName": "store_backend",
-      "description": "Configured proposal repository backend name.",
-      "example": "example_store_backend",
-      "type": "string",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.store_evidence_bundle",
-      "canonicalTerm": "store_evidence_bundle",
-      "preferredName": "store_evidence_bundle",
-      "description": "Whether immutable evidence bundle JSON is persisted for versions.",
-      "example": true,
-      "type": "boolean",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "boolean"
-      ]
-    },
-    {
       "semanticId": "lotus.suitability",
       "canonicalTerm": "suitability",
       "preferredName": "suitability",
@@ -5223,20 +5021,6 @@
         "GateDecisionSummary",
         "ProposalArtifactSummary",
         "string"
-      ]
-    },
-    {
-      "semanticId": "lotus.support_apis_enabled",
-      "canonicalTerm": "support_apis_enabled",
-      "preferredName": "support_apis_enabled",
-      "description": "Whether proposal supportability investigation endpoints are enabled.",
-      "example": true,
-      "type": "boolean",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "boolean"
       ]
     },
     {
@@ -5573,22 +5357,6 @@
       ],
       "observedTypes": [
         "Money-Input"
-      ]
-    },
-    {
-      "semanticId": "lotus.upstream_owned_data_domains",
-      "canonicalTerm": "upstream_owned_data_domains",
-      "preferredName": "upstream_owned_data_domains",
-      "description": "Data domains required by advisory workflows but owned outside lotus-advise and therefore excluded from the advisory database boundary.",
-      "example": [
-        "example_upstream_owned_data_domains_item"
-      ],
-      "type": "array",
-      "locations": [
-        "body"
-      ],
-      "observedTypes": [
-        "array"
       ]
     },
     {
@@ -21275,148 +21043,6 @@
             "type": "object",
             "semanticId": "lotus.error",
             "attributeRef": "#/attributeCatalog/lotus.error"
-          }
-        ]
-      }
-    },
-    {
-      "domain": "advisory_proposal_lifecycle",
-      "method": "GET",
-      "path": "/advisory/proposals/supportability/config",
-      "operationId": "get_proposal_supportability_config_advisory_proposals_supportability_config_get",
-      "summary": "Get Proposal Supportability Configuration",
-      "request": {
-        "fields": []
-      },
-      "response": {
-        "fields": [
-          {
-            "name": "store_backend",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.store_backend",
-            "attributeRef": "#/attributeCatalog/lotus.store_backend"
-          },
-          {
-            "name": "backend_ready",
-            "location": "body",
-            "required": true,
-            "type": "boolean",
-            "semanticId": "lotus.backend_ready",
-            "attributeRef": "#/attributeCatalog/lotus.backend_ready"
-          },
-          {
-            "name": "backend_init_error",
-            "location": "body",
-            "required": false,
-            "type": "object",
-            "semanticId": "lotus.backend_init_error",
-            "attributeRef": "#/attributeCatalog/lotus.backend_init_error"
-          },
-          {
-            "name": "lifecycle_enabled",
-            "location": "body",
-            "required": true,
-            "type": "boolean",
-            "semanticId": "lotus.lifecycle_enabled",
-            "attributeRef": "#/attributeCatalog/lotus.lifecycle_enabled"
-          },
-          {
-            "name": "support_apis_enabled",
-            "location": "body",
-            "required": true,
-            "type": "boolean",
-            "semanticId": "lotus.support_apis_enabled",
-            "attributeRef": "#/attributeCatalog/lotus.support_apis_enabled"
-          },
-          {
-            "name": "async_operations_enabled",
-            "location": "body",
-            "required": true,
-            "type": "boolean",
-            "semanticId": "lotus.async_operations_enabled",
-            "attributeRef": "#/attributeCatalog/lotus.async_operations_enabled"
-          },
-          {
-            "name": "store_evidence_bundle",
-            "location": "body",
-            "required": true,
-            "type": "boolean",
-            "semanticId": "lotus.store_evidence_bundle",
-            "attributeRef": "#/attributeCatalog/lotus.store_evidence_bundle"
-          },
-          {
-            "name": "require_expected_state",
-            "location": "body",
-            "required": true,
-            "type": "boolean",
-            "semanticId": "lotus.require_expected_state",
-            "attributeRef": "#/attributeCatalog/lotus.require_expected_state"
-          },
-          {
-            "name": "allow_portfolio_id_change_on_new_version",
-            "location": "body",
-            "required": true,
-            "type": "boolean",
-            "semanticId": "lotus.allow_portfolio_id_change_on_new_version",
-            "attributeRef": "#/attributeCatalog/lotus.allow_portfolio_id_change_on_new_version"
-          },
-          {
-            "name": "require_proposal_simulation_flag",
-            "location": "body",
-            "required": true,
-            "type": "boolean",
-            "semanticId": "lotus.require_proposal_simulation_flag",
-            "attributeRef": "#/attributeCatalog/lotus.require_proposal_simulation_flag"
-          },
-          {
-            "name": "startup_validation_scope",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.startup_validation_scope",
-            "attributeRef": "#/attributeCatalog/lotus.startup_validation_scope"
-          },
-          {
-            "name": "migration_namespace",
-            "location": "body",
-            "required": true,
-            "type": "string",
-            "semanticId": "lotus.migration_namespace",
-            "attributeRef": "#/attributeCatalog/lotus.migration_namespace"
-          },
-          {
-            "name": "expected_migration_versions",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.expected_migration_versions",
-            "attributeRef": "#/attributeCatalog/lotus.expected_migration_versions"
-          },
-          {
-            "name": "advisory_owned_tables",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.advisory_owned_tables",
-            "attributeRef": "#/attributeCatalog/lotus.advisory_owned_tables"
-          },
-          {
-            "name": "deferred_advisory_persistence_domains",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.deferred_advisory_persistence_domains",
-            "attributeRef": "#/attributeCatalog/lotus.deferred_advisory_persistence_domains"
-          },
-          {
-            "name": "upstream_owned_data_domains",
-            "location": "body",
-            "required": false,
-            "type": "array",
-            "semanticId": "lotus.upstream_owned_data_domains",
-            "attributeRef": "#/attributeCatalog/lotus.upstream_owned_data_domains"
           }
         ]
       }

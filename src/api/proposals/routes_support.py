@@ -1,94 +1,17 @@
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import Depends, Path, status
 
 import src.api.proposals.router as shared
-from src.api.production_cutover_contract import expected_migration_versions
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.proposals import (
     ProposalApprovalsResponse,
     ProposalIdempotencyLookupResponse,
     ProposalLineageResponse,
     ProposalNotFoundError,
-    ProposalSupportabilityConfigResponse,
     ProposalWorkflowService,
     ProposalWorkflowTimelineResponse,
 )
-
-_ADVISORY_OWNED_TABLES = [
-    "proposal_records",
-    "proposal_versions",
-    "proposal_workflow_events",
-    "proposal_approvals",
-    "proposal_idempotency",
-    "proposal_simulation_idempotency",
-    "proposal_async_operations",
-]
-
-_DEFERRED_ADVISORY_PERSISTENCE_DOMAINS = [
-    "workspace_sessions",
-    "workspace_saved_versions",
-]
-
-_UPSTREAM_OWNED_DATA_DOMAINS = [
-    "portfolio_positions",
-    "transactions",
-    "market_data",
-    "risk_analytics",
-    "reports",
-    "ai_runtime_state",
-    "execution_provider_state",
-]
-
-_LIFECYCLE_MIGRATION_NAMESPACE = "proposals"
-_LIFECYCLE_STARTUP_VALIDATION_SCOPE = "POSTGRES_REPOSITORY_BOOT"
-
-
-@shared.router.get(
-    "/advisory/proposals/supportability/config",
-    response_model=ProposalSupportabilityConfigResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Get Proposal Supportability Configuration",
-    description=(
-        "Returns proposal supportability runtime configuration and backend initialization status "
-        "for operational diagnostics without direct database access."
-    ),
-)
-def get_proposal_supportability_config() -> ProposalSupportabilityConfigResponse:
-    backend_error: Optional[str] = None
-    backend_ready = True
-    try:
-        shared.runtime.build_repository()
-    except RuntimeError as exc:
-        backend_ready = False
-        backend_error = str(exc)
-    except (TypeError, ValueError):
-        backend_ready = False
-        backend_error = "PROPOSAL_POSTGRES_CONNECTION_FAILED"
-
-    return ProposalSupportabilityConfigResponse(
-        store_backend=shared._proposal_store_backend_name(),
-        backend_ready=backend_ready,
-        backend_init_error=backend_error,
-        lifecycle_enabled=shared.env_flag("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", True),
-        support_apis_enabled=shared.env_flag("PROPOSAL_SUPPORT_APIS_ENABLED", True),
-        async_operations_enabled=shared.env_flag("PROPOSAL_ASYNC_OPERATIONS_ENABLED", True),
-        store_evidence_bundle=shared.env_flag("PROPOSAL_STORE_EVIDENCE_BUNDLE", True),
-        require_expected_state=shared.env_flag("PROPOSAL_REQUIRE_EXPECTED_STATE", True),
-        allow_portfolio_id_change_on_new_version=shared.env_flag(
-            "PROPOSAL_ALLOW_PORTFOLIO_CHANGE_ON_NEW_VERSION",
-            False,
-        ),
-        require_proposal_simulation_flag=shared.env_flag("PROPOSAL_REQUIRE_SIMULATION_FLAG", True),
-        startup_validation_scope=_LIFECYCLE_STARTUP_VALIDATION_SCOPE,
-        migration_namespace=_LIFECYCLE_MIGRATION_NAMESPACE,
-        expected_migration_versions=expected_migration_versions(
-            namespace=_LIFECYCLE_MIGRATION_NAMESPACE
-        ),
-        advisory_owned_tables=_ADVISORY_OWNED_TABLES,
-        deferred_advisory_persistence_domains=_DEFERRED_ADVISORY_PERSISTENCE_DOMAINS,
-        upstream_owned_data_domains=_UPSTREAM_OWNED_DATA_DOMAINS,
-    )
 
 
 @shared.router.get(

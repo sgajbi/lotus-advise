@@ -17,11 +17,6 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(proposal_summary_schema, "lifecycle_origin")
     _assert_property_has_docs(proposal_summary_schema, "source_workspace_id")
 
-    supportability_schema = schemas["ProposalSupportabilityConfigResponse"]
-    _assert_property_has_docs(supportability_schema, "startup_validation_scope")
-    _assert_property_has_docs(supportability_schema, "migration_namespace")
-    _assert_property_has_docs(supportability_schema, "expected_migration_versions")
-
     version_request_schema = schemas["ProposalVersionRequest"]
     _assert_property_has_docs(version_request_schema, "expected_current_version_no")
 
@@ -161,3 +156,25 @@ def test_openapi_does_not_expose_api_v1_compatibility_paths():
         openapi = client.get("/openapi.json").json()
 
     assert not any(path.startswith("/api/v1/") for path in openapi["paths"])
+
+
+def test_openapi_tag_groups_are_documented_for_self_service_discovery():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    tags = {item["name"]: item["description"] for item in openapi["tags"]}
+
+    assert "Advisory Simulation" in tags
+    assert "evaluate a proposed set of portfolio actions" in tags["Advisory Simulation"]
+    assert "Advisory Proposal Lifecycle" in tags
+    assert "creation, versioning, state transitions, approvals, execution handoff" in tags[
+        "Advisory Proposal Lifecycle"
+    ]
+    assert "Advisory Workspace" in tags
+    assert "iterative advisory preparation" in tags["Advisory Workspace"]
+    assert "Integration" in tags
+    assert "service capability and contract discovery" in tags["Integration"]
+    assert "Health" in tags
+    assert "liveness and readiness probes" in tags["Health"]
+    assert "Monitoring" in tags
+    assert "metrics scraping and observability tooling" in tags["Monitoring"]

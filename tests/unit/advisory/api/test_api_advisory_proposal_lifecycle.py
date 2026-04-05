@@ -132,74 +132,11 @@ def test_proposal_repository_unexpected_init_error_mapped_to_503(monkeypatch):
         assert response.json()["detail"] == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
 
 
-def test_proposal_supportability_config_defaults():
+def test_proposal_supportability_config_endpoint_removed():
     with TestClient(app) as client:
         response = client.get("/advisory/proposals/supportability/config")
-        assert response.status_code == 200
-        body = response.json()
-        assert body["store_backend"] == "POSTGRES"
-        assert body["backend_ready"] is True
-        assert body["backend_init_error"] is None
-        assert body["lifecycle_enabled"] is True
-        assert body["support_apis_enabled"] is True
-        assert body["async_operations_enabled"] is True
-        assert body["store_evidence_bundle"] is True
-        assert body["require_expected_state"] is True
-        assert body["allow_portfolio_id_change_on_new_version"] is False
-        assert body["require_proposal_simulation_flag"] is True
-        assert body["startup_validation_scope"] == "POSTGRES_REPOSITORY_BOOT"
-        assert body["migration_namespace"] == "proposals"
-        assert body["expected_migration_versions"] == ["0001", "0002", "0003"]
-        assert body["advisory_owned_tables"] == [
-            "proposal_records",
-            "proposal_versions",
-            "proposal_workflow_events",
-            "proposal_approvals",
-            "proposal_idempotency",
-            "proposal_simulation_idempotency",
-            "proposal_async_operations",
-        ]
-        assert body["deferred_advisory_persistence_domains"] == [
-            "workspace_sessions",
-            "workspace_saved_versions",
-        ]
-        assert body["upstream_owned_data_domains"] == [
-            "portfolio_positions",
-            "transactions",
-            "market_data",
-            "risk_analytics",
-            "reports",
-            "ai_runtime_state",
-            "execution_provider_state",
-        ]
 
-
-def test_proposal_supportability_config_reports_backend_error(monkeypatch):
-    with TestClient(app) as client:
-        monkeypatch.setenv("PROPOSAL_STORE_BACKEND", "POSTGRES")
-        monkeypatch.delenv("PROPOSAL_POSTGRES_DSN", raising=False)
-
-        response = client.get("/advisory/proposals/supportability/config")
-        assert response.status_code == 200
-        body = response.json()
-        assert body["store_backend"] == "POSTGRES"
-        assert body["backend_ready"] is False
-        assert body["backend_init_error"] == "PROPOSAL_POSTGRES_DSN_REQUIRED"
-        assert body["migration_namespace"] == "proposals"
-        assert "proposal_records" in body["advisory_owned_tables"]
-
-
-def test_proposal_supportability_config_reports_unexpected_backend_error(monkeypatch):
-    with TestClient(app) as client:
-        monkeypatch.setattr(
-            "src.api.proposals.router.runtime.build_repository",
-            lambda: (_ for _ in ()).throw(ValueError("boom")),
-        )
-        response = client.get("/advisory/proposals/supportability/config")
-        assert response.status_code == 200
-        body = response.json()
-        assert body["backend_ready"] is False
-        assert body["backend_init_error"] == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
+    assert response.status_code == 404
 
 
 def test_create_proposal_idempotency_reuses_existing_proposal_and_detects_conflict():

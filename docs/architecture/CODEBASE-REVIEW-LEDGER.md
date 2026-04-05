@@ -85,3 +85,20 @@
 - Follow-Up:
   - Preserve the cleaned public route family and keep future proposal APIs inside the dedicated proposal package unless a stronger bounded-context split is introduced.
 
+## LA-REV-006
+
+- Scope: Public API surface hygiene
+- Pattern: stale code / backend leakage
+- Status: Signed Off
+- Finding Class: stale code
+- Summary: The proposal supportability configuration endpoint was removed because it exposed runtime configuration and migration internals as a public advisory contract.
+- Evidence:
+  - `/advisory/proposals/supportability/config` returned backend readiness flags, migration namespace details, expected migration versions, and advisory-owned table names.
+  - The endpoint did not support an advisor workflow, integration handshake, or client-facing decision.
+  - The response model and generated vocabulary inventory carried internal persistence terminology into the public contract.
+  - OpenAPI tags now include explicit descriptions so operational and business API categories remain self-explanatory without leaking internals through a dedicated supportability config route.
+- Consequence:
+  - The public API is narrower, easier to reason about, and less coupled to runtime implementation details.
+- Follow-Up:
+  - Keep internal diagnostics in logs, metrics, startup validation, and private runbooks rather than expanding public contract surface with backend configuration introspection.
+

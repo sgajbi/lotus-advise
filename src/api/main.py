@@ -55,6 +55,49 @@ app = FastAPI(
     version="0.1.0",
     description="Advisor-led proposal simulation and lifecycle service.",
     lifespan=_app_lifespan,
+    openapi_tags=[
+        {
+            "name": "Advisory Simulation",
+            "description": (
+                "Core advisory proposal simulation endpoints used to evaluate a proposed set of "
+                "portfolio actions and generate a client-ready artifact."
+            ),
+        },
+        {
+            "name": "Advisory Proposal Lifecycle",
+            "description": (
+                "Persisted advisory proposal workflow endpoints covering creation, versioning, "
+                "state transitions, approvals, execution handoff, and audit-oriented support "
+                "investigation flows."
+            ),
+        },
+        {
+            "name": "Advisory Workspace",
+            "description": (
+                "Workspace-oriented drafting endpoints for iterative advisory preparation before "
+                "formal proposal lifecycle ownership begins."
+            ),
+        },
+        {
+            "name": "Integration",
+            "description": (
+                "Platform-facing service capability and contract discovery endpoints used by "
+                "other Lotus services and orchestration layers."
+            ),
+        },
+        {
+            "name": "Health",
+            "description": (
+                "Operational liveness and readiness probes for runtime health verification."
+            ),
+        },
+        {
+            "name": "Monitoring",
+            "description": (
+                "Operational telemetry endpoints for metrics scraping and observability tooling."
+            ),
+        },
+    ],
 )
 
 logger = logging.getLogger(__name__)
@@ -76,6 +119,7 @@ def custom_openapi() -> dict[str, Any]:
         version=app.version,
         description=app.description,
         routes=app.routes,
+        tags=app.openapi_tags,
     )
     schema = enrich_openapi_schema(schema, service_name="lotus-advise")
     app.openapi_schema = schema

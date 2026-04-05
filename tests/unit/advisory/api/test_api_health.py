@@ -1,6 +1,6 @@
-import src.api.main as main_module
 from fastapi.testclient import TestClient
 
+import src.api.main as main_module
 from src.api.main import app
 
 
