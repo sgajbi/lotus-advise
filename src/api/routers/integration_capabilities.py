@@ -265,6 +265,7 @@ def _env_bool(name: str, default: bool) -> bool:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
+
 @router.get(
     "/platform/capabilities",
     response_model=IntegrationCapabilitiesResponse,
@@ -324,9 +325,7 @@ async def get_integration_capabilities(
                     "lotus-advise remains the workflow and API owner."
                 ),
                 fallback_mode=lotus_core_fallback_mode(),
-                degraded_reason=(
-                    None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
-                ),
+                degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
             ),
             FeatureCapability(
                 key="advisory.proposals.lifecycle",
@@ -400,9 +399,7 @@ async def get_integration_capabilities(
                 operational_ready=lotus_core_ready,
                 required_features=["advisory.proposals.simulation"],
                 dependency_keys=["lotus_core"],
-                degraded_reason=(
-                    None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
-                ),
+                degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
             ),
             WorkflowCapability(
                 workflow_key="advisory_proposal_lifecycle",

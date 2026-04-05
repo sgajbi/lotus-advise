@@ -30,8 +30,7 @@ def lotus_core_local_fallback_requested() -> bool:
 
 def lotus_core_local_fallback_permitted() -> bool:
     return (
-        os.getenv("ENVIRONMENT", "local").strip().lower()
-        in _NON_PRODUCTION_FALLBACK_ENVIRONMENTS
+        os.getenv("ENVIRONMENT", "local").strip().lower() in _NON_PRODUCTION_FALLBACK_ENVIRONMENTS
     )
 
 
