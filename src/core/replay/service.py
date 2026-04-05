@@ -29,7 +29,9 @@ def build_workspace_saved_version_replay_response(
             proposal_id=_optional_str(continuity.get("proposal_id")),
             proposal_version_no=_optional_int(continuity.get("proposal_version_no")),
         ),
-        resolved_context=_to_replay_resolved_context(saved_version.replay_evidence.resolved_context),
+        resolved_context=_to_replay_resolved_context(
+            saved_version.replay_evidence.resolved_context
+        ),
         hashes=AdvisoryReplayHashes(
             evaluation_request_hash=saved_version.replay_evidence.evaluation_request_hash,
             draft_state_hash=saved_version.replay_evidence.draft_state_hash,
@@ -106,9 +108,7 @@ def build_proposal_version_replay_response(
         explanation={
             "source": "PROPOSAL_VERSION_EVIDENCE_BUNDLE",
             "continuity_status": (
-                "WORKSPACE_AND_ASYNC_LINKED"
-                if replay_lineage
-                else "PROPOSAL_ONLY_REPLAY_EVIDENCE"
+                "WORKSPACE_AND_ASYNC_LINKED" if replay_lineage else "PROPOSAL_ONLY_REPLAY_EVIDENCE"
             ),
         },
     )

@@ -507,10 +507,9 @@ class ProposalWorkflowService:
             handoff_status = self._execution_status_for_event(latest_execution_event.event_type)
             if latest_execution_event.event_type == "EXECUTED":
                 executed_at = latest_execution_event.occurred_at.isoformat()
-            external_execution_id = (
-                latest_execution_event.reason_json.get("external_execution_id")
-                or latest_execution_event.reason_json.get("execution_id")
-            )
+            external_execution_id = latest_execution_event.reason_json.get(
+                "external_execution_id"
+            ) or latest_execution_event.reason_json.get("execution_id")
             related_version_no = latest_execution_event.related_version_no or related_version_no
             if latest_execution_requested is None:
                 execution_request_id = latest_execution_event.reason_json.get(
@@ -602,8 +601,7 @@ class ProposalWorkflowService:
             occurred_at=occurred_at,
             reason_json={k: v for k, v in reason_json.items() if v is not None},
             related_version_no=(
-                payload.related_version_no
-                or latest_execution_requested.related_version_no
+                payload.related_version_no or latest_execution_requested.related_version_no
             ),
         )
         proposal.current_state = to_state
@@ -629,9 +627,7 @@ class ProposalWorkflowService:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
         return self._to_async_status(operation)
 
-    def get_async_operation_replay(
-        self, *, operation_id: str
-    ) -> AdvisoryReplayEvidenceResponse:
+    def get_async_operation_replay(self, *, operation_id: str) -> AdvisoryReplayEvidenceResponse:
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")

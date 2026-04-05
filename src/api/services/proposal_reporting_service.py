@@ -37,9 +37,7 @@ def request_proposal_report(
         "related_version_no": related_version_no,
         "include_execution_summary": payload.include_execution_summary,
         "execution_status": (
-            execution_status.model_dump(mode="json")
-            if payload.include_execution_summary
-            else None
+            execution_status.model_dump(mode="json") if payload.include_execution_summary else None
         ),
     }
     response = request_proposal_report_with_lotus_report(request=request)
