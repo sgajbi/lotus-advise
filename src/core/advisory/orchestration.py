@@ -1,3 +1,5 @@
+import os
+
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.integrations.lotus_core import (
@@ -12,6 +14,15 @@ from src.integrations.lotus_risk import (
 )
 
 
+def _allow_local_simulation_fallback() -> bool:
+    return os.getenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def evaluate_advisory_proposal(
     *,
     request: ProposalSimulateRequest,
@@ -22,7 +33,7 @@ def evaluate_advisory_proposal(
     degraded_reasons: list[str] = []
 
     lotus_core_state = build_lotus_core_dependency_state()
-    simulation_authority = "lotus_advise_local"
+    simulation_authority = "lotus_core"
     try:
         proposal_result = simulate_with_lotus_core(
             request=request,
@@ -30,10 +41,12 @@ def evaluate_advisory_proposal(
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
-        simulation_authority = "lotus_core"
-    except LotusCoreSimulationUnavailableError:
+    except LotusCoreSimulationUnavailableError as exc:
         if lotus_core_state.configured:
             degraded_reasons.append("LOTUS_CORE_SIMULATION_UNAVAILABLE")
+        if lotus_core_state.configured and not _allow_local_simulation_fallback():
+            raise exc
+        simulation_authority = "lotus_advise_local"
         proposal_result = run_proposal_simulation(
             portfolio=request.portfolio_snapshot,
             market_data=request.market_data_snapshot,

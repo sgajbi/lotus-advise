@@ -63,7 +63,7 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
     assert dependencies["lotus_core"]["configured"] is True
     assert dependencies["lotus_core"]["operational_ready"] is True
-    assert dependencies["lotus_core"]["fallback_mode"] == "LOCAL_SIMULATION_FALLBACK"
+    assert dependencies["lotus_core"]["fallback_mode"] == "NONE"
     assert dependencies["lotus_risk"]["configured"] is True
     assert dependencies["lotus_risk"]["fallback_mode"] == "LOCAL_RISK_FALLBACK"
     assert dependencies["lotus_report"]["configured"] is False
@@ -71,6 +71,7 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
 
     features = {item["key"]: item for item in payload["features"]}
     assert features["advisory.workspaces.stateful"]["operational_ready"] is True
+    assert features["advisory.workspaces.stateful"]["fallback_mode"] == "NONE"
     assert features["advisory.workspaces.ai_rationale"]["operational_ready"] is False
     assert (
         features["advisory.workspaces.ai_rationale"]["degraded_reason"]

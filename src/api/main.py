@@ -42,6 +42,7 @@ from src.api.services.advisory_simulation_service import (
 )
 from src.api.workspaces.router import router as workspace_router
 from src.core.advisory_engine import run_proposal_simulation
+from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
 
 
 @asynccontextmanager
@@ -194,6 +195,25 @@ async def unhandled_exception_to_problem_details(request: Request, exc: Exceptio
     )
 
 
+@app.exception_handler(LotusCoreSimulationUnavailableError)
+async def lotus_core_simulation_unavailable_to_problem_details(
+    request: Request,
+    exc: LotusCoreSimulationUnavailableError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        media_type="application/problem+json",
+        content={
+            "type": "about:blank",
+            "title": "Service Unavailable",
+            "status": 503,
+            "detail": str(exc) or "LOTUS_CORE_SIMULATION_UNAVAILABLE",
+            "instance": str(request.url.path),
+            "correlation_id": correlation_id_var.get() or "",
+        },
+    )
+
+
 __all__ = [
     "MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE",
     "PROPOSAL_IDEMPOTENCY_CACHE",
@@ -201,6 +221,7 @@ __all__ = [
     "app",
     "build_proposal_artifact_endpoint",
     "get_db_session",
+    "lotus_core_simulation_unavailable_to_problem_details",
     "run_proposal_simulation",
     "simulate_proposal",
     "unhandled_exception_to_problem_details",

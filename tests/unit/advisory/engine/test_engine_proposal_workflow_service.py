@@ -64,8 +64,7 @@ def _create_payload() -> ProposalCreateRequest:
 def reset_upstream_authority_overrides(monkeypatch):
     monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
     monkeypatch.delenv("LOTUS_RISK_BASE_URL", raising=False)
-    monkeypatch.delattr("src.api.main.simulate_with_lotus_core", raising=False)
-    monkeypatch.delattr("src.api.main.enrich_with_lotus_risk", raising=False)
+    monkeypatch.delenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", raising=False)
 
 
 def test_service_version_payload_is_immutable_from_caller_mutation():
@@ -109,9 +108,8 @@ def test_service_create_proposal_uses_upstream_simulation_authority_when_availab
 
     monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
     monkeypatch.setattr(
-        "src.api.main.simulate_with_lotus_core",
+        "src.core.advisory.orchestration.simulate_with_lotus_core",
         _simulate_with_lotus_core,
-        raising=False,
     )
 
     created = service.create_proposal(

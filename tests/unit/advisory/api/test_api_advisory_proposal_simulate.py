@@ -265,7 +265,10 @@ def test_advisory_proposal_simulate_unhandled_error_returns_problem_details(monk
     def _raise_unhandled(*args, **kwargs):
         raise RuntimeError("boom")
 
-    monkeypatch.setattr("src.api.main.simulate_with_lotus_core", _raise_unhandled, raising=False)
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.simulate_with_lotus_core",
+        _raise_unhandled,
+    )
 
     with TestClient(app, raise_server_exceptions=False) as test_client:
         response = test_client.post(
@@ -313,14 +316,12 @@ def test_advisory_proposal_simulate_uses_upstream_authorities_when_available(cli
     monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
     monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
     monkeypatch.setattr(
-        "src.api.main.simulate_with_lotus_core",
+        "src.core.advisory.orchestration.simulate_with_lotus_core",
         _simulate_with_lotus_core,
-        raising=False,
     )
     monkeypatch.setattr(
-        "src.api.main.enrich_with_lotus_risk",
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
         _enrich_with_lotus_risk,
-        raising=False,
     )
 
     response = client.post(
@@ -336,7 +337,7 @@ def test_advisory_proposal_simulate_uses_upstream_authorities_when_available(cli
     assert authority["degraded"] is False
 
 
-def test_advisory_proposal_simulate_reports_local_fallback_when_upstream_unavailable(
+def test_advisory_proposal_simulate_reports_local_fallback_when_explicitly_enabled(
     client, monkeypatch
 ):
     payload = {
@@ -350,8 +351,7 @@ def test_advisory_proposal_simulate_reports_local_fallback_when_upstream_unavail
 
     monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
     monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
-    monkeypatch.delattr("src.api.main.simulate_with_lotus_core", raising=False)
-    monkeypatch.delattr("src.api.main.enrich_with_lotus_risk", raising=False)
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
 
     response = client.post(
         "/advisory/proposals/simulate",
@@ -368,6 +368,31 @@ def test_advisory_proposal_simulate_reports_local_fallback_when_upstream_unavail
         "LOTUS_CORE_SIMULATION_UNAVAILABLE",
         "LOTUS_RISK_ENRICHMENT_UNAVAILABLE",
     ]
+
+
+def test_advisory_proposal_simulate_returns_503_when_core_execution_unavailable(
+    client, monkeypatch
+):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_core_down", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-core-down"},
+    )
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert response.json()["detail"].startswith("LOTUS_CORE_SIMULATION_UNAVAILABLE")
 
 
 def test_advisory_proposal_simulate_returns_drift_analysis_when_reference_model_provided(client):

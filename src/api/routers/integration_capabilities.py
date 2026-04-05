@@ -262,6 +262,14 @@ def _env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _lotus_core_fallback_mode() -> str:
+    return (
+        "LOCAL_SIMULATION_FALLBACK"
+        if _env_bool("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", False)
+        else "NONE"
+    )
+
+
 @router.get(
     "/platform/capabilities",
     response_model=IntegrationCapabilitiesResponse,
@@ -337,7 +345,7 @@ async def get_integration_capabilities(
                 description=(
                     "Stateful advisory workspace evaluation through Lotus Core context resolution."
                 ),
-                fallback_mode="LOCAL_SIMULATION_FALLBACK",
+                fallback_mode=_lotus_core_fallback_mode(),
                 degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
             ),
             FeatureCapability(
