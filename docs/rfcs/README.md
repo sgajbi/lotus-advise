@@ -38,6 +38,7 @@ The sequence is organized to read in implementation order:
 | RFC-0016 | Costs, Fees, and Transaction Frictions v1 | DRAFT | Active future work | RFC-0007, RFC-0008, RFC-0011, RFC-0014 | `docs/rfcs/RFC-0016-costs-fees-frictions-v1.md` |
 | RFC-0017 | Execution Integration Interface | DRAFT | Active future work | RFC-0011, RFC-0012, RFC-0013 | `docs/rfcs/RFC-0017-execution-integration-interface.md` |
 | RFC-0018 | Monitoring, Surveillance, and Post-Trade Controls | DRAFT | Active future work | RFC-0015, RFC-0017 | `docs/rfcs/RFC-0018-monitoring-surveillance-post-trade-controls.md` |
+| RFC-0019 | Authoritative Context, Durable Runtime, and Workspace Closure | DRAFT | Active future work | RFC-0004, RFC-0005, RFC-0006, RFC-0011, RFC-0013, RFC-0017 | `docs/rfcs/RFC-0019-authoritative-context-runtime-and-workspace-closure.md` |
 
 ## Implemented
 
@@ -62,6 +63,7 @@ Open RFCs still relevant to the advisory roadmap:
 - `RFC-0016`
 - `RFC-0017`
 - `RFC-0018`
+- `RFC-0019`
 
 Deferred but retained:
 - `RFC-0002`
