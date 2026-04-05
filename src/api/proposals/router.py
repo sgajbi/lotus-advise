@@ -86,6 +86,10 @@ def ensure_proposal_runtime_ready() -> None:
     _ = _resolve_repository()
 
 
+def recover_proposal_async_runtime() -> int:
+    return get_proposal_workflow_service().recover_async_operations()
+
+
 def reset_proposal_workflow_service_for_tests() -> None:
     global _REPOSITORY
     global _SERVICE

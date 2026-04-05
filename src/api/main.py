@@ -17,6 +17,7 @@ from src.api.observability import correlation_id_var, setup_observability
 from src.api.openapi_enrichment import enrich_openapi_schema
 from src.api.proposals.router import (
     ensure_proposal_runtime_ready,
+    recover_proposal_async_runtime,
 )
 from src.api.proposals.router import (
     router as proposal_lifecycle_router,
@@ -47,6 +48,7 @@ from src.core.advisory_engine import run_proposal_simulation
 async def _app_lifespan(_app: FastAPI) -> AsyncIterator[None]:
     validate_advisory_runtime_persistence()
     ensure_proposal_runtime_ready()
+    recover_proposal_async_runtime()
     yield
 
 

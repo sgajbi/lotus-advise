@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-05T10:35:28.684182+00:00",
+  "generatedAt": "2026-04-05T10:55:01.619523+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -420,6 +420,20 @@
       ],
       "observedTypes": [
         "ProposalArtifactAssumptionsAndLimits"
+      ]
+    },
+    {
+      "semanticId": "lotus.attempt_count",
+      "canonicalTerm": "attempt_count",
+      "preferredName": "attempt_count",
+      "description": "Number of execution attempts already recorded for this operation.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
       ]
     },
     {
@@ -2880,6 +2894,20 @@
       ]
     },
     {
+      "semanticId": "lotus.lease_expires_at",
+      "canonicalTerm": "lease_expires_at",
+      "preferredName": "lease_expires_at",
+      "description": "UTC ISO8601 timestamp when the current execution lease expires, when running.",
+      "example": "lease_expires_at_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.lifecycle_link",
       "canonicalTerm": "lifecycle_link",
       "preferredName": "lifecycle_link",
@@ -3080,6 +3108,20 @@
       ],
       "observedTypes": [
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.max_attempts",
+      "canonicalTerm": "max_attempts",
+      "preferredName": "max_attempts",
+      "description": "Maximum number of runtime execution attempts before terminal failure.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
       ]
     },
     {
@@ -17577,6 +17619,22 @@
             "attributeRef": "#/attributeCatalog/lotus.created_at"
           },
           {
+            "name": "attempt_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.attempt_count",
+            "attributeRef": "#/attributeCatalog/lotus.attempt_count"
+          },
+          {
+            "name": "max_attempts",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.max_attempts",
+            "attributeRef": "#/attributeCatalog/lotus.max_attempts"
+          },
+          {
             "name": "status_url",
             "location": "body",
             "required": true,
@@ -17704,6 +17762,22 @@
             "attributeRef": "#/attributeCatalog/lotus.created_at"
           },
           {
+            "name": "attempt_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.attempt_count",
+            "attributeRef": "#/attributeCatalog/lotus.attempt_count"
+          },
+          {
+            "name": "max_attempts",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.max_attempts",
+            "attributeRef": "#/attributeCatalog/lotus.max_attempts"
+          },
+          {
             "name": "status_url",
             "location": "body",
             "required": true,
@@ -17813,6 +17887,30 @@
             "type": "object",
             "semanticId": "lotus.finished_at",
             "attributeRef": "#/attributeCatalog/lotus.finished_at"
+          },
+          {
+            "name": "attempt_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.attempt_count",
+            "attributeRef": "#/attributeCatalog/lotus.attempt_count"
+          },
+          {
+            "name": "max_attempts",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.max_attempts",
+            "attributeRef": "#/attributeCatalog/lotus.max_attempts"
+          },
+          {
+            "name": "lease_expires_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.lease_expires_at",
+            "attributeRef": "#/attributeCatalog/lotus.lease_expires_at"
           },
           {
             "name": "result",
@@ -17932,6 +18030,30 @@
             "type": "object",
             "semanticId": "lotus.finished_at",
             "attributeRef": "#/attributeCatalog/lotus.finished_at"
+          },
+          {
+            "name": "attempt_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.attempt_count",
+            "attributeRef": "#/attributeCatalog/lotus.attempt_count"
+          },
+          {
+            "name": "max_attempts",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.max_attempts",
+            "attributeRef": "#/attributeCatalog/lotus.max_attempts"
+          },
+          {
+            "name": "lease_expires_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.lease_expires_at",
+            "attributeRef": "#/attributeCatalog/lotus.lease_expires_at"
           },
           {
             "name": "result",

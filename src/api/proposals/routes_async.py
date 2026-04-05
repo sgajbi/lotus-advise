@@ -58,9 +58,6 @@ def create_proposal_async(
     background_tasks.add_task(
         service.execute_create_proposal_async,
         operation_id=accepted.operation_id,
-        payload=payload,
-        idempotency_key=idempotency_key,
-        correlation_id=accepted.correlation_id,
     )
     return accepted
 
@@ -105,9 +102,6 @@ def create_proposal_version_async(
     background_tasks.add_task(
         service.execute_create_version_async,
         operation_id=accepted.operation_id,
-        proposal_id=proposal_id,
-        payload=payload,
-        correlation_id=accepted.correlation_id,
     )
     return accepted
 

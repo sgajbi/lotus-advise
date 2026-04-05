@@ -167,7 +167,10 @@ def test_proposal_async_create_and_operation_lookup_roundtrip() -> None:
     with TestClient(app) as client:
         accepted = client.post("/advisory/proposals/async", json=payload, headers=headers)
         assert accepted.status_code == 202
-        operation_id = accepted.json()["operation_id"]
+        accepted_body = accepted.json()
+        assert accepted_body["attempt_count"] == 0
+        assert accepted_body["max_attempts"] == 3
+        operation_id = accepted_body["operation_id"]
 
         by_operation = client.get(f"/advisory/proposals/operations/{operation_id}")
         by_correlation = client.get(
@@ -179,6 +182,7 @@ def test_proposal_async_create_and_operation_lookup_roundtrip() -> None:
     assert by_operation.json()["operation_id"] == operation_id
     assert by_correlation.json()["operation_id"] == operation_id
     assert by_operation.json()["status"] in {"SUCCEEDED", "PENDING"}
+    assert by_operation.json()["attempt_count"] >= 1
 
 
 def test_proposal_async_version_roundtrip() -> None:
@@ -203,13 +207,17 @@ def test_proposal_async_version_roundtrip() -> None:
             headers={"X-Correlation-Id": "corr-integration-proposal-async-version-1"},
         )
         assert accepted.status_code == 202
-        operation_id = accepted.json()["operation_id"]
+        accepted_body = accepted.json()
+        assert accepted_body["attempt_count"] == 0
+        assert accepted_body["max_attempts"] == 3
+        operation_id = accepted_body["operation_id"]
 
         operation = client.get(f"/advisory/proposals/operations/{operation_id}")
 
     assert operation.status_code == 200
     assert operation.json()["operation_id"] == operation_id
     assert operation.json()["status"] in {"SUCCEEDED", "PENDING"}
+    assert operation.json()["attempt_count"] >= 1
 
 
 def test_proposal_async_operations_disabled_by_feature_flag(

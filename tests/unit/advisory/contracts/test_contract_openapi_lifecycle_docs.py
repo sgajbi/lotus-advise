@@ -86,6 +86,8 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(async_accepted_schema, "status")
     _assert_property_has_docs(async_accepted_schema, "correlation_id")
     _assert_property_has_docs(async_accepted_schema, "created_at")
+    _assert_property_has_docs(async_accepted_schema, "attempt_count")
+    _assert_property_has_docs(async_accepted_schema, "max_attempts")
     _assert_property_has_docs(async_accepted_schema, "status_url")
 
     async_status_schema = schemas["ProposalAsyncOperationStatusResponse"]
@@ -95,6 +97,9 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(async_status_schema, "correlation_id")
     _assert_property_has_docs(async_status_schema, "created_by")
     _assert_property_has_docs(async_status_schema, "created_at")
+    _assert_property_has_docs(async_status_schema, "attempt_count")
+    _assert_property_has_docs(async_status_schema, "max_attempts")
+    _assert_property_has_docs(async_status_schema, "lease_expires_at")
     _assert_property_has_docs(async_status_schema, "result")
     _assert_property_has_docs(async_status_schema, "error")
 

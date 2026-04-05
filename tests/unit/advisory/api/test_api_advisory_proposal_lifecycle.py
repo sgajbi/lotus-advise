@@ -1089,12 +1089,17 @@ def test_async_create_and_lookup_by_operation_and_correlation():
         accepted_body = accepted.json()
         assert accepted_body["operation_type"] == "CREATE_PROPOSAL"
         assert accepted_body["correlation_id"] == "corr-async-create-1"
+        assert accepted_body["attempt_count"] == 0
+        assert accepted_body["max_attempts"] == 3
 
         operation_id = accepted_body["operation_id"]
         by_operation = client.get(f"/advisory/proposals/operations/{operation_id}")
         assert by_operation.status_code == 200
         op_body = by_operation.json()
         assert op_body["status"] == "SUCCEEDED"
+        assert op_body["attempt_count"] == 1
+        assert op_body["max_attempts"] == 3
+        assert op_body["lease_expires_at"] is None
         assert op_body["result"]["proposal"]["proposal_id"].startswith("pp_")
 
         by_correlation = client.get(
@@ -1127,13 +1132,19 @@ def test_async_create_version_and_lookup():
             headers={"X-Correlation-Id": "corr-async-version-1"},
         )
         assert accepted.status_code == 202
-        operation_id = accepted.json()["operation_id"]
+        accepted_body = accepted.json()
+        assert accepted_body["attempt_count"] == 0
+        assert accepted_body["max_attempts"] == 3
+        operation_id = accepted_body["operation_id"]
 
         operation = client.get(f"/advisory/proposals/operations/{operation_id}")
         assert operation.status_code == 200
         body = operation.json()
         assert body["operation_type"] == "CREATE_PROPOSAL_VERSION"
         assert body["status"] == "SUCCEEDED"
+        assert body["attempt_count"] == 1
+        assert body["max_attempts"] == 3
+        assert body["lease_expires_at"] is None
         assert body["result"]["proposal"]["current_version_no"] == 2
 
 

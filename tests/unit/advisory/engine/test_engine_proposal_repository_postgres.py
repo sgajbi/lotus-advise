@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import ModuleType
 
 import src.infrastructure.proposals.postgres as postgres_module
@@ -56,6 +56,32 @@ class _FakeConnection:
             for row in self.proposals.values():
                 row.setdefault("source_workspace_id", None)
             return _FakeCursor()
+        if sql.startswith(
+            "ALTER TABLE proposal_async_operations ADD COLUMN IF NOT EXISTS payload_json"
+        ):
+            for row in self.operations.values():
+                row.setdefault("payload_json", "{}")
+            return _FakeCursor()
+        if sql.startswith(
+            "ALTER TABLE proposal_async_operations ADD COLUMN IF NOT EXISTS attempt_count"
+        ):
+            for row in self.operations.values():
+                row.setdefault("attempt_count", 0)
+            return _FakeCursor()
+        if sql.startswith(
+            "ALTER TABLE proposal_async_operations ADD COLUMN IF NOT EXISTS max_attempts"
+        ):
+            for row in self.operations.values():
+                row.setdefault("max_attempts", 3)
+            return _FakeCursor()
+        if sql.startswith(
+            "ALTER TABLE proposal_async_operations ADD COLUMN IF NOT EXISTS lease_expires_at"
+        ):
+            for row in self.operations.values():
+                row.setdefault("lease_expires_at", None)
+            return _FakeCursor()
+        if sql.startswith("CREATE INDEX"):
+            return _FakeCursor()
         if "FROM schema_migrations" in sql:
             namespace = args[0]
             rows = [
@@ -99,10 +125,14 @@ class _FakeConnection:
                 "proposal_id": args[5],
                 "created_by": args[6],
                 "created_at": args[7],
-                "started_at": args[8],
-                "finished_at": args[9],
-                "result_json": args[10],
-                "error_json": args[11],
+                "payload_json": args[8],
+                "attempt_count": args[9],
+                "max_attempts": args[10],
+                "started_at": args[11],
+                "lease_expires_at": args[12],
+                "finished_at": args[13],
+                "result_json": args[14],
+                "error_json": args[15],
             }
             return _FakeCursor()
         if "FROM proposal_async_operations WHERE operation_id = %s" in sql:
@@ -117,6 +147,25 @@ class _FakeConnection:
                 None,
             )
             return _FakeCursor(row)
+        if (
+            "FROM proposal_async_operations" in sql
+            and "ORDER BY created_at ASC, operation_id ASC" in sql
+        ):
+            as_of = args[0]
+            rows = []
+            for row in self.operations.values():
+                if row["status"] == "PENDING":
+                    rows.append(row)
+                    continue
+                if (
+                    row["status"] == "RUNNING"
+                    and row["finished_at"] is None
+                    and row["lease_expires_at"] is not None
+                    and row["lease_expires_at"] <= as_of
+                ):
+                    rows.append(row)
+            rows = sorted(rows, key=lambda row: (row["created_at"], row["operation_id"]))
+            return _FakeCursor(rows=rows)
         if "INSERT INTO proposal_records" in sql:
             self.proposals[args[0]] = {
                 "proposal_id": args[0],
@@ -320,7 +369,11 @@ def test_postgres_repository_create_update_and_lookup_operation(monkeypatch):
         proposal_id=None,
         created_by="advisor_1",
         created_at=created_at,
+        payload_json={"payload": {"created_by": "advisor_1"}, "idempotency_key": "idem-prop-pg-1"},
+        attempt_count=0,
+        max_attempts=3,
         started_at=None,
+        lease_expires_at=None,
         finished_at=None,
         result_json=None,
         error_json=None,
@@ -330,12 +383,17 @@ def test_postgres_repository_create_update_and_lookup_operation(monkeypatch):
     loaded = repository.get_operation(operation_id="pop_001")
     assert loaded is not None
     assert loaded.status == "PENDING"
+    assert loaded.payload_json["idempotency_key"] == "idem-prop-pg-1"
+    assert loaded.attempt_count == 0
+    assert loaded.max_attempts == 3
     assert loaded.result_json is None
     assert loaded.error_json is None
 
     operation.status = "SUCCEEDED"
     operation.proposal_id = "pp_001"
+    operation.attempt_count = 2
     operation.started_at = created_at
+    operation.lease_expires_at = created_at
     operation.finished_at = created_at
     operation.result_json = {"proposal": {"proposal_id": "pp_001"}}
     operation.error_json = None
@@ -345,6 +403,8 @@ def test_postgres_repository_create_update_and_lookup_operation(monkeypatch):
     assert by_operation is not None
     assert by_operation.status == "SUCCEEDED"
     assert by_operation.proposal_id == "pp_001"
+    assert by_operation.attempt_count == 2
+    assert by_operation.lease_expires_at == created_at
     assert by_operation.result_json == {"proposal": {"proposal_id": "pp_001"}}
     assert by_operation.error_json is None
     assert by_operation.started_at == created_at
@@ -354,6 +414,89 @@ def test_postgres_repository_create_update_and_lookup_operation(monkeypatch):
     assert by_correlation is not None
     assert by_correlation.operation_id == "pop_001"
     assert by_correlation.status == "SUCCEEDED"
+
+
+def test_postgres_repository_lists_recoverable_operations(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    now = datetime.now(timezone.utc)
+    pending = ProposalAsyncOperationRecord(
+        operation_id="pop_pending",
+        operation_type="CREATE_PROPOSAL",
+        status="PENDING",
+        correlation_id="corr-pending",
+        idempotency_key="idem-pending",
+        proposal_id=None,
+        created_by="advisor_1",
+        created_at=now,
+        payload_json={"payload": {"created_by": "advisor_1"}, "idempotency_key": "idem-pending"},
+        attempt_count=0,
+        max_attempts=3,
+        started_at=None,
+        lease_expires_at=None,
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
+    expired_running = ProposalAsyncOperationRecord(
+        operation_id="pop_expired",
+        operation_type="CREATE_PROPOSAL_VERSION",
+        status="RUNNING",
+        correlation_id="corr-expired",
+        idempotency_key=None,
+        proposal_id="pp_001",
+        created_by="advisor_1",
+        created_at=now,
+        payload_json={"proposal_id": "pp_001", "payload": {"created_by": "advisor_1"}},
+        attempt_count=1,
+        max_attempts=3,
+        started_at=now,
+        lease_expires_at=now,
+        finished_at=None,
+        result_json=None,
+        error_json={"code": "RuntimeError", "message": "timeout"},
+    )
+    running = ProposalAsyncOperationRecord(
+        operation_id="pop_running",
+        operation_type="CREATE_PROPOSAL",
+        status="RUNNING",
+        correlation_id="corr-running",
+        idempotency_key="idem-running",
+        proposal_id=None,
+        created_by="advisor_1",
+        created_at=now,
+        payload_json={"payload": {"created_by": "advisor_1"}, "idempotency_key": "idem-running"},
+        attempt_count=1,
+        max_attempts=3,
+        started_at=now,
+        lease_expires_at=now + timedelta(minutes=5),
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
+    succeeded = ProposalAsyncOperationRecord(
+        operation_id="pop_succeeded",
+        operation_type="CREATE_PROPOSAL",
+        status="SUCCEEDED",
+        correlation_id="corr-succeeded",
+        idempotency_key="idem-succeeded",
+        proposal_id="pp_002",
+        created_by="advisor_1",
+        created_at=now,
+        payload_json={"payload": {"created_by": "advisor_1"}, "idempotency_key": "idem-succeeded"},
+        attempt_count=1,
+        max_attempts=3,
+        started_at=now,
+        lease_expires_at=None,
+        finished_at=now,
+        result_json={"proposal": {"proposal_id": "pp_002"}},
+        error_json=None,
+    )
+    for operation in [pending, expired_running, running, succeeded]:
+        repository.create_operation(operation)
+
+    recoverable = repository.list_recoverable_operations(as_of=now)
+
+    assert [operation.operation_id for operation in recoverable] == ["pop_expired", "pop_pending"]
 
 
 def test_postgres_repository_proposal_create_update_get_and_list(monkeypatch):

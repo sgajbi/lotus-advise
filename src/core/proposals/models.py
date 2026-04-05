@@ -888,6 +888,14 @@ class ProposalAsyncAcceptedResponse(BaseModel):
         description="UTC ISO8601 timestamp when operation was accepted.",
         examples=["2026-02-20T10:00:00+00:00"],
     )
+    attempt_count: int = Field(
+        description="Number of execution attempts already recorded for this operation.",
+        examples=[0],
+    )
+    max_attempts: int = Field(
+        description="Maximum number of runtime execution attempts before terminal failure.",
+        examples=[3],
+    )
     status_url: str = Field(
         description="Relative API path for operation status retrieval.",
         examples=["/advisory/proposals/operations/pop_001"],
@@ -949,6 +957,19 @@ class ProposalAsyncOperationStatusResponse(BaseModel):
         default=None,
         description="UTC ISO8601 timestamp when execution finished.",
         examples=["2026-02-20T10:00:02+00:00"],
+    )
+    attempt_count: int = Field(
+        description="Number of execution attempts already recorded for this operation.",
+        examples=[1],
+    )
+    max_attempts: int = Field(
+        description="Maximum number of runtime execution attempts before terminal failure.",
+        examples=[3],
+    )
+    lease_expires_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp when the current execution lease expires, when running.",
+        examples=["2026-02-20T10:01:01+00:00"],
     )
     result: Optional[ProposalCreateResponse] = Field(
         default=None,
@@ -1236,10 +1257,32 @@ class ProposalAsyncOperationRecord(BaseModel):
         description="Internal operation acceptance timestamp.",
         examples=["2026-02-20T10:00:00+00:00"],
     )
+    payload_json: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Internal normalized request payload used for restart-safe execution.",
+        examples=[{"created_by": "advisor_123"}],
+    )
+    attempt_count: int = Field(
+        default=0,
+        ge=0,
+        description="Internal execution attempt count.",
+        examples=[0],
+    )
+    max_attempts: int = Field(
+        default=3,
+        ge=1,
+        description="Internal maximum number of runtime execution attempts.",
+        examples=[3],
+    )
     started_at: Optional[datetime] = Field(
         default=None,
         description="Internal operation start timestamp.",
         examples=["2026-02-20T10:00:01+00:00"],
+    )
+    lease_expires_at: Optional[datetime] = Field(
+        default=None,
+        description="Internal execution lease expiry timestamp while an attempt is running.",
+        examples=["2026-02-20T10:01:01+00:00"],
     )
     finished_at: Optional[datetime] = Field(
         default=None,
