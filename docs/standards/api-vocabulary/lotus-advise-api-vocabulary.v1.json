@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-05T09:31:41.133525+00:00",
+  "generatedAt": "2026-04-05T09:37:59.988211+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -18805,7 +18805,7 @@
       }
     },
     {
-      "domain": "advisory_proposal_lifecycle",
+      "domain": "advisory_operations_&_support",
       "method": "GET",
       "path": "/advisory/proposals/{proposal_id}/approvals",
       "operationId": "get_proposal_approvals_advisory_proposals__proposal_id__approvals_get",
@@ -20810,7 +20810,7 @@
       }
     },
     {
-      "domain": "advisory_proposal_lifecycle",
+      "domain": "advisory_operations_&_support",
       "method": "GET",
       "path": "/advisory/proposals/operations/{operation_id}",
       "operationId": "get_proposal_async_operation_advisory_proposals_operations__operation_id__get",
@@ -20929,7 +20929,7 @@
       }
     },
     {
-      "domain": "advisory_proposal_lifecycle",
+      "domain": "advisory_operations_&_support",
       "method": "GET",
       "path": "/advisory/proposals/operations/by-correlation/{correlation_id}",
       "operationId": "get_proposal_async_operation_by_correlation_advisory_proposals_operations_by_correlation__correlation_id__get",
@@ -21048,7 +21048,7 @@
       }
     },
     {
-      "domain": "advisory_proposal_lifecycle",
+      "domain": "advisory_operations_&_support",
       "method": "GET",
       "path": "/advisory/proposals/{proposal_id}/workflow-events",
       "operationId": "get_proposal_workflow_timeline_advisory_proposals__proposal_id__workflow_events_get",
@@ -21279,7 +21279,7 @@
       }
     },
     {
-      "domain": "advisory_proposal_lifecycle",
+      "domain": "advisory_operations_&_support",
       "method": "GET",
       "path": "/advisory/proposals/{proposal_id}/lineage",
       "operationId": "get_proposal_lineage_advisory_proposals__proposal_id__lineage_get",
@@ -21510,7 +21510,7 @@
       }
     },
     {
-      "domain": "advisory_proposal_lifecycle",
+      "domain": "advisory_operations_&_support",
       "method": "GET",
       "path": "/advisory/proposals/idempotency/{idempotency_key}",
       "operationId": "get_proposal_idempotency_lookup_advisory_proposals_idempotency__idempotency_key__get",
@@ -22091,7 +22091,7 @@
       }
     },
     {
-      "domain": "advisory_proposal_lifecycle",
+      "domain": "advisory_operations_&_support",
       "method": "GET",
       "path": "/advisory/proposals/{proposal_id}/execution-status",
       "operationId": "get_execution_status_advisory_proposals__proposal_id__execution_status_get",

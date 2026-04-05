@@ -18,6 +18,7 @@ from src.core.proposals import (
     "/advisory/proposals/async",
     response_model=ProposalAsyncAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    tags=["Advisory Proposal Lifecycle"],
     summary="Create and Persist Advisory Proposal Asynchronously",
     description=(
         "Accepts proposal creation request for asynchronous processing. "
@@ -68,6 +69,7 @@ def create_proposal_async(
     "/advisory/proposals/{proposal_id}/versions/async",
     response_model=ProposalAsyncAcceptedResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    tags=["Advisory Proposal Lifecycle"],
     summary="Create Proposal Version Asynchronously",
     description=(
         "Accepts proposal-version creation request for asynchronous processing. "
@@ -114,6 +116,7 @@ def create_proposal_version_async(
     "/advisory/proposals/operations/{operation_id}",
     response_model=ProposalAsyncOperationStatusResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Get Proposal Async Operation",
     description="Returns asynchronous operation status and terminal result/error payload.",
 )
@@ -136,6 +139,7 @@ def get_proposal_async_operation(
     "/advisory/proposals/operations/by-correlation/{correlation_id}",
     response_model=ProposalAsyncOperationStatusResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Get Proposal Async Operation by Correlation Id",
     description="Returns the latest asynchronous operation associated with correlation id.",
 )

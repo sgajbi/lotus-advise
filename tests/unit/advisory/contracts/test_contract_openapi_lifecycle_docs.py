@@ -167,8 +167,17 @@ def test_openapi_tag_groups_are_documented_for_self_service_discovery():
     assert "Advisory Simulation" in tags
     assert "evaluate a proposed set of portfolio actions" in tags["Advisory Simulation"]
     assert "Advisory Proposal Lifecycle" in tags
-    assert "creation, versioning, state transitions, approvals, execution handoff" in tags[
+    assert (
+        "creation, versioning, state transitions, approvals, report requests, and execution "
+        "handoff"
+    ) in tags[
         "Advisory Proposal Lifecycle"
+    ]
+    assert "Advisory Operations & Support" in tags
+    assert (
+        "async status, workflow history, lineage, approval history, idempotency tracing"
+    ) in tags[
+        "Advisory Operations & Support"
     ]
     assert "Advisory Workspace" in tags
     assert "iterative advisory preparation" in tags["Advisory Workspace"]
@@ -178,3 +187,27 @@ def test_openapi_tag_groups_are_documented_for_self_service_discovery():
     assert "liveness and readiness probes" in tags["Health"]
     assert "Monitoring" in tags
     assert "metrics scraping and observability tooling" in tags["Monitoring"]
+
+
+def test_openapi_separates_business_and_support_proposal_tags():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    assert openapi["paths"]["/advisory/proposals"]["post"]["tags"] == [
+        "Advisory Proposal Lifecycle"
+    ]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/approvals"]["post"]["tags"] == [
+        "Advisory Proposal Lifecycle"
+    ]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/report-requests"]["post"][
+        "tags"
+    ] == ["Advisory Proposal Lifecycle"]
+    assert openapi["paths"]["/advisory/proposals/operations/{operation_id}"]["get"]["tags"] == [
+        "Advisory Operations & Support"
+    ]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/workflow-events"]["get"][
+        "tags"
+    ] == ["Advisory Operations & Support"]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/execution-status"]["get"][
+        "tags"
+    ] == ["Advisory Operations & Support"]

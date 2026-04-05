@@ -67,8 +67,14 @@ app = FastAPI(
             "name": "Advisory Proposal Lifecycle",
             "description": (
                 "Persisted advisory proposal workflow endpoints covering creation, versioning, "
-                "state transitions, approvals, execution handoff, and audit-oriented support "
-                "investigation flows."
+                "state transitions, approvals, report requests, and execution handoff."
+            ),
+        },
+        {
+            "name": "Advisory Operations & Support",
+            "description": (
+                "Operational lookup and investigation endpoints for async status, workflow "
+                "history, lineage, approval history, idempotency tracing, and execution support."
             ),
         },
         {

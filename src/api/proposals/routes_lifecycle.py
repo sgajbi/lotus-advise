@@ -27,6 +27,7 @@ from src.core.proposals.models import ProposalApprovalRequest, ProposalListRespo
     "/advisory/proposals",
     response_model=ProposalCreateResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
     summary="Create and Persist Advisory Proposal",
     description=(
         "Runs advisory simulation + artifact generation and persists immutable proposal version, "
@@ -68,6 +69,7 @@ def create_proposal(
     "/advisory/proposals/{proposal_id}",
     response_model=ProposalDetailResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
     summary="Get Proposal",
     description="Returns proposal summary, current immutable version, and last gate decision.",
 )
@@ -96,6 +98,7 @@ def get_proposal(
     "/advisory/proposals",
     response_model=ProposalListResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
     summary="List Proposals",
     description="Lists persisted proposals with optional filters and cursor pagination.",
 )
@@ -153,6 +156,7 @@ def list_proposals(
     summary="Get Proposal Version",
     response_model=ProposalVersionDetail,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
     description="Returns one immutable proposal version by version number.",
 )
 def get_proposal_version(
@@ -185,6 +189,7 @@ def get_proposal_version(
     "/advisory/proposals/{proposal_id}/versions",
     response_model=ProposalCreateResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
     summary="Create Proposal Version",
     description=(
         "Creates a new immutable proposal version by rerunning simulation + artifact build."
@@ -221,6 +226,7 @@ def create_proposal_version(
     "/advisory/proposals/{proposal_id}/transitions",
     response_model=ProposalStateTransitionResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
     summary="Transition Proposal State",
     description=(
         "Applies one validated workflow transition with optimistic state concurrency check."
@@ -262,6 +268,7 @@ def transition_proposal_state(
     "/advisory/proposals/{proposal_id}/approvals",
     response_model=ProposalStateTransitionResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
     summary="Record Proposal Approval",
     description=(
         "Persists a structured approval/consent record and appends "

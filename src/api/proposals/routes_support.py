@@ -18,6 +18,7 @@ from src.core.proposals import (
     "/advisory/proposals/{proposal_id}/workflow-events",
     response_model=ProposalWorkflowTimelineResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Get Proposal Workflow Timeline",
     description=(
         "Returns append-only workflow event timeline for investigation, supportability, and audit."
@@ -45,6 +46,7 @@ def get_proposal_workflow_timeline(
     "/advisory/proposals/{proposal_id}/approvals",
     response_model=ProposalApprovalsResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Get Proposal Approvals",
     description=(
         "Returns approval/consent records for support investigations and workflow audit traces."
@@ -72,6 +74,7 @@ def get_proposal_approvals(
     "/advisory/proposals/{proposal_id}/lineage",
     response_model=ProposalLineageResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Get Proposal Lineage",
     description=(
         "Returns immutable version lineage metadata with hashes "
@@ -100,6 +103,7 @@ def get_proposal_lineage(
     "/advisory/proposals/idempotency/{idempotency_key}",
     response_model=ProposalIdempotencyLookupResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Lookup Proposal Idempotency Mapping",
     description=(
         "Returns idempotency-to-proposal mapping for support and retry investigation workflows."

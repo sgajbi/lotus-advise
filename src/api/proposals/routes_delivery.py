@@ -23,6 +23,7 @@ from src.integrations.lotus_report import LotusReportUnavailableError
     "/advisory/proposals/{proposal_id}/report-requests",
     response_model=ProposalReportResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
     summary="Request Advisory Proposal Report",
     description=(
         "Requests a Lotus-branded advisory report payload through the lotus-report seam without "
@@ -56,6 +57,7 @@ def create_proposal_report_request(
     "/advisory/proposals/{proposal_id}/execution-handoffs",
     response_model=ProposalExecutionHandoffResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
     summary="Request Advisory Execution Handoff",
     description=(
         "Records an auditable execution handoff request while keeping execution ownership outside "
@@ -96,6 +98,7 @@ def request_execution_handoff(
     "/advisory/proposals/{proposal_id}/execution-status",
     response_model=ProposalExecutionStatusResponse,
     status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
     summary="Get Advisory Execution Status",
     description=(
         "Returns advisory-owned execution handoff correlation state derived from append-only "

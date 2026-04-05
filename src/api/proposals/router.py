@@ -12,7 +12,7 @@ from src.api.routers.runtime_utils import (
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.repository import ProposalRepository
 
-router = APIRouter(tags=["Advisory Proposal Lifecycle"])
+router = APIRouter()
 
 _REPOSITORY: Optional[ProposalRepository] = None
 _SERVICE: Optional[ProposalWorkflowService] = None
