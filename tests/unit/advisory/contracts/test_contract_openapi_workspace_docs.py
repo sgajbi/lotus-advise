@@ -152,9 +152,9 @@ def test_workspace_endpoint_has_documented_request_and_response_contracts():
     assistant_request_ref = assistant_rationale["requestBody"]["content"]["application/json"][
         "schema"
     ]["$ref"]
-    assistant_response_ref = assistant_rationale["responses"]["200"]["content"][
-        "application/json"
-    ]["schema"]["$ref"]
+    assistant_response_ref = assistant_rationale["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
     assert assistant_request_ref.endswith("/WorkspaceAssistantRequest")
     assert assistant_response_ref.endswith("/WorkspaceAssistantResponse")
     assert assistant_rationale["summary"] == "Generate an Advisory Workspace Rationale"

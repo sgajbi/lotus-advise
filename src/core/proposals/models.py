@@ -234,9 +234,7 @@ class ProposalSimulationRequest(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def normalize_legacy_top_level_simulation_payload(
-        cls, value: object
-    ) -> object:
+    def normalize_legacy_top_level_simulation_payload(cls, value: object) -> object:
         if not isinstance(value, dict):
             return value
         envelope_keys = {"input_mode", "simulate_request", "stateless_input", "stateful_input"}
@@ -253,9 +251,7 @@ class ProposalSimulationRequest(BaseModel):
                     "stateless_input"
                 )
             if self.stateful_input is not None:
-                raise ValueError(
-                    "legacy simulation requests must not include stateful_input"
-                )
+                raise ValueError("legacy simulation requests must not include stateful_input")
             return self
         if self.input_mode == "stateless":
             if (
@@ -824,8 +820,7 @@ class ProposalExecutionUpdateRequest(BaseModel):
     details: Dict[str, Any] = Field(
         default_factory=dict,
         description=(
-            "Structured downstream execution metadata preserved for audit and "
-            "reconciliation."
+            "Structured downstream execution metadata preserved for audit and reconciliation."
         ),
         examples=[{"filled_quantity": "50", "remaining_quantity": "25"}],
     )

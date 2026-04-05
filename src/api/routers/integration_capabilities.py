@@ -335,8 +335,7 @@ async def get_integration_capabilities(
                 operational_ready=lotus_core_ready,
                 owner_service="ADVISORY",
                 description=(
-                    "Stateful advisory workspace evaluation through Lotus Core context "
-                    "resolution."
+                    "Stateful advisory workspace evaluation through Lotus Core context resolution."
                 ),
                 fallback_mode="LOCAL_SIMULATION_FALLBACK",
                 degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),

@@ -162,9 +162,9 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     report_request_body_ref = report_request["requestBody"]["content"]["application/json"][
         "schema"
     ]["$ref"]
-    report_request_response_ref = report_request["responses"]["200"]["content"][
-        "application/json"
-    ]["schema"]["$ref"]
+    report_request_response_ref = report_request["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
     assert report_request_body_ref.endswith("/ProposalReportRequest")
     assert report_request_response_ref.endswith("/ProposalReportResponse")
 
@@ -228,17 +228,12 @@ def test_openapi_tag_groups_are_documented_for_self_service_discovery():
     assert "evaluate a proposed set of portfolio actions" in tags["Advisory Simulation"]
     assert "Advisory Proposal Lifecycle" in tags
     assert (
-        "creation, versioning, state transitions, approvals, report requests, and execution "
-        "handoff"
-    ) in tags[
-        "Advisory Proposal Lifecycle"
-    ]
+        "creation, versioning, state transitions, approvals, report requests, and execution handoff"
+    ) in tags["Advisory Proposal Lifecycle"]
     assert "Advisory Operations & Support" in tags
     assert (
         "async status, workflow history, lineage, approval history, idempotency tracing"
-    ) in tags[
-        "Advisory Operations & Support"
-    ]
+    ) in tags["Advisory Operations & Support"]
     assert "Advisory Workspace" in tags
     assert "iterative advisory preparation" in tags["Advisory Workspace"]
     assert "Integration" in tags
@@ -268,9 +263,9 @@ def test_openapi_separates_business_and_support_proposal_tags():
     assert openapi["paths"]["/advisory/proposals/operations/{operation_id}"]["get"]["tags"] == [
         "Advisory Operations & Support"
     ]
-    assert openapi["paths"]["/advisory/proposals/{proposal_id}/workflow-events"]["get"][
-        "tags"
-    ] == ["Advisory Operations & Support"]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/workflow-events"]["get"]["tags"] == [
+        "Advisory Operations & Support"
+    ]
     assert openapi["paths"]["/advisory/proposals/{proposal_id}/execution-status"]["get"][
         "tags"
     ] == ["Advisory Operations & Support"]

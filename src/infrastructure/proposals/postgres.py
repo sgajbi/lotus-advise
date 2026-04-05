@@ -218,9 +218,7 @@ class PostgresProposalRepository:
         with closing(self._connect()) as connection:
             rows = connection.execute(query, (as_of.isoformat(),)).fetchall()
         return [
-            operation
-            for operation in (_to_operation(row) for row in rows)
-            if operation is not None
+            operation for operation in (_to_operation(row) for row in rows) if operation is not None
         ]
 
     def create_proposal(self, proposal: ProposalRecord) -> None:
