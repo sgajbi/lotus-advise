@@ -8,6 +8,9 @@ from pathlib import Path
 
 import pytest
 
+from src.api.main import app, get_db_session
+from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import CashBalance, EngineOptions, PortfolioSnapshot
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
@@ -61,3 +64,36 @@ def postgres_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
         "src.api.proposals.runtime.PostgresProposalRepository",
         lambda **_kwargs: InMemoryProposalRepository(),
     )
+
+
+@pytest.fixture(autouse=True)
+def advisory_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
+    async def _override_get_db_session():
+        yield None
+
+    def _simulate_with_lotus_core(**kwargs):
+        request = kwargs["request"]
+        return run_proposal_simulation(
+            portfolio=request.portfolio_snapshot,
+            market_data=request.market_data_snapshot,
+            shelf=request.shelf_entries,
+            options=request.options,
+            proposed_cash_flows=request.proposed_cash_flows,
+            proposed_trades=request.proposed_trades,
+            reference_model=request.reference_model,
+            request_hash=kwargs["request_hash"],
+            idempotency_key=kwargs["idempotency_key"],
+            correlation_id=kwargs["correlation_id"],
+            simulation_contract_version="advisory-simulation.v1",
+        )
+
+    monkeypatch.setenv("ENVIRONMENT", "test")
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.simulate_with_lotus_core",
+        _simulate_with_lotus_core,
+    )
+    monkeypatch.setitem(app.dependency_overrides, get_db_session, _override_get_db_session)
+    reset_proposal_workflow_service_for_tests()
+    yield
+    app.dependency_overrides.pop(get_db_session, None)
+    reset_proposal_workflow_service_for_tests()
