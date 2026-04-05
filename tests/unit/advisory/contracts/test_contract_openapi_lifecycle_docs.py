@@ -66,6 +66,15 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(execution_handoff_schema, "expected_state")
     _assert_property_has_docs(execution_handoff_schema, "notes")
 
+    execution_update_schema = schemas["ProposalExecutionUpdateRequest"]
+    _assert_property_has_docs(execution_update_schema, "update_id")
+    _assert_property_has_docs(execution_update_schema, "execution_request_id")
+    _assert_property_has_docs(execution_update_schema, "execution_provider")
+    _assert_property_has_docs(execution_update_schema, "update_status")
+    _assert_property_has_docs(execution_update_schema, "external_execution_id")
+    _assert_property_has_docs(execution_update_schema, "occurred_at")
+    _assert_property_has_docs(execution_update_schema, "details")
+
     execution_status_schema = schemas["ProposalExecutionStatusResponse"]
     _assert_property_has_docs(execution_status_schema, "handoff_status")
     _assert_property_has_docs(execution_status_schema, "execution_request_id")
@@ -189,6 +198,18 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     assert execution_handoff_body_ref.endswith("/ProposalExecutionHandoffRequest")
     assert execution_handoff_response_ref.endswith("/ProposalExecutionHandoffResponse")
 
+    execution_update = openapi["paths"]["/advisory/proposals/{proposal_id}/execution-updates"][
+        "post"
+    ]
+    execution_update_body_ref = execution_update["requestBody"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    execution_update_response_ref = execution_update["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assert execution_update_body_ref.endswith("/ProposalExecutionUpdateRequest")
+    assert execution_update_response_ref.endswith("/ProposalExecutionStatusResponse")
+
 
 def test_openapi_does_not_expose_api_v1_compatibility_paths():
     with TestClient(app) as client:
@@ -239,6 +260,9 @@ def test_openapi_separates_business_and_support_proposal_tags():
         "Advisory Proposal Lifecycle"
     ]
     assert openapi["paths"]["/advisory/proposals/{proposal_id}/report-requests"]["post"][
+        "tags"
+    ] == ["Advisory Proposal Lifecycle"]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/execution-updates"]["post"][
         "tags"
     ] == ["Advisory Proposal Lifecycle"]
     assert openapi["paths"]["/advisory/proposals/operations/{operation_id}"]["get"]["tags"] == [

@@ -27,6 +27,11 @@ ProposalWorkflowEventType = Literal[
     "COMPLIANCE_APPROVED",
     "CLIENT_CONSENT_RECORDED",
     "EXECUTION_REQUESTED",
+    "EXECUTION_ACCEPTED",
+    "EXECUTION_PARTIALLY_EXECUTED",
+    "EXECUTION_REJECTED",
+    "EXECUTION_CANCELLED",
+    "EXECUTION_EXPIRED",
     "EXECUTED",
     "REJECTED",
     "EXPIRED",
@@ -39,7 +44,24 @@ ProposalAsyncOperationType = Literal["CREATE_PROPOSAL", "CREATE_PROPOSAL_VERSION
 ProposalAsyncOperationStatus = Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]
 ProposalLifecycleOrigin = Literal["DIRECT_CREATE", "WORKSPACE_HANDOFF"]
 ProposalReportType = Literal["PORTFOLIO_REVIEW", "CLIENT_PROPOSAL_SUMMARY"]
-ProposalExecutionHandoffStatus = Literal["NOT_REQUESTED", "REQUESTED", "EXECUTED"]
+ProposalExecutionHandoffStatus = Literal[
+    "NOT_REQUESTED",
+    "REQUESTED",
+    "ACCEPTED",
+    "PARTIALLY_EXECUTED",
+    "EXECUTED",
+    "REJECTED",
+    "CANCELLED",
+    "EXPIRED",
+]
+ProposalExecutionUpdateStatus = Literal[
+    "ACCEPTED",
+    "PARTIALLY_EXECUTED",
+    "REJECTED",
+    "CANCELLED",
+    "EXPIRED",
+    "EXECUTED",
+]
 ProposalInputMode = Literal["stateless", "stateful"]
 
 
@@ -649,6 +671,52 @@ class ProposalExecutionHandoffRequest(BaseModel):
         default_factory=dict,
         description="Structured advisory handoff notes captured for execution audit.",
         examples=[{"channel": "OMS", "priority": "STANDARD"}],
+    )
+
+
+class ProposalExecutionUpdateRequest(BaseModel):
+    update_id: str = Field(
+        description="Stable downstream execution update identifier used for idempotent ingestion.",
+        examples=["exec_update_001"],
+    )
+    actor_id: str = Field(
+        description="Actor or system identifier recording the downstream execution update.",
+        examples=["lotus-manage"],
+    )
+    execution_request_id: str = Field(
+        description="Advisory execution request identifier previously recorded at handoff.",
+        examples=["oms_req_001"],
+    )
+    execution_provider: str = Field(
+        description="Execution venue or OMS that produced the downstream update.",
+        examples=["lotus-manage"],
+    )
+    update_status: ProposalExecutionUpdateStatus = Field(
+        description="Normalized downstream execution posture being ingested.",
+        examples=["PARTIALLY_EXECUTED"],
+    )
+    related_version_no: Optional[int] = Field(
+        default=None,
+        description="Immutable proposal version number the downstream execution update applies to.",
+        examples=[1],
+    )
+    external_execution_id: Optional[str] = Field(
+        default=None,
+        description="External downstream execution or ticket identifier when supplied.",
+        examples=["oms_fill_001"],
+    )
+    occurred_at: Optional[str] = Field(
+        default=None,
+        description="Optional UTC ISO8601 timestamp supplied by the downstream execution system.",
+        examples=["2026-03-26T09:10:00+00:00"],
+    )
+    details: Dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Structured downstream execution metadata preserved for audit and "
+            "reconciliation."
+        ),
+        examples=[{"filled_quantity": "50", "remaining_quantity": "25"}],
     )
 
 

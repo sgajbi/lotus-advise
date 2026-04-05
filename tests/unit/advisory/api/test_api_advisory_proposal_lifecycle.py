@@ -52,6 +52,69 @@ def _create(client: TestClient, idempotency_key: str, payload: dict | None = Non
     return response.json()
 
 
+def _promote_to_execution_ready(client: TestClient, proposal_id: str) -> None:
+    submitted = client.post(
+        f"/advisory/proposals/{proposal_id}/transitions",
+        json={
+            "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
+            "actor_id": "advisor_1",
+            "expected_state": "DRAFT",
+            "reason": {"comment": "needs compliance"},
+            "related_version_no": 1,
+        },
+    )
+    assert submitted.status_code == 200
+
+    compliance = client.post(
+        f"/advisory/proposals/{proposal_id}/approvals",
+        json={
+            "approval_type": "COMPLIANCE",
+            "approved": True,
+            "actor_id": "compliance_user",
+            "expected_state": "COMPLIANCE_REVIEW",
+            "details": {"comment": "ok"},
+            "related_version_no": 1,
+        },
+    )
+    assert compliance.status_code == 200
+
+    consent = client.post(
+        f"/advisory/proposals/{proposal_id}/approvals",
+        json={
+            "approval_type": "CLIENT_CONSENT",
+            "approved": True,
+            "actor_id": "client_1",
+            "expected_state": "AWAITING_CLIENT_CONSENT",
+            "details": {"channel": "IN_PERSON"},
+            "related_version_no": 1,
+        },
+    )
+    assert consent.status_code == 200
+    assert consent.json()["current_state"] == "EXECUTION_READY"
+
+
+def _request_execution_handoff(
+    client: TestClient,
+    proposal_id: str,
+    *,
+    external_request_id: str = "oms_req_001",
+) -> dict:
+    handoff = client.post(
+        f"/advisory/proposals/{proposal_id}/execution-handoffs",
+        json={
+            "actor_id": "ops_001",
+            "execution_provider": "lotus-manage",
+            "expected_state": "EXECUTION_READY",
+            "related_version_no": 1,
+            "correlation_id": "corr-exec-handoff-001",
+            "external_request_id": external_request_id,
+            "notes": {"channel": "OMS", "priority": "STANDARD"},
+        },
+    )
+    assert handoff.status_code == 200
+    return handoff.json()
+
+
 def _resolved_stateful_context(
     portfolio_id: str,
     as_of: str,
@@ -552,59 +615,8 @@ def test_execution_handoff_and_status_are_auditable(monkeypatch):
         created = _create(client, "lifecycle-execution-handoff")
         proposal_id = created["proposal"]["proposal_id"]
 
-        to_compliance = client.post(
-            f"/advisory/proposals/{proposal_id}/transitions",
-            json={
-                "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
-                "actor_id": "advisor_1",
-                "expected_state": "DRAFT",
-                "reason": {"comment": "needs compliance"},
-                "related_version_no": 1,
-            },
-        )
-        assert to_compliance.status_code == 200
-
-        compliance_approved = client.post(
-            f"/advisory/proposals/{proposal_id}/approvals",
-            json={
-                "approval_type": "COMPLIANCE",
-                "approved": True,
-                "actor_id": "compliance_user",
-                "expected_state": "COMPLIANCE_REVIEW",
-                "details": {"comment": "ok"},
-                "related_version_no": 1,
-            },
-        )
-        assert compliance_approved.status_code == 200
-
-        consent = client.post(
-            f"/advisory/proposals/{proposal_id}/approvals",
-            json={
-                "approval_type": "CLIENT_CONSENT",
-                "approved": True,
-                "actor_id": "client_1",
-                "expected_state": "AWAITING_CLIENT_CONSENT",
-                "details": {"channel": "IN_PERSON"},
-                "related_version_no": 1,
-            },
-        )
-        assert consent.status_code == 200
-        assert consent.json()["current_state"] == "EXECUTION_READY"
-
-        handoff = client.post(
-            f"/advisory/proposals/{proposal_id}/execution-handoffs",
-            json={
-                "actor_id": "ops_001",
-                "execution_provider": "lotus-manage",
-                "expected_state": "EXECUTION_READY",
-                "related_version_no": 1,
-                "correlation_id": "corr-exec-handoff-001",
-                "external_request_id": "oms_req_001",
-                "notes": {"channel": "OMS", "priority": "STANDARD"},
-            },
-        )
-        assert handoff.status_code == 200
-        handoff_body = handoff.json()
+        _promote_to_execution_ready(client, proposal_id)
+        handoff_body = _request_execution_handoff(client, proposal_id)
         assert handoff_body["handoff_status"] == "REQUESTED"
         assert handoff_body["execution_provider"] == "lotus-manage"
         assert handoff_body["latest_workflow_event"]["event_type"] == "EXECUTION_REQUESTED"
@@ -681,43 +693,216 @@ def test_execution_handoff_requires_execution_ready_state():
     assert "EXECUTION_READY" in handoff.json()["detail"]
 
 
+@pytest.mark.parametrize(
+    ("update_status", "expected_handoff_status", "expected_state", "expected_correlation"),
+    [
+        (
+            "ACCEPTED",
+            "ACCEPTED",
+            "EXECUTION_READY",
+            "EXECUTION_REQUESTED_AND_ACCEPTED_EVENTS",
+        ),
+        (
+            "PARTIALLY_EXECUTED",
+            "PARTIALLY_EXECUTED",
+            "EXECUTION_READY",
+            "EXECUTION_REQUESTED_AND_PARTIAL_EXECUTION_EVENTS",
+        ),
+        (
+            "REJECTED",
+            "REJECTED",
+            "REJECTED",
+            "EXECUTION_REQUESTED_AND_REJECTED_EVENTS",
+        ),
+        (
+            "CANCELLED",
+            "CANCELLED",
+            "CANCELLED",
+            "EXECUTION_REQUESTED_AND_CANCELLED_EVENTS",
+        ),
+        (
+            "EXPIRED",
+            "EXPIRED",
+            "EXPIRED",
+            "EXECUTION_REQUESTED_AND_EXPIRED_EVENTS",
+        ),
+        (
+            "EXECUTED",
+            "EXECUTED",
+            "EXECUTED",
+            "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS",
+        ),
+    ],
+)
+def test_execution_updates_reconcile_downstream_statuses(
+    update_status: str,
+    expected_handoff_status: str,
+    expected_state: str,
+    expected_correlation: str,
+):
+    with TestClient(app) as client:
+        created = _create(client, f"lifecycle-execution-update-{update_status.lower()}")
+        proposal_id = created["proposal"]["proposal_id"]
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(client, proposal_id)
+
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": f"exec_update_{update_status.lower()}",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_001",
+                "execution_provider": "lotus-manage",
+                "update_status": update_status,
+                "related_version_no": 1,
+                "external_execution_id": "oms_fill_001",
+                "occurred_at": "2026-03-26T09:10:00+00:00",
+                "details": {"filled_quantity": "50", "remaining_quantity": "25"},
+            },
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["handoff_status"] == expected_handoff_status
+        assert body["proposal"]["current_state"] == expected_state
+        assert body["execution_request_id"] == "oms_req_001"
+        assert body["execution_provider"] == "lotus-manage"
+        assert body["external_execution_id"] == "oms_fill_001"
+        assert body["latest_workflow_event"]["related_version_no"] == 1
+        assert body["explanation"]["state_correlation"] == expected_correlation
+        if update_status == "EXECUTED":
+            assert body["executed_at"] == "2026-03-26T09:10:00+00:00"
+        else:
+            assert body["executed_at"] is None
+
+
+def test_execution_update_is_replay_safe_and_rejects_payload_conflicts():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-execution-update-idempotency")
+        proposal_id = created["proposal"]["proposal_id"]
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(client, proposal_id, external_request_id="oms_req_replay_001")
+
+        payload = {
+            "update_id": "exec_update_replay_001",
+            "actor_id": "lotus-manage",
+            "execution_request_id": "oms_req_replay_001",
+            "execution_provider": "lotus-manage",
+            "update_status": "ACCEPTED",
+            "related_version_no": 1,
+            "occurred_at": "2026-03-26T09:10:00+00:00",
+            "details": {"desk": "SG"},
+        }
+        first = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json=payload,
+        )
+        second = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json=payload,
+        )
+
+        assert first.status_code == 200
+        assert second.status_code == 200
+        assert first.json() == second.json()
+
+        conflict = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json=payload | {"update_status": "PARTIALLY_EXECUTED"},
+        )
+        assert conflict.status_code == 409
+        assert conflict.json()["detail"] == "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
+
+
+def test_execution_update_requires_matching_handoff_identity():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-execution-update-match")
+        proposal_id = created["proposal"]["proposal_id"]
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(client, proposal_id, external_request_id="oms_req_match_001")
+
+        mismatched_request = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_mismatch_request",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_other",
+                "execution_provider": "lotus-manage",
+                "update_status": "ACCEPTED",
+            },
+        )
+        assert mismatched_request.status_code == 409
+        assert mismatched_request.json()["detail"] == "EXECUTION_REQUEST_ID_MISMATCH"
+
+        mismatched_provider = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_mismatch_provider",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_match_001",
+                "execution_provider": "other-oms",
+                "update_status": "ACCEPTED",
+            },
+        )
+        assert mismatched_provider.status_code == 409
+        assert mismatched_provider.json()["detail"] == "EXECUTION_PROVIDER_MISMATCH"
+
+
+def test_execution_update_requires_prior_handoff_and_respects_terminal_state():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-execution-update-guardrails")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        without_handoff = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_missing_handoff",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_missing",
+                "execution_provider": "lotus-manage",
+                "update_status": "ACCEPTED",
+            },
+        )
+        assert without_handoff.status_code == 422
+        assert without_handoff.json()["detail"] == "EXECUTION_HANDOFF_NOT_FOUND"
+
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(client, proposal_id, external_request_id="oms_req_terminal_001")
+        executed = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_terminal_executed",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_terminal_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "EXECUTED",
+                "external_execution_id": "oms_fill_terminal_001",
+            },
+        )
+        assert executed.status_code == 200
+
+        after_terminal = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_after_terminal",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_terminal_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "ACCEPTED",
+            },
+        )
+        assert after_terminal.status_code == 409
+        assert (
+            after_terminal.json()["detail"]
+            == "PROPOSAL_TERMINAL_STATE: execution update rejected"
+        )
+
+
 def test_execution_handoff_is_replay_safe_with_idempotency_key():
     with TestClient(app) as client:
         created = _create(client, "lifecycle-execution-handoff-idem-create")
         proposal_id = created["proposal"]["proposal_id"]
-
-        client.post(
-            f"/advisory/proposals/{proposal_id}/transitions",
-            json={
-                "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
-                "actor_id": "advisor_1",
-                "expected_state": "DRAFT",
-                "reason": {"comment": "needs compliance"},
-                "related_version_no": 1,
-            },
-        )
-        client.post(
-            f"/advisory/proposals/{proposal_id}/approvals",
-            json={
-                "approval_type": "COMPLIANCE",
-                "approved": True,
-                "actor_id": "compliance_user",
-                "expected_state": "COMPLIANCE_REVIEW",
-                "details": {"comment": "ok"},
-                "related_version_no": 1,
-            },
-        )
-        client.post(
-            f"/advisory/proposals/{proposal_id}/approvals",
-            json={
-                "approval_type": "CLIENT_CONSENT",
-                "approved": True,
-                "actor_id": "client_1",
-                "expected_state": "AWAITING_CLIENT_CONSENT",
-                "details": {"channel": "IN_PERSON"},
-                "related_version_no": 1,
-            },
-        )
+        _promote_to_execution_ready(client, proposal_id)
 
         payload = {
             "actor_id": "ops_001",

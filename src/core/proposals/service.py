@@ -28,6 +28,7 @@ from src.core.proposals.models import (
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
     ProposalExecutionStatusResponse,
+    ProposalExecutionUpdateRequest,
     ProposalIdempotencyLookupResponse,
     ProposalIdempotencyRecord,
     ProposalLifecycleOrigin,
@@ -70,6 +71,25 @@ TRANSITION_MAP: dict[tuple[ProposalWorkflowState, str], ProposalWorkflowState] =
     ("EXECUTION_READY", "EXECUTION_REQUESTED"): "EXECUTION_READY",
     ("EXECUTION_READY", "EXECUTED"): "EXECUTED",
     ("EXECUTION_READY", "EXPIRED"): "EXPIRED",
+}
+
+EXECUTION_STATUS_EVENT_TYPES = {
+    "EXECUTION_REQUESTED",
+    "EXECUTION_ACCEPTED",
+    "EXECUTION_PARTIALLY_EXECUTED",
+    "EXECUTION_REJECTED",
+    "EXECUTION_CANCELLED",
+    "EXECUTION_EXPIRED",
+    "EXECUTED",
+}
+
+EXECUTION_UPDATE_EVENT_MAP: dict[str, tuple[str, ProposalWorkflowState]] = {
+    "ACCEPTED": ("EXECUTION_ACCEPTED", "EXECUTION_READY"),
+    "PARTIALLY_EXECUTED": ("EXECUTION_PARTIALLY_EXECUTED", "EXECUTION_READY"),
+    "REJECTED": ("EXECUTION_REJECTED", "REJECTED"),
+    "CANCELLED": ("EXECUTION_CANCELLED", "CANCELLED"),
+    "EXPIRED": ("EXECUTION_EXPIRED", "EXPIRED"),
+    "EXECUTED": ("EXECUTED", "EXECUTED"),
 }
 
 
@@ -464,14 +484,8 @@ class ProposalWorkflowService:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
         events = self._repository.list_events(proposal_id=proposal_id)
-        latest_execution_requested: ProposalWorkflowEventRecord | None = None
-        latest_execution_event: ProposalWorkflowEventRecord | None = None
-        for event in events:
-            if event.event_type == "EXECUTION_REQUESTED":
-                latest_execution_requested = event
-                latest_execution_event = event
-            elif event.event_type == "EXECUTED":
-                latest_execution_event = event
+        latest_execution_requested = self._latest_execution_requested_event(events)
+        latest_execution_event = self._latest_execution_status_event(events)
 
         handoff_status = "NOT_REQUESTED"
         execution_request_id: str | None = None
@@ -489,10 +503,14 @@ class ProposalWorkflowService:
             related_version_no = latest_execution_requested.related_version_no
             handoff_requested_at = latest_execution_requested.occurred_at.isoformat()
 
-        if latest_execution_event is not None and latest_execution_event.event_type == "EXECUTED":
-            handoff_status = "EXECUTED"
-            executed_at = latest_execution_event.occurred_at.isoformat()
-            external_execution_id = latest_execution_event.reason_json.get("execution_id")
+        if latest_execution_event is not None:
+            handoff_status = self._execution_status_for_event(latest_execution_event.event_type)
+            if latest_execution_event.event_type == "EXECUTED":
+                executed_at = latest_execution_event.occurred_at.isoformat()
+            external_execution_id = (
+                latest_execution_event.reason_json.get("external_execution_id")
+                or latest_execution_event.reason_json.get("execution_id")
+            )
             related_version_no = latest_execution_event.related_version_no or related_version_no
             if latest_execution_requested is None:
                 execution_request_id = latest_execution_event.reason_json.get(
@@ -516,17 +534,82 @@ class ProposalWorkflowService:
             ),
             explanation={
                 "source": "ADVISORY_WORKFLOW_EVENTS",
-                "state_correlation": (
-                    "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS"
-                    if handoff_status == "EXECUTED"
-                    else (
-                        "EXECUTION_REQUESTED_EVENT"
-                        if handoff_status == "REQUESTED"
-                        else "NO_EXECUTION_EVENTS_RECORDED"
-                    )
+                "state_correlation": self._execution_state_correlation(
+                    handoff_status=handoff_status
                 ),
             },
         )
+
+    def record_execution_update(
+        self,
+        *,
+        proposal_id: str,
+        payload: ProposalExecutionUpdateRequest,
+    ) -> ProposalExecutionStatusResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        events = self._repository.list_events(proposal_id=proposal_id)
+        latest_execution_requested = self._latest_execution_requested_event(events)
+        if latest_execution_requested is None:
+            raise ProposalValidationError("EXECUTION_HANDOFF_NOT_FOUND")
+
+        expected_execution_request_id = latest_execution_requested.reason_json.get(
+            "execution_request_id"
+        )
+        if expected_execution_request_id != payload.execution_request_id:
+            raise ProposalStateConflictError("EXECUTION_REQUEST_ID_MISMATCH")
+        expected_execution_provider = latest_execution_requested.reason_json.get(
+            "execution_provider"
+        )
+        if expected_execution_provider != payload.execution_provider:
+            raise ProposalStateConflictError("EXECUTION_PROVIDER_MISMATCH")
+
+        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        replay_event = self._get_replayed_event(
+            proposal_id=proposal_id,
+            idempotency_key=f"execution-update:{payload.update_id}",
+            request_hash=request_hash,
+        )
+        if replay_event is not None:
+            return self.get_execution_status(proposal_id=proposal_id)
+
+        event_type, to_state = EXECUTION_UPDATE_EVENT_MAP[payload.update_status]
+        if proposal.current_state in TERMINAL_STATES:
+            raise ProposalStateConflictError("PROPOSAL_TERMINAL_STATE: execution update rejected")
+
+        occurred_at = (
+            datetime.fromisoformat(payload.occurred_at)
+            if payload.occurred_at is not None
+            else _utc_now()
+        )
+        reason_json = {
+            "update_id": payload.update_id,
+            "execution_request_id": payload.execution_request_id,
+            "execution_provider": payload.execution_provider,
+            "external_execution_id": payload.external_execution_id,
+            "details": payload.details,
+            "idempotency_key": f"execution-update:{payload.update_id}",
+            "idempotency_request_hash": request_hash,
+        }
+        event = ProposalWorkflowEventRecord(
+            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            proposal_id=proposal_id,
+            event_type=event_type,
+            from_state=proposal.current_state,
+            to_state=to_state,
+            actor_id=payload.actor_id,
+            occurred_at=occurred_at,
+            reason_json={k: v for k, v in reason_json.items() if v is not None},
+            related_version_no=(
+                payload.related_version_no
+                or latest_execution_requested.related_version_no
+            ),
+        )
+        proposal.current_state = to_state
+        proposal.last_event_at = occurred_at
+        self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        return self.get_execution_status(proposal_id=proposal_id)
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
         record = self._repository.get_idempotency(idempotency_key=idempotency_key)
@@ -1384,6 +1467,46 @@ class ProposalWorkflowService:
             )
 
         raise ProposalTransitionError("INVALID_APPROVAL_TYPE")
+
+    def _latest_execution_requested_event(
+        self, events: list[ProposalWorkflowEventRecord]
+    ) -> ProposalWorkflowEventRecord | None:
+        for event in reversed(events):
+            if event.event_type == "EXECUTION_REQUESTED":
+                return event
+        return None
+
+    def _latest_execution_status_event(
+        self, events: list[ProposalWorkflowEventRecord]
+    ) -> ProposalWorkflowEventRecord | None:
+        for event in reversed(events):
+            if event.event_type in EXECUTION_STATUS_EVENT_TYPES:
+                return event
+        return None
+
+    def _execution_status_for_event(self, event_type: str) -> str:
+        mapping = {
+            "EXECUTION_REQUESTED": "REQUESTED",
+            "EXECUTION_ACCEPTED": "ACCEPTED",
+            "EXECUTION_PARTIALLY_EXECUTED": "PARTIALLY_EXECUTED",
+            "EXECUTION_REJECTED": "REJECTED",
+            "EXECUTION_CANCELLED": "CANCELLED",
+            "EXECUTION_EXPIRED": "EXPIRED",
+            "EXECUTED": "EXECUTED",
+        }
+        return mapping.get(event_type, "NOT_REQUESTED")
+
+    def _execution_state_correlation(self, *, handoff_status: str) -> str:
+        mapping = {
+            "REQUESTED": "EXECUTION_REQUESTED_EVENT",
+            "ACCEPTED": "EXECUTION_REQUESTED_AND_ACCEPTED_EVENTS",
+            "PARTIALLY_EXECUTED": "EXECUTION_REQUESTED_AND_PARTIAL_EXECUTION_EVENTS",
+            "EXECUTED": "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS",
+            "REJECTED": "EXECUTION_REQUESTED_AND_REJECTED_EVENTS",
+            "CANCELLED": "EXECUTION_REQUESTED_AND_CANCELLED_EVENTS",
+            "EXPIRED": "EXECUTION_REQUESTED_AND_EXPIRED_EVENTS",
+        }
+        return mapping.get(handoff_status, "NO_EXECUTION_EVENTS_RECORDED")
 
 
 def _utc_now() -> datetime:

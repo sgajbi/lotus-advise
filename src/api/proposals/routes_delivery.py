@@ -9,6 +9,8 @@ from src.core.proposals import (
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
     ProposalExecutionStatusResponse,
+    ProposalExecutionUpdateRequest,
+    ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalReportRequest,
     ProposalReportResponse,
@@ -120,4 +122,38 @@ def get_execution_status(
     try:
         return service.get_execution_status(proposal_id=proposal_id)
     except ProposalNotFoundError as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.post(
+    "/advisory/proposals/{proposal_id}/execution-updates",
+    response_model=ProposalExecutionStatusResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
+    summary="Record Advisory Execution Update",
+    description=(
+        "Ingests a vendor-neutral downstream execution update and reconciles advisory execution "
+        "posture without moving execution ownership into lotus-advise."
+    ),
+)
+def record_execution_update(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    payload: ProposalExecutionUpdateRequest,
+    service: Annotated[
+        ProposalWorkflowService,
+        Depends(shared.get_proposal_workflow_service),
+    ],
+) -> ProposalExecutionStatusResponse:
+    shared._assert_lifecycle_enabled()
+    try:
+        return service.record_execution_update(proposal_id=proposal_id, payload=payload)
+    except (
+        ProposalIdempotencyConflictError,
+        ProposalNotFoundError,
+        ProposalStateConflictError,
+        ProposalValidationError,
+    ) as exc:
         raise_proposal_http_exception(exc)
