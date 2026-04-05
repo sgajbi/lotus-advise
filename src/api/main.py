@@ -200,13 +200,16 @@ async def lotus_core_simulation_unavailable_to_problem_details(
     request: Request,
     exc: LotusCoreSimulationUnavailableError,
 ) -> JSONResponse:
+    status_code = exc.status_code or status.HTTP_503_SERVICE_UNAVAILABLE
     return JSONResponse(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        status_code=status_code,
         media_type="application/problem+json",
         content={
             "type": "about:blank",
-            "title": "Service Unavailable",
-            "status": 503,
+            "title": "Upstream Canonical Simulation Error"
+            if status_code != status.HTTP_503_SERVICE_UNAVAILABLE
+            else "Service Unavailable",
+            "status": status_code,
             "detail": str(exc) or "LOTUS_CORE_SIMULATION_UNAVAILABLE",
             "instance": str(request.url.path),
             "correlation_id": correlation_id_var.get() or "",

@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from src.api.main import app, get_db_session
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory_engine import run_proposal_simulation
+from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
 
 
 async def override_get_db_session():
@@ -393,6 +394,42 @@ def test_advisory_proposal_simulate_returns_503_when_core_execution_unavailable(
     assert response.status_code == 503
     assert response.headers["content-type"].startswith("application/problem+json")
     assert response.json()["detail"].startswith("LOTUS_CORE_SIMULATION_UNAVAILABLE")
+
+
+def test_advisory_proposal_simulate_preserves_upstream_contract_error_status(client, monkeypatch):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_contract", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    def _simulate_with_lotus_core(**kwargs):
+        raise LotusCoreSimulationUnavailableError(
+            "Unsupported canonical simulation contract version: "
+            "advisory-simulation.v0. Expected advisory-simulation.v1.",
+            status_code=412,
+        )
+
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.simulate_with_lotus_core",
+        _simulate_with_lotus_core,
+    )
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-contract-mismatch"},
+    )
+
+    assert response.status_code == 412
+    assert response.headers["content-type"].startswith("application/problem+json")
+    body = response.json()
+    assert body["title"] == "Upstream Canonical Simulation Error"
+    assert "Unsupported canonical simulation contract version" in body["detail"]
 
 
 def test_advisory_proposal_simulate_returns_drift_analysis_when_reference_model_provided(client):

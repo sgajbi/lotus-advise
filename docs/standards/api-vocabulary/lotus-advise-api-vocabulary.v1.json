@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-05T11:34:15.123880+00:00",
+  "generatedAt": "2026-04-05T13:42:14.364489+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -4585,6 +4585,20 @@
       ]
     },
     {
+      "semanticId": "lotus.simulation_contract_version",
+      "canonicalTerm": "simulation_contract_version",
+      "preferredName": "simulation_contract_version",
+      "description": "Canonical simulation contract version used for this result.",
+      "example": "simulation_contract_version_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.simulation_hash",
       "canonicalTerm": "simulation_hash",
       "preferredName": "simulation_hash",
@@ -7854,6 +7868,14 @@
             "attributeRef": "#/attributeCatalog/lotus.engine_version"
           },
           {
+            "name": "version.proposal_result.lineage.simulation_contract_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.simulation_contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
+          },
+          {
             "name": "version.artifact",
             "location": "body",
             "required": true,
@@ -10668,6 +10690,14 @@
             "attributeRef": "#/attributeCatalog/lotus.engine_version"
           },
           {
+            "name": "current_version.proposal_result.lineage.simulation_contract_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.simulation_contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
+          },
+          {
             "name": "current_version.artifact",
             "location": "body",
             "required": true,
@@ -13121,6 +13151,14 @@
             "type": "object",
             "semanticId": "lotus.engine_version",
             "attributeRef": "#/attributeCatalog/lotus.engine_version"
+          },
+          {
+            "name": "proposal_result.lineage.simulation_contract_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.simulation_contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
           },
           {
             "name": "artifact",
@@ -15720,6 +15758,14 @@
             "type": "object",
             "semanticId": "lotus.engine_version",
             "attributeRef": "#/attributeCatalog/lotus.engine_version"
+          },
+          {
+            "name": "version.proposal_result.lineage.simulation_contract_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.simulation_contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
           },
           {
             "name": "version.artifact",
@@ -21391,6 +21437,14 @@
             "type": "object",
             "semanticId": "lotus.engine_version",
             "attributeRef": "#/attributeCatalog/lotus.engine_version"
+          },
+          {
+            "name": "lineage.simulation_contract_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.simulation_contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
           }
         ]
       }
@@ -31538,6 +31592,14 @@
             "type": "object",
             "semanticId": "lotus.engine_version",
             "attributeRef": "#/attributeCatalog/lotus.engine_version"
+          },
+          {
+            "name": "proposal.version.proposal_result.lineage.simulation_contract_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.simulation_contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.simulation_contract_version"
           },
           {
             "name": "proposal.version.artifact",

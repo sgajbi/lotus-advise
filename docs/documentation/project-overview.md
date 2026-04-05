@@ -49,9 +49,12 @@ The API remains deterministic for identical inputs and options.
 1. Advisory proposal simulation
 - Input: portfolio snapshot, market snapshot, shelf, advisor cash/trade proposals, options.
 - Output: proposal simulation plus optional artifact package for client/reviewer workflow.
-- Authority posture: upstream Lotus Core simulation and Lotus Risk enrichment are preferred through
-  explicit adapter seams; local deterministic evaluation remains the fallback when those upstream
-  authorities are unavailable.
+- Authority posture: runtime simulation authority is delegated to `lotus-core` through a versioned
+  canonical execution contract, while `lotus-advise` continues to own advisory request
+  normalization, workflow orchestration, and proposal lifecycle semantics.
+- Contract governance: the `lotus-core` simulation seam is pinned to
+  `X-Lotus-Contract-Version: advisory-simulation.v1`, and the returned lineage must carry the same
+  `simulation_contract_version` for replay-safe parity.
 
 2. Advisory proposal lifecycle
 - Input: simulated proposal payloads plus workflow actor actions.
@@ -102,6 +105,8 @@ The API remains deterministic for identical inputs and options.
 - `src/integrations/`: adapter seams for Lotus platform dependencies.
 - `src/integrations/lotus_core/context_resolution.py`: explicit stateful advisory context seam used to resolve replay-safe portfolio evaluation context from Lotus Core.
 - `src/integrations/lotus_core/simulation.py`: explicit Lotus Core simulation authority seam for advisory proposal evaluation.
+  - The canonical upstream execution contract is versioned and validated through
+    `X-Lotus-Contract-Version`.
 - `src/integrations/lotus_risk/enrichment.py`: explicit Lotus Risk enrichment seam for advisory proposal evaluation.
 - `src/integrations/lotus_ai/rationale.py`: explicit Lotus AI rationale seam for evidence-grounded workspace assistance.
 - `src/integrations/lotus_report/adapter.py`: explicit Lotus Report seam for advisory report requests without moving reporting ownership into lotus-advise.
@@ -125,8 +130,8 @@ Advisory persistence boundary:
   advisory handoff and execution-correlation metadata through workflow history.
 - API startup now validates proposal repository boot readiness, so lifecycle PostgreSQL
   connectivity and migration application fail fast before the service begins serving requests.
-- Proposal supportability configuration exposes the lifecycle migration namespace and expected
-  migration catalog for operational diagnostics.
+- Canonical simulation contract mismatches and validation failures are surfaced as problem-details
+  responses so downstream callers can distinguish dependency outages from contract drift.
 
 ## Test Strategy
 
@@ -159,5 +164,3 @@ Keep `lotus-advise` advisory-only while sharing Lotus platform standards for:
 - control semantics,
 - deterministic primitives,
 - test and audit standards.
-
-
