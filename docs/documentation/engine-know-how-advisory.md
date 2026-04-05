@@ -57,9 +57,9 @@ Authority orchestration note:
 - advisory proposal evaluation now routes through explicit Lotus authority seams
 - `lotus-core` may provide simulation authority when configured
 - `lotus-risk` may provide risk enrichment authority when configured
-- local evaluation remains the deterministic fallback, and the response explanation includes
-  `authority_resolution` metadata showing which authorities were used and whether fallback
-  degradation occurred
+- local evaluation is retained only as a controlled migration fallback/test oracle in local/dev/test
+  style environments, and the response explanation includes `authority_resolution` metadata showing
+  which authorities were used and whether fallback degradation occurred
 
 ### `POST /advisory/proposals`
 - Purpose: run simulation+artifact and persist proposal aggregate/version/workflow event.
@@ -343,4 +343,3 @@ Dependency quality gate:
 
 - `src/core/advisory/engine.py` is a compatibility shim and emits `DeprecationWarning`.
 - Use `src/core/advisory_engine.py` as the current stable advisory engine import path.
-

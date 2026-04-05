@@ -121,6 +121,26 @@ def test_integration_capabilities_mark_simulation_degraded_when_core_missing(mon
     assert dependencies["lotus_core"]["fallback_mode"] == "CONTROLLED_LOCAL_SIMULATION_FALLBACK"
 
 
+def test_integration_capabilities_quarantine_local_fallback_in_production(monkeypatch):
+    monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
+    monkeypatch.setenv("ENVIRONMENT", "production")
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    features = {item["key"]: item for item in payload["features"]}
+    workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+    dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
+
+    assert features["advisory.proposals.simulation"]["operational_ready"] is False
+    assert features["advisory.proposals.simulation"]["fallback_mode"] == "NONE"
+    assert workflows["advisory_proposal_simulation"]["operational_ready"] is False
+    assert dependencies["lotus_core"]["fallback_mode"] == "NONE"
+
+
 def test_integration_capabilities_disable_reporting_and_execution_with_lifecycle(monkeypatch):
     monkeypatch.setenv("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", "false")
     monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://lotus-report:8300")

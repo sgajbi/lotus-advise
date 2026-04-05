@@ -3,6 +3,8 @@ from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.integrations.lotus_core import (
     LotusCoreSimulationUnavailableError,
     lotus_core_local_fallback_enabled,
+    lotus_core_local_fallback_permitted,
+    lotus_core_local_fallback_requested,
     simulate_with_lotus_core,
 )
 from src.integrations.lotus_risk import (
@@ -31,6 +33,11 @@ def evaluate_advisory_proposal(
         )
     except LotusCoreSimulationUnavailableError as exc:
         degraded_reasons.append("LOTUS_CORE_SIMULATION_UNAVAILABLE")
+        if lotus_core_local_fallback_requested() and not lotus_core_local_fallback_permitted():
+            raise LotusCoreSimulationUnavailableError(
+                "LOTUS_CORE_SIMULATION_REQUIRED_IN_THIS_ENVIRONMENT",
+                status_code=exc.status_code,
+            ) from exc
         if not lotus_core_local_fallback_enabled():
             raise exc
         simulation_authority = "lotus_advise_local_fallback"

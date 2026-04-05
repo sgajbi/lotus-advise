@@ -58,6 +58,8 @@ The API remains deterministic for identical inputs and options.
 - Fallback posture: local advisory execution is no longer a normal runtime mode. It is retained
   only as a controlled migration fallback and test oracle behind
   `LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK`.
+- Environment quarantine: the controlled fallback is permitted only in local/dev/test-style
+  environments. Production-style environments must use `lotus-core` simulation authority.
 
 2. Advisory proposal lifecycle
 - Input: simulated proposal payloads plus workflow actor actions.

@@ -403,6 +403,41 @@ def test_advisory_proposal_simulate_reports_local_fallback_when_explicitly_enabl
     ]
 
 
+def test_advisory_proposal_simulate_disallows_local_fallback_in_production_environment(
+    client, monkeypatch
+):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_prod_guard", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
+    monkeypatch.setenv("ENVIRONMENT", "production")
+
+    def _simulate_with_lotus_core(**kwargs):
+        raise LotusCoreSimulationUnavailableError("LOTUS_CORE_SIMULATION_UNAVAILABLE")
+
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.simulate_with_lotus_core",
+        _simulate_with_lotus_core,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-prod-guard"},
+    )
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert response.json()["detail"] == "LOTUS_CORE_SIMULATION_REQUIRED_IN_THIS_ENVIRONMENT"
+
+
 def test_advisory_proposal_simulate_requires_lotus_core_when_fallback_disabled(client, monkeypatch):
     payload = {
         "portfolio_snapshot": {"portfolio_id": "pf_prop_api_core_required", "base_currency": "USD"},
