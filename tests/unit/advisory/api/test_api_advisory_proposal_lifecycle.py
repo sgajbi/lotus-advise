@@ -1115,6 +1115,57 @@ def test_async_create_and_lookup_by_operation_and_correlation():
         assert missing_by_correlation.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"
 
 
+def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_lineage():
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload(),
+            headers={"Idempotency-Key": "lifecycle-replay-version-001"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        version_no = created.json()["version"]["version_no"]
+
+        version_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+        )
+        assert version_replay.status_code == 200
+        version_body = version_replay.json()
+        assert version_body["subject"]["scope"] == "PROPOSAL_VERSION"
+        assert version_body["subject"]["proposal_id"] == proposal_id
+        assert version_body["subject"]["proposal_version_no"] == version_no
+        assert version_body["hashes"]["request_hash"] == created.json()["version"]["request_hash"]
+        assert version_body["hashes"]["simulation_hash"] == created.json()["version"][
+            "simulation_hash"
+        ]
+        assert version_body["resolved_context"]["portfolio_id"] == created.json()["proposal"][
+            "portfolio_id"
+        ]
+
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=_base_create_payload(),
+            headers={
+                "Idempotency-Key": "lifecycle-replay-async-001",
+                "X-Correlation-Id": "corr-lifecycle-replay-async-001",
+            },
+        )
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        async_replay = client.get(
+            f"/advisory/proposals/operations/{operation_id}/replay-evidence"
+        )
+
+    assert async_replay.status_code == 200
+    async_body = async_replay.json()
+    assert async_body["subject"]["scope"] == "ASYNC_OPERATION"
+    assert async_body["subject"]["operation_id"] == operation_id
+    assert async_body["continuity"]["async_operation_id"] == operation_id
+    assert async_body["continuity"]["correlation_id"] == "corr-lifecycle-replay-async-001"
+    assert async_body["evidence"]["async_runtime"]["attempt_count"] >= 1
+
+
 def test_async_create_version_and_lookup():
     with TestClient(app) as client:
         created = _create(client, "lifecycle-async-version-base")

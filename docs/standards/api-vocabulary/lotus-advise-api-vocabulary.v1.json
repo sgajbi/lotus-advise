@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-05T10:55:01.619523+00:00",
+  "generatedAt": "2026-04-05T11:10:55.254832+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -319,7 +319,8 @@
         "body"
       ],
       "observedTypes": [
-        "string"
+        "string",
+        "object"
       ]
     },
     {
@@ -420,6 +421,34 @@
       ],
       "observedTypes": [
         "ProposalArtifactAssumptionsAndLimits"
+      ]
+    },
+    {
+      "semanticId": "lotus.async_operation_id",
+      "canonicalTerm": "async_operation_id",
+      "preferredName": "async_operation_id",
+      "description": "Async operation identifier linked to the replay evidence when applicable.",
+      "example": "ASYNC_OPERATION_001",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.async_operation_type",
+      "canonicalTerm": "async_operation_type",
+      "preferredName": "async_operation_type",
+      "description": "Async operation type linked to the replay evidence when applicable.",
+      "example": "async_operation_type_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -876,6 +905,23 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.continuity",
+      "canonicalTerm": "continuity",
+      "preferredName": "continuity",
+      "description": "Canonical continuity used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "AdvisoryReplayContinuity",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "AdvisoryReplayContinuity",
+        "object"
       ]
     },
     {
@@ -1374,13 +1420,14 @@
       "semanticId": "lotus.draft_state_hash",
       "canonicalTerm": "draft_state_hash",
       "preferredName": "draft_state_hash",
-      "description": "Canonical hash of the saved workspace draft state.",
-      "example": "example_draft_state_hash",
-      "type": "string",
+      "description": "Canonical workspace draft-state hash when workspace replay evidence exists.",
+      "example": "draft_state_hash_example",
+      "type": "object",
       "locations": [
         "body"
       ],
       "observedTypes": [
+        "object",
         "string"
       ]
     },
@@ -1646,7 +1693,7 @@
       "semanticId": "lotus.evaluation_request_hash",
       "canonicalTerm": "evaluation_request_hash",
       "preferredName": "evaluation_request_hash",
-      "description": "Canonical hash of the simulation request used for the latest deterministic evaluation.",
+      "description": "Canonical evaluation-request hash captured during workspace replay evidence.",
       "example": "evaluation_request_hash_example",
       "type": "object",
       "locations": [
@@ -1757,6 +1804,7 @@
       ],
       "observedTypes": [
         "SuitabilityEvidence",
+        "object",
         "WorkspaceAssistantEvidence"
       ]
     },
@@ -2265,27 +2313,43 @@
       "semanticId": "lotus.handoff_action",
       "canonicalTerm": "handoff_action",
       "preferredName": "handoff_action",
-      "description": "Lifecycle handoff action performed for the workspace.",
-      "example": "CREATED_PROPOSAL",
-      "type": "string",
+      "description": "Workspace-to-lifecycle handoff action represented by this replay continuity.",
+      "example": "handoff_action_example",
+      "type": "object",
       "locations": [
         "body"
       ],
       "observedTypes": [
+        "object",
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.handoff_at",
+      "canonicalTerm": "handoff_at",
+      "preferredName": "handoff_at",
+      "description": "UTC ISO8601 timestamp of the continuity-preserving handoff, when known.",
+      "example": "handoff_at_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
       "semanticId": "lotus.handoff_by",
       "canonicalTerm": "handoff_by",
       "preferredName": "handoff_by",
-      "description": "Actor identifier performing the workspace-to-lifecycle handoff.",
-      "example": "example_handoff_by",
-      "type": "string",
+      "description": "Actor identifier that performed the continuity-preserving handoff.",
+      "example": "handoff_by_example",
+      "type": "object",
       "locations": [
         "body"
       ],
       "observedTypes": [
+        "object",
         "string"
       ]
     },
@@ -2344,7 +2408,8 @@
         "body"
       ],
       "observedTypes": [
-        "ProposalArtifactHashes"
+        "ProposalArtifactHashes",
+        "AdvisoryReplayHashes"
       ]
     },
     {
@@ -2932,7 +2997,8 @@
         "body"
       ],
       "observedTypes": [
-        "string"
+        "string",
+        "object"
       ]
     },
     {
@@ -3445,7 +3511,8 @@
         "path"
       ],
       "observedTypes": [
-        "string"
+        "string",
+        "object"
       ]
     },
     {
@@ -3922,20 +3989,22 @@
         "body"
       ],
       "observedTypes": [
-        "string"
+        "string",
+        "object"
       ]
     },
     {
       "semanticId": "lotus.proposal_version_no",
       "canonicalTerm": "proposal_version_no",
       "preferredName": "proposal_version_no",
-      "description": "Proposal version number mapped by idempotency key.",
-      "example": 1,
-      "type": "integer",
+      "description": "Proposal version number when applicable.",
+      "example": "proposal_version_no_example",
+      "type": "object",
       "locations": [
         "body"
       ],
       "observedTypes": [
+        "object",
         "integer"
       ]
     },
@@ -4307,7 +4376,8 @@
         "body"
       ],
       "observedTypes": [
-        "string"
+        "string",
+        "object"
       ]
     },
     {
@@ -4372,7 +4442,7 @@
       "semanticId": "lotus.resolved_context",
       "canonicalTerm": "resolved_context",
       "preferredName": "resolved_context",
-      "description": "Resolved advisory context captured for replay and audit.",
+      "description": "Normalized resolved advisory context captured by the replayable evidence.",
       "example": "resolved_context_example",
       "type": "object",
       "locations": [
@@ -4543,6 +4613,20 @@
       ]
     },
     {
+      "semanticId": "lotus.scope",
+      "canonicalTerm": "scope",
+      "preferredName": "scope",
+      "description": "Replay-evidence scope being described.",
+      "example": "WORKSPACE_SAVED_VERSION",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.score",
       "canonicalTerm": "score",
       "preferredName": "score",
@@ -4697,7 +4781,8 @@
         "body"
       ],
       "observedTypes": [
-        "string"
+        "string",
+        "object"
       ]
     },
     {
@@ -4911,6 +4996,22 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.subject",
+      "canonicalTerm": "subject",
+      "preferredName": "subject",
+      "description": "Canonical subject used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "AdvisoryReplaySubject",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "AdvisoryReplaySubject"
       ]
     },
     {
@@ -5604,14 +5705,15 @@
       "semanticId": "lotus.workspace_id",
       "canonicalTerm": "workspace_id",
       "preferredName": "workspace_id",
-      "description": "Workspace session identifier.",
+      "description": "Workspace identifier when the replay subject originates from workspace flows.",
       "example": "WORKSPACE_001",
-      "type": "string",
+      "type": "object",
       "locations": [
         "body",
         "path"
       ],
       "observedTypes": [
+        "object",
         "string"
       ]
     },
@@ -5648,13 +5750,15 @@
       "semanticId": "lotus.workspace_version_id",
       "canonicalTerm": "workspace_version_id",
       "preferredName": "workspace_version_id",
-      "description": "Saved workspace version identifier.",
+      "description": "Saved workspace version identifier when applicable.",
       "example": "WORKSPACE_VERSION_001",
-      "type": "string",
+      "type": "object",
       "locations": [
-        "body"
+        "body",
+        "path"
       ],
       "observedTypes": [
+        "object",
         "string"
       ]
     },
@@ -6023,6 +6127,30 @@
       "attributeRef": "#/attributeCatalog/lotus.proposal_id"
     },
     {
+      "name": "proposal_id",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "string",
+      "description": "Persisted proposal identifier.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.proposal_id",
+      "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+    },
+    {
+      "name": "version_no",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "integer",
+      "description": "Immutable proposal version number.",
+      "example": 1,
+      "allowedValues": [],
+      "semanticId": "lotus.version_no",
+      "attributeRef": "#/attributeCatalog/lotus.version_no"
+    },
+    {
       "name": "idempotency_key",
       "kind": "request_option",
       "location": "path",
@@ -6033,6 +6161,18 @@
       "allowedValues": [],
       "semanticId": "lotus.idempotency_key",
       "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
+    },
+    {
+      "name": "operation_id",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "string",
+      "description": "Asynchronous operation identifier.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.operation_id",
+      "attributeRef": "#/attributeCatalog/lotus.operation_id"
     },
     {
       "name": "proposal_id",
@@ -6230,6 +6370,30 @@
       "allowedValues": [],
       "semanticId": "lotus.workspace_id",
       "attributeRef": "#/attributeCatalog/lotus.workspace_id"
+    },
+    {
+      "name": "workspace_id",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "string",
+      "description": "Workspace session identifier.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.workspace_id",
+      "attributeRef": "#/attributeCatalog/lotus.workspace_id"
+    },
+    {
+      "name": "workspace_version_id",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "string",
+      "description": "Saved workspace version identifier.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.workspace_version_id",
+      "attributeRef": "#/attributeCatalog/lotus.workspace_version_id"
     },
     {
       "name": "workspace_id",
@@ -18539,6 +18703,261 @@
     {
       "domain": "advisory_operations_&_support",
       "method": "GET",
+      "path": "/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence",
+      "operationId": "get_proposal_version_replay_evidence_advisory_proposals__proposal_id__versions__version_no__replay_evidence_get",
+      "summary": "Get Proposal Version Replay Evidence",
+      "request": {
+        "fields": [
+          {
+            "name": "proposal_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "version_no",
+            "location": "path",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.version_no",
+            "attributeRef": "#/attributeCatalog/lotus.version_no"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "subject",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryReplaySubject",
+            "semanticId": "lotus.subject",
+            "attributeRef": "#/attributeCatalog/lotus.subject"
+          },
+          {
+            "name": "subject.scope",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scope",
+            "attributeRef": "#/attributeCatalog/lotus.scope"
+          },
+          {
+            "name": "subject.workspace_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workspace_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_id"
+          },
+          {
+            "name": "subject.workspace_version_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workspace_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_version_id"
+          },
+          {
+            "name": "subject.proposal_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "subject.proposal_version_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "subject.proposal_version_no",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_version_no",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_no"
+          },
+          {
+            "name": "subject.operation_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.operation_id",
+            "attributeRef": "#/attributeCatalog/lotus.operation_id"
+          },
+          {
+            "name": "resolved_context",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.resolved_context",
+            "attributeRef": "#/attributeCatalog/lotus.resolved_context"
+          },
+          {
+            "name": "hashes",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryReplayHashes",
+            "semanticId": "lotus.hashes",
+            "attributeRef": "#/attributeCatalog/lotus.hashes"
+          },
+          {
+            "name": "hashes.request_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.request_hash",
+            "attributeRef": "#/attributeCatalog/lotus.request_hash"
+          },
+          {
+            "name": "hashes.evaluation_request_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.evaluation_request_hash",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_request_hash"
+          },
+          {
+            "name": "hashes.draft_state_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.draft_state_hash",
+            "attributeRef": "#/attributeCatalog/lotus.draft_state_hash"
+          },
+          {
+            "name": "hashes.simulation_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.simulation_hash",
+            "attributeRef": "#/attributeCatalog/lotus.simulation_hash"
+          },
+          {
+            "name": "hashes.artifact_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.artifact_hash",
+            "attributeRef": "#/attributeCatalog/lotus.artifact_hash"
+          },
+          {
+            "name": "continuity",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryReplayContinuity",
+            "semanticId": "lotus.continuity",
+            "attributeRef": "#/attributeCatalog/lotus.continuity"
+          },
+          {
+            "name": "continuity.lifecycle_origin",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.lifecycle_origin",
+            "attributeRef": "#/attributeCatalog/lotus.lifecycle_origin"
+          },
+          {
+            "name": "continuity.source_workspace_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_workspace_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_workspace_id"
+          },
+          {
+            "name": "continuity.workspace_version_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workspace_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_version_id"
+          },
+          {
+            "name": "continuity.handoff_action",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.handoff_action",
+            "attributeRef": "#/attributeCatalog/lotus.handoff_action"
+          },
+          {
+            "name": "continuity.handoff_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.handoff_at",
+            "attributeRef": "#/attributeCatalog/lotus.handoff_at"
+          },
+          {
+            "name": "continuity.handoff_by",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.handoff_by",
+            "attributeRef": "#/attributeCatalog/lotus.handoff_by"
+          },
+          {
+            "name": "continuity.async_operation_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.async_operation_id",
+            "attributeRef": "#/attributeCatalog/lotus.async_operation_id"
+          },
+          {
+            "name": "continuity.async_operation_type",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.async_operation_type",
+            "attributeRef": "#/attributeCatalog/lotus.async_operation_type"
+          },
+          {
+            "name": "continuity.correlation_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.correlation_id"
+          },
+          {
+            "name": "continuity.idempotency_key",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.idempotency_key",
+            "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
+          },
+          {
+            "name": "evidence",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.evidence",
+            "attributeRef": "#/attributeCatalog/lotus.evidence"
+          },
+          {
+            "name": "explanation",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.explanation",
+            "attributeRef": "#/attributeCatalog/lotus.explanation"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "advisory_operations_&_support",
+      "method": "GET",
       "path": "/advisory/proposals/idempotency/{idempotency_key}",
       "operationId": "get_proposal_idempotency_lookup_advisory_proposals_idempotency__idempotency_key__get",
       "summary": "Lookup Proposal Idempotency Mapping",
@@ -18595,6 +19014,253 @@
             "type": "string",
             "semanticId": "lotus.created_at",
             "attributeRef": "#/attributeCatalog/lotus.created_at"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "advisory_operations_&_support",
+      "method": "GET",
+      "path": "/advisory/proposals/operations/{operation_id}/replay-evidence",
+      "operationId": "get_proposal_async_replay_evidence_advisory_proposals_operations__operation_id__replay_evidence_get",
+      "summary": "Get Proposal Async Replay Evidence",
+      "request": {
+        "fields": [
+          {
+            "name": "operation_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.operation_id",
+            "attributeRef": "#/attributeCatalog/lotus.operation_id"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "subject",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryReplaySubject",
+            "semanticId": "lotus.subject",
+            "attributeRef": "#/attributeCatalog/lotus.subject"
+          },
+          {
+            "name": "subject.scope",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scope",
+            "attributeRef": "#/attributeCatalog/lotus.scope"
+          },
+          {
+            "name": "subject.workspace_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workspace_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_id"
+          },
+          {
+            "name": "subject.workspace_version_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workspace_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_version_id"
+          },
+          {
+            "name": "subject.proposal_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "subject.proposal_version_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "subject.proposal_version_no",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_version_no",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_no"
+          },
+          {
+            "name": "subject.operation_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.operation_id",
+            "attributeRef": "#/attributeCatalog/lotus.operation_id"
+          },
+          {
+            "name": "resolved_context",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.resolved_context",
+            "attributeRef": "#/attributeCatalog/lotus.resolved_context"
+          },
+          {
+            "name": "hashes",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryReplayHashes",
+            "semanticId": "lotus.hashes",
+            "attributeRef": "#/attributeCatalog/lotus.hashes"
+          },
+          {
+            "name": "hashes.request_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.request_hash",
+            "attributeRef": "#/attributeCatalog/lotus.request_hash"
+          },
+          {
+            "name": "hashes.evaluation_request_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.evaluation_request_hash",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_request_hash"
+          },
+          {
+            "name": "hashes.draft_state_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.draft_state_hash",
+            "attributeRef": "#/attributeCatalog/lotus.draft_state_hash"
+          },
+          {
+            "name": "hashes.simulation_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.simulation_hash",
+            "attributeRef": "#/attributeCatalog/lotus.simulation_hash"
+          },
+          {
+            "name": "hashes.artifact_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.artifact_hash",
+            "attributeRef": "#/attributeCatalog/lotus.artifact_hash"
+          },
+          {
+            "name": "continuity",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryReplayContinuity",
+            "semanticId": "lotus.continuity",
+            "attributeRef": "#/attributeCatalog/lotus.continuity"
+          },
+          {
+            "name": "continuity.lifecycle_origin",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.lifecycle_origin",
+            "attributeRef": "#/attributeCatalog/lotus.lifecycle_origin"
+          },
+          {
+            "name": "continuity.source_workspace_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_workspace_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_workspace_id"
+          },
+          {
+            "name": "continuity.workspace_version_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workspace_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_version_id"
+          },
+          {
+            "name": "continuity.handoff_action",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.handoff_action",
+            "attributeRef": "#/attributeCatalog/lotus.handoff_action"
+          },
+          {
+            "name": "continuity.handoff_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.handoff_at",
+            "attributeRef": "#/attributeCatalog/lotus.handoff_at"
+          },
+          {
+            "name": "continuity.handoff_by",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.handoff_by",
+            "attributeRef": "#/attributeCatalog/lotus.handoff_by"
+          },
+          {
+            "name": "continuity.async_operation_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.async_operation_id",
+            "attributeRef": "#/attributeCatalog/lotus.async_operation_id"
+          },
+          {
+            "name": "continuity.async_operation_type",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.async_operation_type",
+            "attributeRef": "#/attributeCatalog/lotus.async_operation_type"
+          },
+          {
+            "name": "continuity.correlation_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.correlation_id"
+          },
+          {
+            "name": "continuity.idempotency_key",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.idempotency_key",
+            "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
+          },
+          {
+            "name": "evidence",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.evidence",
+            "attributeRef": "#/attributeCatalog/lotus.evidence"
+          },
+          {
+            "name": "explanation",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.explanation",
+            "attributeRef": "#/attributeCatalog/lotus.explanation"
           }
         ]
       }
@@ -27584,6 +28250,14 @@
             "type": "string",
             "semanticId": "lotus.captured_at",
             "attributeRef": "#/attributeCatalog/lotus.captured_at"
+          },
+          {
+            "name": "saved_version.replay_evidence.continuity",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.continuity",
+            "attributeRef": "#/attributeCatalog/lotus.continuity"
           }
         ]
       }
@@ -28239,6 +28913,269 @@
             "type": "string",
             "semanticId": "lotus.captured_at",
             "attributeRef": "#/attributeCatalog/lotus.captured_at"
+          },
+          {
+            "name": "saved_versions[].replay_evidence.continuity",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.continuity",
+            "attributeRef": "#/attributeCatalog/lotus.continuity"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "advisory_operations_&_support",
+      "method": "GET",
+      "path": "/advisory/workspaces/{workspace_id}/saved-versions/{workspace_version_id}/replay-evidence",
+      "operationId": "get_saved_workspace_version_replay_evidence_advisory_workspaces__workspace_id__saved_versions__workspace_version_id__replay_evidence_get",
+      "summary": "Get Saved Workspace Replay Evidence",
+      "request": {
+        "fields": [
+          {
+            "name": "workspace_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.workspace_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_id"
+          },
+          {
+            "name": "workspace_version_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.workspace_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_version_id"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "subject",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryReplaySubject",
+            "semanticId": "lotus.subject",
+            "attributeRef": "#/attributeCatalog/lotus.subject"
+          },
+          {
+            "name": "subject.scope",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scope",
+            "attributeRef": "#/attributeCatalog/lotus.scope"
+          },
+          {
+            "name": "subject.workspace_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workspace_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_id"
+          },
+          {
+            "name": "subject.workspace_version_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workspace_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_version_id"
+          },
+          {
+            "name": "subject.proposal_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "subject.proposal_version_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "subject.proposal_version_no",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_version_no",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_no"
+          },
+          {
+            "name": "subject.operation_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.operation_id",
+            "attributeRef": "#/attributeCatalog/lotus.operation_id"
+          },
+          {
+            "name": "resolved_context",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.resolved_context",
+            "attributeRef": "#/attributeCatalog/lotus.resolved_context"
+          },
+          {
+            "name": "hashes",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryReplayHashes",
+            "semanticId": "lotus.hashes",
+            "attributeRef": "#/attributeCatalog/lotus.hashes"
+          },
+          {
+            "name": "hashes.request_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.request_hash",
+            "attributeRef": "#/attributeCatalog/lotus.request_hash"
+          },
+          {
+            "name": "hashes.evaluation_request_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.evaluation_request_hash",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_request_hash"
+          },
+          {
+            "name": "hashes.draft_state_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.draft_state_hash",
+            "attributeRef": "#/attributeCatalog/lotus.draft_state_hash"
+          },
+          {
+            "name": "hashes.simulation_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.simulation_hash",
+            "attributeRef": "#/attributeCatalog/lotus.simulation_hash"
+          },
+          {
+            "name": "hashes.artifact_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.artifact_hash",
+            "attributeRef": "#/attributeCatalog/lotus.artifact_hash"
+          },
+          {
+            "name": "continuity",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryReplayContinuity",
+            "semanticId": "lotus.continuity",
+            "attributeRef": "#/attributeCatalog/lotus.continuity"
+          },
+          {
+            "name": "continuity.lifecycle_origin",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.lifecycle_origin",
+            "attributeRef": "#/attributeCatalog/lotus.lifecycle_origin"
+          },
+          {
+            "name": "continuity.source_workspace_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_workspace_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_workspace_id"
+          },
+          {
+            "name": "continuity.workspace_version_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workspace_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_version_id"
+          },
+          {
+            "name": "continuity.handoff_action",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.handoff_action",
+            "attributeRef": "#/attributeCatalog/lotus.handoff_action"
+          },
+          {
+            "name": "continuity.handoff_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.handoff_at",
+            "attributeRef": "#/attributeCatalog/lotus.handoff_at"
+          },
+          {
+            "name": "continuity.handoff_by",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.handoff_by",
+            "attributeRef": "#/attributeCatalog/lotus.handoff_by"
+          },
+          {
+            "name": "continuity.async_operation_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.async_operation_id",
+            "attributeRef": "#/attributeCatalog/lotus.async_operation_id"
+          },
+          {
+            "name": "continuity.async_operation_type",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.async_operation_type",
+            "attributeRef": "#/attributeCatalog/lotus.async_operation_type"
+          },
+          {
+            "name": "continuity.correlation_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.correlation_id"
+          },
+          {
+            "name": "continuity.idempotency_key",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.idempotency_key",
+            "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
+          },
+          {
+            "name": "evidence",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.evidence",
+            "attributeRef": "#/attributeCatalog/lotus.evidence"
+          },
+          {
+            "name": "explanation",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.explanation",
+            "attributeRef": "#/attributeCatalog/lotus.explanation"
           }
         ]
       }
@@ -29573,6 +30510,14 @@
             "type": "string",
             "semanticId": "lotus.captured_at",
             "attributeRef": "#/attributeCatalog/lotus.captured_at"
+          },
+          {
+            "name": "baseline_version.replay_evidence.continuity",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.continuity",
+            "attributeRef": "#/attributeCatalog/lotus.continuity"
           },
           {
             "name": "current_evaluation_summary",

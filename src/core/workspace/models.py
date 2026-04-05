@@ -226,6 +226,21 @@ class WorkspaceReplayEvidence(BaseModel):
         description="UTC ISO8601 timestamp when replay evidence was captured.",
         examples=["2026-03-25T09:45:00+00:00"],
     )
+    continuity: dict[str, str | int | None] = Field(
+        default_factory=dict,
+        description=(
+            "Normalized continuity metadata linking the workspace replay evidence into lifecycle "
+            "and async replay surfaces when applicable."
+        ),
+        examples=[
+            {
+                "workspace_version_id": "awv_001",
+                "proposal_id": "pp_001",
+                "proposal_version_no": 1,
+                "handoff_action": "CREATED_PROPOSAL",
+            }
+        ],
+    )
 
 
 class WorkspaceSavedVersionSummary(BaseModel):

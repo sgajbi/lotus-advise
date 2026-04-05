@@ -62,6 +62,9 @@ def test_workspace_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(saved_version_schema, "version_number")
     _assert_property_has_docs(saved_version_schema, "replay_evidence")
 
+    replay_evidence_schema = schemas["WorkspaceReplayEvidence"]
+    _assert_property_has_docs(replay_evidence_schema, "continuity")
+
     handoff_request_schema = schemas["WorkspaceLifecycleHandoffRequest"]
     _assert_property_has_docs(handoff_request_schema, "handoff_by")
     _assert_property_has_docs(handoff_request_schema, "metadata")
@@ -114,6 +117,14 @@ def test_workspace_endpoint_has_documented_request_and_response_contracts():
         "schema"
     ]["$ref"]
     assert list_response_ref.endswith("/WorkspaceSavedVersionListResponse")
+
+    replay_workspace = openapi["paths"][
+        "/advisory/workspaces/{workspace_id}/saved-versions/{workspace_version_id}/replay-evidence"
+    ]["get"]
+    replay_workspace_ref = replay_workspace["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    assert replay_workspace_ref.endswith("/AdvisoryReplayEvidenceResponse")
 
     resume_workspace = openapi["paths"]["/advisory/workspaces/{workspace_id}/resume"]["post"]
     resume_request_ref = resume_workspace["requestBody"]["content"]["application/json"]["schema"][

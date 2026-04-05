@@ -103,6 +103,14 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(async_status_schema, "result")
     _assert_property_has_docs(async_status_schema, "error")
 
+    replay_schema = schemas["AdvisoryReplayEvidenceResponse"]
+    _assert_property_has_docs(replay_schema, "subject")
+    _assert_property_has_docs(replay_schema, "resolved_context")
+    _assert_property_has_docs(replay_schema, "hashes")
+    _assert_property_has_docs(replay_schema, "continuity")
+    _assert_property_has_docs(replay_schema, "evidence")
+    _assert_property_has_docs(replay_schema, "explanation")
+
 
 def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     with TestClient(app) as client:
@@ -150,6 +158,22 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     ]["schema"]["$ref"]
     assert report_request_body_ref.endswith("/ProposalReportRequest")
     assert report_request_response_ref.endswith("/ProposalReportResponse")
+
+    proposal_replay = openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+    ]["get"]
+    proposal_replay_ref = proposal_replay["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    assert proposal_replay_ref.endswith("/AdvisoryReplayEvidenceResponse")
+
+    async_replay = openapi["paths"][
+        "/advisory/proposals/operations/{operation_id}/replay-evidence"
+    ]["get"]
+    async_replay_ref = async_replay["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ]
+    assert async_replay_ref.endswith("/AdvisoryReplayEvidenceResponse")
 
     execution_handoff = openapi["paths"]["/advisory/proposals/{proposal_id}/execution-handoffs"][
         "post"
@@ -226,3 +250,6 @@ def test_openapi_separates_business_and_support_proposal_tags():
     assert openapi["paths"]["/advisory/proposals/{proposal_id}/execution-status"]["get"][
         "tags"
     ] == ["Advisory Operations & Support"]
+    assert openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+    ]["get"]["tags"] == ["Advisory Operations & Support"]

@@ -47,6 +47,11 @@ from src.core.proposals.models import (
     ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.repository import ProposalRepository
+from src.core.replay.models import AdvisoryReplayEvidenceResponse
+from src.core.replay.service import (
+    build_async_operation_replay_response,
+    build_proposal_version_replay_response,
+)
 
 TERMINAL_STATES = {"EXECUTED", "REJECTED", "CANCELLED", "EXPIRED"}
 ASYNC_TERMINAL_STATUSES = {"SUCCEEDED", "FAILED"}
@@ -116,6 +121,7 @@ class ProposalWorkflowService:
         correlation_id: Optional[str],
         lifecycle_origin: ProposalLifecycleOrigin = "DIRECT_CREATE",
         source_workspace_id: Optional[str] = None,
+        replay_lineage: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
         self._validate_lifecycle_origin(
             lifecycle_origin=lifecycle_origin,
@@ -157,6 +163,8 @@ class ProposalWorkflowService:
         )
         evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
         evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        if replay_lineage:
+            evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
         proposal_id = f"pp_{uuid.uuid4().hex[:12]}"
         version_no = 1
@@ -270,6 +278,7 @@ class ProposalWorkflowService:
                 payload=request_payload,
                 idempotency_key=resolved_idempotency_key,
                 correlation_id=correlation_id or operation.correlation_id,
+                replay_lineage=self._build_async_replay_lineage(operation),
             ),
         )
 
@@ -537,6 +546,40 @@ class ProposalWorkflowService:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
         return self._to_async_status(operation)
 
+    def get_async_operation_replay(
+        self, *, operation_id: str
+    ) -> AdvisoryReplayEvidenceResponse:
+        operation = self._repository.get_operation(operation_id=operation_id)
+        if operation is None:
+            raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
+
+        proposal = None
+        version = None
+        if operation.proposal_id is not None:
+            proposal = self._repository.get_proposal(proposal_id=operation.proposal_id)
+            if proposal is not None:
+                version_no = None
+                if operation.result_json is not None:
+                    version_payload = operation.result_json.get("version")
+                    if isinstance(version_payload, dict) and isinstance(
+                        version_payload.get("version_no"), int
+                    ):
+                        version_no = version_payload["version_no"]
+                if version_no is not None:
+                    version = self._repository.get_version(
+                        proposal_id=operation.proposal_id,
+                        version_no=version_no,
+                    )
+                if version is None:
+                    version = self._repository.get_current_version(
+                        proposal_id=operation.proposal_id
+                    )
+        return build_async_operation_replay_response(
+            operation=operation,
+            proposal=proposal,
+            version=version,
+        )
+
     def get_async_operation_by_correlation(
         self, *, correlation_id: str
     ) -> ProposalAsyncOperationStatusResponse:
@@ -563,6 +606,7 @@ class ProposalWorkflowService:
         proposal_id: str,
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
+        replay_lineage: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
         now = _utc_now()
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
@@ -609,6 +653,8 @@ class ProposalWorkflowService:
         )
         evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
         evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        if replay_lineage:
+            evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
         next_version_no = proposal.current_version_no + 1
         version = self._to_version_record(
@@ -695,6 +741,7 @@ class ProposalWorkflowService:
                 proposal_id=resolved_proposal_id,
                 payload=request_payload,
                 correlation_id=correlation_id or operation.correlation_id,
+                replay_lineage=self._build_async_replay_lineage(operation),
             ),
         )
 
@@ -1059,6 +1106,20 @@ class ProposalWorkflowService:
             error=operation.error_json,
         )
 
+    def get_version_replay(
+        self,
+        *,
+        proposal_id: str,
+        version_no: int,
+    ) -> AdvisoryReplayEvidenceResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
+        if version is None:
+            raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
+        return build_proposal_version_replay_response(proposal=proposal, version=version)
+
     def _resolve_create_async_payload(
         self,
         *,
@@ -1231,6 +1292,17 @@ class ProposalWorkflowService:
         operation.finished_at = _utc_now()
         self._repository.update_operation(operation)
         return False
+
+    def _build_async_replay_lineage(
+        self,
+        operation: ProposalAsyncOperationRecord,
+    ) -> dict[str, Any]:
+        return {
+            "async_operation_id": operation.operation_id,
+            "async_operation_type": operation.operation_type,
+            "correlation_id": operation.correlation_id,
+            "idempotency_key": operation.idempotency_key,
+        }
 
     def _run_simulation(
         self,

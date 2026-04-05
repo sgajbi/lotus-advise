@@ -16,6 +16,7 @@ from src.api.services.workspace_service import (
     get_workspace_session,
     handoff_workspace_to_proposal_lifecycle,
     reset_workspace_sessions_for_tests,
+    save_workspace_version,
 )
 
 
@@ -292,3 +293,54 @@ def test_workspace_service_builds_version_request_with_expected_current_version(
     )
 
     assert payload.expected_current_version_no == 3
+
+
+def test_workspace_handoff_updates_saved_version_replay_continuity() -> None:
+    session = create_workspace_session(
+        WorkspaceSessionCreateRequest.model_validate(
+            {
+                "workspace_name": "Replay continuity workspace",
+                "created_by": "advisor_123",
+                "input_mode": "stateless",
+                "stateless_input": {
+                    "simulate_request": {
+                        "portfolio_snapshot": {
+                            "portfolio_id": "pf_001",
+                            "base_currency": "USD",
+                            "positions": [],
+                            "cash_balances": [{"currency": "USD", "amount": "1000"}],
+                        },
+                        "market_data_snapshot": {"prices": [], "fx_rates": []},
+                        "shelf_entries": [],
+                        "options": {"enable_proposal_simulation": True},
+                        "proposed_cash_flows": [],
+                        "proposed_trades": [],
+                    }
+                },
+            }
+        )
+    ).workspace
+
+    session = workspace_service.reevaluate_workspace_session(session.workspace_id)
+    saved = save_workspace_version(
+        session.workspace_id,
+        workspace_service.WorkspaceSaveRequest(saved_by="advisor_123", version_label="Baseline"),
+    ).saved_version
+
+    handoff = handoff_workspace_to_proposal_lifecycle(
+        workspace_id=session.workspace_id,
+        request=workspace_service.WorkspaceLifecycleHandoffRequest(handoff_by="advisor_123"),
+        proposal_service=get_proposal_workflow_service(),
+        idempotency_key="workspace-handoff-replay-001",
+        correlation_id="corr-workspace-handoff-replay-001",
+    )
+
+    continuity = handoff.workspace.latest_replay_evidence.continuity
+    assert continuity["workspace_version_id"] == saved.workspace_version_id
+    assert continuity["proposal_id"] == handoff.proposal.proposal.proposal_id
+    assert continuity["proposal_version_no"] == handoff.proposal.version.version_no
+    assert continuity["handoff_action"] == "CREATED_PROPOSAL"
+    assert continuity["handoff_by"] == "advisor_123"
+
+    reloaded = get_workspace_session(session.workspace_id)
+    assert reloaded.saved_versions[0].replay_evidence.continuity == continuity
