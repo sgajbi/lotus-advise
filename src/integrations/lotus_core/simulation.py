@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -48,7 +48,7 @@ def simulate_with_lotus_core(
                 headers=headers,
             )
             response.raise_for_status()
-            payload: Any = response.json()
+            payload = cast(dict[str, Any], response.json())
     except httpx.HTTPStatusError as exc:
         raise LotusCoreSimulationUnavailableError(
             f"LOTUS_CORE_SIMULATION_UNAVAILABLE: {exc.response.status_code}"
@@ -56,4 +56,5 @@ def simulate_with_lotus_core(
     except (httpx.HTTPError, ValueError) as exc:
         raise LotusCoreSimulationUnavailableError("LOTUS_CORE_SIMULATION_UNAVAILABLE") from exc
 
-    return ProposalResult.model_validate(payload)
+    result: ProposalResult = ProposalResult.model_validate(payload)
+    return result
