@@ -6,6 +6,14 @@ from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposals.context import (
+    ProposalContextResolutionError,
+    build_context_resolution_evidence,
+    canonicalize_create_request_payload,
+    canonicalize_version_request_payload,
+    resolve_create_request,
+    resolve_version_request,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
@@ -111,7 +119,14 @@ class ProposalWorkflowService:
             source_workspace_id=source_workspace_id,
         )
         now = _utc_now()
-        request_payload = payload.model_dump(mode="json")
+        try:
+            resolved_request = resolve_create_request(payload)
+        except ProposalContextResolutionError as exc:
+            raise ProposalValidationError(str(exc)) from exc
+        request_payload = canonicalize_create_request_payload(
+            payload=payload,
+            resolved=resolved_request,
+        )
         request_hash = hash_canonical_payload(request_payload)
 
         existing = self._repository.get_idempotency(idempotency_key=idempotency_key)
@@ -125,33 +140,35 @@ class ProposalWorkflowService:
                 version_no=existing.proposal_version_no,
             )
 
-        self._validate_simulation_flag(payload.simulate_request)
+        self._validate_simulation_flag(resolved_request.simulate_request)
         proposal_result = self._run_simulation(
-            request=payload.simulate_request,
+            request=resolved_request.simulate_request,
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
         artifact = build_proposal_artifact(
-            request=payload.simulate_request,
+            request=resolved_request.simulate_request,
             proposal_result=proposal_result,
             created_at=now.isoformat(),
         )
+        evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
+        evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
 
         proposal_id = f"pp_{uuid.uuid4().hex[:12]}"
         version_no = 1
         proposal = ProposalRecord(
             proposal_id=proposal_id,
-            portfolio_id=payload.simulate_request.portfolio_snapshot.portfolio_id,
-            mandate_id=payload.metadata.mandate_id,
-            jurisdiction=payload.metadata.jurisdiction,
+            portfolio_id=resolved_request.simulate_request.portfolio_snapshot.portfolio_id,
+            mandate_id=resolved_request.metadata.mandate_id,
+            jurisdiction=resolved_request.metadata.jurisdiction,
             created_by=payload.created_by,
             created_at=now,
             last_event_at=now,
             current_state="DRAFT",
             current_version_no=version_no,
-            title=payload.metadata.title,
-            advisor_notes=payload.metadata.advisor_notes,
+            title=resolved_request.metadata.title,
+            advisor_notes=resolved_request.metadata.advisor_notes,
             lifecycle_origin=lifecycle_origin,
             source_workspace_id=source_workspace_id,
         )
@@ -161,7 +178,7 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             proposal_result=proposal_result,
             artifact=artifact.model_dump(mode="json"),
-            evidence_bundle=artifact.evidence_bundle.model_dump(mode="json"),
+            evidence_bundle=evidence_bundle,
             created_at=now,
         )
         created_event = ProposalWorkflowEventRecord(
@@ -554,25 +571,37 @@ class ProposalWorkflowService:
                 "VERSION_CONFLICT: expected_current_version_no mismatch"
             )
 
-        self._validate_simulation_flag(payload.simulate_request)
-        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        try:
+            resolved_request = resolve_version_request(payload)
+        except ProposalContextResolutionError as exc:
+            raise ProposalValidationError(str(exc)) from exc
+        self._validate_simulation_flag(resolved_request.simulate_request)
+        request_hash = hash_canonical_payload(
+            canonicalize_version_request_payload(
+                payload=payload,
+                resolved=resolved_request,
+            )
+        )
         if (
             not self._allow_portfolio_id_change_on_new_version
-            and payload.simulate_request.portfolio_snapshot.portfolio_id != proposal.portfolio_id
+            and resolved_request.simulate_request.portfolio_snapshot.portfolio_id
+            != proposal.portfolio_id
         ):
             raise ProposalValidationError("PORTFOLIO_CONTEXT_MISMATCH")
 
         proposal_result = self._run_simulation(
-            request=payload.simulate_request,
+            request=resolved_request.simulate_request,
             request_hash=request_hash,
             idempotency_key=None,
             correlation_id=correlation_id,
         )
         artifact = build_proposal_artifact(
-            request=payload.simulate_request,
+            request=resolved_request.simulate_request,
             proposal_result=proposal_result,
             created_at=now.isoformat(),
         )
+        evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
+        evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
 
         next_version_no = proposal.current_version_no + 1
         version = self._to_version_record(
@@ -581,7 +610,7 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             proposal_result=proposal_result,
             artifact=artifact.model_dump(mode="json"),
-            evidence_bundle=artifact.evidence_bundle.model_dump(mode="json"),
+            evidence_bundle=evidence_bundle,
             created_at=now,
         )
         event = ProposalWorkflowEventRecord(

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.models import GateDecision, ProposalResult, ProposalSimulateRequest
@@ -40,6 +40,7 @@ ProposalAsyncOperationStatus = Literal["PENDING", "RUNNING", "SUCCEEDED", "FAILE
 ProposalLifecycleOrigin = Literal["DIRECT_CREATE", "WORKSPACE_HANDOFF"]
 ProposalReportType = Literal["PORTFOLIO_REVIEW", "CLIENT_PROPOSAL_SUMMARY"]
 ProposalExecutionHandoffStatus = Literal["NOT_REQUESTED", "REQUESTED", "EXECUTED"]
+ProposalInputMode = Literal["stateless", "stateful"]
 
 
 class ProposalCreateMetadata(BaseModel):
@@ -65,13 +66,12 @@ class ProposalCreateMetadata(BaseModel):
     )
 
 
-class ProposalCreateRequest(BaseModel):
-    created_by: str = Field(
-        description="Actor id creating the proposal record.",
-        examples=["advisor_123"],
-    )
+class ProposalStatelessInput(BaseModel):
     simulate_request: ProposalSimulateRequest = Field(
-        description="Full advisory simulation payload persisted as version evidence input.",
+        description=(
+            "Full advisory simulation payload supplied directly by the caller for deterministic "
+            "proposal create and replay-safe lifecycle workflows."
+        ),
         examples=[
             {
                 "portfolio_snapshot": {
@@ -86,6 +86,111 @@ class ProposalCreateRequest(BaseModel):
             }
         ],
     )
+
+
+class ProposalStatefulInput(BaseModel):
+    portfolio_id: str = Field(
+        description="Canonical Lotus portfolio identifier resolved through upstream services.",
+        examples=["pf_advisory_01"],
+    )
+    as_of: str = Field(
+        description="Business date or timestamp used to resolve the authoritative source context.",
+        examples=["2026-03-25"],
+    )
+    household_id: Optional[str] = Field(
+        default=None,
+        description="Optional household identifier when the advisory workflow is household-scoped.",
+        examples=["hh_001"],
+    )
+    mandate_id: Optional[str] = Field(
+        default=None,
+        description="Optional mandate identifier used to enrich the advisory context.",
+        examples=["mandate_growth_01"],
+    )
+    benchmark_id: Optional[str] = Field(
+        default=None,
+        description="Optional benchmark identifier for context-aware evaluation and comparison.",
+        examples=["benchmark_balanced_usd"],
+    )
+
+
+class ProposalResolvedContext(BaseModel):
+    portfolio_id: str = Field(
+        description="Resolved portfolio identifier used by proposal evaluation.",
+        examples=["pf_advisory_01"],
+    )
+    as_of: str = Field(
+        description="Resolved business date or timestamp used during evaluation.",
+        examples=["2026-03-25"],
+    )
+    portfolio_snapshot_id: Optional[str] = Field(
+        default=None,
+        description="Upstream portfolio snapshot identifier captured for replay and audit.",
+        examples=["ps_20260325_001"],
+    )
+    market_data_snapshot_id: Optional[str] = Field(
+        default=None,
+        description="Upstream market-data snapshot identifier captured for replay and audit.",
+        examples=["md_20260325_001"],
+    )
+    risk_context_id: Optional[str] = Field(
+        default=None,
+        description="Optional upstream risk-context identifier used for advisory enrichment.",
+        examples=["risk_ctx_001"],
+    )
+    reporting_context_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional reporting-context identifier used to correlate downstream report generation."
+        ),
+        examples=["report_ctx_001"],
+    )
+
+
+class ProposalCreateRequest(BaseModel):
+    created_by: str = Field(
+        description="Actor id creating the proposal record.",
+        examples=["advisor_123"],
+    )
+    input_mode: Optional[ProposalInputMode] = Field(
+        default=None,
+        description=(
+            "Optional proposal input mode. Omit for legacy direct `simulate_request` create "
+            "requests, or set explicitly to `stateless`/`stateful` for the normalized contract."
+        ),
+        examples=["stateful"],
+    )
+    simulate_request: Optional[ProposalSimulateRequest] = Field(
+        default=None,
+        description=(
+            "Legacy full advisory simulation payload persisted as version evidence input. "
+            "Prefer `stateless_input` or `stateful_input` for new proposal create callers."
+        ),
+        examples=[
+            {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_advisory_01",
+                    "base_currency": "USD",
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        ],
+    )
+    stateless_input: Optional[ProposalStatelessInput] = Field(
+        default=None,
+        description="Direct advisory payload for normalized stateless proposal create requests.",
+    )
+    stateful_input: Optional[ProposalStatefulInput] = Field(
+        default=None,
+        description=(
+            "Identifier-based authoritative input payload for normalized stateful proposal create "
+            "requests."
+        ),
+    )
     metadata: ProposalCreateMetadata = Field(
         default_factory=ProposalCreateMetadata,
         description="Optional proposal metadata persisted alongside proposal aggregate.",
@@ -98,6 +203,41 @@ class ProposalCreateRequest(BaseModel):
             }
         ],
     )
+
+    @model_validator(mode="after")
+    def validate_input_contract(self) -> "ProposalCreateRequest":
+        if self.input_mode is None:
+            if (
+                self.simulate_request is None
+                or self.stateless_input is not None
+                or self.stateful_input is not None
+            ):
+                raise ValueError(
+                    "legacy proposal create requests require simulate_request and must not "
+                    "include stateless_input or stateful_input"
+                )
+            return self
+        if self.input_mode == "stateless":
+            if (
+                self.stateless_input is None
+                or self.simulate_request is not None
+                or self.stateful_input is not None
+            ):
+                raise ValueError(
+                    "stateless proposal create requests require stateless_input and must not "
+                    "include simulate_request or stateful_input"
+                )
+            return self
+        if (
+            self.stateful_input is None
+            or self.simulate_request is not None
+            or self.stateless_input is not None
+        ):
+            raise ValueError(
+                "stateful proposal create requests require stateful_input and must not include "
+                "simulate_request or stateless_input"
+            )
+        return self
 
 
 class ProposalVersionRequest(BaseModel):
@@ -113,8 +253,21 @@ class ProposalVersionRequest(BaseModel):
         ),
         examples=[1],
     )
-    simulate_request: ProposalSimulateRequest = Field(
-        description="Full advisory simulation payload for the new immutable version.",
+    input_mode: Optional[ProposalInputMode] = Field(
+        default=None,
+        description=(
+            "Optional proposal version input mode. Omit for legacy direct `simulate_request` "
+            "version requests, or set explicitly to `stateless`/`stateful` for the normalized "
+            "contract."
+        ),
+        examples=["stateful"],
+    )
+    simulate_request: Optional[ProposalSimulateRequest] = Field(
+        default=None,
+        description=(
+            "Legacy full advisory simulation payload for the new immutable version. Prefer "
+            "`stateless_input` or `stateful_input` for new proposal version callers."
+        ),
         examples=[
             {
                 "portfolio_snapshot": {
@@ -129,6 +282,52 @@ class ProposalVersionRequest(BaseModel):
             }
         ],
     )
+    stateless_input: Optional[ProposalStatelessInput] = Field(
+        default=None,
+        description="Direct advisory payload for normalized stateless proposal version requests.",
+    )
+    stateful_input: Optional[ProposalStatefulInput] = Field(
+        default=None,
+        description=(
+            "Identifier-based authoritative input payload for normalized stateful proposal "
+            "version requests."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_input_contract(self) -> "ProposalVersionRequest":
+        if self.input_mode is None:
+            if (
+                self.simulate_request is None
+                or self.stateless_input is not None
+                or self.stateful_input is not None
+            ):
+                raise ValueError(
+                    "legacy proposal version requests require simulate_request and must not "
+                    "include stateless_input or stateful_input"
+                )
+            return self
+        if self.input_mode == "stateless":
+            if (
+                self.stateless_input is None
+                or self.simulate_request is not None
+                or self.stateful_input is not None
+            ):
+                raise ValueError(
+                    "stateless proposal version requests require stateless_input and must not "
+                    "include simulate_request or stateful_input"
+                )
+            return self
+        if (
+            self.stateful_input is None
+            or self.simulate_request is not None
+            or self.stateless_input is not None
+        ):
+            raise ValueError(
+                "stateful proposal version requests require stateful_input and must not include "
+                "simulate_request or stateless_input"
+            )
+        return self
 
 
 class ProposalWorkflowEvent(BaseModel):

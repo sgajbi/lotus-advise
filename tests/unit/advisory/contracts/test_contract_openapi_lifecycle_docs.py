@@ -13,12 +13,22 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     openapi = app.openapi()
     schemas = openapi["components"]["schemas"]
 
+    create_request_schema = schemas["ProposalCreateRequest"]
+    _assert_property_has_docs(create_request_schema, "input_mode")
+    _assert_property_has_docs(create_request_schema, "simulate_request")
+    _assert_property_has_docs(create_request_schema, "stateless_input")
+    _assert_property_has_docs(create_request_schema, "stateful_input")
+
     proposal_summary_schema = schemas["ProposalSummary"]
     _assert_property_has_docs(proposal_summary_schema, "lifecycle_origin")
     _assert_property_has_docs(proposal_summary_schema, "source_workspace_id")
 
     version_request_schema = schemas["ProposalVersionRequest"]
+    _assert_property_has_docs(version_request_schema, "input_mode")
     _assert_property_has_docs(version_request_schema, "expected_current_version_no")
+    _assert_property_has_docs(version_request_schema, "simulate_request")
+    _assert_property_has_docs(version_request_schema, "stateless_input")
+    _assert_property_has_docs(version_request_schema, "stateful_input")
 
     lineage_schema = schemas["ProposalLineageResponse"]
     _assert_property_has_docs(lineage_schema, "version_count")

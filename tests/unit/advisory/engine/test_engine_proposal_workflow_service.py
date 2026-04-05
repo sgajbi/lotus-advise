@@ -125,6 +125,35 @@ def test_service_create_proposal_uses_upstream_simulation_authority_when_availab
     assert authority["risk_authority"] == "lotus_advise_local"
 
 
+def test_service_request_hash_is_stable_between_legacy_and_stateless_create_contracts():
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    legacy_payload = ProposalCreateRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+        metadata={"title": "Service test"},
+    )
+    stateless_payload = ProposalCreateRequest(
+        created_by="advisor_service",
+        input_mode="stateless",
+        stateless_input={"simulate_request": _simulate_request()},
+        metadata={"title": "Service test"},
+    )
+
+    legacy = service.create_proposal(
+        payload=legacy_payload,
+        idempotency_key="service-idem-legacy-hash",
+        correlation_id="corr-service-legacy-hash",
+    )
+    stateless = service.create_proposal(
+        payload=stateless_payload,
+        idempotency_key="service-idem-stateless-hash",
+        correlation_id="corr-service-stateless-hash",
+    )
+
+    assert legacy.version.request_hash == stateless.version.request_hash
+    assert legacy.version.simulation_hash == stateless.version.simulation_hash
+
+
 def test_service_rejects_version_with_portfolio_context_mismatch():
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())
 

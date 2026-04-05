@@ -52,6 +52,26 @@ def _create(client: TestClient, idempotency_key: str, payload: dict | None = Non
     return response.json()
 
 
+def _resolved_stateful_context(
+    portfolio_id: str,
+    as_of: str,
+) -> dict:
+    payload = _base_create_payload(portfolio_id=portfolio_id)["simulate_request"]
+    payload["portfolio_snapshot"]["snapshot_id"] = f"ps_{portfolio_id}_{as_of}"
+    payload["market_data_snapshot"]["snapshot_id"] = f"md_{as_of}"
+    return {
+        "simulate_request": payload,
+        "resolved_context": {
+            "portfolio_id": portfolio_id,
+            "as_of": as_of,
+            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
+            "market_data_snapshot_id": f"md_{as_of}",
+            "risk_context_id": "risk_ctx_001",
+            "reporting_context_id": "report_ctx_001",
+        },
+    }
+
+
 def setup_function() -> None:
     PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
@@ -69,6 +89,71 @@ def test_create_proposal_persists_immutable_version_and_created_event():
         assert body["version"]["status_at_creation"] == "READY"
         assert body["version"]["artifact_hash"].startswith("sha256:")
         assert body["latest_workflow_event"]["event_type"] == "CREATED"
+
+
+def test_create_proposal_supports_stateful_context_resolution(monkeypatch):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_001",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_stateful_001",
+        },
+        "metadata": {
+            "title": "Stateful proposal",
+            "advisor_notes": "Resolved from lotus-core",
+            "jurisdiction": "SG",
+        },
+    }
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-create-stateful-1"},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["proposal"]["portfolio_id"] == "pf_stateful_001"
+    assert body["proposal"]["mandate_id"] == "mandate_stateful_001"
+    context_resolution = body["version"]["evidence_bundle"]["context_resolution"]
+    assert context_resolution["input_mode"] == "stateful"
+    assert context_resolution["resolution_source"] == "LOTUS_CORE"
+    assert context_resolution["resolved_context"]["portfolio_snapshot_id"] == (
+        "ps_pf_stateful_001_2026-03-25"
+    )
+
+
+def test_create_proposal_rejects_stateful_request_when_context_resolution_is_unavailable():
+    payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_missing",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {"title": "Unavailable stateful proposal"},
+    }
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-create-stateful-missing"},
+        )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
 
 
 def test_get_proposal_repository_maps_runtime_and_value_errors(monkeypatch):
@@ -222,6 +307,82 @@ def test_create_version_returns_409_for_expected_current_version_conflict():
 
     assert response.status_code == 409
     assert response.json()["detail"] == "VERSION_CONFLICT: expected_current_version_no mismatch"
+
+
+def test_create_version_supports_stateful_context_resolution(monkeypatch):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-create-stateful-version-base")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_lifecycle_1",
+                    "as_of": "2026-03-25",
+                    "mandate_id": "mandate_stateful_002",
+                },
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["proposal"]["current_version_no"] == 2
+    context_resolution = body["version"]["evidence_bundle"]["context_resolution"]
+    assert context_resolution["input_mode"] == "stateful"
+    assert context_resolution["resolved_context"]["portfolio_snapshot_id"] == (
+        "ps_pf_lifecycle_1_2026-03-25"
+    )
+
+
+def test_async_create_proposal_supports_stateful_context_resolution(monkeypatch):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    payload = {
+        "created_by": "advisor_async",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_async_stateful_001",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_async_001",
+        },
+        "metadata": {"title": "Async stateful proposal"},
+    }
+
+    with TestClient(app) as client:
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-async-stateful-1"},
+        )
+
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+
+    assert operation.status_code == 200
+    body = operation.json()
+    assert body["status"] == "SUCCEEDED"
+    result = body["result"]
+    assert result["proposal"]["portfolio_id"] == "pf_async_stateful_001"
+    assert result["version"]["evidence_bundle"]["context_resolution"]["input_mode"] == "stateful"
 
 
 def test_transition_requires_expected_state_and_rejects_invalid_transition():

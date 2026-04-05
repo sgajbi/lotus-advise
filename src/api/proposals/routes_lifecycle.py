@@ -31,7 +31,8 @@ from src.core.proposals.models import ProposalApprovalRequest, ProposalListRespo
     summary="Create and Persist Advisory Proposal",
     description=(
         "Runs advisory simulation + artifact generation and persists immutable proposal version, "
-        "workflow creation event, and idempotency mapping."
+        "workflow creation event, and idempotency mapping. Supports legacy direct "
+        "`simulate_request` payloads plus normalized `stateless` and `stateful` input modes."
     ),
 )
 def create_proposal(
@@ -192,7 +193,9 @@ def get_proposal_version(
     tags=["Advisory Proposal Lifecycle"],
     summary="Create Proposal Version",
     description=(
-        "Creates a new immutable proposal version by rerunning simulation + artifact build."
+        "Creates a new immutable proposal version by rerunning simulation + artifact build. "
+        "Supports legacy direct `simulate_request` payloads plus normalized `stateless` and "
+        "`stateful` input modes."
     ),
 )
 def create_proposal_version(
