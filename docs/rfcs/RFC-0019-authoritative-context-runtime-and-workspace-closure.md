@@ -4,7 +4,7 @@
 - Date: 2026-04-05
 - Owners: lotus-advise
 - Requires Approval From: lotus-advise maintainers
-- Depends On: RFC-0004, RFC-0005, RFC-0006, RFC-0011, RFC-0013, RFC-0017
+- Depends On: RFC-0004, RFC-0005, RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0017
 
 ## Summary
 
