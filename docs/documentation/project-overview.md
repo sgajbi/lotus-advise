@@ -56,7 +56,7 @@ The API remains deterministic for identical inputs and options.
   `X-Lotus-Contract-Version: advisory-simulation.v1`, and the returned lineage must carry the same
   `simulation_contract_version` for replay-safe parity.
 - Fallback posture: local advisory execution is no longer a normal runtime mode. It is retained
-  only as a controlled migration fallback and test oracle behind
+  only as a controlled non-production fallback and test oracle behind
   `LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK`.
 - Environment quarantine: the controlled fallback is permitted only in local/dev/test-style
   environments. Production-style environments must use `lotus-core` simulation authority.

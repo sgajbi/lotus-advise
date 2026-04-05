@@ -55,11 +55,12 @@ Implementation scope:
 
 Authority orchestration note:
 - advisory proposal evaluation now routes through explicit Lotus authority seams
-- `lotus-core` may provide simulation authority when configured
+- `lotus-core` is the normal runtime simulation authority through the versioned canonical contract
 - `lotus-risk` may provide risk enrichment authority when configured
-- local evaluation is retained only as a controlled migration fallback/test oracle in local/dev/test
-  style environments, and the response explanation includes `authority_resolution` metadata showing
-  which authorities were used and whether fallback degradation occurred
+- local evaluation is retained only as a controlled non-production fallback and test oracle in
+  local/dev/test-style environments, and the response explanation includes
+  `authority_resolution` metadata showing which authorities were used and whether fallback
+  degradation occurred
 
 ### `POST /advisory/proposals`
 - Purpose: run simulation+artifact and persist proposal aggregate/version/workflow event.
@@ -148,8 +149,8 @@ Persistence note:
 
 Authority note:
 - `run_proposal_simulation` remains the local deterministic engine implementation
-- active API, workspace, and lifecycle flows now call it through the advisory orchestration layer
-  when upstream Lotus Core authority is not available
+- active API, workspace, and lifecycle flows reach it only through the advisory orchestration layer
+  when the explicit non-production fallback policy is enabled
 
 1. Validate and gate
 - Requires `options.enable_proposal_simulation=true` at API layer.
