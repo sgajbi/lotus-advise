@@ -851,7 +851,7 @@ def enrich_stateful_simulate_request_for_trade_drafts(
 
     base_url = _resolve_query_base_url()
     control_plane_base_url = _resolve_control_plane_base_url()
-    enriched_request = simulate_request.model_copy(deep=True)
+    enriched_request = cast(ProposalSimulateRequest, simulate_request.model_copy(deep=True))
     with httpx.Client(timeout=_resolve_timeout()) as client:
         enrichment_by_instrument_id = _fetch_instrument_enrichment_bulk(
             client,

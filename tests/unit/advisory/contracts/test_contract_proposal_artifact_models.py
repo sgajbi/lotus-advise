@@ -16,6 +16,7 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactPortfolioState,
     ProposalArtifactPricingAssumptions,
     ProposalArtifactProductDoc,
+    ProposalArtifactRiskLens,
     ProposalArtifactSuitabilitySummary,
     ProposalArtifactSummary,
     ProposalArtifactTakeaway,
@@ -66,6 +67,12 @@ def test_proposal_artifact_contract_shape():
                 largest_weight_changes=[],
             ),
             reconciliation=None,
+        ),
+        risk_lens=ProposalArtifactRiskLens(
+            status="NOT_AVAILABLE",
+            source_service=None,
+            summary="Risk lens is unavailable for this proposal.",
+            highlights=[],
         ),
         trades_and_funding=ProposalArtifactTradesAndFunding(
             trade_list=[

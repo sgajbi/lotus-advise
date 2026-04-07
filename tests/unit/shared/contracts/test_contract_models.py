@@ -275,11 +275,11 @@ def test_proposed_trade_notional_validators_reject_float_and_non_positive():
         )
 
 
-def test_allocation_metric_weight_serialization_is_quantized():
+def test_allocation_metric_weight_serialization_preserves_decimal_precision():
     metric = AllocationMetric(
         key="EQ_1",
         weight=Decimal("0.6666666666666666666666666667"),
         value=Money(amount=Decimal("100"), currency="USD"),
     )
     payload = metric.model_dump(mode="json")
-    assert payload["weight"] == "0.6667"
+    assert payload["weight"] == "0.6666666666666666666666666667"

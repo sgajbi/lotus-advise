@@ -359,6 +359,16 @@ def _build_workspace_handoff_context_resolution(
     return cast(dict[str, Any], build_context_resolution_evidence(resolved_request))
 
 
+def _require_handoff_simulate_request(
+    simulate_request: ProposalSimulateRequest | None,
+) -> ProposalSimulateRequest:
+    if simulate_request is None:
+        raise WorkspaceLifecycleHandoffUnavailableError(
+            "WORKSPACE_HANDOFF_SIMULATE_REQUEST_MISSING"
+        )
+    return simulate_request
+
+
 def _build_saved_version_summary(
     version: WorkspaceSavedVersion,
 ) -> WorkspaceSavedVersionSummary:
@@ -773,7 +783,7 @@ def handoff_workspace_to_proposal_lifecycle(
                 replay_lineage=replay_lineage,
                 context_resolution_override=_build_workspace_handoff_context_resolution(
                     session,
-                    create_request.simulate_request,
+                    _require_handoff_simulate_request(create_request.simulate_request),
                     create_request.metadata,
                 ),
             )
@@ -794,7 +804,7 @@ def handoff_workspace_to_proposal_lifecycle(
                 replay_lineage=replay_lineage,
                 context_resolution_override=_build_workspace_handoff_context_resolution(
                     session,
-                    version_request.simulate_request,
+                    _require_handoff_simulate_request(version_request.simulate_request),
                     ProposalCreateMetadata(),
                 ),
             )
