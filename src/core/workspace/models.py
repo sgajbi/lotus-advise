@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -240,6 +240,10 @@ class WorkspaceReplayEvidence(BaseModel):
                 "handoff_action": "CREATED_PROPOSAL",
             }
         ],
+    )
+    risk_lens: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="Normalized proposal risk-lens evidence captured for the latest evaluation.",
     )
 
 

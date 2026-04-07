@@ -237,6 +237,26 @@ class ProposalArtifactSuitabilitySummary(BaseModel):
     )
 
 
+class ProposalArtifactRiskLens(BaseModel):
+    status: Literal["AVAILABLE", "NOT_AVAILABLE"] = Field(
+        description="Risk-lens section availability.",
+        examples=["AVAILABLE"],
+    )
+    source_service: Optional[str] = Field(
+        default=None,
+        description="Risk authority used to produce the proposal risk lens.",
+        examples=["lotus-risk"],
+    )
+    summary: str = Field(
+        description="Business-language summary of before/after concentration posture.",
+        examples=["Concentration increases modestly after the proposal and remains reviewable."],
+    )
+    highlights: List[str] = Field(
+        default_factory=list,
+        description="Compact deterministic risk highlights for advisor review.",
+    )
+
+
 class ProposalArtifactPricingAssumptions(BaseModel):
     market_data_snapshot_id: str = Field(
         description="Market-data snapshot identifier used by simulation.",
@@ -370,6 +390,9 @@ class ProposalArtifact(BaseModel):
     )
     trades_and_funding: ProposalArtifactTradesAndFunding = Field(
         description="Deterministic trade and funding section."
+    )
+    risk_lens: ProposalArtifactRiskLens = Field(
+        description="Concise proposal concentration risk lens section."
     )
     suitability_summary: ProposalArtifactSuitabilitySummary = Field(
         description="Suitability summary section."

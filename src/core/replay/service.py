@@ -51,6 +51,7 @@ def build_workspace_saved_version_replay_response(
             "saved_by": saved_version.saved_by,
             "version_number": saved_version.version_number,
             "version_label": saved_version.version_label,
+            "risk_lens": saved_version.replay_evidence.risk_lens,
         },
         explanation={
             "source": "WORKSPACE_SAVED_VERSION",
@@ -104,6 +105,7 @@ def build_proposal_version_replay_response(
         evidence={
             "context_resolution": context_resolution,
             "replay_lineage": replay_lineage,
+            "risk_lens": version.evidence_bundle_json.get("risk_lens"),
         },
         explanation={
             "source": "PROPOSAL_VERSION_EVIDENCE_BUNDLE",

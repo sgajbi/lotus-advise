@@ -64,6 +64,23 @@ def _create(client: TestClient, idempotency_key: str, payload: dict | None = Non
     return response.json()
 
 
+def _risk_enriched_result(result):  # noqa: ANN001
+    result.explanation["risk_lens"] = {
+        "source_service": "lotus-risk",
+        "input_mode": "simulation",
+        "risk_proxy": {"hhi_current": 5200.0, "hhi_proposed": 6800.0, "hhi_delta": 1600.0},
+        "single_position_concentration": {
+            "top_position_weight_current": 0.5,
+            "top_position_weight_proposed": 0.6,
+        },
+        "issuer_concentration": {
+            "hhi_current": 5200.0,
+            "hhi_proposed": 5800.0,
+        },
+    }
+    return result
+
+
 def _promote_to_execution_ready(client: TestClient, proposal_id: str) -> None:
     submitted = client.post(
         f"/advisory/proposals/{proposal_id}/transitions",
@@ -2012,6 +2029,41 @@ def test_async_and_proposal_replay_evidence_stay_hash_aligned():
     assert async_body["resolved_context"] == proposal_body["resolved_context"]
     assert async_body["continuity"]["correlation_id"] == "corr-lifecycle-replay-async-alignment-001"
     assert async_body["continuity"]["async_operation_id"] == operation_id
+
+
+def test_proposal_and_async_replay_evidence_preserve_risk_lens(monkeypatch):
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        lambda **kwargs: _risk_enriched_result(kwargs["proposal_result"]),
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-risk-replay-create")
+        proposal_id = created["proposal"]["proposal_id"]
+        version_no = created["version"]["version_no"]
+
+        version_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+        )
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=_base_create_payload("pf_async_risk_replay_001"),
+            headers={
+                "Idempotency-Key": "lifecycle-risk-replay-async",
+                "X-Correlation-Id": "corr-lifecycle-risk-replay-async",
+            },
+        )
+        operation_id = accepted.json()["operation_id"]
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+
+    assert version_replay.status_code == 200
+    assert async_replay.status_code == 200
+    version_body = version_replay.json()
+    async_body = async_replay.json()
+    assert version_body["evidence"]["risk_lens"]["source_service"] == "lotus-risk"
+    assert version_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert async_body["evidence"]["risk_lens"]["source_service"] == "lotus-risk"
+    assert async_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
 
 
 def test_async_create_version_and_lookup():

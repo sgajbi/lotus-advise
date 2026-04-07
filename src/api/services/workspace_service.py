@@ -1,10 +1,12 @@
 from collections import OrderedDict
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import OrderedDict as OrderedDictType, cast
+from typing import OrderedDict as OrderedDictType
+from typing import cast
 from uuid import uuid4
 
 from src.core.advisory.orchestration import evaluate_advisory_proposal
+from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals import (
@@ -102,7 +104,10 @@ def _build_stateful_resolved_context(
     stateful_input: WorkspaceStatefulInput,
 ) -> WorkspaceResolvedContext:
     try:
-        return resolve_lotus_core_advisory_context(stateful_input).resolved_context
+        return cast(
+            WorkspaceResolvedContext,
+            resolve_lotus_core_advisory_context(stateful_input).resolved_context,
+        )
     except LotusCoreContextResolutionError:
         return WorkspaceResolvedContext(
             portfolio_id=stateful_input.portfolio_id,
@@ -250,6 +255,11 @@ def _build_replay_evidence(
         evaluation_request_hash=evaluation_request_hash,
         captured_at=_utc_now_iso(),
         continuity={},
+        risk_lens=(
+            extract_risk_lens(session.latest_proposal_result)
+            if session.latest_proposal_result is not None
+            else None
+        ),
     )
 
 

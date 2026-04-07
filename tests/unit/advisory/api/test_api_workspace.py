@@ -70,6 +70,23 @@ def _normalize_business_result_for_cross_mode_parity(body: dict[str, Any]) -> di
     return normalized
 
 
+def _risk_enriched_result(result):  # noqa: ANN001
+    result.explanation["risk_lens"] = {
+        "source_service": "lotus-risk",
+        "input_mode": "simulation",
+        "risk_proxy": {"hhi_current": 5200.0, "hhi_proposed": 6800.0, "hhi_delta": 1600.0},
+        "single_position_concentration": {
+            "top_position_weight_current": 0.5,
+            "top_position_weight_proposed": 0.6,
+        },
+        "issuer_concentration": {
+            "hhi_current": 5200.0,
+            "hhi_proposed": 5800.0,
+        },
+    }
+    return result
+
+
 def test_create_stateful_workspace_session_returns_workspace_context(monkeypatch) -> None:
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
@@ -1505,6 +1522,68 @@ def test_workspace_and_proposal_replay_evidence_stay_hash_aligned_after_handoff(
     assert proposal_body["resolved_context"]["portfolio_id"] == (
         workspace_body["resolved_context"]["portfolio_id"]
     )
+
+
+def test_workspace_handoff_replay_evidence_preserves_risk_lens(monkeypatch):
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        lambda **kwargs: _risk_enriched_result(kwargs["proposal_result"]),
+    )
+    payload = {
+        "workspace_name": "Risk lens handoff workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_workspace_risk_replay_001",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [{"side": "BUY", "instrument_id": "EQ_1", "quantity": "2"}],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        created = client.post("/advisory/workspaces", json=payload)
+        workspace_id = created.json()["workspace"]["workspace_id"]
+        client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        saved = client.post(
+            f"/advisory/workspaces/{workspace_id}/save",
+            json={"saved_by": "advisor_123", "version_label": "Risk lens baseline"},
+        )
+        workspace_version_id = saved.json()["saved_version"]["workspace_version_id"]
+        handoff = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            headers={"Idempotency-Key": "workspace-risk-lens-handoff-001"},
+            json={"handoff_by": "advisor_123"},
+        )
+        proposal_id = handoff.json()["proposal"]["proposal"]["proposal_id"]
+        proposal_version_no = handoff.json()["proposal"]["version"]["version_no"]
+        workspace_replay = client.get(
+            f"/advisory/workspaces/{workspace_id}/saved-versions/{workspace_version_id}/replay-evidence"
+        )
+        proposal_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{proposal_version_no}/replay-evidence"
+        )
+
+    assert workspace_replay.status_code == 200
+    assert proposal_replay.status_code == 200
+    workspace_body = workspace_replay.json()
+    proposal_body = proposal_replay.json()
+    assert workspace_body["evidence"]["risk_lens"]["source_service"] == "lotus-risk"
+    assert proposal_body["evidence"]["risk_lens"]["source_service"] == "lotus-risk"
+    assert workspace_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert proposal_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
 
 
 def test_workspace_handoff_requires_idempotency_key_for_first_create():

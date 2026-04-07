@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.orchestration import evaluate_advisory_proposal
+from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.context import (
@@ -198,6 +199,7 @@ class ProposalWorkflowService:
         )
         evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
         evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
         if replay_lineage:
             evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
@@ -775,6 +777,7 @@ class ProposalWorkflowService:
         )
         evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
         evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
         if replay_lineage:
             evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
