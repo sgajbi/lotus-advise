@@ -473,6 +473,64 @@ def test_create_version_supports_stateful_context_resolution(monkeypatch):
     )
 
 
+def test_stateful_create_and_version_share_warm_lotus_core_context(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    query_client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_version_cache",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+
+    create_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_version_cache",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {
+            "title": "Version cache warm base",
+            "advisor_notes": "Base proposal should warm the Lotus Core context cache",
+            "jurisdiction": "SG",
+        },
+    }
+    version_payload = {
+        "created_by": "advisor_2",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_version_cache",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=create_payload,
+            headers={"Idempotency-Key": "stateful-version-cache-create"},
+        )
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json=version_payload,
+        )
+
+    assert created.status_code == 200
+    assert versioned.status_code == 200
+    assert query_client.request_count == 3
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 1
+    assert fetch_stats.positions_fetches == 1
+    assert fetch_stats.cash_fetches == 1
+
+
 def test_async_create_proposal_supports_stateful_context_resolution(monkeypatch):
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
