@@ -8,6 +8,9 @@ from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvi
 from src.integrations.lotus_core.stateful_context import (
     LotusCoreStatefulContextUnavailableError,
     _resolve_query_base_url,
+    _resolve_timeout,
+    _stateful_context_cache_max_size,
+    _stateful_context_cache_ttl_seconds,
     enrich_stateful_simulate_request_for_trade_drafts,
     reset_stateful_context_cache_for_tests,
     resolve_stateful_context_with_lotus_core,
@@ -74,6 +77,30 @@ def test_query_base_url_prefers_explicit_query_env(monkeypatch):
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", "http://query.example.internal:9999/")
 
     assert _resolve_query_base_url() == "http://query.example.internal:9999"
+
+
+def test_stateful_context_env_parsing_falls_back_for_invalid_values(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_CORE_TIMEOUT_SECONDS", "invalid")
+    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", "invalid")
+    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE", "invalid")
+
+    timeout = _resolve_timeout()
+
+    assert timeout.connect == 10.0
+    assert _stateful_context_cache_ttl_seconds() == 15.0
+    assert _stateful_context_cache_max_size() == 128
+
+
+def test_stateful_context_env_parsing_rejects_non_positive_runtime_values(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_CORE_TIMEOUT_SECONDS", "0")
+    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", "-1")
+    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE", "0")
+
+    timeout = _resolve_timeout()
+
+    assert timeout.connect == 10.0
+    assert _stateful_context_cache_ttl_seconds() == 15.0
+    assert _stateful_context_cache_max_size() == 128
 
 
 def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(

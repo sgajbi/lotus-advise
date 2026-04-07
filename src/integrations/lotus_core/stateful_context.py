@@ -50,32 +50,54 @@ class LotusCoreStatefulContextUnavailableError(LotusCoreContextResolutionError):
     pass
 
 
+def _env_float(name: str, *, default: float, minimum: float) -> float:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    try:
+        parsed = float(raw_value)
+    except (TypeError, ValueError):
+        return default
+    if parsed < minimum:
+        return default
+    return parsed
+
+
+def _env_int(name: str, *, default: int, minimum: int) -> int:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    try:
+        parsed = int(raw_value)
+    except (TypeError, ValueError):
+        return default
+    if parsed < minimum:
+        return default
+    return parsed
+
+
 def _resolve_timeout() -> httpx.Timeout:
-    timeout_seconds = float(os.getenv("LOTUS_CORE_TIMEOUT_SECONDS", "10"))
+    timeout_seconds = _env_float(
+        "LOTUS_CORE_TIMEOUT_SECONDS",
+        default=10.0,
+        minimum=0.001,
+    )
     return httpx.Timeout(timeout_seconds)
 
 
 def _stateful_context_cache_ttl_seconds() -> float:
-    return max(
-        float(
-            os.getenv(
-                "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
-                str(_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS),
-            )
-        ),
-        0.0,
+    return _env_float(
+        "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
+        default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
+        minimum=0.0,
     )
 
 
 def _stateful_context_cache_max_size() -> int:
-    return max(
-        int(
-            os.getenv(
-                "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE",
-                str(_DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE),
-            )
-        ),
-        1,
+    return _env_int(
+        "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE",
+        default=_DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE,
+        minimum=1,
     )
 
 
