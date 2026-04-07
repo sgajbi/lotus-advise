@@ -73,6 +73,8 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert features["advisory.proposals.simulation"]["operational_ready"] is True
     assert features["advisory.proposals.simulation"]["owner_service"] == "LOTUS_CORE"
     assert features["advisory.proposals.simulation"]["fallback_mode"] == "NONE"
+    assert features["advisory.proposals.risk_lens"]["operational_ready"] is True
+    assert features["advisory.proposals.risk_lens"]["owner_service"] == "LOTUS_RISK"
     assert features["advisory.workspaces.stateful"]["operational_ready"] is True
     assert features["advisory.workspaces.stateful"]["fallback_mode"] == "NONE"
     assert features["advisory.workspaces.ai_rationale"]["operational_ready"] is False
@@ -89,10 +91,35 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
 
     workflows = {item["workflow_key"]: item for item in payload["workflows"]}
     assert workflows["advisory_proposal_simulation"]["operational_ready"] is True
+    assert workflows["advisory_proposal_risk_lens"]["operational_ready"] is True
     assert workflows["advisory_workspace_stateful"]["operational_ready"] is True
     assert workflows["advisory_workspace_ai_rationale"]["operational_ready"] is False
     assert workflows["advisory_proposal_reporting"]["operational_ready"] is False
     assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True
+
+
+def test_integration_capabilities_mark_risk_lens_degraded_when_risk_missing(monkeypatch):
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.delenv("LOTUS_RISK_BASE_URL", raising=False)
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    features = {item["key"]: item for item in payload["features"]}
+    workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+
+    assert features["advisory.proposals.risk_lens"]["operational_ready"] is False
+    assert (
+        features["advisory.proposals.risk_lens"]["degraded_reason"]
+        == "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+    )
+    assert workflows["advisory_proposal_risk_lens"]["operational_ready"] is False
+    assert (
+        workflows["advisory_proposal_risk_lens"]["degraded_reason"]
+        == "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+    )
 
 
 def test_integration_capabilities_mark_simulation_degraded_when_core_missing(monkeypatch):

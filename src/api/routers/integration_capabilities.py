@@ -302,6 +302,7 @@ async def get_integration_capabilities(
     dependency_rows = cast(list[dict[str, object]], readiness["dependencies"])
     dependencies = {item["dependency_key"]: item for item in dependency_rows}
     lotus_core_ready = bool(dependencies["lotus_core"]["operational_ready"])
+    lotus_risk_ready = bool(dependencies["lotus_risk"]["operational_ready"])
     lotus_ai_ready = bool(dependencies["lotus_ai"]["operational_ready"])
     lotus_report_ready = bool(dependencies["lotus_report"]["operational_ready"])
 
@@ -370,6 +371,15 @@ async def get_integration_capabilities(
                 ),
             ),
             FeatureCapability(
+                key="advisory.proposals.risk_lens",
+                enabled=True,
+                operational_ready=lotus_risk_ready,
+                owner_service="LOTUS_RISK",
+                description="Proposal before/after concentration risk lens through lotus-risk.",
+                fallback_mode="LOCAL_RISK_FALLBACK",
+                degraded_reason=(None if lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"),
+            ),
+            FeatureCapability(
                 key="advisory.proposals.reporting",
                 enabled=lifecycle_enabled,
                 operational_ready=lifecycle_enabled and lotus_report_ready,
@@ -428,6 +438,14 @@ async def get_integration_capabilities(
                     if not ai_rationale_enabled or lotus_ai_ready
                     else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
                 ),
+            ),
+            WorkflowCapability(
+                workflow_key="advisory_proposal_risk_lens",
+                enabled=True,
+                operational_ready=lotus_risk_ready,
+                required_features=["advisory.proposals.risk_lens"],
+                dependency_keys=["lotus_risk"],
+                degraded_reason=(None if lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"),
             ),
             WorkflowCapability(
                 workflow_key="advisory_proposal_reporting",

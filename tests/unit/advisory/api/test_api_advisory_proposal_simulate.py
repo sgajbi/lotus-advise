@@ -1,3 +1,6 @@
+from typing import Any
+
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -89,6 +92,66 @@ def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict:
         prices=[{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
         shelf_entries=[{"instrument_id": "EQ_1", "status": "APPROVED"}],
     )
+
+
+class _FakeRiskResponse:
+    def __init__(self, *, status_code: int, payload: dict[str, Any]) -> None:
+        self.status_code = status_code
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            request = httpx.Request("POST", "http://lotus-risk/analytics/risk/concentration")
+            response = httpx.Response(self.status_code, json=self._payload, request=request)
+            raise httpx.HTTPStatusError("upstream risk error", request=request, response=response)
+
+    def json(self) -> dict[str, Any]:
+        return self._payload
+
+
+class _FakeRiskClient:
+    def __init__(self, response: _FakeRiskResponse) -> None:
+        self.response = response
+        self.calls: list[dict[str, Any]] = []
+
+    def __enter__(self) -> "_FakeRiskClient":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        return None
+
+    def post(self, url: str, *, json: dict[str, Any], headers: dict[str, str]) -> _FakeRiskResponse:
+        return self.response
+
+
+def _risk_response_payload() -> dict[str, Any]:
+    return {
+        "source_service": "lotus-risk",
+        "input_mode": "simulation",
+        "risk_proxy": {"hhi_current": 5200.0, "hhi_proposed": 6800.0, "hhi_delta": 1600.0},
+        "single_position_concentration": {
+            "top_position_weight_current": 0.5,
+            "top_position_weight_proposed": 0.6,
+            "top_position_weight_delta": 0.1,
+            "top_n_cumulative_weight_current": 0.8,
+            "top_n_cumulative_weight_proposed": 0.9,
+            "top_n_cumulative_weight_delta": 0.1,
+            "top_n": 10,
+        },
+        "issuer_concentration": {
+            "hhi_current": 5200.0,
+            "hhi_proposed": 5800.0,
+            "hhi_delta": 600.0,
+            "top_issuer_weight_current": 0.5,
+            "top_issuer_weight_proposed": 0.6,
+            "top_issuer_weight_delta": 0.1,
+            "coverage_status": "complete",
+            "covered_position_count_current": 1,
+            "covered_position_count_proposed": 1,
+            "total_position_count_current": 1,
+            "total_position_count_proposed": 1,
+        },
+    }
 
 
 def test_advisory_proposal_simulate_endpoint_success(client):
@@ -364,6 +427,42 @@ def test_advisory_proposal_simulate_uses_upstream_authorities_when_available(cli
     assert authority["simulation_authority"] == "lotus_core"
     assert authority["risk_authority"] == "lotus_risk"
     assert authority["degraded"] is False
+
+
+def test_advisory_proposal_simulate_sets_risk_authority_only_after_valid_risk_response(
+    client, monkeypatch
+):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_risk_client", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+    fake_client = _FakeRiskClient(
+        _FakeRiskResponse(status_code=200, payload=_risk_response_payload())
+    )
+
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-risk-client"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    authority = body["explanation"]["authority_resolution"]
+    assert authority["simulation_authority"] == "lotus_core"
+    assert authority["risk_authority"] == "lotus_risk"
+    assert body["explanation"]["risk_lens"]["source_service"] == "lotus-risk"
+    assert body["explanation"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
 
 
 def test_advisory_proposal_simulate_reports_local_fallback_when_explicitly_enabled(
@@ -681,6 +780,10 @@ def test_stateful_simulate_and_artifact_share_warm_lotus_core_context(client, mo
     monkeypatch.setattr(
         "src.integrations.lotus_core.stateful_context.httpx.Client",
         lambda timeout: query_client,
+    )
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        lambda **kwargs: kwargs["proposal_result"],
     )
     payload = {
         "input_mode": "stateful",
