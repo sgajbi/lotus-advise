@@ -43,4 +43,11 @@ def request_proposal_report(
     response = request_proposal_report_with_lotus_report(request=request)
     if response.report_request_id != request_id:
         response.report_request_id = request_id
+    service.record_report_request(
+        proposal_id=proposal_id,
+        report_response=response,
+        requested_by=payload.requested_by,
+        related_version_no=related_version_no,
+        include_execution_summary=payload.include_execution_summary,
+    )
     return response

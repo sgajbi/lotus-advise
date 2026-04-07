@@ -324,6 +324,31 @@ def test_create_proposal_rejects_stateful_request_when_context_resolution_is_una
     assert response.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
 
 
+def test_create_proposal_stateful_request_does_not_use_local_fallback_for_context_resolution(
+    monkeypatch,
+):
+    payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_missing",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {"title": "Unavailable stateful proposal"},
+    }
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-create-stateful-fallback-requested"},
+        )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+
+
 def test_get_proposal_repository_maps_runtime_and_value_errors(monkeypatch):
     reset_proposal_workflow_service_for_tests()
 
@@ -945,6 +970,30 @@ def test_stateful_version_recovers_after_initial_lotus_core_resolution_failure(m
     assert client.request_count == 6
 
 
+def test_stateful_version_does_not_use_local_fallback_for_context_resolution(monkeypatch):
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
+
+    with TestClient(app) as test_client:
+        created = _create(test_client, "lifecycle-create-stateful-version-fallback-base")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        failed = test_client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_lifecycle_missing",
+                    "as_of": "2026-03-25",
+                },
+            },
+        )
+
+    assert failed.status_code == 422
+    assert failed.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+
+
 def test_transition_requires_expected_state_and_rejects_invalid_transition():
     with TestClient(app) as client:
         created = _create(client, "lifecycle-create-5")
@@ -1547,6 +1596,175 @@ def test_report_request_uses_requested_immutable_version(monkeypatch):
     assert report_response.status_code == 200
     assert seen["related_version_no"] == 1
     assert seen["proposal_version"]["version_no"] == 1
+
+
+def test_report_request_persists_workflow_event_and_replay_delivery_evidence(monkeypatch):
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T09:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_delivery_001",
+            "artifact_url": "https://lotus-report.local/artifacts/lotus_report_artifact_delivery_001",
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-report-replay-delivery")
+        proposal_id = created["proposal"]["proposal_id"]
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(
+            client,
+            proposal_id,
+            external_request_id="oms_req_report_delivery_001",
+        )
+        executed = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_report_delivery",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_report_delivery_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "EXECUTED",
+                "related_version_no": 1,
+                "external_execution_id": "oms_fill_report_delivery_001",
+                "occurred_at": _future_execution_timestamp(seconds=2),
+            },
+        )
+        assert executed.status_code == 200
+
+        report_response = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                "requested_by": "advisor_1",
+                "related_version_no": 1,
+                "include_execution_summary": True,
+            },
+        )
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+        replay = client.get(f"/advisory/proposals/{proposal_id}/versions/1/replay-evidence")
+
+    assert report_response.status_code == 200
+    assert timeline.status_code == 200
+    assert replay.status_code == 200
+    timeline_body = timeline.json()
+    replay_body = replay.json()
+    report_events = [
+        event for event in timeline_body["events"] if event["event_type"] == "REPORT_REQUESTED"
+    ]
+    assert len(report_events) == 1
+    report_event = report_events[0]
+    assert report_event["reason"]["report_type"] == "CLIENT_PROPOSAL_SUMMARY"
+    assert report_event["reason"]["report_service"] == "lotus-report"
+    assert report_event["reason"]["status"] == "READY"
+    assert report_event["reason"]["include_execution_summary"] is True
+    assert report_event["related_version_no"] == 1
+    assert replay_body["evidence"]["delivery"]["execution"]["handoff_status"] == "EXECUTED"
+    assert (
+        replay_body["evidence"]["delivery"]["execution"]["execution_request_id"]
+        == "oms_req_report_delivery_001"
+    )
+    assert replay_body["evidence"]["delivery"]["reporting"]["report_type"] == (
+        "CLIENT_PROPOSAL_SUMMARY"
+    )
+    assert replay_body["evidence"]["delivery"]["reporting"]["report_request_id"].startswith("prr_")
+    assert replay_body["evidence"]["delivery"]["reporting"]["report_service"] == "lotus-report"
+    assert replay_body["evidence"]["delivery"]["reporting"]["requested_by"] == "advisor_1"
+
+
+def test_async_replay_evidence_includes_persisted_delivery_summary(monkeypatch):
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T10:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_async_delivery_001",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=_base_create_payload("pf_async_delivery_replay_001"),
+            headers={
+                "Idempotency-Key": "lifecycle-async-delivery-replay",
+                "X-Correlation-Id": "corr-lifecycle-async-delivery-replay",
+            },
+        )
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+        assert operation.status_code == 200
+        operation_body = operation.json()
+        proposal_id = operation_body["result"]["proposal"]["proposal_id"]
+
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(
+            client,
+            proposal_id,
+            external_request_id="oms_req_async_delivery_001",
+        )
+        executed = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_async_delivery",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_async_delivery_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "EXECUTED",
+                "related_version_no": 1,
+                "external_execution_id": "oms_fill_async_delivery_001",
+                "occurred_at": _future_execution_timestamp(seconds=2),
+            },
+        )
+        assert executed.status_code == 200
+        report_response = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "PORTFOLIO_REVIEW",
+                "requested_by": "advisor_2",
+                "related_version_no": 1,
+                "include_execution_summary": False,
+            },
+        )
+        assert report_response.status_code == 200
+
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+
+    assert async_replay.status_code == 200
+    async_body = async_replay.json()
+    assert async_body["evidence"]["delivery"]["execution"]["handoff_status"] == "EXECUTED"
+    assert async_body["evidence"]["delivery"]["reporting"]["report_type"] == "PORTFOLIO_REVIEW"
+    assert async_body["evidence"]["delivery"]["reporting"]["requested_by"] == "advisor_2"
 
 
 def test_report_request_returns_503_when_lotus_report_is_unavailable(monkeypatch):

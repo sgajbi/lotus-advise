@@ -38,6 +38,7 @@ from src.core.proposals.models import (
     ProposalLineageResponse,
     ProposalListResponse,
     ProposalRecord,
+    ProposalReportResponse,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
     ProposalSummary,
@@ -687,6 +688,7 @@ class ProposalWorkflowService:
 
         proposal = None
         version = None
+        events: list[ProposalWorkflowEventRecord] | None = None
         if operation.proposal_id is not None:
             proposal = self._repository.get_proposal(proposal_id=operation.proposal_id)
             if proposal is not None and operation.status == "SUCCEEDED":
@@ -706,10 +708,13 @@ class ProposalWorkflowService:
                     version = self._repository.get_current_version(
                         proposal_id=operation.proposal_id
                     )
+            if proposal is not None:
+                events = self._repository.list_events(proposal_id=operation.proposal_id)
         return build_async_operation_replay_response(
             operation=operation,
             proposal=proposal,
             version=version,
+            events=events,
         )
 
     def get_async_operation_by_correlation(
@@ -1290,7 +1295,50 @@ class ProposalWorkflowService:
         version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
         if version is None:
             raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-        return build_proposal_version_replay_response(proposal=proposal, version=version)
+        events = self._repository.list_events(proposal_id=proposal_id)
+        return build_proposal_version_replay_response(
+            proposal=proposal,
+            version=version,
+            events=events,
+        )
+
+    def record_report_request(
+        self,
+        *,
+        proposal_id: str,
+        report_response: ProposalReportResponse,
+        requested_by: str,
+        related_version_no: int,
+        include_execution_summary: bool,
+    ) -> ProposalWorkflowEventRecord:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+
+        occurred_at = datetime.fromisoformat(report_response.generated_at)
+        event = ProposalWorkflowEventRecord(
+            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            proposal_id=proposal_id,
+            event_type="REPORT_REQUESTED",
+            from_state=proposal.current_state,
+            to_state=proposal.current_state,
+            actor_id=requested_by,
+            occurred_at=occurred_at,
+            reason_json={
+                "report_request_id": report_response.report_request_id,
+                "report_type": report_response.report_type,
+                "report_service": report_response.report_service,
+                "status": report_response.status,
+                "report_reference_id": report_response.report_reference_id,
+                "artifact_url": report_response.artifact_url,
+                "related_version_no": related_version_no,
+                "include_execution_summary": include_execution_summary,
+            },
+            related_version_no=related_version_no,
+        )
+        proposal.last_event_at = max(proposal.last_event_at, occurred_at)
+        self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        return event
 
     def _resolve_create_async_payload(
         self,

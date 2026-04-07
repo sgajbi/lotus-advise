@@ -310,3 +310,41 @@
 - Follow-Up:
   - If `lotus-report` becomes live locally, keep the validator on the same contract and tighten the
     degraded report assertion to a required `READY` path for environments where reporting is expected.
+
+## LA-REV-014
+
+- Scope: Lotus Core fallback policy and persisted delivery evidence
+- Pattern: boundary hardening / auditability gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The controlled local simulation fallback is intentionally a simulation-only escape hatch,
+  but that boundary was not proven across lifecycle and workspace stateful flows, and proposal
+  replay evidence still stopped at simulation lineage instead of including persisted delivery
+  activity such as report requests and execution posture.
+- Evidence:
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves stateful create
+    and stateful version requests still fail with
+    `PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE` even when
+    `LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK=true`, which makes the policy boundary explicit:
+    fallback does not bypass authoritative Lotus Core context resolution.
+  - `tests/unit/advisory/api/test_api_workspace.py` now proves the same for stateful workspace
+    evaluation: local fallback cannot substitute for missing authoritative context.
+  - `src/api/services/proposal_reporting_service.py` and
+    `src/core/proposals/service.py` now persist successful report requests as append-only
+    `REPORT_REQUESTED` workflow events instead of leaving reporting as an ephemeral response-only
+    seam.
+  - `src/core/replay/service.py` now includes normalized `delivery` evidence in proposal-version
+    and async replay responses, covering latest execution and reporting posture from persisted
+    workflow events.
+  - Lifecycle tests now prove:
+    - report requests appear in the workflow timeline,
+    - proposal replay evidence includes persisted execution/reporting delivery summary,
+    - async replay evidence exposes the same persisted delivery summary once the async-created
+      proposal continues through execution and reporting.
+- Consequence:
+  - The platform boundary is clearer: local fallback never fakes authoritative stateful context,
+    and persisted proposal replay now reflects delivery truth instead of stopping at simulation
+    truth.
+- Follow-Up:
+  - If report ownership later needs a first-class query surface, build it from the persisted
+    workflow events rather than adding a second reporting history store.
