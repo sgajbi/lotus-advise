@@ -385,3 +385,40 @@
 - Follow-Up:
   - If proposal operations later need richer delivery analytics, extend the event projector rather
     than adding parallel execution/reporting history assemblers.
+
+## LA-REV-016
+
+- Scope: Live degraded-runtime validation and dependency readiness truthfulness
+- Pattern: operational contract hardening / reliability gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The proposal runtime degraded correctly when `lotus-risk` or `lotus-core` became
+  unavailable, but the capability contract still treated configured dependencies as operationally
+  ready. That made `/platform/capabilities` optimistic under real outages and left degraded runtime
+  drills undocumented and non-repeatable.
+- Evidence:
+  - `src/integrations/base.py` now supports production-only dependency health probing instead of
+    equating `configured=true` with `operational_ready=true`.
+  - `tests/unit/advisory/api/test_integration_dependency_base.py` proves:
+    - non-production keeps the old no-probe posture,
+    - production marks dependencies unready when health probing fails,
+    - production marks them ready when health probing succeeds.
+  - `tests/unit/advisory/api/test_api_integration_capabilities.py` now proves capability/workflow
+    readiness degrades correctly when:
+    - `lotus-risk` health probing fails, and
+    - `lotus-core` health probing fails in production.
+  - `scripts/validate_degraded_runtime_live.py` now provides a self-restoring live drill that:
+    - stops `lotus-risk`, verifies proposal simulation degrades to `risk_authority=unavailable`,
+      and checks `advisory.proposals.risk_lens` readiness,
+    - stops `lotus-core` query/control services, verifies stateless simulation fails without local
+      fallback, and checks `advisory.proposals.simulation` readiness.
+  - `tests/e2e/live/test_degraded_runtime_live.py` wraps that live drill behind an explicit
+    opt-in environment flag.
+- Consequence:
+  - The operational capability contract now matches real degraded runtime behavior, and the most
+    important upstream outage paths are covered by a reusable live validator instead of ad hoc
+    manual testing.
+- Follow-Up:
+  - If dependency probing later becomes too expensive for additional upstreams, keep the shared
+    production-only seam but add per-dependency caching rather than reverting to config-only
+    readiness.
