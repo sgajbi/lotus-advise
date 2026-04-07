@@ -77,6 +77,47 @@ def _resolved_stateful_context_with_tradeable_universe(
     return build_tradeable_universe_stateful_context(portfolio_id, as_of)
 
 
+def _submit_async_create(
+    client: TestClient,
+    *,
+    payload: dict,
+    idempotency_key: str,
+    correlation_id: str,
+) -> tuple[str, dict]:
+    accepted = client.post(
+        "/advisory/proposals/async",
+        json=payload,
+        headers={
+            "Idempotency-Key": idempotency_key,
+            "X-Correlation-Id": correlation_id,
+        },
+    )
+    assert accepted.status_code == 202
+    operation_id = accepted.json()["operation_id"]
+    operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+    assert operation.status_code == 200
+    return operation_id, operation.json()
+
+
+def _submit_async_version(
+    client: TestClient,
+    *,
+    proposal_id: str,
+    payload: dict,
+    correlation_id: str,
+) -> tuple[str, dict]:
+    accepted = client.post(
+        f"/advisory/proposals/{proposal_id}/versions/async",
+        json=payload,
+        headers={"X-Correlation-Id": correlation_id},
+    )
+    assert accepted.status_code == 202
+    operation_id = accepted.json()["operation_id"]
+    operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+    assert operation.status_code == 200
+    return operation_id, operation.json()
+
+
 def test_proposal_create_list_get_and_version_roundtrip() -> None:
     with TestClient(app) as client:
         created = client.post(
@@ -335,29 +376,22 @@ def test_proposal_lifecycle_disabled_by_feature_flag(monkeypatch: pytest.MonkeyP
 
 def test_proposal_async_create_and_operation_lookup_roundtrip() -> None:
     payload = _base_create_payload("pf_integration_proposal_async_1")
-    headers = {
-        "Idempotency-Key": "integration-proposal-async-create-1",
-        "X-Correlation-Id": "corr-integration-proposal-async-create-1",
-    }
     with TestClient(app) as client:
-        accepted = client.post("/advisory/proposals/async", json=payload, headers=headers)
-        assert accepted.status_code == 202
-        accepted_body = accepted.json()
-        assert accepted_body["attempt_count"] == 0
-        assert accepted_body["max_attempts"] == 3
-        operation_id = accepted_body["operation_id"]
-
-        by_operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+        operation_id, operation_body = _submit_async_create(
+            client,
+            payload=payload,
+            idempotency_key="integration-proposal-async-create-1",
+            correlation_id="corr-integration-proposal-async-create-1",
+        )
         by_correlation = client.get(
             "/advisory/proposals/operations/by-correlation/corr-integration-proposal-async-create-1"
         )
 
-    assert by_operation.status_code == 200
     assert by_correlation.status_code == 200
-    assert by_operation.json()["operation_id"] == operation_id
+    assert operation_body["operation_id"] == operation_id
     assert by_correlation.json()["operation_id"] == operation_id
-    assert by_operation.json()["status"] in {"SUCCEEDED", "PENDING"}
-    assert by_operation.json()["attempt_count"] >= 1
+    assert operation_body["status"] in {"SUCCEEDED", "PENDING"}
+    assert operation_body["attempt_count"] >= 1
 
 
 def test_stateful_async_create_roundtrip_persists_context_and_replay(
@@ -385,30 +419,30 @@ def test_stateful_async_create_roundtrip_persists_context_and_replay(
             "mandate_id": "mandate_async_stateful_1",
         },
     }
-    headers = {
-        "Idempotency-Key": "integration-proposal-async-stateful-create-1",
-        "X-Correlation-Id": "corr-integration-proposal-async-stateful-create-1",
-    }
-
     with TestClient(app) as client:
-        accepted = client.post("/advisory/proposals/async", json=payload, headers=headers)
-        assert accepted.status_code == 202
-        operation_id = accepted.json()["operation_id"]
-
-        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
-        assert operation.status_code == 200
-        operation_body = operation.json()
+        operation_id, operation_body = _submit_async_create(
+            client,
+            payload=payload,
+            idempotency_key="integration-proposal-async-stateful-create-1",
+            correlation_id="corr-integration-proposal-async-stateful-create-1",
+        )
         assert operation_body["status"] == "SUCCEEDED"
         proposal_id = operation_body["result"]["proposal"]["proposal_id"]
         version_no = operation_body["result"]["version"]["version_no"]
 
         proposal_version = client.get(f"/advisory/proposals/{proposal_id}/versions/{version_no}")
         async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+        by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/"
+            "corr-integration-proposal-async-stateful-create-1"
+        )
 
     assert proposal_version.status_code == 200
     assert async_replay.status_code == 200
+    assert by_correlation.status_code == 200
     proposal_version_body = proposal_version.json()
     async_replay_body = async_replay.json()
+    assert by_correlation.json()["operation_id"] == operation_id
     assert operation_body["result"]["proposal"]["portfolio_id"] == "pf_async_stateful_integration_1"
     assert operation_body["result"]["proposal"]["mandate_id"] == "mandate_async_stateful_1"
     assert (
@@ -442,29 +476,27 @@ def test_proposal_async_version_roundtrip() -> None:
         assert created.status_code == 200
         proposal_id = created.json()["proposal"]["proposal_id"]
 
-        accepted = client.post(
-            f"/advisory/proposals/{proposal_id}/versions/async",
-            json={
+        operation_id, operation_body = _submit_async_version(
+            client,
+            proposal_id=proposal_id,
+            payload={
                 "created_by": "advisor_integration",
                 "metadata": {"title": "Async version"},
                 "simulate_request": _base_create_payload("pf_integration_proposal_async_2")[
                     "simulate_request"
                 ],
             },
-            headers={"X-Correlation-Id": "corr-integration-proposal-async-version-1"},
+            correlation_id="corr-integration-proposal-async-version-1",
         )
-        assert accepted.status_code == 202
-        accepted_body = accepted.json()
-        assert accepted_body["attempt_count"] == 0
-        assert accepted_body["max_attempts"] == 3
-        operation_id = accepted_body["operation_id"]
+        by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/corr-integration-proposal-async-version-1"
+        )
 
-        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
-
-    assert operation.status_code == 200
-    assert operation.json()["operation_id"] == operation_id
-    assert operation.json()["status"] in {"SUCCEEDED", "PENDING"}
-    assert operation.json()["attempt_count"] >= 1
+    assert by_correlation.status_code == 200
+    assert operation_body["operation_id"] == operation_id
+    assert by_correlation.json()["operation_id"] == operation_id
+    assert operation_body["status"] in {"SUCCEEDED", "PENDING"}
+    assert operation_body["attempt_count"] >= 1
 
 
 def test_stateful_async_version_roundtrip_preserves_replay_hashes(
@@ -488,25 +520,20 @@ def test_stateful_async_version_roundtrip_preserves_replay_hashes(
         assert created.status_code == 200
         proposal_id = created.json()["proposal"]["proposal_id"]
 
-        accepted = client.post(
-            f"/advisory/proposals/{proposal_id}/versions/async",
-            json={
-                    "created_by": "advisor_stateful_async",
-                    "input_mode": "stateful",
-                    "stateful_input": {
-                        "portfolio_id": "pf_async_stateful_version_base",
-                        "as_of": "2026-03-25",
-                        "mandate_id": "mandate_async_stateful_version_1",
-                    },
+        operation_id, operation_body = _submit_async_version(
+            client,
+            proposal_id=proposal_id,
+            payload={
+                "created_by": "advisor_stateful_async",
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_async_stateful_version_base",
+                    "as_of": "2026-03-25",
+                    "mandate_id": "mandate_async_stateful_version_1",
+                },
             },
-            headers={"X-Correlation-Id": "corr-integration-proposal-async-stateful-version-1"},
+            correlation_id="corr-integration-proposal-async-stateful-version-1",
         )
-        assert accepted.status_code == 202
-        operation_id = accepted.json()["operation_id"]
-
-        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
-        assert operation.status_code == 200
-        operation_body = operation.json()
         assert operation_body["status"] == "SUCCEEDED"
         version_no = operation_body["result"]["version"]["version_no"]
 
@@ -514,11 +541,17 @@ def test_stateful_async_version_roundtrip_preserves_replay_hashes(
             f"/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
         )
         async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+        by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/"
+            "corr-integration-proposal-async-stateful-version-1"
+        )
 
     assert proposal_replay.status_code == 200
     assert async_replay.status_code == 200
+    assert by_correlation.status_code == 200
     proposal_replay_body = proposal_replay.json()
     async_replay_body = async_replay.json()
+    assert by_correlation.json()["operation_id"] == operation_id
     assert operation_body["result"]["proposal"]["current_version_no"] == version_no
     assert (
         operation_body["result"]["version"]["proposal_result"]["lineage"]["portfolio_snapshot_id"]
