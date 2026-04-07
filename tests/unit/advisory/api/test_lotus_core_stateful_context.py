@@ -17,6 +17,7 @@ from src.integrations.lotus_core.stateful_context import (
     reset_stateful_context_cache_for_tests,
     resolve_stateful_context_with_lotus_core,
 )
+from tests.shared.stateful_context_assertions import assert_core_context_fetch_counts
 
 
 class _FakeResponse:
@@ -346,9 +347,7 @@ def test_resolve_stateful_context_with_lotus_core_reuses_cached_context(
     assert stats["resolved_context"].writes == 1
     assert stats["resolved_context"].size == 1
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 1
-    assert fetch_stats.positions_fetches == 1
-    assert fetch_stats.cash_fetches == 1
+    assert_core_context_fetch_counts(fetch_stats, portfolio=1, positions=1, cash=1)
 
 
 def test_resolve_stateful_context_with_lotus_core_returns_copy_safe_cached_results(
@@ -442,9 +441,7 @@ def test_resolve_stateful_context_with_lotus_core_refetches_when_cache_ttl_is_ze
 
     assert request_counter["count"] == 6
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 2
-    assert fetch_stats.positions_fetches == 2
-    assert fetch_stats.cash_fetches == 2
+    assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
 
 def test_resolve_stateful_context_with_lotus_core_isolates_distinct_as_of_inputs(
@@ -503,9 +500,7 @@ def test_resolve_stateful_context_with_lotus_core_isolates_distinct_as_of_inputs
     )
     assert request_counter["count"] == 6
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 2
-    assert fetch_stats.positions_fetches == 2
-    assert fetch_stats.cash_fetches == 2
+    assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
 
 def test_resolve_stateful_context_with_lotus_core_isolates_optional_identity_dimensions(
@@ -571,9 +566,7 @@ def test_resolve_stateful_context_with_lotus_core_isolates_optional_identity_dim
     assert stats["resolved_context"].hits == 0
     assert stats["resolved_context"].writes == 2
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 2
-    assert fetch_stats.positions_fetches == 2
-    assert fetch_stats.cash_fetches == 2
+    assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
 
 def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
@@ -745,9 +738,7 @@ def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resoluti
     assert stats["resolved_context"].expirations == 0
     assert stats["resolved_context"].writes == 1
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 2
-    assert fetch_stats.positions_fetches == 2
-    assert fetch_stats.cash_fetches == 2
+    assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
 
 def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_inputs(

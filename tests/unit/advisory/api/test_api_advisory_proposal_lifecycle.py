@@ -16,6 +16,7 @@ from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
     build_basic_stateful_query_responses,
 )
+from tests.shared.stateful_context_assertions import assert_core_context_fetch_counts
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
@@ -256,9 +257,7 @@ def test_stateful_simulate_and_create_share_warm_lotus_core_context(monkeypatch)
     assert created.status_code == 200
     assert query_client.request_count == 3
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 1
-    assert fetch_stats.positions_fetches == 1
-    assert fetch_stats.cash_fetches == 1
+    assert_core_context_fetch_counts(fetch_stats, portfolio=1, positions=1, cash=1)
 
 
 def test_create_proposal_rejects_stateful_request_when_context_resolution_is_unavailable():
@@ -526,9 +525,7 @@ def test_stateful_create_and_version_share_warm_lotus_core_context(monkeypatch):
     assert versioned.status_code == 200
     assert query_client.request_count == 3
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 1
-    assert fetch_stats.positions_fetches == 1
-    assert fetch_stats.cash_fetches == 1
+    assert_core_context_fetch_counts(fetch_stats, portfolio=1, positions=1, cash=1)
 
 
 def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
@@ -613,9 +610,7 @@ def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
     )
     assert query_client.request_count == 6
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 2
-    assert fetch_stats.positions_fetches == 2
-    assert fetch_stats.cash_fetches == 2
+    assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
 
 def test_stateful_create_refetches_when_optional_context_identity_changes(monkeypatch):
@@ -674,9 +669,7 @@ def test_stateful_create_refetches_when_optional_context_identity_changes(monkey
     assert second.json()["proposal"]["mandate_id"] == "mandate_income_01"
     assert query_client.request_count == 6
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 2
-    assert fetch_stats.positions_fetches == 2
-    assert fetch_stats.cash_fetches == 2
+    assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
 
 def test_async_create_proposal_supports_stateful_context_resolution(monkeypatch):

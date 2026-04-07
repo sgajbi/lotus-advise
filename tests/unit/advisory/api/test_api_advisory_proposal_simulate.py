@@ -13,6 +13,7 @@ from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
     build_basic_stateful_query_responses,
 )
+from tests.shared.stateful_context_assertions import assert_core_context_fetch_counts
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
@@ -704,9 +705,7 @@ def test_stateful_simulate_and_artifact_share_warm_lotus_core_context(client, mo
     assert artifact.json()["summary"]["title"] == "Proposal for pf_stateful_artifact_cache"
     assert query_client.request_count == 3
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.portfolio_fetches == 1
-    assert fetch_stats.positions_fetches == 1
-    assert fetch_stats.cash_fetches == 1
+    assert_core_context_fetch_counts(fetch_stats, portfolio=1, positions=1, cash=1)
 
 
 def test_advisory_proposal_artifact_reuses_idempotent_simulation_response(client):
