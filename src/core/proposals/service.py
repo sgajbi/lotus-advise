@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from threading import RLock
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.orchestration import evaluate_advisory_proposal
@@ -17,6 +17,10 @@ from src.core.proposals.context import (
     resolve_create_request,
     resolve_version_request,
 )
+from src.core.proposals.delivery_summary import (
+    build_delivery_summary_from_events,
+    select_delivery_events,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
@@ -27,6 +31,10 @@ from src.core.proposals.models import (
     ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
+    ProposalDeliveryExecutionSummary,
+    ProposalDeliveryHistoryResponse,
+    ProposalDeliveryReportingSummary,
+    ProposalDeliverySummaryResponse,
     ProposalDetailResponse,
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
@@ -591,6 +599,49 @@ class ProposalWorkflowService:
             },
         )
 
+    def get_delivery_summary(self, *, proposal_id: str) -> ProposalDeliverySummaryResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        events = self._repository.list_events(proposal_id=proposal_id)
+        delivery = build_delivery_summary_from_events(events)
+        execution_payload = delivery.get("execution")
+        reporting_payload = delivery.get("reporting")
+        return ProposalDeliverySummaryResponse(
+            proposal=self._to_summary(proposal),
+            execution=(
+                ProposalDeliveryExecutionSummary.model_validate(execution_payload)
+                if isinstance(execution_payload, dict)
+                else None
+            ),
+            reporting=(
+                ProposalDeliveryReportingSummary.model_validate(reporting_payload)
+                if isinstance(reporting_payload, dict)
+                else None
+            ),
+            explanation={
+                "source": "ADVISORY_WORKFLOW_EVENTS",
+                "delivery_projection": "LATEST_EXECUTION_AND_REPORTING_POSTURE",
+            },
+        )
+
+    def get_delivery_history(self, *, proposal_id: str) -> ProposalDeliveryHistoryResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        events = select_delivery_events(self._repository.list_events(proposal_id=proposal_id))
+        history_events = [self._to_event(event) for event in events]
+        return ProposalDeliveryHistoryResponse(
+            proposal=self._to_summary(proposal),
+            event_count=len(history_events),
+            latest_event=history_events[-1] if history_events else None,
+            events=history_events,
+            explanation={
+                "source": "ADVISORY_WORKFLOW_EVENTS",
+                "filter": "DELIVERY_ONLY",
+            },
+        )
+
     def record_execution_update(
         self,
         *,
@@ -1087,7 +1138,7 @@ class ProposalWorkflowService:
                 raise ProposalIdempotencyConflictError(
                     "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
                 )
-            return event
+            return cast(ProposalWorkflowEventRecord, event)
         return None
 
     def _get_replayed_approval(
@@ -1104,7 +1155,7 @@ class ProposalWorkflowService:
                 raise ProposalIdempotencyConflictError(
                     "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
                 )
-            return approval
+            return cast(ProposalApprovalRecordData, approval)
         return None
 
     def _read_create_response(self, *, proposal_id: str, version_no: int) -> ProposalCreateResponse:

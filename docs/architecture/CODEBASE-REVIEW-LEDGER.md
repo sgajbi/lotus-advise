@@ -348,3 +348,40 @@
 - Follow-Up:
   - If report ownership later needs a first-class query surface, build it from the persisted
     workflow events rather than adding a second reporting history store.
+
+## LA-REV-015
+
+- Scope: Delivery read surfaces and fallback-policy executable validation
+- Pattern: modularity improvement / operational contract hardening
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: Delivery state was persisted correctly, but there was still no first-class read surface
+  for consumers that needed proposal execution/reporting posture without re-parsing full replay
+  payloads, and the Lotus Core fallback boundary was only proven inside unit tests rather than by a
+  reusable executable validator.
+- Evidence:
+  - `src/core/proposals/delivery_summary.py` now owns one reusable projector for normalized
+    delivery summaries and delivery-event selection from append-only workflow events.
+  - `src/core/replay/service.py` now reuses that projector instead of maintaining a second
+    delivery-summary implementation.
+  - `src/core/proposals/service.py` now exposes:
+    - `get_delivery_summary(proposal_id)`, and
+    - `get_delivery_history(proposal_id)`,
+    both derived from persisted workflow events.
+  - `src/api/proposals/routes_delivery.py` now exposes first-class endpoints for:
+    - `GET /advisory/proposals/{proposal_id}/delivery-summary`
+    - `GET /advisory/proposals/{proposal_id}/delivery-events`
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves those endpoints
+    return normalized persisted delivery state and return `404` for missing proposals.
+  - `scripts/validate_lotus_core_fallback_policy.py` now provides an executable runtime contract
+    check for the fallback boundary:
+    - stateless simulate may use controlled local fallback in non-production,
+    - stateful create and workspace evaluation still require authoritative Lotus Core context,
+    - production rejects local fallback even when requested.
+- Consequence:
+  - Delivery history is now queryable through a stable domain read surface, replay code is less
+    duplicated, and the fallback-policy boundary is validated as an executable operational contract
+    instead of relying only on scattered unit tests.
+- Follow-Up:
+  - If proposal operations later need richer delivery analytics, extend the event projector rather
+    than adding parallel execution/reporting history assemblers.

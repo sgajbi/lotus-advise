@@ -1686,6 +1686,99 @@ def test_report_request_persists_workflow_event_and_replay_delivery_evidence(mon
     assert replay_body["evidence"]["delivery"]["reporting"]["requested_by"] == "advisor_1"
 
 
+def test_delivery_summary_and_history_endpoints_return_persisted_delivery_projection(monkeypatch):
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T09:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_delivery_projection_001",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-delivery-summary")
+        proposal_id = created["proposal"]["proposal_id"]
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(
+            client,
+            proposal_id,
+            external_request_id="oms_req_delivery_summary_001",
+        )
+        executed = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_delivery_summary",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_delivery_summary_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "EXECUTED",
+                "related_version_no": 1,
+                "external_execution_id": "oms_fill_delivery_summary_001",
+                "occurred_at": _future_execution_timestamp(seconds=2),
+            },
+        )
+        assert executed.status_code == 200
+        report_response = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "PORTFOLIO_REVIEW",
+                "requested_by": "advisor_77",
+                "related_version_no": 1,
+                "include_execution_summary": False,
+            },
+        )
+        assert report_response.status_code == 200
+
+        delivery_summary = client.get(f"/advisory/proposals/{proposal_id}/delivery-summary")
+        delivery_history = client.get(f"/advisory/proposals/{proposal_id}/delivery-events")
+
+    assert delivery_summary.status_code == 200
+    assert delivery_history.status_code == 200
+    summary_body = delivery_summary.json()
+    history_body = delivery_history.json()
+    assert summary_body["proposal"]["proposal_id"] == proposal_id
+    assert summary_body["execution"]["handoff_status"] == "EXECUTED"
+    assert summary_body["execution"]["execution_provider"] == "lotus-manage"
+    assert summary_body["reporting"]["report_type"] == "PORTFOLIO_REVIEW"
+    assert summary_body["reporting"]["requested_by"] == "advisor_77"
+    assert summary_body["explanation"]["delivery_projection"] == (
+        "LATEST_EXECUTION_AND_REPORTING_POSTURE"
+    )
+    assert history_body["proposal"]["proposal_id"] == proposal_id
+    assert history_body["event_count"] == 3
+    assert history_body["events"][0]["event_type"] == "EXECUTION_REQUESTED"
+    assert history_body["events"][1]["event_type"] == "EXECUTED"
+    assert history_body["events"][2]["event_type"] == "REPORT_REQUESTED"
+    assert history_body["latest_event"]["event_type"] == "REPORT_REQUESTED"
+    assert history_body["explanation"]["filter"] == "DELIVERY_ONLY"
+
+
+def test_delivery_summary_and_history_return_404_for_missing_proposal():
+    with TestClient(app) as client:
+        summary = client.get("/advisory/proposals/pp_missing/delivery-summary")
+        history = client.get("/advisory/proposals/pp_missing/delivery-events")
+
+    assert summary.status_code == 404
+    assert summary.json()["detail"] == "PROPOSAL_NOT_FOUND"
+    assert history.status_code == 404
+    assert history.json()["detail"] == "PROPOSAL_NOT_FOUND"
+
+
 def test_async_replay_evidence_includes_persisted_delivery_summary(monkeypatch):
     def _request_proposal_report_with_lotus_report(*, request):
         return {
