@@ -337,6 +337,30 @@ def _resolve_liquidity_tier(
     return None
 
 
+def _prefer_upstream_liquidity_tier(
+    *,
+    raw_liquidity_tier: Any = None,
+    enrichment_liquidity_tier: Any = None,
+    asset_class: Any,
+    product_type: Any,
+    sector: Any,
+    rating: Any,
+) -> str | None:
+    upstream_liquidity_tier = _normalized_optional_str(
+        raw_liquidity_tier
+    ) or _normalized_optional_str(
+        enrichment_liquidity_tier
+    )
+    if upstream_liquidity_tier:
+        return upstream_liquidity_tier
+    return _resolve_liquidity_tier(
+        asset_class=asset_class,
+        product_type=product_type,
+        sector=sector,
+        rating=rating,
+    )
+
+
 def _require_decimal(value: Any, *, error_code: str) -> Decimal:
     parsed = _decimal_or_none(value)
     if parsed is None:
@@ -584,7 +608,9 @@ def _build_shelf_entries(
                 if raw_position.get("issuer_id") is not None
                 else enrichment_row.get("issuer_id")
             ),
-            liquidity_tier=_resolve_liquidity_tier(
+            liquidity_tier=_prefer_upstream_liquidity_tier(
+                raw_liquidity_tier=raw_position.get("liquidity_tier"),
+                enrichment_liquidity_tier=enrichment_row.get("liquidity_tier"),
                 asset_class=asset_class,
                 product_type=raw_position.get("product_type"),
                 sector=raw_position.get("sector"),
@@ -621,7 +647,13 @@ def _build_shelf_entries(
             status="APPROVED",
             asset_class="CASH",
             issuer_id=_normalized_optional_str(account.get("issuer_id")),
-            liquidity_tier="L1",
+            liquidity_tier=_prefer_upstream_liquidity_tier(
+                raw_liquidity_tier=account.get("liquidity_tier"),
+                asset_class="CASH",
+                product_type="Cash",
+                sector=None,
+                rating=None,
+            ),
             attributes=_shelf_attributes_from_payload(product_type="Cash"),
         )
 
@@ -731,7 +763,9 @@ def _append_shelf_entry_if_missing(
                 if instrument_row.get("issuer_id") is not None
                 else (enrichment_row or {}).get("issuer_id")
             ),
-            liquidity_tier=_resolve_liquidity_tier(
+            liquidity_tier=_prefer_upstream_liquidity_tier(
+                raw_liquidity_tier=instrument_row.get("liquidity_tier"),
+                enrichment_liquidity_tier=(enrichment_row or {}).get("liquidity_tier"),
                 asset_class=asset_class,
                 product_type=instrument_row.get("product_type"),
                 sector=instrument_row.get("sector"),

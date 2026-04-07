@@ -6,7 +6,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -77,7 +77,7 @@ def _request_json(
             f"got {response.status_code}, body={response.text}"
         ),
     )
-    payload = response.json()
+    payload = cast(dict[str, Any], response.json())
     _assert(isinstance(payload, dict), f"{method} {url}: expected JSON object payload")
     return payload
 
@@ -315,6 +315,39 @@ def _assert_allocation_parity(
     )
 
 
+def _assert_authority_posture(
+    *,
+    scenario: PortfolioParityScenario,
+    proposal_body: dict[str, Any],
+) -> None:
+    authority_resolution = proposal_body.get("explanation", {}).get("authority_resolution")
+    _assert(
+        isinstance(authority_resolution, dict),
+        f"{scenario.portfolio_id}: proposal response missing authority_resolution",
+    )
+    _assert(
+        authority_resolution.get("simulation_authority") == "lotus_core",
+        (
+            f"{scenario.portfolio_id}: expected lotus_core simulation authority, got "
+            f"{authority_resolution}"
+        ),
+    )
+    _assert(
+        authority_resolution.get("risk_authority") == "lotus_risk",
+        (
+            f"{scenario.portfolio_id}: expected lotus_risk risk authority, got "
+            f"{authority_resolution}"
+        ),
+    )
+    _assert(
+        authority_resolution.get("degraded") is False,
+        (
+            f"{scenario.portfolio_id}: proposal response unexpectedly degraded on live parity "
+            f"path: {authority_resolution}"
+        ),
+    )
+
+
 def _assert_risk_parity(
     *,
     scenario: PortfolioParityScenario,
@@ -426,6 +459,10 @@ def validate_live_cross_service_parity(
             _assert_allocation_parity(
                 scenario=scenario,
                 direct_allocation=direct_allocation,
+                proposal_body=proposal_body,
+            )
+            _assert_authority_posture(
+                scenario=scenario,
                 proposal_body=proposal_body,
             )
             _assert_risk_parity(

@@ -149,6 +149,7 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
                         "sector": "Information Technology",
                         "country_of_risk": "United States",
                         "product_type": "Equity",
+                        "liquidity_tier": "L2",
                         "issuer_id": "ISSUER_AAPL",
                         "ultimate_parent_issuer_id": "ISSUER_AAPL",
                         "ultimate_parent_issuer_name": "Apple Inc.",
@@ -272,7 +273,7 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
             "status": "APPROVED",
             "asset_class": "EQUITY",
             "issuer_id": "ISSUER_AAPL",
-            "liquidity_tier": "L1",
+            "liquidity_tier": "L2",
             "settlement_days": 2,
             "min_notional": None,
             "attributes": {
@@ -891,6 +892,7 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
                     {
                         "security_id": "EQ_NEW_CHF",
                         "issuer_id": "ISSUER_EQ_NEW_CHF",
+                        "liquidity_tier": "L4",
                         "ultimate_parent_issuer_id": "ULTIMATE_EQ_NEW_CHF",
                         "ultimate_parent_issuer_name": "Issuer Parent AG",
                     }
@@ -952,7 +954,7 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
     }
     assert enriched.shelf_entries[-1].model_dump(mode="json")["instrument_id"] == "EQ_NEW_CHF"
     assert enriched.shelf_entries[-1].model_dump(mode="json")["issuer_id"] == "ISSUER_EQ_NEW_CHF"
-    assert enriched.shelf_entries[-1].model_dump(mode="json")["liquidity_tier"] == "L1"
+    assert enriched.shelf_entries[-1].model_dump(mode="json")["liquidity_tier"] == "L4"
     assert enriched.shelf_entries[-1].model_dump(mode="json")["attributes"] == {
         "country": "Switzerland",
         "product_type": "Equity",
