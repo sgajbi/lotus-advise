@@ -247,6 +247,9 @@
     `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py`
     now prove the same async idempotency behavior at the repository/storage layer, including
     atomic create-or-get behavior and idempotency lookup.
+  - `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` now tracks internal
+    async create submission outcomes directly, proving that new accepts, replayed accepts, and
+    conflicts are counted consistently instead of being inferred only from end-to-end behavior.
 - Consequence:
   - Async proposal-create now behaves like a real idempotent submission surface instead of relying
     on downstream create-time dedupe after multiple operations may already have been accepted.
