@@ -361,6 +361,117 @@ def test_resolve_stateful_context_with_lotus_core_returns_copy_safe_cached_resul
     assert second.simulate_request.portfolio_snapshot.positions[0].instrument_id == "SEC_AAPL_US"
 
 
+def test_resolve_stateful_context_with_lotus_core_refetches_when_cache_ttl_is_zero(
+    monkeypatch, stateful_input
+):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", "0")
+    request_counter = {"count": 0}
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
+        ),
+        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "resolved_as_of_date": "2026-03-27",
+                "cash_accounts": [],
+            }
+        ),
+    }
+
+    class _CountingFakeClient(_FakeClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ) -> _FakeResponse:
+            request_counter["count"] += 1
+            return super().request(method, url, json=json)
+
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _CountingFakeClient(responses),
+    )
+
+    resolve_stateful_context_with_lotus_core(stateful_input)
+    resolve_stateful_context_with_lotus_core(stateful_input)
+
+    assert request_counter["count"] == 6
+
+
+def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
+    monkeypatch,
+):
+    from src.core.workspace.models import WorkspaceStatefulInput
+
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE", "1")
+    request_counter = {"count": 0}
+    responses = {
+        ("GET", f"{base_url}/portfolios/pf_cache_a"): _FakeResponse(
+            {"portfolio_id": "pf_cache_a", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/pf_cache_a/positions"): _FakeResponse(
+            {"portfolio_id": "pf_cache_a", "positions": []}
+        ),
+        ("GET", f"{base_url}/portfolios/pf_cache_b"): _FakeResponse(
+            {"portfolio_id": "pf_cache_b", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/pf_cache_b/positions"): _FakeResponse(
+            {"portfolio_id": "pf_cache_b", "positions": []}
+        ),
+    }
+
+    class _CountingFakeClient(_FakeClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ) -> _FakeResponse:
+            request_counter["count"] += 1
+            if method.upper() == "POST" and url == f"{base_url}/reporting/cash-balances/query":
+                portfolio_id = (json or {}).get("portfolio_id")
+                if portfolio_id == "pf_cache_a":
+                    return _FakeResponse(
+                        {
+                            "portfolio_id": "pf_cache_a",
+                            "resolved_as_of_date": "2026-03-27",
+                            "cash_accounts": [],
+                        }
+                    )
+                if portfolio_id == "pf_cache_b":
+                    return _FakeResponse(
+                        {
+                            "portfolio_id": "pf_cache_b",
+                            "resolved_as_of_date": "2026-03-27",
+                            "cash_accounts": [],
+                        }
+                    )
+            return super().request(method, url, json=json)
+
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _CountingFakeClient(responses),
+    )
+
+    first = WorkspaceStatefulInput(portfolio_id="pf_cache_a", as_of="2026-03-27")
+    second = WorkspaceStatefulInput(portfolio_id="pf_cache_b", as_of="2026-03-27")
+
+    resolve_stateful_context_with_lotus_core(first)
+    resolve_stateful_context_with_lotus_core(second)
+    resolve_stateful_context_with_lotus_core(first)
+
+    assert request_counter["count"] == 9
+
+
 def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_inputs(
     monkeypatch,
 ):
