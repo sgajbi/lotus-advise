@@ -215,3 +215,35 @@
     stateful recovery pattern is now proven at adapter, workspace, lifecycle, and async workflow
     layers.
 
+## LA-REV-011
+
+- Scope: Async proposal-create submission idempotency
+- Pattern: reliability gap / concurrency risk
+- Status: Hardened
+- Finding Class: reliability gap
+- Summary: Async proposal creation accepted an `Idempotency-Key` but did not deduplicate at
+  submission time, so retried requests could create duplicate operations and duplicate background
+  execution attempts before the underlying create flow enforced lifecycle idempotency.
+- Evidence:
+  - `src/core/proposals/service.py` now deduplicates async proposal-create submissions by
+    idempotency key and a governed submission hash.
+  - Equivalent stateless request shapes now hash consistently across legacy and normalized
+    `stateless_input` payloads, so callers do not get false `409` conflicts just because they used
+    different but equivalent request envelopes.
+  - `src/api/proposals/routes_async.py` now schedules background execution only for new async
+    proposal-create operations; replayed submissions return the existing operation without
+    re-enqueueing execution.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py`,
+    `tests/integration/advisory/api/test_proposal_api_workflow_integration.py`, and
+    `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` now prove:
+    - identical async create submissions reuse the same operation,
+    - conflicting async create submissions return `409`,
+    - legacy and normalized stateless create payloads are treated as semantically equivalent,
+    - replayed submissions are marked as replayed internally and are not rescheduled.
+- Consequence:
+  - Async proposal-create now behaves like a real idempotent submission surface instead of relying
+    on downstream create-time dedupe after multiple operations may already have been accepted.
+- Follow-Up:
+  - If async proposal-version writes ever gain a public idempotency key, apply the same
+    submission-level dedupe pattern there instead of reintroducing operation-level duplication.
+
