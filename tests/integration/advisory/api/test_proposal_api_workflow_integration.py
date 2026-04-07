@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.api.services.workspace_service import reset_workspace_sessions_for_tests
 
 
 def _base_create_payload(portfolio_id: str = "pf_integration_proposal_1") -> dict:
@@ -44,11 +45,72 @@ def _base_create_payload(portfolio_id: str = "pf_integration_proposal_1") -> dic
 def setup_function() -> None:
     PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
+    reset_workspace_sessions_for_tests()
 
 
 def teardown_function() -> None:
     PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
+    reset_workspace_sessions_for_tests()
+
+
+def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict:
+    payload = _base_create_payload(portfolio_id=portfolio_id)["simulate_request"]
+    payload["portfolio_snapshot"]["snapshot_id"] = f"ps_{portfolio_id}_{as_of}"
+    payload["market_data_snapshot"]["snapshot_id"] = f"md_{as_of}"
+    return {
+        "simulate_request": payload,
+        "resolved_context": {
+            "portfolio_id": portfolio_id,
+            "as_of": as_of,
+            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
+            "market_data_snapshot_id": f"md_{as_of}",
+            "risk_context_id": "risk_ctx_001",
+            "reporting_context_id": "report_ctx_001",
+        },
+    }
+
+
+def _resolved_stateful_context_with_tradeable_universe(
+    portfolio_id: str,
+    as_of: str,
+) -> dict:
+    return {
+        "simulate_request": {
+            "portfolio_snapshot": {
+                "snapshot_id": f"ps_{portfolio_id}_{as_of}",
+                "portfolio_id": portfolio_id,
+                "base_currency": "USD",
+                "positions": [{"instrument_id": "EQ_OLD", "quantity": "10"}],
+                "cash_balances": [{"currency": "USD", "amount": "10000"}],
+            },
+            "market_data_snapshot": {
+                "snapshot_id": f"md_{as_of}",
+                "prices": [
+                    {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"},
+                    {"instrument_id": "EQ_NEW", "price": "50", "currency": "USD"},
+                ],
+                "fx_rates": [],
+            },
+            "shelf_entries": [
+                {"instrument_id": "EQ_OLD", "status": "APPROVED"},
+                {"instrument_id": "EQ_NEW", "status": "APPROVED"},
+            ],
+            "options": {
+                "enable_proposal_simulation": True,
+                "enable_workflow_gates": True,
+                "enable_suitability_scanner": True,
+            },
+            "proposed_cash_flows": [],
+            "proposed_trades": [],
+        },
+        "resolved_context": {
+            "portfolio_id": portfolio_id,
+            "as_of": as_of,
+            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
+            "market_data_snapshot_id": f"md_{as_of}",
+        },
+    }
 
 
 def test_proposal_create_list_get_and_version_roundtrip() -> None:
@@ -112,6 +174,155 @@ def test_proposal_submit_and_support_endpoints() -> None:
     assert lineage.json()["proposal"]["proposal_id"] == proposal_id
     assert lineage.json()["version_count"] == 1
     assert lineage.json()["lineage_complete"] is True
+
+
+def test_stateful_proposal_create_roundtrip_persists_context_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context_with_tradeable_universe(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+
+    payload = {
+        "created_by": "advisor_stateful_integration",
+        "metadata": {
+            "title": "Stateful integration proposal",
+            "advisor_notes": "stateful integration coverage",
+            "jurisdiction": "SG",
+        },
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_integration_1",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_stateful_integration_1",
+        },
+    }
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "integration-proposal-stateful-create-1"},
+        )
+        assert created.status_code == 200
+        created_body = created.json()
+        proposal_id = created_body["proposal"]["proposal_id"]
+
+        detail = client.get(f"/advisory/proposals/{proposal_id}")
+        version = client.get(f"/advisory/proposals/{proposal_id}/versions/1")
+
+    assert detail.status_code == 200
+    assert version.status_code == 200
+    assert created_body["proposal"]["portfolio_id"] == "pf_stateful_integration_1"
+    assert created_body["proposal"]["mandate_id"] == "mandate_stateful_integration_1"
+    assert (
+        created_body["version"]["evidence_bundle"]["context_resolution"]["input_mode"]
+        == "stateful"
+    )
+    assert (
+        created_body["version"]["evidence_bundle"]["context_resolution"]["resolution_source"]
+        == "LOTUS_CORE"
+    )
+    assert version.json()["proposal_result"]["lineage"]["portfolio_snapshot_id"] == (
+        "ps_pf_stateful_integration_1_2026-03-25"
+    )
+
+
+def test_stateful_workspace_handoff_roundtrip_persists_replay_continuity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+
+    create_payload = {
+        "workspace_name": "Stateful integration workspace",
+        "created_by": "advisor_stateful_integration",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_workspace_1",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_stateful_workspace_1",
+        },
+    }
+
+    with TestClient(app) as client:
+        created = client.post("/advisory/workspaces", json=create_payload)
+        assert created.status_code == 201
+        workspace_id = created.json()["workspace"]["workspace_id"]
+
+        add_trade = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_stateful_integration",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_NEW",
+                    "quantity": "3",
+                },
+            },
+        )
+        assert add_trade.status_code == 200
+
+        saved = client.post(
+            f"/advisory/workspaces/{workspace_id}/save",
+            json={
+                "saved_by": "advisor_stateful_integration",
+                "version_label": "Stateful integration baseline",
+            },
+        )
+        assert saved.status_code == 200
+        workspace_version_id = saved.json()["saved_version"]["workspace_version_id"]
+
+        handoff = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            json={"handoff_by": "advisor_stateful_integration"},
+            headers={"Idempotency-Key": "integration-workspace-stateful-handoff-1"},
+        )
+        assert handoff.status_code == 200
+        handoff_body = handoff.json()
+
+        replay = client.get(
+            f"/advisory/workspaces/{workspace_id}/saved-versions/"
+            f"{workspace_version_id}/replay-evidence"
+        )
+        proposal_id = handoff_body["proposal"]["proposal"]["proposal_id"]
+        proposal_version = client.get(f"/advisory/proposals/{proposal_id}/versions/1")
+
+    assert replay.status_code == 200
+    replay_body = replay.json()
+    proposal_version_body = proposal_version.json()
+    assert handoff_body["proposal"]["proposal"]["lifecycle_origin"] == "WORKSPACE_HANDOFF"
+    assert handoff_body["proposal"]["proposal"]["mandate_id"] == "mandate_stateful_workspace_1"
+    assert (
+        handoff_body["proposal"]["version"]["proposal_result"]["intents"][-1]["instrument_id"]
+        == "EQ_NEW"
+    )
+    assert replay_body["subject"]["proposal_id"] == proposal_id
+    assert replay_body["subject"]["proposal_version_no"] == 1
+    assert replay_body["resolved_context"]["portfolio_id"] == "pf_stateful_workspace_1"
+    assert proposal_version_body["evidence_bundle"]["context_resolution"]["input_mode"] == (
+        "stateless"
+    )
+    assert (
+        proposal_version_body["evidence_bundle"]["replay_lineage"]["workspace_id"] == workspace_id
+    )
+    assert (
+        proposal_version_body["evidence_bundle"]["replay_lineage"]["workspace_version_id"]
+        == workspace_version_id
+    )
 
 
 def test_proposal_idempotency_lookup_roundtrip() -> None:
