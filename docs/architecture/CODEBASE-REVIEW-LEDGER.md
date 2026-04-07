@@ -233,6 +233,9 @@
   - `src/api/proposals/routes_async.py` now schedules background execution only for new async
     proposal-create operations; replayed submissions return the existing operation without
     re-enqueueing execution.
+  - `src/infrastructure/proposals/postgres.py` and migration `0005_async_idempotency_unique.sql`
+    now make the async create idempotency contract atomic at the storage layer instead of relying
+    on a non-atomic service-side check/create sequence.
   - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py`,
     `tests/integration/advisory/api/test_proposal_api_workflow_integration.py`, and
     `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` now prove:
@@ -240,6 +243,10 @@
     - conflicting async create submissions return `409`,
     - legacy and normalized stateless create payloads are treated as semantically equivalent,
     - replayed submissions are marked as replayed internally and are not rescheduled.
+  - `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` and
+    `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py`
+    now prove the same async idempotency behavior at the repository/storage layer, including
+    atomic create-or-get behavior and idempotency lookup.
 - Consequence:
   - Async proposal-create now behaves like a real idempotent submission surface instead of relying
     on downstream create-time dedupe after multiple operations may already have been accepted.
