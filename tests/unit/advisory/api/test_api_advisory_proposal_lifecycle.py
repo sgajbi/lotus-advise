@@ -1555,6 +1555,37 @@ def test_async_create_deduplicates_by_idempotency_key_and_rejects_payload_confli
         )
 
 
+def test_async_create_treats_legacy_and_normalized_stateless_payloads_as_equivalent():
+    with TestClient(app) as client:
+        legacy_payload = _base_create_payload()
+        normalized_payload = {
+            "created_by": legacy_payload["created_by"],
+            "metadata": legacy_payload["metadata"],
+            "input_mode": "stateless",
+            "stateless_input": {"simulate_request": legacy_payload["simulate_request"]},
+        }
+
+        first = client.post(
+            "/advisory/proposals/async",
+            json=legacy_payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-shape-1",
+                "X-Correlation-Id": "corr-async-shape-1",
+            },
+        )
+        assert first.status_code == 202
+        duplicate = client.post(
+            "/advisory/proposals/async",
+            json=normalized_payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-shape-1",
+                "X-Correlation-Id": "corr-async-shape-2",
+            },
+        )
+        assert duplicate.status_code == 202
+        assert duplicate.json()["operation_id"] == first.json()["operation_id"]
+
+
 def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_lineage():
     with TestClient(app) as client:
         created = client.post(

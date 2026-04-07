@@ -248,7 +248,7 @@ class ProposalWorkflowService:
         idempotency_key: str,
         correlation_id: Optional[str],
     ) -> ProposalAsyncAcceptedResponse:
-        submission_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        submission_hash = self._hash_async_create_submission(payload)
         existing = self._repository.get_operation_by_idempotency(idempotency_key=idempotency_key)
         if existing is not None:
             existing_hash = self._extract_async_submission_hash(existing)
@@ -1260,6 +1260,21 @@ class ProposalWorkflowService:
         if not isinstance(payload_json, dict):
             return None
         return str(hash_canonical_payload(payload_json))
+
+    def _hash_async_create_submission(self, payload: ProposalCreateRequest) -> str:
+        if payload.input_mode == "stateful":
+            return str(
+                hash_canonical_payload(payload.model_dump(mode="json", exclude_none=True))
+            )
+        resolved_request = resolve_create_request(payload)
+        return str(
+            hash_canonical_payload(
+                canonicalize_create_request_payload(
+                    payload=payload,
+                    resolved=resolved_request,
+                )
+            )
+        )
 
     def _resolve_version_async_payload(
         self,
