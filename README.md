@@ -9,7 +9,8 @@ API docs endpoint: `/docs`
 
 Local Docker runtime expects canonical upstream integrations to be explicit:
 
-- `LOTUS_CORE_BASE_URL` should point at the lotus-core control-plane endpoint, for example `http://host.docker.internal:8202`
-- `LOTUS_RISK_BASE_URL` should point at the lotus-risk API endpoint, for example `http://host.docker.internal:8130`
+- `LOTUS_CORE_BASE_URL` should point at the lotus-core control-plane endpoint, for example `http://core-control.dev.lotus`
+- `LOTUS_CORE_QUERY_BASE_URL` should point at the lotus-core query endpoint, for example `http://core-query.dev.lotus`
+- `LOTUS_RISK_BASE_URL` should point at the lotus-risk API endpoint, for example `http://risk.dev.lotus`
 
 This keeps proposal simulation and proposal risk-lens behavior aligned with the canonical service authorities during local Docker validation.

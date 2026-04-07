@@ -2099,6 +2099,79 @@ def test_async_create_version_and_lookup():
         assert body["result"]["proposal"]["current_version_no"] == 2
 
 
+def test_async_create_version_route_does_not_reschedule_replayed_submission() -> None:
+    class _ReplayAwareService:
+        def __init__(self) -> None:
+            self.executions = 0
+
+        def accept_create_version_async_submission(self, **kwargs):  # noqa: ANN003
+            return (
+                ProposalAsyncAcceptedResponse(
+                    operation_id="pop_replayed_version_async",
+                    operation_type="CREATE_PROPOSAL_VERSION",
+                    status="PENDING",
+                    correlation_id="corr-replayed-version-async",
+                    created_at="2026-04-07T00:00:00+00:00",
+                    attempt_count=0,
+                    max_attempts=3,
+                    status_url="/advisory/proposals/operations/pop_replayed_version_async",
+                ),
+                False,
+            )
+
+        def execute_create_version_async(self, **kwargs):  # noqa: ANN003
+            self.executions += 1
+
+    service = _ReplayAwareService()
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            accepted = client.post(
+                "/advisory/proposals/pp_replayed/versions/async",
+                json={
+                    "created_by": "advisor_2",
+                    "simulate_request": _base_create_payload()["simulate_request"],
+                },
+                headers={"X-Correlation-Id": "corr-replayed-version-async"},
+            )
+        assert accepted.status_code == 202
+        assert accepted.json()["operation_id"] == "pop_replayed_version_async"
+        assert service.executions == 0
+    finally:
+        app.dependency_overrides = original_overrides
+
+
+def test_async_create_version_route_maps_correlation_conflict_to_409() -> None:
+    class _ConflictService:
+        def accept_create_version_async_submission(self, **kwargs):  # noqa: ANN003
+            raise ProposalIdempotencyConflictError(
+                "CORRELATION_ID_CONFLICT: async version submission mismatch"
+            )
+
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = (
+        lambda: _ConflictService()
+    )
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/advisory/proposals/pp_conflict/versions/async",
+                json={
+                    "created_by": "advisor_2",
+                    "simulate_request": _base_create_payload()["simulate_request"],
+                },
+                headers={"X-Correlation-Id": "corr-conflict-version-async"},
+            )
+        assert response.status_code == 409
+        assert (
+            response.json()["detail"]
+            == "CORRELATION_ID_CONFLICT: async version submission mismatch"
+        )
+    finally:
+        app.dependency_overrides = original_overrides
+
+
 def test_async_operation_endpoints_return_404_when_disabled(monkeypatch):
     monkeypatch.setenv("PROPOSAL_ASYNC_OPERATIONS_ENABLED", "false")
     reset_proposal_workflow_service_for_tests()

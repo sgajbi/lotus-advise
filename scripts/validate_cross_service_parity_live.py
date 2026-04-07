@@ -10,9 +10,9 @@ from typing import Any, cast
 
 import httpx
 
-_DEFAULT_ADVISE_BASE_URL = "http://127.0.0.1:8000"
-_DEFAULT_CORE_QUERY_BASE_URL = "http://127.0.0.1:8201"
-_DEFAULT_RISK_BASE_URL = "http://127.0.0.1:8130"
+_DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
+_DEFAULT_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
+_DEFAULT_RISK_BASE_URL = "http://risk.dev.lotus"
 _DEFAULT_PORTFOLIO_CANDIDATES = (
     "DEMO_ADV_USD_001",
     "PB_SG_GLOBAL_BAL_001",

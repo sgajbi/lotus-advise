@@ -1,8 +1,9 @@
 services:
   lotus-advise:
     environment:
-      - LOTUS_CORE_BASE_URL=http://host.docker.internal:8202
-      - LOTUS_RISK_BASE_URL=http://host.docker.internal:8130
+      - LOTUS_CORE_BASE_URL=http://core-control.dev.lotus
+      - LOTUS_CORE_QUERY_BASE_URL=http://core-query.dev.lotus
+      - LOTUS_RISK_BASE_URL=http://risk.dev.lotus
       - DPM_SUPPORTABILITY_STORE_BACKEND=POSTGRES
       - DPM_SUPPORTABILITY_POSTGRES_DSN=postgresql://advise:advise@postgres:5432/advise_supportability
       - PROPOSAL_STORE_BACKEND=POSTGRES
@@ -10,6 +11,10 @@ services:
       - DPM_POLICY_PACKS_ENABLED=true
       - DPM_POLICY_PACK_CATALOG_BACKEND=POSTGRES
       - DPM_POLICY_PACK_POSTGRES_DSN=postgresql://advise:advise@postgres:5432/advise_supportability
+    extra_hosts:
+      - "core-control.dev.lotus:host-gateway"
+      - "core-query.dev.lotus:host-gateway"
+      - "risk.dev.lotus:host-gateway"
 
 
 

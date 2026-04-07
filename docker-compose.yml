@@ -10,14 +10,19 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=production
-      - LOTUS_CORE_BASE_URL=${LOTUS_CORE_BASE_URL:-http://host.docker.internal:8202}
-      - LOTUS_RISK_BASE_URL=${LOTUS_RISK_BASE_URL:-http://host.docker.internal:8130}
+      - LOTUS_CORE_BASE_URL=${LOTUS_CORE_BASE_URL:-http://core-control.dev.lotus}
+      - LOTUS_CORE_QUERY_BASE_URL=${LOTUS_CORE_QUERY_BASE_URL:-http://core-query.dev.lotus}
+      - LOTUS_RISK_BASE_URL=${LOTUS_RISK_BASE_URL:-http://risk.dev.lotus}
       - DPM_SUPPORTABILITY_STORE_BACKEND=${DPM_SUPPORTABILITY_STORE_BACKEND:-POSTGRES}
       - DPM_SUPPORTABILITY_POSTGRES_DSN=${DPM_SUPPORTABILITY_POSTGRES_DSN:-postgresql://advise:advise@postgres:5432/advise_supportability}
       - PROPOSAL_STORE_BACKEND=${PROPOSAL_STORE_BACKEND:-POSTGRES}
       - PROPOSAL_POSTGRES_DSN=${PROPOSAL_POSTGRES_DSN:-postgresql://advise:advise@postgres:5432/advise_supportability}
       - DPM_POLICY_PACK_CATALOG_BACKEND=${DPM_POLICY_PACK_CATALOG_BACKEND:-POSTGRES}
       - DPM_POLICY_PACK_POSTGRES_DSN=${DPM_POLICY_PACK_POSTGRES_DSN:-postgresql://advise:advise@postgres:5432/advise_supportability}
+    extra_hosts:
+      - "core-control.dev.lotus:host-gateway"
+      - "core-query.dev.lotus:host-gateway"
+      - "risk.dev.lotus:host-gateway"
     healthcheck:
       test:
         [
@@ -39,8 +44,6 @@ services:
   postgres:
     image: postgres:17.6
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
       - POSTGRES_DB=advise_supportability
       - POSTGRES_USER=advise

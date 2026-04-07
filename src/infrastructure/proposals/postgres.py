@@ -155,7 +155,7 @@ class PostgresProposalRepository:
                     result_json,
                     error_json
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (idempotency_key) DO NOTHING
+                ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING
                 RETURNING
                     operation_id,
                     operation_type,

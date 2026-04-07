@@ -828,7 +828,39 @@ class ProposalWorkflowService:
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
     ) -> ProposalAsyncAcceptedResponse:
+        accepted, _ = self.accept_create_version_async_submission(
+            proposal_id=proposal_id,
+            payload=payload,
+            correlation_id=correlation_id,
+        )
+        return accepted
+
+    def accept_create_version_async_submission(
+        self,
+        *,
+        proposal_id: str,
+        payload: ProposalVersionRequest,
+        correlation_id: Optional[str],
+    ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
         resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+        submission_hash = self._hash_async_version_submission(
+            proposal_id=proposal_id,
+            payload=payload,
+        )
+        existing_operation = self._repository.get_operation_by_correlation(
+            correlation_id=resolved_correlation_id
+        )
+        if existing_operation is not None:
+            existing_hash = self._extract_async_submission_hash(existing_operation)
+            if (
+                existing_operation.operation_type != "CREATE_PROPOSAL_VERSION"
+                or existing_operation.proposal_id != proposal_id
+                or existing_hash != submission_hash
+            ):
+                raise ProposalIdempotencyConflictError(
+                    "CORRELATION_ID_CONFLICT: async version submission mismatch"
+                )
+            return self._to_async_accepted(existing_operation), False
         operation = ProposalAsyncOperationRecord(
             operation_id=f"pop_{uuid.uuid4().hex[:12]}",
             operation_type="CREATE_PROPOSAL_VERSION",
@@ -841,6 +873,7 @@ class ProposalWorkflowService:
             payload_json={
                 "proposal_id": proposal_id,
                 "payload": payload.model_dump(mode="json"),
+                "submission_hash": submission_hash,
             },
             attempt_count=0,
             max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
@@ -851,7 +884,7 @@ class ProposalWorkflowService:
             error_json=None,
         )
         self._repository.create_operation(operation)
-        return self._to_async_accepted(operation)
+        return self._to_async_accepted(operation), True
 
     def execute_create_version_async(
         self,
@@ -1320,6 +1353,34 @@ class ProposalWorkflowService:
                     payload=payload,
                     resolved=resolved_request,
                 )
+            )
+        )
+
+    def _hash_async_version_submission(
+        self,
+        *,
+        proposal_id: str,
+        payload: ProposalVersionRequest,
+    ) -> str:
+        if payload.input_mode == "stateful":
+            return str(
+                hash_canonical_payload(
+                    {
+                        "proposal_id": proposal_id,
+                        **payload.model_dump(mode="json", exclude_none=True),
+                    }
+                )
+            )
+        resolved_request = resolve_version_request(payload)
+        return str(
+            hash_canonical_payload(
+                {
+                    "proposal_id": proposal_id,
+                    **canonicalize_version_request_payload(
+                        payload=payload,
+                        resolved=resolved_request,
+                    ),
+                }
             )
         )
 
