@@ -405,6 +405,7 @@ def test_advisory_proposal_simulate_reports_local_fallback_when_explicitly_enabl
         "LOTUS_CORE_SIMULATION_UNAVAILABLE",
         "LOTUS_RISK_ENRICHMENT_UNAVAILABLE",
     ]
+    assert response.json()["allocation_lens"]["source"] == "LOTUS_ADVISE_LOCAL_FALLBACK"
 
 
 def test_advisory_proposal_simulate_disallows_local_fallback_in_production_environment(

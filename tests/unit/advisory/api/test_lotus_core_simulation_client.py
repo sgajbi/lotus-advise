@@ -49,6 +49,20 @@ def _result_payload() -> dict[str, Any]:
                 "allocation_by_instrument": [],
                 "allocation": [],
                 "allocation_by_attribute": {},
+                "allocation_views": [
+                    {
+                        "dimension": "asset_class",
+                        "total_value": {"amount": "1000", "currency": "USD"},
+                        "buckets": [
+                            {
+                                "key": "CASH",
+                                "weight": "1.0",
+                                "value": {"amount": "1000", "currency": "USD"},
+                                "position_count": 1,
+                            }
+                        ],
+                    }
+                ],
             },
             "intents": [],
             "after_simulated": {
@@ -59,6 +73,20 @@ def _result_payload() -> dict[str, Any]:
                 "allocation_by_instrument": [],
                 "allocation": [],
                 "allocation_by_attribute": {},
+                "allocation_views": [
+                    {
+                        "dimension": "asset_class",
+                        "total_value": {"amount": "1000", "currency": "USD"},
+                        "buckets": [
+                            {
+                                "key": "CASH",
+                                "weight": "1.0",
+                                "value": {"amount": "1000", "currency": "USD"},
+                                "position_count": 1,
+                            }
+                        ],
+                    }
+                ],
             },
             "reconciliation": {
                 "before_total_value": {"amount": "1000", "currency": "USD"},
@@ -82,6 +110,20 @@ def _result_payload() -> dict[str, Any]:
                 "data_quality": {"price_missing": [], "fx_missing": [], "shelf_missing": []},
             },
             "explanation": {"summary": "READY"},
+            "allocation_lens": {
+                "contract_version": ADVISORY_SIMULATION_CONTRACT_VERSION,
+                "calculator_version": "lotus-core.allocation-calculator.v1",
+                "dimensions": [
+                    "asset_class",
+                    "currency",
+                    "sector",
+                    "country",
+                    "region",
+                    "product_type",
+                    "rating",
+                ],
+                "source": "LOTUS_CORE",
+            },
             "lineage": {
                 "portfolio_snapshot_id": "pf_client",
                 "market_data_snapshot_id": "md_1",
@@ -161,6 +203,9 @@ def test_simulate_with_lotus_core_sends_contract_header_and_validates_response(m
         headers[ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER] == ADVISORY_SIMULATION_CONTRACT_VERSION
     )
     assert result.lineage.simulation_contract_version == ADVISORY_SIMULATION_CONTRACT_VERSION
+    assert result.allocation_lens.contract_version == ADVISORY_SIMULATION_CONTRACT_VERSION
+    assert result.allocation_lens.source == "LOTUS_CORE"
+    assert result.before.allocation_views[0].dimension == "asset_class"
 
 
 def test_simulate_with_lotus_core_rejects_response_header_contract_mismatch(monkeypatch):
@@ -246,6 +291,35 @@ def test_simulate_with_lotus_core_rejects_lineage_contract_mismatch(monkeypatch)
     with pytest.raises(
         LotusCoreSimulationUnavailableError,
         match="response lineage did not match the canonical contract version",
+    ):
+        simulate_with_lotus_core(
+            request=_request(),
+            request_hash="sha256:test-hash",
+            idempotency_key="idem-1",
+            correlation_id="corr-1",
+        )
+
+
+def test_simulate_with_lotus_core_rejects_allocation_lens_contract_mismatch(monkeypatch):
+    payload = _result_payload()
+    payload["allocation_lens"]["contract_version"] = "advisory-simulation.v0"
+    fake_client = _FakeClient(
+        _FakeResponse(
+            status_code=200,
+            payload=payload,
+            headers={
+                ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client", lambda timeout: fake_client
+    )
+
+    with pytest.raises(
+        LotusCoreSimulationUnavailableError,
+        match="response allocation lens did not match the canonical contract version",
     ):
         simulate_with_lotus_core(
             request=_request(),

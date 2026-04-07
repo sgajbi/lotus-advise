@@ -97,4 +97,9 @@ def simulate_with_lotus_core(
             "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "
             "response lineage did not match the canonical contract version"
         )
+    if result.allocation_lens.contract_version != ADVISORY_SIMULATION_CONTRACT_VERSION:
+        raise LotusCoreSimulationUnavailableError(
+            "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "
+            "response allocation lens did not match the canonical contract version"
+        )
     return result

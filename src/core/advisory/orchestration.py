@@ -1,3 +1,5 @@
+from typing import cast
+
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.integrations.lotus_core import (
@@ -54,6 +56,7 @@ def evaluate_advisory_proposal(
             correlation_id=correlation_id,
             simulation_contract_version="advisory-simulation.v1",
         )
+        proposal_result.allocation_lens.source = "LOTUS_ADVISE_LOCAL_FALLBACK"
 
     lotus_risk_state = build_lotus_risk_dependency_state()
     risk_authority = "lotus_advise_local"
@@ -77,4 +80,4 @@ def evaluate_advisory_proposal(
     }
 
     proposal_result.explanation = explanation
-    return proposal_result
+    return cast(ProposalResult, proposal_result)

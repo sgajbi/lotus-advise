@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-05T22:55:50.316151+00:00",
+  "generatedAt": "2026-04-07T09:19:00.349126+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -140,6 +140,38 @@
       "description": "Allocation grouped by instrument id.",
       "example": [
         "allocation_by_instrument_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.allocation_lens",
+      "canonicalTerm": "allocation_lens",
+      "preferredName": "allocation_lens",
+      "description": "Canonical allocation lens used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "ProposalAllocationLens",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "ProposalAllocationLens"
+      ]
+    },
+    {
+      "semanticId": "lotus.allocation_views",
+      "canonicalTerm": "allocation_views",
+      "preferredName": "allocation_views",
+      "description": "Canonical proposal allocation views computed by the lotus-core allocation calculator for curated front-office dimensions.",
+      "example": [
+        "allocation_views_item_example"
       ],
       "type": "array",
       "locations": [
@@ -610,11 +642,41 @@
       ]
     },
     {
+      "semanticId": "lotus.buckets",
+      "canonicalTerm": "buckets",
+      "preferredName": "buckets",
+      "description": "Sorted allocation buckets for this dimension.",
+      "example": [
+        "buckets_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.buy_amount",
       "canonicalTerm": "buy_amount",
       "preferredName": "buy_amount",
       "description": "Buy amount in buy currency as a decimal string.",
       "example": "example_buy_amount",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.calculator_version",
+      "canonicalTerm": "calculator_version",
+      "preferredName": "calculator_version",
+      "description": "Internal calculator version for replay and audit evidence.",
+      "example": "example_calculator_version",
       "type": "string",
       "locations": [
         "body"
@@ -894,7 +956,7 @@
       "semanticId": "lotus.contract_version",
       "canonicalTerm": "contract_version",
       "preferredName": "contract_version",
-      "description": "Integration contract version.",
+      "description": "Simulation contract version that governs the allocation lens.",
       "example": "v1",
       "type": "string",
       "locations": [
@@ -1326,14 +1388,30 @@
       "semanticId": "lotus.dimension",
       "canonicalTerm": "dimension",
       "preferredName": "dimension",
-      "description": "Suitability issue dimension.",
-      "example": "CONCENTRATION",
+      "description": "Front-office allocation dimension used for proposal before/after review.",
+      "example": "asset_class",
       "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.dimensions",
+      "canonicalTerm": "dimensions",
+      "preferredName": "dimensions",
+      "description": "Curated proposal allocation dimensions included in before/after states.",
+      "example": [
+        "asset_class"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -3595,6 +3673,20 @@
       ]
     },
     {
+      "semanticId": "lotus.position_count",
+      "canonicalTerm": "position_count",
+      "preferredName": "position_count",
+      "description": "Number of position or cash rows contributing to this bucket.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
+      ]
+    },
+    {
       "semanticId": "lotus.positions",
       "canonicalTerm": "positions",
       "preferredName": "positions",
@@ -4662,8 +4754,8 @@
       "semanticId": "lotus.source",
       "canonicalTerm": "source",
       "preferredName": "source",
-      "description": "Reason source subsystem.",
-      "example": "RULE_ENGINE",
+      "description": "Authoritative service that computed the allocation lens.",
+      "example": "LOTUS_CORE",
       "type": "string",
       "locations": [
         "body"
@@ -6964,6 +7056,102 @@
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
           },
           {
+            "name": "version.proposal_result.before.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
+          },
+          {
             "name": "version.proposal_result.intents",
             "location": "body",
             "required": true,
@@ -7298,6 +7486,102 @@
             "type": "object",
             "semanticId": "lotus.allocation_by_attribute",
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
           },
           {
             "name": "version.proposal_result.reconciliation",
@@ -7818,6 +8102,46 @@
             "type": "object",
             "semanticId": "lotus.gate_decision",
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens",
+            "location": "body",
+            "required": false,
+            "type": "ProposalAllocationLens",
+            "semanticId": "lotus.allocation_lens",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_lens"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens.calculator_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.calculator_version",
+            "attributeRef": "#/attributeCatalog/lotus.calculator_version"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens.dimensions",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.dimensions",
+            "attributeRef": "#/attributeCatalog/lotus.dimensions"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens.source",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.source",
+            "attributeRef": "#/attributeCatalog/lotus.source"
           },
           {
             "name": "version.proposal_result.lineage",
@@ -9786,6 +10110,102 @@
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
           },
           {
+            "name": "current_version.proposal_result.before.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "current_version.proposal_result.before.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
+          },
+          {
             "name": "current_version.proposal_result.intents",
             "location": "body",
             "required": true,
@@ -10120,6 +10540,102 @@
             "type": "object",
             "semanticId": "lotus.allocation_by_attribute",
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "current_version.proposal_result.after_simulated.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
           },
           {
             "name": "current_version.proposal_result.reconciliation",
@@ -10640,6 +11156,46 @@
             "type": "object",
             "semanticId": "lotus.gate_decision",
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
+          },
+          {
+            "name": "current_version.proposal_result.allocation_lens",
+            "location": "body",
+            "required": false,
+            "type": "ProposalAllocationLens",
+            "semanticId": "lotus.allocation_lens",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_lens"
+          },
+          {
+            "name": "current_version.proposal_result.allocation_lens.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "current_version.proposal_result.allocation_lens.calculator_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.calculator_version",
+            "attributeRef": "#/attributeCatalog/lotus.calculator_version"
+          },
+          {
+            "name": "current_version.proposal_result.allocation_lens.dimensions",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.dimensions",
+            "attributeRef": "#/attributeCatalog/lotus.dimensions"
+          },
+          {
+            "name": "current_version.proposal_result.allocation_lens.source",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.source",
+            "attributeRef": "#/attributeCatalog/lotus.source"
           },
           {
             "name": "current_version.proposal_result.lineage",
@@ -12249,6 +12805,102 @@
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
           },
           {
+            "name": "proposal_result.before.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "proposal_result.before.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
+          },
+          {
             "name": "proposal_result.intents",
             "location": "body",
             "required": true,
@@ -12583,6 +13235,102 @@
             "type": "object",
             "semanticId": "lotus.allocation_by_attribute",
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "proposal_result.after_simulated.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
           },
           {
             "name": "proposal_result.reconciliation",
@@ -13103,6 +13851,46 @@
             "type": "object",
             "semanticId": "lotus.gate_decision",
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
+          },
+          {
+            "name": "proposal_result.allocation_lens",
+            "location": "body",
+            "required": false,
+            "type": "ProposalAllocationLens",
+            "semanticId": "lotus.allocation_lens",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_lens"
+          },
+          {
+            "name": "proposal_result.allocation_lens.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "proposal_result.allocation_lens.calculator_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.calculator_version",
+            "attributeRef": "#/attributeCatalog/lotus.calculator_version"
+          },
+          {
+            "name": "proposal_result.allocation_lens.dimensions",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.dimensions",
+            "attributeRef": "#/attributeCatalog/lotus.dimensions"
+          },
+          {
+            "name": "proposal_result.allocation_lens.source",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.source",
+            "attributeRef": "#/attributeCatalog/lotus.source"
           },
           {
             "name": "proposal_result.lineage",
@@ -14856,6 +15644,102 @@
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
           },
           {
+            "name": "version.proposal_result.before.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "version.proposal_result.before.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
+          },
+          {
             "name": "version.proposal_result.intents",
             "location": "body",
             "required": true,
@@ -15190,6 +16074,102 @@
             "type": "object",
             "semanticId": "lotus.allocation_by_attribute",
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "version.proposal_result.after_simulated.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
           },
           {
             "name": "version.proposal_result.reconciliation",
@@ -15710,6 +16690,46 @@
             "type": "object",
             "semanticId": "lotus.gate_decision",
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens",
+            "location": "body",
+            "required": false,
+            "type": "ProposalAllocationLens",
+            "semanticId": "lotus.allocation_lens",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_lens"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens.calculator_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.calculator_version",
+            "attributeRef": "#/attributeCatalog/lotus.calculator_version"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens.dimensions",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.dimensions",
+            "attributeRef": "#/attributeCatalog/lotus.dimensions"
+          },
+          {
+            "name": "version.proposal_result.allocation_lens.source",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.source",
+            "attributeRef": "#/attributeCatalog/lotus.source"
           },
           {
             "name": "version.proposal_result.lineage",
@@ -20535,6 +21555,102 @@
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
           },
           {
+            "name": "before.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "before.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "before.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "before.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "before.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "before.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "before.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "before.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "before.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "before.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "before.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "before.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
+          },
+          {
             "name": "intents",
             "location": "body",
             "required": true,
@@ -20869,6 +21985,102 @@
             "type": "object",
             "semanticId": "lotus.allocation_by_attribute",
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
+          },
+          {
+            "name": "after_simulated.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "after_simulated.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "after_simulated.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "after_simulated.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "after_simulated.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "after_simulated.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "after_simulated.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "after_simulated.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "after_simulated.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "after_simulated.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "after_simulated.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "after_simulated.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
           },
           {
             "name": "reconciliation",
@@ -21389,6 +22601,46 @@
             "type": "object",
             "semanticId": "lotus.gate_decision",
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
+          },
+          {
+            "name": "allocation_lens",
+            "location": "body",
+            "required": false,
+            "type": "ProposalAllocationLens",
+            "semanticId": "lotus.allocation_lens",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_lens"
+          },
+          {
+            "name": "allocation_lens.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "allocation_lens.calculator_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.calculator_version",
+            "attributeRef": "#/attributeCatalog/lotus.calculator_version"
+          },
+          {
+            "name": "allocation_lens.dimensions",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.dimensions",
+            "attributeRef": "#/attributeCatalog/lotus.dimensions"
+          },
+          {
+            "name": "allocation_lens.source",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.source",
+            "attributeRef": "#/attributeCatalog/lotus.source"
           },
           {
             "name": "lineage",
@@ -30690,6 +31942,102 @@
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
           },
           {
+            "name": "proposal.version.proposal_result.before.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "proposal.version.proposal_result.before.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
+          },
+          {
             "name": "proposal.version.proposal_result.intents",
             "location": "body",
             "required": true,
@@ -31024,6 +32372,102 @@
             "type": "object",
             "semanticId": "lotus.allocation_by_attribute",
             "attributeRef": "#/attributeCatalog/lotus.allocation_by_attribute"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allocation_views",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_views"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].dimension",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.dimension",
+            "attributeRef": "#/attributeCatalog/lotus.dimension"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].total_value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.total_value",
+            "attributeRef": "#/attributeCatalog/lotus.total_value"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].total_value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].total_value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].buckets",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.buckets",
+            "attributeRef": "#/attributeCatalog/lotus.buckets"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].buckets[].key",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.key",
+            "attributeRef": "#/attributeCatalog/lotus.key"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].buckets[].weight",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.weight",
+            "attributeRef": "#/attributeCatalog/lotus.weight"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].buckets[].value",
+            "location": "body",
+            "required": true,
+            "type": "Money-Output",
+            "semanticId": "lotus.value",
+            "attributeRef": "#/attributeCatalog/lotus.value"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].buckets[].value.amount",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.amount",
+            "attributeRef": "#/attributeCatalog/lotus.amount"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].buckets[].value.currency",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.currency",
+            "attributeRef": "#/attributeCatalog/lotus.currency"
+          },
+          {
+            "name": "proposal.version.proposal_result.after_simulated.allocation_views[].buckets[].position_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.position_count",
+            "attributeRef": "#/attributeCatalog/lotus.position_count"
           },
           {
             "name": "proposal.version.proposal_result.reconciliation",
@@ -31544,6 +32988,46 @@
             "type": "object",
             "semanticId": "lotus.gate_decision",
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
+          },
+          {
+            "name": "proposal.version.proposal_result.allocation_lens",
+            "location": "body",
+            "required": false,
+            "type": "ProposalAllocationLens",
+            "semanticId": "lotus.allocation_lens",
+            "attributeRef": "#/attributeCatalog/lotus.allocation_lens"
+          },
+          {
+            "name": "proposal.version.proposal_result.allocation_lens.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "proposal.version.proposal_result.allocation_lens.calculator_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.calculator_version",
+            "attributeRef": "#/attributeCatalog/lotus.calculator_version"
+          },
+          {
+            "name": "proposal.version.proposal_result.allocation_lens.dimensions",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.dimensions",
+            "attributeRef": "#/attributeCatalog/lotus.dimensions"
+          },
+          {
+            "name": "proposal.version.proposal_result.allocation_lens.source",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.source",
+            "attributeRef": "#/attributeCatalog/lotus.source"
           },
           {
             "name": "proposal.version.proposal_result.lineage",

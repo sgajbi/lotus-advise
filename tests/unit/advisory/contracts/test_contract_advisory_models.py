@@ -12,6 +12,7 @@ from src.core.models import (
     MarketDataSnapshot,
     Money,
     PortfolioSnapshot,
+    ProposalAllocationLens,
     ProposalResult,
     ProposalSimulateRequest,
     ProposedCashFlow,
@@ -172,3 +173,89 @@ def test_advisory_proposal_result_accepts_fx_spot_intents():
     )
 
     assert result.intents[1].intent_type == "FX_SPOT"
+
+
+def test_advisory_proposal_result_accepts_canonical_allocation_lens():
+    state = SimulatedState(
+        total_value=Money(amount=Decimal("250"), currency="USD"),
+        cash_balances=[],
+        positions=[],
+        allocation_by_asset_class=[],
+        allocation_by_instrument=[],
+        allocation=[],
+        allocation_by_attribute={},
+        allocation_views=[
+            {
+                "dimension": "asset_class",
+                "total_value": {"amount": "250", "currency": "USD"},
+                "buckets": [
+                    {
+                        "key": "EQUITY",
+                        "weight": "0.8000",
+                        "value": {"amount": "200", "currency": "USD"},
+                        "position_count": 1,
+                    },
+                    {
+                        "key": "CASH",
+                        "weight": "0.2000",
+                        "value": {"amount": "50", "currency": "USD"},
+                        "position_count": 1,
+                    },
+                ],
+            },
+            {
+                "dimension": "currency",
+                "total_value": {"amount": "250", "currency": "USD"},
+                "buckets": [
+                    {
+                        "key": "USD",
+                        "weight": "1.0000",
+                        "value": {"amount": "250", "currency": "USD"},
+                        "position_count": 2,
+                    }
+                ],
+            },
+        ],
+    )
+
+    result = ProposalResult(
+        proposal_run_id="pr_alloc",
+        correlation_id="corr_alloc",
+        status="READY",
+        before=state,
+        intents=[],
+        after_simulated=state,
+        rule_results=[],
+        explanation={"summary": "READY"},
+        diagnostics={"data_quality": {"price_missing": [], "fx_missing": [], "shelf_missing": []}},
+        allocation_lens=ProposalAllocationLens(
+            dimensions=[
+                "asset_class",
+                "currency",
+                "sector",
+                "country",
+                "region",
+                "product_type",
+                "rating",
+            ],
+            source="LOTUS_CORE",
+        ),
+        lineage=LineageData(
+            portfolio_snapshot_id="pf",
+            market_data_snapshot_id="md",
+            request_hash="hash",
+        ),
+    )
+
+    assert result.allocation_lens.contract_version == "advisory-simulation.v1"
+    assert result.allocation_lens.source == "LOTUS_CORE"
+    assert [view.dimension for view in result.before.allocation_views] == [
+        "asset_class",
+        "currency",
+    ]
+
+
+def test_allocation_lens_can_mark_controlled_local_fallback_source():
+    lens = ProposalAllocationLens(source="LOTUS_ADVISE_LOCAL_FALLBACK")
+
+    assert lens.source == "LOTUS_ADVISE_LOCAL_FALLBACK"
