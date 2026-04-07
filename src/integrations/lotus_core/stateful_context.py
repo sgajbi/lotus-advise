@@ -37,6 +37,7 @@ _PORTFOLIO_PATH = "/portfolios/{portfolio_id}"
 _POSITIONS_PATH = "/portfolios/{portfolio_id}/positions"
 _CASH_BALANCES_PATH = "/reporting/cash-balances/query"
 _INSTRUMENTS_PATH = "/instruments/?security_id={instrument_id}"
+_INSTRUMENT_ENRICHMENT_BULK_PATH = "/integration/instruments/enrichment-bulk"
 _PRICES_PATH = "/prices/?security_id={instrument_id}"
 _FX_RATES_PATH = "/fx-rates/?from_currency={from_currency}&to_currency={to_currency}"
 _DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS = 15.0
@@ -110,6 +111,8 @@ def _shelf_attributes_from_payload(
     country: Any = None,
     product_type: Any = None,
     rating: Any = None,
+    ultimate_parent_issuer_id: Any = None,
+    ultimate_parent_issuer_name: Any = None,
 ) -> dict[str, str]:
     attributes = {"source": "LOTUS_CORE_STATEFUL_CONTEXT"}
     optional_values = {
@@ -117,6 +120,8 @@ def _shelf_attributes_from_payload(
         "country": country,
         "product_type": product_type,
         "rating": rating,
+        "ultimate_parent_issuer_id": ultimate_parent_issuer_id,
+        "ultimate_parent_issuer_name": ultimate_parent_issuer_name,
     }
     for key, raw_value in optional_values.items():
         value = str(raw_value or "").strip()
@@ -131,6 +136,11 @@ _STATEFUL_CONTEXT_CACHE = TimedCache[str, LotusCoreResolvedAdvisoryContext](
     max_size=_stateful_context_cache_max_size,
 )
 _INSTRUMENT_LOOKUP_CACHE = TimedCache[str, dict[str, Any]](
+    clone_value=_clone_payload,
+    ttl_seconds=_stateful_context_cache_ttl_seconds,
+    max_size=_stateful_context_cache_max_size,
+)
+_INSTRUMENT_ENRICHMENT_CACHE = TimedCache[str, dict[str, Any]](
     clone_value=_clone_payload,
     ttl_seconds=_stateful_context_cache_ttl_seconds,
     max_size=_stateful_context_cache_max_size,
@@ -172,6 +182,7 @@ def _cache_resolved_context(
 def reset_stateful_context_cache_for_tests() -> None:
     _STATEFUL_CONTEXT_CACHE.clear()
     _INSTRUMENT_LOOKUP_CACHE.clear()
+    _INSTRUMENT_ENRICHMENT_CACHE.clear()
     _PRICE_LOOKUP_CACHE.clear()
     _FX_LOOKUP_CACHE.clear()
     with _FETCH_STATS_LOCK:
@@ -183,6 +194,7 @@ def get_stateful_context_cache_stats_for_tests() -> dict[str, TimedCacheStats]:
     return {
         "resolved_context": _STATEFUL_CONTEXT_CACHE.stats(),
         "instrument_lookup": _INSTRUMENT_LOOKUP_CACHE.stats(),
+        "instrument_enrichment": _INSTRUMENT_ENRICHMENT_CACHE.stats(),
         "price_lookup": _PRICE_LOOKUP_CACHE.stats(),
         "fx_lookup": _FX_LOOKUP_CACHE.stats(),
     }
@@ -250,6 +262,30 @@ def _resolve_query_base_url() -> str:
     return _DEFAULT_LOTUS_CORE_QUERY_BASE_URL
 
 
+def _resolve_control_plane_base_url() -> str:
+    explicit = os.getenv("LOTUS_CORE_BASE_URL")
+    if explicit:
+        return explicit.rstrip("/")
+
+    query_base_url = _resolve_query_base_url()
+    split = urlsplit(query_base_url)
+    host = split.hostname
+    if host is None:
+        raise LotusCoreStatefulContextUnavailableError(
+            "LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE"
+        )
+    netloc = host
+    if split.username or split.password:
+        auth = split.username or ""
+        if split.password:
+            auth = f"{auth}:{split.password}"
+        netloc = f"{auth}@{host}"
+    if split.port is not None:
+        control_plane_port = 8202 if split.port == 8201 else split.port
+        netloc = f"{netloc}:{control_plane_port}"
+    return urlunsplit((split.scheme or "http", netloc, split.path.rstrip("/"), "", ""))
+
+
 def _decimal_or_none(value: Any) -> Decimal | None:
     if value is None or value == "":
         return None
@@ -257,6 +293,48 @@ def _decimal_or_none(value: Any) -> Decimal | None:
         return Decimal(str(value))
     except (InvalidOperation, ValueError):
         return None
+
+
+def _normalized_optional_str(value: Any) -> str | None:
+    normalized = str(value or "").strip()
+    return normalized or None
+
+
+def _resolve_liquidity_tier(
+    *,
+    asset_class: Any,
+    product_type: Any,
+    sector: Any,
+    rating: Any,
+) -> str | None:
+    asset_class_value = str(asset_class or "").strip().upper()
+    product_type_value = str(product_type or "").strip().upper()
+    sector_value = str(sector or "").strip().upper()
+    rating_value = str(rating or "").strip().upper()
+
+    if asset_class_value == "CASH" or product_type_value == "CASH":
+        return "L1"
+    if product_type_value in {"ETF"}:
+        return "L1"
+    if product_type_value == "EQUITY" or asset_class_value == "EQUITY":
+        return "L1"
+    if product_type_value == "BOND":
+        if sector_value == "GOVERNMENT":
+            return "L1"
+        if rating_value.startswith("A") or rating_value.startswith("BBB"):
+            return "L2"
+        return "L3"
+    if product_type_value == "FUND" or asset_class_value == "FUND":
+        if "PRIVATE" in sector_value:
+            return "L5"
+        if sector_value in {"FIXED INCOME", "PRIVATE CREDIT"}:
+            return "L3"
+        return "L2"
+    if asset_class_value == "FIXED INCOME":
+        if sector_value == "GOVERNMENT":
+            return "L1"
+        return "L2"
+    return None
 
 
 def _require_decimal(value: Any, *, error_code: str) -> Decimal:
@@ -323,6 +401,53 @@ def _fetch_json_with_cache(
         json_body=json_body,
     )
     return _cache_payload(cache, cache_key=cache_key, payload=payload)
+
+
+def _fetch_instrument_enrichment_bulk(
+    client: httpx.Client,
+    *,
+    base_url: str,
+    security_ids: list[str],
+) -> dict[str, dict[str, Any]]:
+    if not security_ids:
+        return {}
+    requested_ids = sorted({security_id for security_id in security_ids if security_id})
+    enrichment_by_security_id: dict[str, dict[str, Any]] = {}
+    missing_ids: list[str] = []
+    for security_id in requested_ids:
+        cached_record = _get_cached_payload(
+            _INSTRUMENT_ENRICHMENT_CACHE,
+            cache_key=f"instrument-enrichment:{security_id}",
+        )
+        if cached_record is None:
+            missing_ids.append(security_id)
+        else:
+            enrichment_by_security_id[security_id] = cached_record
+    if not missing_ids:
+        return enrichment_by_security_id
+    payload = _request_json(
+        client,
+        method="POST",
+        base_url=base_url,
+        path=_INSTRUMENT_ENRICHMENT_BULK_PATH,
+        error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
+        json_body={"security_ids": missing_ids},
+    )
+    records = payload.get("records")
+    if not isinstance(records, list):
+        return enrichment_by_security_id
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        security_id = str(record.get("security_id") or "").strip()
+        if not security_id:
+            continue
+        enrichment_by_security_id[security_id] = _cache_payload(
+            _INSTRUMENT_ENRICHMENT_CACHE,
+            cache_key=f"instrument-enrichment:{security_id}",
+            payload=record,
+        )
+    return enrichment_by_security_id
 
 
 def _build_cash_balances(cash_payload: dict[str, Any]) -> list[CashBalance]:
@@ -438,6 +563,7 @@ def _build_shelf_entries(
     *,
     positions_payload: dict[str, Any],
     cash_payload: dict[str, Any],
+    enrichment_by_instrument_id: dict[str, dict[str, Any]] | None = None,
 ) -> list[ShelfEntry]:
     shelf_by_instrument: dict[str, ShelfEntry] = {}
 
@@ -448,15 +574,37 @@ def _build_shelf_entries(
         if not instrument_id:
             continue
         asset_class = str(raw_position.get("asset_class") or "UNKNOWN").strip().upper()
+        enrichment_row = (enrichment_by_instrument_id or {}).get(instrument_id, {})
         shelf_by_instrument[instrument_id] = ShelfEntry(
             instrument_id=instrument_id,
             status="APPROVED",
             asset_class=asset_class or "UNKNOWN",
+            issuer_id=_normalized_optional_str(
+                raw_position.get("issuer_id")
+                if raw_position.get("issuer_id") is not None
+                else enrichment_row.get("issuer_id")
+            ),
+            liquidity_tier=_resolve_liquidity_tier(
+                asset_class=asset_class,
+                product_type=raw_position.get("product_type"),
+                sector=raw_position.get("sector"),
+                rating=raw_position.get("rating"),
+            ),
             attributes=_shelf_attributes_from_payload(
                 sector=raw_position.get("sector"),
                 country=raw_position.get("country_of_risk"),
                 product_type=raw_position.get("product_type"),
                 rating=raw_position.get("rating"),
+                ultimate_parent_issuer_id=(
+                    raw_position.get("ultimate_parent_issuer_id")
+                    if raw_position.get("ultimate_parent_issuer_id") is not None
+                    else enrichment_row.get("ultimate_parent_issuer_id")
+                ),
+                ultimate_parent_issuer_name=(
+                    raw_position.get("ultimate_parent_issuer_name")
+                    if raw_position.get("ultimate_parent_issuer_name") is not None
+                    else enrichment_row.get("ultimate_parent_issuer_name")
+                ),
             ),
         )
 
@@ -472,6 +620,8 @@ def _build_shelf_entries(
             instrument_id=instrument_id,
             status="APPROVED",
             asset_class="CASH",
+            issuer_id=_normalized_optional_str(account.get("issuer_id")),
+            liquidity_tier="L1",
             attributes=_shelf_attributes_from_payload(product_type="Cash"),
         )
 
@@ -566,6 +716,7 @@ def _append_shelf_entry_if_missing(
     simulate_request: ProposalSimulateRequest,
     instrument_id: str,
     instrument_row: dict[str, Any],
+    enrichment_row: dict[str, Any] | None = None,
 ) -> None:
     if any(entry.instrument_id == instrument_id for entry in simulate_request.shelf_entries):
         return
@@ -575,11 +726,32 @@ def _append_shelf_entry_if_missing(
             instrument_id=instrument_id,
             status="APPROVED",
             asset_class=asset_class or "UNKNOWN",
+            issuer_id=_normalized_optional_str(
+                instrument_row.get("issuer_id")
+                if instrument_row.get("issuer_id") is not None
+                else (enrichment_row or {}).get("issuer_id")
+            ),
+            liquidity_tier=_resolve_liquidity_tier(
+                asset_class=asset_class,
+                product_type=instrument_row.get("product_type"),
+                sector=instrument_row.get("sector"),
+                rating=instrument_row.get("rating"),
+            ),
             attributes=_shelf_attributes_from_payload(
                 sector=instrument_row.get("sector"),
                 country=instrument_row.get("country_of_risk"),
                 product_type=instrument_row.get("product_type"),
                 rating=instrument_row.get("rating"),
+                ultimate_parent_issuer_id=(
+                    instrument_row.get("ultimate_parent_issuer_id")
+                    if instrument_row.get("ultimate_parent_issuer_id") is not None
+                    else (enrichment_row or {}).get("ultimate_parent_issuer_id")
+                ),
+                ultimate_parent_issuer_name=(
+                    instrument_row.get("ultimate_parent_issuer_name")
+                    if instrument_row.get("ultimate_parent_issuer_name") is not None
+                    else (enrichment_row or {}).get("ultimate_parent_issuer_name")
+                ),
             ),
         )
     )
@@ -644,8 +816,14 @@ def enrich_stateful_simulate_request_for_trade_drafts(
         return simulate_request
 
     base_url = _resolve_query_base_url()
+    control_plane_base_url = _resolve_control_plane_base_url()
     enriched_request = simulate_request.model_copy(deep=True)
     with httpx.Client(timeout=_resolve_timeout()) as client:
+        enrichment_by_instrument_id = _fetch_instrument_enrichment_bulk(
+            client,
+            base_url=control_plane_base_url,
+            security_ids=sorted(missing_instrument_ids),
+        )
         for instrument_id in sorted(missing_instrument_ids):
             instrument_payload = _fetch_json_with_cache(
                 client,
@@ -689,6 +867,7 @@ def enrich_stateful_simulate_request_for_trade_drafts(
                 simulate_request=enriched_request,
                 instrument_id=instrument_id,
                 instrument_row=instrument_row,
+                enrichment_row=enrichment_by_instrument_id.get(instrument_id),
             )
             _append_fx_rate_if_missing(
                 client=client,
@@ -710,6 +889,7 @@ def resolve_stateful_context_with_lotus_core(
         return cached
 
     base_url = _resolve_query_base_url()
+    control_plane_base_url = _resolve_control_plane_base_url()
     with httpx.Client(timeout=_resolve_timeout()) as client:
         portfolio_payload = _request_json(
             client,
@@ -732,6 +912,20 @@ def resolve_stateful_context_with_lotus_core(
             path=_CASH_BALANCES_PATH,
             error_code="LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE",
             json_body={"portfolio_id": stateful_input.portfolio_id},
+        )
+        held_instrument_ids = sorted(
+            {
+                str(raw_position.get("security_id") or "").strip()
+                for raw_position in positions_payload.get("positions", [])
+                if isinstance(raw_position, dict)
+                and str(raw_position.get("asset_class") or "").strip().lower() != "cash"
+                and str(raw_position.get("security_id") or "").strip()
+            }
+        )
+        enrichment_by_instrument_id = _fetch_instrument_enrichment_bulk(
+            client,
+            base_url=control_plane_base_url,
+            security_ids=held_instrument_ids,
         )
 
     portfolio_id = str(portfolio_payload.get("portfolio_id") or stateful_input.portfolio_id).strip()
@@ -766,6 +960,7 @@ def resolve_stateful_context_with_lotus_core(
         shelf_entries=_build_shelf_entries(
             positions_payload=positions_payload,
             cash_payload=cash_payload,
+            enrichment_by_instrument_id=enrichment_by_instrument_id,
         ),
         options=EngineOptions(enable_proposal_simulation=True),
         proposed_cash_flows=[],

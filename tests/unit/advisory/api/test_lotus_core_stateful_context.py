@@ -110,7 +110,9 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
     monkeypatch, stateful_input
 ):
     base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
     responses = {
         (
             "GET",
@@ -147,6 +149,9 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
                         "sector": "Information Technology",
                         "country_of_risk": "United States",
                         "product_type": "Equity",
+                        "issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_name": "Apple Inc.",
                         "valuation": {
                             "market_price": "194.0000000000",
                             "market_value": "155200.0000000000",
@@ -162,6 +167,9 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
                         "country_of_risk": "Switzerland",
                         "product_type": "Equity",
                         "rating": "AA",
+                        "issuer_id": "ISSUER_NESN",
+                        "ultimate_parent_issuer_id": "ISSUER_NESN",
+                        "ultimate_parent_issuer_name": "Nestle S.A.",
                         "valuation": {
                             "market_price": "94.5000000000",
                             "market_value": "12400.0000000000",
@@ -199,6 +207,27 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
                 ],
             }
         ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse(
+            {
+                "records": [
+                    {
+                        "security_id": "SEC_AAPL_US",
+                        "issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_name": "Apple Inc.",
+                    },
+                    {
+                        "security_id": "SEC_NESN_CH",
+                        "issuer_id": "ISSUER_NESN",
+                        "ultimate_parent_issuer_id": "ISSUER_NESN",
+                        "ultimate_parent_issuer_name": "Nestle S.A.",
+                    },
+                ]
+            }
+        ),
     }
     monkeypatch.setattr(
         "src.integrations.lotus_core.stateful_context.httpx.Client",
@@ -233,7 +262,7 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
             "status": "APPROVED",
             "asset_class": "CASH",
             "issuer_id": None,
-            "liquidity_tier": None,
+            "liquidity_tier": "L1",
             "settlement_days": 2,
             "min_notional": None,
             "attributes": {"product_type": "Cash", "source": "LOTUS_CORE_STATEFUL_CONTEXT"},
@@ -242,8 +271,8 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
             "instrument_id": "SEC_AAPL_US",
             "status": "APPROVED",
             "asset_class": "EQUITY",
-            "issuer_id": None,
-            "liquidity_tier": None,
+            "issuer_id": "ISSUER_AAPL",
+            "liquidity_tier": "L1",
             "settlement_days": 2,
             "min_notional": None,
             "attributes": {
@@ -251,14 +280,16 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
                 "product_type": "Equity",
                 "sector": "Information Technology",
                 "source": "LOTUS_CORE_STATEFUL_CONTEXT",
+                "ultimate_parent_issuer_id": "ISSUER_AAPL",
+                "ultimate_parent_issuer_name": "Apple Inc.",
             },
         },
         {
             "instrument_id": "SEC_NESN_CH",
             "status": "APPROVED",
             "asset_class": "EQUITY",
-            "issuer_id": None,
-            "liquidity_tier": None,
+            "issuer_id": "ISSUER_NESN",
+            "liquidity_tier": "L1",
             "settlement_days": 2,
             "min_notional": None,
             "attributes": {
@@ -267,6 +298,8 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
                 "rating": "AA",
                 "sector": "Consumer Staples",
                 "source": "LOTUS_CORE_STATEFUL_CONTEXT",
+                "ultimate_parent_issuer_id": "ISSUER_NESN",
+                "ultimate_parent_issuer_name": "Nestle S.A.",
             },
         },
         {
@@ -274,7 +307,7 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
             "status": "APPROVED",
             "asset_class": "CASH",
             "issuer_id": None,
-            "liquidity_tier": None,
+            "liquidity_tier": "L1",
             "settlement_days": 2,
             "min_notional": None,
             "attributes": {"product_type": "Cash", "source": "LOTUS_CORE_STATEFUL_CONTEXT"},
@@ -292,7 +325,9 @@ def test_resolve_stateful_context_with_lotus_core_rejects_invalid_portfolio_payl
     monkeypatch, stateful_input
 ):
     base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
     responses = {
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse({"portfolio_id": ""}),
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
@@ -303,6 +338,21 @@ def test_resolve_stateful_context_with_lotus_core_rejects_invalid_portfolio_payl
                 "portfolio_id": "DEMO_ADV_USD_001",
                 "resolved_as_of_date": "2026-03-27",
                 "cash_accounts": [],
+            }
+        ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse(
+            {
+                "records": [
+                    {
+                        "security_id": "SEC_AAPL_US",
+                        "issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_name": "Apple Inc.",
+                    }
+                ]
             }
         ),
     }
@@ -321,7 +371,9 @@ def test_resolve_stateful_context_with_lotus_core_reuses_cached_context(
     monkeypatch, stateful_input
 ):
     base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
     request_counter = {"count": 0}
     responses = {
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
@@ -335,6 +387,21 @@ def test_resolve_stateful_context_with_lotus_core_reuses_cached_context(
                 "portfolio_id": "DEMO_ADV_USD_001",
                 "resolved_as_of_date": "2026-03-27",
                 "cash_accounts": [],
+            }
+        ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse(
+            {
+                "records": [
+                    {
+                        "security_id": "SEC_AAPL_US",
+                        "issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_name": "Apple Inc.",
+                    }
+                ]
             }
         ),
     }
@@ -372,7 +439,9 @@ def test_resolve_stateful_context_with_lotus_core_returns_copy_safe_cached_resul
     monkeypatch, stateful_input
 ):
     base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
     responses = {
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
             {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
@@ -402,6 +471,21 @@ def test_resolve_stateful_context_with_lotus_core_returns_copy_safe_cached_resul
                 "cash_accounts": [],
             }
         ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse(
+            {
+                "records": [
+                    {
+                        "security_id": "SEC_AAPL_US",
+                        "issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_id": "ISSUER_AAPL",
+                        "ultimate_parent_issuer_name": "Apple Inc.",
+                    }
+                ]
+            }
+        ),
     }
     monkeypatch.setattr(
         "src.integrations.lotus_core.stateful_context.httpx.Client",
@@ -420,7 +504,9 @@ def test_resolve_stateful_context_with_lotus_core_refetches_when_cache_ttl_is_ze
     monkeypatch, stateful_input
 ):
     base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
     monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", "0")
     request_counter = {"count": 0}
     responses = {
@@ -765,7 +851,9 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
     from src.core.models import ProposalSimulateRequest
 
     base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
     simulate_request = ProposalSimulateRequest.model_validate(
         {
             "portfolio_snapshot": {
@@ -794,6 +882,21 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
         }
     )
     responses = {
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse(
+            {
+                "records": [
+                    {
+                        "security_id": "EQ_NEW_CHF",
+                        "issuer_id": "ISSUER_EQ_NEW_CHF",
+                        "ultimate_parent_issuer_id": "ULTIMATE_EQ_NEW_CHF",
+                        "ultimate_parent_issuer_name": "Issuer Parent AG",
+                    }
+                ]
+            }
+        ),
         ("GET", f"{base_url}/instruments/?security_id=EQ_NEW_CHF"): _FakeResponse(
             {
                 "total": 1,
@@ -848,19 +951,23 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
         "currency": "CHF",
     }
     assert enriched.shelf_entries[-1].model_dump(mode="json")["instrument_id"] == "EQ_NEW_CHF"
+    assert enriched.shelf_entries[-1].model_dump(mode="json")["issuer_id"] == "ISSUER_EQ_NEW_CHF"
+    assert enriched.shelf_entries[-1].model_dump(mode="json")["liquidity_tier"] == "L1"
     assert enriched.shelf_entries[-1].model_dump(mode="json")["attributes"] == {
         "country": "Switzerland",
         "product_type": "Equity",
         "rating": "A",
         "sector": "Industrials",
         "source": "LOTUS_CORE_STATEFUL_CONTEXT",
+        "ultimate_parent_issuer_id": "ULTIMATE_EQ_NEW_CHF",
+        "ultimate_parent_issuer_name": "Issuer Parent AG",
     }
     assert enriched.market_data_snapshot.model_dump(mode="json")["fx_rates"][-1] == {
         "pair": "CHF/USD",
         "rate": "1.10",
     }
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.instrument_fetches == 1
+    assert fetch_stats.instrument_fetches == 2
     assert fetch_stats.price_fetches == 1
     assert fetch_stats.fx_fetches == 1
 
@@ -871,7 +978,9 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_s
     from src.core.models import ProposalSimulateRequest
 
     base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
     simulate_request = ProposalSimulateRequest.model_validate(
         {
             "portfolio_snapshot": {
@@ -897,6 +1006,21 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_s
     )
     request_counter = {"count": 0}
     responses = {
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse(
+            {
+                "records": [
+                    {
+                        "security_id": "EQ_NEW_CHF",
+                        "issuer_id": "ISSUER_EQ_NEW_CHF",
+                        "ultimate_parent_issuer_id": "ULTIMATE_EQ_NEW_CHF",
+                        "ultimate_parent_issuer_name": "Issuer Parent AG",
+                    }
+                ]
+            }
+        ),
         ("GET", f"{base_url}/instruments/?security_id=EQ_NEW_CHF"): _FakeResponse(
             {
                 "total": 1,
@@ -952,7 +1076,7 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_s
         as_of="2026-03-25",
     )
 
-    assert request_counter["count"] == 3
+    assert request_counter["count"] == 4
     stats = get_stateful_context_cache_stats_for_tests()
     assert stats["instrument_lookup"].misses == 1
     assert stats["instrument_lookup"].hits == 1
@@ -961,7 +1085,7 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_s
     assert stats["fx_lookup"].misses == 1
     assert stats["fx_lookup"].hits == 1
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.instrument_fetches == 1
+    assert fetch_stats.instrument_fetches == 2
     assert fetch_stats.price_fetches == 1
     assert fetch_stats.fx_fetches == 1
 
@@ -972,7 +1096,9 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_skips_malformed_looku
     from src.core.models import ProposalSimulateRequest
 
     base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
     simulate_request = ProposalSimulateRequest.model_validate(
         {
             "portfolio_snapshot": {
@@ -997,6 +1123,12 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_skips_malformed_looku
         }
     )
     responses = {
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse(
+            {"records": [{"security_id": "EQ_BAD", "issuer_id": "ISSUER_BAD"}]}
+        ),
         ("GET", f"{base_url}/instruments/?security_id=EQ_BAD"): _FakeResponse(
             {"total": 1, "instruments": ["not-a-dict"]}
         ),
