@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import pytest
@@ -616,6 +617,28 @@ def test_service_accept_async_create_submission_marks_replayed_duplicates() -> N
     assert duplicate_is_new is False
     assert duplicate.operation_id == first.operation_id
     assert duplicate.correlation_id == first.correlation_id
+
+
+def test_service_accept_async_create_submission_is_concurrency_safe() -> None:
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+
+    def _submit() -> tuple[str, bool]:
+        accepted, is_new = service.accept_create_proposal_async_submission(
+            payload=payload,
+            idempotency_key="idem-async-concurrent-create",
+            correlation_id=None,
+        )
+        return accepted.operation_id, is_new
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: _submit(), range(24)))
+
+    operation_ids = {operation_id for operation_id, _ in results}
+    new_flags = [is_new for _, is_new in results]
+    assert len(operation_ids) == 1
+    assert sum(1 for value in new_flags if value) == 1
 
 
 def test_service_execute_create_proposal_async_retries_runtime_failure(monkeypatch):

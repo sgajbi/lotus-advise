@@ -56,6 +56,24 @@ class InMemoryProposalRepository(ProposalRepository):
             if operation.idempotency_key:
                 self._operation_by_idempotency[operation.idempotency_key] = operation.operation_id
 
+    def create_operation_if_absent_by_idempotency(
+        self, operation: ProposalAsyncOperationRecord
+    ) -> tuple[ProposalAsyncOperationRecord, bool]:
+        with self._lock:
+            if operation.idempotency_key:
+                existing_operation_id = self._operation_by_idempotency.get(
+                    operation.idempotency_key
+                )
+                if existing_operation_id is not None:
+                    existing = self._operations.get(existing_operation_id)
+                    if existing is not None:
+                        return deepcopy(existing), False
+            self._operations[operation.operation_id] = deepcopy(operation)
+            self._operation_by_correlation[operation.correlation_id] = operation.operation_id
+            if operation.idempotency_key:
+                self._operation_by_idempotency[operation.idempotency_key] = operation.operation_id
+            return deepcopy(operation), True
+
     def update_operation(self, operation: ProposalAsyncOperationRecord) -> None:
         with self._lock:
             self._operations[operation.operation_id] = deepcopy(operation)

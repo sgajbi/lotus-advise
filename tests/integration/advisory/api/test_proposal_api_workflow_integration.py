@@ -963,6 +963,25 @@ def test_async_create_idempotency_reuses_operation_and_blocks_conflicts() -> Non
     assert by_correlation.json()["operation_id"] == first_body["operation_id"]
 
 
+def test_async_create_idempotency_is_stable_under_concurrency() -> None:
+    payload = _base_create_payload("pf_integration_async_concurrency_1")
+    headers = {"Idempotency-Key": "integration-proposal-async-concurrency-1"}
+
+    def _call() -> tuple[int, str]:
+        with TestClient(app) as client:
+            response = client.post("/advisory/proposals/async", json=payload, headers=headers)
+        body = response.json()
+        return response.status_code, body["operation_id"]
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: _call(), range(24)))
+
+    statuses = [status for status, _ in results]
+    operation_ids = [operation_id for _, operation_id in results]
+    assert all(status == 202 for status in statuses)
+    assert len(set(operation_ids)) == 1
+
+
 def test_proposal_async_operation_not_found_returns_404() -> None:
     with TestClient(app) as client:
         response = client.get("/advisory/proposals/operations/pop_missing")
