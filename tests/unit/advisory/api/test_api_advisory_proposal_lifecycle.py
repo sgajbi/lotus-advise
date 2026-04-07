@@ -8,7 +8,10 @@ import src.api.proposals.router as proposals_router
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.proposals import ProposalAsyncAcceptedResponse, ProposalIdempotencyConflictError
-from src.integrations.lotus_core.stateful_context import reset_stateful_context_cache_for_tests
+from src.integrations.lotus_core.stateful_context import (
+    get_stateful_context_fetch_stats_for_tests,
+    reset_stateful_context_cache_for_tests,
+)
 from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
     build_basic_stateful_query_responses,
@@ -199,6 +202,63 @@ def test_create_proposal_supports_stateful_context_resolution(monkeypatch):
     assert context_resolution["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_stateful_001_2026-03-25"
     )
+
+
+def test_stateful_simulate_and_create_share_warm_lotus_core_context(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    query_client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_cross_surface",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+
+    simulate_payload = {
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_cross_surface",
+            "as_of": "2026-03-25",
+        },
+    }
+    create_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_cross_surface",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {
+            "title": "Cross-surface cached proposal",
+            "advisor_notes": "Should reuse the warmed stateful context",
+            "jurisdiction": "SG",
+        },
+    }
+
+    with TestClient(app) as client:
+        simulated = client.post(
+            "/advisory/proposals/simulate",
+            json=simulate_payload,
+            headers={"Idempotency-Key": "stateful-cross-surface-simulate"},
+        )
+        created = client.post(
+            "/advisory/proposals",
+            json=create_payload,
+            headers={"Idempotency-Key": "stateful-cross-surface-create"},
+        )
+
+    assert simulated.status_code == 200
+    assert created.status_code == 200
+    assert query_client.request_count == 3
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 1
+    assert fetch_stats.positions_fetches == 1
+    assert fetch_stats.cash_fetches == 1
 
 
 def test_create_proposal_rejects_stateful_request_when_context_resolution_is_unavailable():
