@@ -447,6 +447,67 @@ def test_resolve_stateful_context_with_lotus_core_refetches_when_cache_ttl_is_ze
     assert fetch_stats.cash_fetches == 2
 
 
+def test_resolve_stateful_context_with_lotus_core_isolates_distinct_as_of_inputs(
+    monkeypatch,
+):
+    from src.core.workspace.models import WorkspaceStatefulInput
+
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    request_counter = {"count": 0}
+    cash_dates = iter(["2026-03-27", "2026-03-28"])
+
+    class _AsOfAwareFakeClient(_FakeClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ) -> _FakeResponse:
+            request_counter["count"] += 1
+            if method.upper() == "POST" and url == f"{base_url}/reporting/cash-balances/query":
+                return _FakeResponse(
+                    {
+                        "portfolio_id": "DEMO_ADV_USD_001",
+                        "resolved_as_of_date": next(cash_dates),
+                        "cash_accounts": [],
+                    }
+                )
+            return super().request(method, url, json=json)
+
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
+        ),
+    }
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _AsOfAwareFakeClient(responses),
+    )
+
+    first = resolve_stateful_context_with_lotus_core(
+        WorkspaceStatefulInput(portfolio_id="DEMO_ADV_USD_001", as_of="2026-03-27")
+    )
+    second = resolve_stateful_context_with_lotus_core(
+        WorkspaceStatefulInput(portfolio_id="DEMO_ADV_USD_001", as_of="2026-03-28")
+    )
+
+    assert first.resolved_context.as_of == "2026-03-27"
+    assert second.resolved_context.as_of == "2026-03-28"
+    assert (
+        first.resolved_context.portfolio_snapshot_id
+        != second.resolved_context.portfolio_snapshot_id
+    )
+    assert request_counter["count"] == 6
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 2
+    assert fetch_stats.positions_fetches == 2
+    assert fetch_stats.cash_fetches == 2
+
+
 def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
     monkeypatch,
 ):

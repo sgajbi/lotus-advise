@@ -531,6 +531,93 @@ def test_stateful_create_and_version_share_warm_lotus_core_context(monkeypatch):
     assert fetch_stats.cash_fetches == 1
 
 
+def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    cash_dates = iter(["2026-03-25", "2026-03-26"])
+
+    class _AsOfAwareQueryClient(CountingLotusCoreQueryClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ):
+            if method.upper() == "POST" and url == f"{base_url}/reporting/cash-balances/query":
+                self.request_count += 1
+                return self._responses[("POST", url)].__class__(
+                    {
+                        "portfolio_id": "pf_stateful_asof_boundary",
+                        "resolved_as_of_date": next(cash_dates),
+                        "cash_accounts": [],
+                    }
+                )
+            return super().request(method, url, json=json)
+
+    query_client = _AsOfAwareQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_asof_boundary",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+
+    first_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_asof_boundary",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {"title": "Boundary create 1", "jurisdiction": "SG"},
+    }
+    second_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_asof_boundary",
+            "as_of": "2026-03-26",
+        },
+        "metadata": {"title": "Boundary create 2", "jurisdiction": "SG"},
+    }
+
+    with TestClient(app) as client:
+        first = client.post(
+            "/advisory/proposals",
+            json=first_payload,
+            headers={"Idempotency-Key": "stateful-asof-boundary-1"},
+        )
+        second = client.post(
+            "/advisory/proposals",
+            json=second_payload,
+            headers={"Idempotency-Key": "stateful-asof-boundary-2"},
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    first_context = first.json()["version"]["evidence_bundle"]["context_resolution"][
+        "resolved_context"
+    ]
+    second_context = second.json()["version"]["evidence_bundle"]["context_resolution"][
+        "resolved_context"
+    ]
+    assert first_context["portfolio_snapshot_id"] == (
+        "lotus-core:portfolio:pf_stateful_asof_boundary:2026-03-25"
+    )
+    assert second_context["portfolio_snapshot_id"] == (
+        "lotus-core:portfolio:pf_stateful_asof_boundary:2026-03-26"
+    )
+    assert query_client.request_count == 6
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 2
+    assert fetch_stats.positions_fetches == 2
+    assert fetch_stats.cash_fetches == 2
+
+
 def test_async_create_proposal_supports_stateful_context_resolution(monkeypatch):
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
