@@ -472,6 +472,105 @@ def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
     assert request_counter["count"] == 9
 
 
+def test_resolve_stateful_context_with_lotus_core_does_not_cache_failures(
+    monkeypatch, stateful_input
+):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    request_counter = {"count": 0}
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": ""}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
+        ),
+        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "resolved_as_of_date": "2026-03-27",
+                "cash_accounts": [],
+            }
+        ),
+    }
+
+    class _CountingFakeClient(_FakeClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ) -> _FakeResponse:
+            request_counter["count"] += 1
+            return super().request(method, url, json=json)
+
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _CountingFakeClient(responses),
+    )
+
+    with pytest.raises(LotusCoreStatefulContextUnavailableError):
+        resolve_stateful_context_with_lotus_core(stateful_input)
+    with pytest.raises(LotusCoreStatefulContextUnavailableError):
+        resolve_stateful_context_with_lotus_core(stateful_input)
+
+    assert request_counter["count"] == 6
+
+
+def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resolution(
+    monkeypatch, stateful_input
+):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    request_counter = {"count": 0}
+    portfolio_payload = {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": ""}
+
+    class _RecoveringFakeClient:
+        def __enter__(self) -> "_RecoveringFakeClient":
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ) -> _FakeResponse:
+            request_counter["count"] += 1
+            if (method.upper(), url) == ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"):
+                return _FakeResponse(dict(portfolio_payload))
+            if (method.upper(), url) == (
+                "GET",
+                f"{base_url}/portfolios/DEMO_ADV_USD_001/positions",
+            ):
+                return _FakeResponse({"portfolio_id": "DEMO_ADV_USD_001", "positions": []})
+            if (method.upper(), url) == ("POST", f"{base_url}/reporting/cash-balances/query"):
+                return _FakeResponse(
+                    {
+                        "portfolio_id": "DEMO_ADV_USD_001",
+                        "resolved_as_of_date": "2026-03-27",
+                        "cash_accounts": [],
+                    }
+                )
+            raise AssertionError(f"unexpected request: {(method.upper(), url)} body={json}")
+
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _RecoveringFakeClient(),
+    )
+
+    with pytest.raises(LotusCoreStatefulContextUnavailableError):
+        resolve_stateful_context_with_lotus_core(stateful_input)
+
+    portfolio_payload["base_currency"] = "USD"
+    recovered = resolve_stateful_context_with_lotus_core(stateful_input)
+
+    assert recovered.resolved_context.portfolio_id == "DEMO_ADV_USD_001"
+    assert request_counter["count"] == 6
+
+
 def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_inputs(
     monkeypatch,
 ):
