@@ -158,6 +158,7 @@ class ProposalWorkflowService:
         lifecycle_origin: ProposalLifecycleOrigin = "DIRECT_CREATE",
         source_workspace_id: Optional[str] = None,
         replay_lineage: Optional[dict[str, Any]] = None,
+        context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
         self._validate_lifecycle_origin(
             lifecycle_origin=lifecycle_origin,
@@ -199,7 +200,11 @@ class ProposalWorkflowService:
             created_at=now.isoformat(),
         )
         evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
-        evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        evidence_bundle["context_resolution"] = (
+            dict(context_resolution_override)
+            if context_resolution_override is not None
+            else build_context_resolution_evidence(resolved_request)
+        )
         evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
         if replay_lineage:
             evidence_bundle["replay_lineage"] = dict(replay_lineage)
@@ -732,6 +737,7 @@ class ProposalWorkflowService:
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
         replay_lineage: Optional[dict[str, Any]] = None,
+        context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
         now = _utc_now()
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
@@ -778,7 +784,11 @@ class ProposalWorkflowService:
             created_at=now.isoformat(),
         )
         evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
-        evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        evidence_bundle["context_resolution"] = (
+            dict(context_resolution_override)
+            if context_resolution_override is not None
+            else build_context_resolution_evidence(resolved_request)
+        )
         evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
         if replay_lineage:
             evidence_bundle["replay_lineage"] = dict(replay_lineage)

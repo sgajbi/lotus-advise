@@ -49,6 +49,7 @@ class LiveParityResult:
     degraded_issuer_coverage_status: str
     cold_duration_ms: float
     warm_duration_ms: float
+    workspace_handoff_portfolio: str
 
 
 def _assert(condition: bool, message: str) -> None:
@@ -398,6 +399,136 @@ def _measure_warm_cache(
     return cold_ms, warm_ms
 
 
+def _post_json(
+    client: httpx.Client,
+    *,
+    url: str,
+    expected_status: int,
+    json_body: dict[str, Any],
+    headers: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    return _request_json(
+        client,
+        method="POST",
+        url=url,
+        expected_status=expected_status,
+        json_body=json_body,
+        headers=headers,
+    )
+
+
+def _assert_workspace_flow(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    scenario: PortfolioParityScenario,
+) -> None:
+    create_body = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces",
+        expected_status=201,
+        json_body={
+            "workspace_name": f"Live parity {scenario.portfolio_id}",
+            "created_by": "live-parity-validator",
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": scenario.portfolio_id,
+                "as_of": scenario.as_of_date,
+            },
+        },
+    )
+    workspace = create_body["workspace"]
+    workspace_id = str(workspace["workspace_id"])
+    _assert(
+        workspace["resolved_context"]["portfolio_id"] == scenario.portfolio_id,
+        f"{scenario.portfolio_id}: workspace resolved wrong portfolio context",
+    )
+
+    evaluated = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces/{workspace_id}/evaluate",
+        expected_status=200,
+        json_body={},
+    )
+    latest_result = evaluated.get("latest_proposal_result")
+    _assert(
+        isinstance(latest_result, dict),
+        f"{scenario.portfolio_id}: workspace evaluate missing proposal result",
+    )
+    latest_result_dict = cast(dict[str, Any], latest_result)
+    _assert_authority_posture(scenario=scenario, proposal_body=latest_result_dict)
+
+    saved = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces/{workspace_id}/save",
+        expected_status=200,
+        json_body={"saved_by": "live-parity-validator", "version_label": "live-parity-baseline"},
+    )
+    saved_version = saved["saved_version"]
+    workspace_version_id = str(saved_version["workspace_version_id"])
+    saved_risk_lens = saved_version["replay_evidence"].get("risk_lens")
+    _assert(
+        isinstance(saved_risk_lens, dict) and saved_risk_lens.get("source_service") == "lotus-risk",
+        f"{scenario.portfolio_id}: workspace saved replay evidence missing lotus-risk lens",
+    )
+
+    handoff = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces/{workspace_id}/handoff",
+        expected_status=200,
+        json_body={"handoff_by": "live-parity-validator"},
+        headers={"Idempotency-Key": f"live-workspace-handoff-{uuid.uuid4().hex}"},
+    )
+    _assert(
+        handoff["handoff_action"] == "CREATED_PROPOSAL",
+        f"{scenario.portfolio_id}: unexpected workspace handoff action {handoff['handoff_action']}",
+    )
+    version = handoff["proposal"]["version"]
+    proposal = handoff["proposal"]["proposal"]
+    proposal_result = version["proposal_result"]
+    _assert_authority_posture(scenario=scenario, proposal_body=proposal_result)
+
+    workspace_replay = _request_json(
+        client,
+        method="GET",
+        url=(
+            f"{advise_base_url}/advisory/workspaces/{workspace_id}/saved-versions/"
+            f"{workspace_version_id}/replay-evidence"
+        ),
+        expected_status=200,
+    )
+    proposal_replay = _request_json(
+        client,
+        method="GET",
+        url=(
+            f"{advise_base_url}/advisory/proposals/{proposal['proposal_id']}/versions/"
+            f"{version['version_no']}/replay-evidence"
+        ),
+        expected_status=200,
+    )
+    _assert(
+        workspace_replay["evidence"]["risk_lens"]["source_service"] == "lotus-risk",
+        f"{scenario.portfolio_id}: workspace replay evidence missing lotus-risk source",
+    )
+    _assert(
+        proposal_replay["evidence"]["risk_lens"]["source_service"] == "lotus-risk",
+        f"{scenario.portfolio_id}: proposal replay evidence missing lotus-risk source",
+    )
+    _assert(
+        workspace_replay["subject"]["proposal_id"] == proposal["proposal_id"],
+        f"{scenario.portfolio_id}: workspace replay subject missing proposal linkage",
+    )
+    _assert(
+        proposal_replay["continuity"]["workspace_version_id"] == workspace_version_id,
+        f"{scenario.portfolio_id}: proposal replay continuity missing workspace version linkage",
+    )
+    _assert(
+        workspace_replay["hashes"]["evaluation_request_hash"]
+        == proposal_replay["hashes"]["evaluation_request_hash"],
+        f"{scenario.portfolio_id}: workspace/proposal replay hashes diverged after handoff",
+    )
+
+
 def validate_live_cross_service_parity(
     *,
     advise_base_url: str | None = None,
@@ -476,6 +607,11 @@ def validate_live_cross_service_parity(
             advise_base_url=advise_base_url,
             scenario=complete,
         )
+        _assert_workspace_flow(
+            client,
+            advise_base_url=advise_base_url,
+            scenario=complete,
+        )
 
     return LiveParityResult(
         complete_issuer_portfolio=complete.portfolio_id,
@@ -483,6 +619,7 @@ def validate_live_cross_service_parity(
         degraded_issuer_coverage_status=degraded.issuer_coverage_status,
         cold_duration_ms=cold_ms,
         warm_duration_ms=warm_ms,
+        workspace_handoff_portfolio=complete.portfolio_id,
     )
 
 

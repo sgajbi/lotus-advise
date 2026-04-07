@@ -1660,6 +1660,13 @@ def test_workspace_handoff_uses_stateful_context_resolution(monkeypatch) -> None
     assert body["workspace"]["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_advisory_01_2026-03-25"
     )
+    context_resolution = body["proposal"]["version"]["evidence_bundle"]["context_resolution"]
+    assert context_resolution["input_mode"] == "stateful"
+    assert context_resolution["resolution_source"] == "LOTUS_CORE"
+    assert context_resolution["resolved_context"]["as_of"] == "2026-03-25"
+    assert context_resolution["resolved_context"]["portfolio_snapshot_id"] == (
+        "ps_pf_advisory_01_2026-03-25"
+    )
 
 
 def test_stateless_workspace_handoff_matches_direct_proposal_create_for_equivalent_input():

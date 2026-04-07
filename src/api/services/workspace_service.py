@@ -1,8 +1,8 @@
 from collections import OrderedDict
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Any, cast
 from typing import OrderedDict as OrderedDictType
-from typing import cast
 from uuid import uuid4
 
 from src.core.advisory.orchestration import evaluate_advisory_proposal
@@ -15,6 +15,7 @@ from src.core.proposals import (
     ProposalWorkflowService,
 )
 from src.core.proposals.context import (
+    ResolvedProposalContext,
     ResolvedSimulationContext,
     build_context_resolution_evidence,
     canonicalize_simulation_request_payload,
@@ -337,6 +338,27 @@ def _build_handoff_metadata(
     )
 
 
+def _build_workspace_handoff_context_resolution(
+    session: WorkspaceSession,
+    simulate_request: ProposalSimulateRequest,
+    metadata: ProposalCreateMetadata,
+) -> dict[str, Any]:
+    if session.resolved_context is None:
+        raise WorkspaceEvaluationUnavailableError("WORKSPACE_RESOLVED_CONTEXT_MISSING")
+    resolved_context = ProposalResolvedContext.model_validate(
+        session.resolved_context.model_dump(mode="json")
+    )
+    resolved_request = ResolvedProposalContext(
+        input_mode=session.input_mode,
+        resolution_source="LOTUS_CORE" if session.input_mode == "stateful" else "DIRECT_REQUEST",
+        simulate_request=simulate_request,
+        resolved_context=resolved_context,
+        metadata=metadata,
+        used_legacy_contract=False,
+    )
+    return cast(dict[str, Any], build_context_resolution_evidence(resolved_request))
+
+
 def _build_saved_version_summary(
     version: WorkspaceSavedVersion,
 ) -> WorkspaceSavedVersionSummary:
@@ -360,9 +382,10 @@ def _build_proposal_create_request(
     session: WorkspaceSession,
     request: WorkspaceLifecycleHandoffRequest,
 ) -> ProposalCreateRequest:
+    simulate_request = _build_simulate_request_for_workspace(session)
     return ProposalCreateRequest(
         created_by=request.handoff_by,
-        simulate_request=_build_simulate_request_for_workspace(session),
+        simulate_request=simulate_request,
         metadata=_build_handoff_metadata(request, session),
     )
 
@@ -733,6 +756,7 @@ def handoff_workspace_to_proposal_lifecycle(
                 raise WorkspaceLifecycleHandoffUnavailableError(
                     "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED"
                 )
+            create_request = _build_proposal_create_request(session, request)
             replay_lineage = _build_workspace_handoff_replay_lineage(
                 session,
                 request,
@@ -741,15 +765,21 @@ def handoff_workspace_to_proposal_lifecycle(
                 proposal_version_no=1,
             )
             proposal_response = proposal_service.create_proposal(
-                payload=_build_proposal_create_request(session, request),
+                payload=create_request,
                 idempotency_key=idempotency_key,
                 correlation_id=correlation_id,
                 lifecycle_origin="WORKSPACE_HANDOFF",
                 source_workspace_id=workspace_id,
                 replay_lineage=replay_lineage,
+                context_resolution_override=_build_workspace_handoff_context_resolution(
+                    session,
+                    create_request.simulate_request,
+                    create_request.metadata,
+                ),
             )
             handoff_action = "CREATED_PROPOSAL"
         else:
+            version_request = _build_proposal_version_request(session, request)
             replay_lineage = _build_workspace_handoff_replay_lineage(
                 session,
                 request,
@@ -759,9 +789,14 @@ def handoff_workspace_to_proposal_lifecycle(
             )
             proposal_response = proposal_service.create_version(
                 proposal_id=session.lifecycle_link.proposal_id,
-                payload=_build_proposal_version_request(session, request),
+                payload=version_request,
                 correlation_id=correlation_id,
                 replay_lineage=replay_lineage,
+                context_resolution_override=_build_workspace_handoff_context_resolution(
+                    session,
+                    version_request.simulate_request,
+                    ProposalCreateMetadata(),
+                ),
             )
             handoff_action = "CREATED_PROPOSAL_VERSION"
     except (ValueError, WorkspaceEvaluationUnavailableError) as exc:
