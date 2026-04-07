@@ -11,6 +11,10 @@ from src.api.services.workspace_service import (
     reevaluate_workspace_session,
     reset_workspace_sessions_for_tests,
 )
+from tests.shared.stateful_context_builders import (
+    build_resolved_stateful_context,
+    build_tradeable_universe_stateful_context,
+)
 
 
 def setup_function() -> None:
@@ -18,75 +22,17 @@ def setup_function() -> None:
     reset_proposal_workflow_service_for_tests()
 
 
-def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict[str, Any]:
-    return {
-        "simulate_request": {
-            "portfolio_snapshot": {
-                "snapshot_id": f"ps_{portfolio_id}_{as_of}",
-                "portfolio_id": portfolio_id,
-                "base_currency": "USD",
-                "positions": [],
-                "cash_balances": [{"currency": "USD", "amount": "10000"}],
-            },
-            "market_data_snapshot": {
-                "snapshot_id": f"md_{as_of}",
-                "prices": [],
-                "fx_rates": [],
-            },
-            "shelf_entries": [],
-            "options": {"enable_proposal_simulation": True},
-            "proposed_cash_flows": [],
-            "proposed_trades": [],
-        },
-        "resolved_context": {
-            "portfolio_id": portfolio_id,
-            "as_of": as_of,
-            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
-            "market_data_snapshot_id": f"md_{as_of}",
-        },
-    }
+def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict:
+    return build_resolved_stateful_context(
+        portfolio_id,
+        as_of,
+        cash_amount="10000",
+        include_context_ids=False,
+    )
 
 
-def _resolved_stateful_context_with_tradeable_universe(
-    portfolio_id: str,
-    as_of: str,
-) -> dict[str, Any]:
-    return {
-        "simulate_request": {
-            "portfolio_snapshot": {
-                "snapshot_id": f"ps_{portfolio_id}_{as_of}",
-                "portfolio_id": portfolio_id,
-                "base_currency": "USD",
-                "positions": [{"instrument_id": "EQ_OLD", "quantity": "10"}],
-                "cash_balances": [{"currency": "USD", "amount": "10000"}],
-            },
-            "market_data_snapshot": {
-                "snapshot_id": f"md_{as_of}",
-                "prices": [
-                    {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"},
-                    {"instrument_id": "EQ_NEW", "price": "50", "currency": "USD"},
-                ],
-                "fx_rates": [],
-            },
-            "shelf_entries": [
-                {"instrument_id": "EQ_OLD", "status": "APPROVED"},
-                {"instrument_id": "EQ_NEW", "status": "APPROVED"},
-            ],
-            "options": {
-                "enable_proposal_simulation": True,
-                "enable_workflow_gates": True,
-                "enable_suitability_scanner": True,
-            },
-            "proposed_cash_flows": [],
-            "proposed_trades": [],
-        },
-        "resolved_context": {
-            "portfolio_id": portfolio_id,
-            "as_of": as_of,
-            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
-            "market_data_snapshot_id": f"md_{as_of}",
-        },
-    }
+def _resolved_stateful_context_with_tradeable_universe(portfolio_id: str, as_of: str) -> dict:
+    return build_tradeable_universe_stateful_context(portfolio_id, as_of)
 
 
 def _normalize_proposal_result_for_parity(body: dict[str, Any]) -> dict[str, Any]:

@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import Any
 
 import pytest
 
@@ -18,6 +17,7 @@ from src.api.services.workspace_service import (
     reset_workspace_sessions_for_tests,
     save_workspace_version,
 )
+from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
 def setup_function() -> None:
@@ -25,33 +25,12 @@ def setup_function() -> None:
     reset_proposal_workflow_service_for_tests()
 
 
-def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict[str, Any]:
-    return {
-        "simulate_request": {
-            "portfolio_snapshot": {
-                "snapshot_id": f"ps_{portfolio_id}_{as_of}",
-                "portfolio_id": portfolio_id,
-                "base_currency": "USD",
-                "positions": [],
-                "cash_balances": [{"currency": "USD", "amount": "1000"}],
-            },
-            "market_data_snapshot": {
-                "snapshot_id": f"md_{as_of}",
-                "prices": [],
-                "fx_rates": [],
-            },
-            "shelf_entries": [],
-            "options": {"enable_proposal_simulation": True},
-            "proposed_cash_flows": [],
-            "proposed_trades": [],
-        },
-        "resolved_context": {
-            "portfolio_id": portfolio_id,
-            "as_of": as_of,
-            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
-            "market_data_snapshot_id": f"md_{as_of}",
-        },
-    }
+def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict:
+    return build_resolved_stateful_context(
+        portfolio_id,
+        as_of,
+        include_context_ids=False,
+    )
 
 
 def test_workspace_session_cache_evicts_oldest_entry() -> None:

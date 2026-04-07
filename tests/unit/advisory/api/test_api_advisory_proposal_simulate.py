@@ -5,6 +5,7 @@ from src.api.main import app, get_db_session
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory_engine import run_proposal_simulation
 from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
+from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
 async def override_get_db_session():
@@ -71,20 +72,12 @@ def _base_simulation_payload(portfolio_id: str = "pf_prop_api_1") -> dict:
 
 
 def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict:
-    payload = _base_simulation_payload(portfolio_id=portfolio_id)
-    payload["portfolio_snapshot"]["snapshot_id"] = f"ps_{portfolio_id}_{as_of}"
-    payload["market_data_snapshot"]["snapshot_id"] = f"md_{as_of}"
-    return {
-        "simulate_request": payload,
-        "resolved_context": {
-            "portfolio_id": portfolio_id,
-            "as_of": as_of,
-            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
-            "market_data_snapshot_id": f"md_{as_of}",
-            "risk_context_id": "risk_ctx_001",
-            "reporting_context_id": "report_ctx_001",
-        },
-    }
+    return build_resolved_stateful_context(
+        portfolio_id,
+        as_of,
+        prices=[{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+        shelf_entries=[{"instrument_id": "EQ_1", "status": "APPROVED"}],
+    )
 
 
 def test_advisory_proposal_simulate_endpoint_success(client):

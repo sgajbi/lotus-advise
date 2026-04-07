@@ -6,6 +6,7 @@ import src.api.proposals.router as proposals_router
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.proposals import ProposalIdempotencyConflictError
+from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
 def _base_create_payload(portfolio_id: str = "pf_lifecycle_1") -> dict:
@@ -120,19 +121,14 @@ def _resolved_stateful_context(
     as_of: str,
 ) -> dict:
     payload = _base_create_payload(portfolio_id=portfolio_id)["simulate_request"]
-    payload["portfolio_snapshot"]["snapshot_id"] = f"ps_{portfolio_id}_{as_of}"
-    payload["market_data_snapshot"]["snapshot_id"] = f"md_{as_of}"
-    return {
-        "simulate_request": payload,
-        "resolved_context": {
-            "portfolio_id": portfolio_id,
-            "as_of": as_of,
-            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
-            "market_data_snapshot_id": f"md_{as_of}",
-            "risk_context_id": "risk_ctx_001",
-            "reporting_context_id": "report_ctx_001",
-        },
-    }
+    return build_resolved_stateful_context(
+        portfolio_id,
+        as_of,
+        positions=payload["portfolio_snapshot"]["positions"],
+        cash_amount=payload["portfolio_snapshot"]["cash_balances"][0]["amount"],
+        prices=payload["market_data_snapshot"]["prices"],
+        shelf_entries=payload["shelf_entries"],
+    )
 
 
 def setup_function() -> None:
