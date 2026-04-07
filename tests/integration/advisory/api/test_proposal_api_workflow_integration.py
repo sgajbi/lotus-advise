@@ -360,6 +360,78 @@ def test_proposal_async_create_and_operation_lookup_roundtrip() -> None:
     assert by_operation.json()["attempt_count"] >= 1
 
 
+def test_stateful_async_create_roundtrip_persists_context_and_replay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context_with_tradeable_universe(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    payload = {
+        "created_by": "advisor_stateful_async",
+        "metadata": {
+            "title": "Stateful async create",
+            "advisor_notes": "async stateful integration coverage",
+            "jurisdiction": "SG",
+        },
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_async_stateful_integration_1",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_async_stateful_1",
+        },
+    }
+    headers = {
+        "Idempotency-Key": "integration-proposal-async-stateful-create-1",
+        "X-Correlation-Id": "corr-integration-proposal-async-stateful-create-1",
+    }
+
+    with TestClient(app) as client:
+        accepted = client.post("/advisory/proposals/async", json=payload, headers=headers)
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+        assert operation.status_code == 200
+        operation_body = operation.json()
+        assert operation_body["status"] == "SUCCEEDED"
+        proposal_id = operation_body["result"]["proposal"]["proposal_id"]
+        version_no = operation_body["result"]["version"]["version_no"]
+
+        proposal_version = client.get(f"/advisory/proposals/{proposal_id}/versions/{version_no}")
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+
+    assert proposal_version.status_code == 200
+    assert async_replay.status_code == 200
+    proposal_version_body = proposal_version.json()
+    async_replay_body = async_replay.json()
+    assert operation_body["result"]["proposal"]["portfolio_id"] == "pf_async_stateful_integration_1"
+    assert operation_body["result"]["proposal"]["mandate_id"] == "mandate_async_stateful_1"
+    assert (
+        proposal_version_body["evidence_bundle"]["context_resolution"]["input_mode"]
+        == "stateful"
+    )
+    assert proposal_version_body["evidence_bundle"]["context_resolution"]["resolution_source"] == (
+        "LOTUS_CORE"
+    )
+    assert async_replay_body["subject"]["proposal_id"] == proposal_id
+    assert async_replay_body["subject"]["proposal_version_no"] == version_no
+    assert (
+        async_replay_body["resolved_context"]["portfolio_id"]
+        == "pf_async_stateful_integration_1"
+    )
+    assert (
+        async_replay_body["evidence"]["context_resolution"]["resolved_context"][
+            "portfolio_snapshot_id"
+        ]
+        == "ps_pf_async_stateful_integration_1_2026-03-25"
+    )
+
+
 def test_proposal_async_version_roundtrip() -> None:
     with TestClient(app) as client:
         created = client.post(
@@ -393,6 +465,83 @@ def test_proposal_async_version_roundtrip() -> None:
     assert operation.json()["operation_id"] == operation_id
     assert operation.json()["status"] in {"SUCCEEDED", "PENDING"}
     assert operation.json()["attempt_count"] >= 1
+
+
+def test_stateful_async_version_roundtrip_preserves_replay_hashes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload("pf_async_stateful_version_base"),
+            headers={"Idempotency-Key": "integration-proposal-async-stateful-version-base"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+
+        accepted = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/async",
+            json={
+                    "created_by": "advisor_stateful_async",
+                    "input_mode": "stateful",
+                    "stateful_input": {
+                        "portfolio_id": "pf_async_stateful_version_base",
+                        "as_of": "2026-03-25",
+                        "mandate_id": "mandate_async_stateful_version_1",
+                    },
+            },
+            headers={"X-Correlation-Id": "corr-integration-proposal-async-stateful-version-1"},
+        )
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+        assert operation.status_code == 200
+        operation_body = operation.json()
+        assert operation_body["status"] == "SUCCEEDED"
+        version_no = operation_body["result"]["version"]["version_no"]
+
+        proposal_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+        )
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+
+    assert proposal_replay.status_code == 200
+    assert async_replay.status_code == 200
+    proposal_replay_body = proposal_replay.json()
+    async_replay_body = async_replay.json()
+    assert operation_body["result"]["proposal"]["current_version_no"] == version_no
+    assert (
+        operation_body["result"]["version"]["proposal_result"]["lineage"]["portfolio_snapshot_id"]
+        == "ps_pf_async_stateful_version_base_2026-03-25"
+    )
+    assert proposal_replay_body["resolved_context"]["portfolio_id"] == (
+        "pf_async_stateful_version_base"
+    )
+    assert (
+        proposal_replay_body["evidence"]["context_resolution"]["input_mode"] == "stateful"
+    )
+    assert (
+        proposal_replay_body["hashes"]["request_hash"]
+        == async_replay_body["hashes"]["request_hash"]
+    )
+    assert (
+        proposal_replay_body["hashes"]["simulation_hash"]
+        == async_replay_body["hashes"]["simulation_hash"]
+    )
+    assert async_replay_body["continuity"]["async_operation_type"] == "CREATE_PROPOSAL_VERSION"
+    assert async_replay_body["continuity"]["correlation_id"] == (
+        "corr-integration-proposal-async-stateful-version-1"
+    )
 
 
 def test_proposal_async_operations_disabled_by_feature_flag(
