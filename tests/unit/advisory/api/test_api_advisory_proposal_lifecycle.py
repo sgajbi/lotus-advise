@@ -6,6 +6,11 @@ import src.api.proposals.router as proposals_router
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.proposals import ProposalIdempotencyConflictError
+from src.integrations.lotus_core.stateful_context import reset_stateful_context_cache_for_tests
+from tests.shared.lotus_core_query_fakes import (
+    CountingLotusCoreQueryClient,
+    build_basic_stateful_query_responses,
+)
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
@@ -134,6 +139,7 @@ def _resolved_stateful_context(
 def setup_function() -> None:
     PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
+    reset_stateful_context_cache_for_tests()
 
 
 def test_create_proposal_persists_immutable_version_and_created_event():
@@ -442,6 +448,54 @@ def test_async_create_proposal_supports_stateful_context_resolution(monkeypatch)
     result = body["result"]
     assert result["proposal"]["portfolio_id"] == "pf_async_stateful_001"
     assert result["version"]["evidence_bundle"]["context_resolution"]["input_mode"] == "stateful"
+
+
+def test_stateful_async_create_reuses_cached_lotus_core_context(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_async_stateful_cached",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: client,
+    )
+
+    payload = {
+        "created_by": "advisor_1",
+        "metadata": {"title": "Cached async stateful create"},
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_async_stateful_cached",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as test_client:
+        first = test_client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-stateful-cache-1",
+                "X-Correlation-Id": "corr-async-stateful-cache-1",
+            },
+        )
+        second = test_client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-stateful-cache-2",
+                "X-Correlation-Id": "corr-async-stateful-cache-2",
+            },
+        )
+
+    assert first.status_code == 202
+    assert second.status_code == 202
+    assert client.request_count == 3
 
 
 def test_transition_requires_expected_state_and_rejects_invalid_transition():

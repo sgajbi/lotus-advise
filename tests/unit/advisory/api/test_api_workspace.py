@@ -11,6 +11,11 @@ from src.api.services.workspace_service import (
     reevaluate_workspace_session,
     reset_workspace_sessions_for_tests,
 )
+from src.integrations.lotus_core.stateful_context import reset_stateful_context_cache_for_tests
+from tests.shared.lotus_core_query_fakes import (
+    CountingLotusCoreQueryClient,
+    build_basic_stateful_query_responses,
+)
 from tests.shared.stateful_context_builders import (
     build_resolved_stateful_context,
     build_tradeable_universe_stateful_context,
@@ -20,6 +25,7 @@ from tests.shared.stateful_context_builders import (
 def setup_function() -> None:
     reset_workspace_sessions_for_tests()
     reset_proposal_workflow_service_for_tests()
+    reset_stateful_context_cache_for_tests()
 
 
 def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict:
@@ -99,6 +105,45 @@ def test_create_stateful_workspace_session_returns_workspace_context(monkeypatch
     )
     assert body["workspace"]["draft_state"]["trade_drafts"] == []
     assert body["workspace"]["evaluation_summary"] is None
+
+
+def test_stateful_workspace_reuses_cached_lotus_core_context_across_re_evaluations(
+    monkeypatch,
+) -> None:
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_cached_workspace",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: client,
+    )
+    payload = {
+        "workspace_name": "Cached stateful workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_cached_workspace",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as test_client:
+        created = test_client.post("/advisory/workspaces", json=payload)
+        assert created.status_code == 201
+        workspace_id = created.json()["workspace"]["workspace_id"]
+
+        first = test_client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        second = test_client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert client.request_count == 3
 
 
 def test_create_stateless_workspace_session_returns_snapshot_context():
