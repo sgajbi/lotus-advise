@@ -5,6 +5,14 @@ from src.api.main import app, get_db_session
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory_engine import run_proposal_simulation
 from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
+from src.integrations.lotus_core.stateful_context import (
+    get_stateful_context_fetch_stats_for_tests,
+    reset_stateful_context_cache_for_tests,
+)
+from tests.shared.lotus_core_query_fakes import (
+    CountingLotusCoreQueryClient,
+    build_basic_stateful_query_responses,
+)
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
@@ -17,9 +25,11 @@ def override_db_dependency():
     original_overrides = dict(app.dependency_overrides)
     app.dependency_overrides[get_db_session] = override_get_db_session
     reset_proposal_workflow_service_for_tests()
+    reset_stateful_context_cache_for_tests()
     yield
     app.dependency_overrides = original_overrides
     reset_proposal_workflow_service_for_tests()
+    reset_stateful_context_cache_for_tests()
 
 
 @pytest.fixture(autouse=True)
@@ -654,6 +664,49 @@ def test_advisory_proposal_artifact_supports_stateful_context_resolution(client,
     assert body["evidence_bundle"]["hashes"]["request_hash"].startswith("sha256:")
     assert body["summary"]["title"] == "Proposal for pf_prop_api_art_stateful"
     assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
+
+
+def test_stateful_simulate_and_artifact_share_warm_lotus_core_context(client, monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    query_client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_artifact_cache",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+    payload = {
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_artifact_cache",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    simulated = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "stateful-artifact-cache-simulate"},
+    )
+    artifact = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "stateful-artifact-cache-artifact"},
+    )
+
+    assert simulated.status_code == 200
+    assert artifact.status_code == 200
+    assert artifact.json()["summary"]["title"] == "Proposal for pf_stateful_artifact_cache"
+    assert query_client.request_count == 3
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 1
+    assert fetch_stats.positions_fetches == 1
+    assert fetch_stats.cash_fetches == 1
 
 
 def test_advisory_proposal_artifact_reuses_idempotent_simulation_response(client):
