@@ -633,6 +633,8 @@ class ProposalWorkflowService:
             if payload.occurred_at is not None
             else _utc_now()
         )
+        if occurred_at < latest_execution_requested.occurred_at:
+            raise ProposalValidationError("EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF")
         reason_json = {
             "update_id": payload.update_id,
             "execution_request_id": payload.execution_request_id,

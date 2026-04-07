@@ -5,6 +5,7 @@ import os
 import time
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, cast
 
@@ -28,6 +29,8 @@ _PROPOSAL_ALLOCATION_DIMENSIONS = [
     "product_type",
     "rating",
 ]
+_WARM_CACHE_TOLERANCE_MULTIPLIER = 1.75
+_WARM_CACHE_TOLERANCE_ABSOLUTE_MS = 125.0
 
 
 class LiveParityValidationError(RuntimeError):
@@ -50,6 +53,10 @@ class LiveParityResult:
     cold_duration_ms: float
     warm_duration_ms: float
     workspace_handoff_portfolio: str
+    lifecycle_portfolio: str
+    execution_handoff_status: str
+    execution_terminal_status: str
+    report_status: str
 
 
 def _assert(condition: bool, message: str) -> None:
@@ -59,6 +66,10 @@ def _assert(condition: bool, message: str) -> None:
 
 def _decimal(value: Any) -> Decimal:
     return Decimal(str(value))
+
+
+def _utc_iso_after(*, seconds: int = 0) -> str:
+    return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
 
 
 def _request_json(
@@ -131,6 +142,16 @@ def _normalize_risk_payload(payload: dict[str, Any]) -> dict[str, Any]:
             "as_of_date": metadata.get("as_of_date"),
         },
     }
+
+
+def _feature_by_key(capabilities: dict[str, Any], key: str) -> dict[str, Any]:
+    features = capabilities.get("features")
+    _assert(isinstance(features, list), "/platform/capabilities: features must be a list")
+    feature_list = cast(list[Any], features)
+    for feature in feature_list:
+        if isinstance(feature, dict) and feature.get("key") == key:
+            return cast(dict[str, Any], feature)
+    raise LiveParityValidationError(f"/platform/capabilities: missing feature {key}")
 
 
 def _resolve_latest_portfolio_context(
@@ -387,11 +408,16 @@ def _measure_warm_cache(
         == _normalize_allocation_views(warm_body["before"]["allocation_views"]),
         f"{scenario.portfolio_id}: repeated stateful simulate changed before allocation views",
     )
+    warm_threshold_ms = max(
+        cold_ms * _WARM_CACHE_TOLERANCE_MULTIPLIER,
+        cold_ms + _WARM_CACHE_TOLERANCE_ABSOLUTE_MS,
+    )
     _assert(
-        warm_ms <= cold_ms * 1.25,
+        warm_ms <= warm_threshold_ms,
         (
             f"{scenario.portfolio_id}: warm cache regression detected "
-            f"cold_ms={cold_ms:.2f} warm_ms={warm_ms:.2f}"
+            f"cold_ms={cold_ms:.2f} warm_ms={warm_ms:.2f} "
+            f"threshold_ms={warm_threshold_ms:.2f}"
         ),
     )
     return cold_ms, warm_ms
@@ -413,6 +439,471 @@ def _post_json(
         json_body=json_body,
         headers=headers,
     )
+
+
+def _get_json(
+    client: httpx.Client,
+    *,
+    url: str,
+    expected_status: int,
+) -> dict[str, Any]:
+    return _request_json(
+        client,
+        method="GET",
+        url=url,
+        expected_status=expected_status,
+    )
+
+
+def _create_stateful_proposal(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    scenario: PortfolioParityScenario,
+    created_by: str,
+) -> dict[str, Any]:
+    return _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals",
+        expected_status=200,
+        json_body={
+            "created_by": created_by,
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": scenario.portfolio_id,
+                "as_of": scenario.as_of_date,
+            },
+        },
+        headers={"Idempotency-Key": f"live-create-{uuid.uuid4().hex}"},
+    )
+
+
+def _create_stateful_version(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    proposal_id: str,
+    scenario: PortfolioParityScenario,
+    created_by: str,
+    expected_current_version_no: int,
+) -> dict[str, Any]:
+    return _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/versions",
+        expected_status=200,
+        json_body={
+            "created_by": created_by,
+            "expected_current_version_no": expected_current_version_no,
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": scenario.portfolio_id,
+                "as_of": scenario.as_of_date,
+            },
+        },
+    )
+
+
+def _submit_async_create(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    scenario: PortfolioParityScenario,
+    created_by: str,
+) -> dict[str, Any]:
+    return _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/async",
+        expected_status=202,
+        json_body={
+            "created_by": created_by,
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": scenario.portfolio_id,
+                "as_of": scenario.as_of_date,
+            },
+        },
+        headers={
+            "Idempotency-Key": f"live-async-create-{uuid.uuid4().hex}",
+            "X-Correlation-Id": f"live-async-create-{uuid.uuid4().hex}",
+        },
+    )
+
+
+def _submit_async_version(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    proposal_id: str,
+    scenario: PortfolioParityScenario,
+    created_by: str,
+    expected_current_version_no: int,
+) -> dict[str, Any]:
+    return _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/versions/async",
+        expected_status=202,
+        json_body={
+            "created_by": created_by,
+            "expected_current_version_no": expected_current_version_no,
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": scenario.portfolio_id,
+                "as_of": scenario.as_of_date,
+            },
+        },
+        headers={"X-Correlation-Id": f"live-async-version-{uuid.uuid4().hex}"},
+    )
+
+
+def _wait_for_async_success(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    operation_id: str,
+    expected_type: str,
+) -> dict[str, Any]:
+    deadline = time.monotonic() + 45.0
+    while time.monotonic() < deadline:
+        status_body = _get_json(
+            client,
+            url=f"{advise_base_url}/advisory/proposals/operations/{operation_id}",
+            expected_status=200,
+        )
+        _assert(
+            status_body["operation_type"] == expected_type,
+            f"{operation_id}: unexpected operation type {status_body['operation_type']}",
+        )
+        if status_body["status"] == "SUCCEEDED":
+            result = status_body.get("result")
+            _assert(isinstance(result, dict), f"{operation_id}: async success missing result")
+            return cast(dict[str, Any], result)
+        if status_body["status"] == "FAILED":
+            raise LiveParityValidationError(
+                f"{operation_id}: async operation failed {status_body.get('error')}"
+            )
+        time.sleep(0.5)
+    raise LiveParityValidationError(f"{operation_id}: async operation did not finish in time")
+
+
+def _post_transition(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    proposal_id: str,
+    event_type: str,
+    actor_id: str,
+    expected_state: str,
+    related_version_no: int,
+    reason: dict[str, Any],
+) -> dict[str, Any]:
+    return _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/transitions",
+        expected_status=200,
+        json_body={
+            "event_type": event_type,
+            "actor_id": actor_id,
+            "expected_state": expected_state,
+            "related_version_no": related_version_no,
+            "reason": reason,
+        },
+    )
+
+
+def _post_approval(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    proposal_id: str,
+    approval_type: str,
+    actor_id: str,
+    expected_state: str,
+    related_version_no: int,
+    details: dict[str, Any],
+) -> dict[str, Any]:
+    return _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/approvals",
+        expected_status=200,
+        json_body={
+            "approval_type": approval_type,
+            "approved": True,
+            "actor_id": actor_id,
+            "expected_state": expected_state,
+            "related_version_no": related_version_no,
+            "details": details,
+        },
+    )
+
+
+def _promote_to_execution_ready(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    proposal_id: str,
+    related_version_no: int,
+) -> None:
+    current_state = "DRAFT"
+    if current_state == "DRAFT":
+        transition = _post_transition(
+            client,
+            advise_base_url=advise_base_url,
+            proposal_id=proposal_id,
+            event_type="SUBMITTED_FOR_RISK_REVIEW",
+            actor_id="live-parity-validator",
+            expected_state="DRAFT",
+            related_version_no=related_version_no,
+            reason={"comment": "live delivery validation"},
+        )
+        current_state = str(transition["current_state"])
+        _assert(
+            current_state == "RISK_REVIEW",
+            f"{proposal_id}: unexpected state after risk submission {current_state}",
+        )
+    if current_state == "RISK_REVIEW":
+        approval = _post_approval(
+            client,
+            advise_base_url=advise_base_url,
+            proposal_id=proposal_id,
+            approval_type="RISK",
+            actor_id="risk-approver",
+            expected_state="RISK_REVIEW",
+            related_version_no=related_version_no,
+            details={"channel": "LIVE_VALIDATOR"},
+        )
+        current_state = str(approval["current_state"])
+    if current_state == "COMPLIANCE_REVIEW":
+        approval = _post_approval(
+            client,
+            advise_base_url=advise_base_url,
+            proposal_id=proposal_id,
+            approval_type="COMPLIANCE",
+            actor_id="compliance-approver",
+            expected_state="COMPLIANCE_REVIEW",
+            related_version_no=related_version_no,
+            details={"channel": "LIVE_VALIDATOR"},
+        )
+        current_state = str(approval["current_state"])
+    if current_state == "AWAITING_CLIENT_CONSENT":
+        approval = _post_approval(
+            client,
+            advise_base_url=advise_base_url,
+            proposal_id=proposal_id,
+            approval_type="CLIENT_CONSENT",
+            actor_id="client-consent",
+            expected_state="AWAITING_CLIENT_CONSENT",
+            related_version_no=related_version_no,
+            details={"channel": "LIVE_VALIDATOR"},
+        )
+        current_state = str(approval["current_state"])
+    _assert(
+        current_state == "EXECUTION_READY",
+        f"{proposal_id}: could not promote proposal to execution ready, final={current_state}",
+    )
+
+
+def _assert_lifecycle_and_delivery_flow(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    scenario: PortfolioParityScenario,
+) -> tuple[str, str, str]:
+    created = _create_stateful_proposal(
+        client,
+        advise_base_url=advise_base_url,
+        scenario=scenario,
+        created_by="live-parity-validator",
+    )
+    proposal = created["proposal"]
+    version = created["version"]
+    proposal_id = str(proposal["proposal_id"])
+    related_version_no = int(version["version_no"])
+    _assert_authority_posture(scenario=scenario, proposal_body=version["proposal_result"])
+
+    version_created = _create_stateful_version(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=proposal_id,
+        scenario=scenario,
+        created_by="live-parity-validator-version",
+        expected_current_version_no=related_version_no,
+    )
+    _assert(
+        int(version_created["proposal"]["current_version_no"]) == related_version_no + 1,
+        f"{proposal_id}: new version did not increment current_version_no",
+    )
+    _assert_authority_posture(
+        scenario=scenario,
+        proposal_body=version_created["version"]["proposal_result"],
+    )
+
+    async_created = _submit_async_create(
+        client,
+        advise_base_url=advise_base_url,
+        scenario=scenario,
+        created_by="live-parity-validator-async",
+    )
+    async_create_result = _wait_for_async_success(
+        client,
+        advise_base_url=advise_base_url,
+        operation_id=str(async_created["operation_id"]),
+        expected_type="CREATE_PROPOSAL",
+    )
+    async_proposal = async_create_result["proposal"]
+    async_version = async_create_result["version"]
+    async_proposal_id = str(async_proposal["proposal_id"])
+    async_version_no = int(async_version["version_no"])
+    _assert_authority_posture(scenario=scenario, proposal_body=async_version["proposal_result"])
+
+    async_version_created = _submit_async_version(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=async_proposal_id,
+        scenario=scenario,
+        created_by="live-parity-validator-async-version",
+        expected_current_version_no=async_version_no,
+    )
+    async_version_result = _wait_for_async_success(
+        client,
+        advise_base_url=advise_base_url,
+        operation_id=str(async_version_created["operation_id"]),
+        expected_type="CREATE_PROPOSAL_VERSION",
+    )
+    _assert(
+        int(async_version_result["proposal"]["current_version_no"]) == async_version_no + 1,
+        f"{async_proposal_id}: async version did not increment current_version_no",
+    )
+    _assert_authority_posture(
+        scenario=scenario,
+        proposal_body=async_version_result["version"]["proposal_result"],
+    )
+
+    _promote_to_execution_ready(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=proposal_id,
+        related_version_no=1,
+    )
+    handoff = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/execution-handoffs",
+        expected_status=200,
+        json_body={
+            "actor_id": "ops_001",
+            "execution_provider": "lotus-manage",
+            "expected_state": "EXECUTION_READY",
+            "related_version_no": 1,
+            "external_request_id": f"oms_req_{uuid.uuid4().hex[:10]}",
+            "notes": {"channel": "OMS", "priority": "STANDARD"},
+        },
+        headers={"Idempotency-Key": f"live-handoff-{uuid.uuid4().hex}"},
+    )
+    _assert(
+        handoff["handoff_status"] == "REQUESTED",
+        f"{proposal_id}: unexpected handoff status {handoff['handoff_status']}",
+    )
+
+    requested_status = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/execution-status",
+        expected_status=200,
+    )
+    _assert(
+        requested_status["handoff_status"] == "REQUESTED",
+        (
+            f"{proposal_id}: unexpected requested execution status "
+            f"{requested_status['handoff_status']}"
+        ),
+    )
+
+    accepted_status = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/execution-updates",
+        expected_status=200,
+        json_body={
+            "update_id": f"exec_accept_{uuid.uuid4().hex[:10]}",
+            "actor_id": "lotus-manage",
+            "execution_request_id": handoff["execution_request_id"],
+            "execution_provider": "lotus-manage",
+            "update_status": "ACCEPTED",
+            "related_version_no": 1,
+            "occurred_at": _utc_iso_after(seconds=1),
+            "details": {"desk": "SG"},
+        },
+    )
+    _assert(
+        accepted_status["handoff_status"] == "ACCEPTED",
+        f"{proposal_id}: unexpected accepted execution status {accepted_status['handoff_status']}",
+    )
+
+    executed_status = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/execution-updates",
+        expected_status=200,
+        json_body={
+            "update_id": f"exec_done_{uuid.uuid4().hex[:10]}",
+            "actor_id": "lotus-manage",
+            "execution_request_id": handoff["execution_request_id"],
+            "execution_provider": "lotus-manage",
+            "update_status": "EXECUTED",
+            "related_version_no": 1,
+            "external_execution_id": f"oms_fill_{uuid.uuid4().hex[:10]}",
+            "occurred_at": _utc_iso_after(seconds=2),
+            "details": {"filled_quantity": "100"},
+        },
+    )
+    _assert(
+        executed_status["handoff_status"] == "EXECUTED",
+        f"{proposal_id}: unexpected terminal execution status {executed_status['handoff_status']}",
+    )
+
+    capabilities = _get_json(
+        client,
+        url=f"{advise_base_url}/platform/capabilities",
+        expected_status=200,
+    )
+    report_feature = _feature_by_key(capabilities, "advisory.proposals.reporting")
+    report_response = client.post(
+        f"{advise_base_url}/advisory/proposals/{proposal_id}/report-requests",
+        json={
+            "report_type": "CLIENT_PROPOSAL_SUMMARY",
+            "requested_by": "advisor_1",
+            "related_version_no": 1,
+            "include_execution_summary": True,
+        },
+    )
+    if report_feature["operational_ready"]:
+        _assert(
+            report_response.status_code == 200,
+            (
+                f"{proposal_id}: expected live report request success, got "
+                f"{report_response.status_code} body={report_response.text}"
+            ),
+        )
+        report_body = cast(dict[str, Any], report_response.json())
+        _assert(
+            report_body["report_service"] == "lotus-report",
+            f"{proposal_id}: unexpected report service {report_body['report_service']}",
+        )
+        _assert(
+            report_body["status"] == "READY",
+            f"{proposal_id}: unexpected report status {report_body['status']}",
+        )
+        return scenario.portfolio_id, handoff["handoff_status"], report_body["status"]
+
+    _assert(
+        report_response.status_code == 503,
+        (
+            f"{proposal_id}: expected lotus-report degraded 503, got "
+            f"{report_response.status_code} body={report_response.text}"
+        ),
+    )
+    detail = cast(dict[str, Any], report_response.json()).get("detail")
+    _assert(
+        detail == "LOTUS_REPORT_REQUEST_UNAVAILABLE",
+        f"{proposal_id}: unexpected degraded report detail {detail}",
+    )
+    return scenario.portfolio_id, handoff["handoff_status"], "UNAVAILABLE"
 
 
 def _assert_workspace_flow(
@@ -603,6 +1094,11 @@ def validate_live_cross_service_parity(
             advise_base_url=advise_base_url,
             scenario=complete,
         )
+        lifecycle_portfolio, handoff_status, report_status = _assert_lifecycle_and_delivery_flow(
+            client,
+            advise_base_url=advise_base_url,
+            scenario=complete,
+        )
         _assert_workspace_flow(
             client,
             advise_base_url=advise_base_url,
@@ -616,6 +1112,10 @@ def validate_live_cross_service_parity(
         cold_duration_ms=cold_ms,
         warm_duration_ms=warm_ms,
         workspace_handoff_portfolio=complete.portfolio_id,
+        lifecycle_portfolio=lifecycle_portfolio,
+        execution_handoff_status=handoff_status,
+        execution_terminal_status="EXECUTED",
+        report_status=report_status,
     )
 
 

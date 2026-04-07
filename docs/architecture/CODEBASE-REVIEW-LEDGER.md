@@ -274,3 +274,39 @@
   - Proposal allocation and risk-lens work is now governed by canonical `lotus-core` allocation views and a concrete `lotus-risk` concentration lens instead of advisory-local calculation authority.
 - Follow-Up:
   - RFC-0020 implementation is complete on the feature branches pending PR/CI/merge closure. Any further work belongs in follow-on RFCs, not this convergence program.
+
+## LA-REV-013
+
+- Scope: Live proposal delivery validation and execution-status chronology
+- Pattern: reliability gap / integration test hardening
+- Status: Hardened
+- Finding Class: reliability gap
+- Summary: The live proposal path had strong coverage for canonical simulation, allocation, risk lens,
+  lifecycle create/version, async, and workspace handoff, but delivery surfaces were still being
+  checked ad hoc and execution updates could silently regress status if a downstream timestamp
+  predated the recorded handoff.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now validates one end-to-end live stateful
+    proposal flow across:
+    - direct simulation parity against `lotus-core` and `lotus-risk`,
+    - sync create and new version,
+    - async create and async version,
+    - promotion to execution ready,
+    - execution handoff,
+    - accepted and executed downstream updates,
+    - report-request success or governed degraded unavailability,
+    - workspace evaluate/save/handoff replay continuity.
+  - `tests/e2e/live/test_cross_service_parity_live.py` now gates that full live path behind the
+    existing `RUN_LIVE_CROSS_SERVICE_PARITY=1` switch.
+  - `src/core/proposals/service.py` now rejects `EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF`, which
+    prevents an impossible downstream timestamp from being accepted and then misordered behind the
+    recorded handoff during execution-status correlation.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves both:
+    - normal downstream execution updates still reconcile correctly, and
+    - pre-handoff timestamps are rejected without mutating advisory execution status.
+- Consequence:
+  - The proposal delivery path is now exercised live with reusable coverage, and execution-status
+    correlation is more trustworthy under real downstream event timestamps.
+- Follow-Up:
+  - If `lotus-report` becomes live locally, keep the validator on the same contract and tighten the
+    degraded report assertion to a required `READY` path for environments where reporting is expected.

@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any
 
@@ -81,6 +82,10 @@ def _create(client: TestClient, idempotency_key: str, payload: dict | None = Non
     )
     assert response.status_code == 200
     return response.json()
+
+
+def _future_execution_timestamp(*, seconds: int = 1) -> str:
+    return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
 
 
 def _risk_enriched_result(result):  # noqa: ANN001
@@ -1259,6 +1264,7 @@ def test_execution_updates_reconcile_downstream_statuses(
         proposal_id = created["proposal"]["proposal_id"]
         _promote_to_execution_ready(client, proposal_id)
         _request_execution_handoff(client, proposal_id)
+        occurred_at = _future_execution_timestamp()
 
         response = client.post(
             f"/advisory/proposals/{proposal_id}/execution-updates",
@@ -1270,7 +1276,7 @@ def test_execution_updates_reconcile_downstream_statuses(
                 "update_status": update_status,
                 "related_version_no": 1,
                 "external_execution_id": "oms_fill_001",
-                "occurred_at": "2026-03-26T09:10:00+00:00",
+                "occurred_at": occurred_at,
                 "details": {"filled_quantity": "50", "remaining_quantity": "25"},
             },
         )
@@ -1285,7 +1291,7 @@ def test_execution_updates_reconcile_downstream_statuses(
         assert body["latest_workflow_event"]["related_version_no"] == 1
         assert body["explanation"]["state_correlation"] == expected_correlation
         if update_status == "EXECUTED":
-            assert body["executed_at"] == "2026-03-26T09:10:00+00:00"
+            assert body["executed_at"] == occurred_at
         else:
             assert body["executed_at"] is None
 
@@ -1304,7 +1310,7 @@ def test_execution_update_is_replay_safe_and_rejects_payload_conflicts():
             "execution_provider": "lotus-manage",
             "update_status": "ACCEPTED",
             "related_version_no": 1,
-            "occurred_at": "2026-03-26T09:10:00+00:00",
+            "occurred_at": _future_execution_timestamp(),
             "details": {"desk": "SG"},
         }
         first = client.post(
@@ -1391,6 +1397,7 @@ def test_execution_update_requires_prior_handoff_and_respects_terminal_state():
                 "execution_provider": "lotus-manage",
                 "update_status": "EXECUTED",
                 "external_execution_id": "oms_fill_terminal_001",
+                "occurred_at": _future_execution_timestamp(),
             },
         )
         assert executed.status_code == 200
@@ -1409,6 +1416,40 @@ def test_execution_update_requires_prior_handoff_and_respects_terminal_state():
         assert (
             after_terminal.json()["detail"] == "PROPOSAL_TERMINAL_STATE: execution update rejected"
         )
+
+
+def test_execution_update_rejects_occurred_at_before_handoff():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-execution-update-timestamp")
+        proposal_id = created["proposal"]["proposal_id"]
+        _promote_to_execution_ready(client, proposal_id)
+        handoff = _request_execution_handoff(
+            client,
+            proposal_id,
+            external_request_id="oms_req_timestamp_001",
+        )
+        handoff_requested_at = handoff["latest_workflow_event"]["occurred_at"]
+
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_before_handoff",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_timestamp_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "ACCEPTED",
+                "related_version_no": 1,
+                "occurred_at": "2026-03-26T09:10:00+00:00",
+            },
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF"
+
+        status = client.get(f"/advisory/proposals/{proposal_id}/execution-status")
+        assert status.status_code == 200
+        assert status.json()["handoff_status"] == "REQUESTED"
+        assert status.json()["handoff_requested_at"] == handoff_requested_at
 
 
 def test_execution_handoff_is_replay_safe_with_idempotency_key():
