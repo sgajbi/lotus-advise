@@ -356,6 +356,16 @@ Acceptance gate:
 2. Failed `lotus-risk` calls remain operation/evaluation-scoped and do not borrow unrelated successful risk output.
 3. Artifacts state when concentration risk is unavailable or degraded.
 
+Implementation note:
+
+Slice 5 is implemented in `lotus-advise` on the RFC-0020 feature branch.
+
+1. `src/core/advisory/risk_lens.py` now defines the single normalized extraction path used to preserve proposal risk evidence without creating a second advisory-local risk model.
+2. Proposal version evidence bundles now persist `risk_lens` directly alongside `context_resolution` and replay lineage, which makes risk evidence available in lifecycle and async replay without parsing nested simulation payloads.
+3. Workspace replay evidence now carries the same normalized `risk_lens` payload, so saved-version replay and workspace handoff continuity retain the same risk authority and risk delta values as persisted proposal versions.
+4. Proposal artifacts now expose a first-class `risk_lens` section with concise business-language highlights and an explicit `NOT_AVAILABLE` posture when concentration analytics were unavailable.
+5. Tests now prove risk-lens preservation across artifacts, proposal replay, async replay, and workspace handoff replay for equivalent canonical input.
+
 ### Slice 6: Cross-Service Parity, Performance, and Rollout Proof
 
 Outcome:

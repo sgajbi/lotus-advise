@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-07T09:19:00.349126+00:00",
+  "generatedAt": "2026-04-07T09:58:23.349395+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -2456,9 +2456,9 @@
       "semanticId": "lotus.highlights",
       "canonicalTerm": "highlights",
       "preferredName": "highlights",
-      "description": "Deterministic suitability highlights.",
+      "description": "Compact deterministic risk highlights for advisor review.",
       "example": [
-        "highlights_item_example"
+        "example_highlights_item"
       ],
       "type": "array",
       "locations": [
@@ -4429,6 +4429,23 @@
       ]
     },
     {
+      "semanticId": "lotus.risk_lens",
+      "canonicalTerm": "risk_lens",
+      "preferredName": "risk_lens",
+      "description": "Canonical risk lens used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "ProposalArtifactRiskLens",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "ProposalArtifactRiskLens",
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.rule_id",
       "canonicalTerm": "rule_id",
       "preferredName": "rule_id",
@@ -4768,13 +4785,14 @@
       "semanticId": "lotus.source_service",
       "canonicalTerm": "source_service",
       "preferredName": "source_service",
-      "description": "Source service generating this capability contract.",
+      "description": "Risk authority used to produce the proposal risk lens.",
       "example": "lotus-advise",
-      "type": "string",
+      "type": "object",
       "locations": [
         "body"
       ],
       "observedTypes": [
+        "object",
         "string"
       ]
     },
@@ -8808,6 +8826,46 @@
             "attributeRef": "#/attributeCatalog/lotus.text"
           },
           {
+            "name": "version.artifact.risk_lens",
+            "location": "body",
+            "required": true,
+            "type": "ProposalArtifactRiskLens",
+            "semanticId": "lotus.risk_lens",
+            "attributeRef": "#/attributeCatalog/lotus.risk_lens"
+          },
+          {
+            "name": "version.artifact.risk_lens.status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "version.artifact.risk_lens.source_service",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_service",
+            "attributeRef": "#/attributeCatalog/lotus.source_service"
+          },
+          {
+            "name": "version.artifact.risk_lens.summary",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "version.artifact.risk_lens.highlights",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.highlights",
+            "attributeRef": "#/attributeCatalog/lotus.highlights"
+          },
+          {
             "name": "version.artifact.suitability_summary",
             "location": "body",
             "required": true,
@@ -11862,6 +11920,46 @@
             "attributeRef": "#/attributeCatalog/lotus.text"
           },
           {
+            "name": "current_version.artifact.risk_lens",
+            "location": "body",
+            "required": true,
+            "type": "ProposalArtifactRiskLens",
+            "semanticId": "lotus.risk_lens",
+            "attributeRef": "#/attributeCatalog/lotus.risk_lens"
+          },
+          {
+            "name": "current_version.artifact.risk_lens.status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "current_version.artifact.risk_lens.source_service",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_service",
+            "attributeRef": "#/attributeCatalog/lotus.source_service"
+          },
+          {
+            "name": "current_version.artifact.risk_lens.summary",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "current_version.artifact.risk_lens.highlights",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.highlights",
+            "attributeRef": "#/attributeCatalog/lotus.highlights"
+          },
+          {
             "name": "current_version.artifact.suitability_summary",
             "location": "body",
             "required": true,
@@ -14555,6 +14653,46 @@
             "type": "string",
             "semanticId": "lotus.text",
             "attributeRef": "#/attributeCatalog/lotus.text"
+          },
+          {
+            "name": "artifact.risk_lens",
+            "location": "body",
+            "required": true,
+            "type": "ProposalArtifactRiskLens",
+            "semanticId": "lotus.risk_lens",
+            "attributeRef": "#/attributeCatalog/lotus.risk_lens"
+          },
+          {
+            "name": "artifact.risk_lens.status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "artifact.risk_lens.source_service",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_service",
+            "attributeRef": "#/attributeCatalog/lotus.source_service"
+          },
+          {
+            "name": "artifact.risk_lens.summary",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "artifact.risk_lens.highlights",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.highlights",
+            "attributeRef": "#/attributeCatalog/lotus.highlights"
           },
           {
             "name": "artifact.suitability_summary",
@@ -17394,6 +17532,46 @@
             "type": "string",
             "semanticId": "lotus.text",
             "attributeRef": "#/attributeCatalog/lotus.text"
+          },
+          {
+            "name": "version.artifact.risk_lens",
+            "location": "body",
+            "required": true,
+            "type": "ProposalArtifactRiskLens",
+            "semanticId": "lotus.risk_lens",
+            "attributeRef": "#/attributeCatalog/lotus.risk_lens"
+          },
+          {
+            "name": "version.artifact.risk_lens.status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "version.artifact.risk_lens.source_service",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_service",
+            "attributeRef": "#/attributeCatalog/lotus.source_service"
+          },
+          {
+            "name": "version.artifact.risk_lens.summary",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "version.artifact.risk_lens.highlights",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.highlights",
+            "attributeRef": "#/attributeCatalog/lotus.highlights"
           },
           {
             "name": "version.artifact.suitability_summary",
@@ -23362,6 +23540,46 @@
             "attributeRef": "#/attributeCatalog/lotus.text"
           },
           {
+            "name": "risk_lens",
+            "location": "body",
+            "required": true,
+            "type": "ProposalArtifactRiskLens",
+            "semanticId": "lotus.risk_lens",
+            "attributeRef": "#/attributeCatalog/lotus.risk_lens"
+          },
+          {
+            "name": "risk_lens.status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "risk_lens.source_service",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_service",
+            "attributeRef": "#/attributeCatalog/lotus.source_service"
+          },
+          {
+            "name": "risk_lens.summary",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "risk_lens.highlights",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.highlights",
+            "attributeRef": "#/attributeCatalog/lotus.highlights"
+          },
+          {
             "name": "suitability_summary",
             "location": "body",
             "required": true,
@@ -28170,6 +28388,14 @@
             "type": "object",
             "semanticId": "lotus.continuity",
             "attributeRef": "#/attributeCatalog/lotus.continuity"
+          },
+          {
+            "name": "saved_version.replay_evidence.risk_lens",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.risk_lens",
+            "attributeRef": "#/attributeCatalog/lotus.risk_lens"
           }
         ]
       }
@@ -28833,6 +29059,14 @@
             "type": "object",
             "semanticId": "lotus.continuity",
             "attributeRef": "#/attributeCatalog/lotus.continuity"
+          },
+          {
+            "name": "saved_versions[].replay_evidence.risk_lens",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.risk_lens",
+            "attributeRef": "#/attributeCatalog/lotus.risk_lens"
           }
         ]
       }
@@ -30430,6 +30664,14 @@
             "type": "object",
             "semanticId": "lotus.continuity",
             "attributeRef": "#/attributeCatalog/lotus.continuity"
+          },
+          {
+            "name": "baseline_version.replay_evidence.risk_lens",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.risk_lens",
+            "attributeRef": "#/attributeCatalog/lotus.risk_lens"
           },
           {
             "name": "current_evaluation_summary",
@@ -33692,6 +33934,46 @@
             "type": "string",
             "semanticId": "lotus.text",
             "attributeRef": "#/attributeCatalog/lotus.text"
+          },
+          {
+            "name": "proposal.version.artifact.risk_lens",
+            "location": "body",
+            "required": true,
+            "type": "ProposalArtifactRiskLens",
+            "semanticId": "lotus.risk_lens",
+            "attributeRef": "#/attributeCatalog/lotus.risk_lens"
+          },
+          {
+            "name": "proposal.version.artifact.risk_lens.status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "proposal.version.artifact.risk_lens.source_service",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_service",
+            "attributeRef": "#/attributeCatalog/lotus.source_service"
+          },
+          {
+            "name": "proposal.version.artifact.risk_lens.summary",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "proposal.version.artifact.risk_lens.highlights",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.highlights",
+            "attributeRef": "#/attributeCatalog/lotus.highlights"
           },
           {
             "name": "proposal.version.artifact.suitability_summary",
