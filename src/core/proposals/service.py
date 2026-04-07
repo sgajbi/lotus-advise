@@ -1343,9 +1343,7 @@ class ProposalWorkflowService:
 
     def _hash_async_create_submission(self, payload: ProposalCreateRequest) -> str:
         if payload.input_mode == "stateful":
-            return str(
-                hash_canonical_payload(payload.model_dump(mode="json", exclude_none=True))
-            )
+            return str(hash_canonical_payload(payload.model_dump(mode="json", exclude_none=True)))
         resolved_request = resolve_create_request(payload)
         return str(
             hash_canonical_payload(

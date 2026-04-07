@@ -953,9 +953,12 @@ def test_stateful_workspace_draft_action_applies_trade_drafts_to_evaluation(monk
     assert body["workspace"]["evaluation_summary"]["impact_summary"]["trade_count"] == 1
     assert body["workspace"]["latest_proposal_result"]["status"] == "READY"
     assert body["workspace"]["latest_proposal_result"]["intents"][-1]["instrument_id"] == "EQ_NEW"
-    assert body["workspace"]["latest_proposal_result"]["explanation"]["context_resolution"][
-        "input_mode"
-    ] == "stateful"
+    assert (
+        body["workspace"]["latest_proposal_result"]["explanation"]["context_resolution"][
+            "input_mode"
+        ]
+        == "stateful"
+    )
 
 
 def test_stateful_workspace_evaluate_matches_direct_simulation_for_equivalent_input(
@@ -1020,9 +1023,7 @@ def test_stateful_workspace_evaluate_matches_direct_simulation_for_equivalent_in
 
     assert _normalize_business_result_for_cross_mode_parity(
         workspace_response.json()["latest_proposal_result"]
-    ) == (
-        _normalize_business_result_for_cross_mode_parity(direct_response.json())
-    )
+    ) == (_normalize_business_result_for_cross_mode_parity(direct_response.json()))
 
 
 def test_stateful_workspace_handoff_uses_current_draft_state(monkeypatch) -> None:
@@ -1551,18 +1552,22 @@ def test_workspace_and_proposal_replay_evidence_stay_hash_aligned_after_handoff(
     proposal_body = proposal_replay.json()
     assert proposal_body["subject"]["workspace_id"] == workspace_id
     assert proposal_body["subject"]["workspace_version_id"] == workspace_version_id
-    assert proposal_body["hashes"]["evaluation_request_hash"] == (
-        workspace_body["hashes"]["evaluation_request_hash"]
+    assert (
+        proposal_body["hashes"]["evaluation_request_hash"]
+        == (workspace_body["hashes"]["evaluation_request_hash"])
     )
-    assert proposal_body["hashes"]["draft_state_hash"] == (
-        workspace_body["hashes"]["draft_state_hash"]
+    assert (
+        proposal_body["hashes"]["draft_state_hash"]
+        == (workspace_body["hashes"]["draft_state_hash"])
     )
     assert proposal_body["continuity"]["workspace_version_id"] == workspace_version_id
-    assert proposal_body["continuity"]["handoff_action"] == (
-        workspace_body["continuity"]["handoff_action"]
+    assert (
+        proposal_body["continuity"]["handoff_action"]
+        == (workspace_body["continuity"]["handoff_action"])
     )
-    assert proposal_body["resolved_context"]["portfolio_id"] == (
-        workspace_body["resolved_context"]["portfolio_id"]
+    assert (
+        proposal_body["resolved_context"]["portfolio_id"]
+        == (workspace_body["resolved_context"]["portfolio_id"])
     )
 
 

@@ -14,4 +14,3 @@ def extract_risk_lens(proposal_result: Any) -> dict[str, Any] | None:
     if not isinstance(source_service, str) or not source_service:
         return None
     return {key: value for key, value in risk_lens.items()}
-

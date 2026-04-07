@@ -4,11 +4,35 @@ from typing import Any
 
 import pytest
 
+from src.core.models import (
+    EngineOptions,
+    MarketDataSnapshot,
+    PortfolioSnapshot,
+    ProposalSimulateRequest,
+)
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
 from src.integrations.lotus_core.stateful_context import (
     LotusCoreStatefulContextUnavailableError,
+    _append_fx_rate_if_missing,
+    _append_price_if_missing,
+    _append_shelf_entry_if_missing,
+    _build_cash_balances,
+    _build_positions,
+    _build_prices,
+    _build_shelf_entries,
+    _decimal_or_none,
+    _derive_fx_rates,
+    _fetch_instrument_enrichment_bulk,
+    _prefer_upstream_liquidity_tier,
+    _request_json,
+    _require_decimal,
+    _resolve_control_plane_base_url,
     _resolve_query_base_url,
     _resolve_timeout,
+    _select_instrument_row,
+    _select_latest_dated_row,
+    _select_latest_fx_row,
+    _select_latest_price_row,
     _stateful_context_cache_max_size,
     _stateful_context_cache_ttl_seconds,
     enrich_stateful_simulate_request_for_trade_drafts,
@@ -82,6 +106,14 @@ def test_query_base_url_prefers_explicit_query_env(monkeypatch):
     assert _resolve_query_base_url() == "http://query.example.internal:9999"
 
 
+def test_core_base_url_derivation_preserves_credentials_and_swaps_ports(monkeypatch):
+    monkeypatch.delenv("LOTUS_CORE_QUERY_BASE_URL", raising=False)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://user:secret@core.dev.lotus:8202/api/")
+
+    assert _resolve_query_base_url() == "http://user:secret@core.dev.lotus:8201/api"
+    assert _resolve_control_plane_base_url() == "http://user:secret@core.dev.lotus:8202/api"
+
+
 def test_stateful_context_env_parsing_falls_back_for_invalid_values(monkeypatch) -> None:
     monkeypatch.setenv("LOTUS_CORE_TIMEOUT_SECONDS", "invalid")
     monkeypatch.setenv("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", "invalid")
@@ -104,6 +136,347 @@ def test_stateful_context_env_parsing_rejects_non_positive_runtime_values(monkey
     assert timeout.connect == 10.0
     assert _stateful_context_cache_ttl_seconds() == 15.0
     assert _stateful_context_cache_max_size() == 128
+
+
+def test_decimal_and_liquidity_helpers_cover_fallback_branches() -> None:
+    assert _decimal_or_none(None) is None
+    assert _decimal_or_none("") is None
+    assert _decimal_or_none("bad") is None
+    assert _require_decimal("12.5", error_code="UNUSED") == pytest.approx(12.5)
+    with pytest.raises(LotusCoreStatefulContextUnavailableError):
+        _require_decimal("bad", error_code="DECIMAL_REQUIRED")
+
+    assert (
+        _prefer_upstream_liquidity_tier(
+            raw_liquidity_tier="L4",
+            asset_class="Equity",
+            product_type="Equity",
+            sector="Technology",
+            rating="A",
+        )
+        == "L4"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Equity",
+            product_type="ETF",
+            sector="Technology",
+            rating="A",
+        )
+        == "L1"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Bond",
+            product_type="Bond",
+            sector="Government",
+            rating="AA",
+        )
+        == "L1"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Bond",
+            product_type="Bond",
+            sector="Corporate",
+            rating="BBB",
+        )
+        == "L2"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Bond",
+            product_type="Bond",
+            sector="Corporate",
+            rating="BB",
+        )
+        == "L3"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Fund",
+            product_type="Fund",
+            sector="Private Credit",
+            rating=None,
+        )
+        == "L5"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Fund",
+            product_type="Fund",
+            sector="Fixed Income",
+            rating=None,
+        )
+        == "L3"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Fund",
+            product_type="Fund",
+            sector="Equity",
+            rating=None,
+        )
+        == "L2"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Fixed Income",
+            product_type="Note",
+            sector="Government",
+            rating=None,
+        )
+        == "L1"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Fixed Income",
+            product_type="Note",
+            sector="Corporate",
+            rating=None,
+        )
+        == "L2"
+    )
+    assert (
+        _prefer_upstream_liquidity_tier(
+            asset_class="Other",
+            product_type="Structured",
+            sector="Other",
+            rating=None,
+        )
+        is None
+    )
+
+
+def test_request_and_selector_helpers_reject_invalid_payload_shapes(monkeypatch) -> None:
+    class _BadJsonClient:
+        def request(
+            self, method: str, url: str, json: dict[str, Any] | None = None
+        ) -> _FakeResponse:
+            return _FakeResponse(payload=["not-a-dict"])
+
+    with pytest.raises(LotusCoreStatefulContextUnavailableError):
+        _request_json(
+            _BadJsonClient(),  # type: ignore[arg-type]
+            method="GET",
+            base_url="http://core-query.dev.lotus",
+            path="/portfolios/demo",
+            error_code="LOTUS_CORE_STATEFUL_PORTFOLIO_UNAVAILABLE",
+        )
+
+    assert _select_latest_dated_row([], date_key="price_date", as_of="2026-03-27") is None
+    assert _select_instrument_row({"instruments": []}) is None
+    assert _select_latest_price_row(price_payload={"prices": "bad"}, as_of="2026-03-27") is None
+    assert _select_latest_fx_row(fx_payload={"rates": "bad"}, as_of="2026-03-27") is None
+
+
+def test_instrument_enrichment_bulk_ignores_invalid_records(monkeypatch) -> None:
+    fake_client = _FakeClient(
+        {
+            (
+                "POST",
+                "http://core-control.dev.lotus/integration/instruments/enrichment-bulk",
+            ): _FakeResponse(
+                {
+                    "records": [
+                        {"security_id": "SEC_OK", "issuer_id": "ISSUER_OK"},
+                        "bad-row",
+                        {"security_id": ""},
+                    ]
+                }
+            )
+        }
+    )
+
+    payload = _fetch_instrument_enrichment_bulk(
+        fake_client,  # type: ignore[arg-type]
+        base_url="http://core-control.dev.lotus",
+        security_ids=["SEC_OK", "SEC_BAD"],
+    )
+
+    assert payload == {"SEC_OK": {"security_id": "SEC_OK", "issuer_id": "ISSUER_OK"}}
+
+
+def test_stateful_builders_skip_malformed_rows() -> None:
+    positions_payload = {
+        "positions": [
+            "bad-row",
+            {"security_id": "CASH_USD", "asset_class": "Cash", "currency": "USD"},
+            {"security_id": "", "asset_class": "Equity", "quantity": "10"},
+            {"security_id": "SEC_NO_QTY", "asset_class": "Equity", "quantity": None},
+            {
+                "security_id": "SEC_NO_VAL",
+                "asset_class": "Equity",
+                "quantity": "10",
+                "currency": "USD",
+                "valuation": "bad",
+            },
+            {
+                "security_id": "SEC_NO_PRICE",
+                "asset_class": "Equity",
+                "quantity": "10",
+                "currency": "USD",
+                "valuation": {"market_price": None},
+            },
+        ]
+    }
+    cash_payload = {
+        "cash_accounts": [
+            "bad-row",
+            {"account_currency": "", "balance_account_currency": "10"},
+            {"account_currency": "USD", "balance_account_currency": None},
+            {"account_currency": "USD", "balance_account_currency": "10", "instrument_id": ""},
+        ]
+    }
+
+    assert [position.instrument_id for position in _build_positions(positions_payload)] == [
+        "SEC_NO_VAL",
+        "SEC_NO_PRICE",
+    ]
+    assert _build_prices(positions_payload) == []
+    assert [balance.currency for balance in _build_cash_balances(cash_payload)] == ["USD"]
+    assert (
+        _derive_fx_rates(
+            portfolio_base_currency="USD",
+            positions_payload={"positions": ["bad-row", {"currency": "CHF", "valuation": "bad"}]},
+            cash_payload={"cash_accounts": ["bad-row"]},
+        )
+        == []
+    )
+    assert (
+        _build_shelf_entries(
+            positions_payload={"positions": ["bad-row", {"security_id": ""}]},
+            cash_payload={"cash_accounts": ["bad-row", {"instrument_id": ""}]},
+            enrichment_by_instrument_id={},
+        )
+        == []
+    )
+
+
+def test_append_helpers_skip_duplicates_and_invalid_market_data(monkeypatch) -> None:
+    request = ProposalSimulateRequest(
+        portfolio_snapshot=PortfolioSnapshot(
+            portfolio_id="pf_1",
+            base_currency="USD",
+            positions=[],
+            cash_balances=[],
+        ),
+        market_data_snapshot=MarketDataSnapshot(prices=[], fx_rates=[]),
+        shelf_entries=[],
+        options=EngineOptions(enable_proposal_simulation=True),
+        proposed_cash_flows=[],
+        proposed_trades=[],
+        reference_model=None,
+    )
+
+    _append_price_if_missing(
+        simulate_request=request,
+        instrument_id="SEC_1",
+        instrument_currency="USD",
+        latest_price_row={"price": None},
+    )
+    _append_shelf_entry_if_missing(
+        simulate_request=request,
+        instrument_id="SEC_1",
+        instrument_row={"asset_class": "Equity"},
+    )
+    _append_shelf_entry_if_missing(
+        simulate_request=request,
+        instrument_id="SEC_1",
+        instrument_row={"asset_class": "Equity"},
+    )
+    assert len(request.shelf_entries) == 1
+    assert request.market_data_snapshot.prices == []
+
+    fake_client = _FakeClient(
+        {
+            (
+                "GET",
+                "http://core-query.dev.lotus/fx-rates/?from_currency=CHF&to_currency=USD",
+            ): _FakeResponse({"rates": [{"rate_date": "2026-03-27", "rate": None}]})
+        }
+    )
+    _append_fx_rate_if_missing(
+        client=fake_client,  # type: ignore[arg-type]
+        simulate_request=request,
+        instrument_currency="CHF",
+        portfolio_base_currency="USD",
+        base_url="http://core-query.dev.lotus",
+        as_of="2026-03-27",
+    )
+    assert request.market_data_snapshot.fx_rates == []
+
+
+def test_enrich_trade_drafts_skips_missing_price_date_and_missing_currency(monkeypatch) -> None:
+    simulate_request = ProposalSimulateRequest.model_validate(
+        {
+            "portfolio_snapshot": {"portfolio_id": "pf_1", "base_currency": "USD"},
+            "market_data_snapshot": {"prices": [], "fx_rates": []},
+            "shelf_entries": [],
+            "options": {"enable_proposal_simulation": True},
+            "proposed_cash_flows": [],
+            "proposed_trades": [{"side": "BUY", "instrument_id": "SEC_NEW", "quantity": "1"}],
+        }
+    )
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", "http://core-query.dev.lotus")
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://core-control.dev.lotus")
+    fake_client = _FakeClient(
+        {
+            (
+                "POST",
+                "http://core-control.dev.lotus/integration/instruments/enrichment-bulk",
+            ): _FakeResponse({"records": [{"security_id": "SEC_NEW", "issuer_id": "ISSUER_NEW"}]}),
+            (
+                "GET",
+                "http://core-query.dev.lotus/instruments/?security_id=SEC_NEW",
+            ): _FakeResponse(
+                {"instruments": [{"security_id": "SEC_NEW", "asset_class": "Equity"}]}
+            ),
+            (
+                "GET",
+                "http://core-query.dev.lotus/prices/?security_id=SEC_NEW",
+            ): _FakeResponse({"prices": [{"price_date": "2026-03-27", "price": "10"}]}),
+        }
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    enriched = enrich_stateful_simulate_request_for_trade_drafts(
+        simulate_request=simulate_request,
+        as_of="2026-03-27",
+    )
+
+    assert enriched.market_data_snapshot.prices == []
+    assert enriched.shelf_entries == []
+
+
+def test_resolve_stateful_context_rejects_missing_resolved_as_of(
+    monkeypatch, stateful_input
+) -> None:
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
+        ),
+        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "resolved_as_of_date": "", "cash_accounts": []}
+        ),
+    }
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _FakeClient(responses),
+    )
+
+    with pytest.raises(LotusCoreStatefulContextUnavailableError) as exc_info:
+        resolve_stateful_context_with_lotus_core(stateful_input.model_copy(update={"as_of": ""}))
+
+    assert str(exc_info.value) == "LOTUS_CORE_STATEFUL_CONTEXT_INVALID"
 
 
 def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
@@ -1128,9 +1501,7 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_skips_malformed_looku
         (
             "POST",
             f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
-        ): _FakeResponse(
-            {"records": [{"security_id": "EQ_BAD", "issuer_id": "ISSUER_BAD"}]}
-        ),
+        ): _FakeResponse({"records": [{"security_id": "EQ_BAD", "issuer_id": "ISSUER_BAD"}]}),
         ("GET", f"{base_url}/instruments/?security_id=EQ_BAD"): _FakeResponse(
             {"total": 1, "instruments": ["not-a-dict"]}
         ),

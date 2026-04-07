@@ -271,9 +271,7 @@ def _resolve_control_plane_base_url() -> str:
     split = urlsplit(query_base_url)
     host = split.hostname
     if host is None:
-        raise LotusCoreStatefulContextUnavailableError(
-            "LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE"
-        )
+        raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE")
     netloc = host
     if split.username or split.password:
         auth = split.username or ""
@@ -348,9 +346,7 @@ def _prefer_upstream_liquidity_tier(
 ) -> str | None:
     upstream_liquidity_tier = _normalized_optional_str(
         raw_liquidity_tier
-    ) or _normalized_optional_str(
-        enrichment_liquidity_tier
-    )
+    ) or _normalized_optional_str(enrichment_liquidity_tier)
     if upstream_liquidity_tier:
         return upstream_liquidity_tier
     return _resolve_liquidity_tier(
@@ -667,9 +663,7 @@ def _select_latest_dated_row(
     as_of: str,
 ) -> dict[str, Any] | None:
     dated_rows = [
-        row
-        for row in rows
-        if isinstance(row, dict) and isinstance(row.get(date_key), str)
+        row for row in rows if isinstance(row, dict) and isinstance(row.get(date_key), str)
     ]
     if not dated_rows:
         return None
