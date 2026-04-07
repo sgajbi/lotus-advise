@@ -163,8 +163,8 @@ gh pr checks <PR_NUMBER> --watch
 gh pr merge <PR_NUMBER> --squash --delete-branch
 ```
 
-Auto-merge is enabled via GitHub Action after successful CI.
-If CI is green, PR can merge automatically.
+Auto-merge is opt-in via the `automerge` label and is only queued on protected `main`.
+Without the `automerge` label, PRs stay manual even after CI is green.
 
 ### 9. Sync local after merge
 
@@ -181,7 +181,7 @@ Use branch + PR flow above.
 ## Dependabot PRs (Current Setup)
 
 Dependabot opens dependency-update PRs.
-Dependabot PRs follow the same auto-merge behavior after successful CI.
+Dependabot PRs may use the same flow, but only when explicitly labeled `automerge`.
 
 Useful commands:
 
