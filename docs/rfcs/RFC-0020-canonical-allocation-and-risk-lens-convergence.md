@@ -308,6 +308,16 @@ Acceptance gate:
 3. API vocabulary inventory includes canonical allocation lens terms.
 4. Legacy fields remain stable or have explicit compatibility tests and migration notes.
 
+Implementation note:
+
+Slice 3 is implemented across `lotus-core` and `lotus-advise` on the RFC-0020 feature branches.
+
+1. `lotus-core` now adds `before.allocation_views`, `after_simulated.allocation_views`, and top-level `allocation_lens` metadata to `advisory-simulation.v1`.
+2. The allocation lens exposes only the curated proposal dimensions: `asset_class`, `currency`, `sector`, `country`, `region`, `product_type`, and `rating`.
+3. `lotus-advise` now models and validates those fields instead of treating them as opaque upstream JSON.
+4. `lotus-advise` rejects upstream responses where `allocation_lens.contract_version` does not match the canonical simulation contract version.
+5. Legacy fields remain present; `allocation_by_asset_class` is compatibility output alongside canonical views, while `allocation_by_instrument` and `allocation_by_attribute` remain advisory-specific compatibility fields until a future UI/API migration removes the need for them.
+
 ### Slice 4: Concrete `lotus-risk` Concentration Client
 
 Outcome:
