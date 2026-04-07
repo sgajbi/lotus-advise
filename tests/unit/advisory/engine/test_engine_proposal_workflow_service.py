@@ -596,6 +596,28 @@ def test_service_submit_async_create_persists_restart_safe_payload():
     assert accepted.max_attempts == 3
 
 
+def test_service_accept_async_create_submission_marks_replayed_duplicates() -> None:
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+
+    first, first_is_new = service.accept_create_proposal_async_submission(
+        payload=payload,
+        idempotency_key="idem-async-replayed-create",
+        correlation_id="corr-async-replayed-create-1",
+    )
+    duplicate, duplicate_is_new = service.accept_create_proposal_async_submission(
+        payload=payload,
+        idempotency_key="idem-async-replayed-create",
+        correlation_id="corr-async-replayed-create-2",
+    )
+
+    assert first_is_new is True
+    assert duplicate_is_new is False
+    assert duplicate.operation_id == first.operation_id
+    assert duplicate.correlation_id == first.correlation_id
+
+
 def test_service_execute_create_proposal_async_retries_runtime_failure(monkeypatch):
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)

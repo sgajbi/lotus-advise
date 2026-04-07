@@ -241,13 +241,13 @@ class ProposalWorkflowService:
             proposal=proposal, version=version, latest_event=created_event
         )
 
-    def submit_create_proposal_async(
+    def accept_create_proposal_async_submission(
         self,
         *,
         payload: ProposalCreateRequest,
         idempotency_key: str,
         correlation_id: Optional[str],
-    ) -> ProposalAsyncAcceptedResponse:
+    ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
         submission_hash = self._hash_async_create_submission(payload)
         existing = self._repository.get_operation_by_idempotency(idempotency_key=idempotency_key)
         if existing is not None:
@@ -256,7 +256,7 @@ class ProposalWorkflowService:
                 raise ProposalIdempotencyConflictError(
                     "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
                 )
-            return self._to_async_accepted(existing)
+            return self._to_async_accepted(existing), False
 
         resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
         operation = ProposalAsyncOperationRecord(
@@ -282,7 +282,21 @@ class ProposalWorkflowService:
             error_json=None,
         )
         self._repository.create_operation(operation)
-        return self._to_async_accepted(operation)
+        return self._to_async_accepted(operation), True
+
+    def submit_create_proposal_async(
+        self,
+        *,
+        payload: ProposalCreateRequest,
+        idempotency_key: str,
+        correlation_id: Optional[str],
+    ) -> ProposalAsyncAcceptedResponse:
+        accepted, _ = self.accept_create_proposal_async_submission(
+            payload=payload,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        return accepted
 
     def execute_create_proposal_async(
         self,

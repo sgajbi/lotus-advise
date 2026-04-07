@@ -52,17 +52,18 @@ def create_proposal_async(
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
     try:
-        accepted = service.submit_create_proposal_async(
+        accepted, should_schedule = service.accept_create_proposal_async_submission(
             payload=payload,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
     except ProposalIdempotencyConflictError as exc:
         raise_proposal_http_exception(exc)
-    background_tasks.add_task(
-        service.execute_create_proposal_async,
-        operation_id=accepted.operation_id,
-    )
+    if should_schedule:
+        background_tasks.add_task(
+            service.execute_create_proposal_async,
+            operation_id=accepted.operation_id,
+        )
     return accepted
 
 
