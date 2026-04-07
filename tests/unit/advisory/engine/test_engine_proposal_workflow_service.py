@@ -617,6 +617,10 @@ def test_service_accept_async_create_submission_marks_replayed_duplicates() -> N
     assert duplicate_is_new is False
     assert duplicate.operation_id == first.operation_id
     assert duplicate.correlation_id == first.correlation_id
+    stats = service.get_async_create_submission_stats_for_tests()
+    assert stats.accepted_new == 1
+    assert stats.accepted_replayed == 1
+    assert stats.conflicts == 0
 
 
 def test_service_accept_async_create_submission_is_concurrency_safe() -> None:
@@ -639,6 +643,37 @@ def test_service_accept_async_create_submission_is_concurrency_safe() -> None:
     new_flags = [is_new for _, is_new in results]
     assert len(operation_ids) == 1
     assert sum(1 for value in new_flags if value) == 1
+    stats = service.get_async_create_submission_stats_for_tests()
+    assert stats.accepted_new == 1
+    assert stats.accepted_replayed == 23
+    assert stats.conflicts == 0
+
+
+def test_service_accept_async_create_submission_tracks_conflicts() -> None:
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+
+    service.accept_create_proposal_async_submission(
+        payload=payload,
+        idempotency_key="idem-async-conflict-stats",
+        correlation_id="corr-async-conflict-stats-1",
+    )
+
+    conflicting_payload = _create_payload()
+    conflicting_payload.metadata.title = "Conflicting async stats payload"
+
+    with pytest.raises(ProposalIdempotencyConflictError):
+        service.accept_create_proposal_async_submission(
+            payload=conflicting_payload,
+            idempotency_key="idem-async-conflict-stats",
+            correlation_id="corr-async-conflict-stats-2",
+        )
+
+    stats = service.get_async_create_submission_stats_for_tests()
+    assert stats.accepted_new == 1
+    assert stats.accepted_replayed == 0
+    assert stats.conflicts == 1
 
 
 def test_service_execute_create_proposal_async_retries_runtime_failure(monkeypatch):
