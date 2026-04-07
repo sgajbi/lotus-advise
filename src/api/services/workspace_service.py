@@ -405,6 +405,7 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
         request_hash=request_hash,
         idempotency_key=None,
         correlation_id=correlation_id,
+        resolved_as_of=proposal_resolved_context.as_of,
     )
     result.explanation["context_resolution"] = build_context_resolution_evidence(resolved_request)
     session.latest_proposal_result = result

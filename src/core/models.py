@@ -599,7 +599,7 @@ class AllocationMetric(BaseModel):
 
     @field_serializer("weight")
     def serialize_weight(self, value: Decimal) -> Decimal:
-        return _quantize_ratio(value)
+        return value
 
 
 ProposalAllocationDimension = Literal[
@@ -624,7 +624,7 @@ class ProposalAllocationBucket(BaseModel):
 
     @field_serializer("weight")
     def serialize_weight(self, value: Decimal) -> Decimal:
-        return _quantize_ratio(value)
+        return value
 
 
 class ProposalAllocationView(BaseModel):

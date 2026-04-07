@@ -382,6 +382,24 @@ Acceptance gate:
 4. Repeated stateful proposal workflows do not refetch safe cached context unnecessarily.
 5. Cache-key tests prove no identity bleed across portfolio id, as-of date, reporting currency, mandate id, benchmark id, dimensions, look-through mode, simulation contract version, or risk options.
 
+Implementation status:
+
+Slice 6 is implemented on feature branch `feat/stateful-context-hardening-20260407`.
+
+1. Added `scripts/validate_cross_service_parity_live.py` and the gated wrapper
+   `tests/e2e/live/test_cross_service_parity_live.py` to validate direct live `lotus-core`
+   allocation, direct live `lotus-risk` concentration simulation, and proposal evaluation together.
+2. Fixed stateful risk parity by passing resolved `as_of` values through the `lotus-risk`
+   concentration client instead of falling back to request-local defaults.
+3. Fixed stateful proposal allocation parity by carrying live `lotus-core` classification metadata
+   into shelf entries for held and drafted instruments.
+4. Fixed proposal currency allocation by preserving per-currency cash rows instead of collapsing
+   cash into one base-currency bucket.
+5. Fixed proposal allocation-view contract parity by aligning labels and weight precision with the
+   live `lotus-core` reporting contract.
+6. Live parity validation now passes against seeded portfolios with `lotus-core`, `lotus-risk`,
+   and `lotus-advise` running together, including cold-versus-warm stateful runtime checks.
+
 ## Required Tests
 
 This RFC cannot close with smoke tests only.

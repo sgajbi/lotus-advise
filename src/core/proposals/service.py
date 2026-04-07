@@ -188,6 +188,7 @@ class ProposalWorkflowService:
         self._validate_simulation_flag(resolved_request.simulate_request)
         proposal_result = self._run_simulation(
             request=resolved_request.simulate_request,
+            resolved_as_of=resolved_request.resolved_context.as_of,
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
@@ -766,6 +767,7 @@ class ProposalWorkflowService:
 
         proposal_result = self._run_simulation(
             request=resolved_request.simulate_request,
+            resolved_as_of=resolved_request.resolved_context.as_of,
             request_hash=request_hash,
             idempotency_key=None,
             correlation_id=correlation_id,
@@ -1469,6 +1471,7 @@ class ProposalWorkflowService:
         self,
         *,
         request: ProposalSimulateRequest,
+        resolved_as_of: str,
         request_hash: str,
         idempotency_key: Optional[str],
         correlation_id: Optional[str],
@@ -1479,6 +1482,7 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=resolved_correlation_id,
+            resolved_as_of=resolved_as_of,
         )
 
     def _validate_simulation_flag(self, request: ProposalSimulateRequest) -> None:

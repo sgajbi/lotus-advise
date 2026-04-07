@@ -231,3 +231,23 @@ def test_enrich_with_lotus_risk_rejects_contract_mismatch(monkeypatch):
             proposal_result=_proposal_result(request),
             correlation_id="corr-risk-client",
         )
+
+
+def test_enrich_with_lotus_risk_prefers_resolved_as_of_for_stateful_context(monkeypatch):
+    request = _request()
+    request.reference_model = None
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=_risk_response_payload()))
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    enrich_with_lotus_risk(
+        request=request,
+        proposal_result=_proposal_result(_request()),
+        correlation_id="corr-risk-client",
+        resolved_as_of="2026-03-27",
+    )
+
+    assert fake_client.calls[0]["json"]["simulation_input"]["as_of_date"] == "2026-03-27"

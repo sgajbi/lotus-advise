@@ -191,13 +191,13 @@ def test_advisory_proposal_result_accepts_canonical_allocation_lens():
                 "buckets": [
                     {
                         "key": "EQUITY",
-                        "weight": "0.8000",
+                        "weight": "0.8123456789",
                         "value": {"amount": "200", "currency": "USD"},
                         "position_count": 1,
                     },
                     {
                         "key": "CASH",
-                        "weight": "0.2000",
+                        "weight": "0.1876543211",
                         "value": {"amount": "50", "currency": "USD"},
                         "position_count": 1,
                     },
@@ -209,7 +209,7 @@ def test_advisory_proposal_result_accepts_canonical_allocation_lens():
                 "buckets": [
                     {
                         "key": "USD",
-                        "weight": "1.0000",
+                        "weight": "1.0000000000",
                         "value": {"amount": "250", "currency": "USD"},
                         "position_count": 2,
                     }
@@ -253,6 +253,7 @@ def test_advisory_proposal_result_accepts_canonical_allocation_lens():
         "asset_class",
         "currency",
     ]
+    assert result.before.allocation_views[0].buckets[0].weight == Decimal("0.8123456789")
 
 
 def test_allocation_lens_can_mark_controlled_local_fallback_source():

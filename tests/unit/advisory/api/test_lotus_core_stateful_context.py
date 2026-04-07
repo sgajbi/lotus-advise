@@ -144,6 +144,9 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
                         "quantity": 800.0,
                         "asset_class": "Equity",
                         "currency": "USD",
+                        "sector": "Information Technology",
+                        "country_of_risk": "United States",
+                        "product_type": "Equity",
                         "valuation": {
                             "market_price": "194.0000000000",
                             "market_value": "155200.0000000000",
@@ -155,6 +158,10 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
                         "quantity": 120.0,
                         "asset_class": "Equity",
                         "currency": "CHF",
+                        "sector": "Consumer Staples",
+                        "country_of_risk": "Switzerland",
+                        "product_type": "Equity",
+                        "rating": "AA",
                         "valuation": {
                             "market_price": "94.5000000000",
                             "market_value": "12400.0000000000",
@@ -229,7 +236,7 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
             "liquidity_tier": None,
             "settlement_days": 2,
             "min_notional": None,
-            "attributes": {"source": "LOTUS_CORE_STATEFUL_CONTEXT"},
+            "attributes": {"product_type": "Cash", "source": "LOTUS_CORE_STATEFUL_CONTEXT"},
         },
         {
             "instrument_id": "SEC_AAPL_US",
@@ -239,7 +246,12 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
             "liquidity_tier": None,
             "settlement_days": 2,
             "min_notional": None,
-            "attributes": {"source": "LOTUS_CORE_STATEFUL_CONTEXT"},
+            "attributes": {
+                "country": "United States",
+                "product_type": "Equity",
+                "sector": "Information Technology",
+                "source": "LOTUS_CORE_STATEFUL_CONTEXT",
+            },
         },
         {
             "instrument_id": "SEC_NESN_CH",
@@ -249,7 +261,13 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
             "liquidity_tier": None,
             "settlement_days": 2,
             "min_notional": None,
-            "attributes": {"source": "LOTUS_CORE_STATEFUL_CONTEXT"},
+            "attributes": {
+                "country": "Switzerland",
+                "product_type": "Equity",
+                "rating": "AA",
+                "sector": "Consumer Staples",
+                "source": "LOTUS_CORE_STATEFUL_CONTEXT",
+            },
         },
         {
             "instrument_id": "CASH_CHF",
@@ -259,7 +277,7 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
             "liquidity_tier": None,
             "settlement_days": 2,
             "min_notional": None,
-            "attributes": {"source": "LOTUS_CORE_STATEFUL_CONTEXT"},
+            "attributes": {"product_type": "Cash", "source": "LOTUS_CORE_STATEFUL_CONTEXT"},
         },
     ]
     assert request.market_data_snapshot.model_dump(mode="json")["fx_rates"] == [
@@ -784,6 +802,10 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
                         "security_id": "EQ_NEW_CHF",
                         "currency": "CHF",
                         "asset_class": "Equity",
+                        "sector": "Industrials",
+                        "country_of_risk": "Switzerland",
+                        "product_type": "Equity",
+                        "rating": "A",
                     }
                 ],
             }
@@ -826,6 +848,13 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
         "currency": "CHF",
     }
     assert enriched.shelf_entries[-1].model_dump(mode="json")["instrument_id"] == "EQ_NEW_CHF"
+    assert enriched.shelf_entries[-1].model_dump(mode="json")["attributes"] == {
+        "country": "Switzerland",
+        "product_type": "Equity",
+        "rating": "A",
+        "sector": "Industrials",
+        "source": "LOTUS_CORE_STATEFUL_CONTEXT",
+    }
     assert enriched.market_data_snapshot.model_dump(mode="json")["fx_rates"][-1] == {
         "pair": "CHF/USD",
         "rate": "1.10",
@@ -876,6 +905,10 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_s
                         "security_id": "EQ_NEW_CHF",
                         "currency": "CHF",
                         "asset_class": "Equity",
+                        "sector": "Industrials",
+                        "country_of_risk": "Switzerland",
+                        "product_type": "Equity",
+                        "rating": "A",
                     }
                 ],
             }

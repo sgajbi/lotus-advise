@@ -124,10 +124,11 @@ def _build_concentration_request(
     *,
     request: ProposalSimulateRequest,
     proposal_result: ProposalResult,
+    resolved_as_of: str | None,
 ) -> dict[str, Any]:
     simulation_input: dict[str, Any] = {
         "portfolio_id": request.portfolio_snapshot.portfolio_id,
-        "as_of_date": _proposal_as_of(request),
+        "as_of_date": resolved_as_of or _proposal_as_of(request),
         "reporting_currency": request.portfolio_snapshot.base_currency,
         "include_cash_positions": True,
         "include_zero_quantity_positions": False,
@@ -171,8 +172,13 @@ def enrich_with_lotus_risk(
     request: ProposalSimulateRequest,
     proposal_result: ProposalResult,
     correlation_id: str,
+    resolved_as_of: str | None = None,
 ) -> ProposalResult:
-    payload = _build_concentration_request(request=request, proposal_result=proposal_result)
+    payload = _build_concentration_request(
+        request=request,
+        proposal_result=proposal_result,
+        resolved_as_of=resolved_as_of,
+    )
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
             response = client.post(

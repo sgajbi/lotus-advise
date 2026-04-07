@@ -104,6 +104,27 @@ def _clone_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return dict(payload)
 
 
+def _shelf_attributes_from_payload(
+    *,
+    sector: Any = None,
+    country: Any = None,
+    product_type: Any = None,
+    rating: Any = None,
+) -> dict[str, str]:
+    attributes = {"source": "LOTUS_CORE_STATEFUL_CONTEXT"}
+    optional_values = {
+        "sector": sector,
+        "country": country,
+        "product_type": product_type,
+        "rating": rating,
+    }
+    for key, raw_value in optional_values.items():
+        value = str(raw_value or "").strip()
+        if value:
+            attributes[key] = value
+    return attributes
+
+
 _STATEFUL_CONTEXT_CACHE = TimedCache[str, LotusCoreResolvedAdvisoryContext](
     clone_value=_clone_resolved_context,
     ttl_seconds=_stateful_context_cache_ttl_seconds,
@@ -431,9 +452,12 @@ def _build_shelf_entries(
             instrument_id=instrument_id,
             status="APPROVED",
             asset_class=asset_class or "UNKNOWN",
-            attributes={
-                "source": "LOTUS_CORE_STATEFUL_CONTEXT",
-            },
+            attributes=_shelf_attributes_from_payload(
+                sector=raw_position.get("sector"),
+                country=raw_position.get("country_of_risk"),
+                product_type=raw_position.get("product_type"),
+                rating=raw_position.get("rating"),
+            ),
         )
 
     for account in cash_payload.get("cash_accounts", []):
@@ -448,9 +472,7 @@ def _build_shelf_entries(
             instrument_id=instrument_id,
             status="APPROVED",
             asset_class="CASH",
-            attributes={
-                "source": "LOTUS_CORE_STATEFUL_CONTEXT",
-            },
+            attributes=_shelf_attributes_from_payload(product_type="Cash"),
         )
 
     return list(shelf_by_instrument.values())
@@ -553,7 +575,12 @@ def _append_shelf_entry_if_missing(
             instrument_id=instrument_id,
             status="APPROVED",
             asset_class=asset_class or "UNKNOWN",
-            attributes={"source": "LOTUS_CORE_STATEFUL_CONTEXT"},
+            attributes=_shelf_attributes_from_payload(
+                sector=instrument_row.get("sector"),
+                country=instrument_row.get("country_of_risk"),
+                product_type=instrument_row.get("product_type"),
+                rating=instrument_row.get("rating"),
+            ),
         )
     )
 
