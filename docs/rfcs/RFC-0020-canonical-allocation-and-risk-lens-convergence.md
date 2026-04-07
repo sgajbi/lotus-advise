@@ -284,6 +284,15 @@ Acceptance gate:
 3. Advisory simulation tests prove before and after allocations come from the shared calculator.
 4. A no-op advisory simulation before allocation matches live allocation for the same portfolio, as-of date, reporting currency, dimensions, and look-through mode.
 
+Implementation note:
+
+Slice 2 is implemented in `lotus-core` on feature branch `feat/rfc0020-allocation-contract-baseline-20260407`.
+
+1. Live reporting now calls a shared allocation calculator instead of carrying local bucket aggregation.
+2. Advisory simulation now reuses the same calculator for asset-class allocation in before/after state while retaining advisory-specific compatibility fields such as instrument allocation and shelf-attribute allocation.
+3. Tests now cover the shared calculator across all live allocation dimensions, live reporting regression behavior, advisory valuation parity against the shared calculator, and no-op advisory before/after allocation parity.
+4. The response surface is intentionally not widened in this slice; canonical proposal allocation-lens fields remain Slice 3 scope.
+
 ### Slice 3: `advisory-simulation.v1` Allocation Lens Hardening
 
 Outcome:
