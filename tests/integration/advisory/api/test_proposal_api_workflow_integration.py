@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.api.services.workspace_service import reset_workspace_sessions_for_tests
+from src.integrations.lotus_core.context_resolution import LotusCoreContextResolutionError
 from tests.shared.stateful_context_builders import (
     build_resolved_stateful_context,
     build_tradeable_universe_stateful_context,
@@ -575,6 +576,128 @@ def test_stateful_async_version_roundtrip_preserves_replay_hashes(
     assert async_replay_body["continuity"]["correlation_id"] == (
         "corr-integration-proposal-async-stateful-version-1"
     )
+
+
+def test_stateful_async_create_failure_exposes_terminal_error_and_replay_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _unavailable(_stateful_input):
+        raise LotusCoreContextResolutionError("LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE")
+
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        _unavailable,
+        raising=False,
+    )
+    payload = {
+        "created_by": "advisor_stateful_async",
+        "metadata": {
+            "title": "Stateful async create failure",
+            "advisor_notes": "stateful async failure coverage",
+            "jurisdiction": "SG",
+        },
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_async_stateful_failure_1",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_async_stateful_failure_1",
+        },
+    }
+
+    with TestClient(app) as client:
+        operation_id, operation_body = _submit_async_create(
+            client,
+            payload=payload,
+            idempotency_key="integration-proposal-async-stateful-failure-1",
+            correlation_id="corr-integration-proposal-async-stateful-failure-1",
+        )
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+        by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/"
+            "corr-integration-proposal-async-stateful-failure-1"
+        )
+
+    assert operation_body["status"] == "FAILED"
+    assert operation_body["result"] is None
+    assert operation_body["error"] == {
+        "code": "ProposalValidationError",
+        "message": "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE",
+    }
+    assert by_correlation.status_code == 200
+    assert by_correlation.json()["operation_id"] == operation_id
+    assert async_replay.status_code == 200
+    replay_body = async_replay.json()
+    assert replay_body["subject"]["scope"] == "ASYNC_OPERATION"
+    assert replay_body["subject"]["proposal_id"] is None
+    assert replay_body["resolved_context"] is None
+    assert (
+        replay_body["explanation"]["continuity_status"]
+        == "NO_TERMINAL_PROPOSAL_VERSION_AVAILABLE"
+    )
+    assert replay_body["evidence"]["async_runtime"]["status"] == "FAILED"
+    assert replay_body["evidence"]["async_runtime"]["error"] == operation_body["error"]
+    assert replay_body["evidence"]["async_runtime"]["finished_at"] is not None
+
+
+def test_stateful_async_version_failure_exposes_terminal_error_and_replay_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _unavailable(_stateful_input):
+        raise LotusCoreContextResolutionError("LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE")
+
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        _unavailable,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload("pf_async_stateful_failure_base"),
+            headers={"Idempotency-Key": "integration-proposal-async-stateful-failure-base"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+
+        operation_id, operation_body = _submit_async_version(
+            client,
+            proposal_id=proposal_id,
+            payload={
+                "created_by": "advisor_stateful_async",
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_async_stateful_failure_base",
+                    "as_of": "2026-03-25",
+                    "mandate_id": "mandate_async_stateful_failure_2",
+                },
+            },
+            correlation_id="corr-integration-proposal-async-stateful-failure-version-1",
+        )
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+        by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/"
+            "corr-integration-proposal-async-stateful-failure-version-1"
+        )
+
+    assert operation_body["status"] == "FAILED"
+    assert operation_body["proposal_id"] == proposal_id
+    assert operation_body["result"] is None
+    assert operation_body["error"] == {
+        "code": "ProposalValidationError",
+        "message": "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE",
+    }
+    assert by_correlation.status_code == 200
+    assert by_correlation.json()["operation_id"] == operation_id
+    assert async_replay.status_code == 200
+    replay_body = async_replay.json()
+    assert replay_body["subject"]["scope"] == "ASYNC_OPERATION"
+    assert replay_body["subject"]["proposal_id"] == proposal_id
+    assert replay_body["subject"]["proposal_version_no"] is None
+    assert replay_body["continuity"]["async_operation_type"] == "CREATE_PROPOSAL_VERSION"
+    assert replay_body["evidence"]["async_runtime"]["payload_json"]["proposal_id"] == proposal_id
+    assert replay_body["evidence"]["async_runtime"]["error"] == operation_body["error"]
+    assert replay_body["explanation"]["source"] == "ASYNC_OPERATION_ONLY"
 
 
 def test_proposal_async_operations_disabled_by_feature_flag(

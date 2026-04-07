@@ -636,7 +636,7 @@ class ProposalWorkflowService:
         version = None
         if operation.proposal_id is not None:
             proposal = self._repository.get_proposal(proposal_id=operation.proposal_id)
-            if proposal is not None:
+            if proposal is not None and operation.status == "SUCCEEDED":
                 version_no = None
                 if operation.result_json is not None:
                     version_payload = operation.result_json.get("version")

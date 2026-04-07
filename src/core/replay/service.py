@@ -180,7 +180,10 @@ def build_async_operation_replay_response(
                 "attempt_count": operation.attempt_count,
                 "max_attempts": operation.max_attempts,
                 "created_at": operation.created_at.isoformat(),
+                "started_at": operation.started_at.isoformat() if operation.started_at else None,
+                "finished_at": operation.finished_at.isoformat() if operation.finished_at else None,
                 "payload_json": operation.payload_json,
+                "error": operation.error_json,
             }
         },
         explanation={
