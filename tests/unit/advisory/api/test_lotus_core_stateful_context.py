@@ -508,6 +508,74 @@ def test_resolve_stateful_context_with_lotus_core_isolates_distinct_as_of_inputs
     assert fetch_stats.cash_fetches == 2
 
 
+def test_resolve_stateful_context_with_lotus_core_isolates_optional_identity_dimensions(
+    monkeypatch,
+):
+    from src.core.workspace.models import WorkspaceStatefulInput
+
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    request_counter = {"count": 0}
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
+        ),
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
+        ),
+        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "resolved_as_of_date": "2026-03-27",
+                "cash_accounts": [],
+            }
+        ),
+    }
+
+    class _CountingFakeClient(_FakeClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ) -> _FakeResponse:
+            request_counter["count"] += 1
+            return super().request(method, url, json=json)
+
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _CountingFakeClient(responses),
+    )
+
+    first = resolve_stateful_context_with_lotus_core(
+        WorkspaceStatefulInput(
+            portfolio_id="DEMO_ADV_USD_001",
+            as_of="2026-03-27",
+            mandate_id="mandate_growth_01",
+            benchmark_id="benchmark_balanced_usd",
+        )
+    )
+    second = resolve_stateful_context_with_lotus_core(
+        WorkspaceStatefulInput(
+            portfolio_id="DEMO_ADV_USD_001",
+            as_of="2026-03-27",
+            mandate_id="mandate_income_01",
+            benchmark_id="benchmark_income_usd",
+        )
+    )
+
+    assert first.resolved_context == second.resolved_context
+    assert request_counter["count"] == 6
+    stats = get_stateful_context_cache_stats_for_tests()
+    assert stats["resolved_context"].misses == 2
+    assert stats["resolved_context"].hits == 0
+    assert stats["resolved_context"].writes == 2
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 2
+    assert fetch_stats.positions_fetches == 2
+    assert fetch_stats.cash_fetches == 2
+
+
 def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
     monkeypatch,
 ):

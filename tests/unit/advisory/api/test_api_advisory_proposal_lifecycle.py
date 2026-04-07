@@ -618,6 +618,67 @@ def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
     assert fetch_stats.cash_fetches == 2
 
 
+def test_stateful_create_refetches_when_optional_context_identity_changes(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    query_client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_identity_boundary",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+
+    first_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_identity_boundary",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_growth_01",
+            "benchmark_id": "benchmark_balanced_usd",
+        },
+        "metadata": {"title": "Identity boundary 1", "jurisdiction": "SG"},
+    }
+    second_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_identity_boundary",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_income_01",
+            "benchmark_id": "benchmark_income_usd",
+        },
+        "metadata": {"title": "Identity boundary 2", "jurisdiction": "SG"},
+    }
+
+    with TestClient(app) as client:
+        first = client.post(
+            "/advisory/proposals",
+            json=first_payload,
+            headers={"Idempotency-Key": "stateful-identity-boundary-1"},
+        )
+        second = client.post(
+            "/advisory/proposals",
+            json=second_payload,
+            headers={"Idempotency-Key": "stateful-identity-boundary-2"},
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["proposal"]["mandate_id"] == "mandate_growth_01"
+    assert second.json()["proposal"]["mandate_id"] == "mandate_income_01"
+    assert query_client.request_count == 6
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 2
+    assert fetch_stats.positions_fetches == 2
+    assert fetch_stats.cash_fetches == 2
+
+
 def test_async_create_proposal_supports_stateful_context_resolution(monkeypatch):
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
