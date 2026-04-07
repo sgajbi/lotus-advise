@@ -80,7 +80,7 @@ class _FakeConnection:
             for row in self.operations.values():
                 row.setdefault("lease_expires_at", None)
             return _FakeCursor()
-        if sql.startswith("CREATE INDEX"):
+        if sql.startswith("CREATE INDEX") or sql.startswith("CREATE UNIQUE INDEX"):
             return _FakeCursor()
         if "FROM schema_migrations" in sql:
             namespace = args[0]
@@ -116,6 +116,38 @@ class _FakeConnection:
         if "FROM proposal_simulation_idempotency WHERE idempotency_key = %s" in sql:
             return _FakeCursor(self.simulation_idempotency.get(args[0]))
         if "INSERT INTO proposal_async_operations" in sql:
+            if "ON CONFLICT (idempotency_key) DO NOTHING" in sql:
+                inserted_operation_id = args[0]
+                idempotency_key = args[4]
+                existing = next(
+                    (
+                        operation
+                        for operation in self.operations.values()
+                        if operation["idempotency_key"] == idempotency_key
+                    ),
+                    None,
+                )
+                if existing is None:
+                    self.operations[inserted_operation_id] = {
+                        "operation_id": args[0],
+                        "operation_type": args[1],
+                        "status": args[2],
+                        "correlation_id": args[3],
+                        "idempotency_key": args[4],
+                        "proposal_id": args[5],
+                        "created_by": args[6],
+                        "created_at": args[7],
+                        "payload_json": args[8],
+                        "attempt_count": args[9],
+                        "max_attempts": args[10],
+                        "started_at": args[11],
+                        "lease_expires_at": args[12],
+                        "finished_at": args[13],
+                        "result_json": args[14],
+                        "error_json": args[15],
+                    }
+                    return _FakeCursor(self.operations[inserted_operation_id])
+                return _FakeCursor(existing)
             self.operations[args[0]] = {
                 "operation_id": args[0],
                 "operation_type": args[1],
@@ -147,6 +179,21 @@ class _FakeConnection:
                 None,
             )
             return _FakeCursor(row)
+        if (
+            "FROM proposal_async_operations WHERE idempotency_key = %s" in sql
+            and "ORDER BY created_at DESC, operation_id DESC" in sql
+        ):
+            rows = [
+                operation
+                for operation in self.operations.values()
+                if operation["idempotency_key"] == args[0]
+            ]
+            rows = sorted(
+                rows,
+                key=lambda row: (row["created_at"], row["operation_id"]),
+                reverse=True,
+            )
+            return _FakeCursor(rows[0] if rows else None)
         if (
             "FROM proposal_async_operations" in sql
             and "ORDER BY created_at ASC, operation_id ASC" in sql
@@ -414,6 +461,60 @@ def test_postgres_repository_create_update_and_lookup_operation(monkeypatch):
     assert by_correlation is not None
     assert by_correlation.operation_id == "pop_001"
     assert by_correlation.status == "SUCCEEDED"
+
+
+def test_postgres_repository_create_operation_if_absent_by_idempotency_is_atomic(monkeypatch):
+    repository, connection = _build_repository(monkeypatch)
+    created_at = datetime.now(timezone.utc)
+    first = ProposalAsyncOperationRecord(
+        operation_id="pop_atomic_1",
+        operation_type="CREATE_PROPOSAL",
+        status="PENDING",
+        correlation_id="corr-atomic-1",
+        idempotency_key="idem-atomic-1",
+        proposal_id=None,
+        created_by="advisor_1",
+        created_at=created_at,
+        payload_json={"payload": {"created_by": "advisor_1"}, "submission_hash": "sha256:first"},
+        attempt_count=0,
+        max_attempts=3,
+        started_at=None,
+        lease_expires_at=None,
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
+    second = ProposalAsyncOperationRecord(
+        operation_id="pop_atomic_2",
+        operation_type="CREATE_PROPOSAL",
+        status="PENDING",
+        correlation_id="corr-atomic-2",
+        idempotency_key="idem-atomic-1",
+        proposal_id=None,
+        created_by="advisor_2",
+        created_at=created_at,
+        payload_json={"payload": {"created_by": "advisor_2"}, "submission_hash": "sha256:second"},
+        attempt_count=0,
+        max_attempts=3,
+        started_at=None,
+        lease_expires_at=None,
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
+
+    stored_first, first_is_new = repository.create_operation_if_absent_by_idempotency(first)
+    stored_second, second_is_new = repository.create_operation_if_absent_by_idempotency(second)
+    by_idempotency = repository.get_operation_by_idempotency(idempotency_key="idem-atomic-1")
+
+    assert first_is_new is True
+    assert second_is_new is False
+    assert stored_first.operation_id == "pop_atomic_1"
+    assert stored_second.operation_id == "pop_atomic_1"
+    assert by_idempotency is not None
+    assert by_idempotency.operation_id == "pop_atomic_1"
+    assert by_idempotency.correlation_id == "corr-atomic-1"
+    assert list(connection.operations) == ["pop_atomic_1"]
 
 
 def test_postgres_repository_lists_recoverable_operations(monkeypatch):
