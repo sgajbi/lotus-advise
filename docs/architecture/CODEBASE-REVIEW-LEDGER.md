@@ -199,10 +199,14 @@
   - `tests/unit/advisory/api/test_api_workspace.py` now proves the same recovery behavior at the
     workspace API layer: an initial `WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE` response
     does not poison subsequent evaluation once Lotus Core returns a valid payload again.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves the same
+    recovery behavior for stateful lifecycle create and stateful version creation: an initial
+    `PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE` failure does not poison the next request
+    after Lotus Core returns a valid payload again.
 - Consequence:
   - The stateful hot path now has explicit regression protection for both latency discipline and
     operational recovery behavior.
 - Follow-Up:
-  - If stateful proposal creation/version flows need the same recovery proof above the adapter
-    layer, extend this pattern into lifecycle API tests without widening the production seam.
+  - Extend the same recovery-pattern coverage into async lifecycle failure/recovery loops only if
+    the runtime contract around retries or backoff changes materially.
 

@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -496,6 +498,144 @@ def test_stateful_async_create_reuses_cached_lotus_core_context(monkeypatch):
     assert first.status_code == 202
     assert second.status_code == 202
     assert client.request_count == 3
+
+
+def test_stateful_create_recovers_after_initial_lotus_core_resolution_failure(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    portfolio_payload = {
+        "portfolio_id": "pf_stateful_recovery_create",
+        "base_currency": "",
+    }
+
+    class _RecoveringQueryClient(CountingLotusCoreQueryClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ):
+            if (method.upper(), url) == (
+                "GET",
+                f"{base_url}/portfolios/pf_stateful_recovery_create",
+            ):
+                self.request_count += 1
+                return self._responses[(method.upper(), url)].__class__(dict(portfolio_payload))
+            return super().request(method, url, json=json)
+
+    client = _RecoveringQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_recovery_create",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: client,
+    )
+    payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_recovery_create",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {"title": "Recovering stateful create"},
+    }
+
+    with TestClient(app) as test_client:
+        failed = test_client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-create-stateful-recovery-failed"},
+        )
+
+        portfolio_payload["base_currency"] = "USD"
+        recovered = test_client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-create-stateful-recovery-success"},
+        )
+
+    assert failed.status_code == 422
+    assert failed.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+    assert recovered.status_code == 200
+    assert recovered.json()["proposal"]["portfolio_id"] == "pf_stateful_recovery_create"
+    assert client.request_count == 6
+
+
+def test_stateful_version_recovers_after_initial_lotus_core_resolution_failure(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    portfolio_payload = {
+        "portfolio_id": "pf_lifecycle_1",
+        "base_currency": "",
+    }
+
+    class _RecoveringQueryClient(CountingLotusCoreQueryClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ):
+            if (method.upper(), url) == ("GET", f"{base_url}/portfolios/pf_lifecycle_1"):
+                self.request_count += 1
+                return self._responses[(method.upper(), url)].__class__(dict(portfolio_payload))
+            return super().request(method, url, json=json)
+
+    client = _RecoveringQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_lifecycle_1",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: client,
+    )
+
+    with TestClient(app) as test_client:
+        created = _create(test_client, "lifecycle-create-stateful-version-recovery-base")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        failed = test_client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_lifecycle_1",
+                    "as_of": "2026-03-25",
+                },
+            },
+        )
+
+        portfolio_payload["base_currency"] = "USD"
+        recovered = test_client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_lifecycle_1",
+                    "as_of": "2026-03-25",
+                },
+            },
+        )
+
+    assert failed.status_code == 422
+    assert failed.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+    assert recovered.status_code == 200
+    assert recovered.json()["proposal"]["current_version_no"] == 2
+    assert recovered.json()["version"]["evidence_bundle"]["context_resolution"]["input_mode"] == (
+        "stateful"
+    )
+    assert client.request_count == 6
 
 
 def test_transition_requires_expected_state_and_rejects_invalid_transition():
