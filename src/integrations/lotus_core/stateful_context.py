@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import os
-import time
-from collections import OrderedDict
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
@@ -30,6 +28,7 @@ from src.integrations.lotus_core.runtime_config import (
     env_positive_int,
     resolve_lotus_core_timeout,
 )
+from src.integrations.lotus_core.timed_cache import TimedCache
 
 _DEFAULT_LOTUS_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
 _PORTFOLIO_PATH = "/portfolios/{portfolio_id}"
@@ -41,16 +40,6 @@ _FX_RATES_PATH = "/fx-rates/?from_currency={from_currency}&to_currency={to_curre
 _DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS = 15.0
 _DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE = 128
 
-_StatefulContextCacheEntry = tuple[float, LotusCoreResolvedAdvisoryContext]
-_STATEFUL_CONTEXT_CACHE: "OrderedDict[str, _StatefulContextCacheEntry]" = OrderedDict()
-_InstrumentLookupCacheEntry = tuple[float, dict[str, Any]]
-_PriceLookupCacheEntry = tuple[float, dict[str, Any]]
-_FxLookupCacheEntry = tuple[float, dict[str, Any]]
-_INSTRUMENT_LOOKUP_CACHE: "OrderedDict[str, _InstrumentLookupCacheEntry]" = OrderedDict()
-_PRICE_LOOKUP_CACHE: "OrderedDict[str, _PriceLookupCacheEntry]" = OrderedDict()
-_FX_LOOKUP_CACHE: "OrderedDict[str, _FxLookupCacheEntry]" = OrderedDict()
-
-
 class LotusCoreStatefulContextUnavailableError(LotusCoreContextResolutionError):
     pass
 
@@ -60,16 +49,20 @@ def _resolve_timeout() -> httpx.Timeout:
 
 
 def _stateful_context_cache_ttl_seconds() -> float:
-    return env_non_negative_float(
-        "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
-        default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
+    return float(
+        env_non_negative_float(
+            "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
+            default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
+        )
     )
 
 
 def _stateful_context_cache_max_size() -> int:
-    return env_positive_int(
-        "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE",
-        default=_DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE,
+    return int(
+        env_positive_int(
+            "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE",
+            default=_DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE,
+        )
     )
 
 
@@ -94,33 +87,43 @@ def _clone_resolved_context(
     )
 
 
+def _clone_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    return dict(payload)
+
+
+_STATEFUL_CONTEXT_CACHE = TimedCache[str, LotusCoreResolvedAdvisoryContext](
+    clone_value=_clone_resolved_context,
+    ttl_seconds=_stateful_context_cache_ttl_seconds,
+    max_size=_stateful_context_cache_max_size,
+)
+_INSTRUMENT_LOOKUP_CACHE = TimedCache[str, dict[str, Any]](
+    clone_value=_clone_payload,
+    ttl_seconds=_stateful_context_cache_ttl_seconds,
+    max_size=_stateful_context_cache_max_size,
+)
+_PRICE_LOOKUP_CACHE = TimedCache[str, dict[str, Any]](
+    clone_value=_clone_payload,
+    ttl_seconds=_stateful_context_cache_ttl_seconds,
+    max_size=_stateful_context_cache_max_size,
+)
+_FX_LOOKUP_CACHE = TimedCache[str, dict[str, Any]](
+    clone_value=_clone_payload,
+    ttl_seconds=_stateful_context_cache_ttl_seconds,
+    max_size=_stateful_context_cache_max_size,
+)
+
+
 def _get_cached_resolved_context(
     stateful_input: WorkspaceStatefulInput,
 ) -> LotusCoreResolvedAdvisoryContext | None:
-    cache_key = _cache_key(stateful_input)
-    cached_entry = _STATEFUL_CONTEXT_CACHE.get(cache_key)
-    if cached_entry is None:
-        return None
-    expires_at, resolved = cached_entry
-    if expires_at < time.monotonic():
-        _STATEFUL_CONTEXT_CACHE.pop(cache_key, None)
-        return None
-    _STATEFUL_CONTEXT_CACHE.move_to_end(cache_key)
-    return _clone_resolved_context(resolved)
+    return _STATEFUL_CONTEXT_CACHE.get(_cache_key(stateful_input))
 
 
 def _cache_resolved_context(
     stateful_input: WorkspaceStatefulInput,
     resolved: LotusCoreResolvedAdvisoryContext,
 ) -> None:
-    cache_key = _cache_key(stateful_input)
-    _STATEFUL_CONTEXT_CACHE[cache_key] = (
-        time.monotonic() + _stateful_context_cache_ttl_seconds(),
-        _clone_resolved_context(resolved),
-    )
-    _STATEFUL_CONTEXT_CACHE.move_to_end(cache_key)
-    while len(_STATEFUL_CONTEXT_CACHE) > _stateful_context_cache_max_size():
-        _STATEFUL_CONTEXT_CACHE.popitem(last=False)
+    _STATEFUL_CONTEXT_CACHE.set(_cache_key(stateful_input), resolved)
 
 
 def reset_stateful_context_cache_for_tests() -> None:
@@ -131,35 +134,20 @@ def reset_stateful_context_cache_for_tests() -> None:
 
 
 def _cache_payload(
-    cache: "OrderedDict[str, tuple[float, dict[str, Any]]]",
+    cache: TimedCache[str, dict[str, Any]],
     *,
     cache_key: str,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
-    cache[cache_key] = (
-        time.monotonic() + _stateful_context_cache_ttl_seconds(),
-        dict(payload),
-    )
-    cache.move_to_end(cache_key)
-    while len(cache) > _stateful_context_cache_max_size():
-        cache.popitem(last=False)
-    return dict(payload)
+    return cache.set(cache_key, payload)
 
 
 def _get_cached_payload(
-    cache: "OrderedDict[str, tuple[float, dict[str, Any]]]",
+    cache: TimedCache[str, dict[str, Any]],
     *,
     cache_key: str,
 ) -> dict[str, Any] | None:
-    cached_entry = cache.get(cache_key)
-    if cached_entry is None:
-        return None
-    expires_at, payload = cached_entry
-    if expires_at < time.monotonic():
-        cache.pop(cache_key, None)
-        return None
-    cache.move_to_end(cache_key)
-    return dict(payload)
+    return cache.get(cache_key)
 
 
 def _resolve_query_base_url() -> str:
@@ -231,7 +219,7 @@ def _request_json(
 def _fetch_json_with_cache(
     client: httpx.Client,
     *,
-    cache: "OrderedDict[str, tuple[float, dict[str, Any]]]",
+    cache: TimedCache[str, dict[str, Any]],
     cache_key: str,
     method: str,
     base_url: str,
