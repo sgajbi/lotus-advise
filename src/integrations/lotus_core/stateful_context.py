@@ -440,6 +440,119 @@ def _has_fx_pair(
     return any(rate.pair in {direct_pair, inverse_pair} for rate in fx_rates)
 
 
+def _select_instrument_row(instrument_payload: dict[str, Any]) -> dict[str, Any] | None:
+    instrument_rows = instrument_payload.get("instruments")
+    if not isinstance(instrument_rows, list) or not instrument_rows:
+        return None
+    instrument_row = instrument_rows[0]
+    return instrument_row if isinstance(instrument_row, dict) else None
+
+
+def _select_latest_price_row(
+    *,
+    price_payload: dict[str, Any],
+    as_of: str,
+) -> dict[str, Any] | None:
+    price_rows = price_payload.get("prices")
+    if not isinstance(price_rows, list):
+        return None
+    return _select_latest_dated_row(price_rows, date_key="price_date", as_of=as_of)
+
+
+def _select_latest_fx_row(
+    *,
+    fx_payload: dict[str, Any],
+    as_of: str,
+) -> dict[str, Any] | None:
+    fx_rows = fx_payload.get("rates")
+    if not isinstance(fx_rows, list):
+        return None
+    return _select_latest_dated_row(fx_rows, date_key="rate_date", as_of=as_of)
+
+
+def _append_price_if_missing(
+    *,
+    simulate_request: ProposalSimulateRequest,
+    instrument_id: str,
+    instrument_currency: str,
+    latest_price_row: dict[str, Any],
+) -> None:
+    if any(
+        price.instrument_id == instrument_id
+        for price in simulate_request.market_data_snapshot.prices
+    ):
+        return
+    price_value = _decimal_or_none(latest_price_row.get("price"))
+    if price_value is None:
+        return
+    simulate_request.market_data_snapshot.prices.append(
+        Price(
+            instrument_id=instrument_id,
+            price=price_value,
+            currency=instrument_currency,
+        )
+    )
+
+
+def _append_shelf_entry_if_missing(
+    *,
+    simulate_request: ProposalSimulateRequest,
+    instrument_id: str,
+    instrument_row: dict[str, Any],
+) -> None:
+    if any(entry.instrument_id == instrument_id for entry in simulate_request.shelf_entries):
+        return
+    asset_class = str(instrument_row.get("asset_class") or "UNKNOWN").strip().upper()
+    simulate_request.shelf_entries.append(
+        ShelfEntry(
+            instrument_id=instrument_id,
+            status="APPROVED",
+            asset_class=asset_class or "UNKNOWN",
+            attributes={"source": "LOTUS_CORE_STATEFUL_CONTEXT"},
+        )
+    )
+
+
+def _append_fx_rate_if_missing(
+    *,
+    client: httpx.Client,
+    simulate_request: ProposalSimulateRequest,
+    instrument_currency: str,
+    portfolio_base_currency: str,
+    base_url: str,
+    as_of: str,
+) -> None:
+    if instrument_currency == portfolio_base_currency or _has_fx_pair(
+        fx_rates=simulate_request.market_data_snapshot.fx_rates,
+        from_currency=instrument_currency,
+        to_currency=portfolio_base_currency,
+    ):
+        return
+
+    fx_payload = _fetch_json_with_cache(
+        client,
+        cache=_FX_LOOKUP_CACHE,
+        cache_key=f"fx:{instrument_currency}:{portfolio_base_currency}",
+        method="GET",
+        base_url=base_url,
+        path=_FX_RATES_PATH.format(
+            from_currency=instrument_currency,
+            to_currency=portfolio_base_currency,
+        ),
+        error_code="LOTUS_CORE_STATEFUL_FX_LOOKUP_UNAVAILABLE",
+    )
+    latest_fx_row = _select_latest_fx_row(fx_payload=fx_payload, as_of=as_of)
+    if latest_fx_row is None:
+        return
+
+    fx_rate = _decimal_or_none(latest_fx_row.get("rate"))
+    if fx_rate is None:
+        return
+    simulate_request.market_data_snapshot.fx_rates.append(
+        FxRate(pair=f"{instrument_currency}/{portfolio_base_currency}", rate=fx_rate)
+    )
+
+
 def enrich_stateful_simulate_request_for_trade_drafts(
     *,
     simulate_request: ProposalSimulateRequest,
@@ -471,11 +584,8 @@ def enrich_stateful_simulate_request_for_trade_drafts(
                 path=_INSTRUMENTS_PATH.format(instrument_id=instrument_id),
                 error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
             )
-            instrument_rows = instrument_payload.get("instruments")
-            if not isinstance(instrument_rows, list) or not instrument_rows:
-                continue
-            instrument_row = instrument_rows[0]
-            if not isinstance(instrument_row, dict):
+            instrument_row = _select_instrument_row(instrument_payload)
+            if instrument_row is None:
                 continue
 
             price_payload = _fetch_json_with_cache(
@@ -487,12 +597,7 @@ def enrich_stateful_simulate_request_for_trade_drafts(
                 path=_PRICES_PATH.format(instrument_id=instrument_id),
                 error_code="LOTUS_CORE_STATEFUL_PRICE_LOOKUP_UNAVAILABLE",
             )
-            price_rows = price_payload.get("prices")
-            latest_price_row = (
-                _select_latest_dated_row(price_rows, date_key="price_date", as_of=as_of)
-                if isinstance(price_rows, list)
-                else None
-            )
+            latest_price_row = _select_latest_price_row(price_payload=price_payload, as_of=as_of)
             if latest_price_row is None:
                 continue
 
@@ -502,67 +607,24 @@ def enrich_stateful_simulate_request_for_trade_drafts(
             if not instrument_currency:
                 continue
 
-            if not any(
-                price.instrument_id == instrument_id
-                for price in enriched_request.market_data_snapshot.prices
-            ):
-                price_value = _decimal_or_none(latest_price_row.get("price"))
-                if price_value is not None:
-                    enriched_request.market_data_snapshot.prices.append(
-                        Price(
-                            instrument_id=instrument_id,
-                            price=price_value,
-                            currency=instrument_currency,
-                        )
-                    )
-
-            if not any(
-                entry.instrument_id == instrument_id for entry in enriched_request.shelf_entries
-            ):
-                asset_class = str(instrument_row.get("asset_class") or "UNKNOWN").strip().upper()
-                enriched_request.shelf_entries.append(
-                    ShelfEntry(
-                        instrument_id=instrument_id,
-                        status="APPROVED",
-                        asset_class=asset_class or "UNKNOWN",
-                        attributes={"source": "LOTUS_CORE_STATEFUL_CONTEXT"},
-                    )
-                )
-
-            portfolio_base_currency = enriched_request.portfolio_snapshot.base_currency
-            if instrument_currency == portfolio_base_currency or _has_fx_pair(
-                fx_rates=enriched_request.market_data_snapshot.fx_rates,
-                from_currency=instrument_currency,
-                to_currency=portfolio_base_currency,
-            ):
-                continue
-
-            fx_payload = _fetch_json_with_cache(
-                client,
-                cache=_FX_LOOKUP_CACHE,
-                cache_key=f"fx:{instrument_currency}:{portfolio_base_currency}",
-                method="GET",
+            _append_price_if_missing(
+                simulate_request=enriched_request,
+                instrument_id=instrument_id,
+                instrument_currency=instrument_currency,
+                latest_price_row=latest_price_row,
+            )
+            _append_shelf_entry_if_missing(
+                simulate_request=enriched_request,
+                instrument_id=instrument_id,
+                instrument_row=instrument_row,
+            )
+            _append_fx_rate_if_missing(
+                client=client,
+                simulate_request=enriched_request,
+                instrument_currency=instrument_currency,
+                portfolio_base_currency=enriched_request.portfolio_snapshot.base_currency,
                 base_url=base_url,
-                path=_FX_RATES_PATH.format(
-                    from_currency=instrument_currency,
-                    to_currency=portfolio_base_currency,
-                ),
-                error_code="LOTUS_CORE_STATEFUL_FX_LOOKUP_UNAVAILABLE",
-            )
-            fx_rows = fx_payload.get("rates")
-            latest_fx_row = (
-                _select_latest_dated_row(fx_rows, date_key="rate_date", as_of=as_of)
-                if isinstance(fx_rows, list)
-                else None
-            )
-            if latest_fx_row is None:
-                continue
-
-            fx_rate = _decimal_or_none(latest_fx_row.get("rate"))
-            if fx_rate is None:
-                continue
-            enriched_request.market_data_snapshot.fx_rates.append(
-                FxRate(pair=f"{instrument_currency}/{portfolio_base_currency}", rate=fx_rate)
+                as_of=as_of,
             )
 
     return enriched_request

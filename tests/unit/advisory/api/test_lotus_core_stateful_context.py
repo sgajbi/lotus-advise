@@ -450,3 +450,96 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
         "pair": "CHF/USD",
         "rate": "1.10",
     }
+
+
+def test_enrich_stateful_simulate_request_for_trade_drafts_skips_malformed_lookup_rows(
+    monkeypatch,
+):
+    from src.core.models import ProposalSimulateRequest
+
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    simulate_request = ProposalSimulateRequest.model_validate(
+        {
+            "portfolio_snapshot": {
+                "snapshot_id": "ps_001",
+                "portfolio_id": "pf_001",
+                "base_currency": "USD",
+                "positions": [],
+                "cash_balances": [{"currency": "USD", "amount": "10000"}],
+            },
+            "market_data_snapshot": {"snapshot_id": "md_001", "prices": [], "fx_rates": []},
+            "shelf_entries": [],
+            "options": {"enable_proposal_simulation": True},
+            "proposed_cash_flows": [],
+            "proposed_trades": [
+                {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_BAD",
+                    "quantity": "2",
+                }
+            ],
+        }
+    )
+    responses = {
+        ("GET", f"{base_url}/instruments/?security_id=EQ_BAD"): _FakeResponse(
+            {"total": 1, "instruments": ["not-a-dict"]}
+        ),
+    }
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _FakeClient(responses),
+    )
+
+    enriched = enrich_stateful_simulate_request_for_trade_drafts(
+        simulate_request=simulate_request,
+        as_of="2026-03-25",
+    )
+
+    assert enriched.model_dump(mode="json") == simulate_request.model_dump(mode="json")
+
+
+def test_enrich_stateful_simulate_request_for_trade_drafts_avoids_duplicate_entries(
+    monkeypatch,
+):
+    from src.core.models import ProposalSimulateRequest
+
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    simulate_request = ProposalSimulateRequest.model_validate(
+        {
+            "portfolio_snapshot": {
+                "snapshot_id": "ps_001",
+                "portfolio_id": "pf_001",
+                "base_currency": "USD",
+                "positions": [],
+                "cash_balances": [{"currency": "USD", "amount": "10000"}],
+            },
+            "market_data_snapshot": {
+                "snapshot_id": "md_001",
+                "prices": [{"instrument_id": "EQ_NEW_CHF", "price": "50", "currency": "CHF"}],
+                "fx_rates": [{"pair": "CHF/USD", "rate": "1.10"}],
+            },
+            "shelf_entries": [{"instrument_id": "EQ_NEW_CHF", "status": "APPROVED"}],
+            "options": {"enable_proposal_simulation": True},
+            "proposed_cash_flows": [],
+            "proposed_trades": [
+                {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_NEW_CHF",
+                    "quantity": "4",
+                }
+            ],
+        }
+    )
+
+    enriched = enrich_stateful_simulate_request_for_trade_drafts(
+        simulate_request=simulate_request,
+        as_of="2026-03-25",
+    )
+
+    assert len(enriched.market_data_snapshot.prices) == 1
+    assert len(enriched.market_data_snapshot.fx_rates) == 1
+    assert len(enriched.shelf_entries) == 1
