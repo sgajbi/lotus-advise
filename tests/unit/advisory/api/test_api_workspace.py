@@ -47,6 +47,48 @@ def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict[str, Any]:
     }
 
 
+def _resolved_stateful_context_with_tradeable_universe(
+    portfolio_id: str,
+    as_of: str,
+) -> dict[str, Any]:
+    return {
+        "simulate_request": {
+            "portfolio_snapshot": {
+                "snapshot_id": f"ps_{portfolio_id}_{as_of}",
+                "portfolio_id": portfolio_id,
+                "base_currency": "USD",
+                "positions": [{"instrument_id": "EQ_OLD", "quantity": "10"}],
+                "cash_balances": [{"currency": "USD", "amount": "10000"}],
+            },
+            "market_data_snapshot": {
+                "snapshot_id": f"md_{as_of}",
+                "prices": [
+                    {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"},
+                    {"instrument_id": "EQ_NEW", "price": "50", "currency": "USD"},
+                ],
+                "fx_rates": [],
+            },
+            "shelf_entries": [
+                {"instrument_id": "EQ_OLD", "status": "APPROVED"},
+                {"instrument_id": "EQ_NEW", "status": "APPROVED"},
+            ],
+            "options": {
+                "enable_proposal_simulation": True,
+                "enable_workflow_gates": True,
+                "enable_suitability_scanner": True,
+            },
+            "proposed_cash_flows": [],
+            "proposed_trades": [],
+        },
+        "resolved_context": {
+            "portfolio_id": portfolio_id,
+            "as_of": as_of,
+            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
+            "market_data_snapshot_id": f"md_{as_of}",
+        },
+    }
+
+
 def _normalize_proposal_result_for_parity(body: dict[str, Any]) -> dict[str, Any]:
     normalized = {
         key: value for key, value in body.items() if key not in {"correlation_id", "lineage"}
@@ -66,6 +108,14 @@ def _normalize_proposal_result_for_parity(body: dict[str, Any]) -> dict[str, Any
 
 def _normalize_created_version_result_for_parity(body: dict[str, Any]) -> dict[str, Any]:
     return _normalize_proposal_result_for_parity(body["version"]["proposal_result"])
+
+
+def _normalize_business_result_for_cross_mode_parity(body: dict[str, Any]) -> dict[str, Any]:
+    normalized = _normalize_proposal_result_for_parity(body)
+    normalized.pop("proposal_run_id", None)
+    normalized.pop("lineage", None)
+    normalized.pop("explanation", None)
+    return normalized
 
 
 def test_create_stateful_workspace_session_returns_workspace_context(monkeypatch) -> None:
@@ -768,6 +818,273 @@ def test_workspace_draft_action_replace_options_uses_stateful_context_resolution
     assert body["workspace"]["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_advisory_01_2026-03-25"
     )
+
+
+def test_stateful_workspace_draft_action_applies_trade_drafts_to_evaluation(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context_with_tradeable_universe(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    create_payload = {
+        "workspace_name": "Stateful trade draft workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_tradeable_001",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_NEW",
+                    "quantity": "4",
+                },
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workspace"]["evaluation_summary"]["impact_summary"]["trade_count"] == 1
+    assert body["workspace"]["latest_proposal_result"]["status"] == "READY"
+    assert body["workspace"]["latest_proposal_result"]["intents"][-1]["instrument_id"] == "EQ_NEW"
+    assert body["workspace"]["latest_proposal_result"]["explanation"]["context_resolution"][
+        "input_mode"
+    ] == "stateful"
+
+
+def test_stateful_workspace_evaluate_matches_direct_simulation_for_equivalent_input(
+    monkeypatch,
+) -> None:
+    resolved = _resolved_stateful_context_with_tradeable_universe(
+        portfolio_id="pf_stateful_parity_001",
+        as_of="2026-03-25",
+    )
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: resolved,
+        raising=False,
+    )
+    direct_payload = resolved["simulate_request"] | {
+        "proposed_trades": [
+            {
+                "intent_type": "SECURITY_TRADE",
+                "side": "BUY",
+                "instrument_id": "EQ_NEW",
+                "quantity": "4",
+            }
+        ]
+    }
+    create_payload = {
+        "workspace_name": "Stateful parity workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_parity_001",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        direct_response = client.post(
+            "/advisory/proposals/simulate",
+            json=direct_payload,
+            headers={"Idempotency-Key": "stateful-parity-direct-001"},
+        )
+        assert direct_response.status_code == 200
+
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        draft_action = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_NEW",
+                    "quantity": "4",
+                },
+            },
+        )
+        assert draft_action.status_code == 200
+        workspace_response = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        assert workspace_response.status_code == 200
+
+    assert _normalize_business_result_for_cross_mode_parity(
+        workspace_response.json()["latest_proposal_result"]
+    ) == (
+        _normalize_business_result_for_cross_mode_parity(direct_response.json())
+    )
+
+
+def test_stateful_workspace_handoff_uses_current_draft_state(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context_with_tradeable_universe(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    create_payload = {
+        "workspace_name": "Stateful handoff workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_handoff_001",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_stateful_001",
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        add_trade = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_NEW",
+                    "quantity": "4",
+                },
+            },
+        )
+        assert add_trade.status_code == 200
+
+        handoff = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            headers={"Idempotency-Key": "stateful-workspace-handoff-001"},
+            json={"handoff_by": "advisor_123"},
+        )
+
+    assert handoff.status_code == 200
+    handoff_body = handoff.json()["proposal"]
+    proposal_result = handoff_body["version"]["proposal_result"]
+    assert proposal_result["status"] == "READY"
+    assert proposal_result["intents"][-1]["instrument_id"] == "EQ_NEW"
+    assert handoff_body["proposal"]["mandate_id"] == "mandate_stateful_001"
+
+
+def test_stateful_workspace_enriches_missing_trade_instruments_from_lotus_core(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+
+    class _FakeResponse:
+        def __init__(self, payload):
+            self._payload = payload
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self):
+            return self._payload
+
+    class _FakeClient:
+        def __init__(self, responses):
+            self._responses = responses
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def request(self, method, url, json=None):
+            key = (method.upper(), url)
+            if key not in self._responses:
+                raise AssertionError(f"unexpected request: {key}")
+            return self._responses[key]
+
+    base_url = "http://core-query.dev.lotus"
+    responses = {
+        ("GET", f"{base_url}/instruments/?security_id=EQ_NEW"): _FakeResponse(
+            {
+                "total": 1,
+                "instruments": [
+                    {
+                        "security_id": "EQ_NEW",
+                        "currency": "USD",
+                        "asset_class": "Equity",
+                    }
+                ],
+            }
+        ),
+        ("GET", f"{base_url}/prices/?security_id=EQ_NEW"): _FakeResponse(
+            {
+                "security_id": "EQ_NEW",
+                "prices": [
+                    {"price_date": "2026-03-25", "price": "50", "currency": "USD"},
+                ],
+            }
+        ),
+    }
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _FakeClient(responses),
+    )
+
+    create_payload = {
+        "workspace_name": "Stateful enrichment workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_enrichment_001",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            json={
+                "actor_id": "advisor_123",
+                "action_type": "ADD_TRADE",
+                "trade": {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_NEW",
+                    "quantity": "4",
+                },
+            },
+        )
+
+    assert response.status_code == 200
+    latest_proposal_result = response.json()["workspace"]["latest_proposal_result"]
+    assert latest_proposal_result["status"] == "READY"
+    assert latest_proposal_result["intents"][-1]["instrument_id"] == "EQ_NEW"
 
 
 def test_workspace_save_list_resume_and_compare_saved_versions():

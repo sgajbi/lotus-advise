@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import OrderedDict as OrderedDictType
+from typing import OrderedDict as OrderedDictType, cast
 from uuid import uuid4
 
 from src.core.advisory.orchestration import evaluate_advisory_proposal
@@ -51,6 +51,9 @@ from src.core.workspace.models import (
 from src.integrations.lotus_core import (
     LotusCoreContextResolutionError,
     resolve_lotus_core_advisory_context,
+)
+from src.integrations.lotus_core.stateful_context import (
+    enrich_stateful_simulate_request_for_trade_drafts,
 )
 
 MAX_WORKSPACE_SESSION_CACHE_SIZE = 500
@@ -107,34 +110,53 @@ def _build_stateful_resolved_context(
         )
 
 
-def _build_initial_draft_state(request: WorkspaceSessionCreateRequest) -> WorkspaceDraftState:
-    if request.input_mode == "stateless":
-        assert request.stateless_input is not None
-        simulate_request = request.stateless_input.simulate_request
-        return WorkspaceDraftState(
-            options=simulate_request.options.model_copy(deep=True),
-            reference_model=(
-                simulate_request.reference_model.model_copy(deep=True)
-                if simulate_request.reference_model is not None
-                else None
-            ),
-            trade_drafts=[
-                WorkspaceTradeDraft(
-                    workspace_trade_id=f"wtd_{uuid4().hex[:12]}",
-                    trade=trade.model_copy(deep=True),
-                )
-                for trade in simulate_request.proposed_trades
-            ],
-            cash_flow_drafts=[
-                WorkspaceCashFlowDraft(
-                    workspace_cash_flow_id=f"wcf_{uuid4().hex[:12]}",
-                    cash_flow=cash_flow.model_copy(deep=True),
-                )
-                for cash_flow in simulate_request.proposed_cash_flows
-            ],
-        )
+def _build_draft_state_from_simulate_request(
+    simulate_request: ProposalSimulateRequest,
+) -> WorkspaceDraftState:
+    return WorkspaceDraftState(
+        options=simulate_request.options.model_copy(deep=True),
+        reference_model=(
+            simulate_request.reference_model.model_copy(deep=True)
+            if simulate_request.reference_model is not None
+            else None
+        ),
+        trade_drafts=[
+            WorkspaceTradeDraft(
+                workspace_trade_id=f"wtd_{uuid4().hex[:12]}",
+                trade=trade.model_copy(deep=True),
+            )
+            for trade in simulate_request.proposed_trades
+        ],
+        cash_flow_drafts=[
+            WorkspaceCashFlowDraft(
+                workspace_cash_flow_id=f"wcf_{uuid4().hex[:12]}",
+                cash_flow=cash_flow.model_copy(deep=True),
+            )
+            for cash_flow in simulate_request.proposed_cash_flows
+        ],
+    )
 
-    return WorkspaceDraftState()
+
+def _apply_workspace_draft_state(
+    *,
+    base_request: ProposalSimulateRequest,
+    draft_state: WorkspaceDraftState,
+) -> ProposalSimulateRequest:
+    return ProposalSimulateRequest(
+        portfolio_snapshot=base_request.portfolio_snapshot.model_copy(deep=True),
+        market_data_snapshot=base_request.market_data_snapshot.model_copy(deep=True),
+        shelf_entries=[entry.model_copy(deep=True) for entry in base_request.shelf_entries],
+        options=draft_state.options.model_copy(deep=True),
+        proposed_cash_flows=[
+            draft.cash_flow.model_copy(deep=True) for draft in draft_state.cash_flow_drafts
+        ],
+        proposed_trades=[draft.trade.model_copy(deep=True) for draft in draft_state.trade_drafts],
+        reference_model=(
+            draft_state.reference_model.model_copy(deep=True)
+            if draft_state.reference_model is not None
+            else None
+        ),
+    )
 
 
 def _build_simulate_request_for_workspace(session: WorkspaceSession) -> ProposalSimulateRequest:
@@ -148,28 +170,20 @@ def _build_simulate_request_for_workspace(session: WorkspaceSession) -> Proposal
                 "WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
             ) from exc
         session.resolved_context = resolved_stateful_context.resolved_context
-        return resolved_stateful_context.simulate_request
+        return enrich_stateful_simulate_request_for_trade_drafts(
+            simulate_request=_apply_workspace_draft_state(
+                base_request=resolved_stateful_context.simulate_request,
+                draft_state=session.draft_state,
+            ),
+            as_of=session.resolved_context.as_of,
+        )
 
     if session.stateless_input is None:
         raise WorkspaceEvaluationUnavailableError("WORKSPACE_STATELESS_INPUT_MISSING")
 
-    source_request = session.stateless_input.simulate_request
-    return ProposalSimulateRequest(
-        portfolio_snapshot=source_request.portfolio_snapshot.model_copy(deep=True),
-        market_data_snapshot=source_request.market_data_snapshot.model_copy(deep=True),
-        shelf_entries=[entry.model_copy(deep=True) for entry in source_request.shelf_entries],
-        options=session.draft_state.options.model_copy(deep=True),
-        proposed_cash_flows=[
-            draft.cash_flow.model_copy(deep=True) for draft in session.draft_state.cash_flow_drafts
-        ],
-        proposed_trades=[
-            draft.trade.model_copy(deep=True) for draft in session.draft_state.trade_drafts
-        ],
-        reference_model=(
-            session.draft_state.reference_model.model_copy(deep=True)
-            if session.draft_state.reference_model is not None
-            else None
-        ),
+    return _apply_workspace_draft_state(
+        base_request=session.stateless_input.simulate_request,
+        draft_state=session.draft_state,
     )
 
 
@@ -218,7 +232,7 @@ def _build_evaluation_summary(
 
 
 def _build_draft_state_hash(session: WorkspaceSession) -> str:
-    return hash_canonical_payload(session.draft_state.model_dump(mode="json"))
+    return cast(str, hash_canonical_payload(session.draft_state.model_dump(mode="json")))
 
 
 def _build_replay_evidence(
@@ -468,10 +482,25 @@ def create_workspace_session(
         if request.stateless_input is None:
             raise ValueError("stateless workspace creation requires stateless_input")
         resolved_context = _build_stateless_resolved_context(request.stateless_input)
+        draft_state = _build_draft_state_from_simulate_request(
+            request.stateless_input.simulate_request
+        )
     else:
         if request.stateful_input is None:
             raise ValueError("stateful workspace creation requires stateful_input")
-        resolved_context = _build_stateful_resolved_context(request.stateful_input)
+        try:
+            resolved_stateful_context = resolve_lotus_core_advisory_context(request.stateful_input)
+        except LotusCoreContextResolutionError:
+            resolved_context = WorkspaceResolvedContext(
+                portfolio_id=request.stateful_input.portfolio_id,
+                as_of=request.stateful_input.as_of,
+            )
+            draft_state = WorkspaceDraftState()
+        else:
+            resolved_context = resolved_stateful_context.resolved_context
+            draft_state = _build_draft_state_from_simulate_request(
+                resolved_stateful_context.simulate_request
+            )
 
     session = WorkspaceSession(
         workspace_id=f"aws_{uuid4().hex[:12]}",
@@ -482,7 +511,7 @@ def create_workspace_session(
         created_at=_utc_now_iso(),
         stateless_input=request.stateless_input,
         stateful_input=request.stateful_input,
-        draft_state=_build_initial_draft_state(request),
+        draft_state=draft_state,
         resolved_context=resolved_context,
         evaluation_summary=None,
         latest_proposal_result=None,

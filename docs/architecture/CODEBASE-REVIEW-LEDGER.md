@@ -119,3 +119,65 @@
 - Follow-Up:
   - Move on to `RFC-0014` and `RFC-0017` follow-on work rather than reopening RFC-0019 scope.
 
+## LA-REV-008
+
+- Scope: Stateful Lotus Core context resolution seam
+- Pattern: modularity problem / query-performance risk / test gap
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The stateful advisory path had no live runtime resolver and then, once restored, still
+  needed stronger hot-path discipline around repeat fetches, mutation isolation, and explicit
+  environment wiring.
+- Evidence:
+  - `src/integrations/lotus_core/stateful_context.py` now owns the runtime translation from Lotus
+    Core portfolio, positions, and cash surfaces into the canonical advisory simulation request.
+  - `src/api/main.py` now exposes the resolver hook explicitly so simulation, lifecycle, and
+    workspace flows all reuse the same stateful seam.
+  - The adapter now derives the query-service base URL from `LOTUS_CORE_BASE_URL` when
+    `LOTUS_CORE_QUERY_BASE_URL` is not set, which closes the live control-plane/query-service split
+    seen in Docker.
+  - A short-lived copy-safe in-memory TTL cache now prevents repeated stateful reevaluation flows
+    from re-fetching identical upstream context on every call.
+  - Unit coverage in `tests/unit/advisory/api/test_lotus_core_stateful_context.py` now proves:
+    translation shape, invalid upstream payload handling, cache reuse, and cache mutation
+    isolation.
+- Consequence:
+  - Stateful simulation and proposal creation now work against live Lotus Core portfolios, and the
+    hot path is materially cheaper and safer under repeated evaluation workloads.
+- Follow-Up:
+  - If stateful workflows must support arbitrary new-trade drafting without stateless payload
+    enrichment, add a governed market-data/product-shelf expansion seam rather than widening this
+    adapter ad hoc.
+
+## LA-REV-009
+
+- Scope: Stateful workspace request construction and live trade drafting
+- Pattern: correctness risk / modularity problem / test gap
+- Status: Hardened
+- Finding Class: race-condition or correctness risk
+- Summary: Stateful workspaces were resolving Lotus Core context correctly, but they were not
+  consistently applying the current draft state on top of that resolved request, and they could
+  not enrich newly drafted non-held instruments from Lotus Core query data.
+- Evidence:
+  - `src/api/services/workspace_service.py` now applies one shared draft-state overlay path to both
+    stateless and stateful workspaces.
+  - Stateful workspace creation now seeds draft options from the resolved canonical request instead
+    of falling back to empty default engine options.
+  - `src/integrations/lotus_core/stateful_context.py` now enriches missing traded instruments with
+    instrument metadata, latest price, and FX data through cached Lotus Core query lookups.
+  - Unit coverage now proves:
+    - stateful draft actions affect evaluation results,
+    - stateful workspace parity against equivalent direct simulation at the business-result layer,
+    - stateful handoff persists the current drafted proposal result,
+    - missing instrument enrichment works through the adapter and the workspace API.
+  - Live runtime validation against `DEMO_ADV_USD_001` confirmed:
+    - a new EUR fund trade evaluates and surfaces a domain `BLOCKED` result for insufficient cash,
+    - a new USD fund trade evaluates successfully and produces a non-held trade intent without
+      degraded fallback.
+- Consequence:
+  - Stateful workspace flows now behave like real advisor drafting workflows instead of a partially
+    wired context shell.
+- Follow-Up:
+  - If product policy requires richer issuer/liquidity metadata for new instruments, source that
+    through a governed instrument-policy seam instead of hardcoding defaults in the adapter.
+
