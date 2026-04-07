@@ -261,9 +261,7 @@ def _select_scenarios(
                 f"authority={simulate.get('explanation', {}).get('authority_resolution')}"
             ),
         )
-        coverage_status = str(
-            risk_lens["issuer_concentration"]["coverage_status"]
-        )
+        coverage_status = str(risk_lens["issuer_concentration"]["coverage_status"])
         examined.append((portfolio_id, coverage_status))
         scenario = PortfolioParityScenario(
             portfolio_id=portfolio_id,
@@ -537,9 +535,7 @@ def validate_live_cross_service_parity(
     candidate_portfolios: tuple[str, ...] | None = None,
 ) -> LiveParityResult:
     advise_base_url = (
-        advise_base_url
-        or os.getenv("LOTUS_ADVISE_BASE_URL")
-        or _DEFAULT_ADVISE_BASE_URL
+        advise_base_url or os.getenv("LOTUS_ADVISE_BASE_URL") or _DEFAULT_ADVISE_BASE_URL
     ).rstrip("/")
     core_query_base_url = (
         core_query_base_url

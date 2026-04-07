@@ -249,8 +249,7 @@ def test_stateful_proposal_create_roundtrip_persists_context_resolution(
     assert created_body["proposal"]["portfolio_id"] == "pf_stateful_integration_1"
     assert created_body["proposal"]["mandate_id"] == "mandate_stateful_integration_1"
     assert (
-        created_body["version"]["evidence_bundle"]["context_resolution"]["input_mode"]
-        == "stateful"
+        created_body["version"]["evidence_bundle"]["context_resolution"]["input_mode"] == "stateful"
     )
     assert (
         created_body["version"]["evidence_bundle"]["context_resolution"]["resolution_source"]
@@ -469,8 +468,7 @@ def test_stateful_async_create_roundtrip_persists_context_and_replay(
     assert operation_body["result"]["proposal"]["portfolio_id"] == "pf_async_stateful_integration_1"
     assert operation_body["result"]["proposal"]["mandate_id"] == "mandate_async_stateful_1"
     assert (
-        proposal_version_body["evidence_bundle"]["context_resolution"]["input_mode"]
-        == "stateful"
+        proposal_version_body["evidence_bundle"]["context_resolution"]["input_mode"] == "stateful"
     )
     assert proposal_version_body["evidence_bundle"]["context_resolution"]["resolution_source"] == (
         "LOTUS_CORE"
@@ -478,8 +476,7 @@ def test_stateful_async_create_roundtrip_persists_context_and_replay(
     assert async_replay_body["subject"]["proposal_id"] == proposal_id
     assert async_replay_body["subject"]["proposal_version_no"] == version_no
     assert (
-        async_replay_body["resolved_context"]["portfolio_id"]
-        == "pf_async_stateful_integration_1"
+        async_replay_body["resolved_context"]["portfolio_id"] == "pf_async_stateful_integration_1"
     )
     assert (
         async_replay_body["evidence"]["context_resolution"]["resolved_context"][
@@ -583,9 +580,7 @@ def test_stateful_async_version_roundtrip_preserves_replay_hashes(
     assert proposal_replay_body["resolved_context"]["portfolio_id"] == (
         "pf_async_stateful_version_base"
     )
-    assert (
-        proposal_replay_body["evidence"]["context_resolution"]["input_mode"] == "stateful"
-    )
+    assert proposal_replay_body["evidence"]["context_resolution"]["input_mode"] == "stateful"
     assert (
         proposal_replay_body["hashes"]["request_hash"]
         == async_replay_body["hashes"]["request_hash"]
@@ -653,8 +648,7 @@ def test_stateful_async_create_failure_exposes_terminal_error_and_replay_evidenc
     assert replay_body["subject"]["proposal_id"] is None
     assert replay_body["resolved_context"] is None
     assert (
-        replay_body["explanation"]["continuity_status"]
-        == "NO_TERMINAL_PROPOSAL_VERSION_AVAILABLE"
+        replay_body["explanation"]["continuity_status"] == "NO_TERMINAL_PROPOSAL_VERSION_AVAILABLE"
     )
     assert replay_body["evidence"]["async_runtime"]["status"] == "FAILED"
     assert replay_body["evidence"]["async_runtime"]["error"] == operation_body["error"]
@@ -790,9 +784,10 @@ def test_stateful_async_create_recovers_cleanly_after_initial_resolution_failure
     recovered_replay_body = recovered_replay.json()
     assert failed_replay_body["subject"]["proposal_id"] is None
     assert failed_replay_body["resolved_context"] is None
-    assert recovered_replay_body["subject"]["proposal_id"] == recovered_operation["result"][
-        "proposal"
-    ]["proposal_id"]
+    assert (
+        recovered_replay_body["subject"]["proposal_id"]
+        == recovered_operation["result"]["proposal"]["proposal_id"]
+    )
     assert (
         recovered_replay_body["evidence"]["context_resolution"]["resolved_context"][
             "portfolio_snapshot_id"
@@ -883,15 +878,14 @@ def test_stateful_async_version_recovers_cleanly_after_initial_resolution_failur
     recovered_replay_body = recovered_replay.json()
     assert failed_replay_body["subject"]["proposal_version_no"] is None
     assert failed_replay_body["explanation"]["source"] == "ASYNC_OPERATION_ONLY"
-    assert recovered_replay_body["subject"]["proposal_version_no"] == recovered_operation[
-        "result"
-    ]["version"]["version_no"]
+    assert (
+        recovered_replay_body["subject"]["proposal_version_no"]
+        == recovered_operation["result"]["version"]["version_no"]
+    )
     assert recovered_replay_body["resolved_context"]["portfolio_id"] == (
         "pf_async_stateful_recovery_version"
     )
-    assert (
-        recovered_replay_body["evidence"]["context_resolution"]["input_mode"] == "stateful"
-    )
+    assert recovered_replay_body["evidence"]["context_resolution"]["input_mode"] == "stateful"
 
 
 def test_proposal_async_operations_disabled_by_feature_flag(
@@ -946,12 +940,9 @@ def test_async_create_idempotency_reuses_operation_and_blocks_conflicts() -> Non
             },
         )
 
-        first_operation = client.get(
-            f"/advisory/proposals/operations/{first_body['operation_id']}"
-        )
+        first_operation = client.get(f"/advisory/proposals/operations/{first_body['operation_id']}")
         by_correlation = client.get(
-            "/advisory/proposals/operations/by-correlation/"
-            "corr-integration-proposal-async-idem-1"
+            "/advisory/proposals/operations/by-correlation/corr-integration-proposal-async-idem-1"
         )
 
     assert duplicate_body["operation_id"] == first_body["operation_id"]

@@ -46,7 +46,6 @@ def test_runtime_config_accepts_valid_values(monkeypatch) -> None:
 
     assert timeout.connect == 2.5
     assert (
-        env_non_negative_float("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", default=15.0)
-        == 0.0
+        env_non_negative_float("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS", default=15.0) == 0.0
     )
     assert env_positive_int("LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE", default=128) == 16

@@ -5,8 +5,7 @@ def test_local_docker_compose_uses_canonical_upstream_urls() -> None:
     compose_text = Path("docker-compose.yml").read_text(encoding="utf-8")
 
     assert (
-        "LOTUS_CORE_BASE_URL=${LOTUS_CORE_BASE_URL:-http://core-control.dev.lotus}"
-        in compose_text
+        "LOTUS_CORE_BASE_URL=${LOTUS_CORE_BASE_URL:-http://core-control.dev.lotus}" in compose_text
     )
     assert (
         "LOTUS_CORE_QUERY_BASE_URL=${LOTUS_CORE_QUERY_BASE_URL:-http://core-query.dev.lotus}"
@@ -21,7 +20,7 @@ def test_local_docker_compose_uses_canonical_upstream_urls() -> None:
 def test_local_docker_compose_does_not_publish_internal_postgres_port() -> None:
     compose_text = Path("docker-compose.yml").read_text(encoding="utf-8")
 
-    assert 'postgres:\n' in compose_text
+    assert "postgres:\n" in compose_text
     assert '"5432:5432"' not in compose_text
 
 

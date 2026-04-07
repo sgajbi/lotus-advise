@@ -116,10 +116,7 @@ class _FakeConnection:
         if "FROM proposal_simulation_idempotency WHERE idempotency_key = %s" in sql:
             return _FakeCursor(self.simulation_idempotency.get(args[0]))
         if "INSERT INTO proposal_async_operations" in sql:
-            if (
-                "ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING"
-                in sql
-            ):
+            if "ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING" in sql:
                 inserted_operation_id = args[0]
                 idempotency_key = args[4]
                 existing = next(

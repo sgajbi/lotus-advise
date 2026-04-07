@@ -1852,8 +1852,7 @@ def test_async_create_deduplicates_by_idempotency_key_and_rejects_payload_confli
         )
         assert conflict.status_code == 409
         assert (
-            conflict.json()["detail"]
-            == "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
+            conflict.json()["detail"] == "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
         )
 
 
@@ -2176,8 +2175,8 @@ def test_async_create_version_route_maps_correlation_conflict_to_409() -> None:
             )
 
     original_overrides = dict(app.dependency_overrides)
-    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = (
-        lambda: _ConflictService()
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = lambda: (
+        _ConflictService()
     )
     try:
         with TestClient(app) as client:
