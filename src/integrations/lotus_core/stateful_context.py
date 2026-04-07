@@ -25,6 +25,11 @@ from src.integrations.lotus_core.context_resolution import (
     LotusCoreContextResolutionError,
     LotusCoreResolvedAdvisoryContext,
 )
+from src.integrations.lotus_core.runtime_config import (
+    env_non_negative_float,
+    env_positive_int,
+    resolve_lotus_core_timeout,
+)
 
 _DEFAULT_LOTUS_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
 _PORTFOLIO_PATH = "/portfolios/{portfolio_id}"
@@ -50,54 +55,21 @@ class LotusCoreStatefulContextUnavailableError(LotusCoreContextResolutionError):
     pass
 
 
-def _env_float(name: str, *, default: float, minimum: float) -> float:
-    raw_value = os.getenv(name)
-    if raw_value is None:
-        return default
-    try:
-        parsed = float(raw_value)
-    except (TypeError, ValueError):
-        return default
-    if parsed < minimum:
-        return default
-    return parsed
-
-
-def _env_int(name: str, *, default: int, minimum: int) -> int:
-    raw_value = os.getenv(name)
-    if raw_value is None:
-        return default
-    try:
-        parsed = int(raw_value)
-    except (TypeError, ValueError):
-        return default
-    if parsed < minimum:
-        return default
-    return parsed
-
-
 def _resolve_timeout() -> httpx.Timeout:
-    timeout_seconds = _env_float(
-        "LOTUS_CORE_TIMEOUT_SECONDS",
-        default=10.0,
-        minimum=0.001,
-    )
-    return httpx.Timeout(timeout_seconds)
+    return resolve_lotus_core_timeout()
 
 
 def _stateful_context_cache_ttl_seconds() -> float:
-    return _env_float(
+    return env_non_negative_float(
         "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
         default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
-        minimum=0.0,
     )
 
 
 def _stateful_context_cache_max_size() -> int:
-    return _env_int(
+    return env_positive_int(
         "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE",
         default=_DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE,
-        minimum=1,
     )
 
 
