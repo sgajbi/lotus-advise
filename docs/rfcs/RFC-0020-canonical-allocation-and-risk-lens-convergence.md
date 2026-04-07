@@ -1,6 +1,6 @@
 # RFC-0020: Canonical Allocation and Risk Lens Convergence for Proposals
 
-- Status: DRAFT
+- Status: IMPLEMENTED
 - Created: 2026-04-07
 - Owners: lotus-advise
 - Requires Approval From: lotus-advise, lotus-core, lotus-risk maintainers
@@ -12,7 +12,7 @@
 
 `lotus-advise` now delegates proposal simulation to `lotus-core`. That fixes the broad simulation-authority problem, but one narrower gold-standard gap remains: proposal before/after analytics must reuse the same AUM, valuation, and allocation calculators used for live portfolios, and proposal risk analytics must come from `lotus-risk`, not advisory-local enrichment logic.
 
-This RFC defines the convergence program.
+This RFC defined the convergence program and is now implemented across `lotus-core` and `lotus-advise`.
 
 The target state is:
 
@@ -93,7 +93,7 @@ Current implementation:
 3. `ProposalResult` exposes `before: SimulatedState` and `after_simulated: SimulatedState`.
 4. `SimulatedState` exposes `allocation_by_asset_class`, `allocation_by_instrument`, legacy `allocation`, and `allocation_by_attribute`.
 5. `src/integrations/lotus_risk/enrichment.py` is hook-based. It looks for an override on `src.api.main`; it is not a production HTTP client.
-6. `src/core/advisory/orchestration.py` attempts risk enrichment after simulation, but when no concrete enrichment is present it records `risk_authority = "lotus_advise_local"`.
+6. `src/core/advisory/orchestration.py` attempts risk enrichment after simulation. If `lotus-risk` concentration is unavailable, authority must remain explicit as `risk_authority = "unavailable"` rather than implying a second local risk engine.
 
 Finding: `lotus-advise` is aligned with `lotus-core` for simulation authority, but proposal allocation and risk-lens authority are not yet gold-standard.
 

@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -12,6 +13,7 @@ from src.api.services.workspace_service import (
     reset_workspace_sessions_for_tests,
 )
 from src.integrations.lotus_core.stateful_context import reset_stateful_context_cache_for_tests
+from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
     build_basic_stateful_query_responses,
@@ -20,6 +22,23 @@ from tests.shared.stateful_context_builders import (
     build_resolved_stateful_context,
     build_tradeable_universe_stateful_context,
 )
+
+
+@pytest.fixture(autouse=True)
+def clear_risk_dependency_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "")
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.build_lotus_risk_dependency_state",
+        lambda: SimpleNamespace(configured=False),
+    )
+
+    def _risk_unavailable(**kwargs):  # noqa: ANN003
+        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        _risk_unavailable,
+    )
 
 
 def setup_function() -> None:
@@ -129,6 +148,7 @@ def test_stateful_workspace_reuses_cached_lotus_core_context_across_re_evaluatio
 ) -> None:
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     client = CountingLotusCoreQueryClient(
         build_basic_stateful_query_responses(
             base_url=base_url,
@@ -168,6 +188,7 @@ def test_stateful_workspace_recovers_after_initial_lotus_core_resolution_failure
 ) -> None:
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     portfolio_payload = {
         "portfolio_id": "pf_stateful_recovery_workspace",
         "base_currency": "",
@@ -1096,7 +1117,28 @@ def test_stateful_workspace_enriches_missing_trade_instruments_from_lotus_core(
             return self._responses[key]
 
     base_url = "http://core-query.dev.lotus"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     responses = {
+        ("POST", f"{base_url}/integration/instruments/enrichment-bulk"): _FakeResponse(
+            {
+                "records": [
+                    {
+                        "security_id": "EQ_NEW",
+                        "asset_class": "Equity",
+                        "sector": "Technology",
+                        "country_of_risk": "US",
+                        "product_type": "Equity",
+                        "rating": None,
+                        "issuer_id": "ISSUER_EQ_NEW",
+                        "issuer_name": "New Issuer",
+                        "ultimate_parent_issuer_id": "ISSUER_EQ_PARENT",
+                        "ultimate_parent_issuer_name": "Parent Issuer",
+                        "liquidity_tier": "L1",
+                    }
+                ]
+            }
+        ),
         ("GET", f"{base_url}/instruments/?security_id=EQ_NEW"): _FakeResponse(
             {
                 "total": 1,

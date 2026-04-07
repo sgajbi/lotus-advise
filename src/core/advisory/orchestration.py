@@ -60,7 +60,7 @@ def evaluate_advisory_proposal(
         proposal_result.allocation_lens.source = "LOTUS_ADVISE_LOCAL_FALLBACK"
 
     lotus_risk_state = build_lotus_risk_dependency_state()
-    risk_authority = "lotus_advise_local"
+    risk_authority = "unavailable"
     try:
         proposal_result = enrich_with_lotus_risk(
             request=request,

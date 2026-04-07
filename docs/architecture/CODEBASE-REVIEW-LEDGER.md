@@ -261,7 +261,7 @@
 
 - Scope: Proposal allocation and risk-lens domain authority
 - Pattern: duplicate logic / cross-service boundary risk / contract gap
-- Status: RFC created
+- Status: Signed Off
 - Finding Class: architecture or modularity issue
 - Summary: `lotus-core` already owns live AUM and allocation calculation through its reporting service, but advisory simulation has a separate allocation implementation and `lotus-advise` still exposes only a hook-based `lotus-risk` enrichment seam. Proposal before/after allocation and concentration risk should converge on canonical `lotus-core` and `lotus-risk` authorities instead of becoming advisory-owned calculation logic.
 - Evidence:
@@ -271,6 +271,6 @@
   - `lotus-risk/src/app/contracts/concentration.py` and `lotus-risk/src/app/services/concentration_engine.py` define concentration `simulation` mode with current/proposed/delta outputs, but `lotus-advise/src/integrations/lotus_risk/enrichment.py` is still a hook-based override rather than a concrete HTTP integration.
   - RFC-0020 now captures the required convergence program: shared `lotus-core` allocation calculator, proposal allocation views matching live allocation dimensions, concrete `lotus-risk` concentration integration, parity tests, degraded behavior, and rollout gates.
 - Consequence:
-  - Proposal allocation and risk-lens work now has a concrete governing RFC rather than ad hoc follow-on implementation.
+  - Proposal allocation and risk-lens work is now governed by canonical `lotus-core` allocation views and a concrete `lotus-risk` concentration lens instead of advisory-local calculation authority.
 - Follow-Up:
-  - Implement RFC-0020 starting in `lotus-core`; do not widen `lotus-advise` proposal contracts until the shared `lotus-core` calculator boundary and contract versioning decision are complete.
+  - RFC-0020 implementation is complete on the feature branches pending PR/CI/merge closure. Any further work belongs in follow-on RFCs, not this convergence program.

@@ -12,6 +12,7 @@ from src.integrations.lotus_core.stateful_context import (
     get_stateful_context_fetch_stats_for_tests,
     reset_stateful_context_cache_for_tests,
 )
+from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
     build_basic_stateful_query_responses,
@@ -465,6 +466,47 @@ def test_advisory_proposal_simulate_sets_risk_authority_only_after_valid_risk_re
     assert body["explanation"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
 
 
+def test_advisory_proposal_simulate_marks_risk_authority_unavailable_when_risk_enrichment_fails(
+    client, monkeypatch
+):
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_prop_api_risk_unavailable",
+            "base_currency": "USD",
+        },
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+
+    def _raise_unavailable(**kwargs):
+        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        _raise_unavailable,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-risk-unavailable"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    authority = body["explanation"]["authority_resolution"]
+    assert authority["simulation_authority"] == "lotus_core"
+    assert authority["risk_authority"] == "unavailable"
+    assert authority["degraded"] is True
+    assert authority["degraded_reasons"] == ["LOTUS_RISK_ENRICHMENT_UNAVAILABLE"]
+    assert "risk_lens" not in body["explanation"]
+
+
 def test_advisory_proposal_simulate_reports_local_fallback_when_explicitly_enabled(
     client, monkeypatch
 ):
@@ -498,7 +540,7 @@ def test_advisory_proposal_simulate_reports_local_fallback_when_explicitly_enabl
     assert response.status_code == 200
     authority = response.json()["explanation"]["authority_resolution"]
     assert authority["simulation_authority"] == "lotus_advise_local_fallback"
-    assert authority["risk_authority"] == "lotus_advise_local"
+    assert authority["risk_authority"] == "unavailable"
     assert authority["degraded"] is True
     assert authority["degraded_reasons"] == [
         "LOTUS_CORE_SIMULATION_UNAVAILABLE",

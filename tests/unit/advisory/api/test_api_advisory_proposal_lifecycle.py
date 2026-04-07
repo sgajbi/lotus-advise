@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -12,12 +13,30 @@ from src.integrations.lotus_core.stateful_context import (
     get_stateful_context_fetch_stats_for_tests,
     reset_stateful_context_cache_for_tests,
 )
+from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
     build_basic_stateful_query_responses,
 )
 from tests.shared.stateful_context_assertions import assert_core_context_fetch_counts
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
+
+
+@pytest.fixture(autouse=True)
+def clear_risk_dependency_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "")
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.build_lotus_risk_dependency_state",
+        lambda: SimpleNamespace(configured=False),
+    )
+
+    def _risk_unavailable(**kwargs):  # noqa: ANN003
+        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        _risk_unavailable,
+    )
 
 
 def _base_create_payload(portfolio_id: str = "pf_lifecycle_1") -> dict:
@@ -225,6 +244,7 @@ def test_create_proposal_supports_stateful_context_resolution(monkeypatch):
 def test_stateful_simulate_and_create_share_warm_lotus_core_context(monkeypatch):
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     query_client = CountingLotusCoreQueryClient(
         build_basic_stateful_query_responses(
             base_url=base_url,
@@ -492,6 +512,7 @@ def test_create_version_supports_stateful_context_resolution(monkeypatch):
 def test_stateful_create_and_version_share_warm_lotus_core_context(monkeypatch):
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     query_client = CountingLotusCoreQueryClient(
         build_basic_stateful_query_responses(
             base_url=base_url,
@@ -548,6 +569,7 @@ def test_stateful_create_and_version_share_warm_lotus_core_context(monkeypatch):
 def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     cash_dates = iter(["2026-03-25", "2026-03-26"])
 
     class _AsOfAwareQueryClient(CountingLotusCoreQueryClient):
@@ -633,6 +655,7 @@ def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
 def test_stateful_create_refetches_when_optional_context_identity_changes(monkeypatch):
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     query_client = CountingLotusCoreQueryClient(
         build_basic_stateful_query_responses(
             base_url=base_url,
@@ -731,6 +754,7 @@ def test_async_create_proposal_supports_stateful_context_resolution(monkeypatch)
 def test_stateful_async_create_reuses_cached_lotus_core_context(monkeypatch):
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     client = CountingLotusCoreQueryClient(
         build_basic_stateful_query_responses(
             base_url=base_url,
@@ -779,6 +803,7 @@ def test_stateful_async_create_reuses_cached_lotus_core_context(monkeypatch):
 def test_stateful_create_recovers_after_initial_lotus_core_resolution_failure(monkeypatch):
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     portfolio_payload = {
         "portfolio_id": "pf_stateful_recovery_create",
         "base_currency": "",
@@ -844,6 +869,7 @@ def test_stateful_create_recovers_after_initial_lotus_core_resolution_failure(mo
 def test_stateful_version_recovers_after_initial_lotus_core_resolution_failure(monkeypatch):
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
     portfolio_payload = {
         "portfolio_id": "pf_lifecycle_1",
         "base_currency": "",

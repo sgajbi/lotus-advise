@@ -142,7 +142,7 @@ def test_service_create_proposal_uses_upstream_simulation_authority_when_availab
 
     authority = created.version.proposal_result.explanation["authority_resolution"]
     assert authority["simulation_authority"] == "lotus_core"
-    assert authority["risk_authority"] == "lotus_advise_local"
+    assert authority["risk_authority"] == "unavailable"
 
 
 def test_service_request_hash_is_stable_between_legacy_and_stateless_create_contracts():

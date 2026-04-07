@@ -342,7 +342,7 @@ def test_stateful_workspace_handoff_roundtrip_persists_replay_continuity(
     assert replay_body["subject"]["proposal_version_no"] == 1
     assert replay_body["resolved_context"]["portfolio_id"] == "pf_stateful_workspace_1"
     assert proposal_version_body["evidence_bundle"]["context_resolution"]["input_mode"] == (
-        "stateless"
+        "stateful"
     )
     assert (
         proposal_version_body["evidence_bundle"]["replay_lineage"]["workspace_id"] == workspace_id
