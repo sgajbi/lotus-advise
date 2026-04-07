@@ -203,10 +203,15 @@
     recovery behavior for stateful lifecycle create and stateful version creation: an initial
     `PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE` failure does not poison the next request
     after Lotus Core returns a valid payload again.
+  - `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` now proves the
+    same recovery pattern for stateful async create and stateful async version workflows: an
+    initial failed operation remains operation-scoped, the next submission refetches Lotus Core
+    context, and the recovered operation persists normal proposal/version replay evidence.
 - Consequence:
   - The stateful hot path now has explicit regression protection for both latency discipline and
     operational recovery behavior.
 - Follow-Up:
-  - Extend the same recovery-pattern coverage into async lifecycle failure/recovery loops only if
-    the runtime contract around retries or backoff changes materially.
+  - Keep further work focused on runtime behavior changes rather than more duplicate coverage; the
+    stateful recovery pattern is now proven at adapter, workspace, lifecycle, and async workflow
+    layers.
 

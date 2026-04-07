@@ -78,6 +78,28 @@ def _resolved_stateful_context_with_tradeable_universe(
     return build_tradeable_universe_stateful_context(portfolio_id, as_of)
 
 
+def _flaky_stateful_resolver_factory(
+    *,
+    portfolio_id: str,
+    as_of: str,
+    use_tradeable_universe: bool = False,
+):
+    state = {"calls": 0}
+
+    def _resolver(_stateful_input):
+        state["calls"] += 1
+        if state["calls"] == 1:
+            raise LotusCoreContextResolutionError("LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE")
+        if use_tradeable_universe:
+            return _resolved_stateful_context_with_tradeable_universe(
+                portfolio_id=portfolio_id,
+                as_of=as_of,
+            )
+        return _resolved_stateful_context(portfolio_id=portfolio_id, as_of=as_of)
+
+    return _resolver, state
+
+
 def _submit_async_create(
     client: TestClient,
     *,
@@ -698,6 +720,178 @@ def test_stateful_async_version_failure_exposes_terminal_error_and_replay_eviden
     assert replay_body["evidence"]["async_runtime"]["payload_json"]["proposal_id"] == proposal_id
     assert replay_body["evidence"]["async_runtime"]["error"] == operation_body["error"]
     assert replay_body["explanation"]["source"] == "ASYNC_OPERATION_ONLY"
+
+
+def test_stateful_async_create_recovers_cleanly_after_initial_resolution_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    resolver, resolver_state = _flaky_stateful_resolver_factory(
+        portfolio_id="pf_async_stateful_recovery_create",
+        as_of="2026-03-25",
+        use_tradeable_universe=True,
+    )
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        resolver,
+        raising=False,
+    )
+    payload = {
+        "created_by": "advisor_stateful_async",
+        "metadata": {
+            "title": "Stateful async create recovery",
+            "advisor_notes": "stateful async recovery coverage",
+            "jurisdiction": "SG",
+        },
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_async_stateful_recovery_create",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_async_stateful_recovery_create",
+        },
+    }
+
+    with TestClient(app) as client:
+        failed_operation_id, failed_operation = _submit_async_create(
+            client,
+            payload=payload,
+            idempotency_key="integration-proposal-async-stateful-recovery-create-failed",
+            correlation_id="corr-integration-proposal-async-stateful-recovery-create-failed",
+        )
+        recovered_operation_id, recovered_operation = _submit_async_create(
+            client,
+            payload=payload,
+            idempotency_key="integration-proposal-async-stateful-recovery-create-success",
+            correlation_id="corr-integration-proposal-async-stateful-recovery-create-success",
+        )
+        failed_replay = client.get(
+            f"/advisory/proposals/operations/{failed_operation_id}/replay-evidence"
+        )
+        recovered_replay = client.get(
+            f"/advisory/proposals/operations/{recovered_operation_id}/replay-evidence"
+        )
+        by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/"
+            "corr-integration-proposal-async-stateful-recovery-create-success"
+        )
+
+    assert resolver_state["calls"] == 2
+    assert failed_operation["status"] == "FAILED"
+    assert failed_operation["error"] == {
+        "code": "ProposalValidationError",
+        "message": "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE",
+    }
+    assert recovered_operation["status"] == "SUCCEEDED"
+    assert recovered_operation["result"] is not None
+    assert by_correlation.status_code == 200
+    assert by_correlation.json()["operation_id"] == recovered_operation_id
+    assert failed_replay.status_code == 200
+    assert recovered_replay.status_code == 200
+    failed_replay_body = failed_replay.json()
+    recovered_replay_body = recovered_replay.json()
+    assert failed_replay_body["subject"]["proposal_id"] is None
+    assert failed_replay_body["resolved_context"] is None
+    assert recovered_replay_body["subject"]["proposal_id"] == recovered_operation["result"][
+        "proposal"
+    ]["proposal_id"]
+    assert (
+        recovered_replay_body["evidence"]["context_resolution"]["resolved_context"][
+            "portfolio_snapshot_id"
+        ]
+        == "ps_pf_async_stateful_recovery_create_2026-03-25"
+    )
+    assert recovered_replay_body["evidence"]["async_runtime"]["status"] == "SUCCEEDED"
+
+
+def test_stateful_async_version_recovers_cleanly_after_initial_resolution_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    resolver, resolver_state = _flaky_stateful_resolver_factory(
+        portfolio_id="pf_async_stateful_recovery_version",
+        as_of="2026-03-25",
+    )
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        resolver,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload("pf_async_stateful_recovery_version"),
+            headers={
+                "Idempotency-Key": "integration-proposal-async-stateful-recovery-version-base"
+            },
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+
+        failed_operation_id, failed_operation = _submit_async_version(
+            client,
+            proposal_id=proposal_id,
+            payload={
+                "created_by": "advisor_stateful_async",
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_async_stateful_recovery_version",
+                    "as_of": "2026-03-25",
+                    "mandate_id": "mandate_async_stateful_recovery_version",
+                },
+            },
+            correlation_id="corr-integration-proposal-async-stateful-recovery-version-failed",
+        )
+        recovered_operation_id, recovered_operation = _submit_async_version(
+            client,
+            proposal_id=proposal_id,
+            payload={
+                "created_by": "advisor_stateful_async",
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_async_stateful_recovery_version",
+                    "as_of": "2026-03-25",
+                    "mandate_id": "mandate_async_stateful_recovery_version",
+                },
+            },
+            correlation_id="corr-integration-proposal-async-stateful-recovery-version-success",
+        )
+        failed_replay = client.get(
+            f"/advisory/proposals/operations/{failed_operation_id}/replay-evidence"
+        )
+        recovered_replay = client.get(
+            f"/advisory/proposals/operations/{recovered_operation_id}/replay-evidence"
+        )
+        by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/"
+            "corr-integration-proposal-async-stateful-recovery-version-success"
+        )
+        proposal_version = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/"
+            f"{recovered_operation['result']['version']['version_no']}"
+        )
+
+    assert resolver_state["calls"] == 2
+    assert failed_operation["status"] == "FAILED"
+    assert failed_operation["proposal_id"] == proposal_id
+    assert recovered_operation["status"] == "SUCCEEDED"
+    assert recovered_operation["proposal_id"] == proposal_id
+    assert by_correlation.status_code == 200
+    assert by_correlation.json()["operation_id"] == recovered_operation_id
+    assert proposal_version.status_code == 200
+    assert failed_replay.status_code == 200
+    assert recovered_replay.status_code == 200
+    failed_replay_body = failed_replay.json()
+    recovered_replay_body = recovered_replay.json()
+    assert failed_replay_body["subject"]["proposal_version_no"] is None
+    assert failed_replay_body["explanation"]["source"] == "ASYNC_OPERATION_ONLY"
+    assert recovered_replay_body["subject"]["proposal_version_no"] == recovered_operation[
+        "result"
+    ]["version"]["version_no"]
+    assert recovered_replay_body["resolved_context"]["portfolio_id"] == (
+        "pf_async_stateful_recovery_version"
+    )
+    assert (
+        recovered_replay_body["evidence"]["context_resolution"]["input_mode"] == "stateful"
+    )
 
 
 def test_proposal_async_operations_disabled_by_feature_flag(
