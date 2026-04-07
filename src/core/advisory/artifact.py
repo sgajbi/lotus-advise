@@ -18,6 +18,7 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactPortfolioState,
     ProposalArtifactPricingAssumptions,
     ProposalArtifactProductDoc,
+    ProposalArtifactRiskLens,
     ProposalArtifactSuitabilityHighlight,
     ProposalArtifactSuitabilitySummary,
     ProposalArtifactSummary,
@@ -27,6 +28,7 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactTradesAndFunding,
     ProposalArtifactWeightChange,
 )
+from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.common.workflow_gates import evaluate_gate_decision
 from src.core.models import ProposalResult, ProposalSimulateRequest
@@ -290,6 +292,39 @@ def _build_suitability_summary(
     )
 
 
+def _build_risk_lens_summary(result: ProposalResult) -> ProposalArtifactRiskLens:
+    risk_lens = extract_risk_lens(result)
+    if risk_lens is None:
+        return ProposalArtifactRiskLens(
+            status="NOT_AVAILABLE",
+            source_service=None,
+            summary="Concentration risk lens is unavailable for this proposal run.",
+            highlights=[],
+        )
+
+    single_position = risk_lens.get("single_position_concentration", {})
+    issuer = risk_lens.get("issuer_concentration", {})
+    return ProposalArtifactRiskLens(
+        status="AVAILABLE",
+        source_service=str(risk_lens["source_service"]),
+        summary=(
+            "Concentration risk lens is available from lotus-risk with before/after "
+            "single-name and issuer concentration measures."
+        ),
+        highlights=[
+            (
+                "Top position weight changes from "
+                f"{single_position.get('top_position_weight_current')} to "
+                f"{single_position.get('top_position_weight_proposed')}."
+            ),
+            (
+                "Issuer concentration HHI changes from "
+                f"{issuer.get('hhi_current')} to {issuer.get('hhi_proposed')}."
+            ),
+        ],
+    )
+
+
 def build_proposal_artifact(
     *,
     request: ProposalSimulateRequest,
@@ -374,6 +409,7 @@ def build_proposal_artifact(
             ),
         ),
         trades_and_funding=_build_trades_and_funding(request=request, result=proposal_result),
+        risk_lens=_build_risk_lens_summary(proposal_result),
         suitability_summary=_build_suitability_summary(request=request, result=proposal_result),
         assumptions_and_limits=assumptions,
         disclosures=ProposalArtifactDisclosures(

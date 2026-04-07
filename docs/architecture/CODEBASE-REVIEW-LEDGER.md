@@ -119,3 +119,158 @@
 - Follow-Up:
   - Move on to `RFC-0014` and `RFC-0017` follow-on work rather than reopening RFC-0019 scope.
 
+## LA-REV-008
+
+- Scope: Stateful Lotus Core context resolution seam
+- Pattern: modularity problem / query-performance risk / test gap
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The stateful advisory path had no live runtime resolver and then, once restored, still
+  needed stronger hot-path discipline around repeat fetches, mutation isolation, and explicit
+  environment wiring.
+- Evidence:
+  - `src/integrations/lotus_core/stateful_context.py` now owns the runtime translation from Lotus
+    Core portfolio, positions, and cash surfaces into the canonical advisory simulation request.
+  - `src/api/main.py` now exposes the resolver hook explicitly so simulation, lifecycle, and
+    workspace flows all reuse the same stateful seam.
+  - The adapter now derives the query-service base URL from `LOTUS_CORE_BASE_URL` when
+    `LOTUS_CORE_QUERY_BASE_URL` is not set, which closes the live control-plane/query-service split
+    seen in Docker.
+  - A short-lived copy-safe in-memory TTL cache now prevents repeated stateful reevaluation flows
+    from re-fetching identical upstream context on every call.
+  - Unit coverage in `tests/unit/advisory/api/test_lotus_core_stateful_context.py` now proves:
+    translation shape, invalid upstream payload handling, cache reuse, and cache mutation
+    isolation.
+- Consequence:
+  - Stateful simulation and proposal creation now work against live Lotus Core portfolios, and the
+    hot path is materially cheaper and safer under repeated evaluation workloads.
+- Follow-Up:
+  - If stateful workflows must support arbitrary new-trade drafting without stateless payload
+    enrichment, add a governed market-data/product-shelf expansion seam rather than widening this
+    adapter ad hoc.
+
+## LA-REV-009
+
+- Scope: Stateful workspace request construction and live trade drafting
+- Pattern: correctness risk / modularity problem / test gap
+- Status: Hardened
+- Finding Class: race-condition or correctness risk
+- Summary: Stateful workspaces were resolving Lotus Core context correctly, but they were not
+  consistently applying the current draft state on top of that resolved request, and they could
+  not enrich newly drafted non-held instruments from Lotus Core query data.
+- Evidence:
+  - `src/api/services/workspace_service.py` now applies one shared draft-state overlay path to both
+    stateless and stateful workspaces.
+  - Stateful workspace creation now seeds draft options from the resolved canonical request instead
+    of falling back to empty default engine options.
+  - `src/integrations/lotus_core/stateful_context.py` now enriches missing traded instruments with
+    instrument metadata, latest price, and FX data through cached Lotus Core query lookups.
+  - Unit coverage now proves:
+    - stateful draft actions affect evaluation results,
+    - stateful workspace parity against equivalent direct simulation at the business-result layer,
+    - stateful handoff persists the current drafted proposal result,
+    - missing instrument enrichment works through the adapter and the workspace API.
+  - Live runtime validation against `DEMO_ADV_USD_001` confirmed:
+    - a new EUR fund trade evaluates and surfaces a domain `BLOCKED` result for insufficient cash,
+    - a new USD fund trade evaluates successfully and produces a non-held trade intent without
+      degraded fallback.
+- Consequence:
+  - Stateful workspace flows now behave like real advisor drafting workflows instead of a partially
+    wired context shell.
+- Follow-Up:
+  - If product policy requires richer issuer/liquidity metadata for new instruments, source that
+    through a governed instrument-policy seam instead of hardcoding defaults in the adapter.
+
+## LA-REV-010
+
+- Scope: Stateful resolver cache behavior and recovery
+- Pattern: query/performance risk / resilience gap
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The stateful Lotus Core resolver cache needed stronger proof not just for reuse and
+  eviction, but also for recovery after upstream failures so advisor workflows do not stay stuck on
+  a transient bad response.
+- Evidence:
+  - `tests/unit/advisory/api/test_lotus_core_stateful_context.py` now proves:
+    - zero-TTL disables cache reuse,
+    - max-size eviction removes the oldest portfolio context,
+    - failed stateful resolutions are not cached,
+    - a later healthy upstream response recovers cleanly after a prior failure.
+  - `tests/unit/advisory/api/test_api_workspace.py` now proves the same recovery behavior at the
+    workspace API layer: an initial `WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE` response
+    does not poison subsequent evaluation once Lotus Core returns a valid payload again.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves the same
+    recovery behavior for stateful lifecycle create and stateful version creation: an initial
+    `PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE` failure does not poison the next request
+    after Lotus Core returns a valid payload again.
+  - `tests/integration/advisory/api/test_proposal_api_workflow_integration.py` now proves the
+    same recovery pattern for stateful async create and stateful async version workflows: an
+    initial failed operation remains operation-scoped, the next submission refetches Lotus Core
+    context, and the recovered operation persists normal proposal/version replay evidence.
+- Consequence:
+  - The stateful hot path now has explicit regression protection for both latency discipline and
+    operational recovery behavior.
+- Follow-Up:
+  - Keep further work focused on runtime behavior changes rather than more duplicate coverage; the
+    stateful recovery pattern is now proven at adapter, workspace, lifecycle, and async workflow
+    layers.
+
+## LA-REV-011
+
+- Scope: Async proposal-create submission idempotency
+- Pattern: reliability gap / concurrency risk
+- Status: Hardened
+- Finding Class: reliability gap
+- Summary: Async proposal creation accepted an `Idempotency-Key` but did not deduplicate at
+  submission time, so retried requests could create duplicate operations and duplicate background
+  execution attempts before the underlying create flow enforced lifecycle idempotency.
+- Evidence:
+  - `src/core/proposals/service.py` now deduplicates async proposal-create submissions by
+    idempotency key and a governed submission hash.
+  - Equivalent stateless request shapes now hash consistently across legacy and normalized
+    `stateless_input` payloads, so callers do not get false `409` conflicts just because they used
+    different but equivalent request envelopes.
+  - `src/api/proposals/routes_async.py` now schedules background execution only for new async
+    proposal-create operations; replayed submissions return the existing operation without
+    re-enqueueing execution.
+  - `src/infrastructure/proposals/postgres.py` and migration `0005_async_idempotency_unique.sql`
+    now make the async create idempotency contract atomic at the storage layer instead of relying
+    on a non-atomic service-side check/create sequence.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py`,
+    `tests/integration/advisory/api/test_proposal_api_workflow_integration.py`, and
+    `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` now prove:
+    - identical async create submissions reuse the same operation,
+    - conflicting async create submissions return `409`,
+    - legacy and normalized stateless create payloads are treated as semantically equivalent,
+    - replayed submissions are marked as replayed internally and are not rescheduled.
+  - `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` and
+    `tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py`
+    now prove the same async idempotency behavior at the repository/storage layer, including
+    atomic create-or-get behavior and idempotency lookup.
+  - `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` now tracks internal
+    async create submission outcomes directly, proving that new accepts, replayed accepts, and
+    conflicts are counted consistently instead of being inferred only from end-to-end behavior.
+- Consequence:
+  - Async proposal-create now behaves like a real idempotent submission surface instead of relying
+    on downstream create-time dedupe after multiple operations may already have been accepted.
+- Follow-Up:
+  - If async proposal-version writes ever gain a public idempotency key, apply the same
+    submission-level dedupe pattern there instead of reintroducing operation-level duplication.
+
+## LA-REV-012
+
+- Scope: Proposal allocation and risk-lens domain authority
+- Pattern: duplicate logic / cross-service boundary risk / contract gap
+- Status: Signed Off
+- Finding Class: architecture or modularity issue
+- Summary: `lotus-core` already owns live AUM and allocation calculation through its reporting service, but advisory simulation has a separate allocation implementation and `lotus-advise` still exposes only a hook-based `lotus-risk` enrichment seam. Proposal before/after allocation and concentration risk should converge on canonical `lotus-core` and `lotus-risk` authorities instead of becoming advisory-owned calculation logic.
+- Evidence:
+  - `lotus-core/src/services/query_service/app/services/reporting_service.py` implements live allocation through `ReportingService.get_asset_allocation(...)` and `ALLOCATION_DIMENSION_ACCESSORS`.
+  - `lotus-core/src/services/query_service/app/dtos/reporting_dto.py` defines the live `AllocationDimension`, `AssetAllocationQueryRequest`, `AllocationView`, and `AssetAllocationResponse` contract.
+  - `lotus-core/src/services/query_service/app/advisory_simulation/valuation.py` separately implements advisory `build_simulated_state(...)` allocation outputs.
+  - `lotus-risk/src/app/contracts/concentration.py` and `lotus-risk/src/app/services/concentration_engine.py` define concentration `simulation` mode with current/proposed/delta outputs, but `lotus-advise/src/integrations/lotus_risk/enrichment.py` is still a hook-based override rather than a concrete HTTP integration.
+  - RFC-0020 now captures the required convergence program: shared `lotus-core` allocation calculator, proposal allocation views matching live allocation dimensions, concrete `lotus-risk` concentration integration, parity tests, degraded behavior, and rollout gates.
+- Consequence:
+  - Proposal allocation and risk-lens work is now governed by canonical `lotus-core` allocation views and a concrete `lotus-risk` concentration lens instead of advisory-local calculation authority.
+- Follow-Up:
+  - RFC-0020 implementation is complete on the feature branches pending PR/CI/merge closure. Any further work belongs in follow-on RFCs, not this convergence program.

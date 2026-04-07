@@ -1,3 +1,6 @@
+from typing import Any
+
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -5,6 +8,17 @@ from src.api.main import app, get_db_session
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory_engine import run_proposal_simulation
 from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
+from src.integrations.lotus_core.stateful_context import (
+    get_stateful_context_fetch_stats_for_tests,
+    reset_stateful_context_cache_for_tests,
+)
+from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
+from tests.shared.lotus_core_query_fakes import (
+    CountingLotusCoreQueryClient,
+    build_basic_stateful_query_responses,
+)
+from tests.shared.stateful_context_assertions import assert_core_context_fetch_counts
+from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
 async def override_get_db_session():
@@ -16,9 +30,11 @@ def override_db_dependency():
     original_overrides = dict(app.dependency_overrides)
     app.dependency_overrides[get_db_session] = override_get_db_session
     reset_proposal_workflow_service_for_tests()
+    reset_stateful_context_cache_for_tests()
     yield
     app.dependency_overrides = original_overrides
     reset_proposal_workflow_service_for_tests()
+    reset_stateful_context_cache_for_tests()
 
 
 @pytest.fixture(autouse=True)
@@ -71,18 +87,70 @@ def _base_simulation_payload(portfolio_id: str = "pf_prop_api_1") -> dict:
 
 
 def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict:
-    payload = _base_simulation_payload(portfolio_id=portfolio_id)
-    payload["portfolio_snapshot"]["snapshot_id"] = f"ps_{portfolio_id}_{as_of}"
-    payload["market_data_snapshot"]["snapshot_id"] = f"md_{as_of}"
+    return build_resolved_stateful_context(
+        portfolio_id,
+        as_of,
+        prices=[{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+        shelf_entries=[{"instrument_id": "EQ_1", "status": "APPROVED"}],
+    )
+
+
+class _FakeRiskResponse:
+    def __init__(self, *, status_code: int, payload: dict[str, Any]) -> None:
+        self.status_code = status_code
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            request = httpx.Request("POST", "http://lotus-risk/analytics/risk/concentration")
+            response = httpx.Response(self.status_code, json=self._payload, request=request)
+            raise httpx.HTTPStatusError("upstream risk error", request=request, response=response)
+
+    def json(self) -> dict[str, Any]:
+        return self._payload
+
+
+class _FakeRiskClient:
+    def __init__(self, response: _FakeRiskResponse) -> None:
+        self.response = response
+        self.calls: list[dict[str, Any]] = []
+
+    def __enter__(self) -> "_FakeRiskClient":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        return None
+
+    def post(self, url: str, *, json: dict[str, Any], headers: dict[str, str]) -> _FakeRiskResponse:
+        return self.response
+
+
+def _risk_response_payload() -> dict[str, Any]:
     return {
-        "simulate_request": payload,
-        "resolved_context": {
-            "portfolio_id": portfolio_id,
-            "as_of": as_of,
-            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
-            "market_data_snapshot_id": f"md_{as_of}",
-            "risk_context_id": "risk_ctx_001",
-            "reporting_context_id": "report_ctx_001",
+        "source_service": "lotus-risk",
+        "input_mode": "simulation",
+        "risk_proxy": {"hhi_current": 5200.0, "hhi_proposed": 6800.0, "hhi_delta": 1600.0},
+        "single_position_concentration": {
+            "top_position_weight_current": 0.5,
+            "top_position_weight_proposed": 0.6,
+            "top_position_weight_delta": 0.1,
+            "top_n_cumulative_weight_current": 0.8,
+            "top_n_cumulative_weight_proposed": 0.9,
+            "top_n_cumulative_weight_delta": 0.1,
+            "top_n": 10,
+        },
+        "issuer_concentration": {
+            "hhi_current": 5200.0,
+            "hhi_proposed": 5800.0,
+            "hhi_delta": 600.0,
+            "top_issuer_weight_current": 0.5,
+            "top_issuer_weight_proposed": 0.6,
+            "top_issuer_weight_delta": 0.1,
+            "coverage_status": "complete",
+            "covered_position_count_current": 1,
+            "covered_position_count_proposed": 1,
+            "total_position_count_current": 1,
+            "total_position_count_proposed": 1,
         },
     }
 
@@ -362,6 +430,83 @@ def test_advisory_proposal_simulate_uses_upstream_authorities_when_available(cli
     assert authority["degraded"] is False
 
 
+def test_advisory_proposal_simulate_sets_risk_authority_only_after_valid_risk_response(
+    client, monkeypatch
+):
+    payload = {
+        "portfolio_snapshot": {"portfolio_id": "pf_prop_api_risk_client", "base_currency": "USD"},
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+    fake_client = _FakeRiskClient(
+        _FakeRiskResponse(status_code=200, payload=_risk_response_payload())
+    )
+
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-risk-client"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    authority = body["explanation"]["authority_resolution"]
+    assert authority["simulation_authority"] == "lotus_core"
+    assert authority["risk_authority"] == "lotus_risk"
+    assert body["explanation"]["risk_lens"]["source_service"] == "lotus-risk"
+    assert body["explanation"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+
+
+def test_advisory_proposal_simulate_marks_risk_authority_unavailable_when_risk_enrichment_fails(
+    client, monkeypatch
+):
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_prop_api_risk_unavailable",
+            "base_currency": "USD",
+        },
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+
+    def _raise_unavailable(**kwargs):
+        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        _raise_unavailable,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-risk-unavailable"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    authority = body["explanation"]["authority_resolution"]
+    assert authority["simulation_authority"] == "lotus_core"
+    assert authority["risk_authority"] == "unavailable"
+    assert authority["degraded"] is True
+    assert authority["degraded_reasons"] == ["LOTUS_RISK_ENRICHMENT_UNAVAILABLE"]
+    assert "risk_lens" not in body["explanation"]
+
+
 def test_advisory_proposal_simulate_reports_local_fallback_when_explicitly_enabled(
     client, monkeypatch
 ):
@@ -395,12 +540,13 @@ def test_advisory_proposal_simulate_reports_local_fallback_when_explicitly_enabl
     assert response.status_code == 200
     authority = response.json()["explanation"]["authority_resolution"]
     assert authority["simulation_authority"] == "lotus_advise_local_fallback"
-    assert authority["risk_authority"] == "lotus_advise_local"
+    assert authority["risk_authority"] == "unavailable"
     assert authority["degraded"] is True
     assert authority["degraded_reasons"] == [
         "LOTUS_CORE_SIMULATION_UNAVAILABLE",
         "LOTUS_RISK_ENRICHMENT_UNAVAILABLE",
     ]
+    assert response.json()["allocation_lens"]["source"] == "LOTUS_ADVISE_LOCAL_FALLBACK"
 
 
 def test_advisory_proposal_simulate_disallows_local_fallback_in_production_environment(
@@ -661,6 +807,51 @@ def test_advisory_proposal_artifact_supports_stateful_context_resolution(client,
     assert body["evidence_bundle"]["hashes"]["request_hash"].startswith("sha256:")
     assert body["summary"]["title"] == "Proposal for pf_prop_api_art_stateful"
     assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
+
+
+def test_stateful_simulate_and_artifact_share_warm_lotus_core_context(client, monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    query_client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_artifact_cache",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        lambda **kwargs: kwargs["proposal_result"],
+    )
+    payload = {
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_artifact_cache",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    simulated = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "stateful-artifact-cache-simulate"},
+    )
+    artifact = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "stateful-artifact-cache-artifact"},
+    )
+
+    assert simulated.status_code == 200
+    assert artifact.status_code == 200
+    assert artifact.json()["summary"]["title"] == "Proposal for pf_stateful_artifact_cache"
+    assert query_client.request_count == 3
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert_core_context_fetch_counts(fetch_stats, portfolio=1, positions=1, cash=1)
 
 
 def test_advisory_proposal_artifact_reuses_idempotent_simulation_response(client):

@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import pytest
@@ -141,7 +142,7 @@ def test_service_create_proposal_uses_upstream_simulation_authority_when_availab
 
     authority = created.version.proposal_result.explanation["authority_resolution"]
     assert authority["simulation_authority"] == "lotus_core"
-    assert authority["risk_authority"] == "lotus_advise_local"
+    assert authority["risk_authority"] == "unavailable"
 
 
 def test_service_request_hash_is_stable_between_legacy_and_stateless_create_contracts():
@@ -575,6 +576,71 @@ def test_service_execute_create_version_async_marks_failed_on_lifecycle_error():
     assert operation.lease_expires_at is None
 
 
+def test_service_accept_async_version_submission_replays_duplicate_correlation() -> None:
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="idem-async-version-replay-base",
+        correlation_id="corr-async-version-replay-base",
+    )
+    payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+
+    first, first_is_new = service.accept_create_version_async_submission(
+        proposal_id=created.proposal.proposal_id,
+        payload=payload,
+        correlation_id="corr-async-version-replay",
+    )
+    replayed, replayed_is_new = service.accept_create_version_async_submission(
+        proposal_id=created.proposal.proposal_id,
+        payload=payload,
+        correlation_id="corr-async-version-replay",
+    )
+
+    assert first_is_new is True
+    assert replayed_is_new is False
+    assert replayed.operation_id == first.operation_id
+    assert replayed.correlation_id == first.correlation_id
+
+
+def test_service_accept_async_version_submission_rejects_correlation_mismatch() -> None:
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="idem-async-version-conflict-base",
+        correlation_id="corr-async-version-conflict-base",
+    )
+    payload = ProposalVersionRequest(
+        created_by="advisor_service",
+        simulate_request=_simulate_request(),
+    )
+    conflicting_payload = ProposalVersionRequest(
+        created_by="advisor_service_conflict",
+        simulate_request=_simulate_request(),
+    )
+
+    accepted, accepted_is_new = service.accept_create_version_async_submission(
+        proposal_id=created.proposal.proposal_id,
+        payload=payload,
+        correlation_id="corr-async-version-conflict",
+    )
+
+    with pytest.raises(ProposalIdempotencyConflictError) as exc_info:
+        service.accept_create_version_async_submission(
+            proposal_id=created.proposal.proposal_id,
+            payload=conflicting_payload,
+            correlation_id="corr-async-version-conflict",
+        )
+
+    assert accepted_is_new is True
+    assert accepted.operation_id.startswith("pop_")
+    assert str(exc_info.value) == "CORRELATION_ID_CONFLICT: async version submission mismatch"
+
+
 def test_service_submit_async_create_persists_restart_safe_payload():
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)
@@ -594,6 +660,85 @@ def test_service_submit_async_create_persists_restart_safe_payload():
     assert stored.max_attempts == 3
     assert accepted.attempt_count == 0
     assert accepted.max_attempts == 3
+
+
+def test_service_accept_async_create_submission_marks_replayed_duplicates() -> None:
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+
+    first, first_is_new = service.accept_create_proposal_async_submission(
+        payload=payload,
+        idempotency_key="idem-async-replayed-create",
+        correlation_id="corr-async-replayed-create-1",
+    )
+    duplicate, duplicate_is_new = service.accept_create_proposal_async_submission(
+        payload=payload,
+        idempotency_key="idem-async-replayed-create",
+        correlation_id="corr-async-replayed-create-2",
+    )
+
+    assert first_is_new is True
+    assert duplicate_is_new is False
+    assert duplicate.operation_id == first.operation_id
+    assert duplicate.correlation_id == first.correlation_id
+    stats = service.get_async_create_submission_stats_for_tests()
+    assert stats.accepted_new == 1
+    assert stats.accepted_replayed == 1
+    assert stats.conflicts == 0
+
+
+def test_service_accept_async_create_submission_is_concurrency_safe() -> None:
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+
+    def _submit() -> tuple[str, bool]:
+        accepted, is_new = service.accept_create_proposal_async_submission(
+            payload=payload,
+            idempotency_key="idem-async-concurrent-create",
+            correlation_id=None,
+        )
+        return accepted.operation_id, is_new
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(lambda _: _submit(), range(24)))
+
+    operation_ids = {operation_id for operation_id, _ in results}
+    new_flags = [is_new for _, is_new in results]
+    assert len(operation_ids) == 1
+    assert sum(1 for value in new_flags if value) == 1
+    stats = service.get_async_create_submission_stats_for_tests()
+    assert stats.accepted_new == 1
+    assert stats.accepted_replayed == 23
+    assert stats.conflicts == 0
+
+
+def test_service_accept_async_create_submission_tracks_conflicts() -> None:
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    payload = _create_payload()
+
+    service.accept_create_proposal_async_submission(
+        payload=payload,
+        idempotency_key="idem-async-conflict-stats",
+        correlation_id="corr-async-conflict-stats-1",
+    )
+
+    conflicting_payload = _create_payload()
+    conflicting_payload.metadata.title = "Conflicting async stats payload"
+
+    with pytest.raises(ProposalIdempotencyConflictError):
+        service.accept_create_proposal_async_submission(
+            payload=conflicting_payload,
+            idempotency_key="idem-async-conflict-stats",
+            correlation_id="corr-async-conflict-stats-2",
+        )
+
+    stats = service.get_async_create_submission_stats_for_tests()
+    assert stats.accepted_new == 1
+    assert stats.accepted_replayed == 0
+    assert stats.conflicts == 1
 
 
 def test_service_execute_create_proposal_async_retries_runtime_failure(monkeypatch):

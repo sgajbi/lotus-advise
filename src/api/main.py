@@ -42,7 +42,10 @@ from src.api.services.advisory_simulation_service import (
 )
 from src.api.workspaces.router import router as workspace_router
 from src.core.advisory_engine import run_proposal_simulation
+from src.core.workspace.models import WorkspaceStatefulInput
 from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
+from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
+from src.integrations.lotus_core.stateful_context import resolve_stateful_context_with_lotus_core
 
 
 @asynccontextmanager
@@ -118,6 +121,12 @@ app.include_router(proposal_lifecycle_router)
 app.include_router(advisory_simulation_router)
 app.include_router(integration_capabilities_router)
 app.include_router(workspace_router)
+
+
+def resolve_lotus_core_advisory_context(
+    stateful_input: WorkspaceStatefulInput,
+) -> LotusCoreResolvedAdvisoryContext:
+    return resolve_stateful_context_with_lotus_core(stateful_input)
 
 
 def custom_openapi() -> dict[str, Any]:

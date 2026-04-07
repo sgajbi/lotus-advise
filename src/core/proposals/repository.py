@@ -26,12 +26,20 @@ class ProposalRepository(Protocol):
 
     def create_operation(self, operation: ProposalAsyncOperationRecord) -> None: ...
 
+    def create_operation_if_absent_by_idempotency(
+        self, operation: ProposalAsyncOperationRecord
+    ) -> tuple[ProposalAsyncOperationRecord, bool]: ...
+
     def update_operation(self, operation: ProposalAsyncOperationRecord) -> None: ...
 
     def get_operation(self, *, operation_id: str) -> Optional[ProposalAsyncOperationRecord]: ...
 
     def get_operation_by_correlation(
         self, *, correlation_id: str
+    ) -> Optional[ProposalAsyncOperationRecord]: ...
+
+    def get_operation_by_idempotency(
+        self, *, idempotency_key: str
     ) -> Optional[ProposalAsyncOperationRecord]: ...
 
     def list_recoverable_operations(

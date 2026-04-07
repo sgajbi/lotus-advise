@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+from typing import Any
+
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -5,7 +8,35 @@ from fastapi.testclient import TestClient
 import src.api.proposals.router as proposals_router
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
-from src.core.proposals import ProposalIdempotencyConflictError
+from src.core.proposals import ProposalAsyncAcceptedResponse, ProposalIdempotencyConflictError
+from src.integrations.lotus_core.stateful_context import (
+    get_stateful_context_fetch_stats_for_tests,
+    reset_stateful_context_cache_for_tests,
+)
+from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
+from tests.shared.lotus_core_query_fakes import (
+    CountingLotusCoreQueryClient,
+    build_basic_stateful_query_responses,
+)
+from tests.shared.stateful_context_assertions import assert_core_context_fetch_counts
+from tests.shared.stateful_context_builders import build_resolved_stateful_context
+
+
+@pytest.fixture(autouse=True)
+def clear_risk_dependency_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "")
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.build_lotus_risk_dependency_state",
+        lambda: SimpleNamespace(configured=False),
+    )
+
+    def _risk_unavailable(**kwargs):  # noqa: ANN003
+        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        _risk_unavailable,
+    )
 
 
 def _base_create_payload(portfolio_id: str = "pf_lifecycle_1") -> dict:
@@ -50,6 +81,23 @@ def _create(client: TestClient, idempotency_key: str, payload: dict | None = Non
     )
     assert response.status_code == 200
     return response.json()
+
+
+def _risk_enriched_result(result):  # noqa: ANN001
+    result.explanation["risk_lens"] = {
+        "source_service": "lotus-risk",
+        "input_mode": "simulation",
+        "risk_proxy": {"hhi_current": 5200.0, "hhi_proposed": 6800.0, "hhi_delta": 1600.0},
+        "single_position_concentration": {
+            "top_position_weight_current": 0.5,
+            "top_position_weight_proposed": 0.6,
+        },
+        "issuer_concentration": {
+            "hhi_current": 5200.0,
+            "hhi_proposed": 5800.0,
+        },
+    }
+    return result
 
 
 def _promote_to_execution_ready(client: TestClient, proposal_id: str) -> None:
@@ -120,24 +168,20 @@ def _resolved_stateful_context(
     as_of: str,
 ) -> dict:
     payload = _base_create_payload(portfolio_id=portfolio_id)["simulate_request"]
-    payload["portfolio_snapshot"]["snapshot_id"] = f"ps_{portfolio_id}_{as_of}"
-    payload["market_data_snapshot"]["snapshot_id"] = f"md_{as_of}"
-    return {
-        "simulate_request": payload,
-        "resolved_context": {
-            "portfolio_id": portfolio_id,
-            "as_of": as_of,
-            "portfolio_snapshot_id": f"ps_{portfolio_id}_{as_of}",
-            "market_data_snapshot_id": f"md_{as_of}",
-            "risk_context_id": "risk_ctx_001",
-            "reporting_context_id": "report_ctx_001",
-        },
-    }
+    return build_resolved_stateful_context(
+        portfolio_id,
+        as_of,
+        positions=payload["portfolio_snapshot"]["positions"],
+        cash_amount=payload["portfolio_snapshot"]["cash_balances"][0]["amount"],
+        prices=payload["market_data_snapshot"]["prices"],
+        shelf_entries=payload["shelf_entries"],
+    )
 
 
 def setup_function() -> None:
     PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
+    reset_stateful_context_cache_for_tests()
 
 
 def test_create_proposal_persists_immutable_version_and_created_event():
@@ -195,6 +239,62 @@ def test_create_proposal_supports_stateful_context_resolution(monkeypatch):
     assert context_resolution["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_stateful_001_2026-03-25"
     )
+
+
+def test_stateful_simulate_and_create_share_warm_lotus_core_context(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
+    query_client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_cross_surface",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+
+    simulate_payload = {
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_cross_surface",
+            "as_of": "2026-03-25",
+        },
+    }
+    create_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_cross_surface",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {
+            "title": "Cross-surface cached proposal",
+            "advisor_notes": "Should reuse the warmed stateful context",
+            "jurisdiction": "SG",
+        },
+    }
+
+    with TestClient(app) as client:
+        simulated = client.post(
+            "/advisory/proposals/simulate",
+            json=simulate_payload,
+            headers={"Idempotency-Key": "stateful-cross-surface-simulate"},
+        )
+        created = client.post(
+            "/advisory/proposals",
+            json=create_payload,
+            headers={"Idempotency-Key": "stateful-cross-surface-create"},
+        )
+
+    assert simulated.status_code == 200
+    assert created.status_code == 200
+    assert query_client.request_count == 3
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert_core_context_fetch_counts(fetch_stats, portfolio=1, positions=1, cash=1)
 
 
 def test_create_proposal_rejects_stateful_request_when_context_resolution_is_unavailable():
@@ -409,6 +509,209 @@ def test_create_version_supports_stateful_context_resolution(monkeypatch):
     )
 
 
+def test_stateful_create_and_version_share_warm_lotus_core_context(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
+    query_client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_version_cache",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+
+    create_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_version_cache",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {
+            "title": "Version cache warm base",
+            "advisor_notes": "Base proposal should warm the Lotus Core context cache",
+            "jurisdiction": "SG",
+        },
+    }
+    version_payload = {
+        "created_by": "advisor_2",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_version_cache",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=create_payload,
+            headers={"Idempotency-Key": "stateful-version-cache-create"},
+        )
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json=version_payload,
+        )
+
+    assert created.status_code == 200
+    assert versioned.status_code == 200
+    assert query_client.request_count == 3
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert_core_context_fetch_counts(fetch_stats, portfolio=1, positions=1, cash=1)
+
+
+def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
+    cash_dates = iter(["2026-03-25", "2026-03-26"])
+
+    class _AsOfAwareQueryClient(CountingLotusCoreQueryClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ):
+            if method.upper() == "POST" and url == f"{base_url}/reporting/cash-balances/query":
+                self.request_count += 1
+                return self._responses[("POST", url)].__class__(
+                    {
+                        "portfolio_id": "pf_stateful_asof_boundary",
+                        "resolved_as_of_date": next(cash_dates),
+                        "cash_accounts": [],
+                    }
+                )
+            return super().request(method, url, json=json)
+
+    query_client = _AsOfAwareQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_asof_boundary",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+
+    first_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_asof_boundary",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {"title": "Boundary create 1", "jurisdiction": "SG"},
+    }
+    second_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_asof_boundary",
+            "as_of": "2026-03-26",
+        },
+        "metadata": {"title": "Boundary create 2", "jurisdiction": "SG"},
+    }
+
+    with TestClient(app) as client:
+        first = client.post(
+            "/advisory/proposals",
+            json=first_payload,
+            headers={"Idempotency-Key": "stateful-asof-boundary-1"},
+        )
+        second = client.post(
+            "/advisory/proposals",
+            json=second_payload,
+            headers={"Idempotency-Key": "stateful-asof-boundary-2"},
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    first_context = first.json()["version"]["evidence_bundle"]["context_resolution"][
+        "resolved_context"
+    ]
+    second_context = second.json()["version"]["evidence_bundle"]["context_resolution"][
+        "resolved_context"
+    ]
+    assert first_context["portfolio_snapshot_id"] == (
+        "lotus-core:portfolio:pf_stateful_asof_boundary:2026-03-25"
+    )
+    assert second_context["portfolio_snapshot_id"] == (
+        "lotus-core:portfolio:pf_stateful_asof_boundary:2026-03-26"
+    )
+    assert query_client.request_count == 6
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
+
+
+def test_stateful_create_refetches_when_optional_context_identity_changes(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
+    query_client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_identity_boundary",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: query_client,
+    )
+
+    first_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_identity_boundary",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_growth_01",
+            "benchmark_id": "benchmark_balanced_usd",
+        },
+        "metadata": {"title": "Identity boundary 1", "jurisdiction": "SG"},
+    }
+    second_payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_identity_boundary",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_income_01",
+            "benchmark_id": "benchmark_income_usd",
+        },
+        "metadata": {"title": "Identity boundary 2", "jurisdiction": "SG"},
+    }
+
+    with TestClient(app) as client:
+        first = client.post(
+            "/advisory/proposals",
+            json=first_payload,
+            headers={"Idempotency-Key": "stateful-identity-boundary-1"},
+        )
+        second = client.post(
+            "/advisory/proposals",
+            json=second_payload,
+            headers={"Idempotency-Key": "stateful-identity-boundary-2"},
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["proposal"]["mandate_id"] == "mandate_growth_01"
+    assert second.json()["proposal"]["mandate_id"] == "mandate_income_01"
+    assert query_client.request_count == 6
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
+
+
 def test_async_create_proposal_supports_stateful_context_resolution(monkeypatch):
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
@@ -446,6 +749,195 @@ def test_async_create_proposal_supports_stateful_context_resolution(monkeypatch)
     result = body["result"]
     assert result["proposal"]["portfolio_id"] == "pf_async_stateful_001"
     assert result["version"]["evidence_bundle"]["context_resolution"]["input_mode"] == "stateful"
+
+
+def test_stateful_async_create_reuses_cached_lotus_core_context(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
+    client = CountingLotusCoreQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_async_stateful_cached",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: client,
+    )
+
+    payload = {
+        "created_by": "advisor_1",
+        "metadata": {"title": "Cached async stateful create"},
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_async_stateful_cached",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as test_client:
+        first = test_client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-stateful-cache-1",
+                "X-Correlation-Id": "corr-async-stateful-cache-1",
+            },
+        )
+        second = test_client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-stateful-cache-2",
+                "X-Correlation-Id": "corr-async-stateful-cache-2",
+            },
+        )
+
+    assert first.status_code == 202
+    assert second.status_code == 202
+    assert client.request_count == 3
+
+
+def test_stateful_create_recovers_after_initial_lotus_core_resolution_failure(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
+    portfolio_payload = {
+        "portfolio_id": "pf_stateful_recovery_create",
+        "base_currency": "",
+    }
+
+    class _RecoveringQueryClient(CountingLotusCoreQueryClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ):
+            if (method.upper(), url) == (
+                "GET",
+                f"{base_url}/portfolios/pf_stateful_recovery_create",
+            ):
+                self.request_count += 1
+                return self._responses[(method.upper(), url)].__class__(dict(portfolio_payload))
+            return super().request(method, url, json=json)
+
+    client = _RecoveringQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_stateful_recovery_create",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: client,
+    )
+    payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_recovery_create",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {"title": "Recovering stateful create"},
+    }
+
+    with TestClient(app) as test_client:
+        failed = test_client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-create-stateful-recovery-failed"},
+        )
+
+        portfolio_payload["base_currency"] = "USD"
+        recovered = test_client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-create-stateful-recovery-success"},
+        )
+
+    assert failed.status_code == 422
+    assert failed.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+    assert recovered.status_code == 200
+    assert recovered.json()["proposal"]["portfolio_id"] == "pf_stateful_recovery_create"
+    assert client.request_count == 6
+
+
+def test_stateful_version_recovers_after_initial_lotus_core_resolution_failure(monkeypatch):
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", base_url)
+    portfolio_payload = {
+        "portfolio_id": "pf_lifecycle_1",
+        "base_currency": "",
+    }
+
+    class _RecoveringQueryClient(CountingLotusCoreQueryClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ):
+            if (method.upper(), url) == ("GET", f"{base_url}/portfolios/pf_lifecycle_1"):
+                self.request_count += 1
+                return self._responses[(method.upper(), url)].__class__(dict(portfolio_payload))
+            return super().request(method, url, json=json)
+
+    client = _RecoveringQueryClient(
+        build_basic_stateful_query_responses(
+            base_url=base_url,
+            portfolio_id="pf_lifecycle_1",
+            as_of="2026-03-25",
+        )
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: client,
+    )
+
+    with TestClient(app) as test_client:
+        created = _create(test_client, "lifecycle-create-stateful-version-recovery-base")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        failed = test_client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_lifecycle_1",
+                    "as_of": "2026-03-25",
+                },
+            },
+        )
+
+        portfolio_payload["base_currency"] = "USD"
+        recovered = test_client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_lifecycle_1",
+                    "as_of": "2026-03-25",
+                },
+            },
+        )
+
+    assert failed.status_code == 422
+    assert failed.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+    assert recovered.status_code == 200
+    assert recovered.json()["proposal"]["current_version_no"] == 2
+    assert recovered.json()["version"]["evidence_bundle"]["context_resolution"]["input_mode"] == (
+        "stateful"
+    )
+    assert client.request_count == 6
 
 
 def test_transition_requires_expected_state_and_rejects_invalid_transition():
@@ -1321,6 +1813,161 @@ def test_async_create_and_lookup_by_operation_and_correlation():
         assert missing_by_correlation.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"
 
 
+def test_async_create_deduplicates_by_idempotency_key_and_rejects_payload_conflicts():
+    with TestClient(app) as client:
+        payload = _base_create_payload()
+        first = client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-1",
+                "X-Correlation-Id": "corr-async-idem-1",
+            },
+        )
+        assert first.status_code == 202
+        first_body = first.json()
+
+        duplicate = client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-1",
+                "X-Correlation-Id": "corr-async-idem-2",
+            },
+        )
+        assert duplicate.status_code == 202
+        duplicate_body = duplicate.json()
+        assert duplicate_body["operation_id"] == first_body["operation_id"]
+        assert duplicate_body["correlation_id"] == first_body["correlation_id"]
+
+        conflicting_payload = _base_create_payload()
+        conflicting_payload["metadata"]["title"] = "Conflicting async payload"
+        conflict = client.post(
+            "/advisory/proposals/async",
+            json=conflicting_payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-1",
+                "X-Correlation-Id": "corr-async-idem-3",
+            },
+        )
+        assert conflict.status_code == 409
+        assert (
+            conflict.json()["detail"]
+            == "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
+        )
+
+
+def test_async_create_treats_legacy_and_normalized_stateless_payloads_as_equivalent():
+    with TestClient(app) as client:
+        legacy_payload = _base_create_payload()
+        normalized_payload = {
+            "created_by": legacy_payload["created_by"],
+            "metadata": legacy_payload["metadata"],
+            "input_mode": "stateless",
+            "stateless_input": {"simulate_request": legacy_payload["simulate_request"]},
+        }
+
+        first = client.post(
+            "/advisory/proposals/async",
+            json=legacy_payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-shape-1",
+                "X-Correlation-Id": "corr-async-shape-1",
+            },
+        )
+        assert first.status_code == 202
+        duplicate = client.post(
+            "/advisory/proposals/async",
+            json=normalized_payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-shape-1",
+                "X-Correlation-Id": "corr-async-shape-2",
+            },
+        )
+        assert duplicate.status_code == 202
+        assert duplicate.json()["operation_id"] == first.json()["operation_id"]
+
+
+def test_async_create_route_does_not_reschedule_replayed_submission() -> None:
+    class _ReplayAwareService:
+        def __init__(self) -> None:
+            self.executions = 0
+
+        def accept_create_proposal_async_submission(self, **kwargs):  # noqa: ANN003
+            return (
+                ProposalAsyncAcceptedResponse(
+                    operation_id="pop_replayed_async",
+                    operation_type="CREATE_PROPOSAL",
+                    status="PENDING",
+                    correlation_id="corr-replayed-async",
+                    created_at="2026-04-07T00:00:00+00:00",
+                    attempt_count=0,
+                    max_attempts=3,
+                    status_url="/advisory/proposals/operations/pop_replayed_async",
+                ),
+                False,
+            )
+
+        def execute_create_proposal_async(self, **kwargs):  # noqa: ANN003
+            self.executions += 1
+
+    service = _ReplayAwareService()
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            accepted = client.post(
+                "/advisory/proposals/async",
+                json=_base_create_payload(),
+                headers={"Idempotency-Key": "lifecycle-async-route-replayed"},
+            )
+        assert accepted.status_code == 202
+        assert accepted.json()["operation_id"] == "pop_replayed_async"
+        assert service.executions == 0
+    finally:
+        app.dependency_overrides = original_overrides
+
+
+def test_async_create_route_schedules_new_submission_once() -> None:
+    class _ReplayAwareService:
+        def __init__(self) -> None:
+            self.executions = 0
+
+        def accept_create_proposal_async_submission(self, **kwargs):  # noqa: ANN003
+            return (
+                ProposalAsyncAcceptedResponse(
+                    operation_id="pop_new_async",
+                    operation_type="CREATE_PROPOSAL",
+                    status="PENDING",
+                    correlation_id="corr-new-async",
+                    created_at="2026-04-07T00:00:00+00:00",
+                    attempt_count=0,
+                    max_attempts=3,
+                    status_url="/advisory/proposals/operations/pop_new_async",
+                ),
+                True,
+            )
+
+        def execute_create_proposal_async(self, **kwargs):  # noqa: ANN003
+            self.executions += 1
+
+    service = _ReplayAwareService()
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            accepted = client.post(
+                "/advisory/proposals/async",
+                json=_base_create_payload(),
+                headers={"Idempotency-Key": "lifecycle-async-route-new"},
+            )
+        assert accepted.status_code == 202
+        assert accepted.json()["operation_id"] == "pop_new_async"
+        assert service.executions == 1
+    finally:
+        app.dependency_overrides = original_overrides
+
+
 def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_lineage():
     with TestClient(app) as client:
         created = client.post(
@@ -1372,6 +2019,79 @@ def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_
     assert async_body["evidence"]["async_runtime"]["attempt_count"] >= 1
 
 
+def test_async_and_proposal_replay_evidence_stay_hash_aligned():
+    with TestClient(app) as client:
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=_base_create_payload("pf_async_replay_alignment_001"),
+            headers={
+                "Idempotency-Key": "lifecycle-replay-async-alignment-001",
+                "X-Correlation-Id": "corr-lifecycle-replay-async-alignment-001",
+            },
+        )
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+        assert operation.status_code == 200
+        operation_body = operation.json()
+        proposal_id = operation_body["result"]["proposal"]["proposal_id"]
+        proposal_version_no = operation_body["result"]["version"]["version_no"]
+
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+        proposal_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{proposal_version_no}/replay-evidence"
+        )
+
+    assert async_replay.status_code == 200
+    assert proposal_replay.status_code == 200
+    async_body = async_replay.json()
+    proposal_body = proposal_replay.json()
+    assert async_body["subject"]["proposal_id"] == proposal_id
+    assert async_body["subject"]["proposal_version_no"] == proposal_version_no
+    assert async_body["hashes"]["request_hash"] == proposal_body["hashes"]["request_hash"]
+    assert async_body["hashes"]["simulation_hash"] == proposal_body["hashes"]["simulation_hash"]
+    assert async_body["hashes"]["artifact_hash"] == proposal_body["hashes"]["artifact_hash"]
+    assert async_body["resolved_context"] == proposal_body["resolved_context"]
+    assert async_body["continuity"]["correlation_id"] == "corr-lifecycle-replay-async-alignment-001"
+    assert async_body["continuity"]["async_operation_id"] == operation_id
+
+
+def test_proposal_and_async_replay_evidence_preserve_risk_lens(monkeypatch):
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        lambda **kwargs: _risk_enriched_result(kwargs["proposal_result"]),
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-risk-replay-create")
+        proposal_id = created["proposal"]["proposal_id"]
+        version_no = created["version"]["version_no"]
+
+        version_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+        )
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=_base_create_payload("pf_async_risk_replay_001"),
+            headers={
+                "Idempotency-Key": "lifecycle-risk-replay-async",
+                "X-Correlation-Id": "corr-lifecycle-risk-replay-async",
+            },
+        )
+        operation_id = accepted.json()["operation_id"]
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+
+    assert version_replay.status_code == 200
+    assert async_replay.status_code == 200
+    version_body = version_replay.json()
+    async_body = async_replay.json()
+    assert version_body["evidence"]["risk_lens"]["source_service"] == "lotus-risk"
+    assert version_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert async_body["evidence"]["risk_lens"]["source_service"] == "lotus-risk"
+    assert async_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+
+
 def test_async_create_version_and_lookup():
     with TestClient(app) as client:
         created = _create(client, "lifecycle-async-version-base")
@@ -1403,6 +2123,79 @@ def test_async_create_version_and_lookup():
         assert body["max_attempts"] == 3
         assert body["lease_expires_at"] is None
         assert body["result"]["proposal"]["current_version_no"] == 2
+
+
+def test_async_create_version_route_does_not_reschedule_replayed_submission() -> None:
+    class _ReplayAwareService:
+        def __init__(self) -> None:
+            self.executions = 0
+
+        def accept_create_version_async_submission(self, **kwargs):  # noqa: ANN003
+            return (
+                ProposalAsyncAcceptedResponse(
+                    operation_id="pop_replayed_version_async",
+                    operation_type="CREATE_PROPOSAL_VERSION",
+                    status="PENDING",
+                    correlation_id="corr-replayed-version-async",
+                    created_at="2026-04-07T00:00:00+00:00",
+                    attempt_count=0,
+                    max_attempts=3,
+                    status_url="/advisory/proposals/operations/pop_replayed_version_async",
+                ),
+                False,
+            )
+
+        def execute_create_version_async(self, **kwargs):  # noqa: ANN003
+            self.executions += 1
+
+    service = _ReplayAwareService()
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            accepted = client.post(
+                "/advisory/proposals/pp_replayed/versions/async",
+                json={
+                    "created_by": "advisor_2",
+                    "simulate_request": _base_create_payload()["simulate_request"],
+                },
+                headers={"X-Correlation-Id": "corr-replayed-version-async"},
+            )
+        assert accepted.status_code == 202
+        assert accepted.json()["operation_id"] == "pop_replayed_version_async"
+        assert service.executions == 0
+    finally:
+        app.dependency_overrides = original_overrides
+
+
+def test_async_create_version_route_maps_correlation_conflict_to_409() -> None:
+    class _ConflictService:
+        def accept_create_version_async_submission(self, **kwargs):  # noqa: ANN003
+            raise ProposalIdempotencyConflictError(
+                "CORRELATION_ID_CONFLICT: async version submission mismatch"
+            )
+
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = (
+        lambda: _ConflictService()
+    )
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/advisory/proposals/pp_conflict/versions/async",
+                json={
+                    "created_by": "advisor_2",
+                    "simulate_request": _base_create_payload()["simulate_request"],
+                },
+                headers={"X-Correlation-Id": "corr-conflict-version-async"},
+            )
+        assert response.status_code == 409
+        assert (
+            response.json()["detail"]
+            == "CORRELATION_ID_CONFLICT: async version submission mismatch"
+        )
+    finally:
+        app.dependency_overrides = original_overrides
 
 
 def test_async_operation_endpoints_return_404_when_disabled(monkeypatch):

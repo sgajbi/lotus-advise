@@ -55,6 +55,14 @@ The API remains deterministic for identical inputs and options.
 - Contract governance: the `lotus-core` simulation seam is pinned to
   `X-Lotus-Contract-Version: advisory-simulation.v1`, and the returned lineage must carry the same
   `simulation_contract_version` for replay-safe parity.
+- Stateful context resolution: identifier-based advisory requests resolve portfolio state through
+  the Lotus Core query surface. When `LOTUS_CORE_QUERY_BASE_URL` is not set explicitly,
+  `lotus-advise` derives the query endpoint from `LOTUS_CORE_BASE_URL` so canonical execution and
+  state resolution remain aligned in local and containerized runtime setups.
+- Stateful draft enrichment: stateful workspace evaluation now enriches newly drafted instruments
+  from Lotus Core query data when they are not already present in the source holdings snapshot,
+  allowing advisor trade drafting to stay identifier-based without forcing clients to inline market
+  and shelf payloads for each new instrument.
 - Fallback posture: local advisory execution is no longer a normal runtime mode. It is retained
   only as a controlled non-production fallback and test oracle behind
   `LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK`.

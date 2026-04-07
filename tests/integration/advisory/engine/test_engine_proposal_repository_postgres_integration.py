@@ -242,6 +242,63 @@ def test_live_postgres_operation_missing_lookups_return_none(
 ) -> None:
     assert repository.get_operation(operation_id="op-missing") is None
     assert repository.get_operation_by_correlation(correlation_id="corr-missing") is None
+    assert repository.get_operation_by_idempotency(idempotency_key="idem-missing") is None
+
+
+def test_live_postgres_async_create_operation_idempotency_contract(
+    repository: PostgresProposalRepository,
+) -> None:
+    now = datetime.now(timezone.utc)
+    first = ProposalAsyncOperationRecord(
+        operation_id=f"pop-{uuid.uuid4().hex}",
+        operation_type="CREATE_PROPOSAL",
+        status="PENDING",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        idempotency_key=f"idem-{uuid.uuid4().hex}",
+        proposal_id=None,
+        created_by="advisor_live",
+        created_at=now,
+        payload_json={"payload": {"created_by": "advisor_live"}, "submission_hash": "sha256:first"},
+        attempt_count=0,
+        max_attempts=3,
+        started_at=None,
+        lease_expires_at=None,
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
+    second = ProposalAsyncOperationRecord(
+        operation_id=f"pop-{uuid.uuid4().hex}",
+        operation_type="CREATE_PROPOSAL",
+        status="PENDING",
+        correlation_id=f"corr-{uuid.uuid4().hex}",
+        idempotency_key=first.idempotency_key,
+        proposal_id=None,
+        created_by="advisor_live_duplicate",
+        created_at=now,
+        payload_json={
+            "payload": {"created_by": "advisor_live_duplicate"},
+            "submission_hash": "sha256:second",
+        },
+        attempt_count=0,
+        max_attempts=3,
+        started_at=None,
+        lease_expires_at=None,
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
+
+    stored_first, first_is_new = repository.create_operation_if_absent_by_idempotency(first)
+    stored_second, second_is_new = repository.create_operation_if_absent_by_idempotency(second)
+    by_idempotency = repository.get_operation_by_idempotency(idempotency_key=first.idempotency_key)
+
+    assert first_is_new is True
+    assert second_is_new is False
+    assert stored_second.operation_id == stored_first.operation_id
+    assert by_idempotency is not None
+    assert by_idempotency.operation_id == stored_first.operation_id
+    assert by_idempotency.correlation_id == stored_first.correlation_id
 
 
 def test_live_postgres_list_proposals_pagination_and_invalid_cursor(

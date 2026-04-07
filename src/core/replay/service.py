@@ -51,6 +51,7 @@ def build_workspace_saved_version_replay_response(
             "saved_by": saved_version.saved_by,
             "version_number": saved_version.version_number,
             "version_label": saved_version.version_label,
+            "risk_lens": saved_version.replay_evidence.risk_lens,
         },
         explanation={
             "source": "WORKSPACE_SAVED_VERSION",
@@ -104,6 +105,7 @@ def build_proposal_version_replay_response(
         evidence={
             "context_resolution": context_resolution,
             "replay_lineage": replay_lineage,
+            "risk_lens": version.evidence_bundle_json.get("risk_lens"),
         },
         explanation={
             "source": "PROPOSAL_VERSION_EVIDENCE_BUNDLE",
@@ -180,7 +182,10 @@ def build_async_operation_replay_response(
                 "attempt_count": operation.attempt_count,
                 "max_attempts": operation.max_attempts,
                 "created_at": operation.created_at.isoformat(),
+                "started_at": operation.started_at.isoformat() if operation.started_at else None,
+                "finished_at": operation.finished_at.isoformat() if operation.finished_at else None,
                 "payload_json": operation.payload_json,
+                "error": operation.error_json,
             }
         },
         explanation={

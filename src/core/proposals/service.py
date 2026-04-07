@@ -1,9 +1,12 @@
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from threading import RLock
 from typing import Any, Optional
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.orchestration import evaluate_advisory_proposal
+from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.context import (
@@ -117,6 +120,13 @@ class ProposalTransitionError(ProposalLifecycleError):
     pass
 
 
+@dataclass(frozen=True)
+class AsyncCreateSubmissionStats:
+    accepted_new: int
+    accepted_replayed: int
+    conflicts: int
+
+
 class ProposalWorkflowService:
     def __init__(
         self,
@@ -132,6 +142,12 @@ class ProposalWorkflowService:
         self._require_expected_state = require_expected_state
         self._allow_portfolio_id_change_on_new_version = allow_portfolio_id_change_on_new_version
         self._require_proposal_simulation_flag = require_proposal_simulation_flag
+        self._async_create_submission_stats_lock = RLock()
+        self._async_create_submission_stats = {
+            "accepted_new": 0,
+            "accepted_replayed": 0,
+            "conflicts": 0,
+        }
 
     def create_proposal(
         self,
@@ -142,6 +158,7 @@ class ProposalWorkflowService:
         lifecycle_origin: ProposalLifecycleOrigin = "DIRECT_CREATE",
         source_workspace_id: Optional[str] = None,
         replay_lineage: Optional[dict[str, Any]] = None,
+        context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
         self._validate_lifecycle_origin(
             lifecycle_origin=lifecycle_origin,
@@ -172,6 +189,7 @@ class ProposalWorkflowService:
         self._validate_simulation_flag(resolved_request.simulate_request)
         proposal_result = self._run_simulation(
             request=resolved_request.simulate_request,
+            resolved_as_of=resolved_request.resolved_context.as_of,
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
@@ -182,7 +200,12 @@ class ProposalWorkflowService:
             created_at=now.isoformat(),
         )
         evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
-        evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        evidence_bundle["context_resolution"] = (
+            dict(context_resolution_override)
+            if context_resolution_override is not None
+            else build_context_resolution_evidence(resolved_request)
+        )
+        evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
         if replay_lineage:
             evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
@@ -241,13 +264,14 @@ class ProposalWorkflowService:
             proposal=proposal, version=version, latest_event=created_event
         )
 
-    def submit_create_proposal_async(
+    def accept_create_proposal_async_submission(
         self,
         *,
         payload: ProposalCreateRequest,
         idempotency_key: str,
         correlation_id: Optional[str],
-    ) -> ProposalAsyncAcceptedResponse:
+    ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
+        submission_hash = self._hash_async_create_submission(payload)
         resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
         operation = ProposalAsyncOperationRecord(
             operation_id=f"pop_{uuid.uuid4().hex[:12]}",
@@ -261,6 +285,7 @@ class ProposalWorkflowService:
             payload_json={
                 "payload": payload.model_dump(mode="json"),
                 "idempotency_key": idempotency_key,
+                "submission_hash": submission_hash,
             },
             attempt_count=0,
             max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
@@ -270,8 +295,34 @@ class ProposalWorkflowService:
             result_json=None,
             error_json=None,
         )
-        self._repository.create_operation(operation)
-        return self._to_async_accepted(operation)
+        stored_operation, is_new = self._repository.create_operation_if_absent_by_idempotency(
+            operation
+        )
+        if not is_new:
+            existing_hash = self._extract_async_submission_hash(stored_operation)
+            if existing_hash != submission_hash:
+                self._record_async_create_submission_outcome("conflicts")
+                raise ProposalIdempotencyConflictError(
+                    "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
+                )
+        self._record_async_create_submission_outcome(
+            "accepted_new" if is_new else "accepted_replayed"
+        )
+        return self._to_async_accepted(stored_operation), is_new
+
+    def submit_create_proposal_async(
+        self,
+        *,
+        payload: ProposalCreateRequest,
+        idempotency_key: str,
+        correlation_id: Optional[str],
+    ) -> ProposalAsyncAcceptedResponse:
+        accepted, _ = self.accept_create_proposal_async_submission(
+            payload=payload,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        return accepted
 
     def execute_create_proposal_async(
         self,
@@ -636,7 +687,7 @@ class ProposalWorkflowService:
         version = None
         if operation.proposal_id is not None:
             proposal = self._repository.get_proposal(proposal_id=operation.proposal_id)
-            if proposal is not None:
+            if proposal is not None and operation.status == "SUCCEEDED":
                 version_no = None
                 if operation.result_json is not None:
                     version_payload = operation.result_json.get("version")
@@ -686,6 +737,7 @@ class ProposalWorkflowService:
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
         replay_lineage: Optional[dict[str, Any]] = None,
+        context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
         now = _utc_now()
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
@@ -721,6 +773,7 @@ class ProposalWorkflowService:
 
         proposal_result = self._run_simulation(
             request=resolved_request.simulate_request,
+            resolved_as_of=resolved_request.resolved_context.as_of,
             request_hash=request_hash,
             idempotency_key=None,
             correlation_id=correlation_id,
@@ -731,7 +784,12 @@ class ProposalWorkflowService:
             created_at=now.isoformat(),
         )
         evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
-        evidence_bundle["context_resolution"] = build_context_resolution_evidence(resolved_request)
+        evidence_bundle["context_resolution"] = (
+            dict(context_resolution_override)
+            if context_resolution_override is not None
+            else build_context_resolution_evidence(resolved_request)
+        )
+        evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
         if replay_lineage:
             evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
@@ -770,7 +828,39 @@ class ProposalWorkflowService:
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
     ) -> ProposalAsyncAcceptedResponse:
+        accepted, _ = self.accept_create_version_async_submission(
+            proposal_id=proposal_id,
+            payload=payload,
+            correlation_id=correlation_id,
+        )
+        return accepted
+
+    def accept_create_version_async_submission(
+        self,
+        *,
+        proposal_id: str,
+        payload: ProposalVersionRequest,
+        correlation_id: Optional[str],
+    ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
         resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+        submission_hash = self._hash_async_version_submission(
+            proposal_id=proposal_id,
+            payload=payload,
+        )
+        existing_operation = self._repository.get_operation_by_correlation(
+            correlation_id=resolved_correlation_id
+        )
+        if existing_operation is not None:
+            existing_hash = self._extract_async_submission_hash(existing_operation)
+            if (
+                existing_operation.operation_type != "CREATE_PROPOSAL_VERSION"
+                or existing_operation.proposal_id != proposal_id
+                or existing_hash != submission_hash
+            ):
+                raise ProposalIdempotencyConflictError(
+                    "CORRELATION_ID_CONFLICT: async version submission mismatch"
+                )
+            return self._to_async_accepted(existing_operation), False
         operation = ProposalAsyncOperationRecord(
             operation_id=f"pop_{uuid.uuid4().hex[:12]}",
             operation_type="CREATE_PROPOSAL_VERSION",
@@ -783,6 +873,7 @@ class ProposalWorkflowService:
             payload_json={
                 "proposal_id": proposal_id,
                 "payload": payload.model_dump(mode="json"),
+                "submission_hash": submission_hash,
             },
             attempt_count=0,
             max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
@@ -793,7 +884,7 @@ class ProposalWorkflowService:
             error_json=None,
         )
         self._repository.create_operation(operation)
-        return self._to_async_accepted(operation)
+        return self._to_async_accepted(operation), True
 
     def execute_create_version_async(
         self,
@@ -1241,6 +1332,70 @@ class ProposalWorkflowService:
             return None
         return payload, resolved_idempotency_key
 
+    def _extract_async_submission_hash(self, operation: ProposalAsyncOperationRecord) -> str | None:
+        submission_hash = operation.payload_json.get("submission_hash")
+        if isinstance(submission_hash, str) and submission_hash:
+            return submission_hash
+        payload_json = operation.payload_json.get("payload")
+        if not isinstance(payload_json, dict):
+            return None
+        return str(hash_canonical_payload(payload_json))
+
+    def _hash_async_create_submission(self, payload: ProposalCreateRequest) -> str:
+        if payload.input_mode == "stateful":
+            return str(
+                hash_canonical_payload(payload.model_dump(mode="json", exclude_none=True))
+            )
+        resolved_request = resolve_create_request(payload)
+        return str(
+            hash_canonical_payload(
+                canonicalize_create_request_payload(
+                    payload=payload,
+                    resolved=resolved_request,
+                )
+            )
+        )
+
+    def _hash_async_version_submission(
+        self,
+        *,
+        proposal_id: str,
+        payload: ProposalVersionRequest,
+    ) -> str:
+        if payload.input_mode == "stateful":
+            return str(
+                hash_canonical_payload(
+                    {
+                        "proposal_id": proposal_id,
+                        **payload.model_dump(mode="json", exclude_none=True),
+                    }
+                )
+            )
+        resolved_request = resolve_version_request(payload)
+        return str(
+            hash_canonical_payload(
+                {
+                    "proposal_id": proposal_id,
+                    **canonicalize_version_request_payload(
+                        payload=payload,
+                        resolved=resolved_request,
+                    ),
+                }
+            )
+        )
+
+    def _record_async_create_submission_outcome(self, key: str) -> None:
+        with self._async_create_submission_stats_lock:
+            self._async_create_submission_stats[key] += 1
+
+    def get_async_create_submission_stats_for_tests(self) -> AsyncCreateSubmissionStats:
+        with self._async_create_submission_stats_lock:
+            return AsyncCreateSubmissionStats(
+                accepted_new=self._async_create_submission_stats["accepted_new"],
+                accepted_replayed=self._async_create_submission_stats["accepted_replayed"],
+                conflicts=self._async_create_submission_stats["conflicts"],
+            )
+
     def _resolve_version_async_payload(
         self,
         *,
@@ -1387,6 +1542,7 @@ class ProposalWorkflowService:
         self,
         *,
         request: ProposalSimulateRequest,
+        resolved_as_of: str,
         request_hash: str,
         idempotency_key: Optional[str],
         correlation_id: Optional[str],
@@ -1397,6 +1553,7 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=resolved_correlation_id,
+            resolved_as_of=resolved_as_of,
         )
 
     def _validate_simulation_flag(self, request: ProposalSimulateRequest) -> None:

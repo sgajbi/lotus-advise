@@ -1,11 +1,170 @@
-import sys
-from typing import cast
+from __future__ import annotations
 
-from src.core.models import ProposalResult, ProposalSimulateRequest
+import os
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Any
+
+import httpx
+from pydantic import BaseModel, Field, ValidationError
+
+from src.core.models import ProposalResult, ProposalSimulateRequest, SecurityTradeIntent
+from src.integrations.lotus_core.runtime_config import env_positive_float
+
+_CONCENTRATION_PATH = "/analytics/risk/concentration"
 
 
 class LotusRiskEnrichmentUnavailableError(Exception):
     pass
+
+
+class LotusRiskConcentrationRiskProxy(BaseModel):
+    hhi_current: float
+    hhi_proposed: float
+    hhi_delta: float
+
+
+class LotusRiskSinglePositionConcentration(BaseModel):
+    top_position_weight_current: float
+    top_position_weight_proposed: float
+    top_position_weight_delta: float
+    top_n_cumulative_weight_current: float
+    top_n_cumulative_weight_proposed: float
+    top_n_cumulative_weight_delta: float
+    top_n: int
+
+
+class LotusRiskIssuerConcentration(BaseModel):
+    hhi_current: float
+    hhi_proposed: float
+    hhi_delta: float
+    top_issuer_weight_current: float
+    top_issuer_weight_proposed: float
+    top_issuer_weight_delta: float
+    coverage_status: str
+    covered_position_count_current: int
+    covered_position_count_proposed: int
+    total_position_count_current: int
+    total_position_count_proposed: int
+    note: str | None = None
+
+
+class LotusRiskConcentrationResponse(BaseModel):
+    source_service: str = Field(pattern="^lotus-risk$")
+    input_mode: str = Field(pattern="^simulation$")
+    risk_proxy: LotusRiskConcentrationRiskProxy
+    single_position_concentration: LotusRiskSinglePositionConcentration
+    issuer_concentration: LotusRiskIssuerConcentration
+    valuation_context: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
+
+
+def _resolve_base_url() -> str:
+    configured = os.getenv("LOTUS_RISK_BASE_URL")
+    if configured:
+        return configured.rstrip("/")
+    raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
+
+
+def _resolve_timeout() -> httpx.Timeout:
+    return httpx.Timeout(env_positive_float("LOTUS_RISK_TIMEOUT_SECONDS", default=10.0))
+
+
+def _as_float(value: Decimal | None) -> float | None:
+    if value is None:
+        return None
+    return float(value)
+
+
+def _proposal_as_of(request: ProposalSimulateRequest) -> str:
+    if request.reference_model is not None:
+        return str(request.reference_model.as_of)
+    return datetime.now(timezone.utc).date().isoformat()
+
+
+def _security_trade_changes(result: ProposalResult) -> list[dict[str, Any]]:
+    changes: list[dict[str, Any]] = []
+    for intent in result.intents:
+        if not isinstance(intent, SecurityTradeIntent):
+            continue
+        change: dict[str, Any] = {
+            "security_id": intent.instrument_id,
+            "transaction_type": intent.side,
+            "quantity": _as_float(intent.quantity),
+            "metadata": {
+                "proposal_intent_id": intent.intent_id,
+                "proposal_intent_type": intent.intent_type,
+            },
+        }
+        if intent.notional is not None:
+            change["amount"] = _as_float(intent.notional.amount)
+            change["currency"] = intent.notional.currency
+        changes.append({key: value for key, value in change.items() if value is not None})
+    return changes
+
+
+def _issuer_mappings(request: ProposalSimulateRequest) -> list[dict[str, Any]]:
+    mappings: list[dict[str, Any]] = []
+    for shelf_entry in request.shelf_entries:
+        if shelf_entry.issuer_id is None:
+            continue
+        mappings.append(
+            {
+                "security_id": shelf_entry.instrument_id,
+                "issuer_id": shelf_entry.issuer_id,
+                "ultimate_parent_issuer_id": shelf_entry.attributes.get(
+                    "ultimate_parent_issuer_id"
+                ),
+            }
+        )
+    return mappings
+
+
+def _build_concentration_request(
+    *,
+    request: ProposalSimulateRequest,
+    proposal_result: ProposalResult,
+    resolved_as_of: str | None,
+) -> dict[str, Any]:
+    simulation_input: dict[str, Any] = {
+        "portfolio_id": request.portfolio_snapshot.portfolio_id,
+        "as_of_date": resolved_as_of or _proposal_as_of(request),
+        "reporting_currency": request.portfolio_snapshot.base_currency,
+        "include_cash_positions": True,
+        "include_zero_quantity_positions": False,
+        "top_n": 10,
+        "simulation_changes": _security_trade_changes(proposal_result),
+    }
+    issuer_mappings = _issuer_mappings(request)
+    if issuer_mappings:
+        simulation_input["issuer_mappings"] = issuer_mappings
+    return {
+        "input_mode": "simulation",
+        "simulation_input": simulation_input,
+        "issuer_grouping_level": "ultimate_parent",
+        "enrichment_policy": "merge_caller_then_core",
+    }
+
+
+def _apply_concentration_response(
+    *,
+    proposal_result: ProposalResult,
+    concentration: LotusRiskConcentrationResponse,
+) -> ProposalResult:
+    explanation = dict(proposal_result.explanation)
+    explanation["risk_lens"] = {
+        "source_service": concentration.source_service,
+        "input_mode": concentration.input_mode,
+        "risk_proxy": concentration.risk_proxy.model_dump(mode="json"),
+        "single_position_concentration": (
+            concentration.single_position_concentration.model_dump(mode="json")
+        ),
+        "issuer_concentration": concentration.issuer_concentration.model_dump(mode="json"),
+        "valuation_context": concentration.valuation_context,
+        "metadata": concentration.metadata,
+    }
+    proposal_result.explanation = explanation
+    return proposal_result
 
 
 def enrich_with_lotus_risk(
@@ -13,18 +172,26 @@ def enrich_with_lotus_risk(
     request: ProposalSimulateRequest,
     proposal_result: ProposalResult,
     correlation_id: str,
+    resolved_as_of: str | None = None,
 ) -> ProposalResult:
-    main_module = sys.modules.get("src.api.main")
-    if main_module is None:
-        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
-
-    override = getattr(main_module, "enrich_with_lotus_risk", None)
-    if override is None:
-        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
-
-    enriched_result = override(
+    payload = _build_concentration_request(
         request=request,
         proposal_result=proposal_result,
-        correlation_id=correlation_id,
+        resolved_as_of=resolved_as_of,
     )
-    return cast(ProposalResult, ProposalResult.model_validate(enriched_result))
+    try:
+        with httpx.Client(timeout=_resolve_timeout()) as client:
+            response = client.post(
+                f"{_resolve_base_url()}{_CONCENTRATION_PATH}",
+                json=payload,
+                headers={"X-Correlation-Id": correlation_id},
+            )
+            response.raise_for_status()
+            concentration = LotusRiskConcentrationResponse.model_validate(response.json())
+    except (httpx.HTTPError, ValueError, ValidationError) as exc:
+        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE") from exc
+
+    return _apply_concentration_response(
+        proposal_result=proposal_result,
+        concentration=concentration,
+    )

@@ -168,3 +168,37 @@ def test_artifact_takeaways_include_drift_when_available():
     )
     takeaways = artifact_module._build_takeaways(request=request, result=result)
     assert any(t.code == "DRIFT" for t in takeaways)
+
+
+def test_proposal_artifact_surfaces_concise_risk_lens_when_available():
+    request = _build_request()
+    result = _simulate(request, "sha256:artifact-risk-lens")
+    result.explanation["risk_lens"] = {
+        "source_service": "lotus-risk",
+        "input_mode": "simulation",
+        "risk_proxy": {"hhi_current": 5200.0, "hhi_proposed": 6800.0, "hhi_delta": 1600.0},
+        "single_position_concentration": {
+            "top_position_weight_current": 0.5,
+            "top_position_weight_proposed": 0.6,
+        },
+        "issuer_concentration": {
+            "hhi_current": 5200.0,
+            "hhi_proposed": 5800.0,
+        },
+    }
+
+    artifact = build_proposal_artifact(request=request, proposal_result=result)
+
+    assert artifact.risk_lens.status == "AVAILABLE"
+    assert artifact.risk_lens.source_service == "lotus-risk"
+    assert artifact.risk_lens.highlights
+
+
+def test_proposal_artifact_marks_risk_lens_not_available_when_missing():
+    request = _build_request()
+    result = _simulate(request, "sha256:artifact-risk-lens-missing")
+
+    artifact = build_proposal_artifact(request=request, proposal_result=result)
+
+    assert artifact.risk_lens.status == "NOT_AVAILABLE"
+    assert "unavailable" in artifact.risk_lens.summary.lower()

@@ -8,6 +8,7 @@ from src.integrations.lotus_core.contracts import (
     ADVISORY_SIMULATION_CONTRACT_VERSION,
     ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER,
 )
+from src.integrations.lotus_core.runtime_config import resolve_lotus_core_timeout
 
 DEFAULT_LOTUS_CORE_BASE_URL = "http://core-query.dev.lotus"
 _EXECUTION_PATH = "/integration/advisory/proposals/simulate-execution"
@@ -28,8 +29,7 @@ def _resolve_base_url() -> str:
 
 
 def _resolve_timeout() -> httpx.Timeout:
-    timeout_seconds = float(os.getenv("LOTUS_CORE_TIMEOUT_SECONDS", "10"))
-    return httpx.Timeout(timeout_seconds)
+    return resolve_lotus_core_timeout()
 
 
 def simulate_with_lotus_core(
@@ -96,5 +96,10 @@ def simulate_with_lotus_core(
         raise LotusCoreSimulationUnavailableError(
             "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "
             "response lineage did not match the canonical contract version"
+        )
+    if result.allocation_lens.contract_version != ADVISORY_SIMULATION_CONTRACT_VERSION:
+        raise LotusCoreSimulationUnavailableError(
+            "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "
+            "response allocation lens did not match the canonical contract version"
         )
     return result

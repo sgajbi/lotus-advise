@@ -8,6 +8,7 @@ from src.core.proposals import (
     ProposalAsyncAcceptedResponse,
     ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
+    ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalVersionRequest,
     ProposalWorkflowService,
@@ -50,15 +51,19 @@ def create_proposal_async(
 ) -> ProposalAsyncAcceptedResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
-    accepted = service.submit_create_proposal_async(
-        payload=payload,
-        idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
-    )
-    background_tasks.add_task(
-        service.execute_create_proposal_async,
-        operation_id=accepted.operation_id,
-    )
+    try:
+        accepted, should_schedule = service.accept_create_proposal_async_submission(
+            payload=payload,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+    except ProposalIdempotencyConflictError as exc:
+        raise_proposal_http_exception(exc)
+    if should_schedule:
+        background_tasks.add_task(
+            service.execute_create_proposal_async,
+            operation_id=accepted.operation_id,
+        )
     return accepted
 
 
@@ -94,15 +99,19 @@ def create_proposal_version_async(
 ) -> ProposalAsyncAcceptedResponse:
     shared._assert_lifecycle_enabled()
     shared._assert_async_operations_enabled()
-    accepted = service.submit_create_version_async(
-        proposal_id=proposal_id,
-        payload=payload,
-        correlation_id=correlation_id,
-    )
-    background_tasks.add_task(
-        service.execute_create_version_async,
-        operation_id=accepted.operation_id,
-    )
+    try:
+        accepted, should_schedule = service.accept_create_version_async_submission(
+            proposal_id=proposal_id,
+            payload=payload,
+            correlation_id=correlation_id,
+        )
+    except ProposalIdempotencyConflictError as exc:
+        raise_proposal_http_exception(exc)
+    if should_schedule:
+        background_tasks.add_task(
+            service.execute_create_version_async,
+            operation_id=accepted.operation_id,
+        )
     return accepted
 
 
