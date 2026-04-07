@@ -43,6 +43,7 @@ class PortfolioParityScenario:
     as_of_date: str
     reporting_currency: str
     issuer_coverage_status: str
+    risk_available: bool
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,8 @@ class LiveParityResult:
     warm_duration_ms: float
     workspace_handoff_portfolio: str
     lifecycle_portfolio: str
+    lifecycle_latest_version_no: int
+    lifecycle_current_state: str
     execution_handoff_status: str
     execution_terminal_status: str
     report_status: str
@@ -274,23 +277,23 @@ def _select_scenarios(
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
         )
+        authority = simulate.get("explanation", {}).get("authority_resolution") or {}
         risk_lens = simulate.get("explanation", {}).get("risk_lens")
-        _assert(
-            isinstance(risk_lens, dict),
-            (
-                f"{portfolio_id}: proposal response did not expose risk_lens; "
-                f"authority={simulate.get('explanation', {}).get('authority_resolution')}"
-            ),
+        risk_available = isinstance(risk_lens, dict)
+        coverage_status = (
+            str(risk_lens["issuer_concentration"]["coverage_status"])
+            if risk_available
+            else "unavailable"
         )
-        coverage_status = str(risk_lens["issuer_concentration"]["coverage_status"])
         examined.append((portfolio_id, coverage_status))
         scenario = PortfolioParityScenario(
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
             reporting_currency=reporting_currency,
             issuer_coverage_status=coverage_status,
+            risk_available=risk_available,
         )
-        if coverage_status == "complete" and complete is None:
+        if risk_available and coverage_status == "complete" and complete is None:
             complete = scenario
         elif coverage_status in {"partial", "unavailable"} and degraded is None:
             degraded = scenario
@@ -298,6 +301,12 @@ def _select_scenarios(
             coverage_status == "partial"
             and degraded is not None
             and degraded.issuer_coverage_status != "partial"
+        ):
+            degraded = scenario
+        elif (
+            not risk_available
+            and authority.get("risk_authority") == "unavailable"
+            and degraded is None
         ):
             degraded = scenario
         if complete is not None and degraded is not None:
@@ -707,7 +716,7 @@ def _assert_lifecycle_and_delivery_flow(
     *,
     advise_base_url: str,
     scenario: PortfolioParityScenario,
-) -> tuple[str, str, str]:
+) -> tuple[str, int, str, str, str]:
     created = _create_stateful_proposal(
         client,
         advise_base_url=advise_base_url,
@@ -732,6 +741,7 @@ def _assert_lifecycle_and_delivery_flow(
         int(version_created["proposal"]["current_version_no"]) == related_version_no + 1,
         f"{proposal_id}: new version did not increment current_version_no",
     )
+    related_version_no = int(version_created["proposal"]["current_version_no"])
     _assert_authority_posture(
         scenario=scenario,
         proposal_body=version_created["version"]["proposal_result"],
@@ -782,7 +792,7 @@ def _assert_lifecycle_and_delivery_flow(
         client,
         advise_base_url=advise_base_url,
         proposal_id=proposal_id,
-        related_version_no=1,
+        related_version_no=related_version_no,
     )
     handoff = _post_json(
         client,
@@ -792,7 +802,7 @@ def _assert_lifecycle_and_delivery_flow(
             "actor_id": "ops_001",
             "execution_provider": "lotus-manage",
             "expected_state": "EXECUTION_READY",
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
             "external_request_id": f"oms_req_{uuid.uuid4().hex[:10]}",
             "notes": {"channel": "OMS", "priority": "STANDARD"},
         },
@@ -826,7 +836,7 @@ def _assert_lifecycle_and_delivery_flow(
             "execution_request_id": handoff["execution_request_id"],
             "execution_provider": "lotus-manage",
             "update_status": "ACCEPTED",
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
             "occurred_at": _utc_iso_after(seconds=1),
             "details": {"desk": "SG"},
         },
@@ -846,7 +856,7 @@ def _assert_lifecycle_and_delivery_flow(
             "execution_request_id": handoff["execution_request_id"],
             "execution_provider": "lotus-manage",
             "update_status": "EXECUTED",
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
             "external_execution_id": f"oms_fill_{uuid.uuid4().hex[:10]}",
             "occurred_at": _utc_iso_after(seconds=2),
             "details": {"filled_quantity": "100"},
@@ -868,7 +878,7 @@ def _assert_lifecycle_and_delivery_flow(
         json={
             "report_type": "CLIENT_PROPOSAL_SUMMARY",
             "requested_by": "advisor_1",
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
             "include_execution_summary": True,
         },
     )
@@ -889,7 +899,22 @@ def _assert_lifecycle_and_delivery_flow(
             report_body["status"] == "READY",
             f"{proposal_id}: unexpected report status {report_body['status']}",
         )
-        return scenario.portfolio_id, handoff["handoff_status"], report_body["status"]
+        _assert_persisted_read_surfaces(
+            client,
+            advise_base_url=advise_base_url,
+            scenario=scenario,
+            proposal_id=proposal_id,
+            current_version_no=related_version_no,
+            expected_state="EXECUTED",
+            expected_report_status=report_body["status"],
+        )
+        return (
+            scenario.portfolio_id,
+            related_version_no,
+            "EXECUTED",
+            handoff["handoff_status"],
+            report_body["status"],
+        )
 
     _assert(
         report_response.status_code == 503,
@@ -903,7 +928,22 @@ def _assert_lifecycle_and_delivery_flow(
         detail == "LOTUS_REPORT_REQUEST_UNAVAILABLE",
         f"{proposal_id}: unexpected degraded report detail {detail}",
     )
-    return scenario.portfolio_id, handoff["handoff_status"], "UNAVAILABLE"
+    _assert_persisted_read_surfaces(
+        client,
+        advise_base_url=advise_base_url,
+        scenario=scenario,
+        proposal_id=proposal_id,
+        current_version_no=related_version_no,
+        expected_state="EXECUTED",
+        expected_report_status="UNAVAILABLE",
+    )
+    return (
+        scenario.portfolio_id,
+        related_version_no,
+        "EXECUTED",
+        handoff["handoff_status"],
+        "UNAVAILABLE",
+    )
 
 
 def _assert_workspace_flow(
@@ -1018,6 +1058,186 @@ def _assert_workspace_flow(
     )
 
 
+def _assert_persisted_read_surfaces(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    scenario: PortfolioParityScenario,
+    proposal_id: str,
+    current_version_no: int,
+    expected_state: str,
+    expected_report_status: str,
+) -> None:
+    listed = _get_json(
+        client,
+        url=(
+            f"{advise_base_url}/advisory/proposals"
+            f"?portfolio_id={scenario.portfolio_id}&created_by=live-parity-validator&limit=100"
+        ),
+        expected_status=200,
+    )
+    items = cast(list[dict[str, Any]], listed["items"])
+    list_item = next(
+        (item for item in items if str(item["proposal_id"]) == proposal_id),
+        None,
+    )
+    _assert(
+        isinstance(list_item, dict),
+        f"{proposal_id}: proposal missing from list response for {scenario.portfolio_id}",
+    )
+    list_item_dict = cast(dict[str, Any], list_item)
+
+    detail = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}?include_evidence=false",
+        expected_status=200,
+    )
+    version = _get_json(
+        client,
+        url=(
+            f"{advise_base_url}/advisory/proposals/{proposal_id}/versions/"
+            f"{current_version_no}?include_evidence=false"
+        ),
+        expected_status=200,
+    )
+    timeline = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/workflow-events",
+        expected_status=200,
+    )
+    lineage = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/lineage",
+        expected_status=200,
+    )
+    approvals = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/approvals",
+        expected_status=200,
+    )
+    delivery_summary = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/delivery-summary",
+        expected_status=200,
+    )
+    delivery_history = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/delivery-events",
+        expected_status=200,
+    )
+
+    _assert(
+        str(list_item_dict["proposal_id"]) == str(detail["proposal"]["proposal_id"]) == proposal_id,
+        f"{proposal_id}: list/detail proposal ids diverged",
+    )
+    _assert(
+        int(list_item_dict["current_version_no"])
+        == int(detail["proposal"]["current_version_no"])
+        == int(lineage["latest_version_no"])
+        == current_version_no,
+        f"{proposal_id}: current version diverged across list/detail/lineage",
+    )
+    _assert(
+        str(list_item_dict["current_state"])
+        == str(detail["proposal"]["current_state"])
+        == str(timeline["current_state"])
+        == str(delivery_summary["proposal"]["current_state"])
+        == expected_state,
+        f"{proposal_id}: current state diverged across read surfaces",
+    )
+    _assert(
+        int(detail["current_version"]["version_no"])
+        == int(version["version_no"])
+        == current_version_no,
+        f"{proposal_id}: detail/version endpoints diverged on current version",
+    )
+    _assert(
+        str(version["proposal_id"]) == proposal_id,
+        f"{proposal_id}: version endpoint returned wrong proposal id",
+    )
+    _assert(
+        int(lineage["version_count"]) == current_version_no,
+        f"{proposal_id}: lineage version count did not match latest version",
+    )
+    _assert(
+        bool(lineage["lineage_complete"]) is True,
+        f"{proposal_id}: lineage unexpectedly incomplete",
+    )
+    _assert(
+        list(lineage["missing_version_numbers"]) == [],
+        f"{proposal_id}: lineage unexpectedly reported missing versions",
+    )
+    timeline_events = cast(list[dict[str, Any]], timeline["events"])
+    delivery_events = cast(list[dict[str, Any]], delivery_history["events"])
+    _assert(
+        int(timeline["event_count"]) == len(timeline_events),
+        f"{proposal_id}: timeline event_count mismatch",
+    )
+    _assert(
+        int(delivery_history["event_count"]) == len(delivery_events),
+        f"{proposal_id}: delivery history event_count mismatch",
+    )
+    _assert(
+        len(delivery_events) > 0 and len(timeline_events) >= len(delivery_events),
+        f"{proposal_id}: delivery history unexpectedly empty or larger than timeline",
+    )
+    _assert(
+        all(
+            event["event_type"]
+            in {
+                "EXECUTION_REQUESTED",
+                "EXECUTION_ACCEPTED",
+                "EXECUTION_PARTIALLY_EXECUTED",
+                "EXECUTION_REJECTED",
+                "EXECUTION_CANCELLED",
+                "EXECUTION_EXPIRED",
+                "EXECUTED",
+                "REPORT_REQUESTED",
+            }
+            for event in delivery_events
+        ),
+        f"{proposal_id}: delivery history contained non-delivery events",
+    )
+    _assert(
+        int(approvals["approval_count"]) >= 2,
+        f"{proposal_id}: approvals endpoint missing lifecycle approval records",
+    )
+    execution = cast(dict[str, Any], delivery_summary["execution"])
+    _assert(
+        execution["handoff_status"] == "EXECUTED",
+        f"{proposal_id}: delivery summary execution did not reach EXECUTED",
+    )
+    _assert(
+        execution["related_version_no"] == current_version_no,
+        f"{proposal_id}: execution summary was not anchored to latest version",
+    )
+    _assert(
+        str(cast(dict[str, Any], delivery_history["latest_event"])["event_type"])
+        == (
+            "REPORT_REQUESTED"
+            if expected_report_status == "READY"
+            else str(execution["latest_event_type"])
+        ),
+        f"{proposal_id}: delivery latest event did not match delivery posture",
+    )
+    reporting = delivery_summary.get("reporting")
+    if expected_report_status == "READY":
+        reporting_dict = cast(dict[str, Any], reporting)
+        _assert(
+            isinstance(reporting, dict) and reporting_dict["status"] == "READY",
+            f"{proposal_id}: delivery summary missing ready reporting posture",
+        )
+        _assert(
+            reporting_dict["related_version_no"] == current_version_no,
+            f"{proposal_id}: report summary was not anchored to latest version",
+        )
+    else:
+        _assert(
+            reporting is None,
+            f"{proposal_id}: delivery summary unexpectedly contained reporting posture",
+        )
+
+
 def validate_live_cross_service_parity(
     *,
     advise_base_url: str | None = None,
@@ -1067,34 +1287,61 @@ def validate_live_cross_service_parity(
                 as_of_date=scenario.as_of_date,
                 reporting_currency=scenario.reporting_currency,
             )
-            direct_risk = _query_direct_concentration(
-                client,
-                risk_base_url=risk_base_url,
-                portfolio_id=scenario.portfolio_id,
-                as_of_date=scenario.as_of_date,
-                reporting_currency=scenario.reporting_currency,
-            )
             _assert_allocation_parity(
                 scenario=scenario,
                 direct_allocation=direct_allocation,
                 proposal_body=proposal_body,
             )
-            _assert_authority_posture(
-                scenario=scenario,
-                proposal_body=proposal_body,
-            )
-            _assert_risk_parity(
-                scenario=scenario,
-                direct_risk=direct_risk,
-                proposal_body=proposal_body,
-            )
+            if scenario.risk_available:
+                _assert_authority_posture(
+                    scenario=scenario,
+                    proposal_body=proposal_body,
+                )
+                direct_risk = _query_direct_concentration(
+                    client,
+                    risk_base_url=risk_base_url,
+                    portfolio_id=scenario.portfolio_id,
+                    as_of_date=scenario.as_of_date,
+                    reporting_currency=scenario.reporting_currency,
+                )
+                _assert_risk_parity(
+                    scenario=scenario,
+                    direct_risk=direct_risk,
+                    proposal_body=proposal_body,
+                )
+            else:
+                authority_resolution = proposal_body.get("explanation", {}).get(
+                    "authority_resolution"
+                )
+                _assert(
+                    isinstance(authority_resolution, dict)
+                    and authority_resolution.get("risk_authority") == "unavailable"
+                    and authority_resolution.get("degraded") is True,
+                    (
+                        f"{scenario.portfolio_id}: expected degraded risk-unavailable posture, got "
+                        f"{authority_resolution}"
+                    ),
+                )
+                _assert(
+                    "risk_lens" not in proposal_body.get("explanation", {}),
+                    (
+                        f"{scenario.portfolio_id}: degraded risk-unavailable scenario "
+                        "exposed risk_lens"
+                    ),
+                )
 
         cold_ms, warm_ms = _measure_warm_cache(
             client,
             advise_base_url=advise_base_url,
             scenario=complete,
         )
-        lifecycle_portfolio, handoff_status, report_status = _assert_lifecycle_and_delivery_flow(
+        (
+            lifecycle_portfolio,
+            lifecycle_latest_version_no,
+            lifecycle_current_state,
+            handoff_status,
+            report_status,
+        ) = _assert_lifecycle_and_delivery_flow(
             client,
             advise_base_url=advise_base_url,
             scenario=complete,
@@ -1113,6 +1360,8 @@ def validate_live_cross_service_parity(
         warm_duration_ms=warm_ms,
         workspace_handoff_portfolio=complete.portfolio_id,
         lifecycle_portfolio=lifecycle_portfolio,
+        lifecycle_latest_version_no=lifecycle_latest_version_no,
+        lifecycle_current_state=lifecycle_current_state,
         execution_handoff_status=handoff_status,
         execution_terminal_status="EXECUTED",
         report_status=report_status,

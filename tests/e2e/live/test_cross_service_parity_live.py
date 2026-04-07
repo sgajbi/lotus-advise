@@ -21,6 +21,8 @@ def test_live_cross_service_allocation_and_risk_parity():
         result.cold_duration_ms + 125.0,
     )
     assert result.lifecycle_portfolio == result.complete_issuer_portfolio
+    assert result.lifecycle_latest_version_no >= 2
+    assert result.lifecycle_current_state == "EXECUTED"
     assert result.workspace_handoff_portfolio == result.complete_issuer_portfolio
     assert result.execution_handoff_status == "REQUESTED"
     assert result.execution_terminal_status == "EXECUTED"

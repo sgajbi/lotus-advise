@@ -24,6 +24,18 @@ class LotusRiskConcentrationRiskProxy(BaseModel):
     hhi_delta: float
 
 
+class LotusRiskPositionDescriptor(BaseModel):
+    security_id: str | None = None
+    security_name: str | None = None
+    weight: float
+
+
+class LotusRiskIssuerDescriptor(BaseModel):
+    issuer_id: str | None = None
+    issuer_name: str | None = None
+    weight: float
+
+
 class LotusRiskSinglePositionConcentration(BaseModel):
     top_position_weight_current: float
     top_position_weight_proposed: float
@@ -32,6 +44,8 @@ class LotusRiskSinglePositionConcentration(BaseModel):
     top_n_cumulative_weight_proposed: float
     top_n_cumulative_weight_delta: float
     top_n: int
+    top_position_current: LotusRiskPositionDescriptor | None = None
+    top_position_proposed: LotusRiskPositionDescriptor | None = None
 
 
 class LotusRiskIssuerConcentration(BaseModel):
@@ -42,10 +56,16 @@ class LotusRiskIssuerConcentration(BaseModel):
     top_issuer_weight_proposed: float
     top_issuer_weight_delta: float
     coverage_status: str
+    coverage_ratio_current: float | None = None
+    coverage_ratio_proposed: float | None = None
     covered_position_count_current: int
     covered_position_count_proposed: int
     total_position_count_current: int
     total_position_count_proposed: int
+    uncovered_position_count_current: int | None = None
+    uncovered_position_count_proposed: int | None = None
+    top_issuer_current: LotusRiskIssuerDescriptor | None = None
+    top_issuer_proposed: LotusRiskIssuerDescriptor | None = None
     note: str | None = None
 
 
@@ -103,19 +123,33 @@ def _security_trade_changes(result: ProposalResult) -> list[dict[str, Any]]:
     return changes
 
 
-def _issuer_mappings(request: ProposalSimulateRequest) -> list[dict[str, Any]]:
+def _issuer_mappings(
+    request: ProposalSimulateRequest,
+    proposal_result: ProposalResult,
+) -> list[dict[str, Any]]:
+    changed_instruments = {
+        intent.instrument_id
+        for intent in proposal_result.intents
+        if isinstance(intent, SecurityTradeIntent)
+    }
+    if not changed_instruments:
+        return []
+
     mappings: list[dict[str, Any]] = []
     for shelf_entry in request.shelf_entries:
-        if shelf_entry.issuer_id is None:
+        if shelf_entry.instrument_id not in changed_instruments or shelf_entry.issuer_id is None:
             continue
+        mapping = {
+            "security_id": shelf_entry.instrument_id,
+            "issuer_id": shelf_entry.issuer_id,
+            "issuer_name": shelf_entry.attributes.get("issuer_name"),
+            "ultimate_parent_issuer_id": shelf_entry.attributes.get("ultimate_parent_issuer_id"),
+            "ultimate_parent_issuer_name": shelf_entry.attributes.get(
+                "ultimate_parent_issuer_name"
+            ),
+        }
         mappings.append(
-            {
-                "security_id": shelf_entry.instrument_id,
-                "issuer_id": shelf_entry.issuer_id,
-                "ultimate_parent_issuer_id": shelf_entry.attributes.get(
-                    "ultimate_parent_issuer_id"
-                ),
-            }
+            {key: value for key, value in mapping.items() if value is not None}
         )
     return mappings
 
@@ -135,7 +169,7 @@ def _build_concentration_request(
         "top_n": 10,
         "simulation_changes": _security_trade_changes(proposal_result),
     }
-    issuer_mappings = _issuer_mappings(request)
+    issuer_mappings = _issuer_mappings(request, proposal_result)
     if issuer_mappings:
         simulation_input["issuer_mappings"] = issuer_mappings
     return {
