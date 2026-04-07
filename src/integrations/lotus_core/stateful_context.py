@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from threading import RLock
+from typing import Any, cast
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
@@ -39,6 +41,17 @@ _PRICES_PATH = "/prices/?security_id={instrument_id}"
 _FX_RATES_PATH = "/fx-rates/?from_currency={from_currency}&to_currency={to_currency}"
 _DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS = 15.0
 _DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE = 128
+
+
+@dataclass(frozen=True)
+class StatefulContextFetchStats:
+    portfolio_fetches: int
+    positions_fetches: int
+    cash_fetches: int
+    instrument_fetches: int
+    price_fetches: int
+    fx_fetches: int
+
 
 class LotusCoreStatefulContextUnavailableError(LotusCoreContextResolutionError):
     pass
@@ -111,6 +124,15 @@ _FX_LOOKUP_CACHE = TimedCache[str, dict[str, Any]](
     ttl_seconds=_stateful_context_cache_ttl_seconds,
     max_size=_stateful_context_cache_max_size,
 )
+_FETCH_STATS_LOCK = RLock()
+_FETCH_STATS = {
+    "portfolio_fetches": 0,
+    "positions_fetches": 0,
+    "cash_fetches": 0,
+    "instrument_fetches": 0,
+    "price_fetches": 0,
+    "fx_fetches": 0,
+}
 
 
 def _get_cached_resolved_context(
@@ -131,6 +153,9 @@ def reset_stateful_context_cache_for_tests() -> None:
     _INSTRUMENT_LOOKUP_CACHE.clear()
     _PRICE_LOOKUP_CACHE.clear()
     _FX_LOOKUP_CACHE.clear()
+    with _FETCH_STATS_LOCK:
+        for key in _FETCH_STATS:
+            _FETCH_STATS[key] = 0
 
 
 def get_stateful_context_cache_stats_for_tests() -> dict[str, TimedCacheStats]:
@@ -142,13 +167,30 @@ def get_stateful_context_cache_stats_for_tests() -> dict[str, TimedCacheStats]:
     }
 
 
+def get_stateful_context_fetch_stats_for_tests() -> StatefulContextFetchStats:
+    with _FETCH_STATS_LOCK:
+        return StatefulContextFetchStats(
+            portfolio_fetches=_FETCH_STATS["portfolio_fetches"],
+            positions_fetches=_FETCH_STATS["positions_fetches"],
+            cash_fetches=_FETCH_STATS["cash_fetches"],
+            instrument_fetches=_FETCH_STATS["instrument_fetches"],
+            price_fetches=_FETCH_STATS["price_fetches"],
+            fx_fetches=_FETCH_STATS["fx_fetches"],
+        )
+
+
+def _record_fetch_stat(name: str) -> None:
+    with _FETCH_STATS_LOCK:
+        _FETCH_STATS[name] += 1
+
+
 def _cache_payload(
     cache: TimedCache[str, dict[str, Any]],
     *,
     cache_key: str,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
-    return cache.set(cache_key, payload)
+    return cast(dict[str, Any], cache.set(cache_key, payload))
 
 
 def _get_cached_payload(
@@ -156,7 +198,7 @@ def _get_cached_payload(
     *,
     cache_key: str,
 ) -> dict[str, Any] | None:
-    return cache.get(cache_key)
+    return cast(dict[str, Any] | None, cache.get(cache_key))
 
 
 def _resolve_query_base_url() -> str:
@@ -212,6 +254,18 @@ def _request_json(
     error_code: str,
     json_body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    if error_code == "LOTUS_CORE_STATEFUL_PORTFOLIO_UNAVAILABLE":
+        _record_fetch_stat("portfolio_fetches")
+    elif error_code == "LOTUS_CORE_STATEFUL_POSITIONS_UNAVAILABLE":
+        _record_fetch_stat("positions_fetches")
+    elif error_code == "LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE":
+        _record_fetch_stat("cash_fetches")
+    elif error_code == "LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE":
+        _record_fetch_stat("instrument_fetches")
+    elif error_code == "LOTUS_CORE_STATEFUL_PRICE_LOOKUP_UNAVAILABLE":
+        _record_fetch_stat("price_fetches")
+    elif error_code == "LOTUS_CORE_STATEFUL_FX_LOOKUP_UNAVAILABLE":
+        _record_fetch_stat("fx_fetches")
     url = f"{base_url}{path}"
     try:
         response = client.request(method, url, json=json_body)

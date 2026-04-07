@@ -13,6 +13,7 @@ from src.integrations.lotus_core.stateful_context import (
     _stateful_context_cache_ttl_seconds,
     enrich_stateful_simulate_request_for_trade_drafts,
     get_stateful_context_cache_stats_for_tests,
+    get_stateful_context_fetch_stats_for_tests,
     reset_stateful_context_cache_for_tests,
     resolve_stateful_context_with_lotus_core,
 )
@@ -344,6 +345,10 @@ def test_resolve_stateful_context_with_lotus_core_reuses_cached_context(
     assert stats["resolved_context"].hits == 1
     assert stats["resolved_context"].writes == 1
     assert stats["resolved_context"].size == 1
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 1
+    assert fetch_stats.positions_fetches == 1
+    assert fetch_stats.cash_fetches == 1
 
 
 def test_resolve_stateful_context_with_lotus_core_returns_copy_safe_cached_results(
@@ -436,6 +441,10 @@ def test_resolve_stateful_context_with_lotus_core_refetches_when_cache_ttl_is_ze
     resolve_stateful_context_with_lotus_core(stateful_input)
 
     assert request_counter["count"] == 6
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 2
+    assert fetch_stats.positions_fetches == 2
+    assert fetch_stats.cash_fetches == 2
 
 
 def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
@@ -606,6 +615,10 @@ def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resoluti
     assert stats["resolved_context"].misses == 2
     assert stats["resolved_context"].expirations == 0
     assert stats["resolved_context"].writes == 1
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.portfolio_fetches == 2
+    assert fetch_stats.positions_fetches == 2
+    assert fetch_stats.cash_fetches == 2
 
 
 def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_inputs(
@@ -697,6 +710,107 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
         "pair": "CHF/USD",
         "rate": "1.10",
     }
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.instrument_fetches == 1
+    assert fetch_stats.price_fetches == 1
+    assert fetch_stats.fx_fetches == 1
+
+
+def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_stats(
+    monkeypatch,
+):
+    from src.core.models import ProposalSimulateRequest
+
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    simulate_request = ProposalSimulateRequest.model_validate(
+        {
+            "portfolio_snapshot": {
+                "snapshot_id": "ps_001",
+                "portfolio_id": "pf_001",
+                "base_currency": "USD",
+                "positions": [],
+                "cash_balances": [{"currency": "USD", "amount": "10000"}],
+            },
+            "market_data_snapshot": {"snapshot_id": "md_001", "prices": [], "fx_rates": []},
+            "shelf_entries": [],
+            "options": {"enable_proposal_simulation": True},
+            "proposed_cash_flows": [],
+            "proposed_trades": [
+                {
+                    "intent_type": "SECURITY_TRADE",
+                    "side": "BUY",
+                    "instrument_id": "EQ_NEW_CHF",
+                    "quantity": "4",
+                }
+            ],
+        }
+    )
+    request_counter = {"count": 0}
+    responses = {
+        ("GET", f"{base_url}/instruments/?security_id=EQ_NEW_CHF"): _FakeResponse(
+            {
+                "total": 1,
+                "instruments": [
+                    {
+                        "security_id": "EQ_NEW_CHF",
+                        "currency": "CHF",
+                        "asset_class": "Equity",
+                    }
+                ],
+            }
+        ),
+        ("GET", f"{base_url}/prices/?security_id=EQ_NEW_CHF"): _FakeResponse(
+            {
+                "security_id": "EQ_NEW_CHF",
+                "prices": [{"price_date": "2026-03-25", "price": "50.0", "currency": "CHF"}],
+            }
+        ),
+        ("GET", f"{base_url}/fx-rates/?from_currency=CHF&to_currency=USD"): _FakeResponse(
+            {
+                "from_currency": "CHF",
+                "to_currency": "USD",
+                "rates": [{"rate_date": "2026-03-25", "rate": "1.10"}],
+            }
+        ),
+    }
+
+    class _CountingFakeClient(_FakeClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ) -> _FakeResponse:
+            request_counter["count"] += 1
+            return super().request(method, url, json=json)
+
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: _CountingFakeClient(responses),
+    )
+
+    enrich_stateful_simulate_request_for_trade_drafts(
+        simulate_request=simulate_request,
+        as_of="2026-03-25",
+    )
+    enrich_stateful_simulate_request_for_trade_drafts(
+        simulate_request=simulate_request,
+        as_of="2026-03-25",
+    )
+
+    assert request_counter["count"] == 3
+    stats = get_stateful_context_cache_stats_for_tests()
+    assert stats["instrument_lookup"].misses == 1
+    assert stats["instrument_lookup"].hits == 1
+    assert stats["price_lookup"].misses == 1
+    assert stats["price_lookup"].hits == 1
+    assert stats["fx_lookup"].misses == 1
+    assert stats["fx_lookup"].hits == 1
+    fetch_stats = get_stateful_context_fetch_stats_for_tests()
+    assert fetch_stats.instrument_fetches == 1
+    assert fetch_stats.price_fetches == 1
+    assert fetch_stats.fx_fetches == 1
 
 
 def test_enrich_stateful_simulate_request_for_trade_drafts_skips_malformed_lookup_rows(
