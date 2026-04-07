@@ -34,6 +34,10 @@ class ProposalRepository(Protocol):
         self, *, correlation_id: str
     ) -> Optional[ProposalAsyncOperationRecord]: ...
 
+    def get_operation_by_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[ProposalAsyncOperationRecord]: ...
+
     def list_recoverable_operations(
         self, *, as_of: datetime
     ) -> list[ProposalAsyncOperationRecord]: ...

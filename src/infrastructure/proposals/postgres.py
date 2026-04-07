@@ -185,6 +185,36 @@ class PostgresProposalRepository:
             row = connection.execute(query, (correlation_id,)).fetchone()
         return _to_operation(row)
 
+    def get_operation_by_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[ProposalAsyncOperationRecord]:
+        query = """
+            SELECT
+                operation_id,
+                operation_type,
+                status,
+                correlation_id,
+                idempotency_key,
+                proposal_id,
+                created_by,
+                created_at,
+                payload_json,
+                attempt_count,
+                max_attempts,
+                started_at,
+                lease_expires_at,
+                finished_at,
+                result_json,
+                error_json
+            FROM proposal_async_operations
+            WHERE idempotency_key = %s
+            ORDER BY created_at DESC, operation_id DESC
+            LIMIT 1
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (idempotency_key,)).fetchone()
+        return _to_operation(row)
+
     def list_recoverable_operations(self, *, as_of: datetime) -> list[ProposalAsyncOperationRecord]:
         query = """
             SELECT

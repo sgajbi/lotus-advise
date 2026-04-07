@@ -910,6 +910,59 @@ def test_proposal_async_operations_disabled_by_feature_flag(
     assert response.json()["detail"] == "PROPOSAL_ASYNC_OPERATIONS_DISABLED"
 
 
+def test_async_create_idempotency_reuses_operation_and_blocks_conflicts() -> None:
+    payload = _base_create_payload("pf_integration_async_idem_1")
+    with TestClient(app) as client:
+        first = client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "integration-proposal-async-idem-1",
+                "X-Correlation-Id": "corr-integration-proposal-async-idem-1",
+            },
+        )
+        assert first.status_code == 202
+        first_body = first.json()
+
+        duplicate = client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "integration-proposal-async-idem-1",
+                "X-Correlation-Id": "corr-integration-proposal-async-idem-2",
+            },
+        )
+        assert duplicate.status_code == 202
+        duplicate_body = duplicate.json()
+
+        conflict_payload = _base_create_payload("pf_integration_async_idem_1")
+        conflict_payload["metadata"]["advisor_notes"] = "conflicting async idempotency"
+        conflict = client.post(
+            "/advisory/proposals/async",
+            json=conflict_payload,
+            headers={
+                "Idempotency-Key": "integration-proposal-async-idem-1",
+                "X-Correlation-Id": "corr-integration-proposal-async-idem-3",
+            },
+        )
+
+        first_operation = client.get(
+            f"/advisory/proposals/operations/{first_body['operation_id']}"
+        )
+        by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/"
+            "corr-integration-proposal-async-idem-1"
+        )
+
+    assert duplicate_body["operation_id"] == first_body["operation_id"]
+    assert duplicate_body["correlation_id"] == first_body["correlation_id"]
+    assert conflict.status_code == 409
+    assert conflict.json()["detail"] == "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
+    assert first_operation.status_code == 200
+    assert by_correlation.status_code == 200
+    assert by_correlation.json()["operation_id"] == first_body["operation_id"]
+
+
 def test_proposal_async_operation_not_found_returns_404() -> None:
     with TestClient(app) as client:
         response = client.get("/advisory/proposals/operations/pop_missing")

@@ -1511,6 +1511,50 @@ def test_async_create_and_lookup_by_operation_and_correlation():
         assert missing_by_correlation.json()["detail"] == "PROPOSAL_ASYNC_OPERATION_NOT_FOUND"
 
 
+def test_async_create_deduplicates_by_idempotency_key_and_rejects_payload_conflicts():
+    with TestClient(app) as client:
+        payload = _base_create_payload()
+        first = client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-1",
+                "X-Correlation-Id": "corr-async-idem-1",
+            },
+        )
+        assert first.status_code == 202
+        first_body = first.json()
+
+        duplicate = client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-1",
+                "X-Correlation-Id": "corr-async-idem-2",
+            },
+        )
+        assert duplicate.status_code == 202
+        duplicate_body = duplicate.json()
+        assert duplicate_body["operation_id"] == first_body["operation_id"]
+        assert duplicate_body["correlation_id"] == first_body["correlation_id"]
+
+        conflicting_payload = _base_create_payload()
+        conflicting_payload["metadata"]["title"] = "Conflicting async payload"
+        conflict = client.post(
+            "/advisory/proposals/async",
+            json=conflicting_payload,
+            headers={
+                "Idempotency-Key": "lifecycle-async-create-idem-1",
+                "X-Correlation-Id": "corr-async-idem-3",
+            },
+        )
+        assert conflict.status_code == 409
+        assert (
+            conflict.json()["detail"]
+            == "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
+        )
+
+
 def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_lineage():
     with TestClient(app) as client:
         created = client.post(

@@ -248,6 +248,16 @@ class ProposalWorkflowService:
         idempotency_key: str,
         correlation_id: Optional[str],
     ) -> ProposalAsyncAcceptedResponse:
+        submission_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        existing = self._repository.get_operation_by_idempotency(idempotency_key=idempotency_key)
+        if existing is not None:
+            existing_hash = self._extract_async_submission_hash(existing)
+            if existing_hash != submission_hash:
+                raise ProposalIdempotencyConflictError(
+                    "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
+                )
+            return self._to_async_accepted(existing)
+
         resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
         operation = ProposalAsyncOperationRecord(
             operation_id=f"pop_{uuid.uuid4().hex[:12]}",
@@ -261,6 +271,7 @@ class ProposalWorkflowService:
             payload_json={
                 "payload": payload.model_dump(mode="json"),
                 "idempotency_key": idempotency_key,
+                "submission_hash": submission_hash,
             },
             attempt_count=0,
             max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
@@ -1240,6 +1251,15 @@ class ProposalWorkflowService:
             )
             return None
         return payload, resolved_idempotency_key
+
+    def _extract_async_submission_hash(self, operation: ProposalAsyncOperationRecord) -> str | None:
+        submission_hash = operation.payload_json.get("submission_hash")
+        if isinstance(submission_hash, str) and submission_hash:
+            return submission_hash
+        payload_json = operation.payload_json.get("payload")
+        if not isinstance(payload_json, dict):
+            return None
+        return str(hash_canonical_payload(payload_json))
 
     def _resolve_version_async_payload(
         self,
