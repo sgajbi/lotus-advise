@@ -332,6 +332,16 @@ Acceptance gate:
 2. API tests prove `risk_authority = lotus_risk` only when a valid `lotus-risk` response was used.
 3. Capability reporting exposes proposal risk-lens dependency readiness.
 
+Implementation note:
+
+Slice 4 is implemented in `lotus-advise` on the RFC-0020 feature branch.
+
+1. `src/integrations/lotus_risk/enrichment.py` is now a concrete HTTP client for `POST /analytics/risk/concentration`, not a hook-only placeholder.
+2. Proposal security-trade intents are mapped into `simulation_changes`, proposal shelf issuer metadata is mapped into `issuer_mappings`, and the resulting concentration payload is attached as `explanation.risk_lens`.
+3. The orchestration layer records `risk_authority = lotus_risk` only after a valid typed `lotus-risk` response passes transport and schema validation.
+4. Capability reporting now exposes `advisory.proposals.risk_lens` and `advisory_proposal_risk_lens` readiness through the `lotus_risk` dependency seam.
+5. Existing tests that patch the stateful Lotus Core query client now explicitly stub the risk enrichment seam too, so transport stubs stay isolated and do not leak across integration boundaries.
+
 ### Slice 5: Proposal Risk Lens Persistence and Artifact Surface
 
 Outcome:
