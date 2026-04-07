@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any
@@ -2641,6 +2642,128 @@ def test_async_create_version_and_lookup():
         assert body["max_attempts"] == 3
         assert body["lease_expires_at"] is None
         assert body["result"]["proposal"]["current_version_no"] == 2
+
+
+def test_async_operation_read_surfaces_stay_aligned_with_latest_version_result():
+    def _await_async_result(client: TestClient, operation_id: str) -> dict[str, Any]:
+        for _ in range(10):
+            operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+            assert operation.status_code == 200
+            body = operation.json()
+            if body["status"] == "SUCCEEDED":
+                return body
+            assert body["status"] != "FAILED"
+            time.sleep(0.01)
+        pytest.fail(f"{operation_id}: async operation did not finish in time")
+
+    with TestClient(app) as client:
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=_base_create_payload("pf_async_surface_alignment_001"),
+            headers={
+                "Idempotency-Key": "async-surface-alignment-create-001",
+                "X-Correlation-Id": "corr-async-surface-alignment-create-001",
+            },
+        )
+        assert accepted.status_code == 202
+        create_accepted_body = accepted.json()
+        create_operation_id = create_accepted_body["operation_id"]
+
+        create_operation_body = _await_async_result(client, create_operation_id)
+        proposal_id = create_operation_body["result"]["proposal"]["proposal_id"]
+        create_version_no = create_operation_body["result"]["version"]["version_no"]
+
+        create_by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/"
+            "corr-async-surface-alignment-create-001"
+        )
+        create_replay = client.get(
+            f"/advisory/proposals/operations/{create_operation_id}/replay-evidence"
+        )
+        create_version_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{create_version_no}/replay-evidence"
+        )
+
+        version_payload = {
+            "created_by": "advisor_async_surface_alignment",
+            "expected_current_version_no": create_version_no,
+            "simulate_request": _base_create_payload(
+                "pf_async_surface_alignment_001"
+            )["simulate_request"],
+        }
+        version_payload["simulate_request"]["proposed_trades"] = [
+            {"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "4"}
+        ]
+        accepted_version = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/async",
+            json=version_payload,
+            headers={"X-Correlation-Id": "corr-async-surface-alignment-version-001"},
+        )
+        assert accepted_version.status_code == 202
+        version_accepted_body = accepted_version.json()
+        version_operation_id = version_accepted_body["operation_id"]
+
+        version_operation_body = _await_async_result(client, version_operation_id)
+        current_version_no = version_operation_body["result"]["version"]["version_no"]
+        version_by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/"
+            "corr-async-surface-alignment-version-001"
+        )
+        version_replay = client.get(
+            f"/advisory/proposals/operations/{version_operation_id}/replay-evidence"
+        )
+        proposal_detail = client.get(f"/advisory/proposals/{proposal_id}?include_evidence=false")
+        current_version = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{current_version_no}?include_evidence=false"
+        )
+        current_version_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{current_version_no}/replay-evidence"
+        )
+
+    assert create_by_correlation.status_code == 200
+    assert create_replay.status_code == 200
+    assert create_version_replay.status_code == 200
+    assert create_operation_body["status"] == "SUCCEEDED"
+    assert create_by_correlation.json()["operation_id"] == create_operation_id
+    assert create_replay.json()["continuity"]["correlation_id"] == (
+        "corr-async-surface-alignment-create-001"
+    )
+    assert create_replay.json()["subject"]["proposal_id"] == proposal_id
+    assert create_replay.json()["subject"]["proposal_version_no"] == create_version_no
+    assert create_replay.json()["hashes"]["request_hash"] == (
+        create_version_replay.json()["hashes"]["request_hash"]
+    )
+    assert create_replay.json()["hashes"]["simulation_hash"] == (
+        create_version_replay.json()["hashes"]["simulation_hash"]
+    )
+    assert create_replay.json()["resolved_context"] == create_version_replay.json()[
+        "resolved_context"
+    ]
+
+    assert version_by_correlation.status_code == 200
+    assert version_replay.status_code == 200
+    assert proposal_detail.status_code == 200
+    assert current_version.status_code == 200
+    assert current_version_replay.status_code == 200
+    assert version_operation_body["status"] == "SUCCEEDED"
+    assert version_by_correlation.json()["operation_id"] == version_operation_id
+    assert proposal_detail.json()["proposal"]["current_version_no"] == current_version_no == 2
+    assert current_version.json()["version_no"] == current_version_no
+    assert version_replay.json()["continuity"]["correlation_id"] == (
+        "corr-async-surface-alignment-version-001"
+    )
+    assert version_replay.json()["continuity"]["async_operation_id"] == version_operation_id
+    assert version_replay.json()["subject"]["proposal_id"] == proposal_id
+    assert version_replay.json()["subject"]["proposal_version_no"] == current_version_no
+    assert version_replay.json()["hashes"]["request_hash"] == (
+        current_version_replay.json()["hashes"]["request_hash"]
+    )
+    assert version_replay.json()["hashes"]["simulation_hash"] == (
+        current_version_replay.json()["hashes"]["simulation_hash"]
+    )
+    assert version_replay.json()["resolved_context"] == current_version_replay.json()[
+        "resolved_context"
+    ]
 
 
 def test_async_create_version_route_does_not_reschedule_replayed_submission() -> None:

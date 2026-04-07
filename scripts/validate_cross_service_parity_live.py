@@ -594,6 +594,115 @@ def _wait_for_async_success(
     raise LiveParityValidationError(f"{operation_id}: async operation did not finish in time")
 
 
+def _assert_async_operation_surfaces(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    accepted_body: dict[str, Any],
+    expected_type: str,
+    result_body: dict[str, Any],
+) -> None:
+    operation_id = str(accepted_body["operation_id"])
+    correlation_id = str(accepted_body["correlation_id"])
+    operation = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/operations/{operation_id}",
+        expected_status=200,
+    )
+    by_correlation = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/operations/by-correlation/{correlation_id}",
+        expected_status=200,
+    )
+    replay = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/operations/{operation_id}/replay-evidence",
+        expected_status=200,
+    )
+    proposal = cast(dict[str, Any], result_body["proposal"])
+    version = cast(dict[str, Any], result_body["version"])
+    proposal_id = str(proposal["proposal_id"])
+    version_no = int(version["version_no"])
+    version_replay = _get_json(
+        client,
+        url=(
+            f"{advise_base_url}/advisory/proposals/{proposal_id}/versions/"
+            f"{version_no}/replay-evidence"
+        ),
+        expected_status=200,
+    )
+    detail = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}?include_evidence=false",
+        expected_status=200,
+    )
+
+    _assert(
+        operation["operation_type"] == by_correlation["operation_type"] == expected_type,
+        f"{operation_id}: async operation type diverged across read surfaces",
+    )
+    _assert(
+        operation["operation_id"] == by_correlation["operation_id"] == operation_id,
+        f"{operation_id}: operation lookup diverged across id/correlation surfaces",
+    )
+    _assert(
+        operation["correlation_id"] == by_correlation["correlation_id"] == correlation_id,
+        f"{operation_id}: correlation lookup diverged across id/correlation surfaces",
+    )
+    _assert(
+        operation["status"] == by_correlation["status"] == "SUCCEEDED",
+        f"{operation_id}: async operation did not stay in succeeded state",
+    )
+    _assert(
+        str(cast(dict[str, Any], operation["result"])["proposal"]["proposal_id"]) == proposal_id,
+        f"{operation_id}: operation result proposal id diverged from async result",
+    )
+    _assert(
+        int(cast(dict[str, Any], operation["result"])["version"]["version_no"]) == version_no,
+        f"{operation_id}: operation result version diverged from async result",
+    )
+    _assert(
+        replay["subject"]["scope"] == "ASYNC_OPERATION",
+        f"{operation_id}: async replay subject scope was not ASYNC_OPERATION",
+    )
+    _assert(
+        replay["subject"]["operation_id"] == operation_id,
+        f"{operation_id}: async replay subject lost operation id",
+    )
+    _assert(
+        replay["subject"]["proposal_id"] == proposal_id,
+        f"{operation_id}: async replay subject lost proposal id",
+    )
+    _assert(
+        replay["subject"]["proposal_version_no"] == version_no,
+        f"{operation_id}: async replay subject lost proposal version",
+    )
+    _assert(
+        replay["continuity"]["correlation_id"] == correlation_id,
+        f"{operation_id}: async replay continuity lost correlation id",
+    )
+    _assert(
+        replay["continuity"]["async_operation_id"] == operation_id,
+        f"{operation_id}: async replay continuity lost operation id",
+    )
+    _assert(
+        replay["hashes"]["request_hash"] == version_replay["hashes"]["request_hash"],
+        f"{operation_id}: async/proposal replay request hash diverged",
+    )
+    _assert(
+        replay["hashes"]["simulation_hash"] == version_replay["hashes"]["simulation_hash"],
+        f"{operation_id}: async/proposal replay simulation hash diverged",
+    )
+    _assert(
+        replay["resolved_context"] == version_replay["resolved_context"],
+        f"{operation_id}: async/proposal replay resolved context diverged",
+    )
+    _assert(
+        int(detail["proposal"]["current_version_no"]) >= version_no,
+        f"{operation_id}: proposal detail current version regressed behind async result",
+    )
+
+
 def _post_transition(
     client: httpx.Client,
     *,
@@ -759,6 +868,13 @@ def _assert_lifecycle_and_delivery_flow(
         operation_id=str(async_created["operation_id"]),
         expected_type="CREATE_PROPOSAL",
     )
+    _assert_async_operation_surfaces(
+        client,
+        advise_base_url=advise_base_url,
+        accepted_body=async_created,
+        expected_type="CREATE_PROPOSAL",
+        result_body=async_create_result,
+    )
     async_proposal = async_create_result["proposal"]
     async_version = async_create_result["version"]
     async_proposal_id = str(async_proposal["proposal_id"])
@@ -778,6 +894,13 @@ def _assert_lifecycle_and_delivery_flow(
         advise_base_url=advise_base_url,
         operation_id=str(async_version_created["operation_id"]),
         expected_type="CREATE_PROPOSAL_VERSION",
+    )
+    _assert_async_operation_surfaces(
+        client,
+        advise_base_url=advise_base_url,
+        accepted_body=async_version_created,
+        expected_type="CREATE_PROPOSAL_VERSION",
+        result_body=async_version_result,
     )
     _assert(
         int(async_version_result["proposal"]["current_version_no"]) == async_version_no + 1,
