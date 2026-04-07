@@ -1326,6 +1326,80 @@ def test_workspace_saved_version_replay_evidence_preserves_handoff_continuity():
     assert body["hashes"]["evaluation_request_hash"]
 
 
+def test_workspace_and_proposal_replay_evidence_stay_hash_aligned_after_handoff():
+    payload = {
+        "workspace_name": "Replay alignment workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_replay_alignment_001",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_1", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_1", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [{"side": "BUY", "instrument_id": "EQ_1", "quantity": "2"}],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        created = client.post("/advisory/workspaces", json=payload)
+        workspace_id = created.json()["workspace"]["workspace_id"]
+        evaluated = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        assert evaluated.status_code == 200
+        saved = client.post(
+            f"/advisory/workspaces/{workspace_id}/save",
+            json={"saved_by": "advisor_123", "version_label": "Replay alignment baseline"},
+        )
+        assert saved.status_code == 200
+        workspace_version_id = saved.json()["saved_version"]["workspace_version_id"]
+
+        handoff = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            headers={"Idempotency-Key": "workspace-replay-alignment-001"},
+            json={"handoff_by": "advisor_123"},
+        )
+        assert handoff.status_code == 200
+        proposal_id = handoff.json()["proposal"]["proposal"]["proposal_id"]
+        proposal_version_no = handoff.json()["proposal"]["version"]["version_no"]
+
+        workspace_replay = client.get(
+            f"/advisory/workspaces/{workspace_id}/saved-versions/{workspace_version_id}/replay-evidence"
+        )
+        proposal_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{proposal_version_no}/replay-evidence"
+        )
+
+    assert workspace_replay.status_code == 200
+    assert proposal_replay.status_code == 200
+    workspace_body = workspace_replay.json()
+    proposal_body = proposal_replay.json()
+    assert proposal_body["subject"]["workspace_id"] == workspace_id
+    assert proposal_body["subject"]["workspace_version_id"] == workspace_version_id
+    assert proposal_body["hashes"]["evaluation_request_hash"] == (
+        workspace_body["hashes"]["evaluation_request_hash"]
+    )
+    assert proposal_body["hashes"]["draft_state_hash"] == (
+        workspace_body["hashes"]["draft_state_hash"]
+    )
+    assert proposal_body["continuity"]["workspace_version_id"] == workspace_version_id
+    assert proposal_body["continuity"]["handoff_action"] == (
+        workspace_body["continuity"]["handoff_action"]
+    )
+    assert proposal_body["resolved_context"]["portfolio_id"] == (
+        workspace_body["resolved_context"]["portfolio_id"]
+    )
+
+
 def test_workspace_handoff_requires_idempotency_key_for_first_create():
     create_payload = {
         "workspace_name": "Growth rotation workspace",

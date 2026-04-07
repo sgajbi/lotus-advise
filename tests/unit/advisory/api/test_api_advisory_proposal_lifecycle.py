@@ -1368,6 +1368,44 @@ def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_
     assert async_body["evidence"]["async_runtime"]["attempt_count"] >= 1
 
 
+def test_async_and_proposal_replay_evidence_stay_hash_aligned():
+    with TestClient(app) as client:
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=_base_create_payload("pf_async_replay_alignment_001"),
+            headers={
+                "Idempotency-Key": "lifecycle-replay-async-alignment-001",
+                "X-Correlation-Id": "corr-lifecycle-replay-async-alignment-001",
+            },
+        )
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+        assert operation.status_code == 200
+        operation_body = operation.json()
+        proposal_id = operation_body["result"]["proposal"]["proposal_id"]
+        proposal_version_no = operation_body["result"]["version"]["version_no"]
+
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+        proposal_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{proposal_version_no}/replay-evidence"
+        )
+
+    assert async_replay.status_code == 200
+    assert proposal_replay.status_code == 200
+    async_body = async_replay.json()
+    proposal_body = proposal_replay.json()
+    assert async_body["subject"]["proposal_id"] == proposal_id
+    assert async_body["subject"]["proposal_version_no"] == proposal_version_no
+    assert async_body["hashes"]["request_hash"] == proposal_body["hashes"]["request_hash"]
+    assert async_body["hashes"]["simulation_hash"] == proposal_body["hashes"]["simulation_hash"]
+    assert async_body["hashes"]["artifact_hash"] == proposal_body["hashes"]["artifact_hash"]
+    assert async_body["resolved_context"] == proposal_body["resolved_context"]
+    assert async_body["continuity"]["correlation_id"] == "corr-lifecycle-replay-async-alignment-001"
+    assert async_body["continuity"]["async_operation_id"] == operation_id
+
+
 def test_async_create_version_and_lookup():
     with TestClient(app) as client:
         created = _create(client, "lifecycle-async-version-base")
