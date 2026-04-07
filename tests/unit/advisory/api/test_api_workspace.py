@@ -146,6 +146,68 @@ def test_stateful_workspace_reuses_cached_lotus_core_context_across_re_evaluatio
     assert client.request_count == 3
 
 
+def test_stateful_workspace_recovers_after_initial_lotus_core_resolution_failure(
+    monkeypatch,
+) -> None:
+    base_url = "http://host.docker.internal:8201"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    portfolio_payload = {
+        "portfolio_id": "pf_stateful_recovery_workspace",
+        "base_currency": "",
+    }
+
+    class _RecoveringQueryClient(CountingLotusCoreQueryClient):
+        def request(
+            self,
+            method: str,
+            url: str,
+            json: dict[str, Any] | None = None,
+        ):
+            if (method.upper(), url) == (
+                "GET",
+                f"{base_url}/portfolios/pf_stateful_recovery_workspace",
+            ):
+                self.request_count += 1
+                return self._responses[(method.upper(), url)].__class__(dict(portfolio_payload))
+            return super().request(method, url, json=json)
+
+    responses = build_basic_stateful_query_responses(
+        base_url=base_url,
+        portfolio_id="pf_stateful_recovery_workspace",
+        as_of="2026-03-25",
+    )
+    client = _RecoveringQueryClient(responses)
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: client,
+    )
+    payload = {
+        "workspace_name": "Recovering stateful workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_recovery_workspace",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as test_client:
+        created = test_client.post("/advisory/workspaces", json=payload)
+        assert created.status_code == 201
+        workspace_id = created.json()["workspace"]["workspace_id"]
+
+        failed = test_client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+
+        portfolio_payload["base_currency"] = "USD"
+        recovered = test_client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+
+    assert failed.status_code == 409
+    assert failed.json()["detail"] == "WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+    assert recovered.status_code == 200
+    assert recovered.json()["resolved_context"]["portfolio_id"] == "pf_stateful_recovery_workspace"
+    assert client.request_count == 9
+
+
 def test_create_stateless_workspace_session_returns_snapshot_context():
     payload = {
         "workspace_name": "Sandbox drift review",

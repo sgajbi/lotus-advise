@@ -181,3 +181,28 @@
   - If product policy requires richer issuer/liquidity metadata for new instruments, source that
     through a governed instrument-policy seam instead of hardcoding defaults in the adapter.
 
+## LA-REV-010
+
+- Scope: Stateful resolver cache behavior and recovery
+- Pattern: query/performance risk / resilience gap
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The stateful Lotus Core resolver cache needed stronger proof not just for reuse and
+  eviction, but also for recovery after upstream failures so advisor workflows do not stay stuck on
+  a transient bad response.
+- Evidence:
+  - `tests/unit/advisory/api/test_lotus_core_stateful_context.py` now proves:
+    - zero-TTL disables cache reuse,
+    - max-size eviction removes the oldest portfolio context,
+    - failed stateful resolutions are not cached,
+    - a later healthy upstream response recovers cleanly after a prior failure.
+  - `tests/unit/advisory/api/test_api_workspace.py` now proves the same recovery behavior at the
+    workspace API layer: an initial `WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE` response
+    does not poison subsequent evaluation once Lotus Core returns a valid payload again.
+- Consequence:
+  - The stateful hot path now has explicit regression protection for both latency discipline and
+    operational recovery behavior.
+- Follow-Up:
+  - If stateful proposal creation/version flows need the same recovery proof above the adapter
+    layer, extend this pattern into lifecycle API tests without widening the production seam.
+
