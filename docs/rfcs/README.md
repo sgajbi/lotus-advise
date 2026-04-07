@@ -39,6 +39,7 @@ The sequence is organized to read in implementation order:
 | RFC-0017 | Execution Integration Interface | DRAFT | Active future work | RFC-0011, RFC-0012, RFC-0013 | `docs/rfcs/RFC-0017-execution-integration-interface.md` |
 | RFC-0018 | Monitoring, Surveillance, and Post-Trade Controls | DRAFT | Active future work | RFC-0015, RFC-0017 | `docs/rfcs/RFC-0018-monitoring-surveillance-post-trade-controls.md` |
 | RFC-0019 | Authoritative Context, Durable Runtime, and Workspace Closure | IMPLEMENTED | Active authoritative runtime closure | RFC-0004, RFC-0005, RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0017 | `docs/rfcs/RFC-0019-authoritative-context-runtime-and-workspace-closure.md` |
+| RFC-0020 | Canonical Allocation and Risk Lens Convergence for Proposals | DRAFT | Active future work | RFC-0006, RFC-0007, RFC-0011, RFC-0014, RFC-0019 | `docs/rfcs/RFC-0020-canonical-allocation-and-risk-lens-convergence.md` |
 
 ## Implemented
 
@@ -64,10 +65,12 @@ Open RFCs still relevant to the advisory roadmap:
 - `RFC-0016`
 - `RFC-0017`
 - `RFC-0018`
+- `RFC-0020`
 
 Recommended near-term implementation order:
 1. `RFC-0014` minimum replay and data-quality backbone
 2. `RFC-0017` execution-boundary stabilization
+3. `RFC-0020` canonical allocation and risk-lens convergence after core/risk contract alignment
 
 Deferred but retained:
 - `RFC-0002`

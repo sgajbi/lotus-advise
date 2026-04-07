@@ -257,3 +257,20 @@
   - If async proposal-version writes ever gain a public idempotency key, apply the same
     submission-level dedupe pattern there instead of reintroducing operation-level duplication.
 
+## LA-REV-012
+
+- Scope: Proposal allocation and risk-lens domain authority
+- Pattern: duplicate logic / cross-service boundary risk / contract gap
+- Status: RFC created
+- Finding Class: architecture or modularity issue
+- Summary: `lotus-core` already owns live AUM and allocation calculation through its reporting service, but advisory simulation has a separate allocation implementation and `lotus-advise` still exposes only a hook-based `lotus-risk` enrichment seam. Proposal before/after allocation and concentration risk should converge on canonical `lotus-core` and `lotus-risk` authorities instead of becoming advisory-owned calculation logic.
+- Evidence:
+  - `lotus-core/src/services/query_service/app/services/reporting_service.py` implements live allocation through `ReportingService.get_asset_allocation(...)` and `ALLOCATION_DIMENSION_ACCESSORS`.
+  - `lotus-core/src/services/query_service/app/dtos/reporting_dto.py` defines the live `AllocationDimension`, `AssetAllocationQueryRequest`, `AllocationView`, and `AssetAllocationResponse` contract.
+  - `lotus-core/src/services/query_service/app/advisory_simulation/valuation.py` separately implements advisory `build_simulated_state(...)` allocation outputs.
+  - `lotus-risk/src/app/contracts/concentration.py` and `lotus-risk/src/app/services/concentration_engine.py` define concentration `simulation` mode with current/proposed/delta outputs, but `lotus-advise/src/integrations/lotus_risk/enrichment.py` is still a hook-based override rather than a concrete HTTP integration.
+  - RFC-0020 now captures the required convergence program: shared `lotus-core` allocation calculator, proposal allocation views matching live allocation dimensions, concrete `lotus-risk` concentration integration, parity tests, degraded behavior, and rollout gates.
+- Consequence:
+  - Proposal allocation and risk-lens work now has a concrete governing RFC rather than ad hoc follow-on implementation.
+- Follow-Up:
+  - Implement RFC-0020 starting in `lotus-core`; do not widen `lotus-advise` proposal contracts until the shared `lotus-core` calculator boundary and contract versioning decision are complete.
