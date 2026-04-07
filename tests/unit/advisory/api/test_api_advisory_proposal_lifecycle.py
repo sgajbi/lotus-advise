@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 import src.api.proposals.router as proposals_router
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
-from src.core.proposals import ProposalIdempotencyConflictError
+from src.core.proposals import ProposalAsyncAcceptedResponse, ProposalIdempotencyConflictError
 from src.integrations.lotus_core.stateful_context import reset_stateful_context_cache_for_tests
 from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
@@ -1584,6 +1584,86 @@ def test_async_create_treats_legacy_and_normalized_stateless_payloads_as_equival
         )
         assert duplicate.status_code == 202
         assert duplicate.json()["operation_id"] == first.json()["operation_id"]
+
+
+def test_async_create_route_does_not_reschedule_replayed_submission() -> None:
+    class _ReplayAwareService:
+        def __init__(self) -> None:
+            self.executions = 0
+
+        def accept_create_proposal_async_submission(self, **kwargs):  # noqa: ANN003
+            return (
+                ProposalAsyncAcceptedResponse(
+                    operation_id="pop_replayed_async",
+                    operation_type="CREATE_PROPOSAL",
+                    status="PENDING",
+                    correlation_id="corr-replayed-async",
+                    created_at="2026-04-07T00:00:00+00:00",
+                    attempt_count=0,
+                    max_attempts=3,
+                    status_url="/advisory/proposals/operations/pop_replayed_async",
+                ),
+                False,
+            )
+
+        def execute_create_proposal_async(self, **kwargs):  # noqa: ANN003
+            self.executions += 1
+
+    service = _ReplayAwareService()
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            accepted = client.post(
+                "/advisory/proposals/async",
+                json=_base_create_payload(),
+                headers={"Idempotency-Key": "lifecycle-async-route-replayed"},
+            )
+        assert accepted.status_code == 202
+        assert accepted.json()["operation_id"] == "pop_replayed_async"
+        assert service.executions == 0
+    finally:
+        app.dependency_overrides = original_overrides
+
+
+def test_async_create_route_schedules_new_submission_once() -> None:
+    class _ReplayAwareService:
+        def __init__(self) -> None:
+            self.executions = 0
+
+        def accept_create_proposal_async_submission(self, **kwargs):  # noqa: ANN003
+            return (
+                ProposalAsyncAcceptedResponse(
+                    operation_id="pop_new_async",
+                    operation_type="CREATE_PROPOSAL",
+                    status="PENDING",
+                    correlation_id="corr-new-async",
+                    created_at="2026-04-07T00:00:00+00:00",
+                    attempt_count=0,
+                    max_attempts=3,
+                    status_url="/advisory/proposals/operations/pop_new_async",
+                ),
+                True,
+            )
+
+        def execute_create_proposal_async(self, **kwargs):  # noqa: ANN003
+            self.executions += 1
+
+    service = _ReplayAwareService()
+    original_overrides = dict(app.dependency_overrides)
+    app.dependency_overrides[proposals_router.get_proposal_workflow_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            accepted = client.post(
+                "/advisory/proposals/async",
+                json=_base_create_payload(),
+                headers={"Idempotency-Key": "lifecycle-async-route-new"},
+            )
+        assert accepted.status_code == 202
+        assert accepted.json()["operation_id"] == "pop_new_async"
+        assert service.executions == 1
+    finally:
+        app.dependency_overrides = original_overrides
 
 
 def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_lineage():
