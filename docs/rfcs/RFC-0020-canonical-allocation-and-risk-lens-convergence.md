@@ -10,28 +10,22 @@
 
 ## Executive Summary
 
-`lotus-advise` now delegates proposal simulation authority to `lotus-core`, which is the right
-service boundary. The next gap is narrower and more important: the proposal response must use the
-same portfolio value, AUM, and allocation calculators that `lotus-core` uses for live portfolios,
-and proposal risk analytics must come from `lotus-risk` rather than local advisory enrichment hooks.
+`lotus-advise` now delegates proposal simulation to `lotus-core`. That fixes the broad simulation-authority problem, but one narrower gold-standard gap remains: proposal before/after analytics must reuse the same AUM, valuation, and allocation calculators used for live portfolios, and proposal risk analytics must come from `lotus-risk`, not advisory-local enrichment logic.
 
-The target architecture is:
+This RFC defines the convergence program.
 
-1. `lotus-core` owns canonical portfolio value, AUM, and allocation calculation for live and
-   projected portfolio states.
-2. `lotus-risk` owns risk analytics over canonical current/projected states, starting with
-   concentration simulation mode because that is the risk surface currently designed for proposed
-   holdings.
-3. `lotus-advise` owns proposal intent, workflow, suitability, gates, artifacting, persistence, and
-   presentation of canonical allocation and risk lenses.
+The target state is:
 
-The desired end state is not simply to call another API. It is to remove duplicated calculation
-semantics, keep domain authority clean, and make before/after proposal analytics reuse the same
-calculators and vocabulary as live portfolio reporting.
+1. `lotus-core` owns one canonical valuation/AUM/allocation calculator path for live and projected portfolio states.
+2. `lotus-core` advisory simulation exposes the same allocation dimensions as live portfolio allocation.
+3. `lotus-risk` owns proposal concentration risk over canonical current/projected states.
+4. `lotus-advise` consumes, persists, and presents canonical allocation and risk outputs; it does not become a second calculation authority.
+
+This is a domain-authority cleanup, not a feature expansion for its own sake.
 
 ## Grounded Current State
 
-This RFC is based on inspection of the current local repositories on 2026-04-07.
+This RFC is based on repository inspection on 2026-04-07.
 
 ### lotus-core
 
@@ -42,243 +36,16 @@ Inspected state:
 3. Tip: `ed1fbad fix(control-plane): correct advisory simulation contract import (#293)`
 4. Working tree: clean at inspection time
 
-Relevant current implementation:
+Current implementation:
 
-1. Live portfolio allocation is exposed through the reporting surface:
-   - `src/services/query_service/app/routers/reporting.py`
-   - `POST /asset-allocation/query`
-2. Live allocation contract and dimensions are defined in:
-   - `src/services/query_service/app/dtos/reporting_dto.py`
-   - `AllocationDimension`
-   - `AssetAllocationQueryRequest`
-   - `AllocationBucket`
-   - `AllocationView`
-   - `AssetAllocationResponse`
-3. The live allocation dimensions currently supported by `lotus-core` are:
-   - `asset_class`
-   - `currency`
-   - `sector`
-   - `country`
-   - `region`
-   - `product_type`
-   - `rating`
-   - `issuer_id`
-   - `issuer_name`
-   - `ultimate_parent_issuer_id`
-   - `ultimate_parent_issuer_name`
-4. Live allocation implementation is in:
-   - `src/services/query_service/app/services/reporting_service.py`
-   - `ALLOCATION_DIMENSION_ACCESSORS`
-   - `ReportingService.get_asset_allocation(...)`
-5. AUM and invested-market-value semantics are already part of the live reporting vocabulary and
-   responses, including terms such as:
-   - `aum_portfolio_currency`
-   - `aum_reporting_currency`
-   - `invested_market_value_portfolio_currency`
-   - `invested_market_value_reporting_currency`
-   - `total_market_value_reporting_currency`
-6. Advisory simulation has a separate allocation implementation in:
-   - `src/services/query_service/app/advisory_simulation/valuation.py`
-   - `build_simulated_state(...)`
-7. Advisory simulation currently returns a narrower proposal allocation shape in:
-   - `src/services/query_service/app/advisory_simulation/models.py`
-   - `SimulatedState.allocation_by_asset_class`
-   - `SimulatedState.allocation_by_instrument`
-   - `SimulatedState.allocation`
-   - `SimulatedState.allocation_by_attribute`
+1. Live portfolio allocation is exposed through `POST /asset-allocation/query` in `src/services/query_service/app/routers/reporting.py`.
+2. Live allocation contract is defined in `src/services/query_service/app/dtos/reporting_dto.py` through `AllocationDimension`, `AssetAllocationQueryRequest`, `AllocationBucket`, `AllocationView`, and `AssetAllocationResponse`.
+3. Live allocation implementation is in `src/services/query_service/app/services/reporting_service.py`, especially `ALLOCATION_DIMENSION_ACCESSORS` and `ReportingService.get_asset_allocation(...)`.
+4. Live AUM vocabulary already includes `aum_portfolio_currency`, `aum_reporting_currency`, `invested_market_value_portfolio_currency`, `invested_market_value_reporting_currency`, and `total_market_value_reporting_currency`.
+5. Advisory simulation has a separate allocation implementation in `src/services/query_service/app/advisory_simulation/valuation.py` through `build_simulated_state(...)`.
+6. Advisory simulation currently exposes a narrower allocation shape in `src/services/query_service/app/advisory_simulation/models.py` through `allocation_by_asset_class`, `allocation_by_instrument`, legacy `allocation`, and `allocation_by_attribute`.
 
-Finding: `lotus-core` already owns the live allocation/AUM authority, but advisory simulation still
-has a separate allocation implementation and a narrower allocation surface. That is the duplication
-this RFC must eliminate.
-
-### lotus-risk
-
-Inspected state:
-
-1. Repository: `C:/Users/Sandeep/projects/lotus-risk`
-2. Branch: `fix/docker-upstream-runtime-validation`
-3. Tip: `e8721e4 fix: harden repo-local governance script imports`
-4. Working tree: dirty at inspection time; existing changes were not modified by this review
-
-Relevant current implementation:
-
-1. Concentration analytics supports explicit input modes in:
-   - `src/app/contracts/concentration.py`
-   - `ConcentrationInputMode.STATELESS`
-   - `ConcentrationInputMode.STATEFUL`
-   - `ConcentrationInputMode.SIMULATION`
-2. Simulation-mode concentration input is modeled as:
-   - `SimulationConcentrationInput`
-   - `simulation_changes`
-   - `session_id`
-   - `start_new_session`
-   - `session_ttl_hours`
-   - `expected_version`
-3. Simulation mode is executed in:
-   - `src/app/services/concentration_engine.py`
-   - `_resolve_simulation(...)`
-4. The implementation creates or reuses a `lotus-core` simulation session, applies simulation
-   changes, requests a projected core snapshot, and computes concentration metrics from baseline
-   and projected sections.
-5. The concentration response already has before/proposed/delta semantics for:
-   - HHI concentration
-   - top-position concentration
-   - top-N cumulative concentration
-   - issuer concentration
-   - valuation context
-   - simulation session metadata
-6. The broader `lotus-risk` RFC state is explicit that simulation mode is legitimate for
-   concentration, while historical return-based endpoints such as drawdown, rolling metrics, and
-   historical attribution should not expose simulation unless a valid projected return path exists.
-
-Finding: `lotus-risk` has the right concentration simulation mode for a proposal risk lens, but
-`lotus-advise` does not yet have a concrete HTTP integration for it.
-
-### lotus-advise
-
-Inspected state:
-
-1. Repository: `C:/Users/Sandeep/projects/lotus-advise`
-2. Branch: `feat/stateful-context-hardening-20260407`
-3. Tip at RFC creation start: `94e6b4d refactor(test): share stateful fetch assertions`
-
-Relevant current implementation:
-
-1. Normal proposal simulation calls `lotus-core` through:
-   - `src/integrations/lotus_core/simulation.py`
-   - `simulate_with_lotus_core(...)`
-2. The simulation contract is versioned with:
-   - `X-Lotus-Contract-Version: advisory-simulation.v1`
-3. Local advisory simulation and allocation logic remains in:
-   - `src/core/advisory_engine.py`
-   - `src/core/valuation.py`
-   - this path is controlled fallback and test-oracle behavior, not normal runtime authority
-4. `ProposalResult` currently exposes before/after state through:
-   - `before: SimulatedState`
-   - `after_simulated: SimulatedState`
-5. `SimulatedState` currently exposes:
-   - `allocation_by_asset_class`
-   - `allocation_by_instrument`
-   - `allocation`
-   - `allocation_by_attribute`
-6. `lotus-risk` integration is still hook-based:
-   - `src/integrations/lotus_risk/enrichment.py`
-   - it looks for an override on `src.api.main`
-   - it is not a production HTTP client
-7. `evaluate_advisory_proposal(...)` attempts risk enrichment after simulation, but falls back to
-   `risk_authority = "lotus_advise_local"` when no concrete enrichment is available.
-
-Finding: `lotus-advise` is aligned with `lotus-core` for simulation authority, but it still needs
-canonical allocation parity and a concrete `lotus-risk` proposal risk-lens integration.
-
-## Problem Statement
-
-Proposal analytics should not drift from live portfolio analytics.
-
-Today there are three risks:
-
-1. `lotus-core` has live allocation/AUM calculation semantics and a separate advisory simulation
-   allocation implementation.
-2. Proposal allocation exposes fewer allocation views than live portfolio reporting, so advisors
-   may see different available lenses for actual and proposed states.
-3. `lotus-advise` has only a risk enrichment hook, so before/after proposal risk is not yet a real
-   governed integration with `lotus-risk`.
-
-In a banking-grade ecosystem, calculation ownership must be explicit. A proposal should not become
-another source of truth for AUM, allocation, issuer grouping, or concentration risk.
-
-## Goals
-
-1. Use one canonical `lotus-core` allocation/AUM calculator for live and proposal states.
-2. Ensure proposal before/after allocation supports every live allocation dimension that
-   `lotus-core` supports.
-3. Keep advisory workflow and policy ownership in `lotus-advise`.
-4. Integrate `lotus-advise` with the `lotus-risk` simulation-capable concentration API for a
-   before/after risk lens.
-5. Make all new surfaces contract-governed, documented, and parity-tested.
-6. Preserve performance by avoiding duplicate upstream calls and by reusing existing resolved
-   `lotus-core` context where safe.
-7. Keep degraded behavior explicit when optional risk enrichment is unavailable.
-
-## Non-Goals
-
-1. Do not move proposal lifecycle, approvals, workspaces, artifacts, or execution handoff into
-   `lotus-core` or `lotus-risk`.
-2. Do not reintroduce a second production allocation calculator in `lotus-advise`.
-3. Do not expose simulation mode for historical return-based `lotus-risk` endpoints unless a future
-   RFC defines a valid projected return path.
-4. Do not add `/v1/...` route families in `lotus-advise`.
-5. Do not weaken existing proposal statuses. Keep `READY`, `PENDING_REVIEW`, and `BLOCKED` as the
-   top-level proposal outcome vocabulary.
-
-## Architecture Decision
-
-### 1. Domain Authority
-
-| Domain | Owner | Boundary |
-| --- | --- | --- |
-| Portfolio value and AUM | `lotus-core` | Live and projected state valuation totals |
-| Allocation dimensions and bucket aggregation | `lotus-core` | Live and projected allocation views, including issuer and look-through dimensions |
-| Portfolio simulation state projection | `lotus-core` | Canonical before/after state returned to advisory consumers |
-| Concentration risk analytics | `lotus-risk` | Current/proposed/delta concentration metrics and risk metadata |
-| Advisory proposal intent and workflow | `lotus-advise` | Proposal construction, suitability, drift, gates, lifecycle, artifacts, execution handoff |
-| Advisor presentation and evidence | `lotus-advise` | Presentation of canonical allocation and risk lenses inside proposal response/artifacts |
-
-### 2. Calculator Reuse Rule
-
-`lotus-core` must not maintain separate allocation semantics for live portfolio reporting and
-advisory simulation.
-
-Required direction:
-
-1. Extract the live allocation bucket logic into a reusable calculator/service module inside
-   `lotus-core`.
-2. Make live `ReportingService.get_asset_allocation(...)` call that shared module.
-3. Make advisory simulation before/after state construction call that same shared module against
-   current and projected positions.
-4. Keep advisory-only fields such as intents, suitability, gates, drift, and rule diagnostics out of
-   that shared calculator.
-
-The implementation can preserve a local adapter layer in advisory simulation, but not duplicated
-bucket semantics.
-
-### 3. Proposal Allocation Surface
-
-Proposal simulation should expose a canonical allocation lens that is dimension-aware and aligned to
-`lotus-core` live reporting.
-
-Target proposal allocation model:
-
-```text
-ProposalResult
-  before
-    allocation_views[]
-  after_simulated
-    allocation_views[]
-  allocation_lens
-    before[]
-    after[]
-    delta[]
-    dimensions[]
-    look_through
-    source_service = lotus-core
-    calculator_version
-```
-
-The exact field placement can be finalized during implementation, but the contract must satisfy
-these invariants:
-
-1. Every allocation dimension supported by live `lotus-core` allocation can be requested or returned
-   for proposal before/after state.
-2. A no-op proposal against a live portfolio produces the same before allocation as the corresponding
-   live `lotus-core` allocation query for the same portfolio, as-of date, reporting currency,
-   dimensions, and look-through mode.
-3. After allocation is computed by applying the same calculator to the projected state.
-4. Existing legacy proposal fields may be retained temporarily for compatibility, but they must be
-   derived from the canonical views rather than computed independently.
-
-Required allocation dimensions for this RFC scope are the currently supported `lotus-core` live
-allocation dimensions:
+Supported live allocation dimensions:
 
 1. `asset_class`
 2. `currency`
@@ -292,28 +59,177 @@ allocation dimensions:
 10. `ultimate_parent_issuer_id`
 11. `ultimate_parent_issuer_name`
 
-### 4. Risk Lens Surface
+Finding: `lotus-core` already owns live AUM/allocation authority, but advisory simulation still uses separate allocation logic and a narrower output surface.
 
-`lotus-advise` should call `lotus-risk` for proposal risk analytics rather than using a hook-only
-enrichment seam.
+### lotus-risk
 
-Initial scope:
+Inspected state:
 
-1. Use `POST /analytics/risk/concentration` in `lotus-risk` with `input_mode = simulation` when a
-   proposal can be represented as `lotus-core` simulation changes.
-2. Use `input_mode = stateless` only as a transitional adapter when `lotus-advise` already has the
-   canonical before/after positions from `lotus-core` and the simulation-session path is not yet
-   available for a particular proposal shape.
-3. Do not call historical return-based endpoints for proposal simulation until future RFCs define a
-   projected return path.
+1. Repository: `C:/Users/Sandeep/projects/lotus-risk`
+2. Branch: `fix/docker-upstream-runtime-validation`
+3. Tip observed during the final tightening pass: `6e7ebc0 test: harden readiness coverage across stateful integrations`
+4. Working tree: clean at final tightening pass
 
-Target proposal risk lens:
+Current implementation:
+
+1. `src/app/contracts/concentration.py` defines `ConcentrationInputMode.STATELESS`, `STATEFUL`, and `SIMULATION`.
+2. `SimulationConcentrationInput` supports `simulation_changes`, `session_id`, `start_new_session`, `session_ttl_hours`, and `expected_version`.
+3. `src/app/services/concentration_engine.py` implements simulation mode in `_resolve_simulation(...)`.
+4. Simulation mode creates or reuses a `lotus-core` simulation session, applies simulation changes, pulls a projected core snapshot, and computes concentration from baseline and projected sections.
+5. `ConcentrationResponse` already carries current/proposed/delta metrics for HHI, top-position concentration, top-N concentration, and issuer concentration, plus valuation context and simulation metadata.
+6. Current `lotus-risk` RFC direction intentionally limits simulation mode to concentration. Historical return-based endpoints should not accept proposal simulation until a future RFC defines a valid projected return path.
+
+Finding: `lotus-risk` has the right simulation-capable risk surface for proposal concentration, but `lotus-advise` does not yet call it through a production HTTP client.
+
+### lotus-advise
+
+Inspected state:
+
+1. Repository: `C:/Users/Sandeep/projects/lotus-advise`
+2. Branch: `feat/stateful-context-hardening-20260407`
+3. Tip at original RFC creation: `94e6b4d refactor(test): share stateful fetch assertions`
+
+Current implementation:
+
+1. Normal proposal simulation calls `lotus-core` through `src/integrations/lotus_core/simulation.py` and validates `X-Lotus-Contract-Version: advisory-simulation.v1`.
+2. Controlled local fallback/test-oracle calculation still exists in `src/core/advisory_engine.py` and `src/core/valuation.py`.
+3. `ProposalResult` exposes `before: SimulatedState` and `after_simulated: SimulatedState`.
+4. `SimulatedState` exposes `allocation_by_asset_class`, `allocation_by_instrument`, legacy `allocation`, and `allocation_by_attribute`.
+5. `src/integrations/lotus_risk/enrichment.py` is hook-based. It looks for an override on `src.api.main`; it is not a production HTTP client.
+6. `src/core/advisory/orchestration.py` attempts risk enrichment after simulation, but when no concrete enrichment is present it records `risk_authority = "lotus_advise_local"`.
+
+Finding: `lotus-advise` is aligned with `lotus-core` for simulation authority, but proposal allocation and risk-lens authority are not yet gold-standard.
+
+## Problem Statement
+
+Proposal analytics must not drift from live portfolio analytics.
+
+Current risk:
+
+1. `lotus-core` has live allocation/AUM semantics and a separate advisory-simulation allocation implementation.
+2. Proposal allocation exposes fewer allocation views than live portfolio reporting.
+3. `lotus-advise` has no concrete `lotus-risk` HTTP integration for before/after proposal concentration risk.
+
+In a banking-grade architecture, calculation ownership must be explicit. A proposal must not create a second source of truth for AUM, allocation, issuer grouping, look-through behavior, or concentration risk.
+
+## Goals
+
+1. Use one canonical `lotus-core` calculator path for live and projected AUM/allocation.
+2. Expose every live `lotus-core` allocation dimension for proposal before/after states.
+3. Introduce a governed proposal allocation contract with deterministic version negotiation.
+4. Integrate `lotus-advise` with `lotus-risk` concentration simulation through a real HTTP client.
+5. Persist and replay allocation/risk evidence consistently across simulation, artifact, lifecycle, async, and workspace handoff flows.
+6. Keep degraded `lotus-risk` behavior explicit and audit-safe.
+7. Preserve performance by avoiding duplicate upstream calls and by keeping cache identity boundaries strict.
+
+## Non-Goals
+
+1. Do not move proposal lifecycle, approvals, workspaces, artifacts, or execution handoff out of `lotus-advise`.
+2. Do not move concentration formulas into `lotus-advise`.
+3. Do not expose `lotus-risk` simulation mode for drawdown, rolling metrics, historical attribution, or other historical return-based endpoints in this RFC.
+4. Do not remove legacy proposal allocation fields until canonical views are live, documented, and compatibility-tested.
+5. Do not add `/v1/...` advisory route families.
+6. Do not introduce new top-level proposal statuses beyond `READY`, `PENDING_REVIEW`, and `BLOCKED`.
+
+## Architectural Invariants
+
+1. One calculator authority: `lotus-core` owns valuation, AUM, allocation dimensions, and allocation bucket aggregation for live and projected state.
+2. One risk authority: `lotus-risk` owns concentration metrics over current/proposed holdings.
+3. One advisory authority: `lotus-advise` owns proposal intent, workflow, suitability, gates, artifacts, persistence, execution handoff, and presentation.
+4. No hidden duplicate math: compatibility fields must be derived from canonical outputs, not recomputed independently in production.
+5. Contract versioning is explicit: `lotus-advise` must send and validate the expected `lotus-core` simulation contract version.
+6. Degraded outputs must state source and reason. Missing risk lensing must never look like successful risk analytics.
+7. Caches must never blur identity boundaries such as portfolio, as-of date, reporting currency, mandate, benchmark, look-through mode, allocation dimensions, simulation contract version, or risk options.
+
+## Decisions
+
+### Decision 1: Use `advisory-simulation.v2` for canonical proposal allocation views
+
+The new allocation lens is not just another optional field. It changes the semantic authority of proposal allocation from an advisory-simulation-specific aggregation to the live `lotus-core` allocation calculator surface. That deserves an explicit contract version.
+
+Required behavior:
+
+1. `lotus-core` publishes `advisory-simulation.v2` for allocation-lens responses.
+2. `lotus-advise` negotiates `advisory-simulation.v2` explicitly when RFC-0020 implementation is enabled.
+3. `lotus-advise` rejects response-header or lineage contract mismatches deterministically.
+4. `advisory-simulation.v1` can remain temporarily supported for existing callers, but RFC-0020 completion requires `lotus-advise` to use `v2` for normal runtime.
+
+### Decision 2: Extract shared allocation calculation inside `lotus-core`
+
+`lotus-core` must not maintain separate allocation semantics for live reporting and advisory simulation.
+
+Required direction:
+
+1. Extract allocation bucket construction from reporting into a reusable internal module.
+2. Make live `ReportingService.get_asset_allocation(...)` call the shared module.
+3. Make advisory simulation before/after state construction call the same shared module.
+4. Keep persistence/query orchestration outside the calculator.
+5. Keep advisory-only simulation semantics outside the calculator.
+
+The shared calculator should operate on a normalized input row model, not on FastAPI DTOs or repository-specific ORM objects. That keeps it reusable across live and projected states.
+
+### Decision 3: Proposal allocation views must match live allocation dimensions
+
+Proposal simulation must support the same dimensions as live allocation:
+
+1. `asset_class`
+2. `currency`
+3. `sector`
+4. `country`
+5. `region`
+6. `product_type`
+7. `rating`
+8. `issuer_id`
+9. `issuer_name`
+10. `ultimate_parent_issuer_id`
+11. `ultimate_parent_issuer_name`
+
+Target model shape:
+
+```text
+ProposalResult
+  before
+    allocation_views[]
+  after_simulated
+    allocation_views[]
+  allocation_lens
+    source_service = lotus-core
+    simulation_contract_version = advisory-simulation.v2
+    calculator_version
+    reporting_currency
+    look_through_mode
+    dimensions[]
+    before[]
+    after[]
+    delta[]
+```
+
+Implementation can choose exact class names, but the semantics are fixed:
+
+1. `before` views are produced by the shared `lotus-core` allocation calculator on baseline state.
+2. `after` views are produced by the same calculator on projected state.
+3. `delta` views are derived mechanically from before/after buckets.
+4. Legacy `allocation_by_asset_class`, `allocation_by_instrument`, and `allocation_by_attribute` are derived compatibility fields while retained.
+
+### Decision 4: Use `lotus-risk` concentration simulation as the proposal risk lens
+
+RFC-0020 risk scope is concentration only.
+
+Required behavior:
+
+1. `lotus-advise` calls `POST /analytics/risk/concentration` through a concrete `lotus-risk` HTTP client.
+2. The primary production path uses `input_mode = simulation` once proposal intents are mapped to governed `lotus-core` simulation changes.
+3. A stateless adapter may exist only as a transitional/test path when the canonical before/after positions are already available and simulation-session mapping is not yet complete.
+4. The stateless adapter must not become the long-term production authority.
+5. `lotus-advise` records `risk_authority = lotus_risk` only when a valid `lotus-risk` response was used.
+
+Target risk lens shape:
 
 ```text
 ProposalResult
   risk_lens
     source_service = lotus-risk
-    input_mode = simulation | stateless
+    input_mode = simulation
     status = READY | UNAVAILABLE | DEGRADED
     concentration
       hhi_current
@@ -331,189 +247,147 @@ ProposalResult
     diagnostics[]
 ```
 
-The exact nested model names should be chosen during implementation, but they must preserve
-`lotus-risk` ownership and avoid rebranding risk metrics as advisory-owned calculations.
-
-### 5. Degraded Behavior
-
-Risk enrichment is not allowed to block core proposal simulation unless a strict risk-required mode
-is explicitly enabled.
+### Decision 5: Risk lensing is default-degraded, not default-blocking
 
 Default behavior:
 
-1. Proposal simulation still returns if `lotus-core` simulation succeeds but `lotus-risk` is
-   unavailable.
-2. `risk_lens.status` becomes `UNAVAILABLE` or `DEGRADED`.
-3. `explanation.authority_resolution.degraded_reasons` includes a stable reason code such as
-   `LOTUS_RISK_CONCENTRATION_UNAVAILABLE`.
-4. Capability reporting shows whether proposal risk lensing is operationally ready.
+1. Proposal simulation can return if `lotus-core` simulation succeeds and `lotus-risk` is unavailable.
+2. `risk_lens.status` must be `UNAVAILABLE` or `DEGRADED`.
+3. `explanation.authority_resolution.degraded_reasons` must include a stable reason code.
+4. No concentration metric should be fabricated or copied from stale state.
 
-Strict behavior, if introduced:
-
-1. A future environment flag may require `lotus-risk` concentration before a proposal can be marked
-   `READY`.
-2. That strict mode must be documented and tested separately.
+Strict behavior is future-configurable. If later enabled, strict mode must be documented and tested as a separate policy, not as an implicit behavior change.
 
 ## Delivery Slices
 
-### Slice 1: Baseline Contract and Calculator Inventory
+### Slice 1: Contract and Calculator Baseline
 
 Outcome:
 
-1. Document the live allocation/AUM and proposal allocation differences in `lotus-core`.
-2. Produce a contract map from live `AssetAllocationResponse` to proposal allocation views.
-3. Decide whether proposal allocation views are added to `advisory-simulation.v1` as additive
-   fields or introduced under `advisory-simulation.v2`.
+1. Add a `lotus-core` allocation contract map that lists every live allocation dimension and its expected proposal representation.
+2. Add tests that fail if live `AllocationDimension` changes without updating advisory allocation contract expectations.
+3. Finalize `advisory-simulation.v2` request/response versioning for allocation-lens support.
 
 Acceptance gate:
 
-1. The inventory identifies every allocation dimension currently supported by live `lotus-core`.
-2. Tests exist that fail if live allocation dimensions are changed without updating the proposal
-   allocation contract map.
+1. Dimension inventory is test-protected.
+2. `advisory-simulation.v2` contract shape is documented before implementation begins.
+3. No proposal API fields are widened in `lotus-advise` before the `lotus-core` contract map exists.
 
-### Slice 2: Shared lotus-core Allocation Calculator
+### Slice 2: Shared `lotus-core` Allocation Calculator
 
 Outcome:
 
-1. Extract a reusable allocation calculator from live reporting logic in `lotus-core`.
-2. Make live reporting and advisory simulation call that shared calculator.
-3. Preserve live reporting behavior exactly.
+1. Extract a reusable allocation calculator from live reporting logic.
+2. Make live reporting call the shared calculator without behavioral drift.
+3. Make advisory simulation call the same calculator for before and after states.
 
 Acceptance gate:
 
-1. Live allocation endpoint tests pass unchanged or with only fixture updates for refactored module
-   paths.
-2. Advisory simulation tests prove before/after allocation views are computed from the shared
-   calculator.
-3. A no-op advisory simulation before state matches live allocation for the same portfolio/date/
-   reporting currency/dimensions/look-through mode.
+1. Live allocation endpoint tests pass.
+2. Shared calculator unit tests cover every supported allocation dimension.
+3. Advisory simulation tests prove before and after allocations come from the shared calculator.
+4. A no-op advisory simulation before allocation matches live allocation for the same portfolio, as-of date, reporting currency, dimensions, and look-through mode.
 
-### Slice 3: Proposal Allocation Contract Expansion
+### Slice 3: `advisory-simulation.v2` Allocation Lens
 
 Outcome:
 
-1. Extend `lotus-core` advisory simulation response with canonical allocation views for before and
-   after state.
-2. Update `lotus-advise` models and OpenAPI docs to expose those views cleanly.
-3. Keep old proposal allocation fields as derived compatibility fields only if needed.
+1. Extend `lotus-core` advisory simulation response with canonical allocation views, deltas, calculator metadata, and look-through metadata.
+2. Update `lotus-advise` simulation client and models to negotiate and validate `advisory-simulation.v2`.
+3. Keep retained legacy allocation fields derived from canonical views.
 
 Acceptance gate:
 
-1. Proposal simulation exposes all live `lotus-core` allocation dimensions.
-2. Contract tests prove no dimension is silently dropped.
-3. API vocabulary inventory includes the new canonical terms.
-4. Existing `allocation_by_asset_class` and `allocation_by_instrument` behavior remains stable or
-   has an explicit migration note.
+1. Contract mismatch tests fail deterministically.
+2. Proposal simulation exposes all live allocation dimensions.
+3. API vocabulary inventory includes canonical allocation lens terms.
+4. Legacy fields remain stable or have explicit compatibility tests and migration notes.
 
-### Slice 4: Concrete lotus-risk Concentration Client
+### Slice 4: Concrete `lotus-risk` Concentration Client
 
 Outcome:
 
-1. Replace the hook-only `lotus-risk` enrichment seam in `lotus-advise` with a real HTTP client.
-2. Call `POST /analytics/risk/concentration` for proposal risk lensing.
-3. Preserve the current hook only as a test seam if still useful.
+1. Replace hook-only risk enrichment with a real `lotus-risk` HTTP client in `lotus-advise`.
+2. Map proposal context and intents to `lotus-risk` concentration simulation input.
+3. Preserve the hook only as a unit-test seam if still necessary.
 
 Acceptance gate:
 
-1. Unit tests prove request mapping, response mapping, timeouts, validation errors, and degraded
-   behavior.
-2. Contract tests prove the proposal response records `risk_authority = lotus_risk` only when a
-   valid `lotus-risk` response was used.
-3. Capability reporting includes proposal risk lens readiness and dependency status.
+1. Client tests cover request mapping, response mapping, timeout, validation failure, upstream 4xx/5xx, contract mismatch, and degraded behavior.
+2. API tests prove `risk_authority = lotus_risk` only when a valid `lotus-risk` response was used.
+3. Capability reporting exposes proposal risk-lens dependency readiness.
 
-### Slice 5: Proposal Risk Lens Contract and Artifacts
+### Slice 5: Proposal Risk Lens Persistence and Artifact Surface
 
 Outcome:
 
-1. Add a first-class proposal `risk_lens` model sourced from `lotus-risk` concentration output.
-2. Include a concise risk section in proposal artifacts without duplicating raw risk payloads.
-3. Persist risk-lens evidence with proposal versions and async operations.
+1. Add first-class proposal `risk_lens` output sourced from `lotus-risk` concentration response.
+2. Persist risk-lens evidence on proposal versions and async operations.
+3. Include concise risk-lens content in proposal artifacts using business language.
 
 Acceptance gate:
 
-1. Proposal simulation, artifact generation, lifecycle create/version, async create/version, and
-   workspace handoff all preserve the same risk-lens evidence where the canonical input is
-   equivalent.
-2. Failed `lotus-risk` calls remain audit-safe and do not produce misleading risk metrics.
-3. Artifact output uses business language and clearly states when risk lensing is unavailable.
+1. Simulation, artifact generation, lifecycle create/version, async create/version, and workspace handoff preserve risk-lens evidence for equivalent canonical input.
+2. Failed `lotus-risk` calls remain operation/evaluation-scoped and do not borrow unrelated successful risk output.
+3. Artifacts state when concentration risk is unavailable or degraded.
 
-### Slice 6: Cross-Service Parity and Performance Governance
+### Slice 6: Cross-Service Parity, Performance, and Rollout Proof
 
 Outcome:
 
-1. Add parity tests across `lotus-core`, `lotus-risk`, and `lotus-advise` for representative seeded
-   portfolios.
-2. Add cache/reuse tests so repeated proposal workflows do not refetch canonical context or recompute
-   derived lenses unnecessarily.
-3. Add latency-sensitive integration tests around warm-cache stateful proposal simulation.
+1. Add cross-service parity tests across seeded portfolios.
+2. Add warm-cache tests for repeated stateful proposal evaluations.
+3. Run local Docker validation with `lotus-core`, `lotus-risk`, and `lotus-advise` up together.
 
 Acceptance gate:
 
-1. No-op proposal before allocation equals live allocation for representative seeded portfolios.
-2. Proposal after allocation equals the shared calculator applied to the projected state.
-3. Proposal concentration risk equals direct `lotus-risk` concentration simulation for the same
-   session/changes.
-4. Repeated stateful proposal workflows reuse safe cache state without blurring `portfolio_id`,
-   `as_of`, `mandate_id`, or `benchmark_id` identity boundaries.
+1. No-op proposal before allocation equals direct live `lotus-core` allocation.
+2. Proposal after allocation equals the shared calculator applied to projected state.
+3. Proposal risk lens equals direct `lotus-risk` concentration simulation for the same session and changes.
+4. Repeated stateful proposal workflows do not refetch safe cached context unnecessarily.
+5. Cache-key tests prove no identity bleed across portfolio id, as-of date, reporting currency, mandate id, benchmark id, dimensions, look-through mode, simulation contract version, or risk options.
 
-## Testing Requirements
+## Required Tests
 
-This RFC should not be closed with superficial endpoint smoke tests.
+This RFC cannot close with smoke tests only.
 
-Required test classes:
+Required tests:
 
-1. `lotus-core` calculator unit tests for every supported allocation dimension.
-2. `lotus-core` parity tests between live allocation and advisory simulation before-state
-   allocation.
-3. `lotus-core` projected-state tests proving after-state allocation uses the same calculator.
-4. `lotus-advise` client tests for the `lotus-risk` concentration HTTP integration.
-5. `lotus-advise` API tests proving proposal `risk_lens` status and authority semantics.
-6. `lotus-advise` lifecycle and async tests proving persisted evidence keeps allocation and risk
-   lens lineage.
-7. Cross-service integration tests against seeded portfolios, including at least one portfolio with
-   issuer data and one with partial issuer coverage.
-8. Performance-regression tests for warm-cache repeated stateful proposal workflows.
+1. `lotus-core` allocation calculator unit tests for every live allocation dimension.
+2. `lotus-core` live allocation endpoint regression tests.
+3. `lotus-core` advisory simulation v2 contract tests.
+4. `lotus-core` no-op live/proposal allocation parity tests.
+5. `lotus-advise` v2 simulation-client contract negotiation tests.
+6. `lotus-advise` API tests for allocation lens exposure and compatibility fields.
+7. `lotus-advise` concrete `lotus-risk` client tests.
+8. `lotus-advise` lifecycle, async, artifact, and workspace handoff risk-lens evidence tests.
+9. `lotus-risk` concentration simulation tests for proposal-shaped simulation changes.
+10. Cross-service Docker validation against seeded portfolios, including one issuer-complete portfolio and one partial-issuer-coverage portfolio.
 
 ## Performance and Scalability Requirements
 
-1. `lotus-advise` must not call live allocation endpoints separately if `lotus-core` advisory
-   simulation already returns canonical before/after allocation views for the same request.
-2. `lotus-advise` should call `lotus-risk` once per canonical proposal evaluation unless the caller
-   explicitly requests additional risk lenses.
-3. Repeated stateful evaluations must continue to use the copy-safe TTL cache already introduced in
-   the Lotus Core context resolver.
-4. Any new cache key must include all identity dimensions that affect valuation, allocation, or risk:
-   - portfolio id
-   - as-of date
-   - reporting currency
-   - mandate id
-   - benchmark id
-   - allocation dimensions
-   - look-through mode
-   - simulation contract version
-   - risk lens options
-5. Cache statistics and replay evidence should remain internal unless a separate observability RFC
-   promotes them to public operational APIs.
+1. `lotus-advise` must not call live allocation endpoints separately when `lotus-core` advisory simulation v2 already returns canonical before/after allocation views.
+2. `lotus-advise` should call `lotus-risk` once per canonical proposal evaluation unless the caller explicitly requests additional risk lenses.
+3. Repeated stateful workflows must continue using copy-safe TTL caching.
+4. New caches must include all valuation/allocation/risk identity dimensions in the key.
+5. Cache statistics and internal diagnostics remain internal unless a separate observability RFC promotes them.
 
 ## Compatibility and Rollout
 
-1. Do not remove existing proposal allocation fields in the same PR that introduces canonical
-   allocation views.
-2. Mark legacy proposal allocation fields as derived from canonical views once the shared calculator
-   is in place.
-3. If `advisory-simulation.v2` is required, `lotus-advise` must negotiate the new contract explicitly
-   and reject mismatched response versions.
-4. Keep `lotus-risk` risk lensing default-degraded until the integration is proven live across local
-   Docker and CI environments.
-5. Update RFC-0067 vocabulary artifacts in all affected repositories after contract changes.
-6. Update `lotus-platform` architecture documentation if the implementation changes any cross-service
-   ownership boundary beyond this RFC.
+1. Add `advisory-simulation.v2` before switching `lotus-advise` normal runtime to it.
+2. Keep `advisory-simulation.v1` available only for compatibility during rollout.
+3. Do not remove legacy proposal allocation fields during the first v2 rollout.
+4. Mark legacy proposal allocation fields as derived once canonical allocation views are live.
+5. Keep `lotus-risk` risk lens default-degraded until local Docker and CI validation prove the integration.
+6. Update OpenAPI docs, RFC-0067 vocabulary inventory, no-alias governance, and platform architecture docs where affected.
+7. Merge in dependency order: `lotus-core`, then `lotus-risk` if contract changes are needed, then `lotus-advise`.
 
 ## Reason Codes
 
-New or stabilized diagnostic codes should use upper snake case.
+Use upper snake case.
 
-Proposed codes:
+Proposed reason codes:
 
 1. `LOTUS_CORE_ALLOCATION_LENS_UNAVAILABLE`
 2. `LOTUS_CORE_ALLOCATION_DIMENSION_UNSUPPORTED`
@@ -525,46 +399,27 @@ Proposed codes:
 
 Do not introduce new top-level proposal statuses for these cases.
 
-## Acceptance Criteria
+## Completion Criteria
 
-This RFC is implemented only when all of the following are true:
+RFC-0020 is complete only when all conditions are met:
 
-1. `lotus-core` has one reusable allocation/AUM calculator path for live and advisory projected
-   states.
-2. Advisory simulation before/after allocation supports the same allocation dimensions as live
-   portfolio allocation.
-3. `lotus-advise` proposal responses expose canonical before/after allocation views without local
-   production recalculation.
-4. `lotus-advise` has a concrete HTTP client for `lotus-risk` concentration simulation.
-5. Proposal risk lensing records current/proposed/delta concentration metrics sourced from
-   `lotus-risk`.
-6. Proposal artifact, lifecycle, async, and workspace handoff flows preserve allocation and risk
-   evidence consistently.
-7. Contract/version mismatches fail deterministically.
-8. Degraded `lotus-risk` behavior is explicit and audit-safe.
-9. Cross-service parity tests prove no-op live/proposal allocation equivalence and direct
-   `lotus-risk`/proposal risk-lens equivalence.
-10. Local quality gates, OpenAPI governance, no-alias guard, vocabulary validation, and PR CI pass in
-    all affected repositories.
-
-## Open Questions
-
-1. Should canonical proposal allocation views be introduced as additive fields under
-   `advisory-simulation.v1`, or should `lotus-core` publish `advisory-simulation.v2` for this
-   contract expansion?
-2. Should `lotus-risk` concentration simulation accept a direct `lotus-core` advisory-simulation
-   result as input, or should it continue orchestrating `lotus-core` simulation sessions itself?
-3. Which proposal workflows should require risk lensing before `READY` in strict private-banking
-   production profiles?
-4. Should live allocation look-through mode default to `direct_only` for proposals, or should proposal
-   allocation inherit the same default that front-office reporting uses?
+1. `lotus-core` has one reusable valuation/AUM/allocation path for live and advisory projected states.
+2. `lotus-core` advisory simulation v2 exposes all live allocation dimensions for before and after states.
+3. `lotus-advise` consumes v2 allocation views without production-local recalculation.
+4. Legacy proposal allocation fields are derived from canonical views or explicitly documented as compatibility-only.
+5. `lotus-advise` has a concrete `lotus-risk` concentration HTTP client.
+6. Proposal risk lens records current/proposed/delta concentration metrics sourced from `lotus-risk`.
+7. Proposal artifact, lifecycle, async, and workspace handoff flows preserve allocation and risk evidence consistently.
+8. Contract/version mismatches fail deterministically.
+9. Degraded `lotus-risk` behavior is explicit and audit-safe.
+10. Cross-service parity tests prove live/proposal allocation equivalence and direct `lotus-risk`/proposal risk-lens equivalence.
+11. Local gates and PR CI pass in all affected repositories.
 
 ## Implementation Notes
 
-1. Start in `lotus-core`; do not widen `lotus-advise` contract until the shared calculator boundary is
-   clear.
-2. Keep `lotus-advise` focused on consuming and presenting canonical outputs.
-3. Keep `lotus-risk` focused on risk analytics. Do not move concentration formulas into
-   `lotus-advise`.
-4. Use fixture-backed parity tests instead of broad mirrored duplicate suites.
-5. Prefer explicit contract/version checks over implicit best-effort parsing.
+1. Start in `lotus-core`; do not widen `lotus-advise` proposal contracts until the shared calculator and `advisory-simulation.v2` contract are defined.
+2. Keep `lotus-advise` focused on consumption, workflow, persistence, and presentation.
+3. Keep `lotus-risk` focused on risk analytics; do not move concentration formulas into `lotus-advise`.
+4. Prefer fixture-backed parity tests over broad mirrored duplicate suites.
+5. Prefer explicit version checks over permissive parsing.
+6. Treat any new duplicated calculator logic as a blocker for RFC closure.
