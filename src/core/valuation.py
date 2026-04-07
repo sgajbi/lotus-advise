@@ -31,12 +31,12 @@ def get_fx_rate(market_data: MarketDataSnapshot, from_ccy: str, to_ccy: str) -> 
     pair = f"{from_ccy}/{to_ccy}"
     direct = next((r.rate for r in market_data.fx_rates if r.pair == pair), None)
     if direct:
-        return direct
+        return Decimal(str(direct))
 
     pair_inv = f"{to_ccy}/{from_ccy}"
     inverse = next((r.rate for r in market_data.fx_rates if r.pair == pair_inv), None)
     if inverse:
-        return Decimal("1.0") / inverse
+        return Decimal("1.0") / Decimal(str(inverse))
 
     return None
 
@@ -72,16 +72,32 @@ class ValuationService:
 
         is_trust = options.valuation_mode == ValuationMode.TRUST_SNAPSHOT
         if is_trust and position.market_value:
-            mv_instr_ccy = position.market_value.amount
-            currency = position.market_value.currency
+            trusted_value = position.market_value
+            price_currency = price_ent.currency if price_ent is not None else trusted_value.currency
+            trust_is_base_authority = (
+                trusted_value.currency == base_ccy and price_currency != base_ccy
+            )
+            if trust_is_base_authority:
+                currency = price_currency
+                mv_instr_ccy = (
+                    position.quantity * price_val if price_ent is not None else Decimal("0")
+                )
+                mv_base = trusted_value.amount
+            else:
+                mv_instr_ccy = trusted_value.amount
+                currency = trusted_value.currency
+                rate = get_fx_rate(market_data, currency, base_ccy)
+                if rate is None:
+                    mv_base = Decimal("0")
+                else:
+                    mv_base = mv_instr_ccy * rate
         else:
             mv_instr_ccy = position.quantity * price_val
-
-        rate = get_fx_rate(market_data, currency, base_ccy)
-        if rate is None:
-            mv_base = Decimal("0")
-        else:
-            mv_base = mv_instr_ccy * rate
+            rate = get_fx_rate(market_data, currency, base_ccy)
+            if rate is None:
+                mv_base = Decimal("0")
+            else:
+                mv_base = mv_instr_ccy * rate
 
         return PositionSummary(
             instrument_id=position.instrument_id,

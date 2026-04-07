@@ -14,11 +14,13 @@ from src.core.models import (
     EngineOptions,
     FxRate,
     MarketDataSnapshot,
+    Money,
     PortfolioSnapshot,
     Position,
     Price,
     ProposalSimulateRequest,
     ShelfEntry,
+    ValuationMode,
 )
 from src.core.workspace.models import WorkspaceResolvedContext, WorkspaceStatefulInput
 from src.integrations.lotus_core.context_resolution import (
@@ -258,8 +260,18 @@ def _resolve_query_base_url() -> str:
             query_port = 8201 if port == 8202 else port
             netloc = f"{netloc}:{query_port}"
         return urlunsplit((split.scheme or "http", netloc, split.path.rstrip("/"), "", ""))
-
     return _DEFAULT_LOTUS_CORE_QUERY_BASE_URL
+
+
+def _positions_path(*, portfolio_id: str, as_of: str) -> str:
+    return f"{_POSITIONS_PATH.format(portfolio_id=portfolio_id)}?as_of_date={as_of}"
+
+
+def _cash_balances_request_body(*, portfolio_id: str, as_of: str) -> dict[str, str]:
+    return {
+        "portfolio_id": portfolio_id,
+        "as_of_date": as_of,
+    }
 
 
 def _resolve_control_plane_base_url() -> str:
@@ -485,7 +497,9 @@ def _build_cash_balances(cash_payload: dict[str, Any]) -> list[CashBalance]:
     return balances
 
 
-def _build_positions(positions_payload: dict[str, Any]) -> list[Position]:
+def _build_positions(
+    positions_payload: dict[str, Any], *, portfolio_base_currency: str
+) -> list[Position]:
     positions: list[Position] = []
     for raw_position in positions_payload.get("positions", []):
         if not isinstance(raw_position, dict):
@@ -497,7 +511,22 @@ def _build_positions(positions_payload: dict[str, Any]) -> list[Position]:
         quantity = _decimal_or_none(raw_position.get("quantity"))
         if not instrument_id or quantity is None:
             continue
-        positions.append(Position(instrument_id=instrument_id, quantity=quantity))
+        market_value: Money | None = None
+        valuation = raw_position.get("valuation")
+        if isinstance(valuation, dict):
+            market_value_amount = _decimal_or_none(valuation.get("market_value"))
+            if market_value_amount is not None:
+                market_value = Money(
+                    amount=market_value_amount,
+                    currency=portfolio_base_currency,
+                )
+        positions.append(
+            Position(
+                instrument_id=instrument_id,
+                quantity=quantity,
+                market_value=market_value,
+            )
+        )
     return positions
 
 
@@ -930,7 +959,10 @@ def resolve_stateful_context_with_lotus_core(
             client,
             method="GET",
             base_url=base_url,
-            path=_POSITIONS_PATH.format(portfolio_id=stateful_input.portfolio_id),
+            path=_positions_path(
+                portfolio_id=stateful_input.portfolio_id,
+                as_of=stateful_input.as_of,
+            ),
             error_code="LOTUS_CORE_STATEFUL_POSITIONS_UNAVAILABLE",
         )
         cash_payload = _request_json(
@@ -939,7 +971,10 @@ def resolve_stateful_context_with_lotus_core(
             base_url=base_url,
             path=_CASH_BALANCES_PATH,
             error_code="LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE",
-            json_body={"portfolio_id": stateful_input.portfolio_id},
+            json_body=_cash_balances_request_body(
+                portfolio_id=stateful_input.portfolio_id,
+                as_of=stateful_input.as_of,
+            ),
         )
         held_instrument_ids = sorted(
             {
@@ -973,7 +1008,10 @@ def resolve_stateful_context_with_lotus_core(
             snapshot_id=portfolio_snapshot_id,
             portfolio_id=portfolio_id,
             base_currency=base_currency,
-            positions=_build_positions(positions_payload),
+            positions=_build_positions(
+                positions_payload,
+                portfolio_base_currency=base_currency,
+            ),
             cash_balances=_build_cash_balances(cash_payload),
         ),
         market_data_snapshot=MarketDataSnapshot(
@@ -990,7 +1028,10 @@ def resolve_stateful_context_with_lotus_core(
             cash_payload=cash_payload,
             enrichment_by_instrument_id=enrichment_by_instrument_id,
         ),
-        options=EngineOptions(enable_proposal_simulation=True),
+        options=EngineOptions(
+            enable_proposal_simulation=True,
+            valuation_mode=ValuationMode.TRUST_SNAPSHOT,
+        ),
         proposed_cash_flows=[],
         proposed_trades=[],
         reference_model=None,

@@ -20,6 +20,7 @@ class CountingLotusCoreQueryClient:
     def __init__(self, responses: dict[tuple[str, str], FakeHttpxResponse]) -> None:
         self._responses = responses
         self.request_count = 0
+        self.requests: list[tuple[str, str, dict[str, Any] | None]] = []
 
     def __enter__(self) -> CountingLotusCoreQueryClient:
         return self
@@ -34,7 +35,10 @@ class CountingLotusCoreQueryClient:
         json: dict[str, Any] | None = None,
     ) -> FakeHttpxResponse:
         self.request_count += 1
+        self.requests.append((method.upper(), url, json))
         key = (method.upper(), url)
+        if key not in self._responses and "?" in url:
+            key = (method.upper(), url.split("?", 1)[0])
         if key not in self._responses:
             raise AssertionError(f"unexpected request: {key} body={json}")
         return self._responses[key]

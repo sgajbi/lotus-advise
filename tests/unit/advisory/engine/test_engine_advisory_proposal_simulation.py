@@ -2,7 +2,13 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from src.core.advisory_engine import run_proposal_simulation
-from src.core.models import EngineOptions, Money, Reconciliation, SecurityTradeIntent
+from src.core.models import (
+    EngineOptions,
+    Money,
+    Reconciliation,
+    SecurityTradeIntent,
+    ValuationMode,
+)
 from tests.shared.factories import (
     cash,
     market_data_snapshot,
@@ -930,3 +936,37 @@ def test_proposal_simulation_skips_buy_intent_without_notional():
 
     assert result.status == "READY"
     assert result.intents == []
+
+
+def test_noop_proposal_reuses_trusted_before_state_for_after_snapshot():
+    portfolio = portfolio_snapshot(
+        base_currency="USD",
+        positions=[
+            position("EQ_EUR", "10").model_copy(
+                update={"market_value": Money(amount=Decimal("120"), currency="USD")}
+            )
+        ],
+        cash_balances=[],
+    )
+    market_data = market_data_snapshot(
+        prices=[price("EQ_EUR", "10", "EUR")],
+        fx_rates=[{"pair": "EUR/USD", "rate": "1.5"}],
+    )
+    shelf = [shelf_entry("EQ_EUR", asset_class="EQUITY")]
+
+    result = run_proposal_simulation(
+        portfolio=portfolio,
+        market_data=market_data,
+        shelf=shelf,
+        options=EngineOptions(
+            enable_proposal_simulation=True,
+            valuation_mode=ValuationMode.TRUST_SNAPSHOT,
+        ),
+        proposed_cash_flows=[],
+        proposed_trades=[],
+        request_hash="trust-noop-local",
+    )
+
+    assert result.before.total_value.amount == Decimal("120")
+    assert result.after_simulated.total_value.amount == Decimal("120")
+    assert result.before.model_dump(mode="json") == result.after_simulated.model_dump(mode="json")
