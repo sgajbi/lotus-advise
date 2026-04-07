@@ -4,7 +4,7 @@ coverage==7.13.5
 iniconfig==2.3.0
 pip-audit==2.10.0
 pluggy==1.6.0
-pytest==9.0.2
+pytest==9.0.3
 pytest-cov==7.1.0
 ruff==0.15.9
 mypy==1.20.0
