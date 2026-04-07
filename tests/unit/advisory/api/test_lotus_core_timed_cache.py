@@ -32,6 +32,9 @@ def test_timed_cache_evicts_oldest_entry() -> None:
 
     assert cache.get("k1") is None
     assert cache.get("k2") == {"value": "two"}
+    stats = cache.stats()
+    assert stats.evictions == 1
+    assert stats.size == 1
 
 
 def test_timed_cache_is_safe_under_parallel_get_set() -> None:
@@ -51,3 +54,25 @@ def test_timed_cache_is_safe_under_parallel_get_set() -> None:
         results = list(pool.map(_work, range(48)))
 
     assert all(result is not None for result in results)
+
+
+def test_timed_cache_tracks_hits_misses_and_expirations() -> None:
+    ttl_state = {"value": 15.0}
+    cache = TimedCache[str, dict[str, str]](
+        clone_value=lambda value: dict(value),
+        ttl_seconds=lambda: ttl_state["value"],
+        max_size=lambda: 8,
+    )
+
+    assert cache.get("missing") is None
+    cache.set("k1", {"value": "one"})
+    assert cache.get("k1") == {"value": "one"}
+    ttl_state["value"] = 0.0
+    cache.set("k2", {"value": "two"})
+    assert cache.get("k2") is None
+
+    stats = cache.stats()
+    assert stats.hits == 1
+    assert stats.misses == 2
+    assert stats.expirations == 1
+    assert stats.writes == 2

@@ -12,6 +12,7 @@ from src.integrations.lotus_core.stateful_context import (
     _stateful_context_cache_max_size,
     _stateful_context_cache_ttl_seconds,
     enrich_stateful_simulate_request_for_trade_drafts,
+    get_stateful_context_cache_stats_for_tests,
     reset_stateful_context_cache_for_tests,
     resolve_stateful_context_with_lotus_core,
 )
@@ -338,6 +339,11 @@ def test_resolve_stateful_context_with_lotus_core_reuses_cached_context(
 
     assert first.resolved_context == second.resolved_context
     assert request_counter["count"] == 3
+    stats = get_stateful_context_cache_stats_for_tests()
+    assert stats["resolved_context"].misses == 1
+    assert stats["resolved_context"].hits == 1
+    assert stats["resolved_context"].writes == 1
+    assert stats["resolved_context"].size == 1
 
 
 def test_resolve_stateful_context_with_lotus_core_returns_copy_safe_cached_results(
@@ -596,6 +602,10 @@ def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resoluti
 
     assert recovered.resolved_context.portfolio_id == "DEMO_ADV_USD_001"
     assert request_counter["count"] == 6
+    stats = get_stateful_context_cache_stats_for_tests()
+    assert stats["resolved_context"].misses == 2
+    assert stats["resolved_context"].expirations == 0
+    assert stats["resolved_context"].writes == 1
 
 
 def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_inputs(

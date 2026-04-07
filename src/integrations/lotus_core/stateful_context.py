@@ -28,7 +28,7 @@ from src.integrations.lotus_core.runtime_config import (
     env_positive_int,
     resolve_lotus_core_timeout,
 )
-from src.integrations.lotus_core.timed_cache import TimedCache
+from src.integrations.lotus_core.timed_cache import TimedCache, TimedCacheStats
 
 _DEFAULT_LOTUS_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
 _PORTFOLIO_PATH = "/portfolios/{portfolio_id}"
@@ -131,6 +131,15 @@ def reset_stateful_context_cache_for_tests() -> None:
     _INSTRUMENT_LOOKUP_CACHE.clear()
     _PRICE_LOOKUP_CACHE.clear()
     _FX_LOOKUP_CACHE.clear()
+
+
+def get_stateful_context_cache_stats_for_tests() -> dict[str, TimedCacheStats]:
+    return {
+        "resolved_context": _STATEFUL_CONTEXT_CACHE.stats(),
+        "instrument_lookup": _INSTRUMENT_LOOKUP_CACHE.stats(),
+        "price_lookup": _PRICE_LOOKUP_CACHE.stats(),
+        "fx_lookup": _FX_LOOKUP_CACHE.stats(),
+    }
 
 
 def _cache_payload(
