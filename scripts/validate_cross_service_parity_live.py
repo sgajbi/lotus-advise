@@ -64,6 +64,7 @@ class LiveParityResult:
     warm_duration_ms: float
     changed_state_portfolio: str
     changed_state_security_id: str
+    cross_currency_security_id: str
     workspace_handoff_portfolio: str
     lifecycle_portfolio: str
     lifecycle_latest_version_no: int
@@ -305,6 +306,29 @@ def _select_changed_state_security(positions: list[dict[str, Any]]) -> str:
     )
     selected = max(
         non_cash_positions,
+        key=lambda position: _decimal(position.get("weight", "0")),
+    )
+    return str(selected["security_id"])
+
+
+def _select_cross_currency_changed_state_security(
+    positions: list[dict[str, Any]],
+    *,
+    base_currency: str,
+) -> str:
+    cross_currency_positions = [
+        position
+        for position in positions
+        if str(position.get("asset_class", "")).lower() != "cash"
+        and position.get("security_id")
+        and str(position.get("currency") or "").strip().upper() != base_currency.upper()
+    ]
+    _assert(
+        bool(cross_currency_positions),
+        f"No cross-currency non-cash positions available outside base currency {base_currency}",
+    )
+    selected = max(
+        cross_currency_positions,
         key=lambda position: _decimal(position.get("weight", "0")),
     )
     return str(selected["security_id"])
@@ -1651,6 +1675,7 @@ def _assert_changed_state_workspace_risk_parity(
     core_query_base_url: str,
     risk_base_url: str,
     scenario: PortfolioParityScenario,
+    security_id: str | None = None,
 ) -> str:
     positions = _query_live_positions(
         client,
@@ -1658,7 +1683,7 @@ def _assert_changed_state_workspace_risk_parity(
         portfolio_id=scenario.portfolio_id,
         as_of_date=scenario.as_of_date,
     )
-    security_id = _select_changed_state_security(positions)
+    selected_security_id = security_id or _select_changed_state_security(positions)
     create_body = _post_json(
         client,
         url=f"{advise_base_url}/advisory/workspaces",
@@ -1684,7 +1709,7 @@ def _assert_changed_state_workspace_risk_parity(
             "trade": {
                 "intent_type": "SECURITY_TRADE",
                 "side": "BUY",
-                "instrument_id": security_id,
+                "instrument_id": selected_security_id,
                 "quantity": "1",
             },
         },
@@ -1693,7 +1718,8 @@ def _assert_changed_state_workspace_risk_parity(
     _assert_authority_posture(scenario=scenario, proposal_body=latest_result)
     simulation_changes = _security_trade_changes_from_proposal_body(latest_result)
     _assert(
-        len(simulation_changes) == 1 and simulation_changes[0]["security_id"] == security_id,
+        len(simulation_changes) == 1
+        and simulation_changes[0]["security_id"] == selected_security_id,
         f"{scenario.portfolio_id}: changed-state workspace did not produce expected trade intent",
     )
     risk_proxy = cast(dict[str, Any], latest_result["explanation"]["risk_lens"]["risk_proxy"])
@@ -1715,7 +1741,7 @@ def _assert_changed_state_workspace_risk_parity(
         direct_risk=direct_risk,
         proposal_body=latest_result,
     )
-    return security_id
+    return selected_security_id
 
 
 def _build_changed_state_simulate_request(
@@ -2242,6 +2268,31 @@ def validate_live_cross_service_parity(
             scenario=complete,
             security_id=changed_state_security_id,
         )
+        cross_currency_security_id = _select_cross_currency_changed_state_security(
+            _query_live_positions(
+                client,
+                core_query_base_url=core_query_base_url,
+                portfolio_id=complete.portfolio_id,
+                as_of_date=complete.as_of_date,
+            ),
+            base_currency=complete.reporting_currency,
+        )
+        _assert_changed_state_workspace_risk_parity(
+            client,
+            advise_base_url=advise_base_url,
+            core_query_base_url=core_query_base_url,
+            risk_base_url=risk_base_url,
+            scenario=complete,
+            security_id=cross_currency_security_id,
+        )
+        _assert_changed_state_workspace_allocation_parity(
+            client,
+            advise_base_url=advise_base_url,
+            core_query_base_url=core_query_base_url,
+            core_control_base_url=core_control_base_url,
+            scenario=complete,
+            security_id=cross_currency_security_id,
+        )
 
     return LiveParityResult(
         complete_issuer_portfolio=complete.portfolio_id,
@@ -2251,6 +2302,7 @@ def validate_live_cross_service_parity(
         warm_duration_ms=warm_ms,
         changed_state_portfolio=complete.portfolio_id,
         changed_state_security_id=changed_state_security_id,
+        cross_currency_security_id=cross_currency_security_id,
         workspace_handoff_portfolio=complete.portfolio_id,
         lifecycle_portfolio=lifecycle_portfolio,
         lifecycle_latest_version_no=lifecycle_latest_version_no,

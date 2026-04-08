@@ -1,6 +1,7 @@
 from scripts.validate_cross_service_parity_live import (
     _security_trade_changes_from_proposal_body,
     _select_changed_state_security,
+    _select_cross_currency_changed_state_security,
 )
 
 
@@ -66,3 +67,27 @@ def test_security_trade_changes_from_proposal_body_preserves_trade_quantities_an
             },
         },
     ]
+
+
+def test_select_cross_currency_changed_state_security_prefers_highest_weight_non_base_holding(
+) -> None:
+    positions = [
+        {"security_id": "FO_USD", "asset_class": "Fund", "currency": "USD", "weight": "0.18"},
+        {
+            "security_id": "FO_EUR_LOW",
+            "asset_class": "Bond",
+            "currency": "EUR",
+            "weight": "0.04",
+        },
+        {
+            "security_id": "FO_EUR_HIGH",
+            "asset_class": "Equity",
+            "currency": "EUR",
+            "weight": "0.16",
+        },
+        {"security_id": "CASH_EUR", "asset_class": "Cash", "currency": "EUR", "weight": "0.20"},
+    ]
+
+    selected = _select_cross_currency_changed_state_security(positions, base_currency="USD")
+
+    assert selected == "FO_EUR_HIGH"

@@ -568,3 +568,31 @@
   - If future proposal deltas add more complex change types such as notional-only trades, FX, or
     cash flows, extend the changed-state live parity drill with those cases instead of introducing a
     separate validation path.
+
+## LA-REV-022
+
+- Scope: Cross-currency changed-state proposal parity
+- Pattern: FX-sensitive live validation gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: Changed-state proposal parity was proven for a real held security, but that still left a
+  material blind spot: whether a live proposal delta on a non-base-currency holding preserves
+  canonical allocation and concentration behavior through FX conversion.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now adds a second changed-state drill that:
+    - selects the highest-weight non-cash holding outside the portfolio reporting currency,
+    - runs the same workspace draft-trade path against that holding,
+    - proves changed-state `risk_lens` still matches direct `lotus-risk` concentration,
+    - proves changed-state before/after allocation views still match direct Lotus Core simulation.
+  - `tests/unit/advisory/api/test_live_cross_service_parity.py` now proves the helper that selects
+    cross-currency live holdings prefers the highest-weight eligible non-base position and ignores
+    cash rows.
+  - `scripts/live_runtime_suite_artifacts.py` and
+    `tests/unit/advisory/api/test_live_runtime_suite.py` now surface the cross-currency security in
+    machine-readable and PR-facing evidence output.
+- Consequence:
+  - The live parity program now covers both same-currency and cross-currency proposal deltas, which
+    materially improves confidence in FX-sensitive after-state allocation and risk behavior.
+- Follow-Up:
+  - If multi-currency proposal support expands to explicit FX intents, add a dedicated drill that
+    validates trade-plus-FX interaction rather than assuming security-trade-only changes.
