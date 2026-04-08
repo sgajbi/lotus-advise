@@ -22,6 +22,8 @@ def build_markdown_summary(result: "LiveRuntimeSuiteResult") -> str:
             "## Parity",
             f"- complete issuer portfolio: `{result.parity.complete_issuer_portfolio}`",
             f"- degraded issuer portfolio: `{result.parity.degraded_issuer_portfolio}`",
+            f"- changed-state portfolio: `{result.parity.changed_state_portfolio}`",
+            f"- changed-state security: `{result.parity.changed_state_security_id}`",
             f"- lifecycle portfolio: `{result.parity.lifecycle_portfolio}`",
             f"- lifecycle current state: `{result.parity.lifecycle_current_state}`",
             f"- lifecycle latest version: `{result.parity.lifecycle_latest_version_no}`",
@@ -116,6 +118,11 @@ def build_pr_summary(
             "### Outcome",
             f"- complete parity portfolio: `{parity['complete_issuer_portfolio']}`",
             f"- degraded parity portfolio: `{parity['degraded_issuer_portfolio']}`",
+            (
+                "- changed-state risk parity: "
+                f"`{parity['changed_state_portfolio']}` via "
+                f"`{parity['changed_state_security_id']}`"
+            ),
             (
                 "- sync lifecycle: "
                 f"`{parity['lifecycle_current_state']}` at version "

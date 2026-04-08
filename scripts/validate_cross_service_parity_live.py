@@ -53,6 +53,8 @@ class LiveParityResult:
     degraded_issuer_coverage_status: str
     cold_duration_ms: float
     warm_duration_ms: float
+    changed_state_portfolio: str
+    changed_state_security_id: str
     workspace_handoff_portfolio: str
     lifecycle_portfolio: str
     lifecycle_latest_version_no: int
@@ -234,6 +236,7 @@ def _query_direct_concentration(
     portfolio_id: str,
     as_of_date: str,
     reporting_currency: str,
+    simulation_changes: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return _request_json(
         client,
@@ -249,12 +252,77 @@ def _query_direct_concentration(
                 "include_cash_positions": True,
                 "include_zero_quantity_positions": False,
                 "top_n": 10,
-                "simulation_changes": [],
+                "simulation_changes": simulation_changes or [],
             },
             "issuer_grouping_level": "ultimate_parent",
             "enrichment_policy": "merge_caller_then_core",
         },
     )
+
+
+def _query_live_positions(
+    client: httpx.Client,
+    *,
+    core_query_base_url: str,
+    portfolio_id: str,
+    as_of_date: str,
+) -> list[dict[str, Any]]:
+    response = client.get(
+        f"{core_query_base_url}/portfolios/{portfolio_id}/positions",
+        params={"as_of_date": as_of_date},
+    )
+    _assert(
+        response.status_code == 200,
+        (
+            f"GET /portfolios/{portfolio_id}/positions: expected HTTP 200, "
+            f"got {response.status_code}, body={response.text}"
+        ),
+    )
+    payload = cast(dict[str, Any], response.json())
+    positions = payload.get("positions")
+    _assert(isinstance(positions, list), f"{portfolio_id}: positions response missing list payload")
+    return cast(list[dict[str, Any]], positions)
+
+
+def _select_changed_state_security(positions: list[dict[str, Any]]) -> str:
+    non_cash_positions = [
+        position
+        for position in positions
+        if str(position.get("asset_class", "")).lower() != "cash" and position.get("security_id")
+    ]
+    _assert(
+        bool(non_cash_positions),
+        "No non-cash positions available for changed-state risk parity",
+    )
+    selected = max(
+        non_cash_positions,
+        key=lambda position: _decimal(position.get("weight", "0")),
+    )
+    return str(selected["security_id"])
+
+
+def _security_trade_changes_from_proposal_body(
+    proposal_body: dict[str, Any],
+) -> list[dict[str, Any]]:
+    changes: list[dict[str, Any]] = []
+    for intent in cast(list[dict[str, Any]], proposal_body.get("intents", [])):
+        if str(intent.get("intent_type")) != "SECURITY_TRADE":
+            continue
+        change: dict[str, Any] = {
+            "security_id": intent["instrument_id"],
+            "transaction_type": intent["side"],
+            "quantity": float(intent["quantity"]),
+            "metadata": {
+                "proposal_intent_id": intent["intent_id"],
+                "proposal_intent_type": intent["intent_type"],
+            },
+        }
+        notional = intent.get("notional")
+        if isinstance(notional, dict):
+            change["amount"] = float(notional["amount"])
+            change["currency"] = notional["currency"]
+        changes.append(change)
+    return changes
 
 
 def _select_scenarios(
@@ -1567,6 +1635,80 @@ def _assert_workspace_flow(
     )
 
 
+def _assert_changed_state_workspace_risk_parity(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    core_query_base_url: str,
+    risk_base_url: str,
+    scenario: PortfolioParityScenario,
+) -> str:
+    positions = _query_live_positions(
+        client,
+        core_query_base_url=core_query_base_url,
+        portfolio_id=scenario.portfolio_id,
+        as_of_date=scenario.as_of_date,
+    )
+    security_id = _select_changed_state_security(positions)
+    create_body = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces",
+        expected_status=201,
+        json_body={
+            "workspace_name": f"Live risk delta {scenario.portfolio_id}",
+            "created_by": "live-parity-validator",
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": scenario.portfolio_id,
+                "as_of": scenario.as_of_date,
+            },
+        },
+    )
+    workspace_id = str(create_body["workspace"]["workspace_id"])
+    drafted = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces/{workspace_id}/draft-actions",
+        expected_status=200,
+        json_body={
+            "actor_id": "live-parity-validator",
+            "action_type": "ADD_TRADE",
+            "trade": {
+                "intent_type": "SECURITY_TRADE",
+                "side": "BUY",
+                "instrument_id": security_id,
+                "quantity": "1",
+            },
+        },
+    )
+    latest_result = cast(dict[str, Any], drafted["workspace"]["latest_proposal_result"])
+    _assert_authority_posture(scenario=scenario, proposal_body=latest_result)
+    simulation_changes = _security_trade_changes_from_proposal_body(latest_result)
+    _assert(
+        len(simulation_changes) == 1 and simulation_changes[0]["security_id"] == security_id,
+        f"{scenario.portfolio_id}: changed-state workspace did not produce expected trade intent",
+    )
+    risk_proxy = cast(dict[str, Any], latest_result["explanation"]["risk_lens"]["risk_proxy"])
+    _assert(
+        any(abs(float(risk_proxy[key])) > 0.0 for key in ("hhi_current", "hhi_proposed"))
+        and abs(float(risk_proxy["hhi_delta"])) > 0.0,
+        f"{scenario.portfolio_id}: changed-state workspace risk lens did not produce a real delta",
+    )
+    direct_risk = _query_direct_concentration(
+        client,
+        risk_base_url=risk_base_url,
+        portfolio_id=scenario.portfolio_id,
+        as_of_date=scenario.as_of_date,
+        reporting_currency=scenario.reporting_currency,
+        simulation_changes=simulation_changes,
+    )
+    _assert_risk_parity(
+        scenario=scenario,
+        direct_risk=direct_risk,
+        proposal_body=latest_result,
+    )
+    return security_id
+
+
 def _assert_persisted_read_surfaces(
     client: httpx.Client,
     *,
@@ -1953,6 +2095,13 @@ def validate_live_cross_service_parity(
             advise_base_url=advise_base_url,
             scenario=complete,
         )
+        changed_state_security_id = _assert_changed_state_workspace_risk_parity(
+            client,
+            advise_base_url=advise_base_url,
+            core_query_base_url=core_query_base_url,
+            risk_base_url=risk_base_url,
+            scenario=complete,
+        )
 
     return LiveParityResult(
         complete_issuer_portfolio=complete.portfolio_id,
@@ -1960,6 +2109,8 @@ def validate_live_cross_service_parity(
         degraded_issuer_coverage_status=degraded.issuer_coverage_status,
         cold_duration_ms=cold_ms,
         warm_duration_ms=warm_ms,
+        changed_state_portfolio=complete.portfolio_id,
+        changed_state_security_id=changed_state_security_id,
         workspace_handoff_portfolio=complete.portfolio_id,
         lifecycle_portfolio=lifecycle_portfolio,
         lifecycle_latest_version_no=lifecycle_latest_version_no,
