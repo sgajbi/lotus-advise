@@ -29,6 +29,7 @@ def test_live_runtime_suite_runs_parity_before_degraded(monkeypatch):
             changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
             changed_state_security_id="FO_BOND_UST_2030",
             cross_currency_security_id="FO_FUND_BLK_ALLOC",
+            non_held_security_id="SEC_FUND_EM_EQ",
             workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_latest_version_no=2,
@@ -80,6 +81,7 @@ def test_live_runtime_suite_can_skip_degraded(monkeypatch):
             changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
             changed_state_security_id="FO_BOND_UST_2030",
             cross_currency_security_id="FO_FUND_BLK_ALLOC",
+            non_held_security_id="SEC_FUND_EM_EQ",
             workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_latest_version_no=2,
@@ -123,6 +125,7 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
             changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
             changed_state_security_id="FO_BOND_UST_2030",
             cross_currency_security_id="FO_FUND_BLK_ALLOC",
+            non_held_security_id="SEC_FUND_EM_EQ",
             workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_latest_version_no=2,
@@ -158,6 +161,7 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
     assert payload["parity"]["complete_issuer_portfolio"] == "PB_SG_GLOBAL_BAL_001"
     assert payload["parity"]["changed_state_security_id"] == "FO_BOND_UST_2030"
     assert payload["parity"]["cross_currency_security_id"] == "FO_FUND_BLK_ALLOC"
+    assert payload["parity"]["non_held_security_id"] == "SEC_FUND_EM_EQ"
     assert payload["parity"]["async_lifecycle_current_state"] == "EXECUTED"
     assert payload["degraded"]["core_degraded_reason"] == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
 
@@ -179,6 +183,7 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
             changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
             changed_state_security_id="FO_BOND_UST_2030",
             cross_currency_security_id="FO_FUND_BLK_ALLOC",
+            non_held_security_id="SEC_FUND_EM_EQ",
             workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_latest_version_no=2,
@@ -224,6 +229,7 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert "async lifecycle current state" in summary_text
     assert "changed-state security" in summary_text
     assert "cross-currency security" in summary_text
+    assert "non-held security" in summary_text
 
 
 def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(tmp_path):
@@ -241,6 +247,7 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
             "changed_state_portfolio": "PB_SG_GLOBAL_BAL_001",
             "changed_state_security_id": "FO_BOND_UST_2030",
             "cross_currency_security_id": "FO_FUND_BLK_ALLOC",
+            "non_held_security_id": "SEC_FUND_EM_EQ",
             "workspace_handoff_portfolio": "PB_SG_GLOBAL_BAL_001",
             "lifecycle_portfolio": "PB_SG_GLOBAL_BAL_001",
             "lifecycle_latest_version_no": 2,
@@ -270,4 +277,5 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
     assert f"- bundle: `{newer_bundle}`" in summary
     assert "- changed-state risk parity: `PB_SG_GLOBAL_BAL_001` via `FO_BOND_UST_2030`" in summary
     assert "- cross-currency changed-state parity: `FO_FUND_BLK_ALLOC`" in summary
+    assert "- non-held changed-state parity: `SEC_FUND_EM_EQ`" in summary
     assert "- async lifecycle: `EXECUTED` at version `2`" in summary

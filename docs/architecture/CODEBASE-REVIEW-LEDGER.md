@@ -596,3 +596,30 @@
 - Follow-Up:
   - If multi-currency proposal support expands to explicit FX intents, add a dedicated drill that
     validates trade-plus-FX interaction rather than assuming security-trade-only changes.
+
+## LA-REV-023
+
+- Scope: Non-held instrument changed-state proposal parity
+- Pattern: enrichment and hydration live validation gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: Same-currency and cross-currency changed-state drills covered held positions, but the
+  proposal path also needs to work when an advisor drafts a buy for a non-held instrument that must
+  be hydrated through the stateful Lotus Core enrichment seam.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now adds a non-held changed-state drill that:
+    - selects a preferred non-held seeded candidate not already present in the live portfolio,
+    - runs a stateful workspace draft trade on that instrument,
+    - proves changed-state `risk_lens` still matches direct `lotus-risk` concentration,
+    - proves changed-state before/after allocation views still match direct Lotus Core simulation.
+  - `tests/unit/advisory/api/test_live_cross_service_parity.py` now proves the non-held selector
+    prefers the first viable non-held candidate from the governed seeded list.
+  - `scripts/live_runtime_suite_artifacts.py` and
+    `tests/unit/advisory/api/test_live_runtime_suite.py` now surface the non-held security in the
+    suite evidence output.
+- Consequence:
+  - The live parity program now covers the most failure-prone proposal enrichment path: adding a new
+    instrument that was not already in the held portfolio snapshot.
+- Follow-Up:
+  - If future seeded universes change, keep the non-held candidate list governed and business
+    meaningful rather than letting the live drill drift to arbitrary instruments.

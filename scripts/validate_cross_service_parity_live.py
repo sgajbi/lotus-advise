@@ -23,6 +23,10 @@ _DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
 _DEFAULT_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
 _DEFAULT_CORE_CONTROL_BASE_URL = "http://core-control.dev.lotus"
 _DEFAULT_RISK_BASE_URL = "http://risk.dev.lotus"
+_NON_HELD_CANDIDATES = (
+    "SEC_FUND_EM_EQ",
+    "FO_EQ_NOVO_NORDISK_DK",
+)
 _DEFAULT_PORTFOLIO_CANDIDATES = (
     "DEMO_ADV_USD_001",
     "PB_SG_GLOBAL_BAL_001",
@@ -65,6 +69,7 @@ class LiveParityResult:
     changed_state_portfolio: str
     changed_state_security_id: str
     cross_currency_security_id: str
+    non_held_security_id: str
     workspace_handoff_portfolio: str
     lifecycle_portfolio: str
     lifecycle_latest_version_no: int
@@ -332,6 +337,24 @@ def _select_cross_currency_changed_state_security(
         key=lambda position: _decimal(position.get("weight", "0")),
     )
     return str(selected["security_id"])
+
+
+def _select_non_held_changed_state_security(
+    positions: list[dict[str, Any]],
+    *,
+    candidates: tuple[str, ...] = _NON_HELD_CANDIDATES,
+) -> str:
+    held_security_ids = {
+        str(position.get("security_id") or "").strip()
+        for position in positions
+        if str(position.get("security_id") or "").strip()
+    }
+    for candidate in candidates:
+        if candidate not in held_security_ids:
+            return candidate
+    raise LiveParityValidationError(
+        f"No non-held candidate available from preferred list {list(candidates)}"
+    )
 
 
 def _security_trade_changes_from_proposal_body(
@@ -2293,6 +2316,30 @@ def validate_live_cross_service_parity(
             scenario=complete,
             security_id=cross_currency_security_id,
         )
+        non_held_security_id = _select_non_held_changed_state_security(
+            _query_live_positions(
+                client,
+                core_query_base_url=core_query_base_url,
+                portfolio_id=complete.portfolio_id,
+                as_of_date=complete.as_of_date,
+            )
+        )
+        _assert_changed_state_workspace_risk_parity(
+            client,
+            advise_base_url=advise_base_url,
+            core_query_base_url=core_query_base_url,
+            risk_base_url=risk_base_url,
+            scenario=complete,
+            security_id=non_held_security_id,
+        )
+        _assert_changed_state_workspace_allocation_parity(
+            client,
+            advise_base_url=advise_base_url,
+            core_query_base_url=core_query_base_url,
+            core_control_base_url=core_control_base_url,
+            scenario=complete,
+            security_id=non_held_security_id,
+        )
 
     return LiveParityResult(
         complete_issuer_portfolio=complete.portfolio_id,
@@ -2303,6 +2350,7 @@ def validate_live_cross_service_parity(
         changed_state_portfolio=complete.portfolio_id,
         changed_state_security_id=changed_state_security_id,
         cross_currency_security_id=cross_currency_security_id,
+        non_held_security_id=non_held_security_id,
         workspace_handoff_portfolio=complete.portfolio_id,
         lifecycle_portfolio=lifecycle_portfolio,
         lifecycle_latest_version_no=lifecycle_latest_version_no,

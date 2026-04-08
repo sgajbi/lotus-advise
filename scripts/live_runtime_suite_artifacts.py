@@ -25,6 +25,7 @@ def build_markdown_summary(result: "LiveRuntimeSuiteResult") -> str:
             f"- changed-state portfolio: `{result.parity.changed_state_portfolio}`",
             f"- changed-state security: `{result.parity.changed_state_security_id}`",
             f"- cross-currency security: `{result.parity.cross_currency_security_id}`",
+            f"- non-held security: `{result.parity.non_held_security_id}`",
             f"- lifecycle portfolio: `{result.parity.lifecycle_portfolio}`",
             f"- lifecycle current state: `{result.parity.lifecycle_current_state}`",
             f"- lifecycle latest version: `{result.parity.lifecycle_latest_version_no}`",
@@ -128,6 +129,7 @@ def build_pr_summary(
                 "- cross-currency changed-state parity: "
                 f"`{parity['cross_currency_security_id']}`"
             ),
+            f"- non-held changed-state parity: `{parity['non_held_security_id']}`",
             (
                 "- sync lifecycle: "
                 f"`{parity['lifecycle_current_state']}` at version "

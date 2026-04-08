@@ -2,6 +2,7 @@ from scripts.validate_cross_service_parity_live import (
     _security_trade_changes_from_proposal_body,
     _select_changed_state_security,
     _select_cross_currency_changed_state_security,
+    _select_non_held_changed_state_security,
 )
 
 
@@ -91,3 +92,18 @@ def test_select_cross_currency_changed_state_security_prefers_highest_weight_non
     selected = _select_cross_currency_changed_state_security(positions, base_currency="USD")
 
     assert selected == "FO_EUR_HIGH"
+
+
+def test_select_non_held_changed_state_security_prefers_known_non_held_candidate() -> None:
+    positions = [
+        {"security_id": "FO_FUND_PIMCO_INC"},
+        {"security_id": "FO_FUND_BLK_ALLOC"},
+        {"security_id": "FO_BOND_UST_2030"},
+    ]
+
+    selected = _select_non_held_changed_state_security(
+        positions,
+        candidates=("FO_FUND_PIMCO_INC", "SEC_FUND_EM_EQ", "FO_BOND_UST_2030"),
+    )
+
+    assert selected == "SEC_FUND_EM_EQ"
