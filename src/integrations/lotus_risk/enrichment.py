@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import os
+import time
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from pydantic import BaseModel, Field, ValidationError
 
 from src.core.models import ProposalResult, ProposalSimulateRequest, SecurityTradeIntent
-from src.integrations.lotus_core.runtime_config import env_positive_float
+from src.integrations.lotus_core.runtime_config import env_positive_float, env_positive_int
 
 _CONCENTRATION_PATH = "/analytics/risk/concentration"
 
@@ -88,6 +89,56 @@ def _resolve_base_url() -> str:
 
 def _resolve_timeout() -> httpx.Timeout:
     return httpx.Timeout(env_positive_float("LOTUS_RISK_TIMEOUT_SECONDS", default=10.0))
+
+
+def _resolve_retry_attempts() -> int:
+    attempts = env_positive_int("LOTUS_RISK_RETRY_ATTEMPTS", default=2)
+    return int(attempts)
+
+
+def _is_retryable_http_error(exc: httpx.HTTPError) -> bool:
+    if isinstance(exc, httpx.HTTPStatusError):
+        status_code = exc.response.status_code
+        return bool(status_code >= 500 or status_code == 429)
+    return True
+
+
+def _request_concentration_response(
+    *,
+    payload: dict[str, Any],
+    correlation_id: str,
+) -> LotusRiskConcentrationResponse:
+    attempts = _resolve_retry_attempts()
+    last_error: Exception | None = None
+    with httpx.Client(timeout=_resolve_timeout()) as client:
+        for attempt in range(1, attempts + 1):
+            try:
+                response = client.post(
+                    f"{_resolve_base_url()}{_CONCENTRATION_PATH}",
+                    json=payload,
+                    headers={"X-Correlation-Id": correlation_id},
+                )
+                response.raise_for_status()
+                body = cast(dict[str, Any], response.json())
+                concentration = cast(
+                    LotusRiskConcentrationResponse,
+                    LotusRiskConcentrationResponse.model_validate(body),
+                )
+                return concentration
+            except ValidationError as exc:
+                raise LotusRiskEnrichmentUnavailableError(
+                    "LOTUS_RISK_ENRICHMENT_UNAVAILABLE"
+                ) from exc
+            except ValueError as exc:
+                raise LotusRiskEnrichmentUnavailableError(
+                    "LOTUS_RISK_ENRICHMENT_UNAVAILABLE"
+                ) from exc
+            except httpx.HTTPError as exc:
+                last_error = exc
+                if attempt >= attempts or not _is_retryable_http_error(exc):
+                    break
+                time.sleep(0.1 * attempt)
+    raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE") from last_error
 
 
 def _as_float(value: Decimal | None) -> float | None:
@@ -213,18 +264,10 @@ def enrich_with_lotus_risk(
         proposal_result=proposal_result,
         resolved_as_of=resolved_as_of,
     )
-    try:
-        with httpx.Client(timeout=_resolve_timeout()) as client:
-            response = client.post(
-                f"{_resolve_base_url()}{_CONCENTRATION_PATH}",
-                json=payload,
-                headers={"X-Correlation-Id": correlation_id},
-            )
-            response.raise_for_status()
-            concentration = LotusRiskConcentrationResponse.model_validate(response.json())
-    except (httpx.HTTPError, ValueError, ValidationError) as exc:
-        raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE") from exc
-
+    concentration = _request_concentration_response(
+        payload=payload,
+        correlation_id=correlation_id,
+    )
     return _apply_concentration_response(
         proposal_result=proposal_result,
         concentration=concentration,

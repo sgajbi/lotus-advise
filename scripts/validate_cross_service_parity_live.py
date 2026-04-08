@@ -1282,6 +1282,12 @@ def _assert_persisted_read_surfaces(
         int(lineage["version_count"]) == current_version_no,
         f"{proposal_id}: lineage version count did not match latest version",
     )
+    lineage_versions = cast(list[dict[str, Any]], lineage["versions"])
+    _assert(
+        [int(item["version_no"]) for item in lineage_versions]
+        == list(range(1, current_version_no + 1)),
+        f"{proposal_id}: lineage version numbers were not contiguous and ordered",
+    )
     _assert(
         bool(lineage["lineage_complete"]) is True,
         f"{proposal_id}: lineage unexpectedly incomplete",
@@ -1304,6 +1310,27 @@ def _assert_persisted_read_surfaces(
         len(delivery_events) > 0 and len(timeline_events) >= len(delivery_events),
         f"{proposal_id}: delivery history unexpectedly empty or larger than timeline",
     )
+    created_event = next(
+        (event for event in timeline_events if event["event_type"] == "CREATED"),
+        None,
+    )
+    _assert(
+        isinstance(created_event, dict) and created_event["related_version_no"] == 1,
+        f"{proposal_id}: missing version-1 CREATED event in workflow timeline",
+    )
+    if current_version_no > 1:
+        new_version_events = [
+            event for event in timeline_events if event["event_type"] == "NEW_VERSION_CREATED"
+        ]
+        _assert(
+            len(new_version_events) == current_version_no - 1
+            and {
+                int(event["related_version_no"])
+                for event in cast(list[dict[str, Any]], new_version_events)
+            }
+            == set(range(2, current_version_no + 1)),
+            f"{proposal_id}: workflow timeline lost version-creation events",
+        )
     _assert(
         all(
             event["event_type"]
@@ -1322,8 +1349,20 @@ def _assert_persisted_read_surfaces(
         f"{proposal_id}: delivery history contained non-delivery events",
     )
     _assert(
+        all(int(event["related_version_no"]) == current_version_no for event in delivery_events),
+        f"{proposal_id}: delivery history leaked non-current version events",
+    )
+    _assert(
         int(approvals["approval_count"]) >= 2,
         f"{proposal_id}: approvals endpoint missing lifecycle approval records",
+    )
+    approval_rows = cast(list[dict[str, Any]], approvals["approvals"])
+    _assert(
+        all(
+            int(approval["related_version_no"]) == current_version_no
+            for approval in approval_rows
+        ),
+        f"{proposal_id}: approvals endpoint leaked non-current version approvals",
     )
     execution = cast(dict[str, Any], delivery_summary["execution"])
     _assert(
@@ -1358,6 +1397,30 @@ def _assert_persisted_read_surfaces(
         _assert(
             reporting is None,
             f"{proposal_id}: delivery summary unexpectedly contained reporting posture",
+        )
+    if current_version_no > 1:
+        first_version_replay = _get_json(
+            client,
+            url=(
+                f"{advise_base_url}/advisory/proposals/{proposal_id}/versions/1/replay-evidence"
+            ),
+            expected_status=200,
+        )
+        current_version_replay = _get_json(
+            client,
+            url=(
+                f"{advise_base_url}/advisory/proposals/{proposal_id}/versions/"
+                f"{current_version_no}/replay-evidence"
+            ),
+            expected_status=200,
+        )
+        _assert(
+            first_version_replay["subject"]["proposal_version_no"] == 1,
+            f"{proposal_id}: version-1 replay subject lost immutable version identity",
+        )
+        _assert(
+            current_version_replay["subject"]["proposal_version_no"] == current_version_no,
+            f"{proposal_id}: current-version replay subject lost version identity",
         )
 
 

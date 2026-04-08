@@ -144,8 +144,8 @@ class _FakeResponse:
 
 
 class _FakeClient:
-    def __init__(self, response: _FakeResponse) -> None:
-        self.response = response
+    def __init__(self, response: _FakeResponse | list[_FakeResponse]) -> None:
+        self.responses = response if isinstance(response, list) else [response]
         self.calls: list[dict[str, Any]] = []
 
     def __enter__(self) -> "_FakeClient":
@@ -156,7 +156,8 @@ class _FakeClient:
 
     def post(self, url: str, *, json: dict[str, Any], headers: dict[str, str]) -> _FakeResponse:
         self.calls.append({"url": url, "json": json, "headers": headers})
-        return self.response
+        index = min(len(self.calls) - 1, len(self.responses) - 1)
+        return self.responses[index]
 
 
 def test_enrich_with_lotus_risk_maps_proposal_to_simulation_concentration(monkeypatch):
@@ -251,6 +252,32 @@ def test_enrich_with_lotus_risk_rejects_upstream_http_failure(monkeypatch):
             proposal_result=_proposal_result(request),
             correlation_id="corr-risk-client",
         )
+
+
+def test_enrich_with_lotus_risk_retries_transient_upstream_5xx_then_succeeds(monkeypatch):
+    request = _request()
+    fake_client = _FakeClient(
+        [
+            _FakeResponse(status_code=502, payload={"detail": "temporary unavailable"}),
+            _FakeResponse(status_code=200, payload=_risk_response_payload()),
+        ]
+    )
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setenv("LOTUS_RISK_RETRY_ATTEMPTS", "2")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+    monkeypatch.setattr("src.integrations.lotus_risk.enrichment.time.sleep", lambda _: None)
+
+    enriched = enrich_with_lotus_risk(
+        request=request,
+        proposal_result=_proposal_result(request),
+        correlation_id="corr-risk-client",
+    )
+
+    assert len(fake_client.calls) == 2
+    assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
 
 
 def test_enrich_with_lotus_risk_rejects_contract_mismatch(monkeypatch):
