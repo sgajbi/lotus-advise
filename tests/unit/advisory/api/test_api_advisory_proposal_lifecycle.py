@@ -106,31 +106,43 @@ def _risk_enriched_result(result):  # noqa: ANN001
     return result
 
 
-def _promote_to_execution_ready(client: TestClient, proposal_id: str) -> None:
+def _promote_to_execution_ready(
+    client: TestClient,
+    proposal_id: str,
+    *,
+    related_version_no: int = 1,
+    route: str = "compliance",
+) -> None:
+    route_event_type = (
+        "SUBMITTED_FOR_COMPLIANCE_REVIEW"
+        if route == "compliance"
+        else "SUBMITTED_FOR_RISK_REVIEW"
+    )
+    route_state = "COMPLIANCE_REVIEW" if route == "compliance" else "RISK_REVIEW"
     submitted = client.post(
         f"/advisory/proposals/{proposal_id}/transitions",
         json={
-            "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
+            "event_type": route_event_type,
             "actor_id": "advisor_1",
             "expected_state": "DRAFT",
             "reason": {"comment": "needs compliance"},
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
         },
     )
     assert submitted.status_code == 200
 
-    compliance = client.post(
+    first_approval = client.post(
         f"/advisory/proposals/{proposal_id}/approvals",
         json={
-            "approval_type": "COMPLIANCE",
+            "approval_type": "COMPLIANCE" if route == "compliance" else "RISK",
             "approved": True,
-            "actor_id": "compliance_user",
-            "expected_state": "COMPLIANCE_REVIEW",
+            "actor_id": "compliance_user" if route == "compliance" else "risk_user",
+            "expected_state": route_state,
             "details": {"comment": "ok"},
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
         },
     )
-    assert compliance.status_code == 200
+    assert first_approval.status_code == 200
 
     consent = client.post(
         f"/advisory/proposals/{proposal_id}/approvals",
@@ -140,7 +152,7 @@ def _promote_to_execution_ready(client: TestClient, proposal_id: str) -> None:
             "actor_id": "client_1",
             "expected_state": "AWAITING_CLIENT_CONSENT",
             "details": {"channel": "IN_PERSON"},
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
         },
     )
     assert consent.status_code == 200
@@ -2140,6 +2152,50 @@ def test_new_version_requires_fresh_approvals_before_execution_handoff():
         assert handoff.status_code == 409
         assert "STATE_CONFLICT" in handoff.json()["detail"]
         assert "expected_state mismatch" in handoff.json()["detail"]
+
+
+def test_mixed_approval_routes_remain_version_scoped():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-version-mixed-routes")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        _promote_to_execution_ready(client, proposal_id, route="compliance")
+
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "simulate_request": _base_create_payload()["simulate_request"],
+            },
+        )
+        assert versioned.status_code == 200
+
+        _promote_to_execution_ready(client, proposal_id, related_version_no=2, route="risk")
+
+        approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+
+    assert approvals.status_code == 200
+    assert timeline.status_code == 200
+
+    approvals_body = approvals.json()
+    timeline_body = timeline.json()
+
+    assert {approval["approval_type"] for approval in approvals_body["approvals"]} == {
+        "COMPLIANCE",
+        "RISK",
+        "CLIENT_CONSENT",
+    }
+    assert {approval["related_version_no"] for approval in approvals_body["approvals"]} == {1, 2}
+    assert any(
+        event["event_type"] == "COMPLIANCE_APPROVED" and event["related_version_no"] == 1
+        for event in timeline_body["events"]
+    )
+    assert any(
+        event["event_type"] == "RISK_APPROVED" and event["related_version_no"] == 2
+        for event in timeline_body["events"]
+    )
 
 
 def test_async_replay_evidence_includes_persisted_delivery_summary(monkeypatch):

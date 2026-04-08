@@ -7,7 +7,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import httpx
 
@@ -763,14 +763,21 @@ def _promote_to_execution_ready(
     advise_base_url: str,
     proposal_id: str,
     related_version_no: int,
+    route: Literal["risk", "compliance"] = "risk",
 ) -> None:
     current_state = "DRAFT"
     if current_state == "DRAFT":
+        route_event_type = (
+            "SUBMITTED_FOR_RISK_REVIEW"
+            if route == "risk"
+            else "SUBMITTED_FOR_COMPLIANCE_REVIEW"
+        )
+        route_target_state = "RISK_REVIEW" if route == "risk" else "COMPLIANCE_REVIEW"
         transition = _post_transition(
             client,
             advise_base_url=advise_base_url,
             proposal_id=proposal_id,
-            event_type="SUBMITTED_FOR_RISK_REVIEW",
+            event_type=route_event_type,
             actor_id="live-parity-validator",
             expected_state="DRAFT",
             related_version_no=related_version_no,
@@ -778,8 +785,8 @@ def _promote_to_execution_ready(
         )
         current_state = str(transition["current_state"])
         _assert(
-            current_state == "RISK_REVIEW",
-            f"{proposal_id}: unexpected state after risk submission {current_state}",
+            current_state == route_target_state,
+            f"{proposal_id}: unexpected state after {route} submission {current_state}",
         )
     if current_state == "RISK_REVIEW":
         approval = _post_approval(
@@ -820,6 +827,80 @@ def _promote_to_execution_ready(
     _assert(
         current_state == "EXECUTION_READY",
         f"{proposal_id}: could not promote proposal to execution ready, final={current_state}",
+    )
+
+
+def _assert_mixed_approval_routes_remain_version_scoped(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    scenario: PortfolioParityScenario,
+) -> None:
+    created = _create_stateful_proposal(
+        client,
+        advise_base_url=advise_base_url,
+        scenario=scenario,
+        created_by="live-parity-validator-route-scope",
+    )
+    proposal_id = str(created["proposal"]["proposal_id"])
+    _promote_to_execution_ready(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=proposal_id,
+        related_version_no=1,
+        route="compliance",
+    )
+
+    version_created = _create_stateful_version(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=proposal_id,
+        scenario=scenario,
+        created_by="live-parity-validator-route-scope-version",
+        expected_current_version_no=1,
+    )
+    _assert(
+        version_created["proposal"]["current_state"] == "DRAFT",
+        f"{proposal_id}: mixed-route scope version did not reset to DRAFT",
+    )
+    _promote_to_execution_ready(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=proposal_id,
+        related_version_no=2,
+        route="risk",
+    )
+    approvals = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/approvals",
+        expected_status=200,
+    )
+    timeline = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/workflow-events",
+        expected_status=200,
+    )
+    approval_rows = cast(list[dict[str, Any]], approvals["approvals"])
+    timeline_events = cast(list[dict[str, Any]], timeline["events"])
+    _assert(
+        {str(approval["approval_type"]) for approval in approval_rows}
+        == {"COMPLIANCE", "RISK", "CLIENT_CONSENT"},
+        f"{proposal_id}: approvals endpoint lost mixed-route approval lineage",
+    )
+    _assert(
+        {int(approval["related_version_no"]) for approval in approval_rows} == {1, 2},
+        f"{proposal_id}: approvals endpoint lost mixed-route version lineage",
+    )
+    _assert(
+        any(
+            event["event_type"] == "COMPLIANCE_APPROVED" and int(event["related_version_no"]) == 1
+            for event in timeline_events
+        )
+        and any(
+            event["event_type"] == "RISK_APPROVED" and int(event["related_version_no"]) == 2
+            for event in timeline_events
+        ),
+        f"{proposal_id}: workflow timeline lost mixed-route approval lineage",
     )
 
 
@@ -1760,6 +1841,11 @@ def validate_live_cross_service_parity(
         scenario=complete,
     )
         _assert_new_version_requires_fresh_approvals(
+            client,
+            advise_base_url=advise_base_url,
+            scenario=complete,
+        )
+        _assert_mixed_approval_routes_remain_version_scoped(
             client,
             advise_base_url=advise_base_url,
             scenario=complete,

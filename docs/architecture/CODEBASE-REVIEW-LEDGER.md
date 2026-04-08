@@ -480,3 +480,31 @@
   - If the product later needs explicit approval-carry-forward semantics, model that as a governed
     workflow decision with a dedicated event and audit trail instead of inferring it from previous
     version state.
+
+## LA-REV-019
+
+- Scope: Mixed approval-route lineage across proposal versions
+- Pattern: workflow lineage hardening / validation gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The proposal workflow supports both compliance-first and risk-first approval routes, but
+  the validation program had only been exercising one route at a time. That left a gap around
+  mixed-version histories where version `1` follows one route and version `2` follows another.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now parameterizes the promotion helper so the
+    live validator can exercise both approval routes intentionally.
+  - The live validator now proves a mixed lineage case where:
+    - version `1` reaches `EXECUTION_READY` through `COMPLIANCE_REVIEW`,
+    - version `2` reaches `EXECUTION_READY` through `RISK_REVIEW`,
+    - workflow timeline retains `COMPLIANCE_APPROVED` on version `1` and `RISK_APPROVED` on
+      version `2`,
+    - the approvals endpoint preserves the full cross-version approval audit trail.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves the same mixed
+    route lineage contract in a deterministic unit test.
+- Consequence:
+  - The workflow validation program now covers both supported approval branches in one versioned
+    proposal lineage, reducing the risk of route-specific regressions that only appear after a new
+    version is created.
+- Follow-Up:
+  - If future approval policies add route-specific metadata or conditional approvals, keep them in
+    the same version-scoped lineage model rather than introducing route-specific side stores.
