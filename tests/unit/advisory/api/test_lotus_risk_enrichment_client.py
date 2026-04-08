@@ -362,6 +362,36 @@ def test_enrich_with_lotus_risk_accepts_unavailable_issuer_descriptors(monkeypat
     }
 
 
+def test_enrich_with_lotus_risk_tolerates_additive_upstream_fields(monkeypatch):
+    request = _request()
+    payload = _risk_response_payload()
+    payload["risk_proxy"]["new_proxy_field"] = 42.0
+    payload["single_position_concentration"]["new_position_field"] = "ignored"
+    payload["issuer_concentration"]["new_issuer_field"] = {"status": "ignored"}
+    payload["metadata"]["new_metadata_field"] = {"component": "upstream-addition"}
+    payload["valuation_context"]["new_context_field"] = True
+    payload["new_top_level_field"] = "ignored"
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=payload))
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    enriched = enrich_with_lotus_risk(
+        request=request,
+        proposal_result=_proposal_result(request),
+        correlation_id="corr-risk-client",
+    )
+
+    assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
+    assert enriched.explanation["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert enriched.explanation["risk_lens"]["metadata"]["new_metadata_field"] == {
+        "component": "upstream-addition"
+    }
+    assert enriched.explanation["risk_lens"]["valuation_context"]["new_context_field"] is True
+
+
 def test_enrich_with_lotus_risk_only_sends_issuer_mappings_for_changed_instruments(monkeypatch):
     request = _request()
     request.proposed_trades = []
