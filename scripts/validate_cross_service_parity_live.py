@@ -57,6 +57,9 @@ class LiveParityResult:
     lifecycle_portfolio: str
     lifecycle_latest_version_no: int
     lifecycle_current_state: str
+    async_lifecycle_portfolio: str
+    async_lifecycle_latest_version_no: int
+    async_lifecycle_current_state: str
     execution_handoff_status: str
     execution_terminal_status: str
     report_status: str
@@ -1025,8 +1028,9 @@ def _assert_lifecycle_and_delivery_flow(
         _assert_persisted_read_surfaces(
             client,
             advise_base_url=advise_base_url,
-            scenario=scenario,
             proposal_id=proposal_id,
+            expected_portfolio_id=scenario.portfolio_id,
+            created_by_filter="live-parity-validator",
             current_version_no=related_version_no,
             expected_state="EXECUTED",
             expected_report_status=report_body["status"],
@@ -1054,8 +1058,9 @@ def _assert_lifecycle_and_delivery_flow(
     _assert_persisted_read_surfaces(
         client,
         advise_base_url=advise_base_url,
-        scenario=scenario,
         proposal_id=proposal_id,
+        expected_portfolio_id=scenario.portfolio_id,
+        created_by_filter="live-parity-validator",
         current_version_no=related_version_no,
         expected_state="EXECUTED",
         expected_report_status="UNAVAILABLE",
@@ -1067,6 +1072,149 @@ def _assert_lifecycle_and_delivery_flow(
         handoff["handoff_status"],
         "UNAVAILABLE",
     )
+
+
+def _assert_async_lifecycle_read_surfaces(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    scenario: PortfolioParityScenario,
+) -> tuple[str, int, str]:
+    async_created = _submit_async_create(
+        client,
+        advise_base_url=advise_base_url,
+        scenario=scenario,
+        created_by="live-parity-validator-async-lifecycle",
+    )
+    async_create_result = _wait_for_async_success(
+        client,
+        advise_base_url=advise_base_url,
+        operation_id=str(async_created["operation_id"]),
+        expected_type="CREATE_PROPOSAL",
+    )
+    _assert_async_operation_surfaces(
+        client,
+        advise_base_url=advise_base_url,
+        accepted_body=async_created,
+        expected_type="CREATE_PROPOSAL",
+        result_body=async_create_result,
+    )
+    async_proposal_id = str(async_create_result["proposal"]["proposal_id"])
+    async_portfolio_id = str(async_create_result["proposal"]["portfolio_id"])
+    async_version_no = int(async_create_result["version"]["version_no"])
+
+    async_version_created = _submit_async_version(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=async_proposal_id,
+        scenario=scenario,
+        created_by="live-parity-validator-async-lifecycle-version",
+        expected_current_version_no=async_version_no,
+    )
+    async_version_result = _wait_for_async_success(
+        client,
+        advise_base_url=advise_base_url,
+        operation_id=str(async_version_created["operation_id"]),
+        expected_type="CREATE_PROPOSAL_VERSION",
+    )
+    _assert_async_operation_surfaces(
+        client,
+        advise_base_url=advise_base_url,
+        accepted_body=async_version_created,
+        expected_type="CREATE_PROPOSAL_VERSION",
+        result_body=async_version_result,
+    )
+    current_version_no = int(async_version_result["proposal"]["current_version_no"])
+    _assert(
+        current_version_no == async_version_no + 1,
+        f"{async_proposal_id}: async lifecycle version did not increment current_version_no",
+    )
+    _promote_to_execution_ready(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=async_proposal_id,
+        related_version_no=current_version_no,
+    )
+    handoff = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{async_proposal_id}/execution-handoffs",
+        expected_status=200,
+        json_body={
+            "actor_id": "ops_async_001",
+            "execution_provider": "lotus-manage",
+            "expected_state": "EXECUTION_READY",
+            "related_version_no": current_version_no,
+            "external_request_id": f"oms_async_req_{uuid.uuid4().hex[:10]}",
+            "notes": {"channel": "OMS", "priority": "STANDARD"},
+        },
+        headers={"Idempotency-Key": f"live-async-lifecycle-handoff-{uuid.uuid4().hex}"},
+    )
+    _assert(
+        handoff["handoff_status"] == "REQUESTED",
+        f"{async_proposal_id}: async lifecycle handoff did not start in REQUESTED",
+    )
+    executed = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{async_proposal_id}/execution-updates",
+        expected_status=200,
+        json_body={
+            "update_id": f"async_exec_done_{uuid.uuid4().hex[:10]}",
+            "actor_id": "lotus-manage",
+            "execution_request_id": handoff["execution_request_id"],
+            "execution_provider": "lotus-manage",
+            "update_status": "EXECUTED",
+            "related_version_no": current_version_no,
+            "external_execution_id": f"oms_async_fill_{uuid.uuid4().hex[:10]}",
+            "occurred_at": _utc_iso_after(seconds=2),
+            "details": {"filled_quantity": "100"},
+        },
+    )
+    _assert(
+        executed["handoff_status"] == "EXECUTED",
+        f"{async_proposal_id}: async lifecycle execution did not reach EXECUTED",
+    )
+    capabilities = _get_json(
+        client,
+        url=f"{advise_base_url}/platform/capabilities",
+        expected_status=200,
+    )
+    report_feature = _feature_by_key(capabilities, "advisory.proposals.reporting")
+    report_response = client.post(
+        f"{advise_base_url}/advisory/proposals/{async_proposal_id}/report-requests",
+        json={
+            "report_type": "CLIENT_PROPOSAL_SUMMARY",
+            "requested_by": "advisor_async_1",
+            "related_version_no": current_version_no,
+            "include_execution_summary": True,
+        },
+    )
+    if report_feature["operational_ready"]:
+        _assert(
+            report_response.status_code == 200,
+            (
+                f"{async_proposal_id}: expected lotus-report ready path for async lifecycle, "
+                f"got {report_response.status_code} body={report_response.text}"
+            ),
+        )
+    else:
+        _assert(
+            report_response.status_code == 503,
+            (
+                f"{async_proposal_id}: expected lotus-report degraded 503 for async lifecycle, "
+                f"got {report_response.status_code} body={report_response.text}"
+            ),
+        )
+    _assert_persisted_read_surfaces(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=async_proposal_id,
+        expected_portfolio_id=async_portfolio_id,
+        created_by_filter="live-parity-validator-async-lifecycle",
+        current_version_no=current_version_no,
+        expected_state="EXECUTED",
+        expected_report_status="READY" if report_feature["operational_ready"] else "UNAVAILABLE",
+    )
+    return async_portfolio_id, current_version_no, "EXECUTED"
 
 
 def _assert_workspace_flow(
@@ -1185,18 +1333,22 @@ def _assert_persisted_read_surfaces(
     client: httpx.Client,
     *,
     advise_base_url: str,
-    scenario: PortfolioParityScenario,
     proposal_id: str,
+    expected_portfolio_id: str,
+    created_by_filter: str | None,
     current_version_no: int,
     expected_state: str,
     expected_report_status: str,
 ) -> None:
+    list_query = (
+        f"{advise_base_url}/advisory/proposals"
+        f"?portfolio_id={expected_portfolio_id}&limit=100"
+    )
+    if created_by_filter:
+        list_query += f"&created_by={created_by_filter}"
     listed = _get_json(
         client,
-        url=(
-            f"{advise_base_url}/advisory/proposals"
-            f"?portfolio_id={scenario.portfolio_id}&created_by=live-parity-validator&limit=100"
-        ),
+        url=list_query,
         expected_status=200,
     )
     items = cast(list[dict[str, Any]], listed["items"])
@@ -1206,7 +1358,7 @@ def _assert_persisted_read_surfaces(
     )
     _assert(
         isinstance(list_item, dict),
-        f"{proposal_id}: proposal missing from list response for {scenario.portfolio_id}",
+        f"{proposal_id}: proposal missing from list response for {expected_portfolio_id}",
     )
     list_item_dict = cast(dict[str, Any], list_item)
 
@@ -1252,6 +1404,13 @@ def _assert_persisted_read_surfaces(
     _assert(
         str(list_item_dict["proposal_id"]) == str(detail["proposal"]["proposal_id"]) == proposal_id,
         f"{proposal_id}: list/detail proposal ids diverged",
+    )
+    _assert(
+        str(detail["proposal"]["portfolio_id"]) == expected_portfolio_id,
+        (
+            f"{proposal_id}: detail endpoint returned wrong portfolio "
+            f"{detail['proposal']['portfolio_id']}"
+        ),
     )
     _assert(
         int(list_item_dict["current_version_no"])
@@ -1532,6 +1691,15 @@ def validate_live_cross_service_parity(
             advise_base_url=advise_base_url,
             scenario=complete,
         )
+        (
+            async_lifecycle_portfolio,
+            async_lifecycle_latest_version_no,
+            async_lifecycle_current_state,
+        ) = _assert_async_lifecycle_read_surfaces(
+            client,
+            advise_base_url=advise_base_url,
+            scenario=complete,
+        )
         _assert_workspace_flow(
             client,
             advise_base_url=advise_base_url,
@@ -1548,6 +1716,9 @@ def validate_live_cross_service_parity(
         lifecycle_portfolio=lifecycle_portfolio,
         lifecycle_latest_version_no=lifecycle_latest_version_no,
         lifecycle_current_state=lifecycle_current_state,
+        async_lifecycle_portfolio=async_lifecycle_portfolio,
+        async_lifecycle_latest_version_no=async_lifecycle_latest_version_no,
+        async_lifecycle_current_state=async_lifecycle_current_state,
         execution_handoff_status=handoff_status,
         execution_terminal_status="EXECUTED",
         report_status=report_status,

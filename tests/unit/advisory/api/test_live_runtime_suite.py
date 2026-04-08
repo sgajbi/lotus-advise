@@ -26,6 +26,9 @@ def test_live_runtime_suite_runs_parity_before_degraded(monkeypatch):
             lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_latest_version_no=2,
             lifecycle_current_state="EXECUTED",
+            async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
+            async_lifecycle_latest_version_no=2,
+            async_lifecycle_current_state="EXECUTED",
             execution_handoff_status="REQUESTED",
             execution_terminal_status="EXECUTED",
             report_status="READY",
@@ -71,6 +74,9 @@ def test_live_runtime_suite_can_skip_degraded(monkeypatch):
             lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_latest_version_no=2,
             lifecycle_current_state="EXECUTED",
+            async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
+            async_lifecycle_latest_version_no=2,
+            async_lifecycle_current_state="EXECUTED",
             execution_handoff_status="REQUESTED",
             execution_terminal_status="EXECUTED",
             report_status="READY",
@@ -108,6 +114,9 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
             lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_latest_version_no=2,
             lifecycle_current_state="EXECUTED",
+            async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
+            async_lifecycle_latest_version_no=2,
+            async_lifecycle_current_state="EXECUTED",
             execution_handoff_status="REQUESTED",
             execution_terminal_status="EXECUTED",
             report_status="READY",
@@ -134,6 +143,7 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
     payload = _result_to_json_dict(result)
 
     assert payload["parity"]["complete_issuer_portfolio"] == "PB_SG_GLOBAL_BAL_001"
+    assert payload["parity"]["async_lifecycle_current_state"] == "EXECUTED"
     assert payload["degraded"]["core_degraded_reason"] == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
 
     output_path = tmp_path / "artifacts" / "live-runtime-suite.json"
@@ -155,6 +165,9 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
             lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
             lifecycle_latest_version_no=2,
             lifecycle_current_state="EXECUTED",
+            async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
+            async_lifecycle_latest_version_no=2,
+            async_lifecycle_current_state="EXECUTED",
             execution_handoff_status="REQUESTED",
             execution_terminal_status="EXECUTED",
             report_status="READY",
@@ -190,3 +203,4 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert summary_text == _build_markdown_summary(result)
     assert "## Parity" in summary_text
     assert "## Degraded Runtime" in summary_text
+    assert "async lifecycle current state" in summary_text

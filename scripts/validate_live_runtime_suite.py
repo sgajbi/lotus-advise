@@ -56,6 +56,12 @@ def _build_markdown_summary(result: LiveRuntimeSuiteResult) -> str:
             f"- lifecycle portfolio: `{result.parity.lifecycle_portfolio}`",
             f"- lifecycle current state: `{result.parity.lifecycle_current_state}`",
             f"- lifecycle latest version: `{result.parity.lifecycle_latest_version_no}`",
+            f"- async lifecycle portfolio: `{result.parity.async_lifecycle_portfolio}`",
+            f"- async lifecycle current state: `{result.parity.async_lifecycle_current_state}`",
+            (
+                "- async lifecycle latest version: "
+                f"`{result.parity.async_lifecycle_latest_version_no}`"
+            ),
             f"- execution handoff status: `{result.parity.execution_handoff_status}`",
             f"- execution terminal status: `{result.parity.execution_terminal_status}`",
             f"- report status: `{result.parity.report_status}`",
