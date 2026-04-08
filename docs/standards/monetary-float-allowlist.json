@@ -1,8 +1,26 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-04-07T13:33:08Z",
+  "generated_at": "2026-04-08T01:55:26Z",
   "allowlist": [
+    {
+      "finding": "scripts/validate_cross_service_parity_live.py:1748:any(abs(float(risk_proxy[key])) > 0.0 for key in (\"hhi_current\", \"hhi_proposed\"))",
+      "justification": "Temporary approved float usage; convert to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-10-05"
+    },
+    {
+      "finding": "scripts/validate_cross_service_parity_live.py:1749:and abs(float(risk_proxy[\"hhi_delta\"])) > 0.0,",
+      "justification": "Temporary approved float usage; convert to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-10-05"
+    },
+    {
+      "finding": "scripts/validate_cross_service_parity_live.py:378:change[\"amount\"] = float(notional[\"amount\"])",
+      "justification": "Temporary approved float usage; convert to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-10-05"
+    },
     {
       "finding": "src/core/target_generation.py:210:w_model = np.array([float(model_weights.get(i_id, Decimal(\"0.0\"))) for i_id in tradeable_ids])",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
@@ -34,10 +52,10 @@
       "review_by": "2026-10-04"
     },
     {
-      "finding": "src/integrations/lotus_core/stateful_context.py:66:return float(",
+      "finding": "src/integrations/lotus_core/stateful_context.py:68:return float(",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
       "finding": "src/integrations/lotus_core/timed_cache.py:35:self._values: OrderedDict[K, tuple[float, V]] = OrderedDict()",
@@ -46,70 +64,82 @@
       "review_by": "2026-10-04"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:28:top_position_weight_current: float",
+      "finding": "src/integrations/lotus_risk/enrichment.py:144:def _as_float(value: Decimal | None) -> float | None:",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:29:top_position_weight_proposed: float",
+      "finding": "src/integrations/lotus_risk/enrichment.py:147:return float(value)",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:30:top_position_weight_delta: float",
+      "finding": "src/integrations/lotus_risk/enrichment.py:31:weight: float",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:31:top_n_cumulative_weight_current: float",
+      "finding": "src/integrations/lotus_risk/enrichment.py:37:weight: float",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:32:top_n_cumulative_weight_proposed: float",
+      "finding": "src/integrations/lotus_risk/enrichment.py:41:top_position_weight_current: float",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:33:top_n_cumulative_weight_delta: float",
+      "finding": "src/integrations/lotus_risk/enrichment.py:42:top_position_weight_proposed: float",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:41:top_issuer_weight_current: float",
+      "finding": "src/integrations/lotus_risk/enrichment.py:43:top_position_weight_delta: float",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:42:top_issuer_weight_proposed: float",
+      "finding": "src/integrations/lotus_risk/enrichment.py:44:top_n_cumulative_weight_current: float",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:43:top_issuer_weight_delta: float",
+      "finding": "src/integrations/lotus_risk/enrichment.py:45:top_n_cumulative_weight_proposed: float",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:73:def _as_float(value: Decimal | None) -> float | None:",
+      "finding": "src/integrations/lotus_risk/enrichment.py:46:top_n_cumulative_weight_delta: float",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
     },
     {
-      "finding": "src/integrations/lotus_risk/enrichment.py:76:return float(value)",
+      "finding": "src/integrations/lotus_risk/enrichment.py:56:top_issuer_weight_current: float",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-05"
+    },
+    {
+      "finding": "src/integrations/lotus_risk/enrichment.py:57:top_issuer_weight_proposed: float",
+      "justification": "Temporary approved float usage; convert to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-10-05"
+    },
+    {
+      "finding": "src/integrations/lotus_risk/enrichment.py:58:top_issuer_weight_delta: float",
+      "justification": "Temporary approved float usage; convert to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-10-05"
     }
   ]
 }
