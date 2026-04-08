@@ -3,9 +3,11 @@ import json
 from scripts.validate_cross_service_parity_live import LiveParityResult
 from scripts.validate_degraded_runtime_live import DegradedRuntimeResult
 from scripts.validate_live_runtime_suite import (
+    _build_markdown_summary,
     _result_to_json_dict,
     validate_live_runtime_suite,
     write_live_runtime_suite_artifact,
+    write_live_runtime_suite_bundle,
 )
 
 
@@ -139,3 +141,52 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
 
     written = json.loads(output_path.read_text(encoding="utf-8"))
     assert written == payload
+
+
+def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_path):
+    def _parity():
+        return LiveParityResult(
+            complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
+            degraded_issuer_portfolio="DEMO_ADV_USD_001",
+            degraded_issuer_coverage_status="unavailable",
+            cold_duration_ms=100.0,
+            warm_duration_ms=90.0,
+            workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
+            lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
+            lifecycle_latest_version_no=2,
+            lifecycle_current_state="EXECUTED",
+            execution_handoff_status="REQUESTED",
+            execution_terminal_status="EXECUTED",
+            report_status="READY",
+        )
+
+    def _degraded():
+        return DegradedRuntimeResult(
+            risk_drill_portfolio="PB_SG_GLOBAL_BAL_001",
+            risk_degraded_reason="LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
+            core_degraded_reason="LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
+            fallback_mode="NONE",
+        )
+
+    monkeypatch.setattr(
+        "scripts.validate_live_runtime_suite.validate_live_cross_service_parity",
+        _parity,
+    )
+    monkeypatch.setattr(
+        "scripts.validate_live_runtime_suite.validate_live_degraded_runtime",
+        _degraded,
+    )
+
+    result = validate_live_runtime_suite()
+    bundle_dir = write_live_runtime_suite_bundle(result, output_dir=str(tmp_path))
+
+    assert bundle_dir is not None
+    result_json = bundle_dir / "result.json"
+    summary_md = bundle_dir / "summary.md"
+    assert result_json.exists()
+    assert summary_md.exists()
+    assert json.loads(result_json.read_text(encoding="utf-8")) == _result_to_json_dict(result)
+    summary_text = summary_md.read_text(encoding="utf-8")
+    assert summary_text == _build_markdown_summary(result)
+    assert "## Parity" in summary_text
+    assert "## Degraded Runtime" in summary_text
