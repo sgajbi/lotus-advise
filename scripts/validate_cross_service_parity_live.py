@@ -2,17 +2,26 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Literal, cast
 
 import httpx
 
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from src.core.common.canonical import hash_canonical_payload
+from src.core.models import ProposalSimulateRequest, ProposedTrade
+
 _DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
 _DEFAULT_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
+_DEFAULT_CORE_CONTROL_BASE_URL = "http://core-control.dev.lotus"
 _DEFAULT_RISK_BASE_URL = "http://risk.dev.lotus"
 _DEFAULT_PORTFOLIO_CANDIDATES = (
     "DEMO_ADV_USD_001",
@@ -1709,6 +1718,125 @@ def _assert_changed_state_workspace_risk_parity(
     return security_id
 
 
+def _build_changed_state_simulate_request(
+    *,
+    portfolio_id: str,
+    as_of_date: str,
+    security_id: str,
+    core_query_base_url: str,
+    core_control_base_url: str,
+) -> ProposalSimulateRequest:
+    import src.api.main as api_main
+    from src.core.workspace.models import WorkspaceStatefulInput
+    from src.integrations.lotus_core.stateful_context import (
+        enrich_stateful_simulate_request_for_trade_drafts,
+    )
+
+    os.environ["LOTUS_CORE_QUERY_BASE_URL"] = core_query_base_url
+    os.environ["LOTUS_CORE_BASE_URL"] = core_control_base_url
+    resolved_stateful_context = api_main.resolve_lotus_core_advisory_context(
+        WorkspaceStatefulInput(portfolio_id=portfolio_id, as_of=as_of_date)
+    )
+    base_request = resolved_stateful_context.simulate_request.model_copy(deep=True)
+    base_request.proposed_trades = [
+        ProposedTrade(
+            intent_type="SECURITY_TRADE",
+            side="BUY",
+            instrument_id=security_id,
+            quantity=Decimal("1"),
+        )
+    ]
+    return enrich_stateful_simulate_request_for_trade_drafts(
+        simulate_request=base_request,
+        as_of=resolved_stateful_context.resolved_context.as_of,
+    )
+
+
+def _assert_changed_state_workspace_allocation_parity(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    core_query_base_url: str,
+    core_control_base_url: str,
+    scenario: PortfolioParityScenario,
+    security_id: str,
+) -> None:
+    create_body = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces",
+        expected_status=201,
+        json_body={
+            "workspace_name": f"Live allocation delta {scenario.portfolio_id}",
+            "created_by": "live-parity-validator",
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": scenario.portfolio_id,
+                "as_of": scenario.as_of_date,
+            },
+        },
+    )
+    workspace_id = str(create_body["workspace"]["workspace_id"])
+    drafted = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces/{workspace_id}/draft-actions",
+        expected_status=200,
+        json_body={
+            "actor_id": "live-parity-validator",
+            "action_type": "ADD_TRADE",
+            "trade": {
+                "intent_type": "SECURITY_TRADE",
+                "side": "BUY",
+                "instrument_id": security_id,
+                "quantity": "1",
+            },
+        },
+    )
+    latest_result = cast(dict[str, Any], drafted["workspace"]["latest_proposal_result"])
+    direct_request = _build_changed_state_simulate_request(
+        portfolio_id=scenario.portfolio_id,
+        as_of_date=scenario.as_of_date,
+        security_id=security_id,
+        core_query_base_url=core_query_base_url,
+        core_control_base_url=core_control_base_url,
+    )
+    direct_response = client.post(
+        f"{core_control_base_url}/integration/advisory/proposals/simulate-execution",
+        json=direct_request.model_dump(mode="json"),
+        headers={
+            "X-Correlation-Id": f"live-direct-core-allocation-{uuid.uuid4().hex}",
+            "X-Request-Hash": cast(
+                str, hash_canonical_payload(direct_request.model_dump(mode="json"))
+            ),
+            "Idempotency-Key": f"live-direct-core-allocation-{uuid.uuid4().hex}",
+            "X-Lotus-Contract-Version": "advisory-simulation.v1",
+        },
+    )
+    _assert(
+        direct_response.status_code == 200,
+        (
+            f"{scenario.portfolio_id}: direct lotus-core changed-state simulation failed "
+            f"with {direct_response.status_code}, body={direct_response.text}"
+        ),
+    )
+    direct_payload = cast(dict[str, Any], direct_response.json())
+    _assert(
+        _normalize_allocation_views(direct_payload["before"]["allocation_views"])
+        == _normalize_allocation_views(latest_result["before"]["allocation_views"]),
+        (
+            f"{scenario.portfolio_id}: changed-state workspace before allocation diverged "
+            "from direct lotus-core simulation"
+        ),
+    )
+    _assert(
+        _normalize_allocation_views(direct_payload["after_simulated"]["allocation_views"])
+        == _normalize_allocation_views(latest_result["after_simulated"]["allocation_views"]),
+        (
+            f"{scenario.portfolio_id}: changed-state workspace after allocation diverged "
+            "from direct lotus-core simulation"
+        ),
+    )
+
+
 def _assert_persisted_read_surfaces(
     client: httpx.Client,
     *,
@@ -1967,6 +2095,7 @@ def validate_live_cross_service_parity(
     *,
     advise_base_url: str | None = None,
     core_query_base_url: str | None = None,
+    core_control_base_url: str | None = None,
     risk_base_url: str | None = None,
     candidate_portfolios: tuple[str, ...] | None = None,
 ) -> LiveParityResult:
@@ -1977,6 +2106,9 @@ def validate_live_cross_service_parity(
         core_query_base_url
         or os.getenv("LOTUS_CORE_QUERY_BASE_URL")
         or _DEFAULT_CORE_QUERY_BASE_URL
+    ).rstrip("/")
+    core_control_base_url = (
+        core_control_base_url or os.getenv("LOTUS_CORE_BASE_URL") or _DEFAULT_CORE_CONTROL_BASE_URL
     ).rstrip("/")
     risk_base_url = (
         risk_base_url or os.getenv("LOTUS_RISK_BASE_URL") or _DEFAULT_RISK_BASE_URL
@@ -2102,6 +2234,14 @@ def validate_live_cross_service_parity(
             risk_base_url=risk_base_url,
             scenario=complete,
         )
+        _assert_changed_state_workspace_allocation_parity(
+            client,
+            advise_base_url=advise_base_url,
+            core_query_base_url=core_query_base_url,
+            core_control_base_url=core_control_base_url,
+            scenario=complete,
+            security_id=changed_state_security_id,
+        )
 
     return LiveParityResult(
         complete_issuer_portfolio=complete.portfolio_id,
@@ -2133,6 +2273,7 @@ def main() -> None:
     )
     parser.add_argument("--advise-base-url", default=None)
     parser.add_argument("--core-query-base-url", default=None)
+    parser.add_argument("--core-control-base-url", default=None)
     parser.add_argument("--risk-base-url", default=None)
     parser.add_argument(
         "--candidate-portfolio",
@@ -2145,6 +2286,7 @@ def main() -> None:
     result = validate_live_cross_service_parity(
         advise_base_url=args.advise_base_url,
         core_query_base_url=args.core_query_base_url,
+        core_control_base_url=args.core_control_base_url,
         risk_base_url=args.risk_base_url,
         candidate_portfolios=(
             tuple(args.candidate_portfolios) if args.candidate_portfolios else None

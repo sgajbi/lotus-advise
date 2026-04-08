@@ -538,3 +538,33 @@
   - If delivery workflows later support partial execution on multiple versions in one lineage,
     promote delivery projection rules into an explicit documented contract rather than inferring them
     only from workflow events.
+
+## LA-REV-021
+
+- Scope: Changed-state cross-service proposal parity
+- Pattern: live validation gap / canonical integration hardening
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The live validation program already proved no-op before-state parity and changed-state
+  risk parity, but it still lacked an executable proof that a real proposal delta preserves
+  canonical Lotus Core after-state allocation views as well as Lotus Risk concentration.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now proves a changed-state path where the
+    validator:
+    - selects a real held non-cash security from live Lotus Core positions,
+    - creates a stateful workspace and adds a draft trade,
+    - compares the workspace `risk_lens` to direct `lotus-risk` concentration using the same
+      effective `simulation_changes`,
+    - compares workspace before/after allocation views to direct Lotus Core
+      `/integration/advisory/proposals/simulate-execution` using the same resolved stateful request.
+  - `tests/unit/advisory/api/test_live_cross_service_parity.py` now locks the helper contracts for:
+    - selecting a real changed-state security from live-style positions,
+    - deriving Lotus Risk `simulation_changes` from proposal intents without drift.
+- Consequence:
+  - The live integration program now covers the core production question for proposal deltas:
+    when `lotus-advise` mutates a live portfolio through a real draft trade, both allocation and
+    concentration remain aligned with their canonical upstream authorities.
+- Follow-Up:
+  - If future proposal deltas add more complex change types such as notional-only trades, FX, or
+    cash flows, extend the changed-state live parity drill with those cases instead of introducing a
+    separate validation path.
