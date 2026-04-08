@@ -422,3 +422,30 @@
   - If dependency probing later becomes too expensive for additional upstreams, keep the shared
     production-only seam but add per-dependency caching rather than reverting to config-only
     readiness.
+
+## LA-REV-017
+
+- Scope: Sequential live runtime validation orchestration
+- Pattern: operational reliability / validation-program hardening
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The live validation assets had become strong individually, but operators still had to
+  know which scripts were safe to run together and which drills were intentionally disruptive. That
+  made the validation program too easy to misuse under time pressure.
+- Evidence:
+  - `scripts/validate_live_runtime_suite.py` now orchestrates the live validation program
+    sequentially:
+    - normal cross-service proposal parity first,
+    - degraded runtime drills second.
+  - `tests/unit/advisory/api/test_live_runtime_suite.py` now proves:
+    - parity always runs before degraded drills,
+    - degraded drills can be intentionally skipped for faster non-disruptive passes.
+  - `tests/e2e/live/test_live_runtime_suite.py` now provides one explicit opt-in wrapper for the
+    full live runtime suite.
+- Consequence:
+  - The live validation program is easier to run correctly, less likely to self-interfere by
+    overlapping disruptive drills, and clearer for future operators who were not present during the
+    original integration hardening.
+- Follow-Up:
+  - If additional disruptive live drills are added later, keep them in the same sequential suite
+    rather than introducing another independent operator script.
