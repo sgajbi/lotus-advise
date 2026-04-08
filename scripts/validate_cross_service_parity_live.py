@@ -870,6 +870,59 @@ def _assert_mixed_approval_routes_remain_version_scoped(
         related_version_no=2,
         route="risk",
     )
+    handoff = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/execution-handoffs",
+        expected_status=200,
+        json_body={
+            "actor_id": "ops_mixed_001",
+            "execution_provider": "lotus-manage",
+            "expected_state": "EXECUTION_READY",
+            "related_version_no": 2,
+            "external_request_id": f"oms_req_mixed_{uuid.uuid4().hex[:10]}",
+            "notes": {"channel": "OMS"},
+        },
+        headers={"Idempotency-Key": f"live-mixed-route-handoff-{uuid.uuid4().hex}"},
+    )
+    _assert(
+        handoff["handoff_status"] == "REQUESTED",
+        f"{proposal_id}: mixed-route handoff did not enter REQUESTED",
+    )
+    executed = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/execution-updates",
+        expected_status=200,
+        json_body={
+            "update_id": f"exec_update_mixed_{uuid.uuid4().hex[:10]}",
+            "actor_id": "lotus-manage",
+            "execution_request_id": handoff["execution_request_id"],
+            "execution_provider": "lotus-manage",
+            "update_status": "EXECUTED",
+            "related_version_no": 2,
+            "external_execution_id": f"oms_fill_mixed_{uuid.uuid4().hex[:10]}",
+            "occurred_at": _utc_iso_after(seconds=2),
+        },
+    )
+    _assert(
+        executed["handoff_status"] == "EXECUTED",
+        f"{proposal_id}: mixed-route execution did not reach EXECUTED",
+    )
+    report_response = client.post(
+        f"{advise_base_url}/advisory/proposals/{proposal_id}/report-requests",
+        json={
+            "report_type": "CLIENT_PROPOSAL_SUMMARY",
+            "requested_by": "advisor_mixed_1",
+            "related_version_no": 2,
+            "include_execution_summary": True,
+        },
+    )
+    _assert(
+        report_response.status_code in {200, 503},
+        (
+            f"{proposal_id}: mixed-route report request returned unexpected "
+            f"{report_response.status_code} body={report_response.text}"
+        ),
+    )
     approvals = _get_json(
         client,
         url=f"{advise_base_url}/advisory/proposals/{proposal_id}/approvals",
@@ -880,8 +933,19 @@ def _assert_mixed_approval_routes_remain_version_scoped(
         url=f"{advise_base_url}/advisory/proposals/{proposal_id}/workflow-events",
         expected_status=200,
     )
+    delivery_summary = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/delivery-summary",
+        expected_status=200,
+    )
+    delivery_history = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/delivery-events",
+        expected_status=200,
+    )
     approval_rows = cast(list[dict[str, Any]], approvals["approvals"])
     timeline_events = cast(list[dict[str, Any]], timeline["events"])
+    delivery_events = cast(list[dict[str, Any]], delivery_history["events"])
     _assert(
         {str(approval["approval_type"]) for approval in approval_rows}
         == {"COMPLIANCE", "RISK", "CLIENT_CONSENT"},
@@ -901,6 +965,40 @@ def _assert_mixed_approval_routes_remain_version_scoped(
             for event in timeline_events
         ),
         f"{proposal_id}: workflow timeline lost mixed-route approval lineage",
+    )
+    _assert(
+        int(cast(dict[str, Any], delivery_summary["execution"])["related_version_no"]) == 2,
+        f"{proposal_id}: mixed-route execution summary was not anchored to version 2",
+    )
+    _assert(
+        cast(dict[str, Any], delivery_summary["execution"])["handoff_status"] == "EXECUTED",
+        f"{proposal_id}: mixed-route execution summary did not reach EXECUTED",
+    )
+    reporting = delivery_summary.get("reporting")
+    if report_response.status_code == 200:
+        _assert(
+            isinstance(reporting, dict)
+            and int(cast(dict[str, Any], reporting)["related_version_no"]) == 2
+            and cast(dict[str, Any], reporting)["status"] == "READY",
+            f"{proposal_id}: mixed-route reporting summary was not anchored to version 2",
+        )
+    else:
+        _assert(
+            reporting is None,
+            f"{proposal_id}: mixed-route delivery summary exposed reporting during degraded path",
+        )
+    _assert(
+        all(int(event["related_version_no"]) == 2 for event in delivery_events),
+        f"{proposal_id}: mixed-route delivery history leaked non-current version events",
+    )
+    _assert(
+        [str(event["event_type"]) for event in delivery_events]
+        == (
+            ["EXECUTION_REQUESTED", "EXECUTED", "REPORT_REQUESTED"]
+            if report_response.status_code == 200
+            else ["EXECUTION_REQUESTED", "EXECUTED"]
+        ),
+        f"{proposal_id}: mixed-route delivery history was not anchored to latest version",
     )
 
 

@@ -508,3 +508,33 @@
 - Follow-Up:
   - If future approval policies add route-specific metadata or conditional approvals, keep them in
     the same version-scoped lineage model rather than introducing route-specific side stores.
+
+## LA-REV-020
+
+- Scope: Delivery anchoring after mixed approval-route divergence
+- Pattern: workflow lineage hardening / delivery-surface validation gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: Mixed approval-route histories were covered at the approval/timeline layer, but delivery
+  surfaces still needed explicit validation to prove execution and reporting remain anchored to the
+  latest approved version rather than inheriting stale context from earlier approval routes.
+- Evidence:
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves a mixed-route
+    lineage where:
+    - version `1` takes the compliance-first path,
+    - version `2` takes the risk-first path,
+    - execution and reporting are requested only for version `2`,
+    - `delivery-summary` and `delivery-events` remain fully anchored to version `2`.
+  - `scripts/validate_cross_service_parity_live.py` now runs the same mixed-route delivery check on
+    the live stack and asserts:
+    - delivery execution summary is anchored to version `2`,
+    - reporting summary is either anchored to version `2` or absent under degraded reporting,
+    - delivery history contains only version-`2` execution/reporting events.
+- Consequence:
+  - The proposal workflow now has explicit regression protection for the most important lifecycle
+    invariant in mixed-route histories: approval lineage may span versions, but delivery lineage
+    must stay pinned to the latest approved version.
+- Follow-Up:
+  - If delivery workflows later support partial execution on multiple versions in one lineage,
+    promote delivery projection rules into an explicit documented contract rather than inferring them
+    only from workflow events.

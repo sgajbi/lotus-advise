@@ -2155,32 +2155,103 @@ def test_new_version_requires_fresh_approvals_before_execution_handoff():
 
 
 def test_mixed_approval_routes_remain_version_scoped():
-    with TestClient(app) as client:
-        created = _create(client, "lifecycle-version-mixed-routes")
-        proposal_id = created["proposal"]["proposal_id"]
-
-        _promote_to_execution_ready(client, proposal_id, route="compliance")
-
-        versioned = client.post(
-            f"/advisory/proposals/{proposal_id}/versions",
-            json={
-                "created_by": "advisor_2",
-                "expected_current_version_no": 1,
-                "simulate_request": _base_create_payload()["simulate_request"],
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T10:15:00+00:00",
+            "report_reference_id": "lotus_report_artifact_mixed_routes_001",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
             },
-        )
-        assert versioned.status_code == 200
+        }
 
-        _promote_to_execution_ready(client, proposal_id, related_version_no=2, route="risk")
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+    try:
+        with TestClient(app) as client:
+            created = _create(client, "lifecycle-version-mixed-routes")
+            proposal_id = created["proposal"]["proposal_id"]
 
-        approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
-        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+            _promote_to_execution_ready(client, proposal_id, route="compliance")
+
+            versioned = client.post(
+                f"/advisory/proposals/{proposal_id}/versions",
+                json={
+                    "created_by": "advisor_2",
+                    "expected_current_version_no": 1,
+                    "simulate_request": _base_create_payload()["simulate_request"],
+                },
+            )
+            assert versioned.status_code == 200
+
+            _promote_to_execution_ready(client, proposal_id, related_version_no=2, route="risk")
+
+            handoff = client.post(
+                f"/advisory/proposals/{proposal_id}/execution-handoffs",
+                json={
+                    "actor_id": "ops_mixed_001",
+                    "execution_provider": "lotus-manage",
+                    "expected_state": "EXECUTION_READY",
+                    "related_version_no": 2,
+                    "external_request_id": "oms_req_mixed_routes_001",
+                    "notes": {"channel": "OMS"},
+                },
+            )
+            assert handoff.status_code == 200
+
+            executed = client.post(
+                f"/advisory/proposals/{proposal_id}/execution-updates",
+                json={
+                    "update_id": "exec_update_mixed_routes",
+                    "actor_id": "lotus-manage",
+                    "execution_request_id": "oms_req_mixed_routes_001",
+                    "execution_provider": "lotus-manage",
+                    "update_status": "EXECUTED",
+                    "related_version_no": 2,
+                    "external_execution_id": "oms_fill_mixed_routes_001",
+                    "occurred_at": _future_execution_timestamp(seconds=2),
+                },
+            )
+            assert executed.status_code == 200
+
+            reported = client.post(
+                f"/advisory/proposals/{proposal_id}/report-requests",
+                json={
+                    "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                    "requested_by": "advisor_2",
+                    "related_version_no": 2,
+                    "include_execution_summary": True,
+                },
+            )
+            assert reported.status_code == 200
+
+            approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
+            timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+            delivery_summary = client.get(f"/advisory/proposals/{proposal_id}/delivery-summary")
+            delivery_history = client.get(f"/advisory/proposals/{proposal_id}/delivery-events")
+    finally:
+        monkeypatch.undo()
 
     assert approvals.status_code == 200
     assert timeline.status_code == 200
+    assert delivery_summary.status_code == 200
+    assert delivery_history.status_code == 200
 
     approvals_body = approvals.json()
     timeline_body = timeline.json()
+    delivery_summary_body = delivery_summary.json()
+    delivery_history_body = delivery_history.json()
 
     assert {approval["approval_type"] for approval in approvals_body["approvals"]} == {
         "COMPLIANCE",
@@ -2196,6 +2267,16 @@ def test_mixed_approval_routes_remain_version_scoped():
         event["event_type"] == "RISK_APPROVED" and event["related_version_no"] == 2
         for event in timeline_body["events"]
     )
+    assert delivery_summary_body["execution"]["related_version_no"] == 2
+    assert delivery_summary_body["execution"]["handoff_status"] == "EXECUTED"
+    assert delivery_summary_body["reporting"]["related_version_no"] == 2
+    assert delivery_summary_body["reporting"]["status"] == "READY"
+    assert all(event["related_version_no"] == 2 for event in delivery_history_body["events"])
+    assert [event["event_type"] for event in delivery_history_body["events"]] == [
+        "EXECUTION_REQUESTED",
+        "EXECUTED",
+        "REPORT_REQUESTED",
+    ]
 
 
 def test_async_replay_evidence_includes_persisted_delivery_summary(monkeypatch):
