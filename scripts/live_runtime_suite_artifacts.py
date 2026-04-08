@@ -159,3 +159,19 @@ def build_pr_summary(
             "",
         ]
     )
+
+
+def write_pr_summary_for_bundle(
+    bundle_dir: str | Path,
+    *,
+    output_path: str | Path | None = None,
+    result_payload: dict[str, Any] | None = None,
+) -> Path:
+    bundle_path = resolve_bundle_dir(bundle_dir)
+    destination = Path(output_path) if output_path is not None else bundle_path / "pr-summary.md"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(
+        build_pr_summary(bundle_path, result_payload=result_payload) + "\n",
+        encoding="utf-8",
+    )
+    return destination

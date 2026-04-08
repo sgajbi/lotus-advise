@@ -623,3 +623,29 @@
 - Follow-Up:
   - If future seeded universes change, keep the non-held candidate list governed and business
     meaningful rather than letting the live drill drift to arbitrary instruments.
+
+## LA-REV-024
+
+- Scope: Operator-grade live evidence generation
+- Pattern: validation workflow friction / evidence handoff gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The live validation program already produced strong evidence, but it still required
+  operators to run the suite and the PR-summary rendering as separate manual steps. That left a
+  small but real process gap between successful validation and durable merge-ready evidence.
+- Evidence:
+  - `scripts/live_runtime_suite_artifacts.py` now includes `write_pr_summary_for_bundle(...)`,
+    which writes a PR-ready markdown summary directly alongside a resolved evidence bundle.
+  - `scripts/run_live_runtime_evidence_bundle.py` now provides a single operator command that:
+    - runs the live runtime suite,
+    - writes the timestamped evidence bundle,
+    - writes `pr-summary.md` in the bundle or to an explicit output path.
+  - `tests/unit/advisory/api/test_live_runtime_suite.py` now proves:
+    - PR summaries can be written directly beside a bundle,
+    - the one-command wrapper writes `result.json`, `summary.md`, and `pr-summary.md`.
+- Consequence:
+  - Live validation is now easier to run correctly and easier to hand off into PR notes or review
+    records without manual chaining between scripts.
+- Follow-Up:
+  - If the team wants CI-attached live evidence later, reuse the same bundle and PR-summary writers
+    rather than introducing a second evidence format.
