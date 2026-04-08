@@ -2093,6 +2093,7 @@ def test_multi_version_history_keeps_latest_delivery_and_approval_scope_isolated
     assert created_events[0]["related_version_no"] == 1
     assert len(new_version_events) == 1
     assert new_version_events[0]["related_version_no"] == 2
+    assert new_version_events[0]["to_state"] == "DRAFT"
     assert all(approval["related_version_no"] == 2 for approval in approvals_body["approvals"])
     assert all(event["related_version_no"] == 2 for event in delivery_body["events"])
     assert [event["event_type"] for event in delivery_body["events"]] == [
@@ -2102,6 +2103,43 @@ def test_multi_version_history_keeps_latest_delivery_and_approval_scope_isolated
     ]
     assert version_1_replay_body["subject"]["proposal_version_no"] == 1
     assert version_2_replay_body["subject"]["proposal_version_no"] == 2
+
+
+def test_new_version_requires_fresh_approvals_before_execution_handoff():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-version-approval-reset")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        _promote_to_execution_ready(client, proposal_id)
+
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "simulate_request": _base_create_payload()["simulate_request"],
+            },
+        )
+        assert versioned.status_code == 200
+        assert versioned.json()["proposal"]["current_version_no"] == 2
+        assert versioned.json()["proposal"]["current_state"] == "DRAFT"
+        assert versioned.json()["latest_workflow_event"]["event_type"] == "NEW_VERSION_CREATED"
+        assert versioned.json()["latest_workflow_event"]["to_state"] == "DRAFT"
+
+        handoff = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json={
+                "actor_id": "ops_reset_001",
+                "execution_provider": "lotus-manage",
+                "expected_state": "EXECUTION_READY",
+                "related_version_no": 2,
+                "external_request_id": "oms_req_reset_001",
+                "notes": {"channel": "OMS"},
+            },
+        )
+        assert handoff.status_code == 409
+        assert "STATE_CONFLICT" in handoff.json()["detail"]
+        assert "expected_state mismatch" in handoff.json()["detail"]
 
 
 def test_async_replay_evidence_includes_persisted_delivery_summary(monkeypatch):

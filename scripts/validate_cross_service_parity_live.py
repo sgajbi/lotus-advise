@@ -1217,6 +1217,65 @@ def _assert_async_lifecycle_read_surfaces(
     return async_portfolio_id, current_version_no, "EXECUTED"
 
 
+def _assert_new_version_requires_fresh_approvals(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    scenario: PortfolioParityScenario,
+) -> None:
+    created = _create_stateful_proposal(
+        client,
+        advise_base_url=advise_base_url,
+        scenario=scenario,
+        created_by="live-parity-validator-approval-reset",
+    )
+    proposal_id = str(created["proposal"]["proposal_id"])
+    _promote_to_execution_ready(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=proposal_id,
+        related_version_no=int(created["version"]["version_no"]),
+    )
+
+    version_created = _create_stateful_version(
+        client,
+        advise_base_url=advise_base_url,
+        proposal_id=proposal_id,
+        scenario=scenario,
+        created_by="live-parity-validator-approval-reset-version",
+        expected_current_version_no=1,
+    )
+    proposal = cast(dict[str, Any], version_created["proposal"])
+    _assert(
+        int(proposal["current_version_no"]) == 2 and proposal["current_state"] == "DRAFT",
+        f"{proposal_id}: new version did not reset lifecycle state after prior approvals",
+    )
+
+    handoff_response = client.post(
+        f"{advise_base_url}/advisory/proposals/{proposal_id}/execution-handoffs",
+        json={
+            "actor_id": "ops_reset_001",
+            "execution_provider": "lotus-manage",
+            "expected_state": "EXECUTION_READY",
+            "related_version_no": 2,
+            "external_request_id": f"oms_req_reset_{uuid.uuid4().hex[:10]}",
+            "notes": {"channel": "OMS"},
+        },
+    )
+    _assert(
+        handoff_response.status_code == 409,
+        (
+            f"{proposal_id}: expected stale-approval handoff conflict, got "
+            f"{handoff_response.status_code} body={handoff_response.text}"
+        ),
+    )
+    detail = cast(dict[str, Any], handoff_response.json()).get("detail", "")
+    _assert(
+        "STATE_CONFLICT" in str(detail) and "expected_state mismatch" in str(detail),
+        f"{proposal_id}: stale-approval conflict detail unexpected {detail}",
+    )
+
+
 def _assert_workspace_flow(
     client: httpx.Client,
     *,
@@ -1692,10 +1751,15 @@ def validate_live_cross_service_parity(
             scenario=complete,
         )
         (
-            async_lifecycle_portfolio,
-            async_lifecycle_latest_version_no,
-            async_lifecycle_current_state,
-        ) = _assert_async_lifecycle_read_surfaces(
+        async_lifecycle_portfolio,
+        async_lifecycle_latest_version_no,
+        async_lifecycle_current_state,
+    ) = _assert_async_lifecycle_read_surfaces(
+        client,
+        advise_base_url=advise_base_url,
+        scenario=complete,
+    )
+        _assert_new_version_requires_fresh_approvals(
             client,
             advise_base_url=advise_base_url,
             scenario=complete,

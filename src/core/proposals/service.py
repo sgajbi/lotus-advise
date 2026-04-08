@@ -852,6 +852,7 @@ class ProposalWorkflowService:
             evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
         next_version_no = proposal.current_version_no + 1
+        reset_state: ProposalWorkflowState = "DRAFT"
         version = self._to_version_record(
             proposal_id=proposal.proposal_id,
             version_no=next_version_no,
@@ -866,7 +867,7 @@ class ProposalWorkflowService:
             proposal_id=proposal.proposal_id,
             event_type="NEW_VERSION_CREATED",
             from_state=proposal.current_state,
-            to_state=proposal.current_state,
+            to_state=reset_state,
             actor_id=payload.created_by,
             occurred_at=now,
             reason_json={"correlation_id": correlation_id} if correlation_id else {},
@@ -874,6 +875,7 @@ class ProposalWorkflowService:
         )
 
         proposal.current_version_no = next_version_no
+        proposal.current_state = reset_state
         proposal.last_event_at = now
         self._repository.create_version(version)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)

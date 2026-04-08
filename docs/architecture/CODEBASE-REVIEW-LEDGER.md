@@ -449,3 +449,34 @@
 - Follow-Up:
   - If additional disruptive live drills are added later, keep them in the same sequential suite
     rather than introducing another independent operator script.
+
+## LA-REV-018
+
+- Scope: Proposal version lifecycle reset after approvals
+- Pattern: workflow correctness / stale-approval hardening
+- Status: Hardened
+- Finding Class: bug or regression risk
+- Summary: Creating a new proposal version after version `1` had already reached
+  `EXECUTION_READY` incorrectly preserved that execution-ready state on version `2`. That meant
+  stale approvals could leak across versions and make a fresh version look executable before it had
+  gone back through the required approval path.
+- Evidence:
+  - `src/core/proposals/service.py` now resets `proposal.current_state` to `DRAFT` when
+    `NEW_VERSION_CREATED` is recorded, and the event now reflects `to_state=DRAFT` rather than
+    echoing the previous approved state.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves:
+    - version creation after approvals resets the proposal back to `DRAFT`,
+    - the new version cannot be handed off to execution until it is re-approved,
+    - multi-version workflow history records `NEW_VERSION_CREATED` with `to_state=DRAFT`.
+  - `scripts/validate_cross_service_parity_live.py` now runs a live assertion that:
+    - promotes version `1` to `EXECUTION_READY`,
+    - creates version `2`,
+    - verifies the live stack resets the lifecycle to `DRAFT`, and
+    - confirms execution handoff for version `2` is rejected until fresh approvals are recorded.
+- Consequence:
+  - Proposal versioning now matches the real domain rule that approvals are version-scoped, and
+    execution eligibility cannot silently bleed from an old version into a new one.
+- Follow-Up:
+  - If the product later needs explicit approval-carry-forward semantics, model that as a governed
+    workflow decision with a dedicated event and audit trail instead of inferring it from previous
+    version state.
