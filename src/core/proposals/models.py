@@ -32,6 +32,7 @@ ProposalWorkflowEventType = Literal[
     "EXECUTION_REJECTED",
     "EXECUTION_CANCELLED",
     "EXECUTION_EXPIRED",
+    "REPORT_REQUESTED",
     "EXECUTED",
     "REJECTED",
     "EXPIRED",
@@ -902,6 +903,143 @@ class ProposalExecutionStatusResponse(BaseModel):
                 "state_correlation": "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS",
             }
         ],
+    )
+
+
+class ProposalDeliveryExecutionSummary(BaseModel):
+    handoff_status: str = Field(
+        description="Derived advisory execution handoff status.",
+        examples=["EXECUTED"],
+    )
+    execution_request_id: Optional[str] = Field(
+        default=None,
+        description="Latest advisory execution request identifier when available.",
+        examples=["oms_req_001"],
+    )
+    execution_provider: Optional[str] = Field(
+        default=None,
+        description="Execution venue or OMS associated with the latest delivery event.",
+        examples=["lotus-manage"],
+    )
+    related_version_no: Optional[int] = Field(
+        default=None,
+        description="Immutable proposal version currently correlated to delivery execution state.",
+        examples=[1],
+    )
+    handoff_requested_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp of the latest execution handoff request.",
+        examples=["2026-03-26T09:00:00+00:00"],
+    )
+    executed_at: Optional[str] = Field(
+        default=None,
+        description="UTC ISO8601 timestamp when execution completed, when known.",
+        examples=["2026-03-26T09:15:00+00:00"],
+    )
+    latest_event_type: str = Field(
+        description="Latest delivery event type used for execution summary correlation.",
+        examples=["EXECUTED"],
+    )
+    external_execution_id: Optional[str] = Field(
+        default=None,
+        description="External execution identifier captured from downstream execution updates.",
+        examples=["oms_fill_001"],
+    )
+
+
+class ProposalDeliveryReportingSummary(BaseModel):
+    report_request_id: str = Field(
+        description="Advisory correlation id for the downstream report request.",
+        examples=["prr_001"],
+    )
+    report_type: ProposalReportType = Field(
+        description="Lotus-branded report payload requested from lotus-report.",
+        examples=["CLIENT_PROPOSAL_SUMMARY"],
+    )
+    report_service: str = Field(
+        description="Authoritative downstream report service used for generation.",
+        examples=["lotus-report"],
+    )
+    status: str = Field(
+        description="Current report request status returned by the reporting seam.",
+        examples=["READY"],
+    )
+    report_reference_id: Optional[str] = Field(
+        default=None,
+        description="Opaque lotus-report reference id for downstream retrieval or audit.",
+        examples=["lotus_report_artifact_001"],
+    )
+    artifact_url: Optional[str] = Field(
+        default=None,
+        description="Optional lotus-report artifact URL when available.",
+        examples=["https://lotus-report.local/artifacts/lotus_report_artifact_001"],
+    )
+    requested_by: str = Field(
+        description="Actor id that requested the downstream report generation.",
+        examples=["advisor_123"],
+    )
+    related_version_no: Optional[int] = Field(
+        default=None,
+        description="Immutable proposal version the report request is anchored to.",
+        examples=[1],
+    )
+    include_execution_summary: bool = Field(
+        description="Whether the report request included advisory execution-state context.",
+        examples=[True],
+    )
+    generated_at: str = Field(
+        description="UTC ISO8601 timestamp when the report payload was generated.",
+        examples=["2026-03-26T09:00:00+00:00"],
+    )
+
+
+class ProposalDeliverySummaryResponse(BaseModel):
+    proposal: ProposalSummary = Field(
+        description="Proposal summary captured at delivery-summary retrieval time.",
+        examples=[{"proposal_id": "pp_001", "current_state": "EXECUTED"}],
+    )
+    execution: Optional[ProposalDeliveryExecutionSummary] = Field(
+        default=None,
+        description=(
+            "Normalized execution delivery summary derived from append-only workflow events."
+        ),
+    )
+    reporting: Optional[ProposalDeliveryReportingSummary] = Field(
+        default=None,
+        description=(
+            "Normalized reporting delivery summary derived from append-only workflow events."
+        ),
+    )
+    explanation: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured explanation of how the delivery summary was assembled.",
+        examples=[{"source": "ADVISORY_WORKFLOW_EVENTS"}],
+    )
+
+
+class ProposalDeliveryHistoryResponse(BaseModel):
+    proposal: ProposalSummary = Field(
+        description="Proposal summary captured at delivery-history retrieval time.",
+        examples=[{"proposal_id": "pp_001", "current_state": "EXECUTED"}],
+    )
+    event_count: int = Field(
+        description="Number of delivery events returned in the filtered history payload.",
+        examples=[3],
+    )
+    latest_event: Optional[ProposalWorkflowEvent] = Field(
+        default=None,
+        description="Latest delivery event in the append-only delivery timeline.",
+        examples=[{"event_type": "REPORT_REQUESTED", "to_state": "EXECUTED"}],
+    )
+    events: List[ProposalWorkflowEvent] = Field(
+        default_factory=list,
+        description="Append-only delivery events ordered by event occurrence.",
+        examples=[[{"event_type": "EXECUTION_REQUESTED", "to_state": "EXECUTION_READY"}]],
+    )
+    explanation: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured explanation of how the delivery history was assembled.",
+        examples=[{"source": "ADVISORY_WORKFLOW_EVENTS", "filter": "DELIVERY_ONLY"}],
     )
 
 

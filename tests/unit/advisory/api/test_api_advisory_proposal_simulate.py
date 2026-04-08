@@ -138,6 +138,16 @@ def _risk_response_payload() -> dict[str, Any]:
             "top_n_cumulative_weight_proposed": 0.9,
             "top_n_cumulative_weight_delta": 0.1,
             "top_n": 10,
+            "top_position_current": {
+                "security_id": "EQ_1",
+                "security_name": "Security 1",
+                "weight": 0.5,
+            },
+            "top_position_proposed": {
+                "security_id": "EQ_1",
+                "security_name": "Security 1",
+                "weight": 0.6,
+            },
         },
         "issuer_concentration": {
             "hhi_current": 5200.0,
@@ -147,10 +157,24 @@ def _risk_response_payload() -> dict[str, Any]:
             "top_issuer_weight_proposed": 0.6,
             "top_issuer_weight_delta": 0.1,
             "coverage_status": "complete",
+            "coverage_ratio_current": 1.0,
+            "coverage_ratio_proposed": 1.0,
             "covered_position_count_current": 1,
             "covered_position_count_proposed": 1,
             "total_position_count_current": 1,
             "total_position_count_proposed": 1,
+            "uncovered_position_count_current": 0,
+            "uncovered_position_count_proposed": 0,
+            "top_issuer_current": {
+                "issuer_id": "PARENT_1",
+                "issuer_name": "Parent 1",
+                "weight": 0.5,
+            },
+            "top_issuer_proposed": {
+                "issuer_id": "PARENT_1",
+                "issuer_name": "Parent 1",
+                "weight": 0.6,
+            },
         },
     }
 
@@ -464,6 +488,17 @@ def test_advisory_proposal_simulate_sets_risk_authority_only_after_valid_risk_re
     assert authority["risk_authority"] == "lotus_risk"
     assert body["explanation"]["risk_lens"]["source_service"] == "lotus-risk"
     assert body["explanation"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert (
+        body["explanation"]["risk_lens"]["single_position_concentration"]["top_position_current"][
+            "security_id"
+        ]
+        == "EQ_1"
+    )
+    assert (
+        body["explanation"]["risk_lens"]["issuer_concentration"]["top_issuer_current"]["issuer_id"]
+        == "PARENT_1"
+    )
+    assert body["explanation"]["risk_lens"]["issuer_concentration"]["coverage_ratio_current"] == 1.0
 
 
 def test_advisory_proposal_simulate_marks_risk_authority_unavailable_when_risk_enrichment_fails(

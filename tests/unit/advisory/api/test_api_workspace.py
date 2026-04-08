@@ -868,6 +868,30 @@ def test_workspace_draft_action_replace_options_rejects_stateful_workspace_witho
     assert response.json()["detail"] == "WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
 
 
+def test_workspace_stateful_evaluate_does_not_use_local_fallback_for_context_resolution(
+    monkeypatch,
+):
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
+    create_payload = {
+        "workspace_name": "Fallback should not bypass stateful context",
+        "created_by": "advisor_123",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_missing_stateful_workspace",
+            "as_of": "2026-03-25",
+        },
+    }
+
+    with TestClient(app) as client:
+        created = client.post("/advisory/workspaces", json=create_payload)
+        assert created.status_code == 201
+        workspace_id = created.json()["workspace"]["workspace_id"]
+        response = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+
+
 def test_workspace_draft_action_replace_options_uses_stateful_context_resolution(
     monkeypatch,
 ) -> None:

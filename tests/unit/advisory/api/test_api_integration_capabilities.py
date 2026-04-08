@@ -122,6 +122,37 @@ def test_integration_capabilities_mark_risk_lens_degraded_when_risk_missing(monk
     )
 
 
+def test_integration_capabilities_mark_risk_lens_degraded_when_production_probe_fails(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.base.probe_dependency_health",
+        lambda base_url: "lotus-risk" not in base_url,
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
+    features = {item["key"]: item for item in payload["features"]}
+    workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+
+    assert dependencies["lotus_risk"]["operational_ready"] is False
+    assert features["advisory.proposals.risk_lens"]["operational_ready"] is False
+    assert (
+        features["advisory.proposals.risk_lens"]["degraded_reason"]
+        == "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+    )
+    assert workflows["advisory_proposal_risk_lens"]["operational_ready"] is False
+    assert (
+        workflows["advisory_proposal_risk_lens"]["degraded_reason"]
+        == "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
+    )
+
+
 def test_integration_capabilities_mark_simulation_degraded_when_core_missing(monkeypatch):
     monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
     monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
@@ -146,6 +177,39 @@ def test_integration_capabilities_mark_simulation_degraded_when_core_missing(mon
     )
     assert workflows["advisory_proposal_simulation"]["operational_ready"] is False
     assert dependencies["lotus_core"]["fallback_mode"] == "CONTROLLED_LOCAL_SIMULATION_FALLBACK"
+
+
+def test_integration_capabilities_mark_core_unready_when_production_probe_fails(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.base.probe_dependency_health",
+        lambda base_url: "lotus-core" not in base_url,
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
+    features = {item["key"]: item for item in payload["features"]}
+    workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+
+    assert dependencies["lotus_core"]["operational_ready"] is False
+    assert dependencies["lotus_core"]["fallback_mode"] == "NONE"
+    assert features["advisory.proposals.simulation"]["operational_ready"] is False
+    assert features["advisory.proposals.simulation"]["fallback_mode"] == "NONE"
+    assert (
+        features["advisory.proposals.simulation"]["degraded_reason"]
+        == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+    )
+    assert workflows["advisory_proposal_simulation"]["operational_ready"] is False
+    assert (
+        workflows["advisory_proposal_simulation"]["degraded_reason"]
+        == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+    )
 
 
 def test_integration_capabilities_quarantine_local_fallback_in_production(monkeypatch):

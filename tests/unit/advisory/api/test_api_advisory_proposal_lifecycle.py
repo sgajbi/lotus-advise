@@ -1,3 +1,5 @@
+import time
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any
 
@@ -83,6 +85,10 @@ def _create(client: TestClient, idempotency_key: str, payload: dict | None = Non
     return response.json()
 
 
+def _future_execution_timestamp(*, seconds: int = 1) -> str:
+    return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat()
+
+
 def _risk_enriched_result(result):  # noqa: ANN001
     result.explanation["risk_lens"] = {
         "source_service": "lotus-risk",
@@ -100,31 +106,41 @@ def _risk_enriched_result(result):  # noqa: ANN001
     return result
 
 
-def _promote_to_execution_ready(client: TestClient, proposal_id: str) -> None:
+def _promote_to_execution_ready(
+    client: TestClient,
+    proposal_id: str,
+    *,
+    related_version_no: int = 1,
+    route: str = "compliance",
+) -> None:
+    route_event_type = (
+        "SUBMITTED_FOR_COMPLIANCE_REVIEW" if route == "compliance" else "SUBMITTED_FOR_RISK_REVIEW"
+    )
+    route_state = "COMPLIANCE_REVIEW" if route == "compliance" else "RISK_REVIEW"
     submitted = client.post(
         f"/advisory/proposals/{proposal_id}/transitions",
         json={
-            "event_type": "SUBMITTED_FOR_COMPLIANCE_REVIEW",
+            "event_type": route_event_type,
             "actor_id": "advisor_1",
             "expected_state": "DRAFT",
             "reason": {"comment": "needs compliance"},
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
         },
     )
     assert submitted.status_code == 200
 
-    compliance = client.post(
+    first_approval = client.post(
         f"/advisory/proposals/{proposal_id}/approvals",
         json={
-            "approval_type": "COMPLIANCE",
+            "approval_type": "COMPLIANCE" if route == "compliance" else "RISK",
             "approved": True,
-            "actor_id": "compliance_user",
-            "expected_state": "COMPLIANCE_REVIEW",
+            "actor_id": "compliance_user" if route == "compliance" else "risk_user",
+            "expected_state": route_state,
             "details": {"comment": "ok"},
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
         },
     )
-    assert compliance.status_code == 200
+    assert first_approval.status_code == 200
 
     consent = client.post(
         f"/advisory/proposals/{proposal_id}/approvals",
@@ -134,7 +150,7 @@ def _promote_to_execution_ready(client: TestClient, proposal_id: str) -> None:
             "actor_id": "client_1",
             "expected_state": "AWAITING_CLIENT_CONSENT",
             "details": {"channel": "IN_PERSON"},
-            "related_version_no": 1,
+            "related_version_no": related_version_no,
         },
     )
     assert consent.status_code == 200
@@ -313,6 +329,31 @@ def test_create_proposal_rejects_stateful_request_when_context_resolution_is_una
             "/advisory/proposals",
             json=payload,
             headers={"Idempotency-Key": "lifecycle-create-stateful-missing"},
+        )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+
+
+def test_create_proposal_stateful_request_does_not_use_local_fallback_for_context_resolution(
+    monkeypatch,
+):
+    payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_missing",
+            "as_of": "2026-03-25",
+        },
+        "metadata": {"title": "Unavailable stateful proposal"},
+    }
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-create-stateful-fallback-requested"},
         )
 
     assert response.status_code == 422
@@ -940,6 +981,30 @@ def test_stateful_version_recovers_after_initial_lotus_core_resolution_failure(m
     assert client.request_count == 6
 
 
+def test_stateful_version_does_not_use_local_fallback_for_context_resolution(monkeypatch):
+    monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")
+
+    with TestClient(app) as test_client:
+        created = _create(test_client, "lifecycle-create-stateful-version-fallback-base")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        failed = test_client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_lifecycle_missing",
+                    "as_of": "2026-03-25",
+                },
+            },
+        )
+
+    assert failed.status_code == 422
+    assert failed.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
+
+
 def test_transition_requires_expected_state_and_rejects_invalid_transition():
     with TestClient(app) as client:
         created = _create(client, "lifecycle-create-5")
@@ -1259,6 +1324,7 @@ def test_execution_updates_reconcile_downstream_statuses(
         proposal_id = created["proposal"]["proposal_id"]
         _promote_to_execution_ready(client, proposal_id)
         _request_execution_handoff(client, proposal_id)
+        occurred_at = _future_execution_timestamp()
 
         response = client.post(
             f"/advisory/proposals/{proposal_id}/execution-updates",
@@ -1270,7 +1336,7 @@ def test_execution_updates_reconcile_downstream_statuses(
                 "update_status": update_status,
                 "related_version_no": 1,
                 "external_execution_id": "oms_fill_001",
-                "occurred_at": "2026-03-26T09:10:00+00:00",
+                "occurred_at": occurred_at,
                 "details": {"filled_quantity": "50", "remaining_quantity": "25"},
             },
         )
@@ -1285,7 +1351,7 @@ def test_execution_updates_reconcile_downstream_statuses(
         assert body["latest_workflow_event"]["related_version_no"] == 1
         assert body["explanation"]["state_correlation"] == expected_correlation
         if update_status == "EXECUTED":
-            assert body["executed_at"] == "2026-03-26T09:10:00+00:00"
+            assert body["executed_at"] == occurred_at
         else:
             assert body["executed_at"] is None
 
@@ -1304,7 +1370,7 @@ def test_execution_update_is_replay_safe_and_rejects_payload_conflicts():
             "execution_provider": "lotus-manage",
             "update_status": "ACCEPTED",
             "related_version_no": 1,
-            "occurred_at": "2026-03-26T09:10:00+00:00",
+            "occurred_at": _future_execution_timestamp(),
             "details": {"desk": "SG"},
         }
         first = client.post(
@@ -1391,6 +1457,7 @@ def test_execution_update_requires_prior_handoff_and_respects_terminal_state():
                 "execution_provider": "lotus-manage",
                 "update_status": "EXECUTED",
                 "external_execution_id": "oms_fill_terminal_001",
+                "occurred_at": _future_execution_timestamp(),
             },
         )
         assert executed.status_code == 200
@@ -1409,6 +1476,40 @@ def test_execution_update_requires_prior_handoff_and_respects_terminal_state():
         assert (
             after_terminal.json()["detail"] == "PROPOSAL_TERMINAL_STATE: execution update rejected"
         )
+
+
+def test_execution_update_rejects_occurred_at_before_handoff():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-execution-update-timestamp")
+        proposal_id = created["proposal"]["proposal_id"]
+        _promote_to_execution_ready(client, proposal_id)
+        handoff = _request_execution_handoff(
+            client,
+            proposal_id,
+            external_request_id="oms_req_timestamp_001",
+        )
+        handoff_requested_at = handoff["latest_workflow_event"]["occurred_at"]
+
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_before_handoff",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_timestamp_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "ACCEPTED",
+                "related_version_no": 1,
+                "occurred_at": "2026-03-26T09:10:00+00:00",
+            },
+        )
+
+        assert response.status_code == 422
+        assert response.json()["detail"] == "EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF"
+
+        status = client.get(f"/advisory/proposals/{proposal_id}/execution-status")
+        assert status.status_code == 200
+        assert status.json()["handoff_status"] == "REQUESTED"
+        assert status.json()["handoff_requested_at"] == handoff_requested_at
 
 
 def test_execution_handoff_is_replay_safe_with_idempotency_key():
@@ -1506,6 +1607,753 @@ def test_report_request_uses_requested_immutable_version(monkeypatch):
     assert report_response.status_code == 200
     assert seen["related_version_no"] == 1
     assert seen["proposal_version"]["version_no"] == 1
+
+
+def test_report_request_persists_workflow_event_and_replay_delivery_evidence(monkeypatch):
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T09:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_delivery_001",
+            "artifact_url": "https://lotus-report.local/artifacts/lotus_report_artifact_delivery_001",
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-report-replay-delivery")
+        proposal_id = created["proposal"]["proposal_id"]
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(
+            client,
+            proposal_id,
+            external_request_id="oms_req_report_delivery_001",
+        )
+        executed = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_report_delivery",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_report_delivery_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "EXECUTED",
+                "related_version_no": 1,
+                "external_execution_id": "oms_fill_report_delivery_001",
+                "occurred_at": _future_execution_timestamp(seconds=2),
+            },
+        )
+        assert executed.status_code == 200
+
+        report_response = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                "requested_by": "advisor_1",
+                "related_version_no": 1,
+                "include_execution_summary": True,
+            },
+        )
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+        replay = client.get(f"/advisory/proposals/{proposal_id}/versions/1/replay-evidence")
+
+    assert report_response.status_code == 200
+    assert timeline.status_code == 200
+    assert replay.status_code == 200
+    timeline_body = timeline.json()
+    replay_body = replay.json()
+    report_events = [
+        event for event in timeline_body["events"] if event["event_type"] == "REPORT_REQUESTED"
+    ]
+    assert len(report_events) == 1
+    report_event = report_events[0]
+    assert report_event["reason"]["report_type"] == "CLIENT_PROPOSAL_SUMMARY"
+    assert report_event["reason"]["report_service"] == "lotus-report"
+    assert report_event["reason"]["status"] == "READY"
+    assert report_event["reason"]["include_execution_summary"] is True
+    assert report_event["related_version_no"] == 1
+    assert replay_body["evidence"]["delivery"]["execution"]["handoff_status"] == "EXECUTED"
+    assert (
+        replay_body["evidence"]["delivery"]["execution"]["execution_request_id"]
+        == "oms_req_report_delivery_001"
+    )
+    assert replay_body["evidence"]["delivery"]["reporting"]["report_type"] == (
+        "CLIENT_PROPOSAL_SUMMARY"
+    )
+    assert replay_body["evidence"]["delivery"]["reporting"]["report_request_id"].startswith("prr_")
+    assert replay_body["evidence"]["delivery"]["reporting"]["report_service"] == "lotus-report"
+    assert replay_body["evidence"]["delivery"]["reporting"]["requested_by"] == "advisor_1"
+
+
+def test_delivery_summary_and_history_endpoints_return_persisted_delivery_projection(monkeypatch):
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T09:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_delivery_projection_001",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-delivery-summary")
+        proposal_id = created["proposal"]["proposal_id"]
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(
+            client,
+            proposal_id,
+            external_request_id="oms_req_delivery_summary_001",
+        )
+        executed = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_delivery_summary",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_delivery_summary_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "EXECUTED",
+                "related_version_no": 1,
+                "external_execution_id": "oms_fill_delivery_summary_001",
+                "occurred_at": _future_execution_timestamp(seconds=2),
+            },
+        )
+        assert executed.status_code == 200
+        report_response = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "PORTFOLIO_REVIEW",
+                "requested_by": "advisor_77",
+                "related_version_no": 1,
+                "include_execution_summary": False,
+            },
+        )
+        assert report_response.status_code == 200
+
+        delivery_summary = client.get(f"/advisory/proposals/{proposal_id}/delivery-summary")
+        delivery_history = client.get(f"/advisory/proposals/{proposal_id}/delivery-events")
+
+    assert delivery_summary.status_code == 200
+    assert delivery_history.status_code == 200
+    summary_body = delivery_summary.json()
+    history_body = delivery_history.json()
+    assert summary_body["proposal"]["proposal_id"] == proposal_id
+    assert summary_body["execution"]["handoff_status"] == "EXECUTED"
+    assert summary_body["execution"]["execution_provider"] == "lotus-manage"
+    assert summary_body["reporting"]["report_type"] == "PORTFOLIO_REVIEW"
+    assert summary_body["reporting"]["requested_by"] == "advisor_77"
+    assert summary_body["explanation"]["delivery_projection"] == (
+        "LATEST_EXECUTION_AND_REPORTING_POSTURE"
+    )
+    assert history_body["proposal"]["proposal_id"] == proposal_id
+    assert history_body["event_count"] == 3
+    assert history_body["events"][0]["event_type"] == "EXECUTION_REQUESTED"
+    assert history_body["events"][1]["event_type"] == "EXECUTED"
+    assert history_body["events"][2]["event_type"] == "REPORT_REQUESTED"
+    assert history_body["latest_event"]["event_type"] == "REPORT_REQUESTED"
+    assert history_body["explanation"]["filter"] == "DELIVERY_ONLY"
+
+
+def test_delivery_summary_and_history_return_404_for_missing_proposal():
+    with TestClient(app) as client:
+        summary = client.get("/advisory/proposals/pp_missing/delivery-summary")
+        history = client.get("/advisory/proposals/pp_missing/delivery-events")
+
+    assert summary.status_code == 404
+    assert summary.json()["detail"] == "PROPOSAL_NOT_FOUND"
+    assert history.status_code == 404
+    assert history.json()["detail"] == "PROPOSAL_NOT_FOUND"
+
+
+def test_persisted_read_surfaces_stay_aligned_on_latest_delivery_version(monkeypatch):
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T10:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_latest_version_001",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-read-surface-latest-version")
+        proposal_id = created["proposal"]["proposal_id"]
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "simulate_request": _base_create_payload()["simulate_request"],
+            },
+        )
+        assert versioned.status_code == 200
+        assert versioned.json()["proposal"]["current_version_no"] == 2
+
+        submitted = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "actor_id": "advisor_2",
+                "expected_state": "DRAFT",
+                "reason": {"comment": "latest version delivery alignment"},
+                "related_version_no": 2,
+            },
+        )
+        assert submitted.status_code == 200
+        risk_approved = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "RISK",
+                "approved": True,
+                "actor_id": "risk_approver",
+                "expected_state": "RISK_REVIEW",
+                "related_version_no": 2,
+                "details": {"channel": "LATEST_VERSION_TEST"},
+            },
+        )
+        assert risk_approved.status_code == 200
+        client_consent = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "CLIENT_CONSENT",
+                "approved": True,
+                "actor_id": "client_approved",
+                "expected_state": "AWAITING_CLIENT_CONSENT",
+                "related_version_no": 2,
+                "details": {"channel": "LATEST_VERSION_TEST"},
+            },
+        )
+        assert client_consent.status_code == 200
+
+        handoff = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json={
+                "actor_id": "ops_2",
+                "execution_provider": "lotus-manage",
+                "expected_state": "EXECUTION_READY",
+                "related_version_no": 2,
+                "external_request_id": "oms_req_latest_version_001",
+                "notes": {"channel": "OMS"},
+            },
+            headers={"Idempotency-Key": "latest-version-handoff"},
+        )
+        assert handoff.status_code == 200
+
+        executed = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_latest_version",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_latest_version_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "EXECUTED",
+                "related_version_no": 2,
+                "external_execution_id": "oms_fill_latest_version_001",
+                "occurred_at": _future_execution_timestamp(seconds=2),
+            },
+        )
+        assert executed.status_code == 200
+
+        reported = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                "requested_by": "advisor_2",
+                "related_version_no": 2,
+                "include_execution_summary": True,
+            },
+        )
+        assert reported.status_code == 200
+
+        listed = client.get("/advisory/proposals?portfolio_id=pf_lifecycle_1&limit=100")
+        detail = client.get(f"/advisory/proposals/{proposal_id}?include_evidence=false")
+        version = client.get(f"/advisory/proposals/{proposal_id}/versions/2?include_evidence=false")
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+        lineage = client.get(f"/advisory/proposals/{proposal_id}/lineage")
+        approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
+        delivery_summary = client.get(f"/advisory/proposals/{proposal_id}/delivery-summary")
+        delivery_history = client.get(f"/advisory/proposals/{proposal_id}/delivery-events")
+
+    assert listed.status_code == 200
+    list_item = next(item for item in listed.json()["items"] if item["proposal_id"] == proposal_id)
+    assert detail.status_code == 200
+    assert version.status_code == 200
+    assert timeline.status_code == 200
+    assert lineage.status_code == 200
+    assert approvals.status_code == 200
+    assert delivery_summary.status_code == 200
+    assert delivery_history.status_code == 200
+
+    detail_body = detail.json()
+    version_body = version.json()
+    timeline_body = timeline.json()
+    lineage_body = lineage.json()
+    approvals_body = approvals.json()
+    delivery_summary_body = delivery_summary.json()
+    delivery_history_body = delivery_history.json()
+
+    assert list_item["current_version_no"] == 2
+    assert detail_body["proposal"]["current_version_no"] == 2
+    assert detail_body["current_version"]["version_no"] == 2
+    assert version_body["version_no"] == 2
+    assert lineage_body["latest_version_no"] == 2
+    assert lineage_body["version_count"] == 2
+    assert lineage_body["lineage_complete"] is True
+    assert lineage_body["missing_version_numbers"] == []
+    assert timeline_body["current_state"] == "EXECUTED"
+    assert detail_body["proposal"]["current_state"] == "EXECUTED"
+    assert delivery_summary_body["proposal"]["current_state"] == "EXECUTED"
+    assert approvals_body["approval_count"] >= 2
+    assert delivery_summary_body["execution"]["related_version_no"] == 2
+    assert delivery_summary_body["execution"]["handoff_status"] == "EXECUTED"
+    assert delivery_summary_body["reporting"]["related_version_no"] == 2
+    assert delivery_summary_body["reporting"]["status"] == "READY"
+    assert delivery_history_body["latest_event"]["event_type"] == "REPORT_REQUESTED"
+    assert [event["event_type"] for event in delivery_history_body["events"]] == [
+        "EXECUTION_REQUESTED",
+        "EXECUTED",
+        "REPORT_REQUESTED",
+    ]
+
+
+def test_multi_version_history_keeps_latest_delivery_and_approval_scope_isolated(monkeypatch):
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T10:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_version_scope_001",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-version-scope")
+        proposal_id = created["proposal"]["proposal_id"]
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "simulate_request": _base_create_payload()["simulate_request"],
+            },
+        )
+        assert versioned.status_code == 200
+
+        submitted = client.post(
+            f"/advisory/proposals/{proposal_id}/transitions",
+            json={
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "actor_id": "advisor_2",
+                "expected_state": "DRAFT",
+                "reason": {"comment": "latest version scoping"},
+                "related_version_no": 2,
+            },
+        )
+        assert submitted.status_code == 200
+        risk_approved = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "RISK",
+                "approved": True,
+                "actor_id": "risk_approver",
+                "expected_state": "RISK_REVIEW",
+                "related_version_no": 2,
+                "details": {"channel": "VERSION_SCOPE"},
+            },
+        )
+        assert risk_approved.status_code == 200
+        client_consent = client.post(
+            f"/advisory/proposals/{proposal_id}/approvals",
+            json={
+                "approval_type": "CLIENT_CONSENT",
+                "approved": True,
+                "actor_id": "client_approved",
+                "expected_state": "AWAITING_CLIENT_CONSENT",
+                "related_version_no": 2,
+                "details": {"channel": "VERSION_SCOPE"},
+            },
+        )
+        assert client_consent.status_code == 200
+        handoff = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json={
+                "actor_id": "ops_2",
+                "execution_provider": "lotus-manage",
+                "expected_state": "EXECUTION_READY",
+                "related_version_no": 2,
+                "external_request_id": "oms_req_version_scope_001",
+                "notes": {"channel": "OMS"},
+            },
+            headers={"Idempotency-Key": "version-scope-handoff"},
+        )
+        assert handoff.status_code == 200
+        executed = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_version_scope",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_version_scope_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "EXECUTED",
+                "related_version_no": 2,
+                "external_execution_id": "oms_fill_version_scope_001",
+                "occurred_at": _future_execution_timestamp(seconds=2),
+            },
+        )
+        assert executed.status_code == 200
+        reported = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                "requested_by": "advisor_2",
+                "related_version_no": 2,
+                "include_execution_summary": True,
+            },
+        )
+        assert reported.status_code == 200
+
+        timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+        approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
+        delivery_history = client.get(f"/advisory/proposals/{proposal_id}/delivery-events")
+        lineage = client.get(f"/advisory/proposals/{proposal_id}/lineage")
+        version_1_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/1/replay-evidence"
+        )
+        version_2_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/2/replay-evidence"
+        )
+
+    assert timeline.status_code == 200
+    assert approvals.status_code == 200
+    assert delivery_history.status_code == 200
+    assert lineage.status_code == 200
+    assert version_1_replay.status_code == 200
+    assert version_2_replay.status_code == 200
+
+    timeline_body = timeline.json()
+    approvals_body = approvals.json()
+    delivery_body = delivery_history.json()
+    lineage_body = lineage.json()
+    version_1_replay_body = version_1_replay.json()
+    version_2_replay_body = version_2_replay.json()
+
+    assert [item["version_no"] for item in lineage_body["versions"]] == [1, 2]
+    created_events = [
+        event for event in timeline_body["events"] if event["event_type"] == "CREATED"
+    ]
+    new_version_events = [
+        event for event in timeline_body["events"] if event["event_type"] == "NEW_VERSION_CREATED"
+    ]
+    assert len(created_events) == 1
+    assert created_events[0]["related_version_no"] == 1
+    assert len(new_version_events) == 1
+    assert new_version_events[0]["related_version_no"] == 2
+    assert new_version_events[0]["to_state"] == "DRAFT"
+    assert all(approval["related_version_no"] == 2 for approval in approvals_body["approvals"])
+    assert all(event["related_version_no"] == 2 for event in delivery_body["events"])
+    assert [event["event_type"] for event in delivery_body["events"]] == [
+        "EXECUTION_REQUESTED",
+        "EXECUTED",
+        "REPORT_REQUESTED",
+    ]
+    assert version_1_replay_body["subject"]["proposal_version_no"] == 1
+    assert version_2_replay_body["subject"]["proposal_version_no"] == 2
+
+
+def test_new_version_requires_fresh_approvals_before_execution_handoff():
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-version-approval-reset")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        _promote_to_execution_ready(client, proposal_id)
+
+        versioned = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "simulate_request": _base_create_payload()["simulate_request"],
+            },
+        )
+        assert versioned.status_code == 200
+        assert versioned.json()["proposal"]["current_version_no"] == 2
+        assert versioned.json()["proposal"]["current_state"] == "DRAFT"
+        assert versioned.json()["latest_workflow_event"]["event_type"] == "NEW_VERSION_CREATED"
+        assert versioned.json()["latest_workflow_event"]["to_state"] == "DRAFT"
+
+        handoff = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            json={
+                "actor_id": "ops_reset_001",
+                "execution_provider": "lotus-manage",
+                "expected_state": "EXECUTION_READY",
+                "related_version_no": 2,
+                "external_request_id": "oms_req_reset_001",
+                "notes": {"channel": "OMS"},
+            },
+        )
+        assert handoff.status_code == 409
+        assert "STATE_CONFLICT" in handoff.json()["detail"]
+        assert "expected_state mismatch" in handoff.json()["detail"]
+
+
+def test_mixed_approval_routes_remain_version_scoped():
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T10:15:00+00:00",
+            "report_reference_id": "lotus_report_artifact_mixed_routes_001",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+    try:
+        with TestClient(app) as client:
+            created = _create(client, "lifecycle-version-mixed-routes")
+            proposal_id = created["proposal"]["proposal_id"]
+
+            _promote_to_execution_ready(client, proposal_id, route="compliance")
+
+            versioned = client.post(
+                f"/advisory/proposals/{proposal_id}/versions",
+                json={
+                    "created_by": "advisor_2",
+                    "expected_current_version_no": 1,
+                    "simulate_request": _base_create_payload()["simulate_request"],
+                },
+            )
+            assert versioned.status_code == 200
+
+            _promote_to_execution_ready(client, proposal_id, related_version_no=2, route="risk")
+
+            handoff = client.post(
+                f"/advisory/proposals/{proposal_id}/execution-handoffs",
+                json={
+                    "actor_id": "ops_mixed_001",
+                    "execution_provider": "lotus-manage",
+                    "expected_state": "EXECUTION_READY",
+                    "related_version_no": 2,
+                    "external_request_id": "oms_req_mixed_routes_001",
+                    "notes": {"channel": "OMS"},
+                },
+            )
+            assert handoff.status_code == 200
+
+            executed = client.post(
+                f"/advisory/proposals/{proposal_id}/execution-updates",
+                json={
+                    "update_id": "exec_update_mixed_routes",
+                    "actor_id": "lotus-manage",
+                    "execution_request_id": "oms_req_mixed_routes_001",
+                    "execution_provider": "lotus-manage",
+                    "update_status": "EXECUTED",
+                    "related_version_no": 2,
+                    "external_execution_id": "oms_fill_mixed_routes_001",
+                    "occurred_at": _future_execution_timestamp(seconds=2),
+                },
+            )
+            assert executed.status_code == 200
+
+            reported = client.post(
+                f"/advisory/proposals/{proposal_id}/report-requests",
+                json={
+                    "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                    "requested_by": "advisor_2",
+                    "related_version_no": 2,
+                    "include_execution_summary": True,
+                },
+            )
+            assert reported.status_code == 200
+
+            approvals = client.get(f"/advisory/proposals/{proposal_id}/approvals")
+            timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
+            delivery_summary = client.get(f"/advisory/proposals/{proposal_id}/delivery-summary")
+            delivery_history = client.get(f"/advisory/proposals/{proposal_id}/delivery-events")
+    finally:
+        monkeypatch.undo()
+
+    assert approvals.status_code == 200
+    assert timeline.status_code == 200
+    assert delivery_summary.status_code == 200
+    assert delivery_history.status_code == 200
+
+    approvals_body = approvals.json()
+    timeline_body = timeline.json()
+    delivery_summary_body = delivery_summary.json()
+    delivery_history_body = delivery_history.json()
+
+    assert {approval["approval_type"] for approval in approvals_body["approvals"]} == {
+        "COMPLIANCE",
+        "RISK",
+        "CLIENT_CONSENT",
+    }
+    assert {approval["related_version_no"] for approval in approvals_body["approvals"]} == {1, 2}
+    assert any(
+        event["event_type"] == "COMPLIANCE_APPROVED" and event["related_version_no"] == 1
+        for event in timeline_body["events"]
+    )
+    assert any(
+        event["event_type"] == "RISK_APPROVED" and event["related_version_no"] == 2
+        for event in timeline_body["events"]
+    )
+    assert delivery_summary_body["execution"]["related_version_no"] == 2
+    assert delivery_summary_body["execution"]["handoff_status"] == "EXECUTED"
+    assert delivery_summary_body["reporting"]["related_version_no"] == 2
+    assert delivery_summary_body["reporting"]["status"] == "READY"
+    assert all(event["related_version_no"] == 2 for event in delivery_history_body["events"])
+    assert [event["event_type"] for event in delivery_history_body["events"]] == [
+        "EXECUTION_REQUESTED",
+        "EXECUTED",
+        "REPORT_REQUESTED",
+    ]
+
+
+def test_async_replay_evidence_includes_persisted_delivery_summary(monkeypatch):
+    def _request_proposal_report_with_lotus_report(*, request):
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T10:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_async_delivery_001",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=_base_create_payload("pf_async_delivery_replay_001"),
+            headers={
+                "Idempotency-Key": "lifecycle-async-delivery-replay",
+                "X-Correlation-Id": "corr-lifecycle-async-delivery-replay",
+            },
+        )
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+
+        operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+        assert operation.status_code == 200
+        operation_body = operation.json()
+        proposal_id = operation_body["result"]["proposal"]["proposal_id"]
+
+        _promote_to_execution_ready(client, proposal_id)
+        _request_execution_handoff(
+            client,
+            proposal_id,
+            external_request_id="oms_req_async_delivery_001",
+        )
+        executed = client.post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            json={
+                "update_id": "exec_update_async_delivery",
+                "actor_id": "lotus-manage",
+                "execution_request_id": "oms_req_async_delivery_001",
+                "execution_provider": "lotus-manage",
+                "update_status": "EXECUTED",
+                "related_version_no": 1,
+                "external_execution_id": "oms_fill_async_delivery_001",
+                "occurred_at": _future_execution_timestamp(seconds=2),
+            },
+        )
+        assert executed.status_code == 200
+        report_response = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "PORTFOLIO_REVIEW",
+                "requested_by": "advisor_2",
+                "related_version_no": 1,
+                "include_execution_summary": False,
+            },
+        )
+        assert report_response.status_code == 200
+
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+
+    assert async_replay.status_code == 200
+    async_body = async_replay.json()
+    assert async_body["evidence"]["delivery"]["execution"]["handoff_status"] == "EXECUTED"
+    assert async_body["evidence"]["delivery"]["reporting"]["report_type"] == "PORTFOLIO_REVIEW"
+    assert async_body["evidence"]["delivery"]["reporting"]["requested_by"] == "advisor_2"
 
 
 def test_report_request_returns_503_when_lotus_report_is_unavailable(monkeypatch):
@@ -2122,6 +2970,131 @@ def test_async_create_version_and_lookup():
         assert body["max_attempts"] == 3
         assert body["lease_expires_at"] is None
         assert body["result"]["proposal"]["current_version_no"] == 2
+
+
+def test_async_operation_read_surfaces_stay_aligned_with_latest_version_result():
+    def _await_async_result(client: TestClient, operation_id: str) -> dict[str, Any]:
+        for _ in range(10):
+            operation = client.get(f"/advisory/proposals/operations/{operation_id}")
+            assert operation.status_code == 200
+            body = operation.json()
+            if body["status"] == "SUCCEEDED":
+                return body
+            assert body["status"] != "FAILED"
+            time.sleep(0.01)
+        pytest.fail(f"{operation_id}: async operation did not finish in time")
+
+    with TestClient(app) as client:
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=_base_create_payload("pf_async_surface_alignment_001"),
+            headers={
+                "Idempotency-Key": "async-surface-alignment-create-001",
+                "X-Correlation-Id": "corr-async-surface-alignment-create-001",
+            },
+        )
+        assert accepted.status_code == 202
+        create_accepted_body = accepted.json()
+        create_operation_id = create_accepted_body["operation_id"]
+
+        create_operation_body = _await_async_result(client, create_operation_id)
+        proposal_id = create_operation_body["result"]["proposal"]["proposal_id"]
+        create_version_no = create_operation_body["result"]["version"]["version_no"]
+
+        create_by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/corr-async-surface-alignment-create-001"
+        )
+        create_replay = client.get(
+            f"/advisory/proposals/operations/{create_operation_id}/replay-evidence"
+        )
+        create_version_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{create_version_no}/replay-evidence"
+        )
+
+        version_payload = {
+            "created_by": "advisor_async_surface_alignment",
+            "expected_current_version_no": create_version_no,
+            "simulate_request": _base_create_payload("pf_async_surface_alignment_001")[
+                "simulate_request"
+            ],
+        }
+        version_payload["simulate_request"]["proposed_trades"] = [
+            {"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "4"}
+        ]
+        accepted_version = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/async",
+            json=version_payload,
+            headers={"X-Correlation-Id": "corr-async-surface-alignment-version-001"},
+        )
+        assert accepted_version.status_code == 202
+        version_accepted_body = accepted_version.json()
+        version_operation_id = version_accepted_body["operation_id"]
+
+        version_operation_body = _await_async_result(client, version_operation_id)
+        current_version_no = version_operation_body["result"]["version"]["version_no"]
+        version_by_correlation = client.get(
+            "/advisory/proposals/operations/by-correlation/corr-async-surface-alignment-version-001"
+        )
+        version_replay = client.get(
+            f"/advisory/proposals/operations/{version_operation_id}/replay-evidence"
+        )
+        proposal_detail = client.get(f"/advisory/proposals/{proposal_id}?include_evidence=false")
+        current_version = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{current_version_no}?include_evidence=false"
+        )
+        current_version_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{current_version_no}/replay-evidence"
+        )
+
+    assert create_by_correlation.status_code == 200
+    assert create_replay.status_code == 200
+    assert create_version_replay.status_code == 200
+    assert create_operation_body["status"] == "SUCCEEDED"
+    assert create_by_correlation.json()["operation_id"] == create_operation_id
+    assert create_replay.json()["continuity"]["correlation_id"] == (
+        "corr-async-surface-alignment-create-001"
+    )
+    assert create_replay.json()["subject"]["proposal_id"] == proposal_id
+    assert create_replay.json()["subject"]["proposal_version_no"] == create_version_no
+    assert (
+        create_replay.json()["hashes"]["request_hash"]
+        == (create_version_replay.json()["hashes"]["request_hash"])
+    )
+    assert (
+        create_replay.json()["hashes"]["simulation_hash"]
+        == (create_version_replay.json()["hashes"]["simulation_hash"])
+    )
+    assert (
+        create_replay.json()["resolved_context"] == create_version_replay.json()["resolved_context"]
+    )
+
+    assert version_by_correlation.status_code == 200
+    assert version_replay.status_code == 200
+    assert proposal_detail.status_code == 200
+    assert current_version.status_code == 200
+    assert current_version_replay.status_code == 200
+    assert version_operation_body["status"] == "SUCCEEDED"
+    assert version_by_correlation.json()["operation_id"] == version_operation_id
+    assert proposal_detail.json()["proposal"]["current_version_no"] == current_version_no == 2
+    assert current_version.json()["version_no"] == current_version_no
+    assert version_replay.json()["continuity"]["correlation_id"] == (
+        "corr-async-surface-alignment-version-001"
+    )
+    assert version_replay.json()["continuity"]["async_operation_id"] == version_operation_id
+    assert version_replay.json()["subject"]["proposal_id"] == proposal_id
+    assert version_replay.json()["subject"]["proposal_version_no"] == current_version_no
+    assert (
+        version_replay.json()["hashes"]["request_hash"]
+        == (current_version_replay.json()["hashes"]["request_hash"])
+    )
+    assert (
+        version_replay.json()["hashes"]["simulation_hash"]
+        == (current_version_replay.json()["hashes"]["simulation_hash"])
+    )
+    assert (
+        version_replay.json()["resolved_context"]
+        == current_version_replay.json()["resolved_context"]
+    )
 
 
 def test_async_create_version_route_does_not_reschedule_replayed_submission() -> None:

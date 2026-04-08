@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from threading import RLock
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.orchestration import evaluate_advisory_proposal
@@ -17,6 +17,10 @@ from src.core.proposals.context import (
     resolve_create_request,
     resolve_version_request,
 )
+from src.core.proposals.delivery_summary import (
+    build_delivery_summary_from_events,
+    select_delivery_events,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
@@ -27,6 +31,10 @@ from src.core.proposals.models import (
     ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
+    ProposalDeliveryExecutionSummary,
+    ProposalDeliveryHistoryResponse,
+    ProposalDeliveryReportingSummary,
+    ProposalDeliverySummaryResponse,
     ProposalDetailResponse,
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
@@ -38,6 +46,7 @@ from src.core.proposals.models import (
     ProposalLineageResponse,
     ProposalListResponse,
     ProposalRecord,
+    ProposalReportResponse,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
     ProposalSummary,
@@ -590,6 +599,49 @@ class ProposalWorkflowService:
             },
         )
 
+    def get_delivery_summary(self, *, proposal_id: str) -> ProposalDeliverySummaryResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        events = self._repository.list_events(proposal_id=proposal_id)
+        delivery = build_delivery_summary_from_events(events)
+        execution_payload = delivery.get("execution")
+        reporting_payload = delivery.get("reporting")
+        return ProposalDeliverySummaryResponse(
+            proposal=self._to_summary(proposal),
+            execution=(
+                ProposalDeliveryExecutionSummary.model_validate(execution_payload)
+                if isinstance(execution_payload, dict)
+                else None
+            ),
+            reporting=(
+                ProposalDeliveryReportingSummary.model_validate(reporting_payload)
+                if isinstance(reporting_payload, dict)
+                else None
+            ),
+            explanation={
+                "source": "ADVISORY_WORKFLOW_EVENTS",
+                "delivery_projection": "LATEST_EXECUTION_AND_REPORTING_POSTURE",
+            },
+        )
+
+    def get_delivery_history(self, *, proposal_id: str) -> ProposalDeliveryHistoryResponse:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        events = select_delivery_events(self._repository.list_events(proposal_id=proposal_id))
+        history_events = [self._to_event(event) for event in events]
+        return ProposalDeliveryHistoryResponse(
+            proposal=self._to_summary(proposal),
+            event_count=len(history_events),
+            latest_event=history_events[-1] if history_events else None,
+            events=history_events,
+            explanation={
+                "source": "ADVISORY_WORKFLOW_EVENTS",
+                "filter": "DELIVERY_ONLY",
+            },
+        )
+
     def record_execution_update(
         self,
         *,
@@ -633,6 +685,8 @@ class ProposalWorkflowService:
             if payload.occurred_at is not None
             else _utc_now()
         )
+        if occurred_at < latest_execution_requested.occurred_at:
+            raise ProposalValidationError("EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF")
         reason_json = {
             "update_id": payload.update_id,
             "execution_request_id": payload.execution_request_id,
@@ -685,6 +739,7 @@ class ProposalWorkflowService:
 
         proposal = None
         version = None
+        events: list[ProposalWorkflowEventRecord] | None = None
         if operation.proposal_id is not None:
             proposal = self._repository.get_proposal(proposal_id=operation.proposal_id)
             if proposal is not None and operation.status == "SUCCEEDED":
@@ -704,10 +759,13 @@ class ProposalWorkflowService:
                     version = self._repository.get_current_version(
                         proposal_id=operation.proposal_id
                     )
+            if proposal is not None:
+                events = self._repository.list_events(proposal_id=operation.proposal_id)
         return build_async_operation_replay_response(
             operation=operation,
             proposal=proposal,
             version=version,
+            events=events,
         )
 
     def get_async_operation_by_correlation(
@@ -794,6 +852,7 @@ class ProposalWorkflowService:
             evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
         next_version_no = proposal.current_version_no + 1
+        reset_state: ProposalWorkflowState = "DRAFT"
         version = self._to_version_record(
             proposal_id=proposal.proposal_id,
             version_no=next_version_no,
@@ -808,7 +867,7 @@ class ProposalWorkflowService:
             proposal_id=proposal.proposal_id,
             event_type="NEW_VERSION_CREATED",
             from_state=proposal.current_state,
-            to_state=proposal.current_state,
+            to_state=reset_state,
             actor_id=payload.created_by,
             occurred_at=now,
             reason_json={"correlation_id": correlation_id} if correlation_id else {},
@@ -816,6 +875,7 @@ class ProposalWorkflowService:
         )
 
         proposal.current_version_no = next_version_no
+        proposal.current_state = reset_state
         proposal.last_event_at = now
         self._repository.create_version(version)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
@@ -1080,7 +1140,7 @@ class ProposalWorkflowService:
                 raise ProposalIdempotencyConflictError(
                     "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
                 )
-            return event
+            return cast(ProposalWorkflowEventRecord, event)
         return None
 
     def _get_replayed_approval(
@@ -1097,7 +1157,7 @@ class ProposalWorkflowService:
                 raise ProposalIdempotencyConflictError(
                     "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
                 )
-            return approval
+            return cast(ProposalApprovalRecordData, approval)
         return None
 
     def _read_create_response(self, *, proposal_id: str, version_no: int) -> ProposalCreateResponse:
@@ -1288,7 +1348,50 @@ class ProposalWorkflowService:
         version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
         if version is None:
             raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-        return build_proposal_version_replay_response(proposal=proposal, version=version)
+        events = self._repository.list_events(proposal_id=proposal_id)
+        return build_proposal_version_replay_response(
+            proposal=proposal,
+            version=version,
+            events=events,
+        )
+
+    def record_report_request(
+        self,
+        *,
+        proposal_id: str,
+        report_response: ProposalReportResponse,
+        requested_by: str,
+        related_version_no: int,
+        include_execution_summary: bool,
+    ) -> ProposalWorkflowEventRecord:
+        proposal = self._repository.get_proposal(proposal_id=proposal_id)
+        if proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+
+        occurred_at = datetime.fromisoformat(report_response.generated_at)
+        event = ProposalWorkflowEventRecord(
+            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            proposal_id=proposal_id,
+            event_type="REPORT_REQUESTED",
+            from_state=proposal.current_state,
+            to_state=proposal.current_state,
+            actor_id=requested_by,
+            occurred_at=occurred_at,
+            reason_json={
+                "report_request_id": report_response.report_request_id,
+                "report_type": report_response.report_type,
+                "report_service": report_response.report_service,
+                "status": report_response.status,
+                "report_reference_id": report_response.report_reference_id,
+                "artifact_url": report_response.artifact_url,
+                "related_version_no": related_version_no,
+                "include_execution_summary": include_execution_summary,
+            },
+            related_version_no=related_version_no,
+        )
+        proposal.last_event_at = max(proposal.last_event_at, occurred_at)
+        self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        return event
 
     def _resolve_create_async_payload(
         self,

@@ -74,6 +74,16 @@ def _risk_response_payload() -> dict[str, Any]:
             "top_n_cumulative_weight_proposed": 0.9,
             "top_n_cumulative_weight_delta": 0.1,
             "top_n": 10,
+            "top_position_current": {
+                "security_id": "EQ_1",
+                "security_name": "Security 1",
+                "weight": 0.5,
+            },
+            "top_position_proposed": {
+                "security_id": "EQ_1",
+                "security_name": "Security 1",
+                "weight": 0.6,
+            },
         },
         "issuer_concentration": {
             "hhi_current": 5200.0,
@@ -83,10 +93,24 @@ def _risk_response_payload() -> dict[str, Any]:
             "top_issuer_weight_proposed": 0.6,
             "top_issuer_weight_delta": 0.1,
             "coverage_status": "complete",
+            "coverage_ratio_current": 1.0,
+            "coverage_ratio_proposed": 1.0,
             "covered_position_count_current": 1,
             "covered_position_count_proposed": 1,
             "total_position_count_current": 1,
             "total_position_count_proposed": 1,
+            "uncovered_position_count_current": 0,
+            "uncovered_position_count_proposed": 0,
+            "top_issuer_current": {
+                "issuer_id": "PARENT_1",
+                "issuer_name": "Parent 1",
+                "weight": 0.5,
+            },
+            "top_issuer_proposed": {
+                "issuer_id": "PARENT_1",
+                "issuer_name": "Parent 1",
+                "weight": 0.6,
+            },
             "note": None,
         },
         "valuation_context": {
@@ -120,8 +144,8 @@ class _FakeResponse:
 
 
 class _FakeClient:
-    def __init__(self, response: _FakeResponse) -> None:
-        self.response = response
+    def __init__(self, response: _FakeResponse | list[_FakeResponse]) -> None:
+        self.responses = response if isinstance(response, list) else [response]
         self.calls: list[dict[str, Any]] = []
 
     def __enter__(self) -> "_FakeClient":
@@ -132,7 +156,8 @@ class _FakeClient:
 
     def post(self, url: str, *, json: dict[str, Any], headers: dict[str, str]) -> _FakeResponse:
         self.calls.append({"url": url, "json": json, "headers": headers})
-        return self.response
+        index = min(len(self.calls) - 1, len(self.responses) - 1)
+        return self.responses[index]
 
 
 def test_enrich_with_lotus_risk_maps_proposal_to_simulation_concentration(monkeypatch):
@@ -183,6 +208,19 @@ def test_enrich_with_lotus_risk_maps_proposal_to_simulation_concentration(monkey
     ]
     assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
     assert enriched.explanation["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert (
+        enriched.explanation["risk_lens"]["single_position_concentration"]["top_position_current"][
+            "security_id"
+        ]
+        == "EQ_1"
+    )
+    assert (
+        enriched.explanation["risk_lens"]["issuer_concentration"]["top_issuer_current"]["issuer_id"]
+        == "PARENT_1"
+    )
+    assert (
+        enriched.explanation["risk_lens"]["issuer_concentration"]["coverage_ratio_current"] == 1.0
+    )
 
 
 def test_enrich_with_lotus_risk_requires_configured_base_url(monkeypatch):
@@ -212,6 +250,32 @@ def test_enrich_with_lotus_risk_rejects_upstream_http_failure(monkeypatch):
             proposal_result=_proposal_result(request),
             correlation_id="corr-risk-client",
         )
+
+
+def test_enrich_with_lotus_risk_retries_transient_upstream_5xx_then_succeeds(monkeypatch):
+    request = _request()
+    fake_client = _FakeClient(
+        [
+            _FakeResponse(status_code=502, payload={"detail": "temporary unavailable"}),
+            _FakeResponse(status_code=200, payload=_risk_response_payload()),
+        ]
+    )
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setenv("LOTUS_RISK_RETRY_ATTEMPTS", "2")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+    monkeypatch.setattr("src.integrations.lotus_risk.enrichment.time.sleep", lambda _: None)
+
+    enriched = enrich_with_lotus_risk(
+        request=request,
+        proposal_result=_proposal_result(request),
+        correlation_id="corr-risk-client",
+    )
+
+    assert len(fake_client.calls) == 2
+    assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
 
 
 def test_enrich_with_lotus_risk_rejects_contract_mismatch(monkeypatch):
@@ -251,3 +315,97 @@ def test_enrich_with_lotus_risk_prefers_resolved_as_of_for_stateful_context(monk
     )
 
     assert fake_client.calls[0]["json"]["simulation_input"]["as_of_date"] == "2026-03-27"
+
+
+def test_enrich_with_lotus_risk_accepts_unavailable_issuer_descriptors(monkeypatch):
+    request = _request()
+    payload = _risk_response_payload()
+    payload["issuer_concentration"].update(
+        {
+            "coverage_status": "unavailable",
+            "coverage_ratio_current": 0.0,
+            "coverage_ratio_proposed": 0.0,
+            "covered_position_count_current": 0,
+            "covered_position_count_proposed": 0,
+            "total_position_count_current": 1,
+            "total_position_count_proposed": 1,
+            "uncovered_position_count_current": 1,
+            "uncovered_position_count_proposed": 1,
+            "note": "issuer_id missing in lotus-core instrument_enrichment",
+            "top_issuer_current": {"issuer_id": None, "issuer_name": None, "weight": 0.0},
+            "top_issuer_proposed": {"issuer_id": None, "issuer_name": None, "weight": 0.0},
+        }
+    )
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=payload))
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    enriched = enrich_with_lotus_risk(
+        request=request,
+        proposal_result=_proposal_result(request),
+        correlation_id="corr-risk-client",
+    )
+
+    assert (
+        enriched.explanation["risk_lens"]["issuer_concentration"]["coverage_status"]
+        == "unavailable"
+    )
+    assert enriched.explanation["risk_lens"]["issuer_concentration"]["top_issuer_current"] == {
+        "issuer_id": None,
+        "issuer_name": None,
+        "weight": 0.0,
+    }
+
+
+def test_enrich_with_lotus_risk_tolerates_additive_upstream_fields(monkeypatch):
+    request = _request()
+    payload = _risk_response_payload()
+    payload["risk_proxy"]["new_proxy_field"] = 42.0
+    payload["single_position_concentration"]["new_position_field"] = "ignored"
+    payload["issuer_concentration"]["new_issuer_field"] = {"status": "ignored"}
+    payload["metadata"]["new_metadata_field"] = {"component": "upstream-addition"}
+    payload["valuation_context"]["new_context_field"] = True
+    payload["new_top_level_field"] = "ignored"
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=payload))
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    enriched = enrich_with_lotus_risk(
+        request=request,
+        proposal_result=_proposal_result(request),
+        correlation_id="corr-risk-client",
+    )
+
+    assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
+    assert enriched.explanation["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert enriched.explanation["risk_lens"]["metadata"]["new_metadata_field"] == {
+        "component": "upstream-addition"
+    }
+    assert enriched.explanation["risk_lens"]["valuation_context"]["new_context_field"] is True
+
+
+def test_enrich_with_lotus_risk_only_sends_issuer_mappings_for_changed_instruments(monkeypatch):
+    request = _request()
+    request.proposed_trades = []
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=_risk_response_payload()))
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    enrich_with_lotus_risk(
+        request=request,
+        proposal_result=_proposal_result(request),
+        correlation_id="corr-risk-client",
+    )
+
+    simulation_input = fake_client.calls[0]["json"]["simulation_input"]
+    assert simulation_input["simulation_changes"] == []
+    assert "issuer_mappings" not in simulation_input

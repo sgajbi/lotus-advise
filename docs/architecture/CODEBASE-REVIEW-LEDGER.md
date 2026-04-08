@@ -274,3 +274,378 @@
   - Proposal allocation and risk-lens work is now governed by canonical `lotus-core` allocation views and a concrete `lotus-risk` concentration lens instead of advisory-local calculation authority.
 - Follow-Up:
   - RFC-0020 implementation is complete on the feature branches pending PR/CI/merge closure. Any further work belongs in follow-on RFCs, not this convergence program.
+
+## LA-REV-013
+
+- Scope: Live proposal delivery validation and execution-status chronology
+- Pattern: reliability gap / integration test hardening
+- Status: Hardened
+- Finding Class: reliability gap
+- Summary: The live proposal path had strong coverage for canonical simulation, allocation, risk lens,
+  lifecycle create/version, async, and workspace handoff, but delivery surfaces were still being
+  checked ad hoc and execution updates could silently regress status if a downstream timestamp
+  predated the recorded handoff.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now validates one end-to-end live stateful
+    proposal flow across:
+    - direct simulation parity against `lotus-core` and `lotus-risk`,
+    - sync create and new version,
+    - async create and async version,
+    - promotion to execution ready,
+    - execution handoff,
+    - accepted and executed downstream updates,
+    - report-request success or governed degraded unavailability,
+    - workspace evaluate/save/handoff replay continuity.
+  - `tests/e2e/live/test_cross_service_parity_live.py` now gates that full live path behind the
+    existing `RUN_LIVE_CROSS_SERVICE_PARITY=1` switch.
+  - `src/core/proposals/service.py` now rejects `EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF`, which
+    prevents an impossible downstream timestamp from being accepted and then misordered behind the
+    recorded handoff during execution-status correlation.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves both:
+    - normal downstream execution updates still reconcile correctly, and
+    - pre-handoff timestamps are rejected without mutating advisory execution status.
+- Consequence:
+  - The proposal delivery path is now exercised live with reusable coverage, and execution-status
+    correlation is more trustworthy under real downstream event timestamps.
+- Follow-Up:
+  - If `lotus-report` becomes live locally, keep the validator on the same contract and tighten the
+    degraded report assertion to a required `READY` path for environments where reporting is expected.
+
+## LA-REV-014
+
+- Scope: Lotus Core fallback policy and persisted delivery evidence
+- Pattern: boundary hardening / auditability gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The controlled local simulation fallback is intentionally a simulation-only escape hatch,
+  but that boundary was not proven across lifecycle and workspace stateful flows, and proposal
+  replay evidence still stopped at simulation lineage instead of including persisted delivery
+  activity such as report requests and execution posture.
+- Evidence:
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves stateful create
+    and stateful version requests still fail with
+    `PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE` even when
+    `LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK=true`, which makes the policy boundary explicit:
+    fallback does not bypass authoritative Lotus Core context resolution.
+  - `tests/unit/advisory/api/test_api_workspace.py` now proves the same for stateful workspace
+    evaluation: local fallback cannot substitute for missing authoritative context.
+  - `src/api/services/proposal_reporting_service.py` and
+    `src/core/proposals/service.py` now persist successful report requests as append-only
+    `REPORT_REQUESTED` workflow events instead of leaving reporting as an ephemeral response-only
+    seam.
+  - `src/core/replay/service.py` now includes normalized `delivery` evidence in proposal-version
+    and async replay responses, covering latest execution and reporting posture from persisted
+    workflow events.
+  - Lifecycle tests now prove:
+    - report requests appear in the workflow timeline,
+    - proposal replay evidence includes persisted execution/reporting delivery summary,
+    - async replay evidence exposes the same persisted delivery summary once the async-created
+      proposal continues through execution and reporting.
+- Consequence:
+  - The platform boundary is clearer: local fallback never fakes authoritative stateful context,
+    and persisted proposal replay now reflects delivery truth instead of stopping at simulation
+    truth.
+- Follow-Up:
+  - If report ownership later needs a first-class query surface, build it from the persisted
+    workflow events rather than adding a second reporting history store.
+
+## LA-REV-015
+
+- Scope: Delivery read surfaces and fallback-policy executable validation
+- Pattern: modularity improvement / operational contract hardening
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: Delivery state was persisted correctly, but there was still no first-class read surface
+  for consumers that needed proposal execution/reporting posture without re-parsing full replay
+  payloads, and the Lotus Core fallback boundary was only proven inside unit tests rather than by a
+  reusable executable validator.
+- Evidence:
+  - `src/core/proposals/delivery_summary.py` now owns one reusable projector for normalized
+    delivery summaries and delivery-event selection from append-only workflow events.
+  - `src/core/replay/service.py` now reuses that projector instead of maintaining a second
+    delivery-summary implementation.
+  - `src/core/proposals/service.py` now exposes:
+    - `get_delivery_summary(proposal_id)`, and
+    - `get_delivery_history(proposal_id)`,
+    both derived from persisted workflow events.
+  - `src/api/proposals/routes_delivery.py` now exposes first-class endpoints for:
+    - `GET /advisory/proposals/{proposal_id}/delivery-summary`
+    - `GET /advisory/proposals/{proposal_id}/delivery-events`
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves those endpoints
+    return normalized persisted delivery state and return `404` for missing proposals.
+  - `scripts/validate_lotus_core_fallback_policy.py` now provides an executable runtime contract
+    check for the fallback boundary:
+    - stateless simulate may use controlled local fallback in non-production,
+    - stateful create and workspace evaluation still require authoritative Lotus Core context,
+    - production rejects local fallback even when requested.
+- Consequence:
+  - Delivery history is now queryable through a stable domain read surface, replay code is less
+    duplicated, and the fallback-policy boundary is validated as an executable operational contract
+    instead of relying only on scattered unit tests.
+- Follow-Up:
+  - If proposal operations later need richer delivery analytics, extend the event projector rather
+    than adding parallel execution/reporting history assemblers.
+
+## LA-REV-016
+
+- Scope: Live degraded-runtime validation and dependency readiness truthfulness
+- Pattern: operational contract hardening / reliability gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The proposal runtime degraded correctly when `lotus-risk` or `lotus-core` became
+  unavailable, but the capability contract still treated configured dependencies as operationally
+  ready. That made `/platform/capabilities` optimistic under real outages and left degraded runtime
+  drills undocumented and non-repeatable.
+- Evidence:
+  - `src/integrations/base.py` now supports production-only dependency health probing instead of
+    equating `configured=true` with `operational_ready=true`.
+  - `tests/unit/advisory/api/test_integration_dependency_base.py` proves:
+    - non-production keeps the old no-probe posture,
+    - production marks dependencies unready when health probing fails,
+    - production marks them ready when health probing succeeds.
+  - `tests/unit/advisory/api/test_api_integration_capabilities.py` now proves capability/workflow
+    readiness degrades correctly when:
+    - `lotus-risk` health probing fails, and
+    - `lotus-core` health probing fails in production.
+  - `scripts/validate_degraded_runtime_live.py` now provides a self-restoring live drill that:
+    - stops `lotus-risk`, verifies proposal simulation degrades to `risk_authority=unavailable`,
+      and checks `advisory.proposals.risk_lens` readiness,
+    - stops `lotus-core` query/control services, verifies stateless simulation fails without local
+      fallback, and checks `advisory.proposals.simulation` readiness.
+  - `tests/e2e/live/test_degraded_runtime_live.py` wraps that live drill behind an explicit
+    opt-in environment flag.
+- Consequence:
+  - The operational capability contract now matches real degraded runtime behavior, and the most
+    important upstream outage paths are covered by a reusable live validator instead of ad hoc
+    manual testing.
+- Follow-Up:
+  - If dependency probing later becomes too expensive for additional upstreams, keep the shared
+    production-only seam but add per-dependency caching rather than reverting to config-only
+    readiness.
+
+## LA-REV-017
+
+- Scope: Sequential live runtime validation orchestration
+- Pattern: operational reliability / validation-program hardening
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The live validation assets had become strong individually, but operators still had to
+  know which scripts were safe to run together and which drills were intentionally disruptive. That
+  made the validation program too easy to misuse under time pressure.
+- Evidence:
+  - `scripts/validate_live_runtime_suite.py` now orchestrates the live validation program
+    sequentially:
+    - normal cross-service proposal parity first,
+    - degraded runtime drills second.
+  - `tests/unit/advisory/api/test_live_runtime_suite.py` now proves:
+    - parity always runs before degraded drills,
+    - degraded drills can be intentionally skipped for faster non-disruptive passes.
+  - `tests/e2e/live/test_live_runtime_suite.py` now provides one explicit opt-in wrapper for the
+    full live runtime suite.
+- Consequence:
+  - The live validation program is easier to run correctly, less likely to self-interfere by
+    overlapping disruptive drills, and clearer for future operators who were not present during the
+    original integration hardening.
+- Follow-Up:
+  - If additional disruptive live drills are added later, keep them in the same sequential suite
+    rather than introducing another independent operator script.
+
+## LA-REV-018
+
+- Scope: Proposal version lifecycle reset after approvals
+- Pattern: workflow correctness / stale-approval hardening
+- Status: Hardened
+- Finding Class: bug or regression risk
+- Summary: Creating a new proposal version after version `1` had already reached
+  `EXECUTION_READY` incorrectly preserved that execution-ready state on version `2`. That meant
+  stale approvals could leak across versions and make a fresh version look executable before it had
+  gone back through the required approval path.
+- Evidence:
+  - `src/core/proposals/service.py` now resets `proposal.current_state` to `DRAFT` when
+    `NEW_VERSION_CREATED` is recorded, and the event now reflects `to_state=DRAFT` rather than
+    echoing the previous approved state.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves:
+    - version creation after approvals resets the proposal back to `DRAFT`,
+    - the new version cannot be handed off to execution until it is re-approved,
+    - multi-version workflow history records `NEW_VERSION_CREATED` with `to_state=DRAFT`.
+  - `scripts/validate_cross_service_parity_live.py` now runs a live assertion that:
+    - promotes version `1` to `EXECUTION_READY`,
+    - creates version `2`,
+    - verifies the live stack resets the lifecycle to `DRAFT`, and
+    - confirms execution handoff for version `2` is rejected until fresh approvals are recorded.
+- Consequence:
+  - Proposal versioning now matches the real domain rule that approvals are version-scoped, and
+    execution eligibility cannot silently bleed from an old version into a new one.
+- Follow-Up:
+  - If the product later needs explicit approval-carry-forward semantics, model that as a governed
+    workflow decision with a dedicated event and audit trail instead of inferring it from previous
+    version state.
+
+## LA-REV-019
+
+- Scope: Mixed approval-route lineage across proposal versions
+- Pattern: workflow lineage hardening / validation gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The proposal workflow supports both compliance-first and risk-first approval routes, but
+  the validation program had only been exercising one route at a time. That left a gap around
+  mixed-version histories where version `1` follows one route and version `2` follows another.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now parameterizes the promotion helper so the
+    live validator can exercise both approval routes intentionally.
+  - The live validator now proves a mixed lineage case where:
+    - version `1` reaches `EXECUTION_READY` through `COMPLIANCE_REVIEW`,
+    - version `2` reaches `EXECUTION_READY` through `RISK_REVIEW`,
+    - workflow timeline retains `COMPLIANCE_APPROVED` on version `1` and `RISK_APPROVED` on
+      version `2`,
+    - the approvals endpoint preserves the full cross-version approval audit trail.
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves the same mixed
+    route lineage contract in a deterministic unit test.
+- Consequence:
+  - The workflow validation program now covers both supported approval branches in one versioned
+    proposal lineage, reducing the risk of route-specific regressions that only appear after a new
+    version is created.
+- Follow-Up:
+  - If future approval policies add route-specific metadata or conditional approvals, keep them in
+    the same version-scoped lineage model rather than introducing route-specific side stores.
+
+## LA-REV-020
+
+- Scope: Delivery anchoring after mixed approval-route divergence
+- Pattern: workflow lineage hardening / delivery-surface validation gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: Mixed approval-route histories were covered at the approval/timeline layer, but delivery
+  surfaces still needed explicit validation to prove execution and reporting remain anchored to the
+  latest approved version rather than inheriting stale context from earlier approval routes.
+- Evidence:
+  - `tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py` now proves a mixed-route
+    lineage where:
+    - version `1` takes the compliance-first path,
+    - version `2` takes the risk-first path,
+    - execution and reporting are requested only for version `2`,
+    - `delivery-summary` and `delivery-events` remain fully anchored to version `2`.
+  - `scripts/validate_cross_service_parity_live.py` now runs the same mixed-route delivery check on
+    the live stack and asserts:
+    - delivery execution summary is anchored to version `2`,
+    - reporting summary is either anchored to version `2` or absent under degraded reporting,
+    - delivery history contains only version-`2` execution/reporting events.
+- Consequence:
+  - The proposal workflow now has explicit regression protection for the most important lifecycle
+    invariant in mixed-route histories: approval lineage may span versions, but delivery lineage
+    must stay pinned to the latest approved version.
+- Follow-Up:
+  - If delivery workflows later support partial execution on multiple versions in one lineage,
+    promote delivery projection rules into an explicit documented contract rather than inferring them
+    only from workflow events.
+
+## LA-REV-021
+
+- Scope: Changed-state cross-service proposal parity
+- Pattern: live validation gap / canonical integration hardening
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The live validation program already proved no-op before-state parity and changed-state
+  risk parity, but it still lacked an executable proof that a real proposal delta preserves
+  canonical Lotus Core after-state allocation views as well as Lotus Risk concentration.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now proves a changed-state path where the
+    validator:
+    - selects a real held non-cash security from live Lotus Core positions,
+    - creates a stateful workspace and adds a draft trade,
+    - compares the workspace `risk_lens` to direct `lotus-risk` concentration using the same
+      effective `simulation_changes`,
+    - compares workspace before/after allocation views to direct Lotus Core
+      `/integration/advisory/proposals/simulate-execution` using the same resolved stateful request.
+  - `tests/unit/advisory/api/test_live_cross_service_parity.py` now locks the helper contracts for:
+    - selecting a real changed-state security from live-style positions,
+    - deriving Lotus Risk `simulation_changes` from proposal intents without drift.
+- Consequence:
+  - The live integration program now covers the core production question for proposal deltas:
+    when `lotus-advise` mutates a live portfolio through a real draft trade, both allocation and
+    concentration remain aligned with their canonical upstream authorities.
+- Follow-Up:
+  - If future proposal deltas add more complex change types such as notional-only trades, FX, or
+    cash flows, extend the changed-state live parity drill with those cases instead of introducing a
+    separate validation path.
+
+## LA-REV-022
+
+- Scope: Cross-currency changed-state proposal parity
+- Pattern: FX-sensitive live validation gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: Changed-state proposal parity was proven for a real held security, but that still left a
+  material blind spot: whether a live proposal delta on a non-base-currency holding preserves
+  canonical allocation and concentration behavior through FX conversion.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now adds a second changed-state drill that:
+    - selects the highest-weight non-cash holding outside the portfolio reporting currency,
+    - runs the same workspace draft-trade path against that holding,
+    - proves changed-state `risk_lens` still matches direct `lotus-risk` concentration,
+    - proves changed-state before/after allocation views still match direct Lotus Core simulation.
+  - `tests/unit/advisory/api/test_live_cross_service_parity.py` now proves the helper that selects
+    cross-currency live holdings prefers the highest-weight eligible non-base position and ignores
+    cash rows.
+  - `scripts/live_runtime_suite_artifacts.py` and
+    `tests/unit/advisory/api/test_live_runtime_suite.py` now surface the cross-currency security in
+    machine-readable and PR-facing evidence output.
+- Consequence:
+  - The live parity program now covers both same-currency and cross-currency proposal deltas, which
+    materially improves confidence in FX-sensitive after-state allocation and risk behavior.
+- Follow-Up:
+  - If multi-currency proposal support expands to explicit FX intents, add a dedicated drill that
+    validates trade-plus-FX interaction rather than assuming security-trade-only changes.
+
+## LA-REV-023
+
+- Scope: Non-held instrument changed-state proposal parity
+- Pattern: enrichment and hydration live validation gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: Same-currency and cross-currency changed-state drills covered held positions, but the
+  proposal path also needs to work when an advisor drafts a buy for a non-held instrument that must
+  be hydrated through the stateful Lotus Core enrichment seam.
+- Evidence:
+  - `scripts/validate_cross_service_parity_live.py` now adds a non-held changed-state drill that:
+    - selects a preferred non-held seeded candidate not already present in the live portfolio,
+    - runs a stateful workspace draft trade on that instrument,
+    - proves changed-state `risk_lens` still matches direct `lotus-risk` concentration,
+    - proves changed-state before/after allocation views still match direct Lotus Core simulation.
+  - `tests/unit/advisory/api/test_live_cross_service_parity.py` now proves the non-held selector
+    prefers the first viable non-held candidate from the governed seeded list.
+  - `scripts/live_runtime_suite_artifacts.py` and
+    `tests/unit/advisory/api/test_live_runtime_suite.py` now surface the non-held security in the
+    suite evidence output.
+- Consequence:
+  - The live parity program now covers the most failure-prone proposal enrichment path: adding a new
+    instrument that was not already in the held portfolio snapshot.
+- Follow-Up:
+  - If future seeded universes change, keep the non-held candidate list governed and business
+    meaningful rather than letting the live drill drift to arbitrary instruments.
+
+## LA-REV-024
+
+- Scope: Operator-grade live evidence generation
+- Pattern: validation workflow friction / evidence handoff gap
+- Status: Hardened
+- Finding Class: architecture or modularity issue
+- Summary: The live validation program already produced strong evidence, but it still required
+  operators to run the suite and the PR-summary rendering as separate manual steps. That left a
+  small but real process gap between successful validation and durable merge-ready evidence.
+- Evidence:
+  - `scripts/live_runtime_suite_artifacts.py` now includes `write_pr_summary_for_bundle(...)`,
+    which writes a PR-ready markdown summary directly alongside a resolved evidence bundle.
+  - `scripts/run_live_runtime_evidence_bundle.py` now provides a single operator command that:
+    - runs the live runtime suite,
+    - writes the timestamped evidence bundle,
+    - writes `pr-summary.md` in the bundle or to an explicit output path.
+  - `tests/unit/advisory/api/test_live_runtime_suite.py` now proves:
+    - PR summaries can be written directly beside a bundle,
+    - the one-command wrapper writes `result.json`, `summary.md`, and `pr-summary.md`.
+- Consequence:
+  - Live validation is now easier to run correctly and easier to hand off into PR notes or review
+    records without manual chaining between scripts.
+- Follow-Up:
+  - If the team wants CI-attached live evidence later, reuse the same bundle and PR-summary writers
+    rather than introducing a second evidence format.

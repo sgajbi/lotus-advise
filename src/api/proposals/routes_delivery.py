@@ -6,6 +6,8 @@ import src.api.proposals.router as shared
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.api.services.proposal_reporting_service import request_proposal_report
 from src.core.proposals import (
+    ProposalDeliveryHistoryResponse,
+    ProposalDeliverySummaryResponse,
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
     ProposalExecutionStatusResponse,
@@ -93,6 +95,63 @@ def request_execution_handoff(
             idempotency_key=idempotency_key,
         )
     except (ProposalNotFoundError, ProposalStateConflictError, ProposalValidationError) as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.get(
+    "/advisory/proposals/{proposal_id}/delivery-summary",
+    response_model=ProposalDeliverySummaryResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
+    summary="Get Advisory Proposal Delivery Summary",
+    description=(
+        "Returns the latest normalized execution and reporting delivery posture derived from "
+        "append-only advisory workflow history."
+    ),
+)
+def get_delivery_summary(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    service: Annotated[
+        ProposalWorkflowService,
+        Depends(shared.get_proposal_workflow_service),
+    ],
+) -> ProposalDeliverySummaryResponse:
+    shared._assert_lifecycle_enabled()
+    shared._assert_support_apis_enabled()
+    try:
+        return service.get_delivery_summary(proposal_id=proposal_id)
+    except ProposalNotFoundError as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.get(
+    "/advisory/proposals/{proposal_id}/delivery-events",
+    response_model=ProposalDeliveryHistoryResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Operations & Support"],
+    summary="Get Advisory Proposal Delivery History",
+    description=(
+        "Returns delivery-only workflow history derived from append-only advisory workflow events."
+    ),
+)
+def get_delivery_history(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    service: Annotated[
+        ProposalWorkflowService,
+        Depends(shared.get_proposal_workflow_service),
+    ],
+) -> ProposalDeliveryHistoryResponse:
+    shared._assert_lifecycle_enabled()
+    shared._assert_support_apis_enabled()
+    try:
+        return service.get_delivery_history(proposal_id=proposal_id)
+    except ProposalNotFoundError as exc:
         raise_proposal_http_exception(exc)
 
 

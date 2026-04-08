@@ -1,9 +1,11 @@
 from typing import Any, Optional
 
+from src.core.proposals.delivery_summary import build_delivery_summary_from_events
 from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
     ProposalRecord,
     ProposalVersionRecord,
+    ProposalWorkflowEventRecord,
 )
 from src.core.replay.models import (
     AdvisoryReplayContinuity,
@@ -68,9 +70,11 @@ def build_proposal_version_replay_response(
     *,
     proposal: ProposalRecord,
     version: ProposalVersionRecord,
+    events: list[ProposalWorkflowEventRecord],
 ) -> AdvisoryReplayEvidenceResponse:
     context_resolution = version.evidence_bundle_json.get("context_resolution", {})
     replay_lineage = version.evidence_bundle_json.get("replay_lineage", {})
+    delivery_summary = build_delivery_summary_from_events(events)
     return AdvisoryReplayEvidenceResponse(
         subject=AdvisoryReplaySubject(
             scope="PROPOSAL_VERSION",
@@ -106,6 +110,7 @@ def build_proposal_version_replay_response(
             "context_resolution": context_resolution,
             "replay_lineage": replay_lineage,
             "risk_lens": version.evidence_bundle_json.get("risk_lens"),
+            "delivery": delivery_summary,
         },
         explanation={
             "source": "PROPOSAL_VERSION_EVIDENCE_BUNDLE",
@@ -121,9 +126,14 @@ def build_async_operation_replay_response(
     operation: ProposalAsyncOperationRecord,
     proposal: Optional[ProposalRecord],
     version: Optional[ProposalVersionRecord],
+    events: list[ProposalWorkflowEventRecord] | None = None,
 ) -> AdvisoryReplayEvidenceResponse:
     proposal_replay = (
-        build_proposal_version_replay_response(proposal=proposal, version=version)
+        build_proposal_version_replay_response(
+            proposal=proposal,
+            version=version,
+            events=events or [],
+        )
         if proposal is not None and version is not None
         else None
     )

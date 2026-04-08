@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -7,9 +8,13 @@ import pytest
 from src.core.models import (
     EngineOptions,
     MarketDataSnapshot,
+    Money,
     PortfolioSnapshot,
+    Position,
     ProposalSimulateRequest,
+    ValuationMode,
 )
+from src.core.valuation import build_simulated_state
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
 from src.integrations.lotus_core.stateful_context import (
     LotusCoreStatefulContextUnavailableError,
@@ -20,9 +25,11 @@ from src.integrations.lotus_core.stateful_context import (
     _build_positions,
     _build_prices,
     _build_shelf_entries,
+    _cash_balances_request_body,
     _decimal_or_none,
     _derive_fx_rates,
     _fetch_instrument_enrichment_bulk,
+    _positions_path,
     _prefer_upstream_liquidity_tier,
     _request_json,
     _require_decimal,
@@ -60,6 +67,7 @@ class _FakeResponse:
 class _FakeClient:
     def __init__(self, responses: dict[tuple[str, str], _FakeResponse]) -> None:
         self._responses = responses
+        self.requests: list[tuple[str, str, dict[str, Any] | None]] = []
 
     def __enter__(self) -> "_FakeClient":
         return self
@@ -68,7 +76,10 @@ class _FakeClient:
         return None
 
     def request(self, method: str, url: str, json: dict[str, Any] | None = None) -> _FakeResponse:
+        self.requests.append((method.upper(), url, json))
         key = (method.upper(), url)
+        if key not in self._responses and "?" in url:
+            key = (method.upper(), url.split("?", 1)[0])
         if key not in self._responses:
             raise AssertionError(f"unexpected request: {key} body={json}")
         return self._responses[key]
@@ -329,9 +340,9 @@ def test_stateful_builders_skip_malformed_rows() -> None:
         ]
     }
 
-    assert [position.instrument_id for position in _build_positions(positions_payload)] == [
-        "SEC_NO_VAL",
-        "SEC_NO_PRICE",
+    assert _build_positions(positions_payload, portfolio_base_currency="USD") == [
+        Position(instrument_id="SEC_NO_VAL", quantity="10", market_value=None, lots=[]),
+        Position(instrument_id="SEC_NO_PRICE", quantity="10", market_value=None, lots=[]),
     ]
     assert _build_prices(positions_payload) == []
     assert [balance.currency for balance in _build_cash_balances(cash_payload)] == ["USD"]
@@ -619,8 +630,18 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
     request = resolved.simulate_request
     assert request.portfolio_snapshot.base_currency == "USD"
     assert request.portfolio_snapshot.model_dump(mode="json")["positions"] == [
-        {"instrument_id": "SEC_AAPL_US", "quantity": "800.0", "market_value": None, "lots": []},
-        {"instrument_id": "SEC_NESN_CH", "quantity": "120.0", "market_value": None, "lots": []},
+        {
+            "instrument_id": "SEC_AAPL_US",
+            "quantity": "800.0",
+            "market_value": {"amount": "155200.0000000000", "currency": "USD"},
+            "lots": [],
+        },
+        {
+            "instrument_id": "SEC_NESN_CH",
+            "quantity": "120.0",
+            "market_value": {"amount": "12400.0000000000", "currency": "USD"},
+            "lots": [],
+        },
     ]
     assert request.portfolio_snapshot.model_dump(mode="json")["cash_balances"] == [
         {"currency": "USD", "amount": "235350.0000000000", "settled": None, "pending": None},
@@ -691,8 +712,95 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
         {"pair": "CHF/USD", "rate": "1.093"},
     ]
     assert request.options.enable_proposal_simulation is True
+    assert request.options.valuation_mode == ValuationMode.TRUST_SNAPSHOT
     assert request.proposed_cash_flows == []
     assert request.proposed_trades == []
+
+
+def test_resolve_stateful_context_with_lotus_core_propagates_as_of_to_positions_and_cash(
+    monkeypatch, stateful_input
+) -> None:
+    base_url = "http://host.docker.internal:8201"
+    control_plane_base_url = "http://host.docker.internal:8202"
+    monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", control_plane_base_url)
+    responses = {
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"): _FakeResponse(
+            {"portfolio_id": "DEMO_ADV_USD_001", "base_currency": "USD"}
+        ),
+        (
+            "GET",
+            f"{base_url}{_positions_path(portfolio_id='DEMO_ADV_USD_001', as_of='2026-03-27')}",
+        ): _FakeResponse({"portfolio_id": "DEMO_ADV_USD_001", "positions": []}),
+        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+            {
+                "portfolio_id": "DEMO_ADV_USD_001",
+                "resolved_as_of_date": "2026-03-27",
+                "cash_accounts": [],
+            }
+        ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/instruments/enrichment-bulk",
+        ): _FakeResponse({"records": []}),
+    }
+    client = _FakeClient(responses)
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.stateful_context.httpx.Client",
+        lambda timeout: client,
+    )
+
+    resolve_stateful_context_with_lotus_core(stateful_input)
+
+    assert (
+        "GET",
+        f"{base_url}{_positions_path(portfolio_id='DEMO_ADV_USD_001', as_of='2026-03-27')}",
+        None,
+    ) in client.requests
+    assert (
+        "POST",
+        f"{base_url}/reporting/cash-balances/query",
+        _cash_balances_request_body(portfolio_id="DEMO_ADV_USD_001", as_of="2026-03-27"),
+    ) in client.requests
+
+
+def test_trust_snapshot_before_state_uses_upstream_market_value_over_local_fx_revaluation() -> None:
+    request = ProposalSimulateRequest(
+        portfolio_snapshot=PortfolioSnapshot(
+            portfolio_id="pf_1",
+            base_currency="USD",
+            positions=[
+                Position(
+                    instrument_id="SEC_EUR",
+                    quantity="10",
+                    market_value=Money(amount="120", currency="USD"),
+                )
+            ],
+            cash_balances=[],
+        ),
+        market_data_snapshot=MarketDataSnapshot(
+            prices=[{"instrument_id": "SEC_EUR", "price": "10", "currency": "EUR"}],
+            fx_rates=[{"pair": "EUR/USD", "rate": "1.5"}],
+        ),
+        shelf_entries=[],
+        options=EngineOptions(valuation_mode=ValuationMode.TRUST_SNAPSHOT),
+        proposed_cash_flows=[],
+        proposed_trades=[],
+    )
+
+    state = build_simulated_state(
+        request.portfolio_snapshot,
+        request.market_data_snapshot,
+        request.shelf_entries,
+        dq_log={},
+        warnings=[],
+        options=request.options,
+    )
+
+    assert state.total_value.amount == Decimal("120.0")
+    assert state.positions[0].value_in_base_ccy.amount == Decimal("120.0")
+    assert state.positions[0].value_in_instrument_ccy.amount == Decimal("100")
+    assert state.positions[0].instrument_currency == "EUR"
 
 
 def test_resolve_stateful_context_with_lotus_core_rejects_invalid_portfolio_payload(
@@ -1183,10 +1291,13 @@ def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resoluti
             request_counter["count"] += 1
             if (method.upper(), url) == ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001"):
                 return _FakeResponse(dict(portfolio_payload))
-            if (method.upper(), url) == (
-                "GET",
+            if method.upper() == "GET" and url in {
                 f"{base_url}/portfolios/DEMO_ADV_USD_001/positions",
-            ):
+                (
+                    f"{base_url}"
+                    f"{_positions_path(portfolio_id='DEMO_ADV_USD_001', as_of='2026-03-27')}"
+                ),
+            }:
                 return _FakeResponse({"portfolio_id": "DEMO_ADV_USD_001", "positions": []})
             if (method.upper(), url) == ("POST", f"{base_url}/reporting/cash-balances/query"):
                 return _FakeResponse(
