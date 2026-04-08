@@ -18,8 +18,9 @@ def test_select_changed_state_security_prefers_highest_weight_non_cash_position(
     assert selected == "FO_FUND_HIGH"
 
 
-def test_security_trade_changes_from_proposal_body_preserves_trade_quantities_and_notional(
-) -> None:
+def test_security_trade_changes_from_proposal_body_preserves_trade_quantities_and_notional() -> (
+    None
+):
     proposal_body = {
         "intents": [
             {
@@ -70,8 +71,9 @@ def test_security_trade_changes_from_proposal_body_preserves_trade_quantities_an
     ]
 
 
-def test_select_cross_currency_changed_state_security_prefers_highest_weight_non_base_holding(
-) -> None:
+def test_select_cross_currency_changed_state_security_prefers_highest_weight_non_base_holding() -> (
+    None
+):
     positions = [
         {"security_id": "FO_USD", "asset_class": "Fund", "currency": "USD", "weight": "0.18"},
         {

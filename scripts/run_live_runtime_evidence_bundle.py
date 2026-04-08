@@ -50,8 +50,7 @@ def main() -> None:
         output_path=args.pr_summary_output,
     )
     print(
-        "Live runtime evidence bundle written "
-        f"(bundle={bundle_dir}, pr_summary={pr_summary_path})"
+        f"Live runtime evidence bundle written (bundle={bundle_dir}, pr_summary={pr_summary_path})"
     )
 
 

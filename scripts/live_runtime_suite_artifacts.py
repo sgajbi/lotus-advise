@@ -125,10 +125,7 @@ def build_pr_summary(
                 f"`{parity['changed_state_portfolio']}` via "
                 f"`{parity['changed_state_security_id']}`"
             ),
-            (
-                "- cross-currency changed-state parity: "
-                f"`{parity['cross_currency_security_id']}`"
-            ),
+            (f"- cross-currency changed-state parity: `{parity['cross_currency_security_id']}`"),
             f"- non-held changed-state parity: `{parity['non_held_security_id']}`",
             (
                 "- sync lifecycle: "

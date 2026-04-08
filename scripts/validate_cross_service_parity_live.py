@@ -892,9 +892,7 @@ def _promote_to_execution_ready(
     current_state = "DRAFT"
     if current_state == "DRAFT":
         route_event_type = (
-            "SUBMITTED_FOR_RISK_REVIEW"
-            if route == "risk"
-            else "SUBMITTED_FOR_COMPLIANCE_REVIEW"
+            "SUBMITTED_FOR_RISK_REVIEW" if route == "risk" else "SUBMITTED_FOR_COMPLIANCE_REVIEW"
         )
         route_target_state = "RISK_REVIEW" if route == "risk" else "COMPLIANCE_REVIEW"
         transition = _post_transition(
@@ -1898,8 +1896,7 @@ def _assert_persisted_read_surfaces(
     expected_report_status: str,
 ) -> None:
     list_query = (
-        f"{advise_base_url}/advisory/proposals"
-        f"?portfolio_id={expected_portfolio_id}&limit=100"
+        f"{advise_base_url}/advisory/proposals?portfolio_id={expected_portfolio_id}&limit=100"
     )
     if created_by_filter:
         list_query += f"&created_by={created_by_filter}"
@@ -2075,8 +2072,7 @@ def _assert_persisted_read_surfaces(
     approval_rows = cast(list[dict[str, Any]], approvals["approvals"])
     _assert(
         all(
-            int(approval["related_version_no"]) == current_version_no
-            for approval in approval_rows
+            int(approval["related_version_no"]) == current_version_no for approval in approval_rows
         ),
         f"{proposal_id}: approvals endpoint leaked non-current version approvals",
     )
@@ -2117,9 +2113,7 @@ def _assert_persisted_read_surfaces(
     if current_version_no > 1:
         first_version_replay = _get_json(
             client,
-            url=(
-                f"{advise_base_url}/advisory/proposals/{proposal_id}/versions/1/replay-evidence"
-            ),
+            url=(f"{advise_base_url}/advisory/proposals/{proposal_id}/versions/1/replay-evidence"),
             expected_status=200,
         )
         current_version_replay = _get_json(
@@ -2253,14 +2247,14 @@ def validate_live_cross_service_parity(
             scenario=complete,
         )
         (
-        async_lifecycle_portfolio,
-        async_lifecycle_latest_version_no,
-        async_lifecycle_current_state,
-    ) = _assert_async_lifecycle_read_surfaces(
-        client,
-        advise_base_url=advise_base_url,
-        scenario=complete,
-    )
+            async_lifecycle_portfolio,
+            async_lifecycle_latest_version_no,
+            async_lifecycle_current_state,
+        ) = _assert_async_lifecycle_read_surfaces(
+            client,
+            advise_base_url=advise_base_url,
+            scenario=complete,
+        )
         _assert_new_version_requires_fresh_approvals(
             client,
             advise_base_url=advise_base_url,

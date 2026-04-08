@@ -215,9 +215,7 @@ def test_enrich_with_lotus_risk_maps_proposal_to_simulation_concentration(monkey
         == "EQ_1"
     )
     assert (
-        enriched.explanation["risk_lens"]["issuer_concentration"]["top_issuer_current"][
-            "issuer_id"
-        ]
+        enriched.explanation["risk_lens"]["issuer_concentration"]["top_issuer_current"]["issuer_id"]
         == "PARENT_1"
     )
     assert (

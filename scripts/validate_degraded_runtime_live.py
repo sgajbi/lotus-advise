@@ -323,9 +323,7 @@ def validate_live_degraded_runtime(
         advise_base_url or os.getenv("LOTUS_ADVISE_BASE_URL") or _DEFAULT_ADVISE_BASE_URL
     )
     core_control_base_url = (
-        core_control_base_url
-        or os.getenv("LOTUS_CORE_BASE_URL")
-        or _DEFAULT_CORE_CONTROL_BASE_URL
+        core_control_base_url or os.getenv("LOTUS_CORE_BASE_URL") or _DEFAULT_CORE_CONTROL_BASE_URL
     )
     core_query_base_url = (
         core_query_base_url

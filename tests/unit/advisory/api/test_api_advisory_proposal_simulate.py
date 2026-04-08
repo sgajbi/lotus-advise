@@ -495,9 +495,7 @@ def test_advisory_proposal_simulate_sets_risk_authority_only_after_valid_risk_re
         == "EQ_1"
     )
     assert (
-        body["explanation"]["risk_lens"]["issuer_concentration"]["top_issuer_current"][
-            "issuer_id"
-        ]
+        body["explanation"]["risk_lens"]["issuer_concentration"]["top_issuer_current"]["issuer_id"]
         == "PARENT_1"
     )
     assert body["explanation"]["risk_lens"]["issuer_concentration"]["coverage_ratio_current"] == 1.0

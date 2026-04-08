@@ -199,9 +199,7 @@ def _issuer_mappings(
                 "ultimate_parent_issuer_name"
             ),
         }
-        mappings.append(
-            {key: value for key, value in mapping.items() if value is not None}
-        )
+        mappings.append({key: value for key, value in mapping.items() if value is not None})
     return mappings
 
 
