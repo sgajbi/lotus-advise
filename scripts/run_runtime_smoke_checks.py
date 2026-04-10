@@ -11,6 +11,8 @@ from pathlib import Path
 
 import psycopg
 
+_LOCAL_PROPOSAL_POSTGRES_DSN = "postgresql://advise:advise@127.0.0.1:5432/advise_supportability"
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -120,10 +122,14 @@ def _assert_guardrail_failure(
 
 def _postgres_env() -> dict[str, str]:
     env = os.environ.copy()
-    env["PROPOSAL_POSTGRES_DSN"] = "postgresql://advise:advise@127.0.0.1:5432/advise_supportability"
-    env["PROPOSAL_POSTGRES_INTEGRATION_DSN"] = (
-        "postgresql://advise:advise@127.0.0.1:5432/advise_supportability"
+    proposal_postgres_dsn = (
+        env.get("PROPOSAL_POSTGRES_DSN", "").strip() or _LOCAL_PROPOSAL_POSTGRES_DSN
     )
+    proposal_postgres_integration_dsn = (
+        env.get("PROPOSAL_POSTGRES_INTEGRATION_DSN", "").strip() or proposal_postgres_dsn
+    )
+    env["PROPOSAL_POSTGRES_DSN"] = proposal_postgres_dsn
+    env["PROPOSAL_POSTGRES_INTEGRATION_DSN"] = proposal_postgres_integration_dsn
     return env
 
 
