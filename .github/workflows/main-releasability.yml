@@ -1,0 +1,202 @@
+name: Main Releasability Gate
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONUNBUFFERED: "1"
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  workflow-lint:
+    name: Main Releasability / Workflow Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: reviewdog/action-actionlint@v1
+
+  lint-typecheck-governance:
+    name: Main Releasability / Lint Typecheck Governance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install
+        run: make install-ci
+      - name: Verify Dependencies
+        run: make verify-dependencies
+      - name: Dependency Freshness
+        run: make check-deps-strict
+      - name: Lint
+        run: make lint
+      - name: Typecheck
+        run: make typecheck
+      - name: OpenAPI Gate
+        run: make openapi-gate
+      - name: No Alias Contract Guard
+        run: make no-alias-gate
+      - name: API Vocabulary Gate
+        run: make api-vocabulary-gate
+      - name: Migration Smoke
+        run: make migration-smoke
+      - name: Security Audit
+        run: make security-audit
+
+  test-suites:
+    name: Main Releasability / Tests (${{ matrix.suite }})
+    needs: [lint-typecheck-governance]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: unit
+            path: tests/unit
+          - suite: integration
+            path: tests/integration
+          - suite: e2e
+            path: tests/e2e
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install
+        run: make install-ci
+      - name: Run tests with coverage data
+        env:
+          COVERAGE_FILE: .coverage.${{ matrix.suite }}
+        run: python -m pytest ${{ matrix.path }} --cov=src --cov-report=
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-releasability-coverage-data-${{ matrix.suite }}
+          path: .coverage.${{ matrix.suite }}
+          include-hidden-files: true
+          if-no-files-found: error
+
+  coverage-gate:
+    name: Main Releasability / Coverage Gate (Combined)
+    needs: [test-suites]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install
+        run: make install-ci
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: main-releasability-coverage-data-*
+          merge-multiple: true
+          path: coverage-data
+      - name: Enforce coverage floor
+        run: |
+          python -m coverage combine coverage-data
+          python -m coverage report --fail-under=97
+
+  postgres-migration-smoke:
+    name: Main Releasability / Postgres Migration Smoke
+    needs: [lint-typecheck-governance]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_DB: lotus_advise
+          POSTGRES_USER: lotus
+          POSTGRES_PASSWORD: lotus
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lotus -d lotus_advise"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install
+        run: make install-ci
+      - name: Run Postgres migration smoke
+        env:
+          PROPOSAL_POSTGRES_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
+          PROPOSAL_POSTGRES_INTEGRATION_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
+        run: python scripts/run_runtime_smoke_checks.py postgres-migration-smoke
+
+  production-profile-smoke:
+    name: Main Releasability / Production Profile Startup Smoke
+    needs: [lint-typecheck-governance]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_DB: lotus_advise
+          POSTGRES_USER: lotus
+          POSTGRES_PASSWORD: lotus
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lotus -d lotus_advise"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install
+        run: make install-ci
+      - name: Run production profile startup smoke
+        env:
+          PROPOSAL_STORE_BACKEND: POSTGRES
+          PROPOSAL_POSTGRES_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
+          PROPOSAL_POSTGRES_INTEGRATION_DSN: postgresql://lotus:lotus@127.0.0.1:5432/lotus_advise
+        run: python scripts/run_runtime_smoke_checks.py production-profile-smoke
+
+  production-profile-guardrail-negatives:
+    name: Main Releasability / Production Profile Guardrail Negatives
+    needs: [lint-typecheck-governance]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+      - name: Install
+        run: make install-ci
+      - name: Run production guardrail negatives
+        run: python scripts/run_runtime_smoke_checks.py production-profile-guardrail-negatives
+
+  docker-build:
+    name: Main Releasability / Validate Docker Build
+    needs: [coverage-gate, postgres-migration-smoke, production-profile-smoke, production-profile-guardrail-negatives]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build Docker image
+        run: make docker-build

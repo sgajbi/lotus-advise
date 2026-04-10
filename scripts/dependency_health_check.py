@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import argparse
 import json
+import os
 import re
+import shutil
 import subprocess
-import sys
+import tempfile
+import venv
 from dataclasses import dataclass
 from pathlib import Path
-from shutil import which
 from typing import Iterable
 
 
@@ -17,14 +21,22 @@ class CheckResult:
     stderr: str
 
 
-def _run(command: list[str]) -> CheckResult:
-    completed = subprocess.run(command, capture_output=True, text=True, check=False)
+def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> CheckResult:
+    completed = subprocess.run(
+        command, cwd=cwd, env=env, capture_output=True, text=True, check=False
+    )
     return CheckResult(
         command=command,
         return_code=completed.returncode,
         stdout=completed.stdout.strip(),
         stderr=completed.stderr.strip(),
     )
+
+
+def _venv_python(venv_path: Path) -> Path:
+    scripts_dir = "Scripts" if os.name == "nt" else "bin"
+    executable_name = "python.exe" if os.name == "nt" else "python"
+    return venv_path / scripts_dir / executable_name
 
 
 def _print_section(title: str, body: str) -> None:
@@ -83,6 +95,31 @@ def _filter_outdated_to_requirements(
     return filtered_rows
 
 
+def _install_requirement_files(
+    *,
+    python_bin: Path,
+    repo_root: Path,
+    env: dict[str, str],
+    requirements_file: Path,
+    dev_requirements_file: Path | None,
+) -> None:
+    install_commands: list[list[str]] = [
+        [str(python_bin), "-m", "pip", "install", "--upgrade", "pip"],
+        [str(python_bin), "-m", "pip", "install", "-r", str(requirements_file)],
+    ]
+    if dev_requirements_file is not None:
+        install_commands.append(
+            [str(python_bin), "-m", "pip", "install", "-r", str(dev_requirements_file)]
+        )
+
+    for command in install_commands:
+        result = _run(command, cwd=repo_root, env=env)
+        if result.return_code != 0:
+            _print_section("Dependency install stdout", result.stdout)
+            _print_section("Dependency install stderr", result.stderr)
+            raise SystemExit(result.return_code)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Dependency health checks for local and CI use")
     parser.add_argument(
@@ -91,72 +128,113 @@ def main() -> int:
         help="Path to the requirements file to audit",
     )
     parser.add_argument(
+        "--dev-requirements",
+        default="requirements-dev.txt",
+        help="Optional path to the development requirements file",
+    )
+    parser.add_argument(
         "--outdated-scope",
         choices=("direct", "environment"),
         default="direct",
-        help="Outdated scope: declared requirements graph or entire active environment",
+        help="Outdated scope: declared requirements graph or entire project-scoped environment",
     )
     parser.add_argument(
         "--fail-on-outdated",
         action="store_true",
         help="Fail when outdated packages are detected",
     )
+    parser.add_argument(
+        "--skip-audit",
+        action="store_true",
+        help=(
+            "Skip vulnerability audit and only run project-scoped pip check plus outdated reporting"
+        ),
+    )
     args = parser.parse_args()
 
-    pip_audit_executable = which("pip-audit")
-    if pip_audit_executable is None:
-        candidate = Path(sys.executable).with_name("pip-audit.exe")
-        if candidate.exists():
-            pip_audit_executable = str(candidate)
-    audit_command = (
-        [pip_audit_executable, "-r", args.requirements, "-f", "json"]
-        if pip_audit_executable is not None
-        else [sys.executable, "-m", "pip_audit", "-r", args.requirements, "-f", "json"]
-    )
-    audit = _run(audit_command)
-    if audit.return_code != 0 and not audit.stdout:
-        _print_section("pip-audit stderr", audit.stderr)
-        return audit.return_code
+    repo_root = Path(__file__).resolve().parents[1]
+    requirements_file = (repo_root / args.requirements).resolve()
+    dev_requirements_file = (repo_root / args.dev_requirements).resolve()
+    if not dev_requirements_file.exists():
+        dev_requirements_file = None
 
-    vulnerabilities = []
-    if audit.stdout:
-        try:
-            payload = json.loads(audit.stdout)
-            vulnerabilities = payload.get("vulns", [])
-        except json.JSONDecodeError:
-            _print_section("pip-audit output", audit.stdout)
-            _print_section("pip-audit stderr", audit.stderr)
-            return 1
+    temp_dir = Path(tempfile.mkdtemp(prefix="lotus-advise-dependency-health-"))
+    venv_path = temp_dir / "venv"
+    env = os.environ.copy()
+    env["PIP_NO_CACHE_DIR"] = "1"
+    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
 
-    outdated = _run([sys.executable, "-m", "pip", "list", "--outdated", "--format=json"])
-    if outdated.return_code != 0:
-        _print_section("pip outdated stderr", outdated.stderr)
-        return outdated.return_code
+    try:
+        venv.EnvBuilder(with_pip=True).create(venv_path)
+        python_bin = _venv_python(venv_path)
+        _install_requirement_files(
+            python_bin=python_bin,
+            repo_root=repo_root,
+            env=env,
+            requirements_file=requirements_file,
+            dev_requirements_file=dev_requirements_file,
+        )
 
-    outdated_rows = json.loads(outdated.stdout) if outdated.stdout else []
-    if args.outdated_scope == "direct":
-        requirement_names = _parse_requirements_file(Path(args.requirements), visited=set())
-        outdated_rows = _filter_outdated_to_requirements(outdated_rows, requirement_names)
+        pip_check = _run([str(python_bin), "-m", "pip", "check"], cwd=repo_root, env=env)
+        if pip_check.return_code != 0:
+            _print_section("pip check stdout", pip_check.stdout)
+            _print_section("pip check stderr", pip_check.stderr)
+            return pip_check.return_code
 
-    _print_section(
-        "Vulnerability Summary",
-        f"Known vulnerabilities: {len(vulnerabilities)}",
-    )
-    if vulnerabilities:
-        _print_section("Vulnerabilities", json.dumps(vulnerabilities, indent=2))
+        if not args.skip_audit:
+            audit = _run(
+                [str(python_bin), "-m", "pip_audit", "-r", str(requirements_file), "-f", "json"],
+                cwd=repo_root,
+                env=env,
+            )
+            if audit.return_code != 0 and not audit.stdout:
+                _print_section("pip-audit stderr", audit.stderr)
+                return audit.return_code
 
-    _print_section(
-        "Outdated Summary",
-        f"Outdated packages ({args.outdated_scope} scope): {len(outdated_rows)}",
-    )
-    if outdated_rows:
-        _print_section("Outdated Packages", json.dumps(outdated_rows, indent=2))
+            vulnerabilities = []
+            if audit.stdout:
+                try:
+                    payload = json.loads(audit.stdout)
+                    vulnerabilities = payload.get("vulns", [])
+                except json.JSONDecodeError:
+                    _print_section("pip-audit output", audit.stdout)
+                    _print_section("pip-audit stderr", audit.stderr)
+                    return 1
 
-    if vulnerabilities:
-        return 1
-    if args.fail_on_outdated and outdated_rows:
-        return 2
-    return 0
+            _print_section(
+                "Vulnerability Summary",
+                f"Known vulnerabilities: {len(vulnerabilities)}",
+            )
+            if vulnerabilities:
+                _print_section("Vulnerabilities", json.dumps(vulnerabilities, indent=2))
+                return 1
+
+        outdated = _run(
+            [str(python_bin), "-m", "pip", "list", "--outdated", "--format=json"],
+            cwd=repo_root,
+            env=env,
+        )
+        if outdated.return_code != 0:
+            _print_section("pip outdated stderr", outdated.stderr)
+            return outdated.return_code
+
+        outdated_rows = json.loads(outdated.stdout) if outdated.stdout else []
+        if args.outdated_scope == "direct":
+            requirement_names = _parse_requirements_file(requirements_file, visited=set())
+            outdated_rows = _filter_outdated_to_requirements(outdated_rows, requirement_names)
+
+        _print_section(
+            "Outdated Summary",
+            f"Outdated packages ({args.outdated_scope} scope): {len(outdated_rows)}",
+        )
+        if outdated_rows:
+            _print_section("Outdated Packages", json.dumps(outdated_rows, indent=2))
+
+        if args.fail_on_outdated and outdated_rows:
+            return 2
+        return 0
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

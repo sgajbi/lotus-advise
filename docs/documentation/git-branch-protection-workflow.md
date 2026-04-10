@@ -45,7 +45,13 @@ If your change is broader:
 make check-all
 ```
 
-For CI-parity local validation (recommended before pushing):
+For full PR-grade local validation (recommended before pushing):
+
+```bash
+make ci
+```
+
+For host-machine CI-shape validation without Docker build/runtime checks:
 
 ```bash
 make ci-local
@@ -64,7 +70,8 @@ Quick command guide:
 |---|---|---|
 | `make check` | Fast iteration while coding | `lint` + `typecheck` + unit tests |
 | `make check-all` | Broad local gate before opening PR | `lint` + `typecheck` + full suite with coverage gate |
-| `make ci-local` | CI-shape validation on host machine | Lint/deps/pip check + unit/integration/e2e split + combined coverage(99%) + mypy |
+| `make ci` | Full local PR-grade gate | Dependency health + lint + mypy + governance gates + combined coverage(97%) + Docker build + Postgres and production-profile runtime checks |
+| `make ci-local` | CI-shape validation on host machine | Dependency health + lint + mypy + governance gates + combined coverage(97%) |
 | `make ci-local-docker` | Most stable local CI parity | Same as `ci-local` in Linux Python 3.11 container with Postgres service |
 
 ## Anti-Conflict Protocol (Required)
@@ -160,7 +167,7 @@ gh pr checks <PR_NUMBER> --watch
 ### 8. Merge after green CI
 
 ```bash
-gh pr merge <PR_NUMBER> --squash --delete-branch
+gh pr merge <PR_NUMBER> --merge --delete-branch
 ```
 
 Auto-merge is opt-in via the `automerge` label and is only queued on protected `main`.
@@ -193,5 +200,5 @@ gh pr checks <PR_NUMBER>
 Manual merge (if needed):
 
 ```bash
-gh pr merge <PR_NUMBER> --squash --delete-branch
+gh pr merge <PR_NUMBER> --merge --delete-branch
 ```
