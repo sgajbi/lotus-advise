@@ -2,6 +2,8 @@
 
 Advisor-led proposal simulation and lifecycle service.
 
+Repository-local engineering context: `REPOSITORY-ENGINEERING-CONTEXT.md`
+
 This repository contains advisory-only workflows.
 It is focused on advisor proposal workflows, lifecycle state, approvals, consent, and execution readiness.
 
