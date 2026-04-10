@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+_WINDOWS_DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
+
 
 @dataclass
 class CheckResult:
@@ -34,8 +36,10 @@ def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> CheckResult:
 
 
 def _venv_python(venv_path: Path) -> Path:
-    scripts_dir = "Scripts" if os.name == "nt" else "bin"
-    executable_name = "python.exe" if os.name == "nt" else "python"
+    venv_path_text = str(venv_path)
+    is_windows_layout = os.name == "nt" or bool(_WINDOWS_DRIVE_PATH_RE.match(venv_path_text))
+    scripts_dir = "Scripts" if is_windows_layout else "bin"
+    executable_name = "python.exe" if is_windows_layout else "python"
     return venv_path / scripts_dir / executable_name
 
 
