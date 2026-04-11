@@ -1,17 +1,19 @@
-.PHONY: install check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard format clean run check-deps check-deps-strict security-audit openapi-gate no-alias-gate api-vocabulary-gate migration-smoke migration-apply pre-commit docker-up docker-down
+.PHONY: install install-ci check check-all test test-unit test-integration test-e2e test-all test-fast test-all-fast test-all-no-cov test-all-parallel ci ci-local ci-local-docker ci-local-docker-down typecheck lint monetary-float-guard format clean run verify-dependencies check-deps check-deps-strict security-audit openapi-gate no-alias-gate api-vocabulary-gate migration-smoke migration-apply coverage-combined postgres-runtime-contracts-local production-profile-guardrail-negatives-local pre-commit docker-build docker-up docker-down
 
-install:
-	pip install -r requirements.txt
-	pip install -r requirements-dev.txt
-	pip install pre-commit
-	pre-commit install
+install: install-ci
+	python -m pre_commit install
+
+install-ci:
+	python -m pip install -r requirements.txt
+	python -m pip install -r requirements-dev.txt
+	python -m pip install pre-commit
 
 pre-commit:
-	pre-commit run --all-files
+	python -m pre_commit run --all-files
 
 check: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate test
 
-ci: lint typecheck openapi-gate no-alias-gate api-vocabulary-gate migration-smoke test-all security-audit
+ci: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate migration-smoke security-audit coverage-combined docker-build postgres-runtime-contracts-local production-profile-guardrail-negatives-local
 
 test:
 	$(MAKE) test-unit
@@ -44,15 +46,8 @@ test-all-no-cov:
 test-all-parallel:
 	python -c "import importlib.util, subprocess, sys; args=[sys.executable,'-m','pytest','--cov=src','--cov-report=','--cov-fail-under=97']; args += (['-n','auto','--dist','loadscope'] if importlib.util.find_spec('xdist') else []); raise SystemExit(subprocess.call(args))"
 
-# Local execution flow aligned with .github/workflows/ci.yml
-ci-local: lint check-deps-strict
-	python -m pip check
-	COVERAGE_FILE=.coverage.unit python -m pytest tests/unit --cov=src --cov-report=
-	COVERAGE_FILE=.coverage.integration python -m pytest tests/integration --cov=src --cov-report=
-	COVERAGE_FILE=.coverage.e2e python -m pytest tests/e2e --cov=src --cov-report=
-	python -m coverage combine .coverage.unit .coverage.integration .coverage.e2e
-	python -m coverage report --fail-under=97
-	$(MAKE) typecheck
+# Local execution flow aligned with the Pull Request Merge Gate
+ci-local: verify-dependencies lint typecheck openapi-gate no-alias-gate api-vocabulary-gate migration-smoke security-audit coverage-combined
 
 ci-local-docker:
 	docker compose -f docker-compose.ci-local.yml up --build --abort-on-container-exit --exit-code-from ci-local ci-local
@@ -63,7 +58,7 @@ ci-local-docker-down:
 check-all: lint typecheck test-all
 
 typecheck:
-	mypy --config-file mypy.ini
+	python -m mypy --config-file mypy.ini
 
 openapi-gate:
 	python scripts/openapi_quality_gate.py
@@ -83,30 +78,49 @@ migration-apply:
 	python scripts/postgres_migrate.py --target proposals
 
 lint:
-	ruff check .
-	ruff format --check .
+	python -m ruff check .
+	python -m ruff format --check .
 	$(MAKE) monetary-float-guard
 
 monetary-float-guard:
 	python scripts/check_monetary_float_usage.py
 
 format:
-	ruff format .
+	python -m ruff format .
 
 clean:
 	python -c "import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in ['__pycache__', '.pytest_cache', 'htmlcov', '.ruff_cache', '.mypy_cache']]; pathlib.Path('.coverage').unlink(missing_ok=True)"
 
 run:
-	uvicorn src.api.main:app --reload --port 8000
+	python -m uvicorn src.api.main:app --reload --port 8000
+
+verify-dependencies:
+	python scripts/dependency_health_check.py --requirements requirements.txt --dev-requirements requirements-dev.txt --outdated-scope direct --skip-audit
 
 check-deps:
-	python scripts/dependency_health_check.py --requirements requirements.txt --outdated-scope direct
+	python scripts/dependency_health_check.py --requirements requirements.txt --dev-requirements requirements-dev.txt --outdated-scope direct
 
 check-deps-strict:
-	python scripts/dependency_health_check.py --requirements requirements.txt --outdated-scope direct --fail-on-outdated
+	python scripts/dependency_health_check.py --requirements requirements.txt --dev-requirements requirements-dev.txt --outdated-scope direct --fail-on-outdated
 
 security-audit:
-	python scripts/dependency_health_check.py --requirements requirements.txt --outdated-scope direct
+	python scripts/dependency_health_check.py --requirements requirements.txt --dev-requirements requirements-dev.txt --outdated-scope direct
+
+coverage-combined:
+	COVERAGE_FILE=.coverage.unit python -m pytest tests/unit --cov=src --cov-report=
+	COVERAGE_FILE=.coverage.integration python -m pytest tests/integration --cov=src --cov-report=
+	COVERAGE_FILE=.coverage.e2e python -m pytest tests/e2e --cov=src --cov-report=
+	python -m coverage combine .coverage.unit .coverage.integration .coverage.e2e
+	python -m coverage report --fail-under=97
+
+postgres-runtime-contracts-local:
+	python scripts/run_runtime_smoke_checks.py postgres-runtime-contracts
+
+production-profile-guardrail-negatives-local:
+	python scripts/run_runtime_smoke_checks.py production-profile-guardrail-negatives
+
+docker-build:
+	docker build -t lotus-advise:ci-test .
 
 docker-up:
 	docker-compose up -d --build

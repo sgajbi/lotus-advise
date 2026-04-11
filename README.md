@@ -2,10 +2,21 @@
 
 Advisor-led proposal simulation and lifecycle service.
 
+Repository-local engineering context: `REPOSITORY-ENGINEERING-CONTEXT.md`
+
 This repository contains advisory-only workflows.
 It is focused on advisor proposal workflows, lifecycle state, approvals, consent, and execution readiness.
 
 API docs endpoint: `/docs`
+
+Local validation commands:
+
+- `make check`
+  - fast local quality gate
+- `make ci`
+  - full local PR-grade gate with project-scoped dependency health, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation
+- `make ci-local-docker`
+  - Linux container parity for the host-side CI contract
 
 Local Docker runtime expects canonical upstream integrations to be explicit:
 

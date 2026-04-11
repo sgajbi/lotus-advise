@@ -3,6 +3,7 @@ from pathlib import Path
 from scripts.dependency_health_check import (
     _filter_outdated_to_requirements,
     _parse_requirements_file,
+    _venv_python,
 )
 
 
@@ -43,3 +44,11 @@ def test_filter_outdated_to_requirements_uses_normalized_names() -> None:
         "ruff",
         "typing_extensions",
     ]
+
+
+def test_venv_python_uses_expected_windows_layout() -> None:
+    venv_path = Path("C:/tmp/lotus-advise-venv")
+
+    python_bin = _venv_python(venv_path)
+
+    assert python_bin == venv_path / "Scripts" / "python.exe"

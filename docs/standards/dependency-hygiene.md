@@ -29,5 +29,5 @@ This repository adopts the platform-wide standard defined in:
 
 ## Evidence
 
-- CI job: `Lint & Dependency Checks`
+- CI job: `PR Merge Gate / Lint Typecheck Governance`
 - Platform conformance artifacts under `lotus-platform/output/`
