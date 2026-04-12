@@ -4,7 +4,6 @@ from src.core.common.workflow_gates import evaluate_gate_decision
 from src.core.models import (
     DiagnosticsData,
     EngineOptions,
-    GateDecision,
     RuleResult,
     SuitabilityEvidence,
     SuitabilityEvidenceSnapshotIds,
@@ -84,12 +83,19 @@ def _suitability_result(*issues: SuitabilityIssue) -> SuitabilityResult:
     )
 
 
+def _empty_diagnostics() -> DiagnosticsData:
+    return DiagnosticsData(
+        warnings=[],
+        data_quality={"price_missing": [], "fx_missing": []},
+    )
+
+
 def test_workflow_gate_hard_failure_keeps_blocked_precedence() -> None:
     decision = evaluate_gate_decision(
         status="BLOCKED",
         rule_results=[_hard_rule(), _soft_rule()],
         suitability=_suitability_result(_suitability_issue(severity="HIGH")),
-        diagnostics=DiagnosticsData(warnings=[], data_quality={"price_missing": [], "fx_missing": []}),
+        diagnostics=_empty_diagnostics(),
         options=EngineOptions(enable_proposal_simulation=True),
         default_requires_client_consent=True,
     )
@@ -105,7 +111,7 @@ def test_workflow_gate_new_high_suitability_issue_drives_compliance_review() -> 
         status="READY",
         rule_results=[],
         suitability=_suitability_result(_suitability_issue(severity="HIGH")),
-        diagnostics=DiagnosticsData(warnings=[], data_quality={"price_missing": [], "fx_missing": []}),
+        diagnostics=_empty_diagnostics(),
         options=EngineOptions(enable_proposal_simulation=True),
         default_requires_client_consent=True,
     )
@@ -120,7 +126,7 @@ def test_workflow_gate_soft_review_precedes_client_consent_requirement() -> None
         status="PENDING_REVIEW",
         rule_results=[_soft_rule()],
         suitability=None,
-        diagnostics=DiagnosticsData(warnings=[], data_quality={"price_missing": [], "fx_missing": []}),
+        diagnostics=_empty_diagnostics(),
         options=EngineOptions(
             enable_proposal_simulation=True,
             workflow_requires_client_consent=True,
@@ -138,7 +144,7 @@ def test_workflow_gate_execution_ready_requires_clear_status_and_client_consent_
         status="READY",
         rule_results=[],
         suitability=None,
-        diagnostics=DiagnosticsData(warnings=[], data_quality={"price_missing": [], "fx_missing": []}),
+        diagnostics=_empty_diagnostics(),
         options=EngineOptions(
             enable_proposal_simulation=True,
             workflow_requires_client_consent=True,

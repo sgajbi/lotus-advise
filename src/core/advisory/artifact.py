@@ -28,6 +28,7 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactTradesAndFunding,
     ProposalArtifactWeightChange,
 )
+from src.core.advisory.decision_summary import build_proposal_decision_summary
 from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.common.workflow_gates import evaluate_gate_decision
@@ -379,6 +380,10 @@ def build_proposal_artifact(
                 options=request.options,
                 default_requires_client_consent=True,
             )
+        ),
+        proposal_decision_summary=(
+            proposal_result.proposal_decision_summary
+            or build_proposal_decision_summary(proposal_result)
         ),
         artifact_id=proposal_result.proposal_run_id.replace("pr_", "pa_", 1),
         proposal_run_id=proposal_result.proposal_run_id,

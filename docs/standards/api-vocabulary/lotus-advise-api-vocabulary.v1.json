@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-10T07:08:44.754068+00:00",
+  "generatedAt": "2026-04-12T13:40:09.682864+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -3836,6 +3836,20 @@
       ],
       "observedTypes": [
         "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.proposal_decision_summary",
+      "canonicalTerm": "proposal_decision_summary",
+      "preferredName": "proposal_decision_summary",
+      "description": "Backend-owned advisory decision summary for UI, artifact, and replay consumers.",
+      "example": "proposal_decision_summary_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -8161,6 +8175,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "version.proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -8407,6 +8429,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "version.artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "version.artifact.summary",
@@ -11255,6 +11285,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "current_version.proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "current_version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -11501,6 +11539,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "current_version.artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "current_version.artifact.summary",
@@ -13990,6 +14036,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -14236,6 +14290,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "artifact.summary",
@@ -16869,6 +16931,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "version.proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -17115,6 +17185,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "version.artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "version.artifact.summary",
@@ -23202,6 +23280,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "allocation_lens",
             "location": "body",
             "required": false,
@@ -23503,6 +23589,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "summary",
@@ -33653,6 +33747,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "proposal.version.proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "proposal.version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -33899,6 +34001,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "proposal.version.artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "proposal.version.artifact.summary",

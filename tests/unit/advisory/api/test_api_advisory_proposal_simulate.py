@@ -205,6 +205,9 @@ def test_advisory_proposal_simulate_endpoint_success(client):
         "CLIENT_CONSENT_REQUIRED",
         "EXECUTION_READY",
     }
+    assert body["proposal_decision_summary"]["top_level_status"] == body["status"]
+    assert body["proposal_decision_summary"]["primary_reason_code"]
+    assert body["proposal_decision_summary"]["recommended_next_action"]
     assert body["explanation"]["context_resolution"]["input_mode"] == "stateless"
     assert body["explanation"]["context_resolution"]["resolution_source"] == "DIRECT_REQUEST"
     assert body["explanation"]["context_resolution"]["used_legacy_contract"] is True
@@ -540,6 +543,11 @@ def test_advisory_proposal_simulate_marks_risk_authority_unavailable_when_risk_e
     assert authority["degraded"] is True
     assert authority["degraded_reasons"] == ["LOTUS_RISK_ENRICHMENT_UNAVAILABLE"]
     assert "risk_lens" not in body["explanation"]
+    assert body["proposal_decision_summary"]["risk_posture"]["status"] == "UNAVAILABLE"
+    assert any(
+        item["reason_code"] == "MISSING_RISK_LENS"
+        for item in body["proposal_decision_summary"]["missing_evidence"]
+    )
 
 
 def test_advisory_proposal_simulate_reports_local_fallback_when_explicitly_enabled(
@@ -811,6 +819,8 @@ def test_advisory_proposal_artifact_endpoint_success(client):
     assert body["status"] == "READY"
     assert body["summary"]["recommended_next_step"] == "CLIENT_CONSENT"
     assert body["gate_decision"]["gate"] == "CLIENT_CONSENT_REQUIRED"
+    assert body["proposal_decision_summary"]["top_level_status"] == "READY"
+    assert body["proposal_decision_summary"]["decision_status"] == "REQUIRES_CLIENT_CONSENT"
     assert body["trades_and_funding"]["trade_list"][0]["instrument_id"] == "US_EQ"
     assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
 

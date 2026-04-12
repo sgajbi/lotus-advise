@@ -658,6 +658,10 @@ Required first-slice contract decision:
 2. do not defer `primary_reason_code` or `recommended_next_action`,
 3. do not wait for full client/mandate integration before projecting blocked, review, and missing-evidence outcomes from currently available evidence.
 
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0021-slice-2-decision-summary-models-and-projector-evidence.md`
+
 Acceptance gate:
 
 1. unit tests cover ready, review, blocked, insufficient-evidence, and revision-recommended outcomes,

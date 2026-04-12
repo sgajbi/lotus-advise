@@ -1,5 +1,6 @@
 from typing import cast
 
+from src.core.advisory.decision_summary import build_proposal_decision_summary
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.integrations.lotus_core import (
@@ -82,4 +83,5 @@ def evaluate_advisory_proposal(
     }
 
     proposal_result.explanation = explanation
+    proposal_result.proposal_decision_summary = build_proposal_decision_summary(proposal_result)
     return cast(ProposalResult, proposal_result)

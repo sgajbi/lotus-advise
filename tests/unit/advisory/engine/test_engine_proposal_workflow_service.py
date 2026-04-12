@@ -145,6 +145,18 @@ def test_service_create_proposal_uses_upstream_simulation_authority_when_availab
     assert authority["risk_authority"] == "unavailable"
 
 
+def test_service_create_proposal_does_not_persist_decision_summary_before_slice_3() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-idem-no-decision-summary-persisted",
+        correlation_id="corr-service-no-decision-summary-persisted",
+    )
+
+    assert "proposal_decision_summary" not in created.version.proposal_result
+
+
 def test_service_request_hash_is_stable_between_legacy_and_stateless_create_contracts():
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())
     legacy_payload = ProposalCreateRequest(

@@ -8,6 +8,8 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, field_serializer, field_validator, model_validator
 
+from src.core.advisory.decision_summary_models import ProposalDecisionSummary
+
 
 class ValuationMode(str, Enum):
     CALCULATED = "CALCULATED"
@@ -1492,6 +1494,12 @@ class ProposalResult(BaseModel):
     gate_decision: Optional[GateDecision] = Field(
         default=None,
         description="Deterministic workflow gate decision for advisory workflow routing.",
+    )
+    proposal_decision_summary: Optional[ProposalDecisionSummary] = Field(
+        default=None,
+        description=(
+            "Backend-owned advisory decision summary for UI, artifact, and replay consumers."
+        ),
     )
     allocation_lens: ProposalAllocationLens = Field(
         default_factory=ProposalAllocationLens,
