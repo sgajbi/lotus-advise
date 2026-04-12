@@ -123,8 +123,11 @@ def test_suitability_detects_new_issuer_breach_and_recommends_compliance_review(
     assert result.summary.new_count == 1
     assert result.summary.highest_severity_new == "HIGH"
     assert result.recommended_gate == "COMPLIANCE_REVIEW"
+    assert result.policy_pack_id == "global-private-banking-baseline"
+    assert result.policy_version == "enterprise-suitability-policy.2026-04"
     assert result.issues[0].issue_id == "SUIT_ISSUER_MAX"
     assert result.issues[0].status_change == "NEW"
+    assert result.issues[0].approval_implication == "COMPLIANCE_REVIEW"
 
 
 def test_suitability_detects_sell_only_increase_as_new_high_issue():
@@ -303,3 +306,82 @@ def test_suitability_sets_highest_new_severity_to_low_when_only_low_issues_exist
 
     assert result.summary.new_count >= 1
     assert result.summary.highest_severity_new == "LOW"
+
+
+def test_suitability_detects_medium_concentration_breach_as_risk_review() -> None:
+    before = _state(instrument_weights={})
+    after = _state(instrument_weights={"EQ_A": "0.115"}, cash_weight="0.885")
+    options = EngineOptions(
+        suitability_thresholds={
+            "single_position_max_weight": "0.10",
+            "issuer_max_weight": "1.00",
+            "max_weight_by_liquidity_tier": {},
+            "cash_band_min_weight": "0",
+            "cash_band_max_weight": "1",
+        }
+    )
+
+    result = compute_suitability_result(
+        before=before,
+        after=after,
+        shelf=[
+            ShelfEntry(
+                instrument_id="EQ_A",
+                status="APPROVED",
+                issuer_id="ISS_A",
+                liquidity_tier="L1",
+            ),
+            ShelfEntry(
+                instrument_id="EQ_B",
+                status="APPROVED",
+                issuer_id="ISS_B",
+                liquidity_tier="L1",
+            ),
+        ],
+        options=options,
+        portfolio_snapshot_id="pf_4",
+        market_data_snapshot_id="md_4",
+    )
+
+    assert result.recommended_gate == "RISK_REVIEW"
+    assert result.issues[0].issue_id == "SUIT_SINGLE_POSITION_MAX"
+    assert result.issues[0].severity == "MEDIUM"
+    assert result.issues[0].approval_implication == "RISK_REVIEW"
+
+
+def test_suitability_detects_product_complexity_missing_client_evidence() -> None:
+    before = _state(instrument_weights={}, cash_weight="1.0")
+    after = _state(instrument_weights={"STRUCT_NOTE_1": "0.10"}, cash_weight="0.90")
+    options = EngineOptions(
+        suitability_thresholds={
+            "single_position_max_weight": "1.00",
+            "issuer_max_weight": "1.00",
+            "max_weight_by_liquidity_tier": {},
+            "cash_band_min_weight": "0",
+            "cash_band_max_weight": "1",
+        }
+    )
+
+    result = compute_suitability_result(
+        before=before,
+        after=after,
+        shelf=[
+            ShelfEntry(
+                instrument_id="STRUCT_NOTE_1",
+                status="APPROVED",
+                issuer_id="ISS_STRUCTURED",
+                liquidity_tier="L2",
+                attributes={"product_complexity": "HIGH"},
+            )
+        ],
+        options=options,
+        portfolio_snapshot_id="pf_5",
+        market_data_snapshot_id="md_5",
+        proposed_trades=[{"side": "BUY", "instrument_id": "STRUCT_NOTE_1"}],
+    )
+
+    assert result.recommended_gate == "COMPLIANCE_REVIEW"
+    assert result.issues[0].dimension == "PRODUCT"
+    assert result.issues[0].classification == "UNKNOWN_DUE_TO_MISSING_EVIDENCE"
+    assert result.issues[0].issue_id == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
+    assert result.issues[0].approval_implication == "CLIENT_CONTEXT_REQUIRED"

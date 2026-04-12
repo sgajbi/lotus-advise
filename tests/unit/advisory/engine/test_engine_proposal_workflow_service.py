@@ -159,6 +159,12 @@ def test_service_create_proposal_persists_decision_summary() -> None:
     assert summary is not None
     assert summary.top_level_status == created.version.proposal_result.status
     assert summary.decision_status
+    assert created.version.proposal_result.suitability is not None
+    assert created.version.proposal_result.suitability.policy_version
+    assert (
+        created.version.proposal_result.suitability.policy_version
+        == summary.suitability_policy_version
+    )
 
 
 def test_service_new_version_recomputes_decision_summary_without_bleeding_forward() -> None:

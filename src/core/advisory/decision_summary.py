@@ -13,7 +13,6 @@ from src.core.advisory.decision_summary_models import (
 from src.core.models import ProposalResult, SuitabilityResult
 
 _DECISION_POLICY_VERSION = "advisory-decision-policy.2026-04"
-_SUITABILITY_POLICY_VERSION = "suitability-scanner.v1"
 
 
 def build_proposal_decision_summary(result: ProposalResult) -> ProposalDecisionSummary:
@@ -41,7 +40,7 @@ def build_proposal_decision_summary(result: ProposalResult) -> ProposalDecisionS
         recommended_next_action=recommended_next_action,
         decision_policy_version=_DECISION_POLICY_VERSION,
         suitability_policy_version=(
-            _SUITABILITY_POLICY_VERSION if result.suitability is not None else None
+            result.suitability.policy_version if result.suitability is not None else None
         ),
         confidence=confidence,
         approval_requirements=approval_requirements,
@@ -67,6 +66,10 @@ def _derive_decision_status(
     if result.status == "BLOCKED":
         return "BLOCKED_REMEDIATION_REQUIRED"
 
+    blocking_missing_evidence = any(item.blocking for item in missing_evidence)
+    if result.status == "PENDING_REVIEW" and blocking_missing_evidence:
+        return "INSUFFICIENT_EVIDENCE"
+
     gate = result.gate_decision.gate if result.gate_decision is not None else None
     if gate == "COMPLIANCE_REVIEW_REQUIRED":
         return "REQUIRES_COMPLIANCE_REVIEW"
@@ -74,10 +77,6 @@ def _derive_decision_status(
         return "REQUIRES_RISK_REVIEW"
     if gate == "CLIENT_CONSENT_REQUIRED":
         return "REQUIRES_CLIENT_CONSENT"
-
-    blocking_missing_evidence = any(item.blocking for item in missing_evidence)
-    if result.status == "PENDING_REVIEW" and blocking_missing_evidence:
-        return "INSUFFICIENT_EVIDENCE"
 
     if result.status == "PENDING_REVIEW":
         return "REVISION_RECOMMENDED"
@@ -90,6 +89,8 @@ def _primary_reason_code(
     missing_evidence: list[ProposalDecisionMissingEvidence],
     decision_status: ProposalDecisionStatus,
 ) -> str:
+    if decision_status == "INSUFFICIENT_EVIDENCE" and missing_evidence:
+        return missing_evidence[0].reason_code
     if result.gate_decision is not None and result.gate_decision.reasons:
         return result.gate_decision.reasons[0].reason_code
     if missing_evidence:
@@ -244,14 +245,25 @@ def _build_missing_evidence(result: ProposalResult) -> list[ProposalDecisionMiss
         )
     if result.suitability is not None:
         for issue in result.suitability.issues:
-            if issue.dimension != "DATA_QUALITY":
+            if issue.dimension == "DATA_QUALITY":
+                items.append(
+                    ProposalDecisionMissingEvidence(
+                        evidence_type="SUITABILITY_DATA_QUALITY",
+                        reason_code=issue.issue_id,
+                        summary=issue.summary,
+                        blocking=result.status == "BLOCKED" and issue.severity == "HIGH",
+                        evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
+                    )
+                )
+                continue
+            if issue.classification != "UNKNOWN_DUE_TO_MISSING_EVIDENCE":
                 continue
             items.append(
                 ProposalDecisionMissingEvidence(
-                    evidence_type="SUITABILITY_DATA_QUALITY",
+                    evidence_type="SUITABILITY_CONTEXT",
                     reason_code=issue.issue_id,
                     summary=issue.summary,
-                    blocking=result.status == "BLOCKED" and issue.severity == "HIGH",
+                    blocking=result.status != "READY",
                     evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
                 )
             )

@@ -712,6 +712,10 @@ Acceptance gate:
 4. missing client/mandate/product evidence produces `INSUFFICIENT_EVIDENCE`, not pass,
 5. policy version is persisted and replayed.
 
+Evidence document for this slice:
+
+1. `docs/rfcs/RFC-0021-slice-4-enterprise-suitability-policy-engine-core-evidence.md`
+
 Recommended initial policy scope:
 
 1. start with a global private-banking baseline policy pack,

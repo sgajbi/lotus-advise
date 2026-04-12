@@ -44,6 +44,7 @@ def _suitability_issue(*, severity: str, status_change: str = "NEW") -> Suitabil
         dimension="CONCENTRATION",
         severity=severity,
         status_change=status_change,
+        classification=status_change,
         summary="test suitability issue",
         details={},
         evidence=SuitabilityEvidence(

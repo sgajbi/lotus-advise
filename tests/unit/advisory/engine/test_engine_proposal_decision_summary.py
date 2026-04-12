@@ -10,6 +10,7 @@ from src.core.models import (
     Price,
     ProposalResult,
     ShelfEntry,
+    SuitabilityResult,
 )
 
 
@@ -155,3 +156,69 @@ def test_decision_summary_projects_revision_recommended_without_gate() -> None:
     assert summary.decision_status == "REVISION_RECOMMENDED"
     assert summary.primary_reason_code == "PROPOSAL_REVISION_RECOMMENDED"
     assert summary.recommended_next_action == "REVISE_PROPOSAL"
+
+
+def test_decision_summary_projects_insufficient_evidence_for_complex_product_context_gap() -> None:
+    result = _base_result()
+    result.status = "PENDING_REVIEW"
+    result.gate_decision = GateDecision(
+        gate="COMPLIANCE_REVIEW_REQUIRED",
+        recommended_next_step="COMPLIANCE_REVIEW",
+        reasons=[
+            GateReason(
+                reason_code="NEW_HIGH_SUITABILITY_ISSUE",
+                severity="HIGH",
+                source="SUITABILITY",
+                details={"issue_key": "PRODUCT_COMPLEXITY|STRUCT_NOTE_1"},
+            )
+        ],
+        summary=GateDecisionSummary(
+            hard_fail_count=0,
+            soft_fail_count=0,
+            new_high_suitability_count=1,
+            new_medium_suitability_count=0,
+        ),
+    )
+    result.suitability = SuitabilityResult.model_validate(
+        {
+            "summary": {
+                "new_count": 1,
+                "resolved_count": 0,
+                "persistent_count": 0,
+                "highest_severity_new": "HIGH",
+            },
+            "issues": [
+                {
+                    "issue_id": "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE",
+                    "issue_key": "PRODUCT_COMPLEXITY|STRUCT_NOTE_1",
+                    "dimension": "PRODUCT",
+                    "severity": "HIGH",
+                    "status_change": "NEW",
+                    "classification": "UNKNOWN_DUE_TO_MISSING_EVIDENCE",
+                    "summary": "Complex product evidence is incomplete.",
+                    "remediation": "Capture client product-complexity evidence before proceeding.",
+                    "approval_implication": "CLIENT_CONTEXT_REQUIRED",
+                    "details": {"instrument_id": "STRUCT_NOTE_1"},
+                    "evidence": {
+                        "as_of": "md_test",
+                        "snapshot_ids": {
+                            "portfolio_snapshot_id": "pf_decision_001",
+                            "market_data_snapshot_id": "md_test",
+                        },
+                    },
+                    "policy_pack_id": "global-private-banking-baseline",
+                    "policy_version": "enterprise-suitability-policy.2026-04",
+                }
+            ],
+            "policy_pack_id": "global-private-banking-baseline",
+            "policy_version": "enterprise-suitability-policy.2026-04",
+            "recommended_gate": "COMPLIANCE_REVIEW",
+        }
+    )
+
+    summary = build_proposal_decision_summary(result)
+
+    assert summary.decision_status == "INSUFFICIENT_EVIDENCE"
+    assert summary.primary_reason_code == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
+    assert summary.suitability_policy_version == "enterprise-suitability-policy.2026-04"
+    assert summary.missing_evidence[0].reason_code == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
