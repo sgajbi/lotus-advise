@@ -17,7 +17,12 @@ from src.core.advisory.alternatives_normalizer import (
 )
 from src.core.advisory.alternatives_strategies import (
     AlternativeConstructionStrategy,
+    AlternativeStrategyBuildResult,
     AlternativeStrategyInputs,
+    StrategyPosition,
+    StrategyShelfInstrument,
+    StrategyTradeIntent,
+    build_candidate_plan,
     build_candidate_seeds,
     build_initial_strategy_registry,
 )
@@ -27,6 +32,7 @@ __all__ = [
     "AlternativeComparisonSummary",
     "AlternativeConstraintResult",
     "AlternativeConstructionStrategy",
+    "AlternativeStrategyBuildResult",
     "AlternativeStrategyInputs",
     "AlternativeTradeoff",
     "AlternativesRequestNormalizationError",
@@ -35,6 +41,10 @@ __all__ = [
     "ProposalAlternativesConstraints",
     "ProposalAlternativesRequest",
     "RejectedAlternativeCandidate",
+    "StrategyPosition",
+    "StrategyShelfInstrument",
+    "StrategyTradeIntent",
+    "build_candidate_plan",
     "build_candidate_seeds",
     "build_initial_strategy_registry",
     "normalize_alternatives_request",

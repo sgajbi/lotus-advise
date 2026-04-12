@@ -750,6 +750,10 @@ Acceptance gate:
 3. generated trade intents are deterministic,
 4. candidates preserve no-shorting and cash sufficiency safeguards.
 
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0022-slice-4-initial-construction-strategies.md`
+
 ### Slice 5: Decision Summary and Ranking Integration
 
 Outcome:
