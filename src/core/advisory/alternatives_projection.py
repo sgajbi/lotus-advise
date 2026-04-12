@@ -32,7 +32,15 @@ def build_proposal_alternatives(
     policy_context: dict[str, object] | None = None,
     evaluator: Any | None = None,
 ) -> ProposalAlternatives | None:
-    normalized_request = normalize_alternatives_request(request.alternatives_request)
+    normalized_request = normalize_alternatives_request(
+        request.alternatives_request,
+        selection_mode=(
+            "selection"
+            if request.alternatives_request is not None
+            and request.alternatives_request.selected_alternative_id is not None
+            else "generation"
+        ),
+    )
     if normalized_request is None:
         return None
 

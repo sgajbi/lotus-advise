@@ -794,6 +794,10 @@ Acceptance gate:
 5. new version tests prove alternatives are not stale after input changes,
 6. persisted version reads prove selected alternative and ranking order are not silently recomputed.
 
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0022-slice-6-persistence-workspace-artifact-and-replay-continuity.md`
+
 ### Slice 7: Live Validation and Operator Evidence
 
 Outcome:

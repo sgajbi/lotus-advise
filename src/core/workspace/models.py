@@ -2,6 +2,7 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
+from src.core.advisory.alternatives_models import ProposalAlternativesRequest
 from src.core.models import (
     EngineOptions,
     GateDecision,
@@ -133,6 +134,10 @@ class WorkspaceDraftState(BaseModel):
     options: EngineOptions = Field(
         default_factory=EngineOptions,
         description="Current workspace-level evaluation options.",
+    )
+    alternatives_request: ProposalAlternativesRequest | None = Field(
+        default=None,
+        description="Optional proposal alternatives request currently attached to the workspace.",
     )
     reference_model: Optional[ReferenceModel] = Field(
         default=None,

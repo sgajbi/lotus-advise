@@ -122,6 +122,11 @@ def _build_draft_state_from_simulate_request(
 ) -> WorkspaceDraftState:
     return WorkspaceDraftState(
         options=simulate_request.options.model_copy(deep=True),
+        alternatives_request=(
+            simulate_request.alternatives_request.model_copy(deep=True)
+            if simulate_request.alternatives_request is not None
+            else None
+        ),
         reference_model=(
             simulate_request.reference_model.model_copy(deep=True)
             if simulate_request.reference_model is not None
@@ -161,6 +166,11 @@ def _apply_workspace_draft_state(
         reference_model=(
             draft_state.reference_model.model_copy(deep=True)
             if draft_state.reference_model is not None
+            else None
+        ),
+        alternatives_request=(
+            draft_state.alternatives_request.model_copy(deep=True)
+            if draft_state.alternatives_request is not None
             else None
         ),
     )

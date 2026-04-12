@@ -57,6 +57,7 @@ def build_workspace_saved_version_replay_response(
             "proposal_decision_summary": _proposal_decision_summary_from_saved_version(
                 saved_version
             ),
+            "proposal_alternatives": _proposal_alternatives_from_saved_version(saved_version),
         },
         explanation={
             "source": "WORKSPACE_SAVED_VERSION",
@@ -116,6 +117,7 @@ def build_proposal_version_replay_response(
             "proposal_decision_summary": version.proposal_result_json.get(
                 "proposal_decision_summary"
             ),
+            "proposal_alternatives": version.proposal_result_json.get("proposal_alternatives"),
             "delivery": delivery_summary,
         },
         explanation={
@@ -245,3 +247,14 @@ def _proposal_decision_summary_from_saved_version(
     if summary is None:
         return None
     return cast(dict[str, Any], summary.model_dump(mode="json"))
+
+
+def _proposal_alternatives_from_saved_version(
+    saved_version: WorkspaceSavedVersion,
+) -> dict[str, Any] | None:
+    if saved_version.latest_proposal_result is None:
+        return None
+    alternatives = saved_version.latest_proposal_result.proposal_alternatives
+    if alternatives is None:
+        return None
+    return cast(dict[str, Any], alternatives.model_dump(mode="json"))

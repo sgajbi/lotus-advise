@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 import src.core.advisory.artifact as artifact_module
+from src.core.advisory.alternatives_models import ProposalAlternatives
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import EngineOptions, ProposalSimulateRequest
@@ -202,3 +203,45 @@ def test_proposal_artifact_marks_risk_lens_not_available_when_missing():
 
     assert artifact.risk_lens.status == "NOT_AVAILABLE"
     assert "unavailable" in artifact.risk_lens.summary.lower()
+
+
+def test_proposal_artifact_surfaces_persisted_proposal_alternatives():
+    request = _build_request()
+    result = _simulate(request, "sha256:artifact-alternatives")
+    result.proposal_alternatives = ProposalAlternatives.model_validate(
+        {
+            "requested_objectives": ["LOWER_TURNOVER"],
+            "selected_alternative_id": "alt_lower_turnover_pf_artifact_1_us_eq",
+            "candidate_generation_policy_id": "advisory-candidate-generation.v1",
+            "ranking_policy_id": "advisory-ranking.2026-04",
+            "alternatives": [
+                {
+                    "alternative_id": "alt_lower_turnover_pf_artifact_1_us_eq",
+                    "label": "Reduce turnover on US_EQ",
+                    "objective": "LOWER_TURNOVER",
+                    "rank": 1,
+                    "selected": True,
+                    "status": "FEASIBLE",
+                    "construction_policy_version": "advisory-construction.2026-04",
+                    "ranking_policy_version": "advisory-ranking.2026-04",
+                    "intents": [],
+                    "proposal_decision_summary": {},
+                    "evidence_refs": [
+                        "evidence://proposal-alternatives/alt_lower_turnover_pf_artifact_1_us_eq/simulation"
+                    ],
+                }
+            ],
+            "rejected_candidates": [],
+            "evidence_refs": [
+                "evidence://proposal-alternatives/alt_lower_turnover_pf_artifact_1_us_eq/simulation"
+            ],
+        }
+    )
+
+    artifact = build_proposal_artifact(request=request, proposal_result=result)
+
+    assert artifact.proposal_alternatives is not None
+    assert artifact.proposal_alternatives.selected_alternative_id == (
+        "alt_lower_turnover_pf_artifact_1_us_eq"
+    )
+    assert artifact.proposal_alternatives.alternatives[0].selected is True
