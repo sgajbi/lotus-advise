@@ -704,6 +704,10 @@ Acceptance gate:
 3. models are OpenAPI-visible where needed,
 4. no upstream service calls exist inside strategy modules.
 
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0022-slice-2-alternatives-models-normalizer-and-strategy-interfaces.md`
+
 ### Slice 3: Canonical Simulation and Risk Enrichment
 
 Outcome:
