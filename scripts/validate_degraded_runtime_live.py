@@ -10,6 +10,11 @@ from typing import Any, Iterator, cast
 
 import httpx
 
+from scripts.live_runtime_decision_summary import (
+    LiveDecisionSnapshot,
+    extract_live_decision_snapshot,
+)
+
 _DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
 _DEFAULT_CORE_CONTROL_BASE_URL = "http://core-control.dev.lotus"
 _DEFAULT_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
@@ -26,6 +31,7 @@ class DegradedRuntimeResult:
     risk_degraded_reason: str
     core_degraded_reason: str
     fallback_mode: str
+    insufficient_evidence_decision: LiveDecisionSnapshot
 
 
 def _assert(condition: bool, message: str) -> None:
@@ -62,6 +68,22 @@ def _request_json(
     payload = response.json()
     _assert(isinstance(payload, dict), f"{method} {url}: expected object payload")
     return dict(payload)
+
+
+def _extract_live_decision_snapshot_for_degraded(
+    *,
+    proposal_body: dict[str, Any],
+    path_name: str,
+) -> LiveDecisionSnapshot:
+    try:
+        snapshot = extract_live_decision_snapshot(proposal_body, path_name=path_name)
+    except ValueError as exc:
+        raise LiveDegradedValidationError(str(exc)) from exc
+    _assert(
+        bool(snapshot.decision_status) and bool(snapshot.primary_reason_code),
+        f"{path_name}: decision summary snapshot was incomplete {snapshot}",
+    )
+    return snapshot
 
 
 def _feature_by_key(capabilities: dict[str, Any], key: str) -> dict[str, Any]:
@@ -162,7 +184,7 @@ def _risk_unavailable_drill(
     advise_base_url: str,
     core_query_base_url: str,
     risk_base_url: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, LiveDecisionSnapshot]:
     portfolio_id = "PB_SG_GLOBAL_BAL_001"
     as_of_date, _ = _resolve_latest_portfolio_context(
         client,
@@ -202,6 +224,24 @@ def _risk_unavailable_drill(
             "risk_lens" not in body["explanation"],
             "risk unavailable drill unexpectedly exposed risk_lens",
         )
+        decision_snapshot = _extract_live_decision_snapshot_for_degraded(
+            proposal_body=cast(dict[str, Any], body),
+            path_name="insufficient_evidence_path",
+        )
+        _assert(
+            decision_snapshot.decision_status == "INSUFFICIENT_EVIDENCE",
+            (
+                "risk unavailable drill did not emit insufficient evidence posture: "
+                f"{decision_snapshot.decision_status}"
+            ),
+        )
+        _assert(
+            decision_snapshot.primary_reason_code == "MISSING_RISK_LENS",
+            (
+                "risk unavailable drill did not expose missing risk lens reason: "
+                f"{decision_snapshot.primary_reason_code}"
+            ),
+        )
 
         capabilities = _request_json(
             client,
@@ -223,7 +263,7 @@ def _risk_unavailable_drill(
                 f"{simulation_feature}"
             ),
         )
-        return portfolio_id, str(risk_feature["degraded_reason"])
+        return portfolio_id, str(risk_feature["degraded_reason"]), decision_snapshot
 
 
 def _core_unavailable_drill(
@@ -338,7 +378,7 @@ def validate_live_degraded_runtime(
         _wait_for_http(f"{core_query_base_url}/health/ready", expect_ready=True)
         _wait_for_http(f"{risk_base_url}/health/ready", expect_ready=True)
 
-        portfolio_id, risk_reason = _risk_unavailable_drill(
+        portfolio_id, risk_reason, insufficient_evidence_decision = _risk_unavailable_drill(
             client,
             advise_base_url=advise_base_url,
             core_query_base_url=core_query_base_url,
@@ -355,6 +395,7 @@ def validate_live_degraded_runtime(
             risk_degraded_reason=risk_reason,
             core_degraded_reason=core_reason,
             fallback_mode=fallback_mode,
+            insufficient_evidence_decision=insufficient_evidence_decision,
         )
 
 
@@ -365,5 +406,6 @@ if __name__ == "__main__":
         f"(risk_portfolio={result.risk_drill_portfolio}, "
         f"risk_reason={result.risk_degraded_reason}, "
         f"core_reason={result.core_degraded_reason}, "
-        f"fallback_mode={result.fallback_mode})"
+        f"fallback_mode={result.fallback_mode}, "
+        f"decision_status={result.insufficient_evidence_decision.decision_status})"
     )

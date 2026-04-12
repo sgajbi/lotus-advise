@@ -1,5 +1,6 @@
 import json
 
+from scripts.live_runtime_decision_summary import LiveDecisionSnapshot
 from scripts.live_runtime_suite_artifacts import (
     build_markdown_summary,
     build_pr_summary,
@@ -18,41 +19,99 @@ from scripts.validate_live_runtime_suite import (
 )
 
 
+def _decision_snapshot(
+    *,
+    path_name: str,
+    top_level_status: str,
+    decision_status: str,
+    primary_reason_code: str,
+    recommended_next_action: str,
+    approval_requirement_types: tuple[str, ...] = (),
+) -> LiveDecisionSnapshot:
+    return LiveDecisionSnapshot(
+        path_name=path_name,
+        top_level_status=top_level_status,
+        decision_status=decision_status,
+        primary_reason_code=primary_reason_code,
+        recommended_next_action=recommended_next_action,
+        approval_requirement_types=approval_requirement_types,
+    )
+
+
+def _parity_result() -> LiveParityResult:
+    return LiveParityResult(
+        complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
+        degraded_issuer_portfolio="DEMO_ADV_USD_001",
+        degraded_issuer_coverage_status="unavailable",
+        cold_duration_ms=100.0,
+        warm_duration_ms=90.0,
+        changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
+        changed_state_security_id="FO_BOND_UST_2030",
+        cross_currency_security_id="FO_FUND_BLK_ALLOC",
+        non_held_security_id="SEC_FUND_EM_EQ",
+        workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
+        lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
+        lifecycle_latest_version_no=2,
+        lifecycle_current_state="EXECUTED",
+        async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
+        async_lifecycle_latest_version_no=2,
+        async_lifecycle_current_state="EXECUTED",
+        execution_handoff_status="REQUESTED",
+        execution_terminal_status="EXECUTED",
+        report_status="READY",
+        ready_decision=_decision_snapshot(
+            path_name="ready_path",
+            top_level_status="READY",
+            decision_status="REQUIRES_CLIENT_CONSENT",
+            primary_reason_code="CLIENT_CONSENT_REQUIRED",
+            recommended_next_action="DISCUSS_WITH_CLIENT",
+            approval_requirement_types=("CLIENT_CONSENT",),
+        ),
+        review_decision=_decision_snapshot(
+            path_name="review_path",
+            top_level_status="READY",
+            decision_status="REQUIRES_RISK_REVIEW",
+            primary_reason_code="NEW_MEDIUM_SUITABILITY_ISSUE",
+            recommended_next_action="REVIEW_RISK",
+            approval_requirement_types=("RISK_REVIEW",),
+        ),
+        blocked_decision=_decision_snapshot(
+            path_name="blocked_path",
+            top_level_status="BLOCKED",
+            decision_status="BLOCKED_REMEDIATION_REQUIRED",
+            primary_reason_code="DATA_QUALITY_MISSING_FX",
+            recommended_next_action="FIX_INPUT",
+            approval_requirement_types=("DATA_REMEDIATION",),
+        ),
+    )
+
+
+def _degraded_result() -> DegradedRuntimeResult:
+    return DegradedRuntimeResult(
+        risk_drill_portfolio="PB_SG_GLOBAL_BAL_001",
+        risk_degraded_reason="LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
+        core_degraded_reason="LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
+        fallback_mode="NONE",
+        insufficient_evidence_decision=_decision_snapshot(
+            path_name="insufficient_evidence_path",
+            top_level_status="READY",
+            decision_status="INSUFFICIENT_EVIDENCE",
+            primary_reason_code="MISSING_RISK_LENS",
+            recommended_next_action="REVIEW_RISK",
+        ),
+    )
+
+
 def test_live_runtime_suite_runs_parity_before_degraded(monkeypatch):
     calls: list[str] = []
 
     def _parity():
         calls.append("parity")
-        return LiveParityResult(
-            complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
-            degraded_issuer_portfolio="DEMO_ADV_USD_001",
-            degraded_issuer_coverage_status="unavailable",
-            cold_duration_ms=100.0,
-            warm_duration_ms=90.0,
-            changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
-            changed_state_security_id="FO_BOND_UST_2030",
-            cross_currency_security_id="FO_FUND_BLK_ALLOC",
-            non_held_security_id="SEC_FUND_EM_EQ",
-            workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
-            lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-            lifecycle_latest_version_no=2,
-            lifecycle_current_state="EXECUTED",
-            async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-            async_lifecycle_latest_version_no=2,
-            async_lifecycle_current_state="EXECUTED",
-            execution_handoff_status="REQUESTED",
-            execution_terminal_status="EXECUTED",
-            report_status="READY",
-        )
+        return _parity_result()
 
     def _degraded():
         calls.append("degraded")
-        return DegradedRuntimeResult(
-            risk_drill_portfolio="PB_SG_GLOBAL_BAL_001",
-            risk_degraded_reason="LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
-            core_degraded_reason="LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
-            fallback_mode="NONE",
-        )
+        return _degraded_result()
 
     monkeypatch.setattr(
         "scripts.validate_live_runtime_suite.validate_live_cross_service_parity",
@@ -75,27 +134,7 @@ def test_live_runtime_suite_can_skip_degraded(monkeypatch):
 
     def _parity():
         calls.append("parity")
-        return LiveParityResult(
-            complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
-            degraded_issuer_portfolio="DEMO_ADV_USD_001",
-            degraded_issuer_coverage_status="unavailable",
-            cold_duration_ms=100.0,
-            warm_duration_ms=90.0,
-            changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
-            changed_state_security_id="FO_BOND_UST_2030",
-            cross_currency_security_id="FO_FUND_BLK_ALLOC",
-            non_held_security_id="SEC_FUND_EM_EQ",
-            workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
-            lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-            lifecycle_latest_version_no=2,
-            lifecycle_current_state="EXECUTED",
-            async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-            async_lifecycle_latest_version_no=2,
-            async_lifecycle_current_state="EXECUTED",
-            execution_handoff_status="REQUESTED",
-            execution_terminal_status="EXECUTED",
-            report_status="READY",
-        )
+        return _parity_result()
 
     def _degraded():
         calls.append("degraded")
@@ -119,35 +158,10 @@ def test_live_runtime_suite_can_skip_degraded(monkeypatch):
 
 def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_path):
     def _parity():
-        return LiveParityResult(
-            complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
-            degraded_issuer_portfolio="DEMO_ADV_USD_001",
-            degraded_issuer_coverage_status="unavailable",
-            cold_duration_ms=100.0,
-            warm_duration_ms=90.0,
-            changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
-            changed_state_security_id="FO_BOND_UST_2030",
-            cross_currency_security_id="FO_FUND_BLK_ALLOC",
-            non_held_security_id="SEC_FUND_EM_EQ",
-            workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
-            lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-            lifecycle_latest_version_no=2,
-            lifecycle_current_state="EXECUTED",
-            async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-            async_lifecycle_latest_version_no=2,
-            async_lifecycle_current_state="EXECUTED",
-            execution_handoff_status="REQUESTED",
-            execution_terminal_status="EXECUTED",
-            report_status="READY",
-        )
+        return _parity_result()
 
     def _degraded():
-        return DegradedRuntimeResult(
-            risk_drill_portfolio="PB_SG_GLOBAL_BAL_001",
-            risk_degraded_reason="LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
-            core_degraded_reason="LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
-            fallback_mode="NONE",
-        )
+        return _degraded_result()
 
     monkeypatch.setattr(
         "scripts.validate_live_runtime_suite.validate_live_cross_service_parity",
@@ -166,7 +180,12 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
     assert payload["parity"]["cross_currency_security_id"] == "FO_FUND_BLK_ALLOC"
     assert payload["parity"]["non_held_security_id"] == "SEC_FUND_EM_EQ"
     assert payload["parity"]["async_lifecycle_current_state"] == "EXECUTED"
+    assert payload["parity"]["review_decision"]["decision_status"] == "REQUIRES_RISK_REVIEW"
     assert payload["degraded"]["core_degraded_reason"] == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+    assert (
+        payload["degraded"]["insufficient_evidence_decision"]["primary_reason_code"]
+        == "MISSING_RISK_LENS"
+    )
 
     output_path = tmp_path / "artifacts" / "live-runtime-suite.json"
     write_live_runtime_suite_artifact(result, output_path=str(output_path))
@@ -177,35 +196,10 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
 
 def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_path):
     def _parity():
-        return LiveParityResult(
-            complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
-            degraded_issuer_portfolio="DEMO_ADV_USD_001",
-            degraded_issuer_coverage_status="unavailable",
-            cold_duration_ms=100.0,
-            warm_duration_ms=90.0,
-            changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
-            changed_state_security_id="FO_BOND_UST_2030",
-            cross_currency_security_id="FO_FUND_BLK_ALLOC",
-            non_held_security_id="SEC_FUND_EM_EQ",
-            workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
-            lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-            lifecycle_latest_version_no=2,
-            lifecycle_current_state="EXECUTED",
-            async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-            async_lifecycle_latest_version_no=2,
-            async_lifecycle_current_state="EXECUTED",
-            execution_handoff_status="REQUESTED",
-            execution_terminal_status="EXECUTED",
-            report_status="READY",
-        )
+        return _parity_result()
 
     def _degraded():
-        return DegradedRuntimeResult(
-            risk_drill_portfolio="PB_SG_GLOBAL_BAL_001",
-            risk_degraded_reason="LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
-            core_degraded_reason="LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
-            fallback_mode="NONE",
-        )
+        return _degraded_result()
 
     monkeypatch.setattr(
         "scripts.validate_live_runtime_suite.validate_live_cross_service_parity",
@@ -228,11 +222,14 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     summary_text = summary_md.read_text(encoding="utf-8")
     assert summary_text == build_markdown_summary(result)
     assert "## Parity" in summary_text
+    assert "## Decision Paths" in summary_text
     assert "## Degraded Runtime" in summary_text
+    assert "## Insufficient Evidence Path" in summary_text
     assert "async lifecycle current state" in summary_text
     assert "changed-state security" in summary_text
     assert "cross-currency security" in summary_text
     assert "non-held security" in summary_text
+    assert "decision status: `REQUIRES_RISK_REVIEW`" in summary_text
 
 
 def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(tmp_path):
@@ -240,35 +237,10 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
     newer_bundle = tmp_path / "live-runtime-suite-20260408T000002Z"
     older_bundle.mkdir()
     newer_bundle.mkdir()
-    payload = {
-        "parity": {
-            "complete_issuer_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "degraded_issuer_portfolio": "DEMO_ADV_USD_001",
-            "degraded_issuer_coverage_status": "unavailable",
-            "cold_duration_ms": 100.0,
-            "warm_duration_ms": 90.0,
-            "changed_state_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "changed_state_security_id": "FO_BOND_UST_2030",
-            "cross_currency_security_id": "FO_FUND_BLK_ALLOC",
-            "non_held_security_id": "SEC_FUND_EM_EQ",
-            "workspace_handoff_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "lifecycle_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "lifecycle_latest_version_no": 2,
-            "lifecycle_current_state": "EXECUTED",
-            "async_lifecycle_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "async_lifecycle_latest_version_no": 2,
-            "async_lifecycle_current_state": "EXECUTED",
-            "execution_handoff_status": "REQUESTED",
-            "execution_terminal_status": "EXECUTED",
-            "report_status": "UNAVAILABLE",
-        },
-        "degraded": {
-            "risk_drill_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "risk_degraded_reason": "LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
-            "core_degraded_reason": "LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
-            "fallback_mode": "NONE",
-        },
-    }
+    payload = result_to_json_dict(
+        LiveRuntimeSuiteResult(parity=_parity_result(), degraded=_degraded_result())
+    )
+    payload["parity"]["report_status"] = "UNAVAILABLE"
     (older_bundle / "result.json").write_text(json.dumps(payload), encoding="utf-8")
     (newer_bundle / "result.json").write_text(json.dumps(payload), encoding="utf-8")
 
@@ -282,40 +254,17 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
     assert "- cross-currency changed-state parity: `FO_FUND_BLK_ALLOC`" in summary
     assert "- non-held changed-state parity: `SEC_FUND_EM_EQ`" in summary
     assert "- async lifecycle: `EXECUTED` at version `2`" in summary
+    assert "- review path: `REQUIRES_RISK_REVIEW` / `NEW_MEDIUM_SUITABILITY_ISSUE`" in summary
+    assert "- insufficient-evidence path: `INSUFFICIENT_EVIDENCE` / `MISSING_RISK_LENS`" in summary
 
 
 def test_write_pr_summary_for_bundle_defaults_to_bundle_path(tmp_path):
     bundle_dir = tmp_path / "live-runtime-suite-20260408T000002Z"
     bundle_dir.mkdir()
-    payload = {
-        "parity": {
-            "complete_issuer_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "degraded_issuer_portfolio": "DEMO_ADV_USD_001",
-            "degraded_issuer_coverage_status": "unavailable",
-            "cold_duration_ms": 100.0,
-            "warm_duration_ms": 90.0,
-            "changed_state_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "changed_state_security_id": "FO_BOND_UST_2030",
-            "cross_currency_security_id": "FO_FUND_BLK_ALLOC",
-            "non_held_security_id": "SEC_FUND_EM_EQ",
-            "workspace_handoff_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "lifecycle_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "lifecycle_latest_version_no": 2,
-            "lifecycle_current_state": "EXECUTED",
-            "async_lifecycle_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "async_lifecycle_latest_version_no": 2,
-            "async_lifecycle_current_state": "EXECUTED",
-            "execution_handoff_status": "REQUESTED",
-            "execution_terminal_status": "EXECUTED",
-            "report_status": "UNAVAILABLE",
-        },
-        "degraded": {
-            "risk_drill_portfolio": "PB_SG_GLOBAL_BAL_001",
-            "risk_degraded_reason": "LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
-            "core_degraded_reason": "LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
-            "fallback_mode": "NONE",
-        },
-    }
+    payload = result_to_json_dict(
+        LiveRuntimeSuiteResult(parity=_parity_result(), degraded=_degraded_result())
+    )
+    payload["parity"]["report_status"] = "UNAVAILABLE"
     (bundle_dir / "result.json").write_text(json.dumps(payload), encoding="utf-8")
 
     output_path = write_pr_summary_for_bundle(bundle_dir)
@@ -330,32 +279,19 @@ def test_run_live_runtime_evidence_bundle_writes_bundle_and_pr_summary(
     def _validate(*, include_degraded: bool = True):
         assert include_degraded is False
         return LiveRuntimeSuiteResult(
-            parity=LiveParityResult(
-                complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
-                degraded_issuer_portfolio="DEMO_ADV_USD_001",
-                degraded_issuer_coverage_status="unavailable",
-                cold_duration_ms=100.0,
-                warm_duration_ms=90.0,
-                changed_state_portfolio="PB_SG_GLOBAL_BAL_001",
-                changed_state_security_id="FO_BOND_UST_2030",
-                cross_currency_security_id="FO_FUND_BLK_ALLOC",
-                non_held_security_id="SEC_FUND_EM_EQ",
-                workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
-                lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-                lifecycle_latest_version_no=2,
-                lifecycle_current_state="EXECUTED",
-                async_lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
-                async_lifecycle_latest_version_no=2,
-                async_lifecycle_current_state="EXECUTED",
-                execution_handoff_status="REQUESTED",
-                execution_terminal_status="EXECUTED",
-                report_status="READY",
-            ),
+            parity=_parity_result(),
             degraded=DegradedRuntimeResult(
                 risk_drill_portfolio="SKIPPED",
                 risk_degraded_reason="SKIPPED",
                 core_degraded_reason="SKIPPED",
                 fallback_mode="SKIPPED",
+                insufficient_evidence_decision=_decision_snapshot(
+                    path_name="insufficient_evidence_path",
+                    top_level_status="SKIPPED",
+                    decision_status="SKIPPED",
+                    primary_reason_code="SKIPPED",
+                    recommended_next_action="SKIPPED",
+                ),
             ),
         )
 

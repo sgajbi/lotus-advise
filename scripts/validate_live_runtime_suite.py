@@ -8,6 +8,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from scripts.live_runtime_decision_summary import LiveDecisionSnapshot  # noqa: E402
 from scripts.live_runtime_suite_artifacts import (  # noqa: E402
     write_live_runtime_suite_artifact,
     write_live_runtime_suite_bundle,
@@ -38,6 +39,14 @@ def validate_live_runtime_suite(*, include_degraded: bool = True) -> LiveRuntime
             risk_degraded_reason="SKIPPED",
             core_degraded_reason="SKIPPED",
             fallback_mode="SKIPPED",
+            insufficient_evidence_decision=LiveDecisionSnapshot(
+                path_name="insufficient_evidence_path",
+                top_level_status="SKIPPED",
+                decision_status="SKIPPED",
+                primary_reason_code="SKIPPED",
+                recommended_next_action="SKIPPED",
+                approval_requirement_types=(),
+            ),
         )
     )
     return LiveRuntimeSuiteResult(parity=parity, degraded=degraded)
