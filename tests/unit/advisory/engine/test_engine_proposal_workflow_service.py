@@ -173,6 +173,48 @@ def test_service_create_proposal_persists_decision_summary() -> None:
     )
 
 
+def test_service_create_proposal_persists_material_change_projection() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_service",
+            simulate_request={
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_service_fx_1",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "1000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EUR_EQ_1", "price": "100", "currency": "EUR"}],
+                    "fx_rates": [{"pair": "EUR/USD", "rate": "1.2"}],
+                },
+                "shelf_entries": [
+                    {
+                        "instrument_id": "EUR_EQ_1",
+                        "status": "APPROVED",
+                        "issuer_id": "ISS_EUR_1",
+                        "liquidity_tier": "L1",
+                    }
+                ],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [{"side": "BUY", "instrument_id": "EUR_EQ_1", "quantity": "1"}],
+            },
+            metadata={"title": "FX proposal"},
+        ),
+        idempotency_key="service-idem-fx-material-change",
+        correlation_id="corr-service-fx-material-change",
+    )
+
+    families = {
+        item.family
+        for item in created.version.proposal_result.proposal_decision_summary.material_changes
+    }
+    assert "CURRENCY_EXPOSURE_CHANGE" in families
+
+
 def test_service_create_proposal_persists_policy_context_for_stateful_requests(monkeypatch):
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())
 

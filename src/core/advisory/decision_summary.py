@@ -1,6 +1,7 @@
+from src.core.advisory.decision_material_changes import build_material_changes
+from src.core.advisory.decision_requirements import build_approval_requirements
 from src.core.advisory.decision_summary_models import (
     ProposalDecisionActionItem,
-    ProposalDecisionApprovalRequirement,
     ProposalDecisionClientMandatePosture,
     ProposalDecisionConfidence,
     ProposalDecisionMissingEvidence,
@@ -18,7 +19,16 @@ _DECISION_POLICY_VERSION = "advisory-decision-policy.2026-04"
 def build_proposal_decision_summary(result: ProposalResult) -> ProposalDecisionSummary:
     missing_evidence = _build_missing_evidence(result)
     decision_status = _derive_decision_status(result, missing_evidence)
-    approval_requirements = _build_approval_requirements(result, missing_evidence)
+    approval_requirements = build_approval_requirements(
+        result=result,
+        missing_evidence=missing_evidence,
+        policy_version=_DECISION_POLICY_VERSION,
+    )
+    material_changes = build_material_changes(
+        result=result,
+        approval_requirements=approval_requirements,
+        missing_evidence=missing_evidence,
+    )
     primary_reason_code = _primary_reason_code(result, missing_evidence, decision_status)
     primary_summary = _primary_summary(decision_status, primary_reason_code)
     recommended_next_action = _recommended_next_action(decision_status, missing_evidence)
@@ -44,7 +54,7 @@ def build_proposal_decision_summary(result: ProposalResult) -> ProposalDecisionS
         ),
         confidence=confidence,
         approval_requirements=approval_requirements,
-        material_changes=[],
+        material_changes=material_changes,
         suitability_posture=_build_suitability_posture(result.suitability),
         missing_evidence=missing_evidence,
         risk_posture=_build_risk_posture(result),
@@ -292,67 +302,6 @@ def _build_missing_evidence(result: ProposalResult) -> list[ProposalDecisionMiss
                 )
             )
     return items
-
-
-def _build_approval_requirements(
-    result: ProposalResult,
-    missing_evidence: list[ProposalDecisionMissingEvidence],
-) -> list[ProposalDecisionApprovalRequirement]:
-    requirements: list[ProposalDecisionApprovalRequirement] = []
-    gate = result.gate_decision.gate if result.gate_decision is not None else None
-    if gate == "COMPLIANCE_REVIEW_REQUIRED":
-        requirements.append(
-            ProposalDecisionApprovalRequirement(
-                approval_type="COMPLIANCE_REVIEW",
-                required=True,
-                severity="HIGH",
-                reason_code="COMPLIANCE_REVIEW_REQUIRED",
-                summary="Compliance review is required before client progression.",
-                blocking_until_approved=False,
-                evidence_refs=["proposal.gate_decision"],
-                policy_version=_DECISION_POLICY_VERSION,
-            )
-        )
-    if gate == "RISK_REVIEW_REQUIRED":
-        requirements.append(
-            ProposalDecisionApprovalRequirement(
-                approval_type="RISK_REVIEW",
-                required=True,
-                severity="MEDIUM",
-                reason_code="RISK_REVIEW_REQUIRED",
-                summary="Risk review is required before client progression.",
-                blocking_until_approved=False,
-                evidence_refs=["proposal.gate_decision"],
-                policy_version=_DECISION_POLICY_VERSION,
-            )
-        )
-    if gate == "CLIENT_CONSENT_REQUIRED":
-        requirements.append(
-            ProposalDecisionApprovalRequirement(
-                approval_type="CLIENT_CONSENT",
-                required=True,
-                severity="MEDIUM",
-                reason_code="CLIENT_CONSENT_REQUIRED",
-                summary="Client consent is required before execution progression.",
-                blocking_until_approved=False,
-                evidence_refs=["proposal.gate_decision"],
-                policy_version=_DECISION_POLICY_VERSION,
-            )
-        )
-    if result.status == "BLOCKED" and missing_evidence:
-        requirements.append(
-            ProposalDecisionApprovalRequirement(
-                approval_type="DATA_REMEDIATION",
-                required=True,
-                severity="HIGH",
-                reason_code=missing_evidence[0].reason_code,
-                summary="Blocking data or evidence remediation is required before progression.",
-                blocking_until_approved=True,
-                evidence_refs=missing_evidence[0].evidence_refs,
-                policy_version=_DECISION_POLICY_VERSION,
-            )
-        )
-    return requirements
 
 
 def _build_evidence_refs(
