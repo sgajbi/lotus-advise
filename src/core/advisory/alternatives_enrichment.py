@@ -8,7 +8,6 @@ from src.core.advisory.alternatives_models import (
 )
 from src.core.advisory.alternatives_normalizer import NormalizedProposalAlternativesRequest
 from src.core.advisory.alternatives_strategies import AlternativeCandidateSeed
-from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
 
@@ -91,6 +90,7 @@ def build_alternative_simulate_request(
     payload = base_request.model_dump(mode="json")
     payload["proposed_cash_flows"] = proposed_cash_flows
     payload["proposed_trades"] = proposed_trades
+    payload["alternatives_request"] = None
     return cast(ProposalSimulateRequest, ProposalSimulateRequest.model_validate(payload))
 
 
@@ -102,12 +102,14 @@ def evaluate_alternative_candidates_batch(
     correlation_id: str,
     resolved_as_of: str | None = None,
     policy_context: dict[str, object] | None = None,
+    evaluator: Any | None = None,
 ) -> AlternativesBatchEvaluation:
     evaluation = AlternativesBatchEvaluation()
     evaluated_candidates = candidates[: normalized_request.max_alternatives]
     overflow_candidates = candidates[normalized_request.max_alternatives :]
     cached_results: dict[str, ProposalAlternative | RejectedAlternativeCandidate] = {}
     cached_records: dict[str, AlternativeSimulationRecord] = {}
+    evaluate = evaluator or _default_evaluator
 
     for candidate in evaluated_candidates:
         try:
@@ -132,7 +134,7 @@ def evaluate_alternative_candidates_batch(
         cached_record = cached_records.get(candidate_request_hash)
 
         if cached_result is None:
-            proposal_result = evaluate_advisory_proposal(
+            proposal_result = evaluate(
                 request=candidate_request,
                 request_hash=candidate_request_hash,
                 idempotency_key=None,
@@ -216,21 +218,27 @@ def _classify_candidate_result(
             ],
         )
 
+    proposal_decision_summary = (
+        proposal_result.proposal_decision_summary.model_dump(mode="json")
+        if proposal_result.proposal_decision_summary is not None
+        else {}
+    )
+    decision_status = str(proposal_decision_summary.get("decision_status", ""))
+    alternative_status = "FEASIBLE" if proposal_result.status == "READY" else "FEASIBLE_WITH_REVIEW"
+    if decision_status in {"BLOCKED_REMEDIATION_REQUIRED", "INSUFFICIENT_EVIDENCE"}:
+        alternative_status = "REJECTED_POLICY_BLOCKED"
+
     return ProposalAlternative(
         alternative_id=candidate.candidate_id,
         label=candidate.label,
         objective=candidate.objective,
-        status=("FEASIBLE" if proposal_result.status == "READY" else "FEASIBLE_WITH_REVIEW"),
+        status=alternative_status,
         construction_policy_version=_CONSTRUCTION_POLICY_VERSION,
         ranking_policy_version=_RANKING_POLICY_VERSION,
         intents=[dict(intent) for intent in candidate.generated_intents],
         simulation_result_ref=_evidence_ref(candidate.candidate_id, "simulation"),
         risk_lens_ref=_evidence_ref(candidate.candidate_id, "risk"),
-        proposal_decision_summary=(
-            proposal_result.proposal_decision_summary.model_dump(mode="json")
-            if proposal_result.proposal_decision_summary is not None
-            else {}
-        ),
+        proposal_decision_summary=proposal_decision_summary,
         evidence_refs=[
             _evidence_ref(candidate.candidate_id, "simulation"),
             _evidence_ref(candidate.candidate_id, "risk"),
@@ -295,3 +303,9 @@ def _rejected_candidate(
 
 def _evidence_ref(candidate_id: str, evidence_key: str) -> str:
     return f"evidence://proposal-alternatives/{candidate_id}/{evidence_key}"
+
+
+def _default_evaluator(**kwargs: Any) -> ProposalResult:
+    from src.core.advisory.orchestration import evaluate_advisory_proposal
+
+    return evaluate_advisory_proposal(**kwargs)

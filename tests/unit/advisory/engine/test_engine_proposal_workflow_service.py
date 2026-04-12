@@ -173,6 +173,36 @@ def test_service_create_proposal_persists_decision_summary() -> None:
     )
 
 
+def test_service_create_proposal_persists_proposal_alternatives() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_service",
+            simulate_request={
+                **_simulate_request("pf_service_alt_1"),
+                "alternatives_request": {
+                    "enabled": True,
+                    "objectives": ["LOWER_TURNOVER", "REDUCE_CONCENTRATION"],
+                    "include_rejected_candidates": True,
+                },
+            },
+            metadata={"title": "Alternatives proposal"},
+        ),
+        idempotency_key="service-idem-alt-persisted",
+        correlation_id="corr-service-alt-persisted",
+    )
+
+    proposal_alternatives = created.version.proposal_result.proposal_alternatives
+
+    assert proposal_alternatives is not None
+    assert proposal_alternatives.requested_objectives == [
+        "LOWER_TURNOVER",
+        "REDUCE_CONCENTRATION",
+    ]
+    assert len(proposal_alternatives.rejected_candidates) == 2
+
+
 def test_service_create_proposal_persists_material_change_projection() -> None:
     service = ProposalWorkflowService(repository=InMemoryProposalRepository())
 

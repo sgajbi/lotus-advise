@@ -425,3 +425,34 @@ class ProposalAlternative(BaseModel):
         default_factory=list,
         description="Evidence references supporting the alternative.",
     )
+
+
+class ProposalAlternatives(BaseModel):
+    requested_objectives: list[AlternativeConstructionObjective] = Field(
+        default_factory=list,
+        description="Normalized requested objective order used for alternatives generation.",
+    )
+    selected_alternative_id: str | None = Field(
+        default=None,
+        description="Selected alternative id when persisted selection exists.",
+    )
+    candidate_generation_policy_id: str | None = Field(
+        default=None,
+        description="Candidate-generation policy identifier used for this alternatives run.",
+    )
+    ranking_policy_id: str | None = Field(
+        default=None,
+        description="Ranking policy identifier used for this alternatives run.",
+    )
+    alternatives: list[ProposalAlternative] = Field(
+        default_factory=list,
+        description="Deterministically ranked alternatives returned for the proposal.",
+    )
+    rejected_candidates: list[RejectedAlternativeCandidate] = Field(
+        default_factory=list,
+        description="Rejected candidates retained for advisor and operator visibility.",
+    )
+    evidence_refs: list[str] = Field(
+        default_factory=list,
+        description="Evidence references supporting the alternatives envelope.",
+    )

@@ -771,6 +771,10 @@ Acceptance gate:
 4. UI-ready fields are backend-owned,
 5. selected alternative semantics are deterministic and replay-safe.
 
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0022-slice-5-decision-summary-ranking-and-api-exposure.md`
+
 ### Slice 6: Persistence, Workspace, Artifact, and Replay
 
 Outcome:

@@ -164,7 +164,7 @@ def test_build_alternative_simulate_request_replaces_baseline_intents():
     assert len(request.proposed_cash_flows) == 1
 
 
-def test_evaluate_alternative_candidates_batch_deduplicates_identical_payloads(monkeypatch):
+def test_evaluate_alternative_candidates_batch_deduplicates_identical_payloads():
     request = _base_request()
     normalized = _normalized_request()
     calls: list[ProposalSimulateRequest] = []
@@ -174,11 +174,6 @@ def test_evaluate_alternative_candidates_batch_deduplicates_identical_payloads(m
         calls.append(candidate_request)
         return _proposal_result(candidate_request)
 
-    monkeypatch.setattr(
-        "src.core.advisory.alternatives_enrichment.evaluate_advisory_proposal",
-        _fake_evaluate,
-    )
-
     first_candidate = _candidate("alt_1", label="Path 1")
     second_candidate = _candidate("alt_2", label="Path 2")
     evaluation = evaluate_alternative_candidates_batch(
@@ -186,6 +181,7 @@ def test_evaluate_alternative_candidates_batch_deduplicates_identical_payloads(m
         normalized_request=normalized,
         candidates=[first_candidate, second_candidate],
         correlation_id="corr-batch",
+        evaluator=_fake_evaluate,
     )
 
     assert len(calls) == 1
@@ -239,16 +235,12 @@ def test_evaluate_alternative_candidates_batch_rejects_degraded_authority(
             risk_authority=risk_authority,
         )
 
-    monkeypatch.setattr(
-        "src.core.advisory.alternatives_enrichment.evaluate_advisory_proposal",
-        _fake_evaluate,
-    )
-
     evaluation = evaluate_alternative_candidates_batch(
         base_request=request,
         normalized_request=normalized,
         candidates=[_candidate("alt_reject")],
         correlation_id="corr-degraded",
+        evaluator=_fake_evaluate,
     )
 
     assert evaluation.alternatives == []
@@ -268,16 +260,12 @@ def test_evaluate_alternative_candidates_batch_rejects_overflow_without_upstream
         called = True
         return _proposal_result(kwargs["request"])
 
-    monkeypatch.setattr(
-        "src.core.advisory.alternatives_enrichment.evaluate_advisory_proposal",
-        _fake_evaluate,
-    )
-
     evaluation = evaluate_alternative_candidates_batch(
         base_request=request,
         normalized_request=normalized,
         candidates=[_candidate("alt_keep"), _candidate("alt_overflow")],
         correlation_id="corr-overflow",
+        evaluator=_fake_evaluate,
     )
 
     assert called is True
@@ -304,16 +292,12 @@ def test_evaluate_alternative_candidates_batch_rejects_invalid_candidate_intents
     request = _base_request()
     normalized = _normalized_request()
 
-    monkeypatch.setattr(
-        "src.core.advisory.alternatives_enrichment.evaluate_advisory_proposal",
-        lambda **kwargs: pytest.fail("upstream evaluation should not be called"),
-    )
-
     evaluation = evaluate_alternative_candidates_batch(
         base_request=request,
         normalized_request=normalized,
         candidates=[_candidate("alt_invalid", generated_intents=deepcopy(generated_intents))],
         correlation_id="corr-invalid",
+        evaluator=lambda **kwargs: pytest.fail("upstream evaluation should not be called"),
     )
 
     assert evaluation.alternatives == []

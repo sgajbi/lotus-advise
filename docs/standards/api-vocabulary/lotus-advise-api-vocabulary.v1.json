@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-12T14:40:33.069192+00:00",
+  "generatedAt": "2026-04-12T23:47:05.304631+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -3851,6 +3851,20 @@
       "observedTypes": [
         "ProposalSummary",
         "ProposalCreateResponse"
+      ]
+    },
+    {
+      "semanticId": "lotus.proposal_alternatives",
+      "canonicalTerm": "proposal_alternatives",
+      "preferredName": "proposal_alternatives",
+      "description": "Backend-owned proposal alternatives envelope when alternatives are requested.",
+      "example": "proposal_alternatives_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -8240,6 +8254,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
+            "name": "version.proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
             "name": "version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -11390,6 +11412,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
+            "name": "current_version.proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
             "name": "current_version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -14179,6 +14209,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "proposal_result.allocation_lens",
@@ -17114,6 +17152,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "version.proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "version.proposal_result.allocation_lens",
@@ -23503,6 +23549,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "allocation_lens",
@@ -34010,6 +34064,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "proposal.version.proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "proposal.version.proposal_result.allocation_lens",

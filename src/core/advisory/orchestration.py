@@ -1,5 +1,6 @@
 from typing import cast
 
+from src.core.advisory.alternatives_projection import build_proposal_alternatives
 from src.core.advisory.decision_summary import build_proposal_decision_summary
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import ProposalResult, ProposalSimulateRequest
@@ -89,4 +90,11 @@ def evaluate_advisory_proposal(
 
     proposal_result.explanation = explanation
     proposal_result.proposal_decision_summary = build_proposal_decision_summary(proposal_result)
+    proposal_result.proposal_alternatives = build_proposal_alternatives(
+        request=request,
+        baseline_result=proposal_result,
+        correlation_id=correlation_id,
+        resolved_as_of=resolved_as_of,
+        policy_context=policy_context,
+    )
     return cast(ProposalResult, proposal_result)
