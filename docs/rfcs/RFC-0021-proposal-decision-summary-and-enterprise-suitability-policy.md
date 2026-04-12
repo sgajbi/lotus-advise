@@ -627,6 +627,10 @@ Required outputs:
 3. a documented mapping from current gate semantics to target `decision_status` semantics,
 4. an explicit list of UI or artifact inferences that must be deleted once backend summary exists.
 
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0021-slice-1-current-state-assessment-and-contract-baseline.md`
+
 Acceptance gate:
 
 1. RFC-linked assessment document exists,
