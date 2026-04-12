@@ -241,6 +241,39 @@ Add a read-only endpoint if the UI needs to refresh or inspect persisted decisio
 
 This endpoint must project from persisted proposal version evidence. It must not call upstream services or silently recompute with newer market data.
 
+### Initial Delivery Contract
+
+To keep Slice 2 and Slice 3 focused, the first implementation should treat these fields as required in the additive response contract:
+
+1. `decision_status`,
+2. `top_level_status`,
+3. `primary_reason_code`,
+4. `primary_summary`,
+5. `recommended_next_action`,
+6. `decision_policy_version`,
+7. `confidence`,
+8. `approval_requirements`,
+9. `material_changes`,
+10. `missing_evidence`,
+11. `advisor_action_items`,
+12. `evidence_refs`.
+
+These fields may remain structurally small in the first implementation, but they must exist and must be backed by real backend evidence.
+
+These fields may ship as empty collections in early slices when upstream context is unavailable, but they must not be omitted once `proposal_decision_summary` is introduced:
+
+1. `approval_requirements`,
+2. `material_changes`,
+3. `missing_evidence`,
+4. `advisor_action_items`,
+5. `evidence_refs`.
+
+These nested structures are expected to deepen in later slices:
+
+1. `suitability_posture`,
+2. `risk_posture`,
+3. `client_and_mandate_posture`.
+
 ## ProposalDecisionSummary Model
 
 Suggested model shape:
@@ -280,6 +313,26 @@ Allowed values:
 6. `INSUFFICIENT_EVIDENCE`
 7. `REVISION_RECOMMENDED`
 
+### Decision Status to Top-Level Status Mapping
+
+To prevent drift between workflow gates, UI badges, and narrative/reporting layers, the mapping below is normative:
+
+| `decision_status` | `top_level_status` |
+| --- | --- |
+| `READY_FOR_CLIENT_REVIEW` | `READY` |
+| `REQUIRES_RISK_REVIEW` | `PENDING_REVIEW` |
+| `REQUIRES_COMPLIANCE_REVIEW` | `PENDING_REVIEW` |
+| `REQUIRES_CLIENT_CONSENT` | `PENDING_REVIEW` |
+| `BLOCKED_REMEDIATION_REQUIRED` | `BLOCKED` |
+| `INSUFFICIENT_EVIDENCE` | `PENDING_REVIEW` or `BLOCKED`, depending on whether the missing evidence is policy-required for progression |
+| `REVISION_RECOMMENDED` | `PENDING_REVIEW` |
+
+Rule:
+
+1. `decision_status` is the richer explanatory field,
+2. `top_level_status` remains the canonical coarse workflow status,
+3. implementations must not invent additional top-level statuses.
+
 ### Recommended Next Action Vocabulary
 
 Allowed values:
@@ -304,6 +357,20 @@ Allowed values:
 4. `INSUFFICIENT`
 
 Confidence is about evidence completeness, not investment attractiveness.
+
+## Non-Negotiable Invariants
+
+The implementation must preserve these invariants across simulate, create, version, workspace, artifact, and replay paths:
+
+1. the same persisted proposal version must always project the same decision summary,
+2. decision summaries must be derived from persisted evidence for replay surfaces, not recomputed from fresh upstream state,
+3. missing evidence must never appear as an implicit pass,
+4. approval requirements must not be inferred in UI or artifact layers,
+5. decision summaries must never recalculate allocation, AUM, valuation, or risk metrics locally,
+6. reason codes and approval types must be stable contract values, not presentation text,
+7. new proposal versions must not inherit stale approvals, stale missing-evidence posture, or stale material-change classification,
+8. a proposal that is `BLOCKED` at the top level must never emit a `decision_status` that implies advisor progression,
+9. a `READY` proposal must not omit material blockers from nested evidence.
 
 ## Suitability Policy Dimensions
 
@@ -461,6 +528,24 @@ It should define deterministic precedence:
 7. revision recommendations,
 8. ready for client review.
 
+## Workflow Gate Alignment
+
+The decision summary must strengthen workflow routing, not create a second independent workflow engine.
+
+Required alignment:
+
+1. existing top-level workflow status remains authoritative for lifecycle transitions,
+2. `proposal_decision_summary` provides the explanatory layer for why the lifecycle is `READY`, `PENDING_REVIEW`, or `BLOCKED`,
+3. workflow gate code must consume decision-summary evidence only after the contract is stable and validated,
+4. until workflow gates are migrated, gate output and decision-summary output must be tested for consistency,
+5. a disagreement between gate output and decision summary is a defect and must be surfaced by tests and live validation.
+
+Recommended implementation sequence:
+
+1. first project decision summary alongside existing gate output,
+2. then validate consistency in shadow mode,
+3. only then let workflow gates consume the richer policy output directly.
+
 ## Implementation Discipline
 
 Implementation must follow these rules:
@@ -535,6 +620,13 @@ Outcome:
 3. define the additive contract baseline,
 4. prove no public API v2 family is needed.
 
+Required outputs:
+
+1. a current-state inventory of existing gate reasons, suitability outputs, warnings, and replay evidence,
+2. a proposed `proposal_decision_summary` minimum contract with required and deferred fields,
+3. a documented mapping from current gate semantics to target `decision_status` semantics,
+4. an explicit list of UI or artifact inferences that must be deleted once backend summary exists.
+
 Acceptance gate:
 
 1. RFC-linked assessment document exists,
@@ -556,6 +648,12 @@ Outcome:
 3. expose additive response fields on simulation and artifact paths,
 4. keep existing top-level statuses stable.
 
+Required first-slice contract decision:
+
+1. ship the minimum required contract fields defined in `Initial Delivery Contract`,
+2. do not defer `primary_reason_code` or `recommended_next_action`,
+3. do not wait for full client/mandate integration before projecting blocked, review, and missing-evidence outcomes from currently available evidence.
+
 Acceptance gate:
 
 1. unit tests cover ready, review, blocked, insufficient-evidence, and revision-recommended outcomes,
@@ -572,6 +670,11 @@ Outcome:
 3. include summary in async replay,
 4. preserve summary through workspace save and handoff,
 5. add optional read-only decision-summary endpoint if needed.
+
+Recommended boundary:
+
+1. existing proposal detail/version surfaces should remain the primary consumers in the first implementation,
+2. the optional read-only decision-summary endpoint should ship only if a real consumer cannot use the existing persisted surfaces cleanly.
 
 Acceptance gate:
 
@@ -596,6 +699,12 @@ Acceptance gate:
 3. product complexity mismatch is classified distinctly from portfolio concentration,
 4. missing client/mandate/product evidence produces `INSUFFICIENT_EVIDENCE`, not pass,
 5. policy version is persisted and replayed.
+
+Recommended initial policy scope:
+
+1. start with a global private-banking baseline policy pack,
+2. allow jurisdiction or booking-center overlays only where evidence and policy truth already exist,
+3. avoid pretending jurisdiction specificity is complete if only partial policy packs are available.
 
 ### Slice 5: Client, Mandate, and Product Context Integration
 
@@ -712,6 +821,13 @@ High-value scenarios:
 11. async create/version replay preserves summary,
 12. degraded `lotus-risk` does not fake risk pass.
 
+Consistency scenarios that must be added early:
+
+1. top-level gate output and `decision_status` remain aligned for the same proposal evidence,
+2. replayed proposal versions return byte-for-byte stable decision-summary payloads except for approved metadata fields such as retrieval timestamp if present,
+3. artifact projection, proposal detail, and workspace handoff surfaces return the same decision summary for the same persisted version,
+4. missing client context produces `INSUFFICIENT_EVIDENCE` without incorrectly escalating to a hard block when policy does not require it.
+
 ## Performance and Scalability Expectations
 
 Decision summary generation must be fast and bounded.
@@ -802,6 +918,12 @@ These must be resolved during Slice 1 before implementation slices proceed:
 3. Which decision summary fields are required in the first OpenAPI contract versus deferred until policy context is available?
 4. Should the optional `GET /advisory/proposals/{proposal_id}/decision-summary` endpoint ship in the first implementation, or should consumers use existing proposal detail/version surfaces initially?
 5. Which UI surfaces are expected to consume the decision summary first, and what exact backend fields do they require?
+
+Current recommendation before Slice 1 evidence says otherwise:
+
+1. use existing proposal detail/version surfaces first,
+2. treat the optional read-only decision-summary endpoint as deferred unless a concrete consumer proves it is necessary,
+3. use a global private-banking baseline policy pack first, then add jurisdiction overlays once source-of-truth policy content is available.
 
 ## Risks and Mitigations
 
