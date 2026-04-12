@@ -20,7 +20,8 @@ Current advisory flows produce structured, auditable outputs with:
 - before/after portfolio states,
 - intent-level actions,
 - rules and diagnostics,
-- lineage identifiers and deterministic hashes.
+- lineage identifiers and deterministic hashes,
+- one backend-owned `proposal_decision_summary` for UI, artifact, replay, lifecycle, and operator evidence consumers.
 
 Target operating model:
 - `lotus-advise` owns advisory workflow orchestration and proposal lifecycle,
@@ -41,6 +42,14 @@ Domain outcomes are returned as:
 - `READY`
 - `PENDING_REVIEW`
 - `BLOCKED`
+
+Decision posture is also returned explicitly through `proposal_decision_summary`, including:
+- decision status,
+- primary reason code,
+- recommended next action,
+- approval requirements,
+- material changes,
+- missing-evidence posture.
 
 The API remains deterministic for identical inputs and options.
 
@@ -73,6 +82,8 @@ The API remains deterministic for identical inputs and options.
 - Input: simulated proposal payloads plus workflow actor actions.
 - Output: persisted proposal versions, approvals, consent state, execution readiness, and
   lifecycle provenance showing whether a proposal originated directly or through workspace handoff.
+- Persisted versions also retain the same backend-owned decision summary used by simulation,
+  artifact, workspace replay, and live support evidence.
 - Audit/supportability reads expose lifecycle summaries, lineage completeness, and deterministic
   workflow and approval context for investigation flows.
 
