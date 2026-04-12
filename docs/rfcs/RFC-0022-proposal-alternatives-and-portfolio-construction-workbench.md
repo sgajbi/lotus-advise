@@ -20,8 +20,9 @@ The capability must remain banking-grade:
 2. all portfolio, AUM, valuation, allocation, cash, and simulation calculations remain delegated to `lotus-core`,
 3. all risk calculations remain delegated to `lotus-risk`,
 4. suitability and decision posture are delegated to RFC-0021 decision-summary policy,
-5. no UI surface invents an alternative that cannot be reproduced by backend evidence,
-6. every alternative is auditable, replayable, and explainable.
+5. first implementation risk comparison is limited to the currently implemented RFC-0020 proposal risk lens unless a later RFC expands authoritative risk scope,
+6. no UI surface invents an alternative that cannot be reproduced by backend evidence,
+7. every alternative is auditable, replayable, and explainable.
 
 Because `lotus-advise` is not live and callers are controlled, this RFC enhances existing APIs in place. It does not introduce public `/v2` APIs or duplicate simulation contracts.
 
@@ -168,7 +169,10 @@ These invariants must remain true in every implementation slice:
    locally,
 8. candidate generation, enrichment concurrency, and upstream calls must remain explicitly bounded
    and policy-governed,
-9. every ranked outcome must remain explainable through stable policy versions and reason codes.
+9. every ranked outcome must remain explainable through stable policy versions and reason codes,
+10. alternative comparison must reuse RFC-0020 proposal allocation dimensions and the canonical
+    RFC-0021 `proposal_decision_summary` contract rather than introducing parallel advisory-local
+    summaries.
 
 ## Pre-Live Contract Hardening Decision
 
@@ -244,6 +248,12 @@ If required client or mandate evidence is unavailable, alternative generation mu
 5. rejected alternative reason codes,
 6. persistence and replay of advisory alternatives evidence,
 7. UI-ready comparison projection.
+
+`lotus-advise` may reuse:
+
+1. the RFC-0020 canonical proposal allocation lens and curated proposal dimensions,
+2. the RFC-0020 canonical proposal concentration risk lens,
+3. the RFC-0021 `proposal_decision_summary` contract for each generated feasible alternative.
 
 `lotus-advise` does not own:
 
@@ -436,7 +446,9 @@ Rules:
 
 1. `rank` is assigned only among feasible or feasible-with-review alternatives,
 2. `selected = true` is allowed for at most one persisted alternative per proposal version,
-3. a rejected alternative must never carry a selected flag.
+3. a rejected alternative must never carry a selected flag,
+4. `proposal_decision_summary` must use the canonical RFC-0021 shape and vocabulary rather than an
+   alternatives-specific summary schema.
 
 ## Rejected Alternative Model
 
@@ -469,7 +481,7 @@ Initial ranking inputs:
 5. high-severity suitability issue count,
 6. approval requirement count and severity,
 7. concentration improvement,
-8. risk-alignment improvement,
+8. risk-alignment improvement within the currently implemented canonical proposal risk-lens scope,
 9. mandate-alignment posture,
 10. turnover,
 11. cash-floor preservation,
@@ -515,6 +527,14 @@ Suggested fields:
 12. `evidence_refs`.
 
 The comparison summary is deterministic business evidence, not client-ready prose.
+
+Comparison scope rules:
+
+1. allocation deltas must be derived from the RFC-0020 canonical proposal allocation lens and its
+   curated proposal dimensions,
+2. first implementation risk comparison must remain limited to the currently implemented canonical
+   proposal concentration risk lens unless a later RFC expands authoritative risk coverage,
+3. comparison summaries must not imply broader optimization across unavailable risk methodologies.
 
 ## Architecture Direction
 
@@ -663,6 +683,10 @@ Acceptance gate:
 3. unsupported initial objectives are explicitly deferred,
 4. no implementation begins until contract and ownership boundaries are clear,
 5. first-implementation objective and constraint scope is frozen explicitly.
+
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0022-slice-1-current-state-assessment-and-contract-baseline.md`
 
 ### Slice 2: Alternatives Models, Normalizer, and Strategy Interfaces
 
