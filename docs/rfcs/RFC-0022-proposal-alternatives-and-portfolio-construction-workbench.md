@@ -332,7 +332,9 @@ Rules:
 1. `max_alternatives` is an output bound, not permission for unbounded candidate generation,
 2. `selected_alternative_id` is valid only when it references a generated feasible alternative from
    the same request or persisted version,
-3. `include_rejected_candidates` should default to `true` for advisor and operator surfaces in the
+3. `selected_alternative_id` should be absent on first-time generation requests and used only on
+   lifecycle or workspace writes that confirm a previously generated alternative selection,
+4. `include_rejected_candidates` should default to `true` for advisor and operator surfaces in the
    first implementation so unsupported or infeasible objectives remain visible.
 
 ## Construction Objective Vocabulary
@@ -639,7 +641,7 @@ UI must not:
 UI selection rule:
 
 1. UI may select among backend-generated alternatives,
-2. UI must persist the selected alternative id back through supported backend fields,
+2. UI must persist only a backend-issued alternative id back through supported backend fields,
 3. UI must not mutate generated trade intents locally after an alternative is selected.
 
 ## Delivery Slices
