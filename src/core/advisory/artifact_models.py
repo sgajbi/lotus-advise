@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from src.core.advisory.decision_summary_models import ProposalDecisionSummary
 from src.core.models import GateDecision, Money, SuitabilityIssue
 
 
@@ -383,6 +384,12 @@ class ProposalArtifact(BaseModel):
     )
     gate_decision: GateDecision = Field(
         description="Deterministic workflow gate decision copied from proposal simulation output."
+    )
+    proposal_decision_summary: ProposalDecisionSummary | None = Field(
+        default=None,
+        description=(
+            "Backend-owned proposal decision summary copied from proposal simulation output."
+        ),
     )
     summary: ProposalArtifactSummary = Field(description="Artifact summary section.")
     portfolio_impact: ProposalArtifactPortfolioImpact = Field(

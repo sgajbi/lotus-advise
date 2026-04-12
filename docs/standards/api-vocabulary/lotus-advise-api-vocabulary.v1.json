@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-10T07:08:44.754068+00:00",
+  "generatedAt": "2026-04-12T14:40:33.069192+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -277,6 +277,20 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.approval_implication",
+      "canonicalTerm": "approval_implication",
+      "preferredName": "approval_implication",
+      "description": "Approval or review implication triggered by this issue.",
+      "example": "approval_implication_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -834,6 +848,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.classification",
+      "canonicalTerm": "classification",
+      "preferredName": "classification",
+      "description": "Enterprise suitability classification used by decision policy.",
+      "example": "NEW",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -3584,16 +3612,31 @@
       ]
     },
     {
-      "semanticId": "lotus.policy_version",
-      "canonicalTerm": "policy_version",
-      "preferredName": "policy_version",
-      "description": "Capability policy pack version.",
-      "example": "advisory.v1",
-      "type": "string",
+      "semanticId": "lotus.policy_pack_id",
+      "canonicalTerm": "policy_pack_id",
+      "preferredName": "policy_pack_id",
+      "description": "Suitability policy-pack identifier that produced the issue.",
+      "example": "POLICY_PACK_001",
+      "type": "object",
       "locations": [
         "body"
       ],
       "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.policy_version",
+      "canonicalTerm": "policy_version",
+      "preferredName": "policy_version",
+      "description": "Suitability policy version that produced the issue.",
+      "example": "advisory.v1",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object",
         "string"
       ]
     },
@@ -3836,6 +3879,20 @@
       ],
       "observedTypes": [
         "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.proposal_decision_summary",
+      "canonicalTerm": "proposal_decision_summary",
+      "preferredName": "proposal_decision_summary",
+      "description": "Backend-owned advisory decision summary for UI, artifact, and replay consumers.",
+      "example": "proposal_decision_summary_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -4198,6 +4255,20 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.remediation",
+      "canonicalTerm": "remediation",
+      "preferredName": "remediation",
+      "description": "Deterministic advisor remediation guidance for the issue.",
+      "example": "remediation_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -8161,6 +8232,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "version.proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -8407,6 +8486,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "version.artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "version.artifact.summary",
@@ -9025,12 +9112,36 @@
             "attributeRef": "#/attributeCatalog/lotus.status_change"
           },
           {
+            "name": "version.artifact.suitability_summary.issues[].classification",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.classification",
+            "attributeRef": "#/attributeCatalog/lotus.classification"
+          },
+          {
             "name": "version.artifact.suitability_summary.issues[].summary",
             "location": "body",
             "required": true,
             "type": "string",
             "semanticId": "lotus.summary",
             "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "version.artifact.suitability_summary.issues[].remediation",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.remediation",
+            "attributeRef": "#/attributeCatalog/lotus.remediation"
+          },
+          {
+            "name": "version.artifact.suitability_summary.issues[].approval_implication",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.approval_implication",
+            "attributeRef": "#/attributeCatalog/lotus.approval_implication"
           },
           {
             "name": "version.artifact.suitability_summary.issues[].details",
@@ -9079,6 +9190,22 @@
             "type": "string",
             "semanticId": "lotus.market_data_snapshot_id",
             "attributeRef": "#/attributeCatalog/lotus.market_data_snapshot_id"
+          },
+          {
+            "name": "version.artifact.suitability_summary.issues[].policy_pack_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_pack_id",
+            "attributeRef": "#/attributeCatalog/lotus.policy_pack_id"
+          },
+          {
+            "name": "version.artifact.suitability_summary.issues[].policy_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_version",
+            "attributeRef": "#/attributeCatalog/lotus.policy_version"
           },
           {
             "name": "version.artifact.assumptions_and_limits",
@@ -11255,6 +11382,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "current_version.proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "current_version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -11501,6 +11636,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "current_version.artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "current_version.artifact.summary",
@@ -12119,12 +12262,36 @@
             "attributeRef": "#/attributeCatalog/lotus.status_change"
           },
           {
+            "name": "current_version.artifact.suitability_summary.issues[].classification",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.classification",
+            "attributeRef": "#/attributeCatalog/lotus.classification"
+          },
+          {
             "name": "current_version.artifact.suitability_summary.issues[].summary",
             "location": "body",
             "required": true,
             "type": "string",
             "semanticId": "lotus.summary",
             "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "current_version.artifact.suitability_summary.issues[].remediation",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.remediation",
+            "attributeRef": "#/attributeCatalog/lotus.remediation"
+          },
+          {
+            "name": "current_version.artifact.suitability_summary.issues[].approval_implication",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.approval_implication",
+            "attributeRef": "#/attributeCatalog/lotus.approval_implication"
           },
           {
             "name": "current_version.artifact.suitability_summary.issues[].details",
@@ -12173,6 +12340,22 @@
             "type": "string",
             "semanticId": "lotus.market_data_snapshot_id",
             "attributeRef": "#/attributeCatalog/lotus.market_data_snapshot_id"
+          },
+          {
+            "name": "current_version.artifact.suitability_summary.issues[].policy_pack_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_pack_id",
+            "attributeRef": "#/attributeCatalog/lotus.policy_pack_id"
+          },
+          {
+            "name": "current_version.artifact.suitability_summary.issues[].policy_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_version",
+            "attributeRef": "#/attributeCatalog/lotus.policy_version"
           },
           {
             "name": "current_version.artifact.assumptions_and_limits",
@@ -13990,6 +14173,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -14236,6 +14427,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "artifact.summary",
@@ -14854,12 +15053,36 @@
             "attributeRef": "#/attributeCatalog/lotus.status_change"
           },
           {
+            "name": "artifact.suitability_summary.issues[].classification",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.classification",
+            "attributeRef": "#/attributeCatalog/lotus.classification"
+          },
+          {
             "name": "artifact.suitability_summary.issues[].summary",
             "location": "body",
             "required": true,
             "type": "string",
             "semanticId": "lotus.summary",
             "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "artifact.suitability_summary.issues[].remediation",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.remediation",
+            "attributeRef": "#/attributeCatalog/lotus.remediation"
+          },
+          {
+            "name": "artifact.suitability_summary.issues[].approval_implication",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.approval_implication",
+            "attributeRef": "#/attributeCatalog/lotus.approval_implication"
           },
           {
             "name": "artifact.suitability_summary.issues[].details",
@@ -14908,6 +15131,22 @@
             "type": "string",
             "semanticId": "lotus.market_data_snapshot_id",
             "attributeRef": "#/attributeCatalog/lotus.market_data_snapshot_id"
+          },
+          {
+            "name": "artifact.suitability_summary.issues[].policy_pack_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_pack_id",
+            "attributeRef": "#/attributeCatalog/lotus.policy_pack_id"
+          },
+          {
+            "name": "artifact.suitability_summary.issues[].policy_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_version",
+            "attributeRef": "#/attributeCatalog/lotus.policy_version"
           },
           {
             "name": "artifact.assumptions_and_limits",
@@ -16869,6 +17108,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "version.proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -17115,6 +17362,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "version.artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "version.artifact.summary",
@@ -17733,12 +17988,36 @@
             "attributeRef": "#/attributeCatalog/lotus.status_change"
           },
           {
+            "name": "version.artifact.suitability_summary.issues[].classification",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.classification",
+            "attributeRef": "#/attributeCatalog/lotus.classification"
+          },
+          {
             "name": "version.artifact.suitability_summary.issues[].summary",
             "location": "body",
             "required": true,
             "type": "string",
             "semanticId": "lotus.summary",
             "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "version.artifact.suitability_summary.issues[].remediation",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.remediation",
+            "attributeRef": "#/attributeCatalog/lotus.remediation"
+          },
+          {
+            "name": "version.artifact.suitability_summary.issues[].approval_implication",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.approval_implication",
+            "attributeRef": "#/attributeCatalog/lotus.approval_implication"
           },
           {
             "name": "version.artifact.suitability_summary.issues[].details",
@@ -17787,6 +18066,22 @@
             "type": "string",
             "semanticId": "lotus.market_data_snapshot_id",
             "attributeRef": "#/attributeCatalog/lotus.market_data_snapshot_id"
+          },
+          {
+            "name": "version.artifact.suitability_summary.issues[].policy_pack_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_pack_id",
+            "attributeRef": "#/attributeCatalog/lotus.policy_pack_id"
+          },
+          {
+            "name": "version.artifact.suitability_summary.issues[].policy_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_version",
+            "attributeRef": "#/attributeCatalog/lotus.policy_version"
           },
           {
             "name": "version.artifact.assumptions_and_limits",
@@ -23202,6 +23497,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "allocation_lens",
             "location": "body",
             "required": false,
@@ -23503,6 +23806,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "summary",
@@ -24121,12 +24432,36 @@
             "attributeRef": "#/attributeCatalog/lotus.status_change"
           },
           {
+            "name": "suitability_summary.issues[].classification",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.classification",
+            "attributeRef": "#/attributeCatalog/lotus.classification"
+          },
+          {
             "name": "suitability_summary.issues[].summary",
             "location": "body",
             "required": true,
             "type": "string",
             "semanticId": "lotus.summary",
             "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "suitability_summary.issues[].remediation",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.remediation",
+            "attributeRef": "#/attributeCatalog/lotus.remediation"
+          },
+          {
+            "name": "suitability_summary.issues[].approval_implication",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.approval_implication",
+            "attributeRef": "#/attributeCatalog/lotus.approval_implication"
           },
           {
             "name": "suitability_summary.issues[].details",
@@ -24175,6 +24510,22 @@
             "type": "string",
             "semanticId": "lotus.market_data_snapshot_id",
             "attributeRef": "#/attributeCatalog/lotus.market_data_snapshot_id"
+          },
+          {
+            "name": "suitability_summary.issues[].policy_pack_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_pack_id",
+            "attributeRef": "#/attributeCatalog/lotus.policy_pack_id"
+          },
+          {
+            "name": "suitability_summary.issues[].policy_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_version",
+            "attributeRef": "#/attributeCatalog/lotus.policy_version"
           },
           {
             "name": "assumptions_and_limits",
@@ -33653,6 +34004,14 @@
             "attributeRef": "#/attributeCatalog/lotus.gate_decision"
           },
           {
+            "name": "proposal.version.proposal_result.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
             "name": "proposal.version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -33899,6 +34258,14 @@
             "type": "integer",
             "semanticId": "lotus.new_medium_suitability_count",
             "attributeRef": "#/attributeCatalog/lotus.new_medium_suitability_count"
+          },
+          {
+            "name": "proposal.version.artifact.proposal_decision_summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_decision_summary",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
             "name": "proposal.version.artifact.summary",
@@ -34517,12 +34884,36 @@
             "attributeRef": "#/attributeCatalog/lotus.status_change"
           },
           {
+            "name": "proposal.version.artifact.suitability_summary.issues[].classification",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.classification",
+            "attributeRef": "#/attributeCatalog/lotus.classification"
+          },
+          {
             "name": "proposal.version.artifact.suitability_summary.issues[].summary",
             "location": "body",
             "required": true,
             "type": "string",
             "semanticId": "lotus.summary",
             "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "proposal.version.artifact.suitability_summary.issues[].remediation",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.remediation",
+            "attributeRef": "#/attributeCatalog/lotus.remediation"
+          },
+          {
+            "name": "proposal.version.artifact.suitability_summary.issues[].approval_implication",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.approval_implication",
+            "attributeRef": "#/attributeCatalog/lotus.approval_implication"
           },
           {
             "name": "proposal.version.artifact.suitability_summary.issues[].details",
@@ -34571,6 +34962,22 @@
             "type": "string",
             "semanticId": "lotus.market_data_snapshot_id",
             "attributeRef": "#/attributeCatalog/lotus.market_data_snapshot_id"
+          },
+          {
+            "name": "proposal.version.artifact.suitability_summary.issues[].policy_pack_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_pack_id",
+            "attributeRef": "#/attributeCatalog/lotus.policy_pack_id"
+          },
+          {
+            "name": "proposal.version.artifact.suitability_summary.issues[].policy_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.policy_version",
+            "attributeRef": "#/attributeCatalog/lotus.policy_version"
           },
           {
             "name": "proposal.version.artifact.assumptions_and_limits",

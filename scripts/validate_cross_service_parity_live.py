@@ -16,6 +16,10 @@ import httpx
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from scripts.live_runtime_decision_summary import (  # noqa: E402
+    LiveDecisionSnapshot,
+    extract_live_decision_snapshot,
+)
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest, ProposedTrade
 
@@ -80,6 +84,9 @@ class LiveParityResult:
     execution_handoff_status: str
     execution_terminal_status: str
     report_status: str
+    ready_decision: LiveDecisionSnapshot
+    review_decision: LiveDecisionSnapshot
+    blocked_decision: LiveDecisionSnapshot
 
 
 def _assert(condition: bool, message: str) -> None:
@@ -115,6 +122,25 @@ def _request_json(
     payload = cast(dict[str, Any], response.json())
     _assert(isinstance(payload, dict), f"{method} {url}: expected JSON object payload")
     return payload
+
+
+def _extract_live_decision_snapshot(
+    *,
+    proposal_body: dict[str, Any],
+    path_name: str,
+) -> LiveDecisionSnapshot:
+    try:
+        snapshot = extract_live_decision_snapshot(proposal_body, path_name=path_name)
+    except ValueError as exc:
+        raise LiveParityValidationError(str(exc)) from exc
+    _assert(
+        bool(snapshot.top_level_status)
+        and bool(snapshot.decision_status)
+        and bool(snapshot.primary_reason_code)
+        and bool(snapshot.recommended_next_action),
+        f"{path_name}: decision summary snapshot was incomplete {snapshot}",
+    )
+    return snapshot
 
 
 def _normalize_allocation_views(views: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -221,6 +247,72 @@ def _simulate_stateful_noop(
     )
 
 
+def _simulate_stateless_payload(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    payload: dict[str, Any],
+    idempotency_key: str,
+) -> dict[str, Any]:
+    return _request_json(
+        client,
+        method="POST",
+        url=f"{advise_base_url}/advisory/proposals/simulate",
+        expected_status=200,
+        json_body=payload,
+        headers={"Idempotency-Key": idempotency_key},
+    )
+
+
+def _build_review_decision_payload() -> dict[str, Any]:
+    return {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_live_review_decision",
+            "base_currency": "USD",
+            "positions": [
+                {"instrument_id": "EQ_OLD", "quantity": "7"},
+                {"instrument_id": "BD_OLD", "quantity": "2"},
+            ],
+            "cash_balances": [{"currency": "USD", "amount": "100"}],
+        },
+        "market_data_snapshot": {
+            "prices": [
+                {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"},
+                {"instrument_id": "BD_OLD", "price": "100", "currency": "USD"},
+                {"instrument_id": "EQ_NEW", "price": "100", "currency": "USD"},
+            ],
+            "fx_rates": [],
+        },
+        "shelf_entries": [
+            {"instrument_id": "EQ_OLD", "status": "APPROVED", "asset_class": "EQUITY"},
+            {"instrument_id": "BD_OLD", "status": "APPROVED", "asset_class": "FIXED_INCOME"},
+            {"instrument_id": "EQ_NEW", "status": "APPROVED", "asset_class": "EQUITY"},
+        ],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [{"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "1"}],
+    }
+
+
+def _build_blocked_decision_payload() -> dict[str, Any]:
+    return {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_live_blocked_decision",
+            "base_currency": "SGD",
+            "positions": [],
+            "cash_balances": [{"currency": "SGD", "amount": "10000"}],
+        },
+        "market_data_snapshot": {
+            "prices": [{"instrument_id": "US_EQ", "price": "100", "currency": "USD"}],
+            "fx_rates": [],
+        },
+        "shelf_entries": [{"instrument_id": "US_EQ", "status": "APPROVED"}],
+        "options": {"enable_proposal_simulation": True, "block_on_missing_fx": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [{"side": "BUY", "instrument_id": "US_EQ", "quantity": "1"}],
+    }
+
+
 def _query_live_allocation(
     client: httpx.Client,
     *,
@@ -299,6 +391,89 @@ def _query_live_positions(
     return cast(list[dict[str, Any]], positions)
 
 
+def _validate_live_decision_paths(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    complete_scenario: PortfolioParityScenario,
+) -> tuple[LiveDecisionSnapshot, LiveDecisionSnapshot, LiveDecisionSnapshot]:
+    ready_body = _simulate_stateful_noop(
+        client,
+        advise_base_url=advise_base_url,
+        portfolio_id=complete_scenario.portfolio_id,
+        as_of_date=complete_scenario.as_of_date,
+        idempotency_key=f"live-decision-ready-{uuid.uuid4().hex}",
+    )
+    ready_snapshot = _extract_live_decision_snapshot(
+        proposal_body=ready_body,
+        path_name="ready_path",
+    )
+    _assert(
+        ready_snapshot.top_level_status == "READY",
+        f"ready_path: expected READY top-level status, got {ready_snapshot.top_level_status}",
+    )
+    _assert(
+        ready_snapshot.decision_status in {"READY_FOR_CLIENT_REVIEW", "REQUIRES_CLIENT_CONSENT"},
+        (
+            "ready_path: expected ready or client-consent posture, got "
+            f"{ready_snapshot.decision_status}"
+        ),
+    )
+
+    review_body = _simulate_stateless_payload(
+        client,
+        advise_base_url=advise_base_url,
+        payload=_build_review_decision_payload(),
+        idempotency_key=f"live-decision-review-{uuid.uuid4().hex}",
+    )
+    review_snapshot = _extract_live_decision_snapshot(
+        proposal_body=review_body,
+        path_name="review_path",
+    )
+    _assert(
+        review_snapshot.decision_status in {"REQUIRES_RISK_REVIEW", "REQUIRES_COMPLIANCE_REVIEW"},
+        (
+            "review_path: expected risk or compliance review posture, got "
+            f"{review_snapshot.decision_status}"
+        ),
+    )
+    _assert(
+        bool(review_snapshot.approval_requirement_types),
+        "review_path: approval requirements were unexpectedly empty",
+    )
+
+    blocked_body = _simulate_stateless_payload(
+        client,
+        advise_base_url=advise_base_url,
+        payload=_build_blocked_decision_payload(),
+        idempotency_key=f"live-decision-blocked-{uuid.uuid4().hex}",
+    )
+    blocked_snapshot = _extract_live_decision_snapshot(
+        proposal_body=blocked_body,
+        path_name="blocked_path",
+    )
+    _assert(
+        blocked_snapshot.top_level_status == "BLOCKED",
+        (
+            "blocked_path: expected BLOCKED top-level status, got "
+            f"{blocked_snapshot.top_level_status}"
+        ),
+    )
+    _assert(
+        blocked_snapshot.decision_status == "BLOCKED_REMEDIATION_REQUIRED",
+        (
+            "blocked_path: expected BLOCKED_REMEDIATION_REQUIRED decision status, got "
+            f"{blocked_snapshot.decision_status}"
+        ),
+    )
+    _assert(
+        "DATA_REMEDIATION" in blocked_snapshot.approval_requirement_types,
+        "blocked_path: data remediation requirement missing from decision summary",
+    )
+
+    return ready_snapshot, review_snapshot, blocked_snapshot
+
+
 def _select_changed_state_security(positions: list[dict[str, Any]]) -> str:
     non_cash_positions = [
         position
@@ -367,7 +542,7 @@ def _security_trade_changes_from_proposal_body(
         change: dict[str, Any] = {
             "security_id": intent["instrument_id"],
             "transaction_type": intent["side"],
-            "quantity": float(intent["quantity"]),
+            "quantity": _decimal(intent["quantity"]),
             "metadata": {
                 "proposal_intent_id": intent["intent_id"],
                 "proposal_intent_type": intent["intent_type"],
@@ -375,7 +550,7 @@ def _security_trade_changes_from_proposal_body(
         }
         notional = intent.get("notional")
         if isinstance(notional, dict):
-            change["amount"] = float(notional["amount"])
+            change["amount"] = _decimal(notional["amount"])
             change["currency"] = notional["currency"]
         changes.append(change)
     return changes
@@ -1745,8 +1920,8 @@ def _assert_changed_state_workspace_risk_parity(
     )
     risk_proxy = cast(dict[str, Any], latest_result["explanation"]["risk_lens"]["risk_proxy"])
     _assert(
-        any(abs(float(risk_proxy[key])) > 0.0 for key in ("hhi_current", "hhi_proposed"))
-        and abs(float(risk_proxy["hhi_delta"])) > 0.0,
+        any(abs(_decimal(risk_proxy[key])) > 0 for key in ("hhi_current", "hhi_proposed"))
+        and abs(_decimal(risk_proxy["hhi_delta"])) > 0,
         f"{scenario.portfolio_id}: changed-state workspace risk lens did not produce a real delta",
     )
     direct_risk = _query_direct_concentration(
@@ -1986,6 +2161,29 @@ def _assert_persisted_read_surfaces(
         == int(version["version_no"])
         == current_version_no,
         f"{proposal_id}: detail/version endpoints diverged on current version",
+    )
+    detail_summary = cast(
+        dict[str, Any],
+        cast(dict[str, Any], detail["current_version"]["proposal_result"])[
+            "proposal_decision_summary"
+        ],
+    )
+    version_summary = cast(
+        dict[str, Any],
+        cast(dict[str, Any], version["proposal_result"])["proposal_decision_summary"],
+    )
+    _assert(
+        detail_summary == version_summary,
+        f"{proposal_id}: detail/version decision summaries diverged",
+    )
+    _assert(
+        bool(detail_summary.get("decision_status"))
+        and bool(detail_summary.get("primary_reason_code")),
+        f"{proposal_id}: persisted decision summary omitted required posture fields",
+    )
+    _assert(
+        isinstance(detail_summary.get("approval_requirements"), list),
+        f"{proposal_id}: persisted decision summary omitted approval requirements list",
     )
     _assert(
         str(version["proposal_id"]) == proposal_id,
@@ -2235,6 +2433,11 @@ def validate_live_cross_service_parity(
             advise_base_url=advise_base_url,
             scenario=complete,
         )
+        ready_decision, review_decision, blocked_decision = _validate_live_decision_paths(
+            client,
+            advise_base_url=advise_base_url,
+            complete_scenario=complete,
+        )
         (
             lifecycle_portfolio,
             lifecycle_latest_version_no,
@@ -2355,6 +2558,9 @@ def validate_live_cross_service_parity(
         execution_handoff_status=handoff_status,
         execution_terminal_status="EXECUTED",
         report_status=report_status,
+        ready_decision=ready_decision,
+        review_decision=review_decision,
+        blocked_decision=blocked_decision,
     )
 
 

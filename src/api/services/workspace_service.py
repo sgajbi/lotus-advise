@@ -6,6 +6,7 @@ from typing import OrderedDict as OrderedDictType
 from uuid import uuid4
 
 from src.core.advisory.orchestration import evaluate_advisory_proposal
+from src.core.advisory.policy_context import ProposalPolicySelectors
 from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
@@ -354,6 +355,16 @@ def _build_workspace_handoff_context_resolution(
         simulate_request=simulate_request,
         resolved_context=resolved_context,
         metadata=metadata,
+        policy_selectors=ProposalPolicySelectors(
+            household_id=(
+                session.stateful_input.household_id if session.stateful_input is not None else None
+            ),
+            mandate_id=metadata.mandate_id,
+            jurisdiction=metadata.jurisdiction,
+            benchmark_id=(
+                session.stateful_input.benchmark_id if session.stateful_input is not None else None
+            ),
+        ),
         used_legacy_contract=False,
     )
     return cast(dict[str, Any], build_context_resolution_evidence(resolved_request))
@@ -427,8 +438,20 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
         resolution_source="LOTUS_CORE" if session.input_mode == "stateful" else "DIRECT_REQUEST",
         simulate_request=simulate_request,
         resolved_context=proposal_resolved_context,
+        policy_selectors=ProposalPolicySelectors(
+            household_id=(
+                session.stateful_input.household_id if session.stateful_input is not None else None
+            ),
+            mandate_id=(
+                session.stateful_input.mandate_id if session.stateful_input is not None else None
+            ),
+            benchmark_id=(
+                session.stateful_input.benchmark_id if session.stateful_input is not None else None
+            ),
+        ),
         used_legacy_contract=False,
     )
+    context_resolution = build_context_resolution_evidence(resolved_request)
     request_hash = hash_canonical_payload(
         canonicalize_simulation_request_payload(resolved=resolved_request)
     )
@@ -439,8 +462,9 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
         idempotency_key=None,
         correlation_id=correlation_id,
         resolved_as_of=proposal_resolved_context.as_of,
+        policy_context=context_resolution["advisory_policy_context"],
     )
-    result.explanation["context_resolution"] = build_context_resolution_evidence(resolved_request)
+    result.explanation["context_resolution"] = context_resolution
     session.latest_proposal_result = result
     session.evaluation_summary = _build_evaluation_summary(result, session)
     session.latest_replay_evidence = _build_replay_evidence(

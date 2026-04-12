@@ -1515,6 +1515,7 @@ def test_workspace_saved_version_replay_evidence_preserves_handoff_continuity():
     assert body["continuity"]["handoff_action"] == "CREATED_PROPOSAL"
     assert body["hashes"]["draft_state_hash"]
     assert body["hashes"]["evaluation_request_hash"]
+    assert body["evidence"]["proposal_decision_summary"]["decision_status"]
 
 
 def test_workspace_and_proposal_replay_evidence_stay_hash_aligned_after_handoff():
@@ -1593,6 +1594,10 @@ def test_workspace_and_proposal_replay_evidence_stay_hash_aligned_after_handoff(
         proposal_body["resolved_context"]["portfolio_id"]
         == (workspace_body["resolved_context"]["portfolio_id"])
     )
+    assert (
+        proposal_body["evidence"]["proposal_decision_summary"]
+        == workspace_body["evidence"]["proposal_decision_summary"]
+    )
 
 
 def test_workspace_handoff_replay_evidence_preserves_risk_lens(monkeypatch):
@@ -1655,6 +1660,14 @@ def test_workspace_handoff_replay_evidence_preserves_risk_lens(monkeypatch):
     assert proposal_body["evidence"]["risk_lens"]["source_service"] == "lotus-risk"
     assert workspace_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
     assert proposal_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert (
+        workspace_body["evidence"]["proposal_decision_summary"]["risk_posture"]["status"]
+        == "AVAILABLE"
+    )
+    assert (
+        proposal_body["evidence"]["proposal_decision_summary"]["risk_posture"]["status"]
+        == "AVAILABLE"
+    )
 
 
 def test_workspace_handoff_requires_idempotency_key_for_first_create():

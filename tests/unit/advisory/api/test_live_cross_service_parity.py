@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from scripts.validate_cross_service_parity_live import (
     _security_trade_changes_from_proposal_body,
     _select_changed_state_security,
@@ -51,8 +53,8 @@ def test_security_trade_changes_from_proposal_body_preserves_trade_quantities_an
         {
             "security_id": "FO_BOND_UST_2030",
             "transaction_type": "BUY",
-            "quantity": 1.0,
-            "amount": 101.35,
+            "quantity": Decimal("1"),
+            "amount": Decimal("101.35"),
             "currency": "USD",
             "metadata": {
                 "proposal_intent_id": "oi_1",
@@ -62,7 +64,7 @@ def test_security_trade_changes_from_proposal_body_preserves_trade_quantities_an
         {
             "security_id": "FO_BOND_SIEMENS_2031",
             "transaction_type": "SELL",
-            "quantity": 2.0,
+            "quantity": Decimal("2"),
             "metadata": {
                 "proposal_intent_id": "oi_2",
                 "proposal_intent_type": "SECURITY_TRADE",

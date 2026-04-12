@@ -51,6 +51,7 @@ def run_proposal_simulation(
     idempotency_key: Optional[str] = None,
     correlation_id: str = "c_none",
     simulation_contract_version: Optional[str] = None,
+    policy_context: Optional[dict[str, Any]] = None,
 ) -> ProposalResult:
     run_id = proposal_run_id_from_request_hash(request_hash)
     diagnostics = make_diagnostics_data()
@@ -283,6 +284,7 @@ def run_proposal_simulation(
             portfolio_snapshot_id=portfolio.snapshot_id or portfolio.portfolio_id,
             market_data_snapshot_id=market_data.snapshot_id or "md",
             proposed_trades=trades,
+            policy_context=policy_context,
         )
     gate_decision = None
     if options.enable_workflow_gates:

@@ -5,6 +5,7 @@ import pytest
 
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
+from src.core.models import ProposalSimulateRequest
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
@@ -25,7 +26,10 @@ from src.core.proposals.service import (
     ProposalValidationError,
     ProposalWorkflowService,
 )
+from src.core.workspace.models import WorkspaceResolvedContext
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
+from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
+from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
 def _simulate_request(portfolio_id: str = "pf_service_1") -> dict:
@@ -81,6 +85,7 @@ def reset_upstream_authority_overrides(monkeypatch):
             idempotency_key=kwargs["idempotency_key"],
             correlation_id=kwargs["correlation_id"],
             simulation_contract_version="advisory-simulation.v1",
+            policy_context=kwargs.get("policy_context"),
         )
 
     monkeypatch.setattr(
@@ -126,6 +131,7 @@ def test_service_create_proposal_uses_upstream_simulation_authority_when_availab
             request_hash=kwargs["request_hash"],
             idempotency_key=kwargs["idempotency_key"],
             correlation_id=kwargs["correlation_id"],
+            policy_context=kwargs.get("policy_context"),
         )
 
     monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
@@ -143,6 +149,148 @@ def test_service_create_proposal_uses_upstream_simulation_authority_when_availab
     authority = created.version.proposal_result.explanation["authority_resolution"]
     assert authority["simulation_authority"] == "lotus_core"
     assert authority["risk_authority"] == "unavailable"
+
+
+def test_service_create_proposal_persists_decision_summary() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-idem-decision-summary-persisted",
+        correlation_id="corr-service-decision-summary-persisted",
+    )
+
+    summary = created.version.proposal_result.proposal_decision_summary
+
+    assert summary is not None
+    assert summary.top_level_status == created.version.proposal_result.status
+    assert summary.decision_status
+    assert created.version.proposal_result.suitability is not None
+    assert created.version.proposal_result.suitability.policy_version
+    assert (
+        created.version.proposal_result.suitability.policy_version
+        == summary.suitability_policy_version
+    )
+
+
+def test_service_create_proposal_persists_material_change_projection() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_service",
+            simulate_request={
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_service_fx_1",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "1000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EUR_EQ_1", "price": "100", "currency": "EUR"}],
+                    "fx_rates": [{"pair": "EUR/USD", "rate": "1.2"}],
+                },
+                "shelf_entries": [
+                    {
+                        "instrument_id": "EUR_EQ_1",
+                        "status": "APPROVED",
+                        "issuer_id": "ISS_EUR_1",
+                        "liquidity_tier": "L1",
+                    }
+                ],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [{"side": "BUY", "instrument_id": "EUR_EQ_1", "quantity": "1"}],
+            },
+            metadata={"title": "FX proposal"},
+        ),
+        idempotency_key="service-idem-fx-material-change",
+        correlation_id="corr-service-fx-material-change",
+    )
+
+    families = {
+        item.family
+        for item in created.version.proposal_result.proposal_decision_summary.material_changes
+    }
+    assert "CURRENCY_EXPOSURE_CHANGE" in families
+
+
+def test_service_create_proposal_persists_policy_context_for_stateful_requests(monkeypatch):
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    def _resolved_stateful_context(stateful_input):
+        payload = build_resolved_stateful_context(
+            stateful_input.portfolio_id,
+            stateful_input.as_of,
+        )
+        return LotusCoreResolvedAdvisoryContext(
+            simulate_request=ProposalSimulateRequest.model_validate(payload["simulate_request"]),
+            resolved_context=WorkspaceResolvedContext.model_validate(payload["resolved_context"]),
+        )
+
+    monkeypatch.setattr(
+        "src.core.proposals.context.resolve_lotus_core_advisory_context",
+        _resolved_stateful_context,
+    )
+
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_service",
+            input_mode="stateful",
+            stateful_input={
+                "portfolio_id": "pf_service_stateful_1",
+                "as_of": "2026-03-25",
+                "household_id": "hh_001",
+                "mandate_id": "mandate_growth_01",
+            },
+            metadata={"title": "Stateful service test", "jurisdiction": "SG"},
+        ),
+        idempotency_key="service-idem-stateful-policy",
+        correlation_id="corr-service-stateful-policy",
+    )
+
+    policy_context = created.version.evidence_bundle["context_resolution"][
+        "advisory_policy_context"
+    ]
+    assert policy_context["client_context_status"] == "AVAILABLE"
+    assert policy_context["mandate_context_status"] == "AVAILABLE"
+    assert policy_context["jurisdiction_context_status"] == "AVAILABLE"
+    assert (
+        created.version.proposal_result.proposal_decision_summary.client_and_mandate_posture.status
+        == "AVAILABLE"
+    )
+
+
+def test_service_new_version_recomputes_decision_summary_without_bleeding_forward() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="service-idem-decision-summary-version-1",
+        correlation_id="corr-service-decision-summary-version-1",
+    )
+    proposal_id = created.proposal.proposal_id
+    version_one_summary = created.version.proposal_result.proposal_decision_summary
+
+    blocked_request = _simulate_request()
+    blocked_request["market_data_snapshot"]["prices"] = [
+        {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"}
+    ]
+    blocked_version = service.create_version(
+        proposal_id=proposal_id,
+        payload=ProposalVersionRequest(
+            created_by="advisor_service",
+            simulate_request=blocked_request,
+        ),
+        correlation_id="corr-service-decision-summary-version-2",
+    )
+    version_two_summary = blocked_version.version.proposal_result.proposal_decision_summary
+
+    assert version_one_summary is not None
+    assert version_two_summary is not None
+    assert version_one_summary.decision_status != version_two_summary.decision_status
+    assert version_two_summary.decision_status == "BLOCKED_REMEDIATION_REQUIRED"
+    assert version_two_summary.primary_reason_code == "DATA_QUALITY_MISSING_PRICE"
 
 
 def test_service_request_hash_is_stable_between_legacy_and_stateless_create_contracts():

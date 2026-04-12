@@ -38,6 +38,7 @@ def simulate_with_lotus_core(
     request_hash: str,
     idempotency_key: str | None,
     correlation_id: str,
+    policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
     headers: dict[str, str] = {
         "X-Correlation-Id": correlation_id,

@@ -320,6 +320,10 @@ def test_workspace_handoff_updates_saved_version_replay_continuity() -> None:
     assert continuity["proposal_version_no"] == handoff.proposal.version.version_no
     assert continuity["handoff_action"] == "CREATED_PROPOSAL"
     assert continuity["handoff_by"] == "advisor_123"
+    assert saved.latest_proposal_result is not None
+    assert saved.latest_proposal_result.proposal_decision_summary is not None
 
     reloaded = get_workspace_session(session.workspace_id)
     assert reloaded.saved_versions[0].replay_evidence.continuity == continuity
+    assert reloaded.saved_versions[0].latest_proposal_result is not None
+    assert reloaded.saved_versions[0].latest_proposal_result.proposal_decision_summary is not None
