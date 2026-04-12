@@ -2843,6 +2843,11 @@ def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_
             version_body["resolved_context"]["portfolio_id"]
             == created.json()["proposal"]["portfolio_id"]
         )
+        assert (
+            version_body["evidence"]["proposal_decision_summary"]["top_level_status"]
+            == created.json()["version"]["proposal_result"]["status"]
+        )
+        assert version_body["evidence"]["proposal_decision_summary"]["decision_status"]
 
         accepted = client.post(
             "/advisory/proposals/async",
@@ -2864,6 +2869,7 @@ def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_
     assert async_body["continuity"]["async_operation_id"] == operation_id
     assert async_body["continuity"]["correlation_id"] == "corr-lifecycle-replay-async-001"
     assert async_body["evidence"]["async_runtime"]["attempt_count"] >= 1
+    assert async_body["evidence"]["proposal_decision_summary"]["decision_status"]
 
 
 def test_async_and_proposal_replay_evidence_stay_hash_aligned():
@@ -2902,6 +2908,10 @@ def test_async_and_proposal_replay_evidence_stay_hash_aligned():
     assert async_body["resolved_context"] == proposal_body["resolved_context"]
     assert async_body["continuity"]["correlation_id"] == "corr-lifecycle-replay-async-alignment-001"
     assert async_body["continuity"]["async_operation_id"] == operation_id
+    assert (
+        async_body["evidence"]["proposal_decision_summary"]
+        == proposal_body["evidence"]["proposal_decision_summary"]
+    )
 
 
 def test_proposal_and_async_replay_evidence_preserve_risk_lens(monkeypatch):
@@ -2937,6 +2947,13 @@ def test_proposal_and_async_replay_evidence_preserve_risk_lens(monkeypatch):
     assert version_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
     assert async_body["evidence"]["risk_lens"]["source_service"] == "lotus-risk"
     assert async_body["evidence"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert (
+        version_body["evidence"]["proposal_decision_summary"]["risk_posture"]["status"]
+        == "AVAILABLE"
+    )
+    assert (
+        async_body["evidence"]["proposal_decision_summary"]["risk_posture"]["status"] == "AVAILABLE"
+    )
 
 
 def test_async_create_version_and_lookup():

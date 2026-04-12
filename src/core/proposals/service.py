@@ -1269,10 +1269,7 @@ class ProposalWorkflowService:
         evidence_bundle: dict[str, Any],
         created_at: datetime,
     ) -> ProposalVersionRecord:
-        simulation_payload = proposal_result.model_dump(
-            mode="json",
-            exclude={"proposal_decision_summary"},
-        )
+        simulation_payload = proposal_result.model_dump(mode="json")
         simulation_hash_payload = strip_keys(
             simulation_payload,
             exclude={"correlation_id", "idempotency_key"},

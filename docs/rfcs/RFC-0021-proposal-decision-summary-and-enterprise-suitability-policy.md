@@ -691,6 +691,10 @@ Acceptance gate:
 3. workspace handoff tests prove summary preservation,
 4. new version tests prove stale approval and stale decision posture do not bleed forward.
 
+Evidence document for this slice:
+
+1. `docs/rfcs/RFC-0021-slice-3-persistence-replay-workspace-and-async-evidence.md`
+
 ### Slice 4: Enterprise Suitability Policy Engine Core
 
 Outcome:

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.core.proposals.delivery_summary import build_delivery_summary_from_events
 from src.core.proposals.models import (
@@ -54,6 +54,9 @@ def build_workspace_saved_version_replay_response(
             "version_number": saved_version.version_number,
             "version_label": saved_version.version_label,
             "risk_lens": saved_version.replay_evidence.risk_lens,
+            "proposal_decision_summary": _proposal_decision_summary_from_saved_version(
+                saved_version
+            ),
         },
         explanation={
             "source": "WORKSPACE_SAVED_VERSION",
@@ -110,6 +113,9 @@ def build_proposal_version_replay_response(
             "context_resolution": context_resolution,
             "replay_lineage": replay_lineage,
             "risk_lens": version.evidence_bundle_json.get("risk_lens"),
+            "proposal_decision_summary": version.proposal_result_json.get(
+                "proposal_decision_summary"
+            ),
             "delivery": delivery_summary,
         },
         explanation={
@@ -228,3 +234,14 @@ def _optional_str(value: Any) -> str | None:
 
 def _optional_int(value: Any) -> int | None:
     return value if isinstance(value, int) else None
+
+
+def _proposal_decision_summary_from_saved_version(
+    saved_version: WorkspaceSavedVersion,
+) -> dict[str, Any] | None:
+    if saved_version.latest_proposal_result is None:
+        return None
+    summary = saved_version.latest_proposal_result.proposal_decision_summary
+    if summary is None:
+        return None
+    return cast(dict[str, Any], summary.model_dump(mode="json"))
