@@ -196,12 +196,14 @@ class ProposalWorkflowService:
             )
 
         self._validate_simulation_flag(resolved_request.simulate_request)
+        context_resolution = build_context_resolution_evidence(resolved_request)
         proposal_result = self._run_simulation(
             request=resolved_request.simulate_request,
             resolved_as_of=resolved_request.resolved_context.as_of,
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            policy_context=context_resolution["advisory_policy_context"],
         )
         artifact = build_proposal_artifact(
             request=resolved_request.simulate_request,
@@ -212,7 +214,7 @@ class ProposalWorkflowService:
         evidence_bundle["context_resolution"] = (
             dict(context_resolution_override)
             if context_resolution_override is not None
-            else build_context_resolution_evidence(resolved_request)
+            else context_resolution
         )
         evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
         if replay_lineage:
@@ -816,6 +818,7 @@ class ProposalWorkflowService:
         except ProposalContextResolutionError as exc:
             raise ProposalValidationError(str(exc)) from exc
         self._validate_simulation_flag(resolved_request.simulate_request)
+        context_resolution = build_context_resolution_evidence(resolved_request)
         request_hash = hash_canonical_payload(
             canonicalize_version_request_payload(
                 payload=payload,
@@ -835,6 +838,7 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             idempotency_key=None,
             correlation_id=correlation_id,
+            policy_context=context_resolution["advisory_policy_context"],
         )
         artifact = build_proposal_artifact(
             request=resolved_request.simulate_request,
@@ -845,7 +849,7 @@ class ProposalWorkflowService:
         evidence_bundle["context_resolution"] = (
             dict(context_resolution_override)
             if context_resolution_override is not None
-            else build_context_resolution_evidence(resolved_request)
+            else context_resolution
         )
         evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
         if replay_lineage:
@@ -1647,6 +1651,7 @@ class ProposalWorkflowService:
         request_hash: str,
         idempotency_key: Optional[str],
         correlation_id: Optional[str],
+        policy_context: Optional[dict[str, Any]] = None,
     ) -> ProposalResult:
         resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
         return evaluate_advisory_proposal(
@@ -1655,6 +1660,7 @@ class ProposalWorkflowService:
             idempotency_key=idempotency_key,
             correlation_id=resolved_correlation_id,
             resolved_as_of=resolved_as_of,
+            policy_context=policy_context,
         )
 
     def _validate_simulation_flag(self, request: ProposalSimulateRequest) -> None:

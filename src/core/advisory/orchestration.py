@@ -24,6 +24,7 @@ def evaluate_advisory_proposal(
     idempotency_key: str | None,
     correlation_id: str,
     resolved_as_of: str | None = None,
+    policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
     degraded_reasons: list[str] = []
 
@@ -34,6 +35,7 @@ def evaluate_advisory_proposal(
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
+            policy_context=policy_context,
         )
     except LotusCoreSimulationUnavailableError as exc:
         degraded_reasons.append("LOTUS_CORE_SIMULATION_UNAVAILABLE")
@@ -57,6 +59,7 @@ def evaluate_advisory_proposal(
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
             simulation_contract_version="advisory-simulation.v1",
+            policy_context=policy_context,
         )
         proposal_result.allocation_lens.source = "LOTUS_ADVISE_LOCAL_FALLBACK"
 
@@ -81,6 +84,8 @@ def evaluate_advisory_proposal(
         "degraded": bool(degraded_reasons),
         "degraded_reasons": degraded_reasons,
     }
+    if policy_context is not None:
+        explanation["advisory_policy_context"] = dict(policy_context)
 
     proposal_result.explanation = explanation
     proposal_result.proposal_decision_summary = build_proposal_decision_summary(proposal_result)

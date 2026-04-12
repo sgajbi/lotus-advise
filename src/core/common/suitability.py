@@ -410,6 +410,7 @@ def _append_governance_trade_attempt_issues(
     shelf_by_instrument: Dict[str, ShelfEntry],
     proposed_trades: list[Any],
     options: EngineOptions,
+    **_: Any,
 ) -> None:
     before_weights = _to_instrument_weight_map(before)
     after_weights = _to_instrument_weight_map(after)
@@ -471,6 +472,7 @@ def _append_product_complexity_issues(
     after: SimulatedState,
     shelf_by_instrument: Dict[str, ShelfEntry],
     proposed_trades: list[Any],
+    policy_context: dict[str, Any] | None = None,
     **_: Any,
 ) -> None:
     before_weights = _to_instrument_weight_map(before)
@@ -487,6 +489,11 @@ def _append_product_complexity_issues(
             continue
         complexity = str(shelf_entry.attributes.get("product_complexity", "")).upper()
         if complexity not in {"HIGH", "COMPLEX"}:
+            continue
+        if (
+            isinstance(policy_context, dict)
+            and policy_context.get("client_context_status") == "AVAILABLE"
+        ):
             continue
         before_weight = before_weights.get(instrument_id, Decimal("0"))
         after_weight = after_weights.get(instrument_id, Decimal("0"))
@@ -511,6 +518,46 @@ def _append_product_complexity_issues(
             classification="UNKNOWN_DUE_TO_MISSING_EVIDENCE",
             remediation="Capture client product-complexity evidence before progressing.",
             approval_implication="CLIENT_CONTEXT_REQUIRED",
+        )
+
+
+def _append_restricted_product_mandate_context_issues(
+    *,
+    after_issues: Dict[str, _IssueCandidate],
+    shelf_by_instrument: Dict[str, ShelfEntry],
+    proposed_trades: list[Any],
+    policy_context: dict[str, Any] | None = None,
+    **_: Any,
+) -> None:
+    if (
+        not isinstance(policy_context, dict)
+        or policy_context.get("mandate_context_status") == "AVAILABLE"
+    ):
+        return
+
+    for trade in proposed_trades:
+        if _trade_field(trade, "side") != "BUY":
+            continue
+        instrument_id = _trade_field(trade, "instrument_id")
+        if not instrument_id:
+            continue
+        shelf_entry = shelf_by_instrument.get(str(instrument_id))
+        if shelf_entry is None or shelf_entry.status != "RESTRICTED":
+            continue
+        issue_key = f"MANDATE_CONTEXT|{instrument_id}"
+        after_issues[issue_key] = _IssueCandidate(
+            issue_key=issue_key,
+            issue_id="MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE",
+            dimension="PRODUCT",
+            severity=_HIGH,
+            summary=(
+                f"Restricted product {instrument_id} requires mandate context before "
+                "recommendation."
+            ),
+            details={"instrument_id": str(instrument_id), "shelf_status": shelf_entry.status},
+            classification="UNKNOWN_DUE_TO_MISSING_EVIDENCE",
+            remediation="Capture mandate context for the restricted-product recommendation.",
+            approval_implication="MANDATE_EXCEPTION_APPROVAL",
         )
 
 
@@ -615,6 +662,7 @@ def compute_suitability_result(
     market_data_snapshot_id: str,
     evidence_as_of: Optional[str] = None,
     proposed_trades: Optional[list[Any]] = None,
+    policy_context: dict[str, Any] | None = None,
 ) -> SuitabilityResult:
     policy_pack = _GLOBAL_PRIVATE_BANKING_BASELINE_PACK
     shelf_by_instrument = {entry.instrument_id: entry for entry in shelf}
@@ -640,6 +688,7 @@ def compute_suitability_result(
             shelf_by_instrument=shelf_by_instrument,
             proposed_trades=proposed_trades or [],
             options=options,
+            policy_context=policy_context,
         )
 
     evidence = SuitabilityEvidence(
@@ -695,5 +744,6 @@ _GLOBAL_PRIVATE_BANKING_BASELINE_PACK = _SuitabilityPolicyPack(
     post_evaluators=(
         _append_governance_trade_attempt_issues,
         _append_product_complexity_issues,
+        _append_restricted_product_mandate_context_issues,
     ),
 )

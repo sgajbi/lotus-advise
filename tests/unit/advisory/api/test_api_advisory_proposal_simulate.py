@@ -53,6 +53,7 @@ def stub_core_simulation_authority(monkeypatch):
             idempotency_key=kwargs["idempotency_key"],
             correlation_id=kwargs["correlation_id"],
             simulation_contract_version="advisory-simulation.v1",
+            policy_context=kwargs.get("policy_context"),
         )
 
     monkeypatch.setattr(
@@ -265,6 +266,100 @@ def test_advisory_proposal_simulate_supports_stateful_context_resolution(client,
     assert body["explanation"]["context_resolution"]["used_legacy_contract"] is False
 
 
+def test_advisory_proposal_simulate_projects_available_policy_context_for_complex_product(
+    client, monkeypatch
+):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: build_resolved_stateful_context(
+            stateful_input.portfolio_id,
+            stateful_input.as_of,
+            prices=[{"instrument_id": "STRUCT_NOTE_1", "price": "100", "currency": "USD"}],
+            shelf_entries=[
+                {
+                    "instrument_id": "STRUCT_NOTE_1",
+                    "status": "APPROVED",
+                    "attributes": {"product_complexity": "HIGH"},
+                }
+            ],
+        ),
+        raising=False,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json={
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": "pf_prop_api_context_ready",
+                "as_of": "2026-03-25",
+                "household_id": "hh_001",
+                "mandate_id": "mandate_growth_01",
+            },
+        },
+        headers={"Idempotency-Key": "prop-key-stateful-context-ready"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert (
+        body["explanation"]["context_resolution"]["advisory_policy_context"][
+            "client_context_status"
+        ]
+        == "AVAILABLE"
+    )
+    assert body["proposal_decision_summary"]["client_and_mandate_posture"]["status"] == "AVAILABLE"
+    assert not any(
+        item["reason_code"] == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
+        for item in body["proposal_decision_summary"]["missing_evidence"]
+    )
+
+
+def test_advisory_proposal_simulate_requests_mandate_context_for_restricted_product_buy(
+    client, monkeypatch
+):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: build_resolved_stateful_context(
+            stateful_input.portfolio_id,
+            stateful_input.as_of,
+            prices=[{"instrument_id": "RESTRICTED_1", "price": "100", "currency": "USD"}],
+            shelf_entries=[
+                {
+                    "instrument_id": "RESTRICTED_1",
+                    "status": "RESTRICTED",
+                    "issuer_id": "ISS_RESTRICTED",
+                }
+            ],
+            options={"enable_proposal_simulation": True, "allow_restricted": True},
+            proposed_trades=[{"side": "BUY", "instrument_id": "RESTRICTED_1", "quantity": "1"}],
+        ),
+        raising=False,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json={
+            "input_mode": "stateful",
+            "stateful_input": {
+                "portfolio_id": "pf_prop_api_mandate_gap",
+                "as_of": "2026-03-25",
+                "household_id": "hh_001",
+            },
+        },
+        headers={"Idempotency-Key": "prop-key-stateful-mandate-gap"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["proposal_decision_summary"]["decision_status"] == "INSUFFICIENT_EVIDENCE"
+    assert body["proposal_decision_summary"]["recommended_next_action"] == "REQUEST_MANDATE_CONTEXT"
+    assert any(
+        item["reason_code"] == "MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE"
+        for item in body["proposal_decision_summary"]["missing_evidence"]
+    )
+
+
 def test_advisory_proposal_simulate_rejects_stateful_request_when_resolution_unavailable(client):
     response = client.post(
         "/advisory/proposals/simulate",
@@ -428,6 +523,7 @@ def test_advisory_proposal_simulate_uses_upstream_authorities_when_available(cli
             request_hash=kwargs["request_hash"],
             idempotency_key=kwargs["idempotency_key"],
             correlation_id=kwargs["correlation_id"],
+            policy_context=kwargs.get("policy_context"),
         )
 
     def _enrich_with_lotus_risk(**kwargs):

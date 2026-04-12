@@ -85,6 +85,7 @@ def advisory_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
             idempotency_key=kwargs["idempotency_key"],
             correlation_id=kwargs["correlation_id"],
             simulation_contract_version="advisory-simulation.v1",
+            policy_context=kwargs.get("policy_context"),
         )
 
     monkeypatch.setenv("ENVIRONMENT", "test")

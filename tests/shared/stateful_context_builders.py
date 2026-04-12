@@ -12,6 +12,8 @@ def build_resolved_stateful_context(
     prices: list[dict[str, Any]] | None = None,
     shelf_entries: list[dict[str, Any]] | None = None,
     options: dict[str, Any] | None = None,
+    proposed_cash_flows: list[dict[str, Any]] | None = None,
+    proposed_trades: list[dict[str, Any]] | None = None,
     include_context_ids: bool = True,
 ) -> dict[str, Any]:
     resolved_context: dict[str, Any] = {
@@ -40,8 +42,8 @@ def build_resolved_stateful_context(
             },
             "shelf_entries": shelf_entries or [],
             "options": options or {"enable_proposal_simulation": True},
-            "proposed_cash_flows": [],
-            "proposed_trades": [],
+            "proposed_cash_flows": proposed_cash_flows or [],
+            "proposed_trades": proposed_trades or [],
         },
         "resolved_context": resolved_context,
     }

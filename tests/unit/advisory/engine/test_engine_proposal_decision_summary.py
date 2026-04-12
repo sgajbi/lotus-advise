@@ -222,3 +222,17 @@ def test_decision_summary_projects_insufficient_evidence_for_complex_product_con
     assert summary.primary_reason_code == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
     assert summary.suitability_policy_version == "enterprise-suitability-policy.2026-04"
     assert summary.missing_evidence[0].reason_code == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
+
+
+def test_decision_summary_projects_available_client_and_mandate_posture() -> None:
+    result = _base_result()
+    result.explanation["advisory_policy_context"] = {
+        "client_context_status": "AVAILABLE",
+        "mandate_context_status": "AVAILABLE",
+    }
+
+    summary = build_proposal_decision_summary(result)
+
+    assert summary.client_and_mandate_posture is not None
+    assert summary.client_and_mandate_posture.status == "AVAILABLE"
+    assert "advisory_policy_context" in " ".join(summary.evidence_refs)

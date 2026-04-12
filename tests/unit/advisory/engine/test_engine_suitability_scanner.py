@@ -385,3 +385,40 @@ def test_suitability_detects_product_complexity_missing_client_evidence() -> Non
     assert result.issues[0].classification == "UNKNOWN_DUE_TO_MISSING_EVIDENCE"
     assert result.issues[0].issue_id == "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE"
     assert result.issues[0].approval_implication == "CLIENT_CONTEXT_REQUIRED"
+
+
+def test_suitability_suppresses_complex_product_context_gap_when_client_context_available() -> None:
+    before = _state(instrument_weights={}, cash_weight="1.0")
+    after = _state(instrument_weights={"STRUCT_NOTE_1": "0.10"}, cash_weight="0.90")
+    options = EngineOptions(
+        suitability_thresholds={
+            "single_position_max_weight": "1.00",
+            "issuer_max_weight": "1.00",
+            "max_weight_by_liquidity_tier": {},
+            "cash_band_min_weight": "0",
+            "cash_band_max_weight": "1",
+        }
+    )
+
+    result = compute_suitability_result(
+        before=before,
+        after=after,
+        shelf=[
+            ShelfEntry(
+                instrument_id="STRUCT_NOTE_1",
+                status="APPROVED",
+                issuer_id="ISS_STRUCTURED",
+                liquidity_tier="L2",
+                attributes={"product_complexity": "HIGH"},
+            )
+        ],
+        options=options,
+        portfolio_snapshot_id="pf_6",
+        market_data_snapshot_id="md_6",
+        proposed_trades=[{"side": "BUY", "instrument_id": "STRUCT_NOTE_1"}],
+        policy_context={"client_context_status": "AVAILABLE"},
+    )
+
+    assert all(
+        issue.issue_id != "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE" for issue in result.issues
+    )

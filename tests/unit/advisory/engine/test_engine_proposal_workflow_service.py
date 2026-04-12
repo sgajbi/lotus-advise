@@ -5,6 +5,7 @@ import pytest
 
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
+from src.core.models import ProposalSimulateRequest
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
@@ -25,7 +26,10 @@ from src.core.proposals.service import (
     ProposalValidationError,
     ProposalWorkflowService,
 )
+from src.core.workspace.models import WorkspaceResolvedContext
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
+from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
+from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
 def _simulate_request(portfolio_id: str = "pf_service_1") -> dict:
@@ -81,6 +85,7 @@ def reset_upstream_authority_overrides(monkeypatch):
             idempotency_key=kwargs["idempotency_key"],
             correlation_id=kwargs["correlation_id"],
             simulation_contract_version="advisory-simulation.v1",
+            policy_context=kwargs.get("policy_context"),
         )
 
     monkeypatch.setattr(
@@ -126,6 +131,7 @@ def test_service_create_proposal_uses_upstream_simulation_authority_when_availab
             request_hash=kwargs["request_hash"],
             idempotency_key=kwargs["idempotency_key"],
             correlation_id=kwargs["correlation_id"],
+            policy_context=kwargs.get("policy_context"),
         )
 
     monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
@@ -164,6 +170,52 @@ def test_service_create_proposal_persists_decision_summary() -> None:
     assert (
         created.version.proposal_result.suitability.policy_version
         == summary.suitability_policy_version
+    )
+
+
+def test_service_create_proposal_persists_policy_context_for_stateful_requests(monkeypatch):
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    def _resolved_stateful_context(stateful_input):
+        payload = build_resolved_stateful_context(
+            stateful_input.portfolio_id,
+            stateful_input.as_of,
+        )
+        return LotusCoreResolvedAdvisoryContext(
+            simulate_request=ProposalSimulateRequest.model_validate(payload["simulate_request"]),
+            resolved_context=WorkspaceResolvedContext.model_validate(payload["resolved_context"]),
+        )
+
+    monkeypatch.setattr(
+        "src.core.proposals.context.resolve_lotus_core_advisory_context",
+        _resolved_stateful_context,
+    )
+
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_service",
+            input_mode="stateful",
+            stateful_input={
+                "portfolio_id": "pf_service_stateful_1",
+                "as_of": "2026-03-25",
+                "household_id": "hh_001",
+                "mandate_id": "mandate_growth_01",
+            },
+            metadata={"title": "Stateful service test", "jurisdiction": "SG"},
+        ),
+        idempotency_key="service-idem-stateful-policy",
+        correlation_id="corr-service-stateful-policy",
+    )
+
+    policy_context = created.version.evidence_bundle["context_resolution"][
+        "advisory_policy_context"
+    ]
+    assert policy_context["client_context_status"] == "AVAILABLE"
+    assert policy_context["mandate_context_status"] == "AVAILABLE"
+    assert policy_context["jurisdiction_context_status"] == "AVAILABLE"
+    assert (
+        created.version.proposal_result.proposal_decision_summary.client_and_mandate_posture.status
+        == "AVAILABLE"
     )
 
 

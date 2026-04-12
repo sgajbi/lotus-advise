@@ -48,12 +48,7 @@ def build_proposal_decision_summary(result: ProposalResult) -> ProposalDecisionS
         suitability_posture=_build_suitability_posture(result.suitability),
         missing_evidence=missing_evidence,
         risk_posture=_build_risk_posture(result),
-        client_and_mandate_posture=ProposalDecisionClientMandatePosture(
-            status="NOT_EVALUATED",
-            summary=(
-                "Client and mandate posture is not yet integrated into decision-summary policy."
-            ),
-        ),
+        client_and_mandate_posture=_build_client_and_mandate_posture(result),
         advisor_action_items=advisor_action_items,
         evidence_refs=evidence_refs,
     )
@@ -67,7 +62,7 @@ def _derive_decision_status(
         return "BLOCKED_REMEDIATION_REQUIRED"
 
     blocking_missing_evidence = any(item.blocking for item in missing_evidence)
-    if result.status == "PENDING_REVIEW" and blocking_missing_evidence:
+    if blocking_missing_evidence:
         return "INSUFFICIENT_EVIDENCE"
 
     gate = result.gate_decision.gate if result.gate_decision is not None else None
@@ -142,9 +137,15 @@ def _recommended_next_action(
         return "DISCUSS_WITH_CLIENT"
     if decision_status == "INSUFFICIENT_EVIDENCE":
         for item in missing_evidence:
-            if item.reason_code == "MISSING_CLIENT_CONTEXT":
+            if item.reason_code in {
+                "MISSING_CLIENT_CONTEXT",
+                "MISSING_CLIENT_PRODUCT_COMPLEXITY_EVIDENCE",
+            }:
                 return "REQUEST_CLIENT_CONTEXT"
-            if item.reason_code == "MISSING_MANDATE_CONTEXT":
+            if item.reason_code in {
+                "MISSING_MANDATE_CONTEXT",
+                "MISSING_MANDATE_RESTRICTED_PRODUCT_EVIDENCE",
+            }:
                 return "REQUEST_MANDATE_CONTEXT"
         return "REVISE_PROPOSAL"
     if decision_status == "REVISION_RECOMMENDED":
@@ -209,6 +210,29 @@ def _build_risk_posture(result: ProposalResult) -> ProposalDecisionRiskPosture:
     )
 
 
+def _build_client_and_mandate_posture(
+    result: ProposalResult,
+) -> ProposalDecisionClientMandatePosture:
+    policy_context = result.explanation.get("advisory_policy_context")
+    if not isinstance(policy_context, dict):
+        return ProposalDecisionClientMandatePosture(
+            status="NOT_EVALUATED",
+            summary="Client and mandate posture was not attached to this proposal result.",
+        )
+
+    client_available = policy_context.get("client_context_status") == "AVAILABLE"
+    mandate_available = policy_context.get("mandate_context_status") == "AVAILABLE"
+    if client_available and mandate_available:
+        return ProposalDecisionClientMandatePosture(
+            status="AVAILABLE",
+            summary="Client and mandate context are available for policy evaluation.",
+        )
+    return ProposalDecisionClientMandatePosture(
+        status="PARTIAL",
+        summary="Client or mandate context is incomplete for policy evaluation.",
+    )
+
+
 def _build_missing_evidence(result: ProposalResult) -> list[ProposalDecisionMissingEvidence]:
     items: list[ProposalDecisionMissingEvidence] = []
     data_quality = result.diagnostics.data_quality
@@ -263,7 +287,7 @@ def _build_missing_evidence(result: ProposalResult) -> list[ProposalDecisionMiss
                     evidence_type="SUITABILITY_CONTEXT",
                     reason_code=issue.issue_id,
                     summary=issue.summary,
-                    blocking=result.status != "READY",
+                    blocking=issue.severity == "HIGH" or result.status != "READY",
                     evidence_refs=[f"proposal.suitability.issues.{issue.issue_key}"],
                 )
             )
@@ -342,6 +366,8 @@ def _build_evidence_refs(
         refs.append("proposal.suitability")
     if result.explanation.get("authority_resolution") is not None:
         refs.append("proposal.explanation.authority_resolution")
+    if result.explanation.get("advisory_policy_context") is not None:
+        refs.append("proposal.explanation.advisory_policy_context")
     for item in missing_evidence:
         refs.extend(item.evidence_refs)
     return sorted(set(refs))

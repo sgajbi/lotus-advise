@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, cast
 
+from src.core.advisory.policy_context import ProposalPolicySelectors, build_advisory_policy_context
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.models import (
     ProposalCreateMetadata,
@@ -31,6 +32,7 @@ class ResolvedProposalContext:
     simulate_request: ProposalSimulateRequest
     resolved_context: ProposalResolvedContext
     metadata: ProposalCreateMetadata
+    policy_selectors: ProposalPolicySelectors
     used_legacy_contract: bool
 
 
@@ -40,6 +42,7 @@ class ResolvedSimulationContext:
     resolution_source: str
     simulate_request: ProposalSimulateRequest
     resolved_context: ProposalResolvedContext
+    policy_selectors: ProposalPolicySelectors
     used_legacy_contract: bool
 
 
@@ -88,16 +91,38 @@ def _resolve_stateful_input(
     )
 
 
+def _policy_selectors(
+    *,
+    metadata: ProposalCreateMetadata | None = None,
+    stateful_input: ProposalStatefulInput | None = None,
+) -> ProposalPolicySelectors:
+    return ProposalPolicySelectors(
+        household_id=stateful_input.household_id if stateful_input is not None else None,
+        mandate_id=(
+            metadata.mandate_id
+            if metadata is not None and metadata.mandate_id is not None
+            else (stateful_input.mandate_id if stateful_input is not None else None)
+        ),
+        jurisdiction=metadata.jurisdiction if metadata is not None else None,
+        benchmark_id=stateful_input.benchmark_id if stateful_input is not None else None,
+    )
+
+
 def resolve_create_request(payload: ProposalCreateRequest) -> ResolvedProposalContext:
     if payload.input_mode == "stateful":
         assert payload.stateful_input is not None
         simulate_request, resolved_context = _resolve_stateful_input(payload.stateful_input)
+        metadata = _metadata_with_stateful_defaults(payload.metadata, payload.stateful_input)
         return ResolvedProposalContext(
             input_mode="stateful",
             resolution_source="LOTUS_CORE",
             simulate_request=simulate_request,
             resolved_context=resolved_context,
-            metadata=_metadata_with_stateful_defaults(payload.metadata, payload.stateful_input),
+            metadata=metadata,
+            policy_selectors=_policy_selectors(
+                metadata=metadata,
+                stateful_input=payload.stateful_input,
+            ),
             used_legacy_contract=False,
         )
 
@@ -110,6 +135,7 @@ def resolve_create_request(payload: ProposalCreateRequest) -> ResolvedProposalCo
             simulate_request=simulate_request,
             resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
             metadata=payload.metadata.model_copy(deep=True),
+            policy_selectors=_policy_selectors(metadata=payload.metadata),
             used_legacy_contract=False,
         )
 
@@ -121,6 +147,7 @@ def resolve_create_request(payload: ProposalCreateRequest) -> ResolvedProposalCo
         simulate_request=simulate_request,
         resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
         metadata=payload.metadata.model_copy(deep=True),
+        policy_selectors=_policy_selectors(metadata=payload.metadata),
         used_legacy_contract=True,
     )
 
@@ -134,6 +161,7 @@ def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSi
             resolution_source="LOTUS_CORE",
             simulate_request=simulate_request,
             resolved_context=resolved_context,
+            policy_selectors=_policy_selectors(stateful_input=payload.stateful_input),
             used_legacy_contract=False,
         )
 
@@ -145,6 +173,7 @@ def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSi
             resolution_source="DIRECT_REQUEST",
             simulate_request=simulate_request,
             resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+            policy_selectors=_policy_selectors(),
             used_legacy_contract=False,
         )
 
@@ -155,6 +184,7 @@ def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSi
         resolution_source="DIRECT_REQUEST",
         simulate_request=simulate_request,
         resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
+        policy_selectors=_policy_selectors(),
         used_legacy_contract=True,
     )
 
@@ -164,12 +194,17 @@ def resolve_version_request(payload: ProposalVersionRequest) -> ResolvedProposal
     if payload.input_mode == "stateful":
         assert payload.stateful_input is not None
         simulate_request, resolved_context = _resolve_stateful_input(payload.stateful_input)
+        resolved_metadata = _metadata_with_stateful_defaults(metadata, payload.stateful_input)
         return ResolvedProposalContext(
             input_mode="stateful",
             resolution_source="LOTUS_CORE",
             simulate_request=simulate_request,
             resolved_context=resolved_context,
-            metadata=_metadata_with_stateful_defaults(metadata, payload.stateful_input),
+            metadata=resolved_metadata,
+            policy_selectors=_policy_selectors(
+                metadata=resolved_metadata,
+                stateful_input=payload.stateful_input,
+            ),
             used_legacy_contract=False,
         )
 
@@ -182,6 +217,7 @@ def resolve_version_request(payload: ProposalVersionRequest) -> ResolvedProposal
             simulate_request=simulate_request,
             resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
             metadata=metadata,
+            policy_selectors=_policy_selectors(metadata=metadata),
             used_legacy_contract=False,
         )
 
@@ -193,6 +229,7 @@ def resolve_version_request(payload: ProposalVersionRequest) -> ResolvedProposal
         simulate_request=simulate_request,
         resolved_context=_build_resolved_context_from_simulate_request(simulate_request),
         metadata=metadata,
+        policy_selectors=_policy_selectors(metadata=metadata),
         used_legacy_contract=True,
     )
 
@@ -253,4 +290,9 @@ def build_context_resolution_evidence(
         "resolution_source": resolved.resolution_source,
         "used_legacy_contract": resolved.used_legacy_contract,
         "resolved_context": resolved.resolved_context.model_dump(mode="json"),
+        "advisory_policy_context": build_advisory_policy_context(
+            input_mode=resolved.input_mode,
+            resolution_source=resolved.resolution_source,
+            selectors=resolved.policy_selectors,
+        ),
     }
