@@ -724,6 +724,10 @@ Acceptance gate:
 3. risk lens parity tests compare alternative evidence to direct `lotus-risk` output,
 4. unavailable upstream services produce explicit rejected/degraded alternatives.
 
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0022-slice-3-canonical-simulation-and-risk-enrichment.md`
+
 ### Slice 4: Initial Construction Strategies
 
 Outcome:
