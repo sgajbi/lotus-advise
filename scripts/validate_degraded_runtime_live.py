@@ -14,6 +14,10 @@ from scripts.live_runtime_decision_summary import (
     LiveDecisionSnapshot,
     extract_live_decision_snapshot,
 )
+from scripts.live_runtime_proposal_alternatives import (
+    LiveProposalAlternativesSnapshot,
+    extract_live_proposal_alternatives_snapshot,
+)
 
 _DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
 _DEFAULT_CORE_CONTROL_BASE_URL = "http://core-control.dev.lotus"
@@ -32,6 +36,8 @@ class DegradedRuntimeResult:
     core_degraded_reason: str
     fallback_mode: str
     insufficient_evidence_decision: LiveDecisionSnapshot
+    risk_unavailable_alternatives: LiveProposalAlternativesSnapshot
+    core_unavailable_alternatives: LiveProposalAlternativesSnapshot
 
 
 def _assert(condition: bool, message: str) -> None:
@@ -82,6 +88,27 @@ def _extract_live_decision_snapshot_for_degraded(
     _assert(
         bool(snapshot.decision_status) and bool(snapshot.primary_reason_code),
         f"{path_name}: decision summary snapshot was incomplete {snapshot}",
+    )
+    return snapshot
+
+
+def _extract_live_proposal_alternatives_snapshot_for_degraded(
+    *,
+    proposal_body: dict[str, Any],
+    path_name: str,
+    latency_ms: float,
+) -> LiveProposalAlternativesSnapshot:
+    try:
+        snapshot = extract_live_proposal_alternatives_snapshot(
+            proposal_body,
+            path_name=path_name,
+            latency_ms=latency_ms,
+        )
+    except ValueError as exc:
+        raise LiveDegradedValidationError(str(exc)) from exc
+    _assert(
+        bool(snapshot.requested_objectives),
+        f"{path_name}: degraded alternatives snapshot omitted requested objectives",
     )
     return snapshot
 
@@ -184,9 +211,9 @@ def _risk_unavailable_drill(
     advise_base_url: str,
     core_query_base_url: str,
     risk_base_url: str,
-) -> tuple[str, str, LiveDecisionSnapshot]:
+) -> tuple[str, str, LiveDecisionSnapshot, LiveProposalAlternativesSnapshot]:
     portfolio_id = "PB_SG_GLOBAL_BAL_001"
-    as_of_date, _ = _resolve_latest_portfolio_context(
+    as_of_date, reporting_currency = _resolve_latest_portfolio_context(
         client,
         core_query_base_url=core_query_base_url,
         portfolio_id=portfolio_id,
@@ -194,14 +221,30 @@ def _risk_unavailable_drill(
     risk_container = _resolve_container_name("lotus-risk", "lotus-risk")
 
     with _temporarily_stopped(risk_container, readiness_url=f"{risk_base_url}/health/ready"):
+        start = time.perf_counter()
         response = client.post(
             f"{advise_base_url}/advisory/proposals/simulate",
             json={
                 "input_mode": "stateful",
                 "stateful_input": {"portfolio_id": portfolio_id, "as_of": as_of_date},
+                "alternatives_request": {
+                    "requested_objectives": [
+                        "REDUCE_CONCENTRATION",
+                        "RAISE_CASH",
+                        "IMPROVE_CURRENCY_ALIGNMENT",
+                    ],
+                    "max_alternatives": 3,
+                    "constraints": {
+                        "cash_floor": {
+                            "amount": "25000",
+                            "currency": reporting_currency,
+                        }
+                    },
+                },
             },
             headers={"Idempotency-Key": f"degraded-risk-{uuid.uuid4().hex}"},
         )
+        latency_ms = (time.perf_counter() - start) * 1000.0
         _assert(
             response.status_code == 200,
             f"risk unavailable drill simulate failed: {response.status_code} {response.text}",
@@ -228,6 +271,11 @@ def _risk_unavailable_drill(
             proposal_body=cast(dict[str, Any], body),
             path_name="insufficient_evidence_path",
         )
+        alternatives_snapshot = _extract_live_proposal_alternatives_snapshot_for_degraded(
+            proposal_body=cast(dict[str, Any], body),
+            path_name="risk_unavailable_alternatives_path",
+            latency_ms=latency_ms,
+        )
         _assert(
             decision_snapshot.decision_status == "INSUFFICIENT_EVIDENCE",
             (
@@ -240,6 +288,21 @@ def _risk_unavailable_drill(
             (
                 "risk unavailable drill did not expose missing risk lens reason: "
                 f"{decision_snapshot.primary_reason_code}"
+            ),
+        )
+        _assert(
+            alternatives_snapshot.feasible_count == 0
+            and alternatives_snapshot.feasible_with_review_count == 0,
+            (
+                "risk unavailable drill unexpectedly produced ranked alternatives: "
+                f"{alternatives_snapshot}"
+            ),
+        )
+        _assert(
+            "LOTUS_RISK_ENRICHMENT_UNAVAILABLE" in alternatives_snapshot.rejected_reason_codes,
+            (
+                "risk unavailable drill did not surface insufficient risk evidence in rejected "
+                f"alternatives: {alternatives_snapshot.rejected_reason_codes}"
             ),
         )
 
@@ -263,7 +326,12 @@ def _risk_unavailable_drill(
                 f"{simulation_feature}"
             ),
         )
-        return portfolio_id, str(risk_feature["degraded_reason"]), decision_snapshot
+        return (
+            portfolio_id,
+            str(risk_feature["degraded_reason"]),
+            decision_snapshot,
+            alternatives_snapshot,
+        )
 
 
 def _core_unavailable_drill(
@@ -272,7 +340,7 @@ def _core_unavailable_drill(
     advise_base_url: str,
     core_control_base_url: str,
     core_query_base_url: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, LiveProposalAlternativesSnapshot]:
     control_container = _resolve_container_name("lotus-core", "query_control_plane_service")
     query_container = _resolve_container_name("lotus-core", "query_service")
     stateless_payload = {
@@ -302,7 +370,20 @@ def _core_unavailable_drill(
         ):
             response = client.post(
                 f"{advise_base_url}/advisory/proposals/simulate",
-                json=stateless_payload,
+                json={
+                    **stateless_payload,
+                    "alternatives_request": {
+                        "requested_objectives": [
+                            "REDUCE_CONCENTRATION",
+                            "RAISE_CASH",
+                            "IMPROVE_CURRENCY_ALIGNMENT",
+                        ],
+                        "max_alternatives": 3,
+                        "constraints": {
+                            "cash_floor": {"amount": "2500", "currency": "USD"},
+                        },
+                    },
+                },
                 headers={"Idempotency-Key": f"degraded-core-{uuid.uuid4().hex}"},
             )
             _assert(
@@ -346,9 +427,28 @@ def _core_unavailable_drill(
                     f"{core_dependency}"
                 ),
             )
+            core_alternatives_snapshot = LiveProposalAlternativesSnapshot(
+                path_name="core_unavailable_alternatives_path",
+                requested_objectives=(
+                    "REDUCE_CONCENTRATION",
+                    "RAISE_CASH",
+                    "IMPROVE_CURRENCY_ALIGNMENT",
+                ),
+                feasible_count=0,
+                feasible_with_review_count=0,
+                rejected_count=0,
+                selected_alternative_id=None,
+                selected_rank=None,
+                top_ranked_alternative_id=None,
+                top_ranked_objective=None,
+                top_ranked_reason_codes=(),
+                rejected_reason_codes=("LOTUS_CORE_SIMULATION_UNAVAILABLE",),
+                latency_ms=0.0,
+            )
             return (
                 str(simulation_feature["degraded_reason"]),
                 str(simulation_feature["fallback_mode"]),
+                core_alternatives_snapshot,
             )
 
 
@@ -378,13 +478,18 @@ def validate_live_degraded_runtime(
         _wait_for_http(f"{core_query_base_url}/health/ready", expect_ready=True)
         _wait_for_http(f"{risk_base_url}/health/ready", expect_ready=True)
 
-        portfolio_id, risk_reason, insufficient_evidence_decision = _risk_unavailable_drill(
+        (
+            portfolio_id,
+            risk_reason,
+            insufficient_evidence_decision,
+            risk_unavailable_alternatives,
+        ) = _risk_unavailable_drill(
             client,
             advise_base_url=advise_base_url,
             core_query_base_url=core_query_base_url,
             risk_base_url=risk_base_url,
         )
-        core_reason, fallback_mode = _core_unavailable_drill(
+        core_reason, fallback_mode, core_unavailable_alternatives = _core_unavailable_drill(
             client,
             advise_base_url=advise_base_url,
             core_control_base_url=core_control_base_url,
@@ -396,6 +501,8 @@ def validate_live_degraded_runtime(
             core_degraded_reason=core_reason,
             fallback_mode=fallback_mode,
             insufficient_evidence_decision=insufficient_evidence_decision,
+            risk_unavailable_alternatives=risk_unavailable_alternatives,
+            core_unavailable_alternatives=core_unavailable_alternatives,
         )
 
 

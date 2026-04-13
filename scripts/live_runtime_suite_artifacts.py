@@ -32,6 +32,52 @@ def _format_decision_summary_lines(
     ]
 
 
+def _format_alternatives_summary_lines(
+    alternatives: dict[str, Any],
+    *,
+    title: str,
+) -> list[str]:
+    requested_objectives = alternatives.get("requested_objectives") or []
+    top_ranked_reason_codes = alternatives.get("top_ranked_reason_codes") or []
+    rejected_reason_codes = alternatives.get("rejected_reason_codes") or []
+    requested = (
+        ", ".join(f"`{item}`" for item in requested_objectives)
+        if requested_objectives
+        else "`NONE`"
+    )
+    top_reasons = (
+        ", ".join(f"`{item}`" for item in top_ranked_reason_codes)
+        if top_ranked_reason_codes
+        else "`NONE`"
+    )
+    rejected_reasons = (
+        ", ".join(f"`{item}`" for item in rejected_reason_codes)
+        if rejected_reason_codes
+        else "`NONE`"
+    )
+    selected_rank = alternatives.get("selected_rank")
+    selected_rank_label = f"`{selected_rank}`" if selected_rank is not None else "`NONE`"
+    return [
+        f"### {title}",
+        f"- requested objectives: {requested}",
+        f"- feasible count: `{alternatives['feasible_count']}`",
+        f"- feasible-with-review count: `{alternatives['feasible_with_review_count']}`",
+        f"- rejected count: `{alternatives['rejected_count']}`",
+        f"- selected alternative: `{alternatives.get('selected_alternative_id') or 'NONE'}`",
+        f"- selected rank: {selected_rank_label}",
+        f"- top ranked alternative: `{alternatives.get('top_ranked_alternative_id') or 'NONE'}`",
+        f"- top ranked objective: `{alternatives.get('top_ranked_objective') or 'NONE'}`",
+        f"- top ranked reasons: {top_reasons}",
+        f"- rejected reasons: {rejected_reasons}",
+        f"- latency ms: `{float(alternatives['latency_ms']):.2f}`",
+        "",
+    ]
+
+
+def _inline_reason_codes(values: list[str]) -> str:
+    return ", ".join(values) or "NONE"
+
+
 def build_markdown_summary(result: "LiveRuntimeSuiteResult") -> str:
     lines = [
         "# Live Runtime Suite",
@@ -63,6 +109,28 @@ def build_markdown_summary(result: "LiveRuntimeSuiteResult") -> str:
             asdict(result.parity.blocked_decision),
             title="Blocked Path",
         ),
+        "## Proposal Alternatives Paths",
+        "",
+        *_format_alternatives_summary_lines(
+            asdict(result.parity.noop_alternatives),
+            title="No-Op Path",
+        ),
+        *_format_alternatives_summary_lines(
+            asdict(result.parity.concentration_alternatives),
+            title="Concentration Path",
+        ),
+        *_format_alternatives_summary_lines(
+            asdict(result.parity.cash_raise_alternatives),
+            title="Cash-Raise Path",
+        ),
+        *_format_alternatives_summary_lines(
+            asdict(result.parity.cross_currency_alternatives),
+            title="Cross-Currency Path",
+        ),
+        *_format_alternatives_summary_lines(
+            asdict(result.parity.restricted_product_alternatives),
+            title="Restricted-Product Path",
+        ),
         "## Degraded Runtime",
         f"- risk drill portfolio: `{result.degraded.risk_drill_portfolio}`",
         f"- risk degraded reason: `{result.degraded.risk_degraded_reason}`",
@@ -74,6 +142,16 @@ def build_markdown_summary(result: "LiveRuntimeSuiteResult") -> str:
         *_format_decision_summary_lines(
             asdict(result.degraded.insufficient_evidence_decision),
             title="Lotus-Risk Unavailable",
+        ),
+        "## Degraded Alternatives Paths",
+        "",
+        *_format_alternatives_summary_lines(
+            asdict(result.degraded.risk_unavailable_alternatives),
+            title="Lotus-Risk Unavailable",
+        ),
+        *_format_alternatives_summary_lines(
+            asdict(result.degraded.core_unavailable_alternatives),
+            title="Lotus-Core Unavailable",
         ),
     ]
     return "\n".join(lines)
@@ -178,6 +256,45 @@ def build_pr_summary(
             "- insufficient-evidence path: "
             f"`{degraded['insufficient_evidence_decision']['decision_status']}` / "
             f"`{degraded['insufficient_evidence_decision']['primary_reason_code']}`"
+        ),
+        "",
+        "### Proposal Alternatives Paths",
+        (
+            "- no-op path: "
+            f"`{parity['noop_alternatives']['feasible_count']}` feasible, "
+            f"`{parity['noop_alternatives']['feasible_with_review_count']}` with review, "
+            f"top=`{parity['noop_alternatives']['top_ranked_objective']}`"
+        ),
+        (
+            "- concentration path: "
+            f"top=`{parity['concentration_alternatives']['top_ranked_alternative_id']}` "
+            "reasons=`"
+            f"{_inline_reason_codes(parity['concentration_alternatives']['top_ranked_reason_codes'])}`"
+        ),
+        (
+            "- cash-raise path: "
+            f"top=`{parity['cash_raise_alternatives']['top_ranked_alternative_id']}` "
+            f"latency=`{float(parity['cash_raise_alternatives']['latency_ms']):.2f}`ms"
+        ),
+        (
+            "- cross-currency path: "
+            f"top=`{parity['cross_currency_alternatives']['top_ranked_alternative_id']}` "
+            f"latency=`{float(parity['cross_currency_alternatives']['latency_ms']):.2f}`ms"
+        ),
+        (
+            "- restricted-product path: "
+            "rejected=`"
+            f"{_inline_reason_codes(parity['restricted_product_alternatives']['rejected_reason_codes'])}`"
+        ),
+        (
+            "- lotus-risk unavailable alternatives: "
+            "rejected=`"
+            f"{_inline_reason_codes(degraded['risk_unavailable_alternatives']['rejected_reason_codes'])}`"
+        ),
+        (
+            "- lotus-core unavailable alternatives: "
+            "rejected=`"
+            f"{_inline_reason_codes(degraded['core_unavailable_alternatives']['rejected_reason_codes'])}`"
         ),
         "",
         "### Degraded Drills",

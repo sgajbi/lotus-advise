@@ -9,6 +9,9 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.live_runtime_decision_summary import LiveDecisionSnapshot  # noqa: E402
+from scripts.live_runtime_proposal_alternatives import (  # noqa: E402
+    LiveProposalAlternativesSnapshot,
+)
 from scripts.live_runtime_suite_artifacts import (  # noqa: E402
     write_live_runtime_suite_artifact,
     write_live_runtime_suite_bundle,
@@ -46,6 +49,34 @@ def validate_live_runtime_suite(*, include_degraded: bool = True) -> LiveRuntime
                 primary_reason_code="SKIPPED",
                 recommended_next_action="SKIPPED",
                 approval_requirement_types=(),
+            ),
+            risk_unavailable_alternatives=LiveProposalAlternativesSnapshot(
+                path_name="risk_unavailable_alternatives_path",
+                requested_objectives=(),
+                feasible_count=0,
+                feasible_with_review_count=0,
+                rejected_count=0,
+                selected_alternative_id=None,
+                selected_rank=None,
+                top_ranked_alternative_id=None,
+                top_ranked_objective=None,
+                top_ranked_reason_codes=(),
+                rejected_reason_codes=(),
+                latency_ms=0.0,
+            ),
+            core_unavailable_alternatives=LiveProposalAlternativesSnapshot(
+                path_name="core_unavailable_alternatives_path",
+                requested_objectives=(),
+                feasible_count=0,
+                feasible_with_review_count=0,
+                rejected_count=0,
+                selected_alternative_id=None,
+                selected_rank=None,
+                top_ranked_alternative_id=None,
+                top_ranked_objective=None,
+                top_ranked_reason_codes=(),
+                rejected_reason_codes=(),
+                latency_ms=0.0,
             ),
         )
     )

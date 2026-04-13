@@ -1,5 +1,8 @@
 from decimal import Decimal
 
+import pytest
+
+from scripts.live_runtime_proposal_alternatives import extract_live_proposal_alternatives_snapshot
 from scripts.validate_cross_service_parity_live import (
     _security_trade_changes_from_proposal_body,
     _select_changed_state_security,
@@ -111,3 +114,65 @@ def test_select_non_held_changed_state_security_prefers_known_non_held_candidate
     )
 
     assert selected == "SEC_FUND_EM_EQ"
+
+
+def test_extract_live_proposal_alternatives_snapshot_summarizes_ranked_and_rejected_paths() -> None:
+    snapshot = extract_live_proposal_alternatives_snapshot(
+        {
+            "proposal_alternatives": {
+                "requested_objectives": ["REDUCE_CONCENTRATION", "RAISE_CASH"],
+                "selected_alternative_id": "alt_reduce",
+                "alternatives": [
+                    {
+                        "alternative_id": "alt_reduce",
+                        "objective": "REDUCE_CONCENTRATION",
+                        "status": "FEASIBLE",
+                        "rank": 1,
+                        "selected": True,
+                        "ranking_projection": {
+                            "ranking_reason_codes": [
+                                "STATUS_FEASIBLE",
+                                "LOWER_TURNOVER_TIEBREAKER",
+                            ]
+                        },
+                    },
+                    {
+                        "alternative_id": "alt_cash",
+                        "objective": "RAISE_CASH",
+                        "status": "FEASIBLE_WITH_REVIEW",
+                        "rank": 2,
+                        "selected": False,
+                    },
+                ],
+                "rejected_candidates": [
+                    {"reason_code": "ALTERNATIVE_OBJECTIVE_PENDING_CANONICAL_EVIDENCE"}
+                ],
+            }
+        },
+        path_name="alternatives_path",
+        latency_ms=321.0,
+    )
+
+    assert snapshot.requested_objectives == ("REDUCE_CONCENTRATION", "RAISE_CASH")
+    assert snapshot.feasible_count == 1
+    assert snapshot.feasible_with_review_count == 1
+    assert snapshot.rejected_count == 1
+    assert snapshot.selected_alternative_id == "alt_reduce"
+    assert snapshot.selected_rank == 1
+    assert snapshot.top_ranked_alternative_id == "alt_reduce"
+    assert snapshot.top_ranked_objective == "REDUCE_CONCENTRATION"
+    assert snapshot.top_ranked_reason_codes == (
+        "STATUS_FEASIBLE",
+        "LOWER_TURNOVER_TIEBREAKER",
+    )
+    assert snapshot.rejected_reason_codes == ("ALTERNATIVE_OBJECTIVE_PENDING_CANONICAL_EVIDENCE",)
+    assert snapshot.latency_ms == 321.0
+
+
+def test_extract_live_proposal_alternatives_snapshot_requires_payload() -> None:
+    with pytest.raises(ValueError, match="proposal_alternatives missing"):
+        extract_live_proposal_alternatives_snapshot(
+            {},
+            path_name="alternatives_path",
+            latency_ms=10.0,
+        )

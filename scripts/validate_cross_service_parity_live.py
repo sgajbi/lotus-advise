@@ -20,6 +20,10 @@ from scripts.live_runtime_decision_summary import (  # noqa: E402
     LiveDecisionSnapshot,
     extract_live_decision_snapshot,
 )
+from scripts.live_runtime_proposal_alternatives import (  # noqa: E402
+    LiveProposalAlternativesSnapshot,
+    extract_live_proposal_alternatives_snapshot,
+)
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest, ProposedTrade
 
@@ -87,6 +91,11 @@ class LiveParityResult:
     ready_decision: LiveDecisionSnapshot
     review_decision: LiveDecisionSnapshot
     blocked_decision: LiveDecisionSnapshot
+    noop_alternatives: LiveProposalAlternativesSnapshot
+    concentration_alternatives: LiveProposalAlternativesSnapshot
+    cash_raise_alternatives: LiveProposalAlternativesSnapshot
+    cross_currency_alternatives: LiveProposalAlternativesSnapshot
+    restricted_product_alternatives: LiveProposalAlternativesSnapshot
 
 
 def _assert(condition: bool, message: str) -> None:
@@ -245,6 +254,31 @@ def _simulate_stateful_noop(
         json_body=_stateful_noop_request(portfolio_id=portfolio_id, as_of_date=as_of_date),
         headers={"Idempotency-Key": idempotency_key or f"live-parity-{uuid.uuid4().hex}"},
     )
+
+
+def _simulate_stateful_alternatives(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    portfolio_id: str,
+    as_of_date: str,
+    alternatives_request: dict[str, Any],
+    idempotency_key: str | None = None,
+) -> tuple[dict[str, Any], float]:
+    start = time.perf_counter()
+    body = _request_json(
+        client,
+        method="POST",
+        url=f"{advise_base_url}/advisory/proposals/simulate",
+        expected_status=200,
+        json_body={
+            "input_mode": "stateful",
+            "stateful_input": {"portfolio_id": portfolio_id, "as_of": as_of_date},
+            "alternatives_request": alternatives_request,
+        },
+        headers={"Idempotency-Key": idempotency_key or f"live-alt-{uuid.uuid4().hex}"},
+    )
+    return body, (time.perf_counter() - start) * 1000.0
 
 
 def _simulate_stateless_payload(
@@ -472,6 +506,229 @@ def _validate_live_decision_paths(
     )
 
     return ready_snapshot, review_snapshot, blocked_snapshot
+
+
+def _extract_live_proposal_alternatives_snapshot(
+    *,
+    proposal_body: dict[str, Any],
+    path_name: str,
+    latency_ms: float,
+) -> LiveProposalAlternativesSnapshot:
+    try:
+        snapshot = extract_live_proposal_alternatives_snapshot(
+            proposal_body,
+            path_name=path_name,
+            latency_ms=latency_ms,
+        )
+    except ValueError as exc:
+        raise LiveParityValidationError(str(exc)) from exc
+    _assert(
+        bool(snapshot.requested_objectives),
+        f"{path_name}: alternatives snapshot omitted requested objectives",
+    )
+    return snapshot
+
+
+def _validate_live_proposal_alternatives_paths(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    complete_scenario: PortfolioParityScenario,
+    warm_duration_ms: float,
+) -> tuple[
+    LiveProposalAlternativesSnapshot,
+    LiveProposalAlternativesSnapshot,
+    LiveProposalAlternativesSnapshot,
+    LiveProposalAlternativesSnapshot,
+    LiveProposalAlternativesSnapshot,
+]:
+    noop_body, noop_latency_ms = _simulate_stateful_alternatives(
+        client,
+        advise_base_url=advise_base_url,
+        portfolio_id=complete_scenario.portfolio_id,
+        as_of_date=complete_scenario.as_of_date,
+        idempotency_key=f"live-alt-noop-{uuid.uuid4().hex}",
+        alternatives_request={
+            "requested_objectives": [
+                "REDUCE_CONCENTRATION",
+                "RAISE_CASH",
+                "IMPROVE_CURRENCY_ALIGNMENT",
+                "AVOID_RESTRICTED_PRODUCTS",
+            ],
+            "max_alternatives": 4,
+            "constraints": {
+                "cash_floor": {
+                    "amount": "25000",
+                    "currency": complete_scenario.reporting_currency,
+                }
+            },
+        },
+    )
+    noop_snapshot = _extract_live_proposal_alternatives_snapshot(
+        proposal_body=noop_body,
+        path_name="no_op_path",
+        latency_ms=noop_latency_ms,
+    )
+    _assert(
+        noop_snapshot.feasible_count + noop_snapshot.feasible_with_review_count >= 3,
+        (
+            "no_op_path: expected at least three feasible proposal alternatives on canonical "
+            f"stack, got snapshot={noop_snapshot}"
+        ),
+    )
+
+    concentration_body, concentration_latency_ms = _simulate_stateful_alternatives(
+        client,
+        advise_base_url=advise_base_url,
+        portfolio_id=complete_scenario.portfolio_id,
+        as_of_date=complete_scenario.as_of_date,
+        idempotency_key=f"live-alt-concentration-{uuid.uuid4().hex}",
+        alternatives_request={
+            "requested_objectives": ["REDUCE_CONCENTRATION"],
+            "max_alternatives": 1,
+        },
+    )
+    concentration_snapshot = _extract_live_proposal_alternatives_snapshot(
+        proposal_body=concentration_body,
+        path_name="concentration_path",
+        latency_ms=concentration_latency_ms,
+    )
+    _assert(
+        concentration_snapshot.feasible_count + concentration_snapshot.feasible_with_review_count
+        >= 1,
+        "concentration_path: expected at least one ranked concentration alternative",
+    )
+    _assert(
+        concentration_snapshot.top_ranked_objective == "REDUCE_CONCENTRATION",
+        (
+            "concentration_path: top ranked objective drifted from concentration posture, got "
+            f"{concentration_snapshot.top_ranked_objective}"
+        ),
+    )
+    _assert(
+        bool(concentration_snapshot.top_ranked_reason_codes),
+        "concentration_path: top-ranked alternative omitted ranking reason codes",
+    )
+
+    cash_raise_body, cash_raise_latency_ms = _simulate_stateful_alternatives(
+        client,
+        advise_base_url=advise_base_url,
+        portfolio_id=complete_scenario.portfolio_id,
+        as_of_date=complete_scenario.as_of_date,
+        idempotency_key=f"live-alt-cash-{uuid.uuid4().hex}",
+        alternatives_request={
+            "requested_objectives": ["RAISE_CASH"],
+            "max_alternatives": 1,
+            "constraints": {
+                "cash_floor": {
+                    "amount": "25000",
+                    "currency": complete_scenario.reporting_currency,
+                }
+            },
+        },
+    )
+    cash_raise_snapshot = _extract_live_proposal_alternatives_snapshot(
+        proposal_body=cash_raise_body,
+        path_name="cash_raise_path",
+        latency_ms=cash_raise_latency_ms,
+    )
+    _assert(
+        cash_raise_snapshot.feasible_count + cash_raise_snapshot.feasible_with_review_count >= 1,
+        "cash_raise_path: expected a ranked cash-raise alternative",
+    )
+    _assert(
+        cash_raise_snapshot.top_ranked_objective == "RAISE_CASH",
+        (
+            "cash_raise_path: expected RAISE_CASH objective, got "
+            f"{cash_raise_snapshot.top_ranked_objective}"
+        ),
+    )
+
+    cross_currency_body, cross_currency_latency_ms = _simulate_stateful_alternatives(
+        client,
+        advise_base_url=advise_base_url,
+        portfolio_id=complete_scenario.portfolio_id,
+        as_of_date=complete_scenario.as_of_date,
+        idempotency_key=f"live-alt-currency-{uuid.uuid4().hex}",
+        alternatives_request={
+            "requested_objectives": ["IMPROVE_CURRENCY_ALIGNMENT"],
+            "max_alternatives": 1,
+        },
+    )
+    cross_currency_snapshot = _extract_live_proposal_alternatives_snapshot(
+        proposal_body=cross_currency_body,
+        path_name="cross_currency_path",
+        latency_ms=cross_currency_latency_ms,
+    )
+    _assert(
+        cross_currency_snapshot.feasible_count + cross_currency_snapshot.feasible_with_review_count
+        >= 1,
+        "cross_currency_path: expected a ranked cross-currency alternative",
+    )
+    _assert(
+        cross_currency_snapshot.top_ranked_objective == "IMPROVE_CURRENCY_ALIGNMENT",
+        (
+            "cross_currency_path: expected IMPROVE_CURRENCY_ALIGNMENT objective, got "
+            f"{cross_currency_snapshot.top_ranked_objective}"
+        ),
+    )
+
+    restricted_product_body, restricted_product_latency_ms = _simulate_stateful_alternatives(
+        client,
+        advise_base_url=advise_base_url,
+        portfolio_id=complete_scenario.portfolio_id,
+        as_of_date=complete_scenario.as_of_date,
+        idempotency_key=f"live-alt-restricted-{uuid.uuid4().hex}",
+        alternatives_request={
+            "requested_objectives": ["AVOID_RESTRICTED_PRODUCTS"],
+            "max_alternatives": 1,
+        },
+    )
+    restricted_product_snapshot = _extract_live_proposal_alternatives_snapshot(
+        proposal_body=restricted_product_body,
+        path_name="restricted_product_path",
+        latency_ms=restricted_product_latency_ms,
+    )
+    _assert(
+        restricted_product_snapshot.feasible_count == 0
+        and restricted_product_snapshot.feasible_with_review_count == 0,
+        (
+            "restricted_product_path: deferred restricted-product path unexpectedly produced "
+            f"ranked alternatives {restricted_product_snapshot}"
+        ),
+    )
+    _assert(
+        "ALTERNATIVE_OBJECTIVE_PENDING_CANONICAL_EVIDENCE"
+        in restricted_product_snapshot.rejected_reason_codes,
+        (
+            "restricted_product_path: expected deferred canonical-evidence rejection, got "
+            f"{restricted_product_snapshot.rejected_reason_codes}"
+        ),
+    )
+
+    latency_bound_ms = max(warm_duration_ms * 6.0, 5000.0)
+    for snapshot in (
+        noop_snapshot,
+        concentration_snapshot,
+        cash_raise_snapshot,
+        cross_currency_snapshot,
+        restricted_product_snapshot,
+    ):
+        _assert(
+            snapshot.latency_ms <= latency_bound_ms,
+            (
+                f"{snapshot.path_name}: alternatives latency exceeded bound "
+                f"{snapshot.latency_ms:.2f}ms > {latency_bound_ms:.2f}ms"
+            ),
+        )
+
+    return (
+        noop_snapshot,
+        concentration_snapshot,
+        cash_raise_snapshot,
+        cross_currency_snapshot,
+        restricted_product_snapshot,
+    )
 
 
 def _select_changed_state_security(positions: list[dict[str, Any]]) -> str:
@@ -2439,6 +2696,18 @@ def validate_live_cross_service_parity(
             complete_scenario=complete,
         )
         (
+            noop_alternatives,
+            concentration_alternatives,
+            cash_raise_alternatives,
+            cross_currency_alternatives,
+            restricted_product_alternatives,
+        ) = _validate_live_proposal_alternatives_paths(
+            client,
+            advise_base_url=advise_base_url,
+            complete_scenario=complete,
+            warm_duration_ms=warm_ms,
+        )
+        (
             lifecycle_portfolio,
             lifecycle_latest_version_no,
             lifecycle_current_state,
@@ -2561,6 +2830,11 @@ def validate_live_cross_service_parity(
         ready_decision=ready_decision,
         review_decision=review_decision,
         blocked_decision=blocked_decision,
+        noop_alternatives=noop_alternatives,
+        concentration_alternatives=concentration_alternatives,
+        cash_raise_alternatives=cash_raise_alternatives,
+        cross_currency_alternatives=cross_currency_alternatives,
+        restricted_product_alternatives=restricted_product_alternatives,
     )
 
 
