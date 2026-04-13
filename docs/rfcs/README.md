@@ -41,7 +41,7 @@ The sequence is organized to read in implementation order:
 | RFC-0019 | Authoritative Context, Durable Runtime, and Workspace Closure | IMPLEMENTED | Active authoritative runtime closure | RFC-0004, RFC-0005, RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0017 | `docs/rfcs/RFC-0019-authoritative-context-runtime-and-workspace-closure.md` |
 | RFC-0020 | Canonical Allocation and Risk Lens Convergence for Proposals | IMPLEMENTED | Active canonical allocation and risk-lens source of truth | RFC-0006, RFC-0007, RFC-0011, RFC-0014, RFC-0019 | `docs/rfcs/RFC-0020-canonical-allocation-and-risk-lens-convergence.md` |
 | RFC-0021 | Proposal Decision Summary and Enterprise Suitability Policy | IMPLEMENTED | Active backend-owned decision summary and enterprise suitability source of truth | RFC-0006, RFC-0010, RFC-0012, RFC-0013, RFC-0015, RFC-0019, RFC-0020 | `docs/rfcs/RFC-0021-proposal-decision-summary-and-enterprise-suitability-policy.md` |
-| RFC-0022 | Proposal Alternatives and Portfolio Construction Workbench | DRAFT | Active future work | RFC-0006, RFC-0007, RFC-0008, RFC-0009, RFC-0010, RFC-0013, RFC-0016, RFC-0019, RFC-0020, RFC-0021 | `docs/rfcs/RFC-0022-proposal-alternatives-and-portfolio-construction-workbench.md` |
+| RFC-0022 | Proposal Alternatives and Portfolio Construction Workbench | IMPLEMENTED | Active backend-owned proposal alternatives and portfolio-construction source of truth | RFC-0006, RFC-0007, RFC-0008, RFC-0009, RFC-0010, RFC-0013, RFC-0016, RFC-0019, RFC-0020, RFC-0021 | `docs/rfcs/RFC-0022-proposal-alternatives-and-portfolio-construction-workbench.md` |
 | RFC-0023 | Grounded Advisory AI Narrative and Client-Ready Proposal Commentary | DRAFT | Active future work | RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0015, RFC-0019, RFC-0020, RFC-0021, RFC-0022 | `docs/rfcs/RFC-0023-grounded-advisory-ai-narrative-and-client-ready-proposal-commentary.md` |
 
 ## Implemented
@@ -61,6 +61,7 @@ Implemented RFCs:
 - `RFC-0019`
 - `RFC-0020`
 - `RFC-0021`
+- `RFC-0022`
 
 ## Not Yet Implemented
 
@@ -70,15 +71,13 @@ Open RFCs still relevant to the advisory roadmap:
 - `RFC-0016`
 - `RFC-0017`
 - `RFC-0018`
-- `RFC-0022`
 - `RFC-0023`
 
 Recommended near-term implementation order:
-1. `RFC-0022` proposal alternatives and portfolio construction workbench
-2. `RFC-0023` grounded advisory AI narrative and client-ready proposal commentary
-3. `RFC-0014` remaining replay and data-quality backbone deltas not already covered by current implementation
-4. `RFC-0016` costs, fees, and transaction frictions
-5. `RFC-0017` remaining execution-boundary stabilization deltas not already covered by current implementation
+1. `RFC-0023` grounded advisory AI narrative and client-ready proposal commentary
+2. `RFC-0014` remaining replay and data-quality backbone deltas not already covered by current implementation
+3. `RFC-0016` costs, fees, and transaction frictions
+4. `RFC-0017` remaining execution-boundary stabilization deltas not already covered by current implementation
 
 Deferred but retained:
 - `RFC-0002`

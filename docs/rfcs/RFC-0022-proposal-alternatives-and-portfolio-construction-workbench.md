@@ -1,6 +1,6 @@
 # RFC-0022: Proposal Alternatives and Portfolio Construction Workbench
 
-- Status: DRAFT
+- Status: IMPLEMENTED
 - Created: 2026-04-12
 - Owners: lotus-advise
 - Requires Approval From: lotus-advise, lotus-core, lotus-risk, lotus-manage maintainers
@@ -814,6 +814,10 @@ Acceptance gate:
 4. latency impact is recorded and bounded,
 5. operator evidence records why top-ranked alternatives outranked the others.
 
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0022-slice-7-live-validation-and-operator-evidence.md`
+
 ### Slice 8: Documentation, Agent Context, and Branch Hygiene
 
 Outcome:
@@ -839,6 +843,10 @@ Skill/context assessment requirement:
 2. Determine whether agent guidance should explicitly prohibit UI-generated alternatives.
 3. Determine whether backend delivery guidance should add a pattern for candidate-generation plus canonical enrichment.
 4. Record a no-change rationale if no context or skill update is needed.
+
+Evidence document for this slice should be recorded in:
+
+1. `docs/rfcs/RFC-0022-slice-8-documentation-agent-context-and-branch-hygiene.md`
 
 ## Test Strategy
 
