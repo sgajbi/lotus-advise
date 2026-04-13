@@ -214,6 +214,38 @@ def test_advisory_proposal_simulate_endpoint_success(client):
     assert body["explanation"]["context_resolution"]["used_legacy_contract"] is True
 
 
+def test_advisory_proposal_simulate_returns_backend_owned_proposal_alternatives(client):
+    payload = _base_simulation_payload()
+    payload["portfolio_snapshot"]["positions"] = [
+        {"instrument_id": "EQ_1", "quantity": "20"},
+        {"instrument_id": "EQ_2", "quantity": "10"},
+    ]
+    payload["market_data_snapshot"]["prices"].append(
+        {"instrument_id": "EQ_2", "price": "80", "currency": "USD"}
+    )
+    payload["shelf_entries"].append({"instrument_id": "EQ_2", "status": "APPROVED"})
+    payload["alternatives_request"] = {
+        "enabled": True,
+        "objectives": ["LOWER_TURNOVER", "REDUCE_CONCENTRATION"],
+        "include_rejected_candidates": True,
+    }
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-alt-1"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["proposal_alternatives"]["requested_objectives"] == [
+        "LOWER_TURNOVER",
+        "REDUCE_CONCENTRATION",
+    ]
+    assert body["proposal_alternatives"]["alternatives"] == []
+    assert len(body["proposal_alternatives"]["rejected_candidates"]) == 2
+
+
 def test_advisory_proposal_simulate_requires_feature_flag(client):
     payload = {
         "portfolio_snapshot": {"portfolio_id": "pf_prop_api_2", "base_currency": "USD"},

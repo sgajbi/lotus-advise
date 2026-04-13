@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-12T14:40:33.069192+00:00",
+  "generatedAt": "2026-04-12T23:55:44.989897+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -221,6 +221,20 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.alternatives_request",
+      "canonicalTerm": "alternatives_request",
+      "preferredName": "alternatives_request",
+      "description": "Optional proposal alternatives request currently attached to the workspace.",
+      "example": "alternatives_request_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -3851,6 +3865,20 @@
       "observedTypes": [
         "ProposalSummary",
         "ProposalCreateResponse"
+      ]
+    },
+    {
+      "semanticId": "lotus.proposal_alternatives",
+      "canonicalTerm": "proposal_alternatives",
+      "preferredName": "proposal_alternatives",
+      "description": "Backend-owned proposal alternatives envelope when alternatives are requested.",
+      "example": "proposal_alternatives_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -8240,6 +8268,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
+            "name": "version.proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
             "name": "version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -8494,6 +8530,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "version.artifact.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "version.artifact.summary",
@@ -11390,6 +11434,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
+            "name": "current_version.proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
             "name": "current_version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -11644,6 +11696,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "current_version.artifact.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "current_version.artifact.summary",
@@ -14181,6 +14241,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
+            "name": "proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
             "name": "proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -14435,6 +14503,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "artifact.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "artifact.summary",
@@ -17116,6 +17192,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
+            "name": "version.proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
             "name": "version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -17370,6 +17454,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "version.artifact.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "version.artifact.summary",
@@ -23505,6 +23597,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
+            "name": "proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
             "name": "allocation_lens",
             "location": "body",
             "required": false,
@@ -23814,6 +23914,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "summary",
@@ -25638,6 +25746,14 @@
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
           },
           {
+            "name": "workspace.draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
+          },
+          {
             "name": "workspace.draft_state.reference_model",
             "location": "body",
             "required": false,
@@ -26291,6 +26407,14 @@
             "type": "object",
             "semanticId": "lotus.group_constraints",
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
+          },
+          {
+            "name": "draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
           },
           {
             "name": "draft_state.reference_model",
@@ -27012,6 +27136,14 @@
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
           },
           {
+            "name": "workspace.draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
+          },
+          {
             "name": "workspace.draft_state.reference_model",
             "location": "body",
             "required": false,
@@ -27665,6 +27797,14 @@
             "type": "object",
             "semanticId": "lotus.group_constraints",
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
+          },
+          {
+            "name": "draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
           },
           {
             "name": "draft_state.reference_model",
@@ -28346,6 +28486,14 @@
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
           },
           {
+            "name": "workspace.draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
+          },
+          {
             "name": "workspace.draft_state.reference_model",
             "location": "body",
             "required": false,
@@ -28960,6 +29108,14 @@
             "type": "object",
             "semanticId": "lotus.group_constraints",
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
+          },
+          {
+            "name": "saved_version.draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
           },
           {
             "name": "saved_version.draft_state.reference_model",
@@ -29631,6 +29787,14 @@
             "type": "object",
             "semanticId": "lotus.group_constraints",
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
+          },
+          {
+            "name": "saved_versions[].draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
           },
           {
             "name": "saved_versions[].draft_state.reference_model",
@@ -30583,6 +30747,14 @@
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
           },
           {
+            "name": "draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
+          },
+          {
             "name": "draft_state.reference_model",
             "location": "body",
             "required": false,
@@ -31236,6 +31408,14 @@
             "type": "object",
             "semanticId": "lotus.group_constraints",
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
+          },
+          {
+            "name": "baseline_version.draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
           },
           {
             "name": "baseline_version.draft_state.reference_model",
@@ -32218,6 +32398,14 @@
             "type": "object",
             "semanticId": "lotus.group_constraints",
             "attributeRef": "#/attributeCatalog/lotus.group_constraints"
+          },
+          {
+            "name": "workspace.draft_state.alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
           },
           {
             "name": "workspace.draft_state.reference_model",
@@ -34012,6 +34200,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
           },
           {
+            "name": "proposal.version.proposal_result.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
             "name": "proposal.version.proposal_result.allocation_lens",
             "location": "body",
             "required": false,
@@ -34266,6 +34462,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_decision_summary",
             "attributeRef": "#/attributeCatalog/lotus.proposal_decision_summary"
+          },
+          {
+            "name": "proposal.version.artifact.proposal_alternatives",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_alternatives",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
             "name": "proposal.version.artifact.summary",

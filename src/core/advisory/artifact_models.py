@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from src.core.advisory.alternatives_models import ProposalAlternatives
 from src.core.advisory.decision_summary_models import ProposalDecisionSummary
 from src.core.models import GateDecision, Money, SuitabilityIssue
 
@@ -389,6 +390,13 @@ class ProposalArtifact(BaseModel):
         default=None,
         description=(
             "Backend-owned proposal decision summary copied from proposal simulation output."
+        ),
+    )
+    proposal_alternatives: ProposalAlternatives | None = Field(
+        default=None,
+        description=(
+            "Backend-owned proposal alternatives copied from proposal simulation output when "
+            "alternatives are requested or persisted."
         ),
     )
     summary: ProposalArtifactSummary = Field(description="Artifact summary section.")

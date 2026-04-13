@@ -2914,6 +2914,55 @@ def test_async_and_proposal_replay_evidence_stay_hash_aligned():
     )
 
 
+def test_proposal_and_async_replay_evidence_preserve_proposal_alternatives():
+    payload = _base_create_payload("pf_async_alt_replay_001")
+    payload["simulate_request"]["alternatives_request"] = {
+        "enabled": True,
+        "objectives": ["LOWER_TURNOVER"],
+        "selected_alternative_id": "alt_lower_turnover_pf_async_alt_replay_001_eq_new",
+        "include_rejected_candidates": True,
+    }
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-alt-replay-create"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        version_no = created.json()["version"]["version_no"]
+
+        version_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+        )
+
+        accepted = client.post(
+            "/advisory/proposals/async",
+            json=payload,
+            headers={
+                "Idempotency-Key": "lifecycle-alt-replay-async",
+                "X-Correlation-Id": "corr-lifecycle-alt-replay-async",
+            },
+        )
+        assert accepted.status_code == 202
+        operation_id = accepted.json()["operation_id"]
+        async_replay = client.get(f"/advisory/proposals/operations/{operation_id}/replay-evidence")
+
+    assert version_replay.status_code == 200
+    assert async_replay.status_code == 200
+    version_body = version_replay.json()
+    async_body = async_replay.json()
+    assert (
+        version_body["evidence"]["proposal_alternatives"]["selected_alternative_id"]
+        == "alt_lower_turnover_pf_async_alt_replay_001_eq_new"
+    )
+    assert (
+        async_body["evidence"]["proposal_alternatives"]["selected_alternative_id"]
+        == "alt_lower_turnover_pf_async_alt_replay_001_eq_new"
+    )
+
+
 def test_proposal_and_async_replay_evidence_preserve_risk_lens(monkeypatch):
     monkeypatch.setattr(
         "src.core.advisory.orchestration.enrich_with_lotus_risk",

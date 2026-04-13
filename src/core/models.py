@@ -8,6 +8,7 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, field_serializer, field_validator, model_validator
 
+from src.core.advisory.alternatives_models import ProposalAlternatives, ProposalAlternativesRequest
 from src.core.advisory.decision_summary_models import ProposalDecisionSummary
 
 
@@ -1465,6 +1466,12 @@ class ProposalSimulateRequest(BaseModel):
         default=None,
         description="Optional reference model used for advisory drift analytics.",
     )
+    alternatives_request: ProposalAlternativesRequest | None = Field(
+        default=None,
+        description=(
+            "Optional backend-owned alternatives request for proposal comparison generation."
+        ),
+    )
 
 
 class ProposalResult(BaseModel):
@@ -1540,6 +1547,10 @@ class ProposalResult(BaseModel):
         description=(
             "Backend-owned advisory decision summary for UI, artifact, and replay consumers."
         ),
+    )
+    proposal_alternatives: ProposalAlternatives | None = Field(
+        default=None,
+        description="Backend-owned proposal alternatives envelope when alternatives are requested.",
     )
     allocation_lens: ProposalAllocationLens = Field(
         default_factory=ProposalAllocationLens,

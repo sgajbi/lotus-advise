@@ -385,6 +385,11 @@ def build_proposal_artifact(
             proposal_result.proposal_decision_summary
             or build_proposal_decision_summary(proposal_result)
         ),
+        proposal_alternatives=(
+            proposal_result.proposal_alternatives.model_copy(deep=True)
+            if proposal_result.proposal_alternatives is not None
+            else None
+        ),
         artifact_id=proposal_result.proposal_run_id.replace("pr_", "pa_", 1),
         proposal_run_id=proposal_result.proposal_run_id,
         correlation_id=proposal_result.correlation_id,

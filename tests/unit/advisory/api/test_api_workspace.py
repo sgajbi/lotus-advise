@@ -1600,6 +1600,126 @@ def test_workspace_and_proposal_replay_evidence_stay_hash_aligned_after_handoff(
     )
 
 
+def test_workspace_save_resume_handoff_and_replay_preserve_proposal_alternatives_selection(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        lambda **kwargs: _risk_enriched_result(kwargs["proposal_result"]),
+    )
+    payload = {
+        "workspace_name": "Alternatives continuity workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_workspace_alt_001",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {
+                    "prices": [{"instrument_id": "EQ_NEW", "price": "100", "currency": "USD"}],
+                    "fx_rates": [],
+                },
+                "shelf_entries": [{"instrument_id": "EQ_NEW", "status": "APPROVED"}],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [{"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "2"}],
+                "alternatives_request": {
+                    "enabled": True,
+                    "objectives": ["LOWER_TURNOVER"],
+                    "selected_alternative_id": "alt_lower_turnover_pf_workspace_alt_001_eq_new",
+                    "include_rejected_candidates": True,
+                },
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        created = client.post("/advisory/workspaces", json=payload)
+        assert created.status_code == 201
+        workspace_id = created.json()["workspace"]["workspace_id"]
+
+        evaluated = client.post(f"/advisory/workspaces/{workspace_id}/evaluate")
+        assert evaluated.status_code == 200
+        evaluated_body = evaluated.json()
+        assert (
+            evaluated_body["latest_proposal_result"]["proposal_alternatives"][
+                "selected_alternative_id"
+            ]
+            == "alt_lower_turnover_pf_workspace_alt_001_eq_new"
+        )
+        assert (
+            evaluated_body["draft_state"]["alternatives_request"]["selected_alternative_id"]
+            == "alt_lower_turnover_pf_workspace_alt_001_eq_new"
+        )
+
+        saved = client.post(
+            f"/advisory/workspaces/{workspace_id}/save",
+            json={"saved_by": "advisor_123", "version_label": "Alternatives baseline"},
+        )
+        assert saved.status_code == 200
+        workspace_version_id = saved.json()["saved_version"]["workspace_version_id"]
+        assert (
+            saved.json()["saved_version"]["latest_proposal_result"]["proposal_alternatives"][
+                "selected_alternative_id"
+            ]
+            == "alt_lower_turnover_pf_workspace_alt_001_eq_new"
+        )
+
+        resumed = client.post(
+            f"/advisory/workspaces/{workspace_id}/resume",
+            json={"actor_id": "advisor_123", "workspace_version_id": workspace_version_id},
+        )
+        assert resumed.status_code == 200
+        assert (
+            resumed.json()["draft_state"]["alternatives_request"]["selected_alternative_id"]
+            == "alt_lower_turnover_pf_workspace_alt_001_eq_new"
+        )
+
+        handoff = client.post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            headers={"Idempotency-Key": "workspace-alt-handoff-001"},
+            json={"handoff_by": "advisor_123"},
+        )
+        assert handoff.status_code == 200
+        handoff_body = handoff.json()
+        proposal_id = handoff_body["proposal"]["proposal"]["proposal_id"]
+        proposal_version_no = handoff_body["proposal"]["version"]["version_no"]
+        assert (
+            handoff_body["proposal"]["version"]["proposal_result"]["proposal_alternatives"][
+                "selected_alternative_id"
+            ]
+            == "alt_lower_turnover_pf_workspace_alt_001_eq_new"
+        )
+        assert (
+            handoff_body["proposal"]["version"]["artifact"]["proposal_alternatives"][
+                "selected_alternative_id"
+            ]
+            == "alt_lower_turnover_pf_workspace_alt_001_eq_new"
+        )
+
+        workspace_replay = client.get(
+            f"/advisory/workspaces/{workspace_id}/saved-versions/{workspace_version_id}/replay-evidence"
+        )
+        proposal_replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{proposal_version_no}/replay-evidence"
+        )
+
+    assert workspace_replay.status_code == 200
+    assert proposal_replay.status_code == 200
+    assert (
+        workspace_replay.json()["evidence"]["proposal_alternatives"]["selected_alternative_id"]
+        == "alt_lower_turnover_pf_workspace_alt_001_eq_new"
+    )
+    assert (
+        proposal_replay.json()["evidence"]["proposal_alternatives"]["selected_alternative_id"]
+        == "alt_lower_turnover_pf_workspace_alt_001_eq_new"
+    )
+
+
 def test_workspace_handoff_replay_evidence_preserves_risk_lens(monkeypatch):
     monkeypatch.setattr(
         "src.core.advisory.orchestration.enrich_with_lotus_risk",

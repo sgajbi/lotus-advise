@@ -32,6 +32,23 @@ from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvi
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
+def _risk_enriched_result(result):  # noqa: ANN001
+    result.explanation["risk_lens"] = {
+        "source_service": "lotus-risk",
+        "input_mode": "simulation",
+        "risk_proxy": {"hhi_current": 5200.0, "hhi_proposed": 6800.0, "hhi_delta": 1600.0},
+        "single_position_concentration": {
+            "top_position_weight_current": 0.5,
+            "top_position_weight_proposed": 0.6,
+        },
+        "issuer_concentration": {
+            "hhi_current": 5200.0,
+            "hhi_proposed": 5800.0,
+        },
+    }
+    return result
+
+
 def _simulate_request(portfolio_id: str = "pf_service_1") -> dict:
     return {
         "portfolio_snapshot": {
@@ -170,6 +187,78 @@ def test_service_create_proposal_persists_decision_summary() -> None:
     assert (
         created.version.proposal_result.suitability.policy_version
         == summary.suitability_policy_version
+    )
+
+
+def test_service_create_proposal_persists_proposal_alternatives() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_service",
+            simulate_request={
+                **_simulate_request("pf_service_alt_1"),
+                "alternatives_request": {
+                    "enabled": True,
+                    "objectives": ["LOWER_TURNOVER", "REDUCE_CONCENTRATION"],
+                    "include_rejected_candidates": True,
+                },
+            },
+            metadata={"title": "Alternatives proposal"},
+        ),
+        idempotency_key="service-idem-alt-persisted",
+        correlation_id="corr-service-alt-persisted",
+    )
+
+    proposal_alternatives = created.version.proposal_result.proposal_alternatives
+
+    assert proposal_alternatives is not None
+    assert proposal_alternatives.requested_objectives == [
+        "LOWER_TURNOVER",
+        "REDUCE_CONCENTRATION",
+    ]
+    assert len(proposal_alternatives.rejected_candidates) == 2
+
+
+def test_service_create_proposal_persists_selected_proposal_alternative_into_version_and_artifact(
+    monkeypatch,
+) -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        lambda **kwargs: _risk_enriched_result(kwargs["proposal_result"]),
+    )
+
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_service",
+            simulate_request={
+                **_simulate_request("pf_service_alt_selected_1"),
+                "alternatives_request": {
+                    "enabled": True,
+                    "objectives": ["LOWER_TURNOVER"],
+                    "selected_alternative_id": (
+                        "alt_lower_turnover_pf_service_alt_selected_1_eq_new"
+                    ),
+                    "include_rejected_candidates": True,
+                },
+            },
+            metadata={"title": "Selected alternatives proposal"},
+        ),
+        idempotency_key="service-idem-alt-selected",
+        correlation_id="corr-service-alt-selected",
+    )
+
+    proposal_alternatives = created.version.proposal_result.proposal_alternatives
+
+    assert proposal_alternatives is not None
+    assert proposal_alternatives.selected_alternative_id == (
+        "alt_lower_turnover_pf_service_alt_selected_1_eq_new"
+    )
+    assert proposal_alternatives.alternatives[0].selected is True
+    assert created.version.artifact.proposal_alternatives is not None
+    assert created.version.artifact.proposal_alternatives.selected_alternative_id == (
+        "alt_lower_turnover_pf_service_alt_selected_1_eq_new"
     )
 
 

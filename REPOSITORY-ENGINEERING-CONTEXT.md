@@ -32,8 +32,8 @@ Current repository posture:
 1. `lotus-advise` is now scoped to advisory-only workflows after the split from `lotus-manage`,
 2. runtime smoke and production-profile guardrail validation are part of the real CI contract,
 3. canonical upstream integration with `lotus-core` and `lotus-risk` matters for truthful proposal behavior,
-4. proposal simulation, artifact, workspace, replay, and lifecycle surfaces now expose one persisted backend-owned `proposal_decision_summary`,
-5. live operator evidence validates decision-summary posture across ready, review, blocked, and insufficient-evidence runtime paths,
+4. proposal simulation, artifact, workspace, replay, and lifecycle surfaces now expose persisted backend-owned `proposal_decision_summary` and `proposal_alternatives`,
+5. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 6. repo-native CI is already aligned to explicit lane expectations.
 
 ## Architecture And Module Map
@@ -62,8 +62,9 @@ Boundary rules:
 1. advisor-only workflows belong here,
 2. management-only workflows belong in `lotus-manage`,
 3. proposal simulation must remain aligned with authoritative upstream data and risk posture,
-4. decision-summary, approval-requirement, and material-change semantics are backend-owned contracts and must not be re-inferred in UI or support layers,
-5. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions.
+4. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
+5. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
+6. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions.
 
 ## Repo-Native Commands
 
@@ -95,7 +96,7 @@ Important validation expectations:
 1. dependency health, OpenAPI, vocabulary, and no-alias governance are active,
 2. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
 3. advisory workflow changes should be validated against canonical upstream posture,
-4. live runtime evidence should prove decision-summary posture on canonical and degraded paths when advisory decision behavior changes materially.
+4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially.
 
 ## Standards And RFCs That Govern This Repository
 
@@ -112,8 +113,10 @@ Most relevant current governance:
 1. advisory and management boundaries must remain explicit after the repository split,
 2. runtime smoke orchestration is operationally important here because CI includes real environment behavior, not just unit logic,
 3. proposal behavior must not drift away from upstream data and risk authorities,
-4. persisted proposal versions are expected to preserve the exact decision summary used by artifact, replay, and operator evidence surfaces,
-5. advisory lifecycle changes should update both code and repo context in the same slice.
+4. persisted proposal versions are expected to preserve the exact decision summary and proposal alternatives used by artifact, replay, workspace, and operator evidence surfaces,
+5. proposal alternatives remain opt-in, bounded, and dependent on canonical upstream authorities; unsupported objectives must reject explicitly rather than degrade into guessed behavior,
+6. restricted-product alternatives remain deferred until canonical eligibility evidence is available,
+7. advisory lifecycle changes should update both code and repo context in the same slice.
 
 ## Context Maintenance Rule
 
