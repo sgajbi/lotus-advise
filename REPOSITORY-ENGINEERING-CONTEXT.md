@@ -34,7 +34,8 @@ Current repository posture:
 3. canonical upstream integration with `lotus-core` and `lotus-risk` matters for truthful proposal behavior,
 4. proposal simulation, artifact, workspace, replay, and lifecycle surfaces now expose persisted backend-owned `proposal_decision_summary` and `proposal_alternatives`,
 5. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
-6. repo-native CI is already aligned to explicit lane expectations.
+6. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
+7. repo-native CI is already aligned to explicit lane expectations.
 
 ## Architecture And Module Map
 
@@ -64,7 +65,8 @@ Boundary rules:
 3. proposal simulation must remain aligned with authoritative upstream data and risk posture,
 4. decision-summary, proposal-alternatives generation, ranking, selection, approval-requirement, and material-change semantics are backend-owned contracts and must not be generated, reranked, or re-inferred in UI or support layers,
 5. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
-6. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions.
+6. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
+7. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions.
 
 ## Repo-Native Commands
 
@@ -106,7 +108,9 @@ Most relevant current governance:
 2. `../lotus-platform/rfcs/RFC-0067-centralized-api-vocabulary-inventory-and-openapi-documentation-governance.md`
 3. `../lotus-platform/rfcs/RFC-0072-platform-wide-multi-lane-ci-validation-and-release-governance.md`
 4. `../lotus-platform/rfcs/RFC-0073-lotus-ecosystem-engineering-context-and-agent-guidance-system.md`
-5. `docs/standards/`
+5. `../lotus-platform/rfcs/RFC-0082-lotus-core-domain-authority-and-analytics-serving-boundary-hardening.md`
+6. `docs/architecture/RFC-0082-upstream-contract-family-map.md`
+7. `docs/standards/`
 
 ## Known Constraints And Implementation Notes
 
@@ -116,7 +120,8 @@ Most relevant current governance:
 4. persisted proposal versions are expected to preserve the exact decision summary and proposal alternatives used by artifact, replay, workspace, and operator evidence surfaces,
 5. proposal alternatives remain opt-in, bounded, and dependent on canonical upstream authorities; unsupported objectives must reject explicitly rather than degrade into guessed behavior,
 6. restricted-product alternatives remain deferred until canonical eligibility evidence is available,
-7. advisory lifecycle changes should update both code and repo context in the same slice.
+7. advisory stateful context operational reads, advisory simulation execution, and enrichment fallback labels remain RFC-0082 watchlist surfaces,
+8. advisory lifecycle changes should update both code and repo context in the same slice.
 
 ## Context Maintenance Rule
 
@@ -126,7 +131,8 @@ Update this document when:
 2. repo-native commands or runtime smoke behavior changes,
 3. upstream integration posture changes materially,
 4. guardrail or production-profile expectations change,
-5. current-state rollout posture changes.
+5. RFC-0082 contract-family classification changes,
+6. current-state rollout posture changes.
 
 ## Cross-Links
 
