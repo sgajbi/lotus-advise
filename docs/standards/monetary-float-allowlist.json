@@ -52,7 +52,7 @@
       "review_by": "2026-10-04"
     },
     {
-      "finding": "src/integrations/lotus_core/stateful_context.py:68:return float(",
+      "finding": "src/integrations/lotus_core/stateful_context.py:69:return float(",
       "justification": "Temporary approved float usage; convert to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-05"
