@@ -31,6 +31,15 @@ performance analytics, or risk analytics.
 | stateful context FX load | `GET /fx-rates/` | Operational Read | currency conversion support for advisory context | FX authority remains core-owned |
 | stateful context enrichment load | `POST /integration/instruments/enrichment-bulk` | Analytics Input watchlist | enrichment context for proposal construction | enrichment semantics remain upstream; local fallback labels are not authoritative analytics |
 
+Environment binding:
+
+1. `LOTUS_CORE_BASE_URL` is the lotus-core control-plane base URL for advisory simulation execution
+   and control-plane enrichment routes.
+2. `LOTUS_CORE_QUERY_BASE_URL` is the lotus-core query-plane base URL for operational portfolio,
+   position, cash, price, instrument, and FX reads.
+3. Advisory simulation must fail closed when only `LOTUS_CORE_QUERY_BASE_URL` is configured; query
+   reads are not an execution authority for `/integration/advisory/proposals/simulate-execution`.
+
 ## `lotus-risk` Contract Family Map
 
 | Advise integration surface | Upstream route | Authority | Advise use | Boundary rule |

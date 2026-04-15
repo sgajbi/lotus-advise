@@ -10,7 +10,6 @@ from src.integrations.lotus_core.contracts import (
 )
 from src.integrations.lotus_core.runtime_config import resolve_lotus_core_timeout
 
-DEFAULT_LOTUS_CORE_BASE_URL = "http://core-query.dev.lotus"
 _EXECUTION_PATH = "/integration/advisory/proposals/simulate-execution"
 
 
