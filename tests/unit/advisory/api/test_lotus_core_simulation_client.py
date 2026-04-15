@@ -206,6 +206,9 @@ def test_simulate_with_lotus_core_sends_contract_header_and_validates_response(m
     assert result.allocation_lens.contract_version == ADVISORY_SIMULATION_CONTRACT_VERSION
     assert result.allocation_lens.source == "LOTUS_CORE"
     assert result.before.allocation_views[0].dimension == "asset_class"
+    assert fake_client.calls[0]["url"] == (
+        "http://lotus-core:8201/integration/advisory/proposals/simulate-execution"
+    )
 
 
 def test_simulate_with_lotus_core_rejects_response_header_contract_mismatch(monkeypatch):
