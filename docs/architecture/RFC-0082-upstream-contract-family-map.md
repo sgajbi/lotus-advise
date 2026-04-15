@@ -37,7 +37,9 @@ Environment binding:
    and control-plane enrichment routes.
 2. `LOTUS_CORE_QUERY_BASE_URL` is the lotus-core query-plane base URL for operational portfolio,
    position, cash, price, instrument, and FX reads.
-3. Advisory simulation must fail closed when only `LOTUS_CORE_QUERY_BASE_URL` is configured; query
+3. Stateful context enrichment uses the control-plane base URL for
+   `/integration/instruments/enrichment-bulk`; query reads must not be reused for this route.
+4. Advisory simulation must fail closed when only `LOTUS_CORE_QUERY_BASE_URL` is configured; query
    reads are not an execution authority for `/integration/advisory/proposals/simulate-execution`.
 
 ## `lotus-risk` Contract Family Map

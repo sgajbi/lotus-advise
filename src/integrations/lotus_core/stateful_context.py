@@ -35,6 +35,7 @@ from src.integrations.lotus_core.runtime_config import (
 from src.integrations.lotus_core.timed_cache import TimedCache, TimedCacheStats
 
 _DEFAULT_LOTUS_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
+_DEFAULT_LOTUS_CORE_CONTROL_PLANE_BASE_URL = "http://core-control.dev.lotus"
 _PORTFOLIO_PATH = "/portfolios/{portfolio_id}"
 _POSITIONS_PATH = "/portfolios/{portfolio_id}/positions"
 _CASH_BALANCES_PATH = "/reporting/cash-balances/query"
@@ -279,11 +280,18 @@ def _resolve_control_plane_base_url() -> str:
     if explicit:
         return explicit.rstrip("/")
 
-    query_base_url = _resolve_query_base_url()
+    query_base_url = os.getenv("LOTUS_CORE_QUERY_BASE_URL")
+    if not query_base_url:
+        return _DEFAULT_LOTUS_CORE_CONTROL_PLANE_BASE_URL
+
     split = urlsplit(query_base_url)
     host = split.hostname
     if host is None:
         raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE")
+    if host == "core-query.dev.lotus":
+        host = "core-control.dev.lotus"
+    elif host == "lotus-core-query":
+        host = "lotus-core-control"
     netloc = host
     if split.username or split.password:
         auth = split.username or ""
