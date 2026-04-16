@@ -38,7 +38,7 @@ _DEFAULT_LOTUS_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
 _DEFAULT_LOTUS_CORE_CONTROL_PLANE_BASE_URL = "http://core-control.dev.lotus"
 _PORTFOLIO_PATH = "/portfolios/{portfolio_id}"
 _POSITIONS_PATH = "/portfolios/{portfolio_id}/positions"
-_CASH_BALANCES_PATH = "/reporting/cash-balances/query"
+_CASH_BALANCES_PATH = "/portfolios/{portfolio_id}/cash-balances"
 _INSTRUMENTS_PATH = "/instruments/?security_id={instrument_id}"
 _INSTRUMENT_ENRICHMENT_BULK_PATH = "/integration/instruments/enrichment-bulk"
 _PRICES_PATH = "/prices/?security_id={instrument_id}"
@@ -268,11 +268,8 @@ def _positions_path(*, portfolio_id: str, as_of: str) -> str:
     return f"{_POSITIONS_PATH.format(portfolio_id=portfolio_id)}?as_of_date={as_of}"
 
 
-def _cash_balances_request_body(*, portfolio_id: str, as_of: str) -> dict[str, str]:
-    return {
-        "portfolio_id": portfolio_id,
-        "as_of_date": as_of,
-    }
+def _cash_balances_path(*, portfolio_id: str, as_of: str) -> str:
+    return f"{_CASH_BALANCES_PATH.format(portfolio_id=portfolio_id)}?as_of_date={as_of}"
 
 
 def _resolve_control_plane_base_url() -> str:
@@ -975,14 +972,13 @@ def resolve_stateful_context_with_lotus_core(
         )
         cash_payload = _request_json(
             client,
-            method="POST",
+            method="GET",
             base_url=base_url,
-            path=_CASH_BALANCES_PATH,
-            error_code="LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE",
-            json_body=_cash_balances_request_body(
+            path=_cash_balances_path(
                 portfolio_id=stateful_input.portfolio_id,
                 as_of=stateful_input.as_of,
             ),
+            error_code="LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE",
         )
         held_instrument_ids = sorted(
             {

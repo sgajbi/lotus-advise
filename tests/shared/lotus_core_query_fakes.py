@@ -58,7 +58,7 @@ def build_basic_stateful_query_responses(
         ("GET", f"{base_url}/portfolios/{portfolio_id}/positions"): FakeHttpxResponse(
             {"portfolio_id": portfolio_id, "positions": []}
         ),
-        ("POST", f"{base_url}/reporting/cash-balances/query"): FakeHttpxResponse(
+        ("GET", f"{base_url}/portfolios/{portfolio_id}/cash-balances"): FakeHttpxResponse(
             {
                 "portfolio_id": portfolio_id,
                 "resolved_as_of_date": as_of,

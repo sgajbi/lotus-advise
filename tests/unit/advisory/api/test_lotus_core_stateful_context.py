@@ -25,7 +25,7 @@ from src.integrations.lotus_core.stateful_context import (
     _build_positions,
     _build_prices,
     _build_shelf_entries,
-    _cash_balances_request_body,
+    _cash_balances_path,
     _decimal_or_none,
     _derive_fx_rates,
     _fetch_instrument_enrichment_bulk,
@@ -497,7 +497,7 @@ def test_resolve_stateful_context_rejects_missing_resolved_as_of(
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
             {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
         ),
-        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
             {"portfolio_id": "DEMO_ADV_USD_001", "resolved_as_of_date": "", "cash_accounts": []}
         ),
     }
@@ -587,8 +587,8 @@ def test_resolve_stateful_context_with_lotus_core_builds_simulation_request(
             }
         ),
         (
-            "POST",
-            f"{base_url}/reporting/cash-balances/query",
+            "GET",
+            f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances",
         ): _FakeResponse(
             {
                 "portfolio_id": "DEMO_ADV_USD_001",
@@ -754,7 +754,7 @@ def test_resolve_stateful_context_with_lotus_core_propagates_as_of_to_positions_
             "GET",
             f"{base_url}{_positions_path(portfolio_id='DEMO_ADV_USD_001', as_of='2026-03-27')}",
         ): _FakeResponse({"portfolio_id": "DEMO_ADV_USD_001", "positions": []}),
-        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
             {
                 "portfolio_id": "DEMO_ADV_USD_001",
                 "resolved_as_of_date": "2026-03-27",
@@ -780,9 +780,9 @@ def test_resolve_stateful_context_with_lotus_core_propagates_as_of_to_positions_
         None,
     ) in client.requests
     assert (
-        "POST",
-        f"{base_url}/reporting/cash-balances/query",
-        _cash_balances_request_body(portfolio_id="DEMO_ADV_USD_001", as_of="2026-03-27"),
+        "GET",
+        f"{base_url}{_cash_balances_path(portfolio_id='DEMO_ADV_USD_001', as_of='2026-03-27')}",
+        None,
     ) in client.requests
 
 
@@ -837,7 +837,7 @@ def test_resolve_stateful_context_with_lotus_core_rejects_invalid_portfolio_payl
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
             {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
         ),
-        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
             {
                 "portfolio_id": "DEMO_ADV_USD_001",
                 "resolved_as_of_date": "2026-03-27",
@@ -886,7 +886,7 @@ def test_resolve_stateful_context_with_lotus_core_reuses_cached_context(
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
             {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
         ),
-        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
             {
                 "portfolio_id": "DEMO_ADV_USD_001",
                 "resolved_as_of_date": "2026-03-27",
@@ -968,7 +968,7 @@ def test_resolve_stateful_context_with_lotus_core_returns_copy_safe_cached_resul
                 ],
             }
         ),
-        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
             {
                 "portfolio_id": "DEMO_ADV_USD_001",
                 "resolved_as_of_date": "2026-03-27",
@@ -1020,7 +1020,7 @@ def test_resolve_stateful_context_with_lotus_core_refetches_when_cache_ttl_is_ze
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
             {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
         ),
-        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
             {
                 "portfolio_id": "DEMO_ADV_USD_001",
                 "resolved_as_of_date": "2026-03-27",
@@ -1070,7 +1070,7 @@ def test_resolve_stateful_context_with_lotus_core_isolates_distinct_as_of_inputs
             json: dict[str, Any] | None = None,
         ) -> _FakeResponse:
             request_counter["count"] += 1
-            if method.upper() == "POST" and url == f"{base_url}/reporting/cash-balances/query":
+            if method.upper() == "GET" and url.startswith(f"{base_url}/portfolios/") and "/cash-balances" in url:
                 return _FakeResponse(
                     {
                         "portfolio_id": "DEMO_ADV_USD_001",
@@ -1126,7 +1126,7 @@ def test_resolve_stateful_context_with_lotus_core_isolates_optional_identity_dim
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
             {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
         ),
-        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
             {
                 "portfolio_id": "DEMO_ADV_USD_001",
                 "resolved_as_of_date": "2026-03-27",
@@ -1209,9 +1209,7 @@ def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
             json: dict[str, Any] | None = None,
         ) -> _FakeResponse:
             request_counter["count"] += 1
-            if method.upper() == "POST" and url == f"{base_url}/reporting/cash-balances/query":
-                portfolio_id = (json or {}).get("portfolio_id")
-                if portfolio_id == "pf_cache_a":
+            if method.upper() == "GET" and url == f"{base_url}/portfolios/pf_cache_a/cash-balances?as_of_date=2026-03-27":
                     return _FakeResponse(
                         {
                             "portfolio_id": "pf_cache_a",
@@ -1219,7 +1217,7 @@ def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
                             "cash_accounts": [],
                         }
                     )
-                if portfolio_id == "pf_cache_b":
+            if method.upper() == "GET" and url == f"{base_url}/portfolios/pf_cache_b/cash-balances?as_of_date=2026-03-27":
                     return _FakeResponse(
                         {
                             "portfolio_id": "pf_cache_b",
@@ -1257,7 +1255,7 @@ def test_resolve_stateful_context_with_lotus_core_does_not_cache_failures(
         ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/positions"): _FakeResponse(
             {"portfolio_id": "DEMO_ADV_USD_001", "positions": []}
         ),
-        ("POST", f"{base_url}/reporting/cash-balances/query"): _FakeResponse(
+        ("GET", f"{base_url}/portfolios/DEMO_ADV_USD_001/cash-balances"): _FakeResponse(
             {
                 "portfolio_id": "DEMO_ADV_USD_001",
                 "resolved_as_of_date": "2026-03-27",
@@ -1321,7 +1319,7 @@ def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resoluti
                 ),
             }:
                 return _FakeResponse({"portfolio_id": "DEMO_ADV_USD_001", "positions": []})
-            if (method.upper(), url) == ("POST", f"{base_url}/reporting/cash-balances/query"):
+            if method.upper() == "GET" and url == f"{base_url}{_cash_balances_path(portfolio_id='DEMO_ADV_USD_001', as_of='2026-03-27')}":
                 return _FakeResponse(
                     {
                         "portfolio_id": "DEMO_ADV_USD_001",
@@ -1695,3 +1693,4 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_avoids_duplicate_entr
     assert len(enriched.market_data_snapshot.prices) == 1
     assert len(enriched.market_data_snapshot.fx_rates) == 1
     assert len(enriched.shelf_entries) == 1
+

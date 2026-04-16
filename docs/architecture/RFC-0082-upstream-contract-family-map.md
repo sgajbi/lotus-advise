@@ -25,7 +25,7 @@ performance analytics, or risk analytics.
 | advisory simulation execution client | `/integration/advisory/proposals/simulate-execution` | Control Execution / advisory simulation | execute proposal simulation through core-governed state and execution semantics | do not duplicate core simulation or execution readiness semantics locally |
 | stateful context portfolio load | `GET /portfolios/{portfolio_id}` | Operational Read | proposal context source data | do not infer analytics conclusions from operational reads |
 | stateful context positions load | `GET /portfolios/{portfolio_id}/positions` | Operational Read | holdings context for proposal construction | keep valuation and source attribution aligned to core |
-| stateful context cash balance load | `POST /reporting/cash-balances/query` | Operational Read watchlist | cash context for proposal construction | preserve reporting/source methodology; do not create local cash methodology |
+| stateful context cash balance load | `GET /portfolios/{portfolio_id}/cash-balances` | Operational Read | cash context for proposal construction | preserve source-owned cash methodology; use the strategic HoldingsAsOf balance route rather than deprecated reporting convenience shapes |
 | stateful context instrument load | `GET /instruments/` | Operational Read | instrument reference support | source attributes remain core-owned |
 | stateful context price load | `GET /prices/` | Operational Read | market price support for advisory context | price authority remains core-owned |
 | stateful context FX load | `GET /fx-rates/` | Operational Read | currency conversion support for advisory context | FX authority remains core-owned |

@@ -620,9 +620,16 @@ def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
             url: str,
             json: dict[str, Any] | None = None,
         ):
-            if method.upper() == "POST" and url == f"{base_url}/reporting/cash-balances/query":
+            if (
+                method.upper() == "GET"
+                and url.startswith(
+                    f"{base_url}/portfolios/pf_stateful_asof_boundary/cash-balances"
+                )
+            ):
                 self.request_count += 1
-                return self._responses[("POST", url)].__class__(
+                return self._responses[
+                    ("GET", f"{base_url}/portfolios/pf_stateful_asof_boundary/cash-balances")
+                ].__class__(
                     {
                         "portfolio_id": "pf_stateful_asof_boundary",
                         "resolved_as_of_date": next(cash_dates),
