@@ -1624,6 +1624,8 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
     assert fetch_stats.instrument_fetches == 3
     assert fetch_stats.price_fetches == 1
     assert fetch_stats.fx_fetches == 1
+
+
 def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_stats(
     monkeypatch,
 ):

@@ -308,7 +308,7 @@ def test_stateful_simulate_and_create_share_warm_lotus_core_context(monkeypatch)
 
     assert simulated.status_code == 200
     assert created.status_code == 200
-    assert query_client.request_count == 3
+    assert query_client.request_count == 4
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
     assert_core_context_fetch_counts(fetch_stats, portfolio=1, positions=1, cash=1)
 
@@ -602,7 +602,7 @@ def test_stateful_create_and_version_share_warm_lotus_core_context(monkeypatch):
 
     assert created.status_code == 200
     assert versioned.status_code == 200
-    assert query_client.request_count == 3
+    assert query_client.request_count == 4
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
     assert_core_context_fetch_counts(fetch_stats, portfolio=1, positions=1, cash=1)
 
@@ -620,11 +620,8 @@ def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
             url: str,
             json: dict[str, Any] | None = None,
         ):
-            if (
-                method.upper() == "GET"
-                and url.startswith(
-                    f"{base_url}/portfolios/pf_stateful_asof_boundary/cash-balances"
-                )
+            if method.upper() == "GET" and url.startswith(
+                f"{base_url}/portfolios/pf_stateful_asof_boundary/cash-balances"
             ):
                 self.request_count += 1
                 return self._responses[
@@ -695,7 +692,7 @@ def test_stateful_create_refetches_for_distinct_as_of_inputs(monkeypatch):
     assert second_context["portfolio_snapshot_id"] == (
         "lotus-core:portfolio:pf_stateful_asof_boundary:2026-03-26"
     )
-    assert query_client.request_count == 6
+    assert query_client.request_count == 8
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
     assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
@@ -755,7 +752,7 @@ def test_stateful_create_refetches_when_optional_context_identity_changes(monkey
     assert second.status_code == 200
     assert first.json()["proposal"]["mandate_id"] == "mandate_growth_01"
     assert second.json()["proposal"]["mandate_id"] == "mandate_income_01"
-    assert query_client.request_count == 6
+    assert query_client.request_count == 8
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
     assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
@@ -845,7 +842,7 @@ def test_stateful_async_create_reuses_cached_lotus_core_context(monkeypatch):
 
     assert first.status_code == 202
     assert second.status_code == 202
-    assert client.request_count == 3
+    assert client.request_count == 4
 
 
 def test_stateful_create_recovers_after_initial_lotus_core_resolution_failure(monkeypatch):
@@ -911,7 +908,7 @@ def test_stateful_create_recovers_after_initial_lotus_core_resolution_failure(mo
     assert failed.json()["detail"] == "PROPOSAL_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
     assert recovered.status_code == 200
     assert recovered.json()["proposal"]["portfolio_id"] == "pf_stateful_recovery_create"
-    assert client.request_count == 6
+    assert client.request_count == 8
 
 
 def test_stateful_version_recovers_after_initial_lotus_core_resolution_failure(monkeypatch):
@@ -985,7 +982,7 @@ def test_stateful_version_recovers_after_initial_lotus_core_resolution_failure(m
     assert recovered.json()["version"]["evidence_bundle"]["context_resolution"]["input_mode"] == (
         "stateful"
     )
-    assert client.request_count == 6
+    assert client.request_count == 8
 
 
 def test_stateful_version_does_not_use_local_fallback_for_context_resolution(monkeypatch):

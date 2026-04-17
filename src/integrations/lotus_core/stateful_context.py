@@ -76,11 +76,9 @@ def _resolve_timeout() -> httpx.Timeout:
 
 
 def _stateful_context_cache_ttl_seconds() -> float:
-    return float(
-        env_non_negative_float(
-            "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
-            default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
-        )
+    return env_non_negative_float(
+        "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
+        default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
     )
 
 
