@@ -100,6 +100,8 @@ request/response contracts.
    because it is advisory-specific control execution rather than a generic read model.
 3. Enrichment and classification fallback labels in advisory context should stay
    supportability-only and must not expand into local risk, liquidity, or suitability methodology.
+   This now applies to both held-position context resolution and non-held trade-draft hydration; do
+   not let draft enrichment bypass the governed classification taxonomy.
 4. If proposal simulation becomes latency-constrained, tune source-data shape, simulation payloads,
    caching, and upstream query design before considering a transport change.
 

@@ -1029,6 +1029,11 @@ def enrich_stateful_simulate_request_for_trade_drafts(
             base_url=control_plane_base_url,
             security_ids=sorted(missing_instrument_ids),
         )
+        classification_taxonomy = _fetch_classification_taxonomy(
+            client,
+            base_url=control_plane_base_url,
+            as_of=as_of,
+        )
         for instrument_id in sorted(missing_instrument_ids):
             instrument_payload = _fetch_json_with_cache(
                 client,
@@ -1073,6 +1078,7 @@ def enrich_stateful_simulate_request_for_trade_drafts(
                 instrument_id=instrument_id,
                 instrument_row=instrument_row,
                 enrichment_row=enrichment_by_instrument_id.get(instrument_id),
+                classification_taxonomy=classification_taxonomy,
             )
             _append_fx_rate_if_missing(
                 client=client,

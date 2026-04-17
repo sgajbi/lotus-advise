@@ -1530,6 +1530,24 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
                 ]
             }
         ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/reference/classification-taxonomy",
+        ): _FakeResponse(
+            {
+                "taxonomy_version": "rfc_062_v1",
+                "records": [
+                    {
+                        "dimension_name": "asset_class",
+                        "dimension_value": "Equity",
+                    },
+                    {
+                        "dimension_name": "product_type",
+                        "dimension_value": "Equity",
+                    },
+                ],
+            }
+        ),
         ("GET", f"{base_url}/instruments/?security_id=EQ_NEW_CHF"): _FakeResponse(
             {
                 "total": 1,
@@ -1587,8 +1605,11 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
     assert enriched.shelf_entries[-1].model_dump(mode="json")["issuer_id"] == "ISSUER_EQ_NEW_CHF"
     assert enriched.shelf_entries[-1].model_dump(mode="json")["liquidity_tier"] == "L4"
     assert enriched.shelf_entries[-1].model_dump(mode="json")["attributes"] == {
+        "asset_class_source": "lotus_core_classification_taxonomy",
+        "classification_taxonomy_version": "rfc_062_v1",
         "country": "Switzerland",
-        "product_type": "Equity",
+        "product_type": "EQUITY",
+        "product_type_source": "lotus_core_classification_taxonomy",
         "rating": "A",
         "sector": "Industrials",
         "source": "LOTUS_CORE_STATEFUL_CONTEXT",
@@ -1600,11 +1621,9 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_adds_missing_trade_in
         "rate": "1.10",
     }
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.instrument_fetches == 2
+    assert fetch_stats.instrument_fetches == 3
     assert fetch_stats.price_fetches == 1
     assert fetch_stats.fx_fetches == 1
-
-
 def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_stats(
     monkeypatch,
 ):
@@ -1652,6 +1671,18 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_s
                         "ultimate_parent_issuer_name": "Issuer Parent AG",
                     }
                 ]
+            }
+        ),
+        (
+            "POST",
+            f"{control_plane_base_url}/integration/reference/classification-taxonomy",
+        ): _FakeResponse(
+            {
+                "taxonomy_version": "rfc_062_v1",
+                "records": [
+                    {"dimension_name": "asset_class", "dimension_value": "Equity"},
+                    {"dimension_name": "product_type", "dimension_value": "Equity"},
+                ],
             }
         ),
         ("GET", f"{base_url}/instruments/?security_id=EQ_NEW_CHF"): _FakeResponse(
@@ -1709,8 +1740,10 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_s
         as_of="2026-03-25",
     )
 
-    assert request_counter["count"] == 4
+    assert request_counter["count"] == 5
     stats = get_stateful_context_cache_stats_for_tests()
+    assert stats["classification_taxonomy"].misses == 1
+    assert stats["classification_taxonomy"].hits == 1
     assert stats["instrument_lookup"].misses == 1
     assert stats["instrument_lookup"].hits == 1
     assert stats["price_lookup"].misses == 1
@@ -1718,7 +1751,7 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_reuses_lookup_cache_s
     assert stats["fx_lookup"].misses == 1
     assert stats["fx_lookup"].hits == 1
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
-    assert fetch_stats.instrument_fetches == 2
+    assert fetch_stats.instrument_fetches == 3
     assert fetch_stats.price_fetches == 1
     assert fetch_stats.fx_fetches == 1
 
