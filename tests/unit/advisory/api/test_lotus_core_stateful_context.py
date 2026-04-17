@@ -17,6 +17,7 @@ from src.core.models import (
 from src.core.valuation import build_simulated_state
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
 from src.integrations.lotus_core.stateful_context import (
+    ClassificationTaxonomy,
     LotusCoreStatefulContextUnavailableError,
     _append_fx_rate_if_missing,
     _append_price_if_missing,
@@ -28,6 +29,7 @@ from src.integrations.lotus_core.stateful_context import (
     _cash_balances_path,
     _decimal_or_none,
     _derive_fx_rates,
+    _fetch_classification_taxonomy,
     _fetch_instrument_enrichment_bulk,
     _positions_path,
     _prefer_upstream_liquidity_tier,
@@ -328,6 +330,111 @@ def test_instrument_enrichment_bulk_ignores_invalid_records(monkeypatch) -> None
     )
 
     assert payload == {"SEC_OK": {"security_id": "SEC_OK", "issuer_id": "ISSUER_OK"}}
+
+
+def test_classification_taxonomy_fetches_governed_instrument_labels() -> None:
+    fake_client = _FakeClient(
+        {
+            (
+                "POST",
+                "http://core-control.dev.lotus/integration/reference/classification-taxonomy",
+            ): _FakeResponse(
+                {
+                    "taxonomy_version": "rfc_062_v1",
+                    "records": [
+                        {
+                            "classification_set_id": "wm_global_taxonomy_v1",
+                            "taxonomy_scope": "instrument",
+                            "dimension_name": "asset_class",
+                            "dimension_value": "fixed income",
+                            "effective_from": "2025-01-01",
+                            "quality_status": "accepted",
+                        },
+                        {
+                            "classification_set_id": "wm_global_taxonomy_v1",
+                            "taxonomy_scope": "instrument",
+                            "dimension_name": "product_type",
+                            "dimension_value": "ETF",
+                            "effective_from": "2025-01-01",
+                            "quality_status": "accepted",
+                        },
+                        {"dimension_name": "", "dimension_value": "ignored"},
+                        "bad-row",
+                    ],
+                    "request_fingerprint": "fingerprint_001",
+                }
+            )
+        }
+    )
+
+    taxonomy = _fetch_classification_taxonomy(
+        fake_client,  # type: ignore[arg-type]
+        base_url="http://core-control.dev.lotus",
+        as_of="2026-03-27",
+    )
+
+    assert fake_client.requests == [
+        (
+            "POST",
+            "http://core-control.dev.lotus/integration/reference/classification-taxonomy",
+            {"as_of_date": "2026-03-27", "taxonomy_scope": "instrument"},
+        )
+    ]
+    assert taxonomy.taxonomy_version == "rfc_062_v1"
+    assert taxonomy.labels_by_dimension == {
+        "ASSET_CLASS": {"FIXED_INCOME": "FIXED_INCOME"},
+        "PRODUCT_TYPE": {"ETF": "ETF"},
+    }
+
+
+def test_shelf_entries_prefer_governed_taxonomy_and_expose_missing_labels() -> None:
+    taxonomy = ClassificationTaxonomy(
+        labels_by_dimension={
+            "ASSET_CLASS": {"EQUITY": "EQUITY"},
+            "PRODUCT_TYPE": {"ETF": "ETF"},
+        },
+        taxonomy_version="rfc_062_v1",
+    )
+    shelf_entries = _build_shelf_entries(
+        positions_payload={
+            "positions": [
+                {
+                    "security_id": "SEC_GOVERNED",
+                    "asset_class": "equity",
+                    "product_type": "etf",
+                    "sector": "Technology",
+                    "rating": "A",
+                },
+                {
+                    "security_id": "SEC_UNGOVERNED",
+                    "asset_class": "Digital Asset",
+                    "product_type": "Structured Note",
+                    "sector": "Other",
+                },
+            ]
+        },
+        cash_payload={"cash_accounts": []},
+        classification_taxonomy=taxonomy,
+    )
+
+    by_id = {entry.instrument_id: entry.model_dump(mode="json") for entry in shelf_entries}
+    assert by_id["SEC_GOVERNED"]["asset_class"] == "EQUITY"
+    assert by_id["SEC_GOVERNED"]["attributes"] == {
+        "asset_class_source": "lotus_core_classification_taxonomy",
+        "classification_taxonomy_version": "rfc_062_v1",
+        "product_type": "ETF",
+        "product_type_source": "lotus_core_classification_taxonomy",
+        "rating": "A",
+        "sector": "Technology",
+        "source": "LOTUS_CORE_STATEFUL_CONTEXT",
+    }
+    assert by_id["SEC_UNGOVERNED"]["asset_class"] == "UNKNOWN"
+    assert by_id["SEC_UNGOVERNED"]["attributes"]["asset_class_source"] == (
+        "missing_governed_taxonomy_label"
+    )
+    assert by_id["SEC_UNGOVERNED"]["attributes"]["product_type_source"] == (
+        "missing_governed_taxonomy_label"
+    )
 
 
 def test_stateful_builders_skip_malformed_rows() -> None:
@@ -784,6 +891,11 @@ def test_resolve_stateful_context_with_lotus_core_propagates_as_of_to_positions_
         f"{base_url}{_cash_balances_path(portfolio_id='DEMO_ADV_USD_001', as_of='2026-03-27')}",
         None,
     ) in client.requests
+    assert (
+        "POST",
+        f"{control_plane_base_url}/integration/reference/classification-taxonomy",
+        {"as_of_date": "2026-03-27", "taxonomy_scope": "instrument"},
+    ) in client.requests
 
 
 def test_trust_snapshot_before_state_uses_upstream_market_value_over_local_fx_revaluation() -> None:
@@ -929,7 +1041,7 @@ def test_resolve_stateful_context_with_lotus_core_reuses_cached_context(
     second = resolve_stateful_context_with_lotus_core(stateful_input)
 
     assert first.resolved_context == second.resolved_context
-    assert request_counter["count"] == 3
+    assert request_counter["count"] == 4
     stats = get_stateful_context_cache_stats_for_tests()
     assert stats["resolved_context"].misses == 1
     assert stats["resolved_context"].hits == 1
@@ -1047,7 +1159,7 @@ def test_resolve_stateful_context_with_lotus_core_refetches_when_cache_ttl_is_ze
     resolve_stateful_context_with_lotus_core(stateful_input)
     resolve_stateful_context_with_lotus_core(stateful_input)
 
-    assert request_counter["count"] == 6
+    assert request_counter["count"] == 8
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
     assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
@@ -1070,7 +1182,12 @@ def test_resolve_stateful_context_with_lotus_core_isolates_distinct_as_of_inputs
             json: dict[str, Any] | None = None,
         ) -> _FakeResponse:
             request_counter["count"] += 1
-            if method.upper() == "GET" and url.startswith(f"{base_url}/portfolios/") and "/cash-balances" in url:
+            is_cash_request = (
+                method.upper() == "GET"
+                and url.startswith(f"{base_url}/portfolios/")
+                and "/cash-balances" in url
+            )
+            if is_cash_request:
                 return _FakeResponse(
                     {
                         "portfolio_id": "DEMO_ADV_USD_001",
@@ -1106,7 +1223,7 @@ def test_resolve_stateful_context_with_lotus_core_isolates_distinct_as_of_inputs
         first.resolved_context.portfolio_snapshot_id
         != second.resolved_context.portfolio_snapshot_id
     )
-    assert request_counter["count"] == 6
+    assert request_counter["count"] == 8
     fetch_stats = get_stateful_context_fetch_stats_for_tests()
     assert_core_context_fetch_counts(fetch_stats, portfolio=2, positions=2, cash=2)
 
@@ -1168,7 +1285,7 @@ def test_resolve_stateful_context_with_lotus_core_isolates_optional_identity_dim
     )
 
     assert first.resolved_context == second.resolved_context
-    assert request_counter["count"] == 6
+    assert request_counter["count"] == 8
     stats = get_stateful_context_cache_stats_for_tests()
     assert stats["resolved_context"].misses == 2
     assert stats["resolved_context"].hits == 0
@@ -1209,22 +1326,28 @@ def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
             json: dict[str, Any] | None = None,
         ) -> _FakeResponse:
             request_counter["count"] += 1
-            if method.upper() == "GET" and url == f"{base_url}/portfolios/pf_cache_a/cash-balances?as_of_date=2026-03-27":
-                    return _FakeResponse(
-                        {
-                            "portfolio_id": "pf_cache_a",
-                            "resolved_as_of_date": "2026-03-27",
-                            "cash_accounts": [],
-                        }
-                    )
-            if method.upper() == "GET" and url == f"{base_url}/portfolios/pf_cache_b/cash-balances?as_of_date=2026-03-27":
-                    return _FakeResponse(
-                        {
-                            "portfolio_id": "pf_cache_b",
-                            "resolved_as_of_date": "2026-03-27",
-                            "cash_accounts": [],
-                        }
-                    )
+            pf_cache_a_cash_url = (
+                f"{base_url}/portfolios/pf_cache_a/cash-balances?as_of_date=2026-03-27"
+            )
+            pf_cache_b_cash_url = (
+                f"{base_url}/portfolios/pf_cache_b/cash-balances?as_of_date=2026-03-27"
+            )
+            if method.upper() == "GET" and url == pf_cache_a_cash_url:
+                return _FakeResponse(
+                    {
+                        "portfolio_id": "pf_cache_a",
+                        "resolved_as_of_date": "2026-03-27",
+                        "cash_accounts": [],
+                    }
+                )
+            if method.upper() == "GET" and url == pf_cache_b_cash_url:
+                return _FakeResponse(
+                    {
+                        "portfolio_id": "pf_cache_b",
+                        "resolved_as_of_date": "2026-03-27",
+                        "cash_accounts": [],
+                    }
+                )
             return super().request(method, url, json=json)
 
     monkeypatch.setattr(
@@ -1239,7 +1362,7 @@ def test_resolve_stateful_context_with_lotus_core_evicts_oldest_cache_entry(
     resolve_stateful_context_with_lotus_core(second)
     resolve_stateful_context_with_lotus_core(first)
 
-    assert request_counter["count"] == 9
+    assert request_counter["count"] == 12
 
 
 def test_resolve_stateful_context_with_lotus_core_does_not_cache_failures(
@@ -1284,7 +1407,7 @@ def test_resolve_stateful_context_with_lotus_core_does_not_cache_failures(
     with pytest.raises(LotusCoreStatefulContextUnavailableError):
         resolve_stateful_context_with_lotus_core(stateful_input)
 
-    assert request_counter["count"] == 6
+    assert request_counter["count"] == 8
 
 
 def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resolution(
@@ -1319,7 +1442,11 @@ def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resoluti
                 ),
             }:
                 return _FakeResponse({"portfolio_id": "DEMO_ADV_USD_001", "positions": []})
-            if method.upper() == "GET" and url == f"{base_url}{_cash_balances_path(portfolio_id='DEMO_ADV_USD_001', as_of='2026-03-27')}":
+            cash_url = (
+                f"{base_url}"
+                f"{_cash_balances_path(portfolio_id='DEMO_ADV_USD_001', as_of='2026-03-27')}"
+            )
+            if method.upper() == "GET" and url == cash_url:
                 return _FakeResponse(
                     {
                         "portfolio_id": "DEMO_ADV_USD_001",
@@ -1341,7 +1468,7 @@ def test_resolve_stateful_context_with_lotus_core_recovers_after_failed_resoluti
     recovered = resolve_stateful_context_with_lotus_core(stateful_input)
 
     assert recovered.resolved_context.portfolio_id == "DEMO_ADV_USD_001"
-    assert request_counter["count"] == 6
+    assert request_counter["count"] == 8
     stats = get_stateful_context_cache_stats_for_tests()
     assert stats["resolved_context"].misses == 2
     assert stats["resolved_context"].expirations == 0
@@ -1693,4 +1820,3 @@ def test_enrich_stateful_simulate_request_for_trade_drafts_avoids_duplicate_entr
     assert len(enriched.market_data_snapshot.prices) == 1
     assert len(enriched.market_data_snapshot.fx_rates) == 1
     assert len(enriched.shelf_entries) == 1
-

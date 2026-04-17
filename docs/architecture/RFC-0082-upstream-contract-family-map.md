@@ -30,6 +30,7 @@ performance analytics, or risk analytics.
 | stateful context price load | `GET /prices/` | Operational Read | market price support for advisory context | price authority remains core-owned |
 | stateful context FX load | `GET /fx-rates/` | Operational Read | currency conversion support for advisory context | FX authority remains core-owned |
 | stateful context enrichment load | `POST /integration/instruments/enrichment-bulk` | Analytics Input watchlist | enrichment context for proposal construction | enrichment semantics remain upstream; local fallback labels are not authoritative analytics |
+| stateful context classification taxonomy load | `POST /integration/reference/classification-taxonomy` | Analytics Input watchlist | governed instrument classification labels for proposal shelf construction | use effective-dated core taxonomy labels where available; expose `UNKNOWN` plus supportability attributes when upstream labels are missing from the governed taxonomy |
 
 Environment binding:
 
@@ -39,7 +40,10 @@ Environment binding:
    position, cash, price, instrument, and FX reads.
 3. Stateful context enrichment uses the control-plane base URL for
    `/integration/instruments/enrichment-bulk`; query reads must not be reused for this route.
-4. Advisory simulation must fail closed when only `LOTUS_CORE_QUERY_BASE_URL` is configured; query
+4. Stateful context classification taxonomy uses the control-plane base URL for
+   `/integration/reference/classification-taxonomy`; taxonomy absence must remain visible as bounded
+   supportability fallback, not local classification authority.
+5. Advisory simulation must fail closed when only `LOTUS_CORE_QUERY_BASE_URL` is configured; query
    reads are not an execution authority for `/integration/advisory/proposals/simulate-execution`.
 
 ## `lotus-risk` Contract Family Map
@@ -94,8 +98,8 @@ request/response contracts.
    additional convenience reads.
 2. `/integration/advisory/proposals/simulate-execution` should remain visible in the RFC-0082 watchlist
    because it is advisory-specific control execution rather than a generic read model.
-3. Enrichment fallback labels in advisory context should stay supportability-only and must not expand
-   into local risk, liquidity, or suitability methodology.
+3. Enrichment and classification fallback labels in advisory context should stay
+   supportability-only and must not expand into local risk, liquidity, or suitability methodology.
 4. If proposal simulation becomes latency-constrained, tune source-data shape, simulation payloads,
    caching, and upstream query design before considering a transport change.
 
