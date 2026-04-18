@@ -3,7 +3,7 @@ anyio==4.13.0
 certifi==2026.2.25
 click==8.3.2
 colorama==0.4.6
-fastapi==0.135.3
+fastapi==0.136.0
 cvxpy==1.8.2
 h11==0.16.0
 httpcore==1.0.9
@@ -11,7 +11,7 @@ httpx==0.28.1
 idna==3.11
 numpy==2.4.4
 packaging==26.1
-pydantic==2.13.0
+pydantic==2.13.2
 prometheus-fastapi-instrumentator==7.1.0
 prometheus-client==0.25.0
 psycopg[binary]==3.3.3
