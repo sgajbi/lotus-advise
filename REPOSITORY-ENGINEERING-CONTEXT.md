@@ -47,7 +47,9 @@ Primary areas:
    dependency-health, runtime smoke, OpenAPI, vocabulary, and governance scripts.
 3. `docs/`
    advisory standards and workflow documentation.
-4. `tests/`
+4. `wiki/`
+   canonical authored source for repository wiki publication and advisory onboarding summaries.
+5. `tests/`
    unit, integration, and e2e validation.
 
 ## Runtime And Integration Boundaries
@@ -98,7 +100,9 @@ Important validation expectations:
 1. dependency health, OpenAPI, vocabulary, and no-alias governance are active,
 2. migration smoke, coverage, Docker build, Postgres runtime smoke, and production-profile guardrail validation are part of the merge gate,
 3. advisory workflow changes should be validated against canonical upstream posture,
-4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially.
+4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
+5. README changes should preserve canonical local Docker upstream URL documentation enforced by
+   `tests/unit/test_local_docker_runtime_contract.py`.
 
 ## Standards And RFCs That Govern This Repository
 
@@ -121,7 +125,9 @@ Most relevant current governance:
 5. proposal alternatives remain opt-in, bounded, and dependent on canonical upstream authorities; unsupported objectives must reject explicitly rather than degrade into guessed behavior,
 6. restricted-product alternatives remain deferred until canonical eligibility evidence is available,
 7. advisory stateful context operational reads, advisory simulation execution, and enrichment fallback labels remain RFC-0082 watchlist surfaces,
-8. advisory lifecycle changes should update both code and repo context in the same slice.
+8. advisory lifecycle changes should update both code and repo context in the same slice,
+9. repo-local `wiki/` content should stay concise, operator-focused, and derived from repo truth
+   rather than duplicating the full `docs/` tree.
 
 ## Context Maintenance Rule
 
@@ -132,7 +138,8 @@ Update this document when:
 3. upstream integration posture changes materially,
 4. guardrail or production-profile expectations change,
 5. RFC-0082 contract-family classification changes,
-6. current-state rollout posture changes.
+6. current-state rollout posture changes,
+7. README or `wiki/` structure changes the repository-local onboarding or operator navigation model.
 
 ## Cross-Links
 
