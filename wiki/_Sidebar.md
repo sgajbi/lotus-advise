@@ -12,5 +12,9 @@
 - [Advisory Workspace](Advisory-Workspace)
 
 ### Engineering
+- [Development Workflow](Development-Workflow)
 - [Validation and CI](Validation-and-CI)
-- [RFC Map](RFC-Map)
+- [Operations Runbook](Operations-Runbook)
+- [Security and Governance](Security-and-Governance)
+- [Troubleshooting](Troubleshooting)
+- [RFC Index](RFC-Index)

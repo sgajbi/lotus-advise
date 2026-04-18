@@ -1,8 +1,9 @@
-# RFC Map
+# RFC Index
 
 ## Governing Rule
 
-Service-specific implementation RFCs live in this repository. Cross-cutting or multi-service RFCs belong in `lotus-platform`.
+Service-specific implementation RFCs live in this repository. Cross-cutting or multi-service RFCs
+belong in `lotus-platform`.
 
 ## Active Implemented Backbone
 
@@ -37,7 +38,8 @@ The repository RFC index currently keeps these as active future work:
 
 ## Important Interpretation
 
-RFC-0023 is not the current implemented proposal narrative source of truth. The implemented AI seam today is workspace rationale support. Proposal narrative remains planned future work.
+RFC-0023 is not the current implemented proposal narrative source of truth. The implemented AI seam
+today is workspace rationale support. Proposal narrative remains planned future work.
 
 ## Source Index
 

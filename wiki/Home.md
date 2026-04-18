@@ -12,9 +12,13 @@ It does not own canonical portfolio source data, risk methodology, performance m
 - [API Surface](API-Surface)
 - [Proposal Lifecycle](Proposal-Lifecycle)
 - [Advisory Workspace](Advisory-Workspace)
+- [Development Workflow](Development-Workflow)
+- [Operations Runbook](Operations-Runbook)
+- [Security and Governance](Security-and-Governance)
+- [Troubleshooting](Troubleshooting)
 - [Integrations](Integrations)
 - [Validation and CI](Validation-and-CI)
-- [RFC Map](RFC-Map)
+- [RFC Index](RFC-Index)
 
 ## Service Identity
 

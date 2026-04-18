@@ -49,6 +49,8 @@ Primary areas:
    advisory standards and workflow documentation.
 4. `tests/`
    unit, integration, and e2e validation.
+5. `wiki/`
+   canonical authored source for GitHub wiki publication and advisory operator onboarding summaries.
 
 ## Runtime And Integration Boundaries
 
@@ -121,7 +123,9 @@ Most relevant current governance:
 5. proposal alternatives remain opt-in, bounded, and dependent on canonical upstream authorities; unsupported objectives must reject explicitly rather than degrade into guessed behavior,
 6. restricted-product alternatives remain deferred until canonical eligibility evidence is available,
 7. advisory stateful context operational reads, advisory simulation execution, and enrichment fallback labels remain RFC-0082 watchlist surfaces,
-8. advisory lifecycle changes should update both code and repo context in the same slice.
+8. advisory lifecycle changes should update both code and repo context in the same slice,
+9. repo-local `wiki/` content should stay concise, operator-focused, and derived from repo truth rather
+   than duplicating the full `docs/` tree.
 
 ## Context Maintenance Rule
 
@@ -132,7 +136,8 @@ Update this document when:
 3. upstream integration posture changes materially,
 4. guardrail or production-profile expectations change,
 5. RFC-0082 contract-family classification changes,
-6. current-state rollout posture changes.
+6. current-state rollout posture changes,
+7. wiki ownership or publication workflow changes.
 
 ## Cross-Links
 
