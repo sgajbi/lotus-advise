@@ -38,13 +38,23 @@ _DEFAULT_LOTUS_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
 _DEFAULT_LOTUS_CORE_CONTROL_PLANE_BASE_URL = "http://core-control.dev.lotus"
 _PORTFOLIO_PATH = "/portfolios/{portfolio_id}"
 _POSITIONS_PATH = "/portfolios/{portfolio_id}/positions"
-_CASH_BALANCES_PATH = "/reporting/cash-balances/query"
+_CASH_BALANCES_PATH = "/portfolios/{portfolio_id}/cash-balances"
 _INSTRUMENTS_PATH = "/instruments/?security_id={instrument_id}"
 _INSTRUMENT_ENRICHMENT_BULK_PATH = "/integration/instruments/enrichment-bulk"
 _PRICES_PATH = "/prices/?security_id={instrument_id}"
 _FX_RATES_PATH = "/fx-rates/?from_currency={from_currency}&to_currency={to_currency}"
+_CLASSIFICATION_TAXONOMY_PATH = "/integration/reference/classification-taxonomy"
 _DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS = 15.0
 _DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE = 128
+
+
+@dataclass(frozen=True)
+class ClassificationTaxonomy:
+    labels_by_dimension: dict[str, dict[str, str]]
+    taxonomy_version: str | None = None
+
+    def has_dimension(self, dimension_name: str) -> bool:
+        return bool(self.labels_by_dimension.get(_classification_key(dimension_name)))
 
 
 @dataclass(frozen=True)
@@ -66,11 +76,9 @@ def _resolve_timeout() -> httpx.Timeout:
 
 
 def _stateful_context_cache_ttl_seconds() -> float:
-    return float(
-        env_non_negative_float(
-            "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
-            default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
-        )
+    return env_non_negative_float(
+        "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
+        default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
     )
 
 
@@ -148,6 +156,11 @@ _INSTRUMENT_ENRICHMENT_CACHE = TimedCache[str, dict[str, Any]](
     ttl_seconds=_stateful_context_cache_ttl_seconds,
     max_size=_stateful_context_cache_max_size,
 )
+_CLASSIFICATION_TAXONOMY_CACHE = TimedCache[str, dict[str, Any]](
+    clone_value=_clone_payload,
+    ttl_seconds=_stateful_context_cache_ttl_seconds,
+    max_size=_stateful_context_cache_max_size,
+)
 _PRICE_LOOKUP_CACHE = TimedCache[str, dict[str, Any]](
     clone_value=_clone_payload,
     ttl_seconds=_stateful_context_cache_ttl_seconds,
@@ -186,6 +199,7 @@ def reset_stateful_context_cache_for_tests() -> None:
     _STATEFUL_CONTEXT_CACHE.clear()
     _INSTRUMENT_LOOKUP_CACHE.clear()
     _INSTRUMENT_ENRICHMENT_CACHE.clear()
+    _CLASSIFICATION_TAXONOMY_CACHE.clear()
     _PRICE_LOOKUP_CACHE.clear()
     _FX_LOOKUP_CACHE.clear()
     with _FETCH_STATS_LOCK:
@@ -198,6 +212,7 @@ def get_stateful_context_cache_stats_for_tests() -> dict[str, TimedCacheStats]:
         "resolved_context": _STATEFUL_CONTEXT_CACHE.stats(),
         "instrument_lookup": _INSTRUMENT_LOOKUP_CACHE.stats(),
         "instrument_enrichment": _INSTRUMENT_ENRICHMENT_CACHE.stats(),
+        "classification_taxonomy": _CLASSIFICATION_TAXONOMY_CACHE.stats(),
         "price_lookup": _PRICE_LOOKUP_CACHE.stats(),
         "fx_lookup": _FX_LOOKUP_CACHE.stats(),
     }
@@ -268,11 +283,8 @@ def _positions_path(*, portfolio_id: str, as_of: str) -> str:
     return f"{_POSITIONS_PATH.format(portfolio_id=portfolio_id)}?as_of_date={as_of}"
 
 
-def _cash_balances_request_body(*, portfolio_id: str, as_of: str) -> dict[str, str]:
-    return {
-        "portfolio_id": portfolio_id,
-        "as_of_date": as_of,
-    }
+def _cash_balances_path(*, portfolio_id: str, as_of: str) -> str:
+    return f"{_CASH_BALANCES_PATH.format(portfolio_id=portfolio_id)}?as_of_date={as_of}"
 
 
 def _resolve_control_plane_base_url() -> str:
@@ -318,6 +330,96 @@ def _normalized_optional_str(value: Any) -> str | None:
     return normalized or None
 
 
+def _classification_key(value: Any) -> str:
+    return "_".join(str(value or "").strip().upper().replace("-", " ").split())
+
+
+def _parse_classification_taxonomy(payload: dict[str, Any]) -> ClassificationTaxonomy:
+    labels_by_dimension: dict[str, dict[str, str]] = {}
+    records = payload.get("records")
+    if not isinstance(records, list):
+        records = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        dimension_name = _classification_key(record.get("dimension_name"))
+        dimension_value = _classification_key(record.get("dimension_value"))
+        if not dimension_name or not dimension_value:
+            continue
+        labels_by_dimension.setdefault(dimension_name, {})[dimension_value] = dimension_value
+    return ClassificationTaxonomy(
+        labels_by_dimension=labels_by_dimension,
+        taxonomy_version=_normalized_optional_str(payload.get("taxonomy_version")),
+    )
+
+
+def _fetch_classification_taxonomy(
+    client: httpx.Client,
+    *,
+    base_url: str,
+    as_of: str,
+    taxonomy_scope: str = "instrument",
+) -> ClassificationTaxonomy:
+    cache_key = f"classification-taxonomy:{taxonomy_scope}:{as_of}"
+    try:
+        payload = _fetch_json_with_cache(
+            client,
+            cache=_CLASSIFICATION_TAXONOMY_CACHE,
+            cache_key=cache_key,
+            method="POST",
+            base_url=base_url,
+            path=_CLASSIFICATION_TAXONOMY_PATH,
+            error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
+            json_body={"as_of_date": as_of, "taxonomy_scope": taxonomy_scope},
+        )
+    except (LotusCoreStatefulContextUnavailableError, AssertionError):
+        return ClassificationTaxonomy(labels_by_dimension={})
+    return _parse_classification_taxonomy(payload)
+
+
+def _resolve_taxonomy_label(
+    raw_value: Any,
+    *,
+    dimension_name: str,
+    taxonomy: ClassificationTaxonomy | None,
+    preserve_raw_when_ungoverned: bool = False,
+) -> tuple[str, str | None]:
+    raw_display_label = str(raw_value or "").strip()
+    raw_label = _classification_key(raw_value)
+    if not raw_label:
+        return "UNKNOWN", "missing_upstream_label"
+    if taxonomy is None or not taxonomy.labels_by_dimension:
+        return raw_display_label if preserve_raw_when_ungoverned else raw_label, None
+
+    dimension_key = _classification_key(dimension_name)
+    governed_labels = taxonomy.labels_by_dimension.get(dimension_key)
+    if not governed_labels:
+        return (
+            raw_display_label if preserve_raw_when_ungoverned else raw_label,
+            "local_fallback_no_governed_taxonomy_dimension",
+        )
+    governed_label = governed_labels.get(raw_label)
+    if governed_label:
+        return governed_label, "lotus_core_classification_taxonomy"
+    return "UNKNOWN", "missing_governed_taxonomy_label"
+
+
+def _classification_supportability_attributes(
+    *,
+    asset_class_source: str | None,
+    product_type_source: str | None = None,
+    taxonomy: ClassificationTaxonomy | None,
+) -> dict[str, str]:
+    attributes: dict[str, str] = {}
+    if asset_class_source is not None:
+        attributes["asset_class_source"] = asset_class_source
+    if product_type_source is not None:
+        attributes["product_type_source"] = product_type_source
+    if taxonomy is not None and taxonomy.taxonomy_version:
+        attributes["classification_taxonomy_version"] = taxonomy.taxonomy_version
+    return attributes
+
+
 def _resolve_liquidity_tier(
     *,
     asset_class: Any,
@@ -325,10 +427,10 @@ def _resolve_liquidity_tier(
     sector: Any,
     rating: Any,
 ) -> str | None:
-    asset_class_value = str(asset_class or "").strip().upper()
-    product_type_value = str(product_type or "").strip().upper()
-    sector_value = str(sector or "").strip().upper()
-    rating_value = str(rating or "").strip().upper()
+    asset_class_value = _classification_key(asset_class)
+    product_type_value = _classification_key(product_type)
+    sector_value = _classification_key(sector)
+    rating_value = _classification_key(rating)
 
     if asset_class_value == "CASH" or product_type_value == "CASH":
         return "L1"
@@ -345,10 +447,10 @@ def _resolve_liquidity_tier(
     if product_type_value == "FUND" or asset_class_value == "FUND":
         if "PRIVATE" in sector_value:
             return "L5"
-        if sector_value in {"FIXED INCOME", "PRIVATE CREDIT"}:
+        if sector_value in {"FIXED_INCOME", "PRIVATE_CREDIT"}:
             return "L3"
         return "L2"
-    if asset_class_value == "FIXED INCOME":
+    if asset_class_value == "FIXED_INCOME":
         if sector_value == "GOVERNMENT":
             return "L1"
         return "L2"
@@ -621,6 +723,7 @@ def _build_shelf_entries(
     positions_payload: dict[str, Any],
     cash_payload: dict[str, Any],
     enrichment_by_instrument_id: dict[str, dict[str, Any]] | None = None,
+    classification_taxonomy: ClassificationTaxonomy | None = None,
 ) -> list[ShelfEntry]:
     shelf_by_instrument: dict[str, ShelfEntry] = {}
 
@@ -630,12 +733,22 @@ def _build_shelf_entries(
         instrument_id = str(raw_position.get("security_id") or "").strip()
         if not instrument_id:
             continue
-        asset_class = str(raw_position.get("asset_class") or "UNKNOWN").strip().upper()
+        asset_class, asset_class_source = _resolve_taxonomy_label(
+            raw_position.get("asset_class"),
+            dimension_name="asset_class",
+            taxonomy=classification_taxonomy,
+        )
+        product_type, product_type_source = _resolve_taxonomy_label(
+            raw_position.get("product_type"),
+            dimension_name="product_type",
+            taxonomy=classification_taxonomy,
+            preserve_raw_when_ungoverned=True,
+        )
         enrichment_row = (enrichment_by_instrument_id or {}).get(instrument_id, {})
         shelf_by_instrument[instrument_id] = ShelfEntry(
             instrument_id=instrument_id,
             status="APPROVED",
-            asset_class=asset_class or "UNKNOWN",
+            asset_class=asset_class,
             issuer_id=_normalized_optional_str(
                 raw_position.get("issuer_id")
                 if raw_position.get("issuer_id") is not None
@@ -645,25 +758,32 @@ def _build_shelf_entries(
                 raw_liquidity_tier=raw_position.get("liquidity_tier"),
                 enrichment_liquidity_tier=enrichment_row.get("liquidity_tier"),
                 asset_class=asset_class,
-                product_type=raw_position.get("product_type"),
+                product_type=product_type,
                 sector=raw_position.get("sector"),
                 rating=raw_position.get("rating"),
             ),
-            attributes=_shelf_attributes_from_payload(
-                sector=raw_position.get("sector"),
-                country=raw_position.get("country_of_risk"),
-                product_type=raw_position.get("product_type"),
-                rating=raw_position.get("rating"),
-                ultimate_parent_issuer_id=(
-                    raw_position.get("ultimate_parent_issuer_id")
-                    if raw_position.get("ultimate_parent_issuer_id") is not None
-                    else enrichment_row.get("ultimate_parent_issuer_id")
-                ),
-                ultimate_parent_issuer_name=(
-                    raw_position.get("ultimate_parent_issuer_name")
-                    if raw_position.get("ultimate_parent_issuer_name") is not None
-                    else enrichment_row.get("ultimate_parent_issuer_name")
-                ),
+            attributes=(
+                _shelf_attributes_from_payload(
+                    sector=raw_position.get("sector"),
+                    country=raw_position.get("country_of_risk"),
+                    product_type=product_type,
+                    rating=raw_position.get("rating"),
+                    ultimate_parent_issuer_id=(
+                        raw_position.get("ultimate_parent_issuer_id")
+                        if raw_position.get("ultimate_parent_issuer_id") is not None
+                        else enrichment_row.get("ultimate_parent_issuer_id")
+                    ),
+                    ultimate_parent_issuer_name=(
+                        raw_position.get("ultimate_parent_issuer_name")
+                        if raw_position.get("ultimate_parent_issuer_name") is not None
+                        else enrichment_row.get("ultimate_parent_issuer_name")
+                    ),
+                )
+                | _classification_supportability_attributes(
+                    asset_class_source=asset_class_source,
+                    product_type_source=product_type_source,
+                    taxonomy=classification_taxonomy,
+                )
             ),
         )
 
@@ -780,15 +900,26 @@ def _append_shelf_entry_if_missing(
     instrument_id: str,
     instrument_row: dict[str, Any],
     enrichment_row: dict[str, Any] | None = None,
+    classification_taxonomy: ClassificationTaxonomy | None = None,
 ) -> None:
     if any(entry.instrument_id == instrument_id for entry in simulate_request.shelf_entries):
         return
-    asset_class = str(instrument_row.get("asset_class") or "UNKNOWN").strip().upper()
+    asset_class, asset_class_source = _resolve_taxonomy_label(
+        instrument_row.get("asset_class"),
+        dimension_name="asset_class",
+        taxonomy=classification_taxonomy,
+    )
+    product_type, product_type_source = _resolve_taxonomy_label(
+        instrument_row.get("product_type"),
+        dimension_name="product_type",
+        taxonomy=classification_taxonomy,
+        preserve_raw_when_ungoverned=True,
+    )
     simulate_request.shelf_entries.append(
         ShelfEntry(
             instrument_id=instrument_id,
             status="APPROVED",
-            asset_class=asset_class or "UNKNOWN",
+            asset_class=asset_class,
             issuer_id=_normalized_optional_str(
                 instrument_row.get("issuer_id")
                 if instrument_row.get("issuer_id") is not None
@@ -798,25 +929,32 @@ def _append_shelf_entry_if_missing(
                 raw_liquidity_tier=instrument_row.get("liquidity_tier"),
                 enrichment_liquidity_tier=(enrichment_row or {}).get("liquidity_tier"),
                 asset_class=asset_class,
-                product_type=instrument_row.get("product_type"),
+                product_type=product_type,
                 sector=instrument_row.get("sector"),
                 rating=instrument_row.get("rating"),
             ),
-            attributes=_shelf_attributes_from_payload(
-                sector=instrument_row.get("sector"),
-                country=instrument_row.get("country_of_risk"),
-                product_type=instrument_row.get("product_type"),
-                rating=instrument_row.get("rating"),
-                ultimate_parent_issuer_id=(
-                    instrument_row.get("ultimate_parent_issuer_id")
-                    if instrument_row.get("ultimate_parent_issuer_id") is not None
-                    else (enrichment_row or {}).get("ultimate_parent_issuer_id")
-                ),
-                ultimate_parent_issuer_name=(
-                    instrument_row.get("ultimate_parent_issuer_name")
-                    if instrument_row.get("ultimate_parent_issuer_name") is not None
-                    else (enrichment_row or {}).get("ultimate_parent_issuer_name")
-                ),
+            attributes=(
+                _shelf_attributes_from_payload(
+                    sector=instrument_row.get("sector"),
+                    country=instrument_row.get("country_of_risk"),
+                    product_type=product_type,
+                    rating=instrument_row.get("rating"),
+                    ultimate_parent_issuer_id=(
+                        instrument_row.get("ultimate_parent_issuer_id")
+                        if instrument_row.get("ultimate_parent_issuer_id") is not None
+                        else (enrichment_row or {}).get("ultimate_parent_issuer_id")
+                    ),
+                    ultimate_parent_issuer_name=(
+                        instrument_row.get("ultimate_parent_issuer_name")
+                        if instrument_row.get("ultimate_parent_issuer_name") is not None
+                        else (enrichment_row or {}).get("ultimate_parent_issuer_name")
+                    ),
+                )
+                | _classification_supportability_attributes(
+                    asset_class_source=asset_class_source,
+                    product_type_source=product_type_source,
+                    taxonomy=classification_taxonomy,
+                )
             ),
         )
     )
@@ -889,6 +1027,11 @@ def enrich_stateful_simulate_request_for_trade_drafts(
             base_url=control_plane_base_url,
             security_ids=sorted(missing_instrument_ids),
         )
+        classification_taxonomy = _fetch_classification_taxonomy(
+            client,
+            base_url=control_plane_base_url,
+            as_of=as_of,
+        )
         for instrument_id in sorted(missing_instrument_ids):
             instrument_payload = _fetch_json_with_cache(
                 client,
@@ -933,6 +1076,7 @@ def enrich_stateful_simulate_request_for_trade_drafts(
                 instrument_id=instrument_id,
                 instrument_row=instrument_row,
                 enrichment_row=enrichment_by_instrument_id.get(instrument_id),
+                classification_taxonomy=classification_taxonomy,
             )
             _append_fx_rate_if_missing(
                 client=client,
@@ -975,14 +1119,13 @@ def resolve_stateful_context_with_lotus_core(
         )
         cash_payload = _request_json(
             client,
-            method="POST",
+            method="GET",
             base_url=base_url,
-            path=_CASH_BALANCES_PATH,
-            error_code="LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE",
-            json_body=_cash_balances_request_body(
+            path=_cash_balances_path(
                 portfolio_id=stateful_input.portfolio_id,
                 as_of=stateful_input.as_of,
             ),
+            error_code="LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE",
         )
         held_instrument_ids = sorted(
             {
@@ -997,6 +1140,11 @@ def resolve_stateful_context_with_lotus_core(
             client,
             base_url=control_plane_base_url,
             security_ids=held_instrument_ids,
+        )
+        classification_taxonomy = _fetch_classification_taxonomy(
+            client,
+            base_url=control_plane_base_url,
+            as_of=stateful_input.as_of,
         )
 
     portfolio_id = str(portfolio_payload.get("portfolio_id") or stateful_input.portfolio_id).strip()
@@ -1035,6 +1183,7 @@ def resolve_stateful_context_with_lotus_core(
             positions_payload=positions_payload,
             cash_payload=cash_payload,
             enrichment_by_instrument_id=enrichment_by_instrument_id,
+            classification_taxonomy=classification_taxonomy,
         ),
         options=EngineOptions(
             enable_proposal_simulation=True,

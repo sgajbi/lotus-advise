@@ -25,11 +25,12 @@ performance analytics, or risk analytics.
 | advisory simulation execution client | `/integration/advisory/proposals/simulate-execution` | Control Execution / advisory simulation | execute proposal simulation through core-governed state and execution semantics | do not duplicate core simulation or execution readiness semantics locally |
 | stateful context portfolio load | `GET /portfolios/{portfolio_id}` | Operational Read | proposal context source data | do not infer analytics conclusions from operational reads |
 | stateful context positions load | `GET /portfolios/{portfolio_id}/positions` | Operational Read | holdings context for proposal construction | keep valuation and source attribution aligned to core |
-| stateful context cash balance load | `POST /reporting/cash-balances/query` | Operational Read watchlist | cash context for proposal construction | preserve reporting/source methodology; do not create local cash methodology |
+| stateful context cash balance load | `GET /portfolios/{portfolio_id}/cash-balances` | Operational Read | cash context for proposal construction | preserve source-owned cash methodology; use the strategic HoldingsAsOf balance route rather than deprecated reporting convenience shapes |
 | stateful context instrument load | `GET /instruments/` | Operational Read | instrument reference support | source attributes remain core-owned |
 | stateful context price load | `GET /prices/` | Operational Read | market price support for advisory context | price authority remains core-owned |
 | stateful context FX load | `GET /fx-rates/` | Operational Read | currency conversion support for advisory context | FX authority remains core-owned |
 | stateful context enrichment load | `POST /integration/instruments/enrichment-bulk` | Analytics Input watchlist | enrichment context for proposal construction | enrichment semantics remain upstream; local fallback labels are not authoritative analytics |
+| stateful context classification taxonomy load | `POST /integration/reference/classification-taxonomy` | Analytics Input watchlist | governed instrument classification labels for proposal shelf construction | use effective-dated core taxonomy labels where available; expose `UNKNOWN` plus supportability attributes when upstream labels are missing from the governed taxonomy |
 
 Environment binding:
 
@@ -39,7 +40,10 @@ Environment binding:
    position, cash, price, instrument, and FX reads.
 3. Stateful context enrichment uses the control-plane base URL for
    `/integration/instruments/enrichment-bulk`; query reads must not be reused for this route.
-4. Advisory simulation must fail closed when only `LOTUS_CORE_QUERY_BASE_URL` is configured; query
+4. Stateful context classification taxonomy uses the control-plane base URL for
+   `/integration/reference/classification-taxonomy`; taxonomy absence must remain visible as bounded
+   supportability fallback, not local classification authority.
+5. Advisory simulation must fail closed when only `LOTUS_CORE_QUERY_BASE_URL` is configured; query
    reads are not an execution authority for `/integration/advisory/proposals/simulate-execution`.
 
 ## `lotus-risk` Contract Family Map
@@ -94,8 +98,10 @@ request/response contracts.
    additional convenience reads.
 2. `/integration/advisory/proposals/simulate-execution` should remain visible in the RFC-0082 watchlist
    because it is advisory-specific control execution rather than a generic read model.
-3. Enrichment fallback labels in advisory context should stay supportability-only and must not expand
-   into local risk, liquidity, or suitability methodology.
+3. Enrichment and classification fallback labels in advisory context should stay
+   supportability-only and must not expand into local risk, liquidity, or suitability methodology.
+   This now applies to both held-position context resolution and non-held trade-draft hydration; do
+   not let draft enrichment bypass the governed classification taxonomy.
 4. If proposal simulation becomes latency-constrained, tune source-data shape, simulation payloads,
    caching, and upstream query design before considering a transport change.
 
