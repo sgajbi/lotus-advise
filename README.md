@@ -126,6 +126,12 @@ python -m pytest tests/unit/test_local_docker_runtime_contract.py -q
 
 That test protects the canonical local Docker upstream URL documentation.
 
+When advisory OpenAPI-facing documentation changes materially, also run:
+
+```bash
+python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py -q
+```
+
 ## Integration Boundaries
 
 Local Docker runtime expects canonical upstream integrations to be explicit:

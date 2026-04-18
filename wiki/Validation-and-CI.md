@@ -29,3 +29,12 @@ python -m pytest tests/unit/test_local_docker_runtime_contract.py -q
 ```
 
 That protects the canonical local Docker upstream URL documentation.
+
+When advisory lifecycle or OpenAPI-facing docs change, run:
+
+```bash
+python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py -q
+```
+
+If `make check` rewrites `docs/standards/api-vocabulary/lotus-advise-api-vocabulary.v1.json`,
+inspect the diff before committing. Timestamp-only `generatedAt` churn is not meaningful docs work.

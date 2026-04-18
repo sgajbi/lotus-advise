@@ -24,3 +24,4 @@ make ci-local
 - keep proposal decision summary and proposal alternatives backend-owned
 - preserve canonical upstream URL truth in README and Docker docs
 - treat runtime smoke and production-profile guardrail checks as real contract behavior
+- inspect generated vocabulary diffs after `make check` and avoid timestamp-only churn in docs slices

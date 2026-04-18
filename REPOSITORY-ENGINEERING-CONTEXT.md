@@ -102,7 +102,9 @@ Important validation expectations:
 3. advisory workflow changes should be validated against canonical upstream posture,
 4. live runtime evidence should prove decision-summary and proposal-alternatives posture on canonical and degraded paths when advisory proposal behavior changes materially,
 5. README changes should preserve canonical local Docker upstream URL documentation enforced by
-   `tests/unit/test_local_docker_runtime_contract.py`.
+   `tests/unit/test_local_docker_runtime_contract.py`,
+6. contract-facing advisory docs and OpenAPI discoverability changes should respect the targeted
+   schema-doc tests in `tests/unit/advisory/contracts/`.
 
 ## Standards And RFCs That Govern This Repository
 
@@ -127,7 +129,9 @@ Most relevant current governance:
 7. advisory stateful context operational reads, advisory simulation execution, and enrichment fallback labels remain RFC-0082 watchlist surfaces,
 8. advisory lifecycle changes should update both code and repo context in the same slice,
 9. repo-local `wiki/` content should stay concise, operator-focused, and derived from repo truth
-   rather than duplicating the full `docs/` tree.
+   rather than duplicating the full `docs/` tree,
+10. `make check` may refresh generated API vocabulary output; docs-only slices should inspect that
+    diff and avoid committing timestamp-only churn when the semantic inventory is unchanged.
 
 ## Context Maintenance Rule
 
