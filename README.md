@@ -141,6 +141,12 @@ Important local Docker runtime bindings:
 - `LOTUS_CORE_QUERY_BASE_URL`
 - `LOTUS_RISK_BASE_URL`
 
+Canonical local Docker upstream defaults:
+
+- `LOTUS_CORE_BASE_URL=http://core-control.dev.lotus`
+- `LOTUS_CORE_QUERY_BASE_URL=http://core-query.dev.lotus`
+- `LOTUS_RISK_BASE_URL=http://risk.dev.lotus`
+
 ## Common Commands
 
 - `make install`
