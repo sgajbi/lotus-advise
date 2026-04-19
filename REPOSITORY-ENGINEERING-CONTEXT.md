@@ -36,7 +36,10 @@ Current repository posture:
 5. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 6. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 7. repo-native CI is already aligned to explicit lane expectations,
-8. RFC-0086 repo-native declaration onboarding now starts in `contracts/domain-data-products/` with a conservative first-wave advisory product and explicit upstream dependencies.
+8. RFC-0086 repo-native declaration onboarding now starts in `contracts/domain-data-products/` with a conservative first-wave advisory product and explicit upstream dependencies,
+9. RFC-0087 trust telemetry proof for `AdvisoryProposalLifecycleRecord` now lives under
+   `contracts/trust-telemetry/` and is validated by `tests/unit/test_trust_telemetry.py` against
+   the platform trust telemetry validator when `lotus-platform` is available.
 
 ## Architecture And Module Map
 
@@ -54,6 +57,8 @@ Primary areas:
    canonical authored source for GitHub wiki publication and advisory operator onboarding summaries.
 6. `contracts/domain-data-products/`
    repo-native producer and consumer declarations for governed advisory products and dependencies.
+7. `contracts/trust-telemetry/`
+   repo-native RFC-0087 trust telemetry fixtures for governed advisory products.
 
 ## Runtime And Integration Boundaries
 
