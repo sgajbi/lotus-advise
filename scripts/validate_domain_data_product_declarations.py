@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 import shutil
 import sys
 import tempfile
@@ -14,6 +15,9 @@ def _repo_root() -> Path:
 
 
 def _platform_root(repo_root: Path) -> Path:
+    configured_platform_root = os.getenv("LOTUS_PLATFORM_ROOT")
+    if configured_platform_root:
+        return Path(configured_platform_root).expanduser().resolve()
     return repo_root.parent / "lotus-platform"
 
 
@@ -40,6 +44,23 @@ def _load_platform_validator(platform_contract_dir: Path) -> ModuleType:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def platform_validation_dependencies_available(
+    *,
+    repo_root: Path | None = None,
+) -> bool:
+    effective_repo_root = repo_root or _repo_root()
+    platform_root = _platform_root(effective_repo_root)
+    platform_contract_dir = _platform_contract_dir(platform_root)
+    platform_vocabulary_dir = _platform_vocabulary_dir(platform_root)
+
+    required_paths = (
+        platform_contract_dir / "validate_domain_data_product_contracts.py",
+        platform_vocabulary_dir / "domain-data-product-semantics.v1.json",
+        platform_vocabulary_dir / "domain-data-product-trust-metadata.v1.json",
+    )
+    return all(path.is_file() for path in required_paths)
 
 
 def _copy_tree_contents(source: Path, destination: Path, pattern: str) -> int:

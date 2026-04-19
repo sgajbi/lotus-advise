@@ -1,13 +1,20 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts.validate_domain_data_product_declarations import (
     _local_contract_dir,
+    platform_validation_dependencies_available,
     validate_repo_native_declarations,
 )
 
 
 def test_repo_native_domain_data_product_validation_passes() -> None:
+    if not platform_validation_dependencies_available():
+        pytest.skip(
+            "lotus-platform validator checkout is not available in this environment"
+        )
     issues, local_count, platform_count = validate_repo_native_declarations()
 
     assert issues == []
