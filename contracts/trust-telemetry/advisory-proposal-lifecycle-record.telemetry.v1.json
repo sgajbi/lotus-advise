@@ -1,0 +1,50 @@
+{
+  "contract_id": "lotus-domain-product-trust-telemetry-snapshot",
+  "contract_version": "1.0.0",
+  "governed_by_rfcs": [
+    "RFC-0087"
+  ],
+  "emitted_at_utc": "2026-04-19T00:00:00Z",
+  "product_id": "lotus-advise:AdvisoryProposalLifecycleRecord:v1",
+  "producer_repository": "lotus-advise",
+  "product_name": "AdvisoryProposalLifecycleRecord",
+  "product_version": "v1",
+  "source_repository": "lotus-advise",
+  "freshness": {
+    "freshness_class": "event_driven",
+    "freshness_state": "current",
+    "evaluated_at_utc": "2026-04-19T00:00:00Z",
+    "observed_at_utc": "2026-04-19T00:00:00Z",
+    "age_seconds": 0,
+    "max_allowed_age_seconds": 86400
+  },
+  "completeness_status": "complete",
+  "reconciliation_status": "not_applicable",
+  "data_quality_status": "quality_passed",
+  "lineage": {
+    "lineage_materialized": true,
+    "lineage_bundle_id": "lineage:lotus-advise:advisory-proposal-lifecycle:2026-04-19",
+    "evidence_access_class": "customer_consumable",
+    "evidence_uris": [
+      "lotus-advise://evidence/advisory-proposal-lifecycle/PB_SG_GLOBAL_BAL_001/2026-04-19"
+    ]
+  },
+  "blocking": {
+    "blocked": false
+  },
+  "observed_trust_metadata": {
+    "product_name": "AdvisoryProposalLifecycleRecord",
+    "product_version": "v1",
+    "generated_at": "2026-04-19T00:00:00Z",
+    "correlation_id": "rfc-0087-lotus-advise-proposal-lifecycle"
+  },
+  "evidence": {
+    "correlation_id": "rfc-0087-lotus-advise-proposal-lifecycle",
+    "validation_lanes": [
+      "feature",
+      "pr-merge"
+    ],
+    "source_event_id": "source-event:lotus-advise:proposal-lifecycle:2026-04-19",
+    "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/advisory-proposal-lifecycle-record.telemetry.v1.json"
+  }
+}
