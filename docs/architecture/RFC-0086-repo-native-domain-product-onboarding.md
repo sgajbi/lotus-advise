@@ -62,6 +62,11 @@ Repo-native declarations live in:
 
 Platform schemas and registries remain owned by `lotus-platform`.
 
+The wave-1 producer declaration intentionally anchors on `portfolio_id` plus `correlation_id`.
+That fallback is transitional, not a durable advisory-native identifier, and it should remain
+explicitly documented as such until the platform semantics registry grows a stable advisory
+identifier family.
+
 Local validation stages the repo-native declarations together with the current platform declaration
 catalog and platform trust registries. This avoids forking platform-owned schemas or vocabularies
 into the repo.
