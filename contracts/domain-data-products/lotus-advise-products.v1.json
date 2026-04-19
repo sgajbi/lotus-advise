@@ -1,0 +1,64 @@
+{
+  "contract_id": "domain-data-products",
+  "contract_version": "1.0.0",
+  "governed_by_rfc": "RFC-0084",
+  "producer_repository": "lotus-advise",
+  "authoritative_domain": "advisory_workflow",
+  "products": [
+    {
+      "product_name": "AdvisoryProposalLifecycleRecord",
+      "product_version": "v1",
+      "owner_repository": "lotus-advise",
+      "product_family": "workflow_and_decision_state",
+      "authoritative_domain": "advisory_workflow",
+      "lifecycle_status": "active",
+      "request_scope": {
+        "scope_level": "portfolio",
+        "supports_bulk": false
+      },
+      "temporal_scope": {
+        "primary_time_field": "generated_at",
+        "freshness_basis": "event_time",
+        "supports_restatement": false
+      },
+      "temporal_semantics_ref": "generated_at",
+      "identifier_refs": [
+        "portfolio_id",
+        "correlation_id"
+      ],
+      "required_trust_metadata": [
+        "product_name",
+        "product_version",
+        "generated_at",
+        "correlation_id"
+      ],
+      "current_routes": [
+        "/advisory/proposals/{proposal_id}",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}",
+        "/advisory/proposals/{proposal_id}/timeline",
+        "/advisory/proposals/{proposal_id}/approvals"
+      ],
+      "freshness_policy": {
+        "freshness_class": "event_driven",
+        "max_allowed_age_description": "Lifecycle state must reflect the latest persisted proposal event and immutable version evidence for the requested proposal."
+      },
+      "completeness_policy": {
+        "default_status": "complete",
+        "partial_allowed": false
+      },
+      "lineage_policy": {
+        "lineage_required": true,
+        "evidence_bundle_required": false,
+        "evidence_access_class_ref": "customer_consumable"
+      },
+      "security_profile_ref": "business_consumer_access:client_confidential:retain_for_client_record:audit_read_and_export",
+      "approved_consumers": [
+        "lotus-gateway"
+      ],
+      "deprecation_policy": {
+        "state": "not_deprecated",
+        "successor_product": null
+      }
+    }
+  ]
+}

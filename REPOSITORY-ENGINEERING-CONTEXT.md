@@ -35,7 +35,8 @@ Current repository posture:
 4. proposal simulation, artifact, workspace, replay, and lifecycle surfaces now expose persisted backend-owned `proposal_decision_summary` and `proposal_alternatives`,
 5. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 6. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
-7. repo-native CI is already aligned to explicit lane expectations.
+7. repo-native CI is already aligned to explicit lane expectations,
+8. RFC-0086 repo-native declaration onboarding now starts in `contracts/domain-data-products/` with a conservative first-wave advisory product and explicit upstream dependencies.
 
 ## Architecture And Module Map
 
@@ -51,6 +52,8 @@ Primary areas:
    unit, integration, and e2e validation.
 5. `wiki/`
    canonical authored source for GitHub wiki publication and advisory operator onboarding summaries.
+6. `contracts/domain-data-products/`
+   repo-native producer and consumer declarations for governed advisory products and dependencies.
 
 ## Runtime And Integration Boundaries
 
@@ -86,6 +89,8 @@ Use these commands as the primary local contract:
    `make ci-local-docker`
 6. run locally
    `make run`
+7. repo-native domain product gate
+   `make domain-data-products-gate`
 
 ## Validation And CI Expectations
 
@@ -112,7 +117,8 @@ Most relevant current governance:
 4. `../lotus-platform/rfcs/RFC-0073-lotus-ecosystem-engineering-context-and-agent-guidance-system.md`
 5. `../lotus-platform/rfcs/RFC-0082-lotus-core-domain-authority-and-analytics-serving-boundary-hardening.md`
 6. `docs/architecture/RFC-0082-upstream-contract-family-map.md`
-7. `docs/standards/`
+7. `docs/architecture/RFC-0086-repo-native-domain-product-onboarding.md`
+8. `docs/standards/`
 
 ## Known Constraints And Implementation Notes
 
@@ -123,8 +129,9 @@ Most relevant current governance:
 5. proposal alternatives remain opt-in, bounded, and dependent on canonical upstream authorities; unsupported objectives must reject explicitly rather than degrade into guessed behavior,
 6. restricted-product alternatives remain deferred until canonical eligibility evidence is available,
 7. advisory stateful context operational reads, advisory simulation execution, and enrichment fallback labels remain RFC-0082 watchlist surfaces,
-8. advisory lifecycle changes should update both code and repo context in the same slice,
-9. repo-local `wiki/` content should stay concise, operator-focused, and derived from repo truth rather
+8. first-wave RFC-0086 consumer declarations should stay conservative and only reference upstream products already approved and truthfully mapped in the current platform catalog,
+9. advisory lifecycle changes should update both code and repo context in the same slice,
+10. repo-local `wiki/` content should stay concise, operator-focused, and derived from repo truth rather
    than duplicating the full `docs/` tree.
 
 ## Context Maintenance Rule
