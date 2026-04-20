@@ -332,6 +332,7 @@ Current AI assistance rule:
 - the response always includes that evidence bundle and now also preserves bounded workflow-pack run posture so the AI output remains reviewable and grounded
 - bounded review actions for that run are exposed on a separate route that forwards Lotus AI `replacement_run_id` lineage unchanged for `REVISE` and `SUPERSEDE`
 - review-action responses update only workflow-pack posture and summary; they do not imply that the workspace rationale text itself was rewritten
+- the live runtime parity validator now proves that this seam executes end to end, emits distinct replacement run ids, and marks the superseded run as `HISTORICAL`
 
 Current capability-truth rule:
 - `/platform/capabilities` reports supported input modes as `stateless` and `stateful`

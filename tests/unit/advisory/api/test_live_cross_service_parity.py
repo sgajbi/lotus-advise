@@ -1,9 +1,12 @@
 from decimal import Decimal
+from typing import Any
 
 import pytest
 
 from scripts.live_runtime_proposal_alternatives import extract_live_proposal_alternatives_snapshot
 from scripts.validate_cross_service_parity_live import (
+    PortfolioParityScenario,
+    _assert_workspace_flow,
     _security_trade_changes_from_proposal_body,
     _select_changed_state_security,
     _select_cross_currency_changed_state_security,
@@ -176,3 +179,155 @@ def test_extract_live_proposal_alternatives_snapshot_requires_payload() -> None:
             path_name="alternatives_path",
             latency_ms=10.0,
         )
+
+
+def test_assert_workspace_flow_proves_rationale_replacement_lineage(monkeypatch) -> None:
+    workspace_id = "aws_live_workspace"
+    workspace_version_id = "awv_live_version"
+    proposal_id = "ap_live_proposal"
+    first_run_id = "packrun_workspace_rationale_req_001"
+    replacement_run_id = "packrun_workspace_rationale_req_002"
+    posts: list[tuple[str, dict[str, Any]]] = []
+
+    def _fake_post_json(client, *, url, expected_status, json_body, headers=None):  # noqa: ANN001
+        assert expected_status in {200, 201}
+        posts.append((url, json_body))
+        if url.endswith("/advisory/workspaces"):
+            return {
+                "workspace": {
+                    "workspace_id": workspace_id,
+                    "resolved_context": {"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+                }
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/evaluate"):
+            return {
+                "latest_proposal_result": {
+                    "explanation": {
+                        "authority_resolution": {
+                            "simulation_authority": "lotus_core",
+                            "risk_authority": "lotus_risk",
+                            "degraded": False,
+                        }
+                    }
+                }
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/save"):
+            return {
+                "saved_version": {
+                    "workspace_version_id": workspace_version_id,
+                    "replay_evidence": {"risk_lens": {"source_service": "lotus-risk"}},
+                }
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/handoff"):
+            return {
+                "handoff_action": "CREATED_PROPOSAL",
+                "proposal": {
+                    "proposal": {"proposal_id": proposal_id},
+                    "version": {
+                        "version_no": 1,
+                        "proposal_result": {
+                            "explanation": {
+                                "authority_resolution": {
+                                    "simulation_authority": "lotus_core",
+                                    "risk_authority": "lotus_risk",
+                                    "degraded": False,
+                                }
+                            }
+                        },
+                    },
+                },
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/assistant/rationale"):
+            instruction = json_body["instruction"]
+            current_run_id = (
+                first_run_id
+                if instruction == "Summarize the evaluated workspace rationale for review."
+                else replacement_run_id
+            )
+            return {
+                "generated_by": "lotus-ai",
+                "assistant_output": "Evidence grounded rationale.",
+                "evidence": {"workspace_id": workspace_id, "proposal_status": "READY"},
+                "workflow_pack_run": {
+                    "run_id": current_run_id,
+                    "runtime_state": "COMPLETED",
+                    "review_state": "AWAITING_REVIEW",
+                    "supportability_status": "ACTION_REQUIRED",
+                    "workflow_authority_owner": "lotus-advise",
+                    "allowed_review_actions": ["ACCEPT", "REJECT", "REVISE", "SUPERSEDE"],
+                },
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions"):
+            return {
+                "workflow_pack_run": {
+                    "run_id": first_run_id,
+                    "runtime_state": "COMPLETED",
+                    "review_state": "SUPERSEDED",
+                    "supportability_status": "HISTORICAL",
+                    "workflow_authority_owner": "lotus-advise",
+                    "allowed_review_actions": [],
+                    "superseded": True,
+                    "replacement_run_id": replacement_run_id,
+                },
+                "summary": ["Run superseded in favor of replacement lineage."],
+            }
+        raise AssertionError(f"unexpected POST url: {url}")
+
+    def _fake_request_json(
+        client,
+        *,
+        method,
+        url,
+        expected_status,
+        json_body=None,
+        headers=None,  # noqa: ANN001
+    ):
+        assert method == "GET"
+        assert expected_status == 200
+        if url.endswith(
+            f"/advisory/workspaces/{workspace_id}/saved-versions/"
+            f"{workspace_version_id}/replay-evidence"
+        ):
+            return {
+                "evidence": {"risk_lens": {"source_service": "lotus-risk"}},
+                "subject": {"proposal_id": proposal_id},
+                "continuity": {},
+                "hashes": {"evaluation_request_hash": "hash_live"},
+            }
+        if url.endswith(f"/advisory/proposals/{proposal_id}/versions/1/replay-evidence"):
+            return {
+                "evidence": {"risk_lens": {"source_service": "lotus-risk"}},
+                "subject": {"proposal_version_no": 1},
+                "continuity": {"workspace_version_id": workspace_version_id},
+                "hashes": {"evaluation_request_hash": "hash_live"},
+            }
+        raise AssertionError(f"unexpected GET url: {url}")
+
+    monkeypatch.setattr(
+        "scripts.validate_cross_service_parity_live._post_json",
+        _fake_post_json,
+    )
+    monkeypatch.setattr(
+        "scripts.validate_cross_service_parity_live._request_json",
+        _fake_request_json,
+    )
+
+    result = _assert_workspace_flow(
+        object(),
+        advise_base_url="http://advise.dev.lotus",
+        scenario=PortfolioParityScenario(
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            as_of_date="2026-03-25",
+            reporting_currency="USD",
+            issuer_coverage_status="complete",
+            risk_available=True,
+        ),
+    )
+
+    assert result == (
+        first_run_id,
+        replacement_run_id,
+        "SUPERSEDED",
+        "HISTORICAL",
+    )
+    assert posts[-1][1]["replacement_run_id"] == replacement_run_id

@@ -34,6 +34,10 @@ def test_live_runtime_suite():
         "ALTERNATIVE_OBJECTIVE_PENDING_CANONICAL_EVIDENCE"
         in result.parity.restricted_product_alternatives.rejected_reason_codes
     )
+    assert result.parity.workspace_rationale_initial_run_id
+    assert result.parity.workspace_rationale_replacement_run_id
+    assert result.parity.workspace_rationale_review_state == "SUPERSEDED"
+    assert result.parity.workspace_rationale_supportability_status == "HISTORICAL"
     assert result.degraded.risk_degraded_reason == "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
     assert result.degraded.core_degraded_reason == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
     assert result.degraded.fallback_mode == "NONE"

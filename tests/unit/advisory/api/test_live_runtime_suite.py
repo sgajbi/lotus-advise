@@ -82,6 +82,10 @@ def _parity_result() -> LiveParityResult:
         cross_currency_security_id="FO_FUND_BLK_ALLOC",
         non_held_security_id="SEC_FUND_EM_EQ",
         workspace_handoff_portfolio="PB_SG_GLOBAL_BAL_001",
+        workspace_rationale_initial_run_id="packrun_workspace_rationale_req_001",
+        workspace_rationale_replacement_run_id="packrun_workspace_rationale_req_002",
+        workspace_rationale_review_state="SUPERSEDED",
+        workspace_rationale_supportability_status="HISTORICAL",
         lifecycle_portfolio="PB_SG_GLOBAL_BAL_001",
         lifecycle_latest_version_no=2,
         lifecycle_current_state="EXECUTED",
@@ -302,6 +306,14 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
     assert payload["parity"]["changed_state_security_id"] == "FO_BOND_UST_2030"
     assert payload["parity"]["cross_currency_security_id"] == "FO_FUND_BLK_ALLOC"
     assert payload["parity"]["non_held_security_id"] == "SEC_FUND_EM_EQ"
+    assert payload["parity"]["workspace_rationale_initial_run_id"] == (
+        "packrun_workspace_rationale_req_001"
+    )
+    assert payload["parity"]["workspace_rationale_replacement_run_id"] == (
+        "packrun_workspace_rationale_req_002"
+    )
+    assert payload["parity"]["workspace_rationale_review_state"] == "SUPERSEDED"
+    assert payload["parity"]["workspace_rationale_supportability_status"] == "HISTORICAL"
     assert payload["parity"]["async_lifecycle_current_state"] == "EXECUTED"
     assert payload["parity"]["review_decision"]["decision_status"] == "REQUIRES_RISK_REVIEW"
     assert payload["parity"]["noop_alternatives"]["feasible_count"] == 2
@@ -361,6 +373,8 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert "changed-state security" in summary_text
     assert "cross-currency security" in summary_text
     assert "non-held security" in summary_text
+    assert "workspace rationale initial run" in summary_text
+    assert "workspace rationale review state" in summary_text
     assert "decision status: `REQUIRES_RISK_REVIEW`" in summary_text
     assert "requested objectives: `REDUCE_CONCENTRATION`, `RAISE_CASH`" in summary_text
     assert "top ranked objective: `REDUCE_CONCENTRATION`" in summary_text
@@ -388,6 +402,12 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
     assert "- changed-state risk parity: `PB_SG_GLOBAL_BAL_001` via `FO_BOND_UST_2030`" in summary
     assert "- cross-currency changed-state parity: `FO_FUND_BLK_ALLOC`" in summary
     assert "- non-held changed-state parity: `SEC_FUND_EM_EQ`" in summary
+    assert (
+        "- workspace rationale lineage: "
+        "`packrun_workspace_rationale_req_001` -> "
+        "`packrun_workspace_rationale_req_002`"
+    ) in summary
+    assert "- workspace rationale final posture: `SUPERSEDED` / `HISTORICAL`" in summary
     assert "- async lifecycle: `EXECUTED` at version `2`" in summary
     assert "- review path: `REQUIRES_RISK_REVIEW` / `NEW_MEDIUM_SUITABILITY_ISSUE`" in summary
     assert "- insufficient-evidence path: `INSUFFICIENT_EVIDENCE` / `MISSING_RISK_LENS`" in summary

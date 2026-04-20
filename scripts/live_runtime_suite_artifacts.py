@@ -90,6 +90,16 @@ def build_markdown_summary(result: "LiveRuntimeSuiteResult") -> str:
         f"- cross-currency security: `{result.parity.cross_currency_security_id}`",
         f"- non-held security: `{result.parity.non_held_security_id}`",
         f"- lifecycle portfolio: `{result.parity.lifecycle_portfolio}`",
+        f"- workspace rationale initial run: `{result.parity.workspace_rationale_initial_run_id}`",
+        (
+            "- workspace rationale replacement run: "
+            f"`{result.parity.workspace_rationale_replacement_run_id}`"
+        ),
+        f"- workspace rationale review state: `{result.parity.workspace_rationale_review_state}`",
+        (
+            "- workspace rationale supportability: "
+            f"`{result.parity.workspace_rationale_supportability_status}`"
+        ),
         f"- lifecycle current state: `{result.parity.lifecycle_current_state}`",
         f"- lifecycle latest version: `{result.parity.lifecycle_latest_version_no}`",
         f"- async lifecycle portfolio: `{result.parity.async_lifecycle_portfolio}`",
@@ -232,6 +242,16 @@ def build_pr_summary(
         ),
         f"- cross-currency changed-state parity: `{parity['cross_currency_security_id']}`",
         f"- non-held changed-state parity: `{parity['non_held_security_id']}`",
+        (
+            "- workspace rationale lineage: "
+            f"`{parity['workspace_rationale_initial_run_id']}` -> "
+            f"`{parity['workspace_rationale_replacement_run_id']}`"
+        ),
+        (
+            "- workspace rationale final posture: "
+            f"`{parity['workspace_rationale_review_state']}` / "
+            f"`{parity['workspace_rationale_supportability_status']}`"
+        ),
         (
             "- sync lifecycle: "
             f"`{parity['lifecycle_current_state']}` at version "
