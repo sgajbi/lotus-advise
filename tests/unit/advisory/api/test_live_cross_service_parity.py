@@ -7,6 +7,11 @@ from scripts.live_runtime_proposal_alternatives import extract_live_proposal_alt
 from scripts.validate_cross_service_parity_live import (
     PortfolioParityScenario,
     _assert_workspace_flow,
+    _build_alternatives_request,
+    _canonicalize_allocation_bucket_value,
+    _collect_alternative_statuses,
+    _json_safe_value,
+    _normalize_allocation_views,
     _security_trade_changes_from_proposal_body,
     _select_changed_state_security,
     _select_cross_currency_changed_state_security,
@@ -179,6 +184,92 @@ def test_extract_live_proposal_alternatives_snapshot_requires_payload() -> None:
             path_name="alternatives_path",
             latency_ms=10.0,
         )
+
+
+def test_normalize_allocation_views_canonicalizes_bucket_labels() -> None:
+    direct = [
+        {
+            "dimension": "asset_class",
+            "total_market_value_reporting_currency": "100.0",
+            "buckets": [
+                {
+                    "dimension_value": "Fixed Income",
+                    "market_value_reporting_currency": "40.0",
+                    "weight": "0.4",
+                    "position_count": 1,
+                }
+            ],
+        }
+    ]
+    proposal = [
+        {
+            "dimension": "asset_class",
+            "total_value": {"amount": "100.0", "currency": "USD"},
+            "buckets": [
+                {
+                    "key": "Fixed_Income",
+                    "value": {"amount": "40.0", "currency": "USD"},
+                    "weight": "0.4",
+                    "position_count": 1,
+                }
+            ],
+        }
+    ]
+
+    assert _canonicalize_allocation_bucket_value("Fixed Income") == "FIXED_INCOME"
+    assert _canonicalize_allocation_bucket_value("Fixed_Income") == "FIXED_INCOME"
+    assert _normalize_allocation_views(direct) == _normalize_allocation_views(proposal)
+
+
+def test_build_alternatives_request_uses_current_objectives_contract() -> None:
+    request = _build_alternatives_request(
+        objectives=["REDUCE_CONCENTRATION", "RAISE_CASH"],
+        max_alternatives=2,
+        constraints={"cash_floor": {"amount": "25000", "currency": "USD"}},
+    )
+
+    assert request == {
+        "objectives": ["REDUCE_CONCENTRATION", "RAISE_CASH"],
+        "max_alternatives": 2,
+        "constraints": {"cash_floor": {"amount": "25000", "currency": "USD"}},
+    }
+
+
+def test_collect_alternative_statuses_groups_statuses_by_objective() -> None:
+    proposal_body = {
+        "proposal_alternatives": {
+            "alternatives": [
+                {"objective": "REDUCE_CONCENTRATION", "status": "REJECTED_POLICY_BLOCKED"},
+                {"objective": "REDUCE_CONCENTRATION", "status": "REJECTED_POLICY_BLOCKED"},
+                {"objective": "IMPROVE_CURRENCY_ALIGNMENT", "status": "FEASIBLE_WITH_REVIEW"},
+            ]
+        }
+    }
+
+    assert _collect_alternative_statuses(proposal_body) == {
+        "REDUCE_CONCENTRATION": {"REJECTED_POLICY_BLOCKED"},
+        "IMPROVE_CURRENCY_ALIGNMENT": {"FEASIBLE_WITH_REVIEW"},
+    }
+
+
+def test_json_safe_value_serializes_decimals_for_http_payloads() -> None:
+    payload = [
+        {
+            "security_id": "FO_BOND_UST_2030",
+            "quantity": Decimal("1"),
+            "amount": Decimal("101.35"),
+            "metadata": {"proposal_intent_id": "oi_1"},
+        }
+    ]
+
+    assert _json_safe_value(payload) == [
+        {
+            "security_id": "FO_BOND_UST_2030",
+            "quantity": "1",
+            "amount": "101.35",
+            "metadata": {"proposal_intent_id": "oi_1"},
+        }
+    ]
 
 
 def test_assert_workspace_flow_proves_rationale_replacement_lineage(monkeypatch) -> None:

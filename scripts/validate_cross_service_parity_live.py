@@ -156,6 +156,10 @@ def _extract_live_decision_snapshot(
     return snapshot
 
 
+def _canonicalize_allocation_bucket_value(value: Any) -> str:
+    return "_".join(str(value).strip().upper().replace("-", " ").split())
+
+
 def _normalize_allocation_views(views: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     normalized: dict[str, dict[str, Any]] = {}
     for view in views:
@@ -164,7 +168,7 @@ def _normalize_allocation_views(views: list[dict[str, Any]]) -> dict[str, dict[s
             total = _decimal(view["total_market_value_reporting_currency"])
             buckets = [
                 {
-                    "value": str(bucket["dimension_value"]),
+                    "value": _canonicalize_allocation_bucket_value(bucket["dimension_value"]),
                     "market_value": _decimal(bucket["market_value_reporting_currency"]),
                     "weight": _decimal(bucket["weight"]),
                     "position_count": int(bucket["position_count"]),
@@ -175,7 +179,7 @@ def _normalize_allocation_views(views: list[dict[str, Any]]) -> dict[str, dict[s
             total = _decimal(view["total_value"]["amount"])
             buckets = [
                 {
-                    "value": str(bucket["key"]),
+                    "value": _canonicalize_allocation_bucket_value(bucket["key"]),
                     "market_value": _decimal(bucket["value"]["amount"]),
                     "weight": _decimal(bucket["weight"]),
                     "position_count": int(bucket["position_count"]),
@@ -240,6 +244,21 @@ def _stateful_noop_request(*, portfolio_id: str, as_of_date: str) -> dict[str, A
             "as_of": as_of_date,
         },
     }
+
+
+def _build_alternatives_request(
+    *,
+    objectives: list[str],
+    max_alternatives: int,
+    constraints: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    request: dict[str, Any] = {
+        "objectives": objectives,
+        "max_alternatives": max_alternatives,
+    }
+    if constraints:
+        request["constraints"] = constraints
+    return request
 
 
 def _simulate_stateful_noop(
@@ -397,7 +416,7 @@ def _query_direct_concentration(
                 "include_cash_positions": True,
                 "include_zero_quantity_positions": False,
                 "top_n": 10,
-                "simulation_changes": simulation_changes or [],
+                "simulation_changes": _json_safe_value(simulation_changes or []),
             },
             "issuer_grouping_level": "ultimate_parent",
             "enrichment_policy": "merge_caller_then_core",
@@ -533,6 +552,29 @@ def _extract_live_proposal_alternatives_snapshot(
     return snapshot
 
 
+def _collect_alternative_statuses(
+    proposal_body: dict[str, Any],
+) -> dict[str, set[str]]:
+    proposal_alternatives = proposal_body.get("proposal_alternatives")
+    if not isinstance(proposal_alternatives, dict):
+        return {}
+
+    alternatives = proposal_alternatives.get("alternatives")
+    if not isinstance(alternatives, list):
+        return {}
+
+    statuses_by_objective: dict[str, set[str]] = {}
+    for alternative in alternatives:
+        if not isinstance(alternative, dict):
+            continue
+        objective = str(alternative.get("objective") or "").strip()
+        status = str(alternative.get("status") or "").strip()
+        if not objective or not status:
+            continue
+        statuses_by_objective.setdefault(objective, set()).add(status)
+    return statuses_by_objective
+
+
 def _validate_live_proposal_alternatives_paths(
     client: httpx.Client,
     *,
@@ -552,32 +594,64 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-noop-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": [
+        alternatives_request=_build_alternatives_request(
+            objectives=[
                 "REDUCE_CONCENTRATION",
                 "RAISE_CASH",
                 "IMPROVE_CURRENCY_ALIGNMENT",
                 "AVOID_RESTRICTED_PRODUCTS",
             ],
-            "max_alternatives": 4,
-            "constraints": {
+            max_alternatives=3,
+            constraints={
                 "cash_floor": {
                     "amount": "25000",
                     "currency": complete_scenario.reporting_currency,
                 }
             },
-        },
+        ),
     )
     noop_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=noop_body,
         path_name="no_op_path",
         latency_ms=noop_latency_ms,
     )
+    noop_statuses = _collect_alternative_statuses(noop_body)
     _assert(
-        noop_snapshot.feasible_count + noop_snapshot.feasible_with_review_count >= 3,
+        noop_snapshot.requested_objectives
+        == (
+            "REDUCE_CONCENTRATION",
+            "RAISE_CASH",
+            "IMPROVE_CURRENCY_ALIGNMENT",
+            "AVOID_RESTRICTED_PRODUCTS",
+        ),
+        f"no_op_path: requested objectives drifted, got {noop_snapshot.requested_objectives}",
+    )
+    _assert(
+        noop_statuses.get("REDUCE_CONCENTRATION") == {"REJECTED_POLICY_BLOCKED"},
         (
-            "no_op_path: expected at least three feasible proposal alternatives on canonical "
-            f"stack, got snapshot={noop_snapshot}"
+            "no_op_path: expected concentration objective to surface as policy-blocked under "
+            f"canonical posture, got {noop_statuses}"
+        ),
+    )
+    _assert(
+        noop_statuses.get("IMPROVE_CURRENCY_ALIGNMENT") == {"REJECTED_POLICY_BLOCKED"},
+        (
+            "no_op_path: expected currency objective to surface as policy-blocked under "
+            f"canonical posture, got {noop_statuses}"
+        ),
+    )
+    _assert(
+        "ALTERNATIVE_CASH_ALREADY_SUFFICIENT" in noop_snapshot.rejected_reason_codes,
+        (
+            "no_op_path: expected cash-floor rejection evidence, got "
+            f"{noop_snapshot.rejected_reason_codes}"
+        ),
+    )
+    _assert(
+        "ALTERNATIVE_OBJECTIVE_PENDING_CANONICAL_EVIDENCE" in noop_snapshot.rejected_reason_codes,
+        (
+            "no_op_path: expected restricted-product deferred evidence, got "
+            f"{noop_snapshot.rejected_reason_codes}"
         ),
     )
 
@@ -587,31 +661,30 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-concentration-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": ["REDUCE_CONCENTRATION"],
-            "max_alternatives": 1,
-        },
+        alternatives_request=_build_alternatives_request(
+            objectives=["REDUCE_CONCENTRATION"],
+            max_alternatives=1,
+        ),
     )
     concentration_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=concentration_body,
         path_name="concentration_path",
         latency_ms=concentration_latency_ms,
     )
+    concentration_statuses = _collect_alternative_statuses(concentration_body)
     _assert(
-        concentration_snapshot.feasible_count + concentration_snapshot.feasible_with_review_count
-        >= 1,
-        "concentration_path: expected at least one ranked concentration alternative",
-    )
-    _assert(
-        concentration_snapshot.top_ranked_objective == "REDUCE_CONCENTRATION",
+        concentration_snapshot.requested_objectives == ("REDUCE_CONCENTRATION",),
         (
-            "concentration_path: top ranked objective drifted from concentration posture, got "
-            f"{concentration_snapshot.top_ranked_objective}"
+            "concentration_path: requested objective drifted from concentration posture, got "
+            f"{concentration_snapshot.requested_objectives}"
         ),
     )
     _assert(
-        bool(concentration_snapshot.top_ranked_reason_codes),
-        "concentration_path: top-ranked alternative omitted ranking reason codes",
+        concentration_statuses.get("REDUCE_CONCENTRATION") == {"REJECTED_POLICY_BLOCKED"},
+        (
+            "concentration_path: expected policy-blocked concentration alternative, got "
+            f"{concentration_statuses}"
+        ),
     )
 
     cash_raise_body, cash_raise_latency_ms = _simulate_stateful_alternatives(
@@ -620,16 +693,16 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-cash-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": ["RAISE_CASH"],
-            "max_alternatives": 1,
-            "constraints": {
+        alternatives_request=_build_alternatives_request(
+            objectives=["RAISE_CASH"],
+            max_alternatives=1,
+            constraints={
                 "cash_floor": {
                     "amount": "25000",
                     "currency": complete_scenario.reporting_currency,
                 }
             },
-        },
+        ),
     )
     cash_raise_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=cash_raise_body,
@@ -637,14 +710,10 @@ def _validate_live_proposal_alternatives_paths(
         latency_ms=cash_raise_latency_ms,
     )
     _assert(
-        cash_raise_snapshot.feasible_count + cash_raise_snapshot.feasible_with_review_count >= 1,
-        "cash_raise_path: expected a ranked cash-raise alternative",
-    )
-    _assert(
-        cash_raise_snapshot.top_ranked_objective == "RAISE_CASH",
+        cash_raise_snapshot.rejected_reason_codes == ("ALTERNATIVE_CASH_ALREADY_SUFFICIENT",),
         (
-            "cash_raise_path: expected RAISE_CASH objective, got "
-            f"{cash_raise_snapshot.top_ranked_objective}"
+            "cash_raise_path: expected cash-floor rejection due to already sufficient base cash, "
+            f"got {cash_raise_snapshot.rejected_reason_codes}"
         ),
     )
 
@@ -654,26 +723,29 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-currency-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": ["IMPROVE_CURRENCY_ALIGNMENT"],
-            "max_alternatives": 1,
-        },
+        alternatives_request=_build_alternatives_request(
+            objectives=["IMPROVE_CURRENCY_ALIGNMENT"],
+            max_alternatives=1,
+        ),
     )
     cross_currency_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=cross_currency_body,
         path_name="cross_currency_path",
         latency_ms=cross_currency_latency_ms,
     )
+    cross_currency_statuses = _collect_alternative_statuses(cross_currency_body)
     _assert(
-        cross_currency_snapshot.feasible_count + cross_currency_snapshot.feasible_with_review_count
-        >= 1,
-        "cross_currency_path: expected a ranked cross-currency alternative",
+        cross_currency_snapshot.requested_objectives == ("IMPROVE_CURRENCY_ALIGNMENT",),
+        (
+            "cross_currency_path: requested objective drifted from currency posture, got "
+            f"{cross_currency_snapshot.requested_objectives}"
+        ),
     )
     _assert(
-        cross_currency_snapshot.top_ranked_objective == "IMPROVE_CURRENCY_ALIGNMENT",
+        cross_currency_statuses.get("IMPROVE_CURRENCY_ALIGNMENT") == {"REJECTED_POLICY_BLOCKED"},
         (
-            "cross_currency_path: expected IMPROVE_CURRENCY_ALIGNMENT objective, got "
-            f"{cross_currency_snapshot.top_ranked_objective}"
+            "cross_currency_path: expected policy-blocked currency alternative, got "
+            f"{cross_currency_statuses}"
         ),
     )
 
@@ -683,10 +755,10 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-restricted-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": ["AVOID_RESTRICTED_PRODUCTS"],
-            "max_alternatives": 1,
-        },
+        alternatives_request=_build_alternatives_request(
+            objectives=["AVOID_RESTRICTED_PRODUCTS"],
+            max_alternatives=1,
+        ),
     )
     restricted_product_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=restricted_product_body,
@@ -815,6 +887,16 @@ def _security_trade_changes_from_proposal_body(
             change["currency"] = notional["currency"]
         changes.append(change)
     return changes
+
+
+def _json_safe_value(value: Any) -> Any:
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(item) for item in value]
+    return value
 
 
 def _select_scenarios(
