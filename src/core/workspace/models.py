@@ -695,6 +695,76 @@ class WorkspaceAssistantEvidence(BaseModel):
     )
 
 
+class WorkspaceAssistantWorkflowPackRunFinding(BaseModel):
+    finding_id: str = Field(
+        description="Stable workflow-pack supportability finding identifier.",
+        examples=["review_pending"],
+    )
+    severity: str = Field(
+        description="Workflow-pack supportability severity emitted by lotus-ai.",
+        examples=["ACTION_REQUIRED"],
+    )
+    summary: str = Field(
+        description="Short workflow-pack supportability summary.",
+        examples=["Run is awaiting review."],
+    )
+
+
+class WorkspaceAssistantWorkflowPackRun(BaseModel):
+    run_id: str = Field(
+        description=(
+            "Stable lotus-ai workflow-pack run identifier backing this workspace rationale."
+        ),
+        examples=["packrun_workspace_rationale_req_001"],
+    )
+    runtime_state: str = Field(
+        description="Current lotus-ai runtime state for the workflow-pack run.",
+        examples=["COMPLETED"],
+    )
+    review_state: str = Field(
+        description="Current lotus-ai review state for the workflow-pack run.",
+        examples=["AWAITING_REVIEW"],
+    )
+    allowed_review_actions: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Bounded lotus-ai review actions currently accepted by the workflow-pack ledger."
+        ),
+        examples=[["ACCEPT", "REJECT", "REVISE"]],
+    )
+    supportability_status: str = Field(
+        description="Current lotus-ai supportability posture for the workflow-pack run.",
+        examples=["ACTION_REQUIRED"],
+    )
+    review_pending: bool = Field(
+        description="Whether lotus-ai still reports the workflow-pack run as pending review.",
+    )
+    superseded: bool = Field(
+        description=(
+            "Whether lotus-ai marks the workflow-pack run as historical due to "
+            "replacement lineage."
+        ),
+    )
+    workflow_authority_owner: str = Field(
+        description=(
+            "Service boundary retaining consequence-bearing workflow authority for the run."
+        ),
+        examples=["lotus-advise"],
+    )
+    current_summary_note: str = Field(
+        description="Single lotus-ai supportability summary note for the workflow-pack run.",
+        examples=["Run completed but still requires bounded human review before downstream use."],
+    )
+    replacement_run_id: str | None = Field(
+        default=None,
+        description="Replacement workflow-pack run identifier when the current run is historical.",
+    )
+    findings: list[WorkspaceAssistantWorkflowPackRunFinding] = Field(
+        default_factory=list,
+        description="Workflow-pack supportability findings preserved from lotus-ai.",
+    )
+
+
 class WorkspaceAssistantResponse(BaseModel):
     assistant_output: str = Field(
         description="Evidence-grounded advisory rationale produced through the Lotus AI seam.",
@@ -706,6 +776,13 @@ class WorkspaceAssistantResponse(BaseModel):
     )
     evidence: WorkspaceAssistantEvidence = Field(
         description="Deterministic evidence bundle supplied to the AI assistance workflow.",
+    )
+    workflow_pack_run: WorkspaceAssistantWorkflowPackRun | None = Field(
+        default=None,
+        description=(
+            "Bounded lotus-ai workflow-pack run posture preserved for this workspace rationale "
+            "when the governed explicit execution seam succeeds."
+        ),
     )
 
 

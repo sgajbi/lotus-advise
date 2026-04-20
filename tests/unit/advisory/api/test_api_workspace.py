@@ -2006,18 +2006,46 @@ def test_workspace_handoff_returns_422_when_proposal_simulation_flag_is_disabled
 
 
 def test_workspace_ai_rationale_returns_evidence_grounded_output(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "src.api.main.generate_workspace_rationale_with_lotus_ai",
-        lambda request, evidence: {
-            "assistant_output": (
-                f"{request.requested_by} requested a rationale "
-                f"for workspace {evidence.workspace_id}"
-            ),
-            "generated_by": "lotus-ai",
-            "evidence": evidence.model_dump(mode="json"),
-        },
-        raising=False,
-    )
+    recorded: dict[str, Any] = {}
+
+    class _FakeResponse:
+        status_code = 200
+
+        def json(self) -> dict[str, Any]:
+            return {
+                "execution": {
+                    "status": "COMPLETED",
+                    "result": {
+                        "message": "advisor_123 requested a rationale for the evaluated workspace."
+                    },
+                },
+                "workflow_pack_run": {
+                    "run_id": "packrun_workspace_rationale_req_001",
+                    "runtime_state": "COMPLETED",
+                    "review_state": "AWAITING_REVIEW",
+                    "allowed_review_actions": ["ACCEPT", "REJECT", "REVISE"],
+                    "supportability_status": "ACTION_REQUIRED",
+                    "workflow_authority_owner": "lotus-advise",
+                },
+            }
+
+    class _FakeClient:
+        def __init__(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):  # noqa: ANN001, ANN201
+            return False
+
+        def post(self, url: str, json: dict[str, Any]) -> _FakeResponse:
+            recorded["url"] = url
+            recorded["json"] = json
+            return _FakeResponse()
+
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", "http://lotus-ai.dev.lotus")
+    monkeypatch.setattr("src.integrations.lotus_ai.rationale.httpx.Client", _FakeClient)
     create_payload = {
         "workspace_name": "AI rationale workspace",
         "created_by": "advisor_123",
@@ -2060,6 +2088,19 @@ def test_workspace_ai_rationale_returns_evidence_grounded_output(monkeypatch) ->
     assert body["generated_by"] == "lotus-ai"
     assert body["evidence"]["workspace_id"] == workspace_id
     assert body["evidence"]["proposal_status"] == "READY"
+    assert body["workflow_pack_run"]["run_id"] == "packrun_workspace_rationale_req_001"
+    assert body["workflow_pack_run"]["workflow_authority_owner"] == "lotus-advise"
+    assert recorded["url"] == "http://lotus-ai.dev.lotus/platform/workflow-packs/execute"
+    assert recorded["json"]["pack_id"] == "workspace_rationale.pack"
+    assert recorded["json"]["version"] == "v1"
+    assert recorded["json"]["workflow_surface"] == "advisory-workspace-assistant"
+    assert recorded["json"]["task_request"]["caller"]["caller_app"] == "lotus-advise"
+    assert recorded["json"]["task_request"]["context"]["payload"]["workspace"]["workspace_id"] == (
+        workspace_id
+    )
+    assert recorded["json"]["task_request"]["context"]["payload"]["instruction"]["text"] == (
+        "Summarize the proposal rationale for an advisor review note."
+    )
 
 
 def test_workspace_ai_rationale_requires_evaluated_workspace() -> None:

@@ -56,6 +56,7 @@ def test_workspace_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(assistant_response_schema, "assistant_output")
     _assert_property_has_docs(assistant_response_schema, "generated_by")
     _assert_property_has_docs(assistant_response_schema, "evidence")
+    _assert_property_has_docs(assistant_response_schema, "workflow_pack_run")
 
     saved_version_schema = schemas["WorkspaceSavedVersion"]
     _assert_property_has_docs(saved_version_schema, "workspace_version_id")
