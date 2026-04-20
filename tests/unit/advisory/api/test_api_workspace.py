@@ -2005,47 +2005,76 @@ def test_workspace_handoff_returns_422_when_proposal_simulation_flag_is_disabled
     )
 
 
+class _FakeLotusAIResponse:
+    def __init__(self, status_code: int, payload: dict[str, Any]) -> None:
+        self.status_code = status_code
+        self._payload = payload
+
+    def json(self) -> dict[str, Any]:
+        return self._payload
+
+
+class _FakeLotusAIClient:
+    def __init__(
+        self,
+        *args,
+        responses: dict[str, _FakeLotusAIResponse],
+        record: dict[str, Any],
+        **kwargs,
+    ):  # noqa: ANN002, ANN003
+        self._responses = responses
+        self._record = record
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):  # noqa: ANN001, ANN201
+        return False
+
+    def post(self, url: str, json: dict[str, Any]) -> _FakeLotusAIResponse:
+        self._record["url"] = url
+        self._record["json"] = json
+        response = self._responses.get(url)
+        if response is None:
+            raise AssertionError(f"unexpected request url: {url}")
+        return response
+
+
 def test_workspace_ai_rationale_returns_evidence_grounded_output(monkeypatch) -> None:
     recorded: dict[str, Any] = {}
-
-    class _FakeResponse:
-        status_code = 200
-
-        def json(self) -> dict[str, Any]:
-            return {
-                "execution": {
-                    "status": "COMPLETED",
-                    "result": {
-                        "message": "advisor_123 requested a rationale for the evaluated workspace."
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.rationale.httpx.Client",
+        lambda *args, **kwargs: _FakeLotusAIClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeLotusAIResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "message": (
+                                    "advisor_123 requested a rationale for the evaluated workspace."
+                                )
+                            },
+                        },
+                        "workflow_pack_run": {
+                            "run_id": "packrun_workspace_rationale_req_001",
+                            "runtime_state": "COMPLETED",
+                            "review_state": "AWAITING_REVIEW",
+                            "allowed_review_actions": ["ACCEPT", "REJECT", "REVISE"],
+                            "supportability_status": "ACTION_REQUIRED",
+                            "workflow_authority_owner": "lotus-advise",
+                        },
                     },
-                },
-                "workflow_pack_run": {
-                    "run_id": "packrun_workspace_rationale_req_001",
-                    "runtime_state": "COMPLETED",
-                    "review_state": "AWAITING_REVIEW",
-                    "allowed_review_actions": ["ACCEPT", "REJECT", "REVISE"],
-                    "supportability_status": "ACTION_REQUIRED",
-                    "workflow_authority_owner": "lotus-advise",
-                },
-            }
-
-    class _FakeClient:
-        def __init__(self, *args, **kwargs):  # noqa: ANN002, ANN003
-            pass
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):  # noqa: ANN001, ANN201
-            return False
-
-        def post(self, url: str, json: dict[str, Any]) -> _FakeResponse:
-            recorded["url"] = url
-            recorded["json"] = json
-            return _FakeResponse()
-
-    monkeypatch.setenv("LOTUS_AI_BASE_URL", "http://lotus-ai.dev.lotus")
-    monkeypatch.setattr("src.integrations.lotus_ai.rationale.httpx.Client", _FakeClient)
+                )
+            },
+            record=recorded,
+            **kwargs,
+        ),
+    )
     create_payload = {
         "workspace_name": "AI rationale workspace",
         "created_by": "advisor_123",
@@ -2090,7 +2119,7 @@ def test_workspace_ai_rationale_returns_evidence_grounded_output(monkeypatch) ->
     assert body["evidence"]["proposal_status"] == "READY"
     assert body["workflow_pack_run"]["run_id"] == "packrun_workspace_rationale_req_001"
     assert body["workflow_pack_run"]["workflow_authority_owner"] == "lotus-advise"
-    assert recorded["url"] == "http://lotus-ai.dev.lotus/platform/workflow-packs/execute"
+    assert recorded["url"] == f"{base_url}/platform/workflow-packs/execute"
     assert recorded["json"]["pack_id"] == "workspace_rationale.pack"
     assert recorded["json"]["version"] == "v1"
     assert recorded["json"]["workflow_surface"] == "advisory-workspace-assistant"
@@ -2101,6 +2130,204 @@ def test_workspace_ai_rationale_returns_evidence_grounded_output(monkeypatch) ->
     assert recorded["json"]["task_request"]["context"]["payload"]["instruction"]["text"] == (
         "Summarize the proposal rationale for an advisor review note."
     )
+
+
+def test_workspace_ai_rationale_review_action_preserves_replacement_lineage(monkeypatch) -> None:
+    recorded: dict[str, Any] = {}
+    base_url = "http://lotus-ai.dev.lotus"
+    review_action_url = (
+        f"{base_url}/platform/workflow-packs/runs/"
+        "packrun_workspace_rationale_req_001/review-actions"
+    )
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.rationale.httpx.Client",
+        lambda *args, **kwargs: _FakeLotusAIClient(
+            *args,
+            responses={
+                review_action_url: _FakeLotusAIResponse(
+                    200,
+                    {
+                        "run": {
+                            "run_id": "packrun_workspace_rationale_req_001",
+                            "runtime_state": "COMPLETED",
+                            "review_state": "SUPERSEDED",
+                            "allowed_review_actions": [],
+                            "supportability_status": "HISTORICAL",
+                            "workflow_authority_owner": "lotus-advise",
+                            "replacement_run_id": "packrun_workspace_rationale_req_002",
+                            "findings": [
+                                {
+                                    "finding_id": "superseded",
+                                    "severity": "INFO",
+                                    "summary": (
+                                        "Run is historical after replacement lineage was recorded."
+                                    ),
+                                }
+                            ],
+                        },
+                        "summary": ["Run superseded in favor of replacement lineage."],
+                    },
+                )
+            },
+            record=recorded,
+            **kwargs,
+        ),
+    )
+    create_payload = {
+        "workspace_name": "AI rationale review workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_ai_review_01",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions",
+            json={
+                "run_id": "packrun_workspace_rationale_req_001",
+                "action_type": "SUPERSEDE",
+                "reviewed_by": "advisor_123",
+                "reason": "A refreshed rationale run supersedes this earlier draft.",
+                "replacement_run_id": "packrun_workspace_rationale_req_002",
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workflow_pack_run"]["run_id"] == "packrun_workspace_rationale_req_001"
+    assert body["workflow_pack_run"]["supportability_status"] == "HISTORICAL"
+    assert body["workflow_pack_run"]["superseded"] is True
+    assert body["workflow_pack_run"]["replacement_run_id"] == "packrun_workspace_rationale_req_002"
+    assert body["summary"] == ["Run superseded in favor of replacement lineage."]
+    assert recorded["url"] == review_action_url
+    assert recorded["json"] == {
+        "action_type": "SUPERSEDE",
+        "caller_app": "lotus-advise",
+        "reviewed_by": "advisor_123",
+        "reason": "A refreshed rationale run supersedes this earlier draft.",
+        "replacement_run_id": "packrun_workspace_rationale_req_002",
+    }
+
+
+def test_workspace_ai_rationale_review_action_propagates_conflicts_truthfully(monkeypatch) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    review_action_url = (
+        f"{base_url}/platform/workflow-packs/runs/"
+        "packrun_workspace_rationale_req_001/review-actions"
+    )
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.rationale.httpx.Client",
+        lambda *args, **kwargs: _FakeLotusAIClient(
+            *args,
+            responses={
+                review_action_url: _FakeLotusAIResponse(
+                    409,
+                    {"detail": "Replacement run must belong to the same workflow-pack family."},
+                )
+            },
+            record={},
+            **kwargs,
+        ),
+    )
+    create_payload = {
+        "workspace_name": "AI rationale review conflict workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_ai_review_02",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions",
+            json={
+                "run_id": "packrun_workspace_rationale_req_001",
+                "action_type": "REVISE",
+                "reviewed_by": "advisor_123",
+                "reason": "Use the replacement rationale run instead.",
+                "replacement_run_id": "packrun_other_family_req_001",
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == (
+        "Replacement run must belong to the same workflow-pack family."
+    )
+
+
+def test_workspace_ai_rationale_review_action_requires_replacement_lineage_for_supersede() -> None:
+    create_payload = {
+        "workspace_name": "AI rationale review validation workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_ai_review_03",
+                    "base_currency": "USD",
+                    "positions": [],
+                    "cash_balances": [{"currency": "USD", "amount": "10000"}],
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+        response = client.post(
+            f"/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions",
+            json={
+                "run_id": "packrun_workspace_rationale_req_001",
+                "action_type": "SUPERSEDE",
+                "reviewed_by": "advisor_123",
+                "reason": "Missing replacement lineage should be rejected.",
+            },
+        )
+
+    assert response.status_code == 422
+    assert "replacement_run_id is required" in response.json()["detail"][0]["msg"]
 
 
 def test_workspace_ai_rationale_requires_evaluated_workspace() -> None:

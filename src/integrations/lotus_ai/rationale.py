@@ -9,6 +9,8 @@ from src.core.workspace.models import (
     WorkspaceAssistantResponse,
     WorkspaceAssistantWorkflowPackRun,
     WorkspaceAssistantWorkflowPackRunFinding,
+    WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    WorkspaceAssistantWorkflowPackRunReviewActionResponse,
 )
 
 _WORKFLOW_PACK_ID = "workspace_rationale.pack"
@@ -49,6 +51,39 @@ def generate_workspace_rationale_with_lotus_ai(
             generated_by="lotus-ai",
             evidence=evidence.model_copy(deep=True),
             workflow_pack_run=_map_workflow_pack_run(_safe_dict(payload.get("workflow_pack_run"))),
+        )
+
+    detail = _extract_detail(payload)
+    if response.status_code >= 500:
+        raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
+    raise LotusAIRationaleUnavailableError(detail)
+
+
+def apply_workspace_rationale_review_action_with_lotus_ai(
+    request: WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+) -> WorkspaceAssistantWorkflowPackRunReviewActionResponse:
+    base_url = _resolve_base_url()
+    try:
+        with httpx.Client(timeout=_resolve_timeout()) as client:
+            response = client.post(
+                f"{base_url}/platform/workflow-packs/runs/{request.run_id}/review-actions",
+                json=_build_review_action_request(request),
+            )
+            payload = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE") from exc
+
+    if response.status_code == 200:
+        workflow_pack_run = _map_workflow_pack_run(_safe_dict(payload.get("run")))
+        if workflow_pack_run is None:
+            raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
+        return WorkspaceAssistantWorkflowPackRunReviewActionResponse(
+            workflow_pack_run=workflow_pack_run,
+            summary=[
+                item.strip()
+                for item in payload.get("summary", [])
+                if isinstance(item, str) and item.strip()
+            ],
         )
 
     detail = _extract_detail(payload)
@@ -118,6 +153,20 @@ def _build_task_payload(
     }
     if evidence.resolved_context is not None:
         payload["resolved_context"] = evidence.resolved_context.model_dump(mode="json")
+    return payload
+
+
+def _build_review_action_request(
+    request: WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "action_type": request.action_type,
+        "caller_app": "lotus-advise",
+        "reviewed_by": request.reviewed_by,
+        "reason": request.reason,
+    }
+    if request.replacement_run_id is not None:
+        payload["replacement_run_id"] = request.replacement_run_id
     return payload
 
 

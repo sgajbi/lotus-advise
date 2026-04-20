@@ -25,6 +25,13 @@ WorkspaceDraftActionType = Literal[
     "REMOVE_CASH_FLOW",
     "REPLACE_OPTIONS",
 ]
+WorkspaceAssistantWorkflowPackRunReviewActionType = Literal[
+    "ACCEPT",
+    "REJECT",
+    "REVISE",
+    "SUPERSEDE",
+    "ABANDON",
+]
 
 
 class WorkspaceStatelessInput(BaseModel):
@@ -762,6 +769,58 @@ class WorkspaceAssistantWorkflowPackRun(BaseModel):
     findings: list[WorkspaceAssistantWorkflowPackRunFinding] = Field(
         default_factory=list,
         description="Workflow-pack supportability findings preserved from lotus-ai.",
+    )
+
+
+class WorkspaceAssistantWorkflowPackRunReviewActionRequest(BaseModel):
+    run_id: str = Field(
+        description="Workflow-pack run identifier to update through the bounded review seam.",
+        examples=["packrun_workspace_rationale_req_001"],
+    )
+    action_type: WorkspaceAssistantWorkflowPackRunReviewActionType = Field(
+        description="Bounded review action requested for the workspace rationale run.",
+        examples=["SUPERSEDE"],
+    )
+    reviewed_by: str = Field(
+        description="Actor identifier applying the bounded review action.",
+        examples=["advisor_123"],
+    )
+    reason: str = Field(
+        description="Short reviewer rationale captured alongside the workflow-pack review action.",
+        examples=["A newer workspace rationale run supersedes this earlier draft."],
+    )
+    replacement_run_id: str | None = Field(
+        default=None,
+        description=(
+            "Replacement workflow-pack run identifier when the review action records "
+            "replacement lineage."
+        ),
+        examples=["packrun_workspace_rationale_req_002"],
+    )
+
+    @model_validator(mode="after")
+    def validate_replacement_lineage(
+        self,
+    ) -> "WorkspaceAssistantWorkflowPackRunReviewActionRequest":
+        requires_replacement = self.action_type in {"REVISE", "SUPERSEDE"}
+        has_replacement = (
+            isinstance(self.replacement_run_id, str) and bool(self.replacement_run_id.strip())
+        )
+        if requires_replacement and not has_replacement:
+            raise ValueError("replacement_run_id is required for REVISE and SUPERSEDE actions")
+        if not requires_replacement:
+            self.replacement_run_id = None
+        return self
+
+
+class WorkspaceAssistantWorkflowPackRunReviewActionResponse(BaseModel):
+    workflow_pack_run: WorkspaceAssistantWorkflowPackRun = Field(
+        description="Workflow-pack run posture returned after the bounded review action completes.",
+    )
+    summary: list[str] = Field(
+        default_factory=list,
+        description="Bounded review summary notes preserved from lotus-ai.",
+        examples=[["Run accepted and ready for bounded downstream use."]],
     )
 
 

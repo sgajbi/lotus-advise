@@ -40,7 +40,7 @@ Current repository posture:
 9. RFC-0087 trust telemetry proof for `AdvisoryProposalLifecycleRecord` now lives under
    `contracts/trust-telemetry/` and is validated by `tests/unit/test_trust_telemetry.py` against
    the platform trust telemetry validator when `lotus-platform` is available,
-10. the advisory workspace rationale path now uses the explicit `lotus-ai` workflow-pack execution seam for the `workspace_rationale.pack` family and preserves bounded run posture in the advisory response instead of relying on a local override hook.
+10. the advisory workspace rationale path now uses the explicit `lotus-ai` workflow-pack execution seam for the `workspace_rationale.pack` family, preserves bounded run posture in the advisory response, and exposes a separate bounded review-action pass-through that retains Lotus AI lineage truth.
 
 ## Architecture And Module Map
 

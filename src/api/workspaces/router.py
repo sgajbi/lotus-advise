@@ -6,6 +6,7 @@ import src.api.proposals.router as proposal_shared
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.api.services.workspace_ai_service import (
     WorkspaceAssistantUnavailableError,
+    apply_workspace_rationale_review_action,
     generate_workspace_rationale,
 )
 from src.api.services.workspace_service import (
@@ -34,6 +35,8 @@ from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.workspace.models import (
     WorkspaceAssistantRequest,
     WorkspaceAssistantResponse,
+    WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    WorkspaceAssistantWorkflowPackRunReviewActionResponse,
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
@@ -121,6 +124,17 @@ _WORKSPACE_AI_RATIONALE_EXAMPLE = {
     "value": {
         "requested_by": "advisor_123",
         "instruction": "Summarize the proposal rationale for an advisor review note.",
+    },
+}
+
+_WORKSPACE_AI_REVIEW_ACTION_EXAMPLE = {
+    "summary": "Supersede a historical workspace rationale run with replacement lineage",
+    "value": {
+        "run_id": "packrun_workspace_rationale_req_001",
+        "action_type": "SUPERSEDE",
+        "reviewed_by": "advisor_123",
+        "reason": "A refreshed rationale run supersedes the earlier workspace draft.",
+        "replacement_run_id": "packrun_workspace_rationale_req_002",
     },
 }
 
@@ -448,6 +462,52 @@ def generate_workspace_rationale_endpoint(
 ) -> WorkspaceAssistantResponse:
     try:
         return generate_workspace_rationale(workspace_id, request)
+    except WorkspaceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except WorkspaceAssistantUnavailableError as exc:
+        detail = str(exc)
+        if detail == "LOTUS_AI_RATIONALE_UNAVAILABLE":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=detail,
+            ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
+
+
+@router.post(
+    "/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions",
+    response_model=WorkspaceAssistantWorkflowPackRunReviewActionResponse,
+    tags=["Advisory Workspace"],
+    summary="Apply an Advisory Workspace Rationale Review Action",
+    description=(
+        "Applies a bounded workflow-pack review action for the Lotus AI run backing an advisory "
+        "workspace rationale. Lotus AI remains the run-ledger authority, and this route preserves "
+        "returned replacement lineage and supportability posture without rewriting the rationale "
+        "narrative."
+    ),
+    responses={
+        200: {
+            "description": "Workspace rationale review action applied successfully.",
+            "content": {
+                "application/json": {
+                    "examples": {"workspace_rationale_review": _WORKSPACE_AI_REVIEW_ACTION_EXAMPLE}
+                }
+            },
+        },
+        404: {"description": "Workspace session not found."},
+        409: {"description": "Review action conflicted with the Lotus AI run ledger state."},
+        503: {"description": "Lotus AI assistance is unavailable for this runtime."},
+    },
+)
+def apply_workspace_rationale_review_action_endpoint(
+    workspace_id: Annotated[
+        str,
+        Path(description="Workspace session identifier.", examples=["aws_001"]),
+    ],
+    request: WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+) -> WorkspaceAssistantWorkflowPackRunReviewActionResponse:
+    try:
+        return apply_workspace_rationale_review_action(workspace_id, request)
     except WorkspaceNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except WorkspaceAssistantUnavailableError as exc:

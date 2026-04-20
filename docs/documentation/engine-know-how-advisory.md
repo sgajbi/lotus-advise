@@ -297,6 +297,7 @@ Current workspace scope:
 - `POST /advisory/workspaces/{workspace_id}/resume` restores a saved version into the current editable draft.
 - `POST /advisory/workspaces/{workspace_id}/compare` compares the current draft to a saved version baseline.
 - `POST /advisory/workspaces/{workspace_id}/assistant/rationale` generates an evidence-grounded workspace rationale through the explicit Lotus AI workflow-pack seam.
+- `POST /advisory/workspaces/{workspace_id}/assistant/rationale/review-actions` applies bounded workflow-pack review actions for the rationale run without rewriting the rationale narrative.
 - `POST /advisory/workspaces/{workspace_id}/handoff` bridges the current draft into persisted proposal lifecycle without duplicating lifecycle ownership.
 
 Current Slice 2 draft actions:
@@ -329,6 +330,8 @@ Current AI assistance rule:
 - the Lotus AI seam receives a deterministic evidence bundle containing workspace identity, resolved context, evaluation summary, proposal status, and advisor instruction
 - the advisory runtime now sends that bundle through `workspace_rationale.pack@v1` on the explicit Lotus AI workflow-pack execution route
 - the response always includes that evidence bundle and now also preserves bounded workflow-pack run posture so the AI output remains reviewable and grounded
+- bounded review actions for that run are exposed on a separate route that forwards Lotus AI `replacement_run_id` lineage unchanged for `REVISE` and `SUPERSEDE`
+- review-action responses update only workflow-pack posture and summary; they do not imply that the workspace rationale text itself was rewritten
 
 Current capability-truth rule:
 - `/platform/capabilities` reports supported input modes as `stateless` and `stateful`
