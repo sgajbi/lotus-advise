@@ -177,9 +177,9 @@ def test_workspace_endpoint_has_documented_request_and_response_contracts():
     assistant_review_action_request_ref = assistant_review_action["requestBody"]["content"][
         "application/json"
     ]["schema"]["$ref"]
-    assistant_review_action_response_ref = assistant_review_action["responses"]["200"][
-        "content"
-    ]["application/json"]["schema"]["$ref"]
+    assistant_review_action_response_ref = assistant_review_action["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
     assert assistant_review_action_request_ref.endswith(
         "/WorkspaceAssistantWorkflowPackRunReviewActionRequest"
     )
@@ -187,8 +187,7 @@ def test_workspace_endpoint_has_documented_request_and_response_contracts():
         "/WorkspaceAssistantWorkflowPackRunReviewActionResponse"
     )
     assert (
-        assistant_review_action["summary"]
-        == "Apply an Advisory Workspace Rationale Review Action"
+        assistant_review_action["summary"] == "Apply an Advisory Workspace Rationale Review Action"
     )
 
     handoff_workspace = openapi["paths"]["/advisory/workspaces/{workspace_id}/handoff"]["post"]

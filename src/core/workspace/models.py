@@ -748,8 +748,7 @@ class WorkspaceAssistantWorkflowPackRun(BaseModel):
     )
     superseded: bool = Field(
         description=(
-            "Whether lotus-ai marks the workflow-pack run as historical due to "
-            "replacement lineage."
+            "Whether lotus-ai marks the workflow-pack run as historical due to replacement lineage."
         ),
     )
     workflow_authority_owner: str = Field(
@@ -803,8 +802,8 @@ class WorkspaceAssistantWorkflowPackRunReviewActionRequest(BaseModel):
         self,
     ) -> "WorkspaceAssistantWorkflowPackRunReviewActionRequest":
         requires_replacement = self.action_type in {"REVISE", "SUPERSEDE"}
-        has_replacement = (
-            isinstance(self.replacement_run_id, str) and bool(self.replacement_run_id.strip())
+        has_replacement = isinstance(self.replacement_run_id, str) and bool(
+            self.replacement_run_id.strip()
         )
         if requires_replacement and not has_replacement:
             raise ValueError("replacement_run_id is required for REVISE and SUPERSEDE actions")

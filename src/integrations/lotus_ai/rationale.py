@@ -215,8 +215,7 @@ def _map_workflow_pack_run(
         severity = item.get("severity")
         summary = item.get("summary")
         if not all(
-            isinstance(value, str) and value.strip()
-            for value in (finding_id, severity, summary)
+            isinstance(value, str) and value.strip() for value in (finding_id, severity, summary)
         ):
             continue
         findings.append(
