@@ -12,6 +12,7 @@ from src.core.workspace.models import (
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
     WorkspaceAssistantWorkflowPackRunReviewActionResponse,
 )
+from src.integrations.lotus_core.runtime_config import env_positive_float
 
 _WORKFLOW_PACK_ID = "workspace_rationale.pack"
 _WORKFLOW_PACK_VERSION = "v1"
@@ -100,7 +101,7 @@ def _resolve_base_url() -> str:
 
 
 def _resolve_timeout() -> httpx.Timeout:
-    return httpx.Timeout(float(os.getenv("LOTUS_AI_TIMEOUT_SECONDS", "10.0")))
+    return httpx.Timeout(env_positive_float("LOTUS_AI_TIMEOUT_SECONDS", default=10.0))
 
 
 def _build_workflow_pack_request(
