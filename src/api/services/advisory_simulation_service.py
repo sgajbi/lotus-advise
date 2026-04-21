@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.router import get_proposal_repository
+from src.core.advisory.alternatives_normalizer import AlternativesRequestNormalizationError
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult
@@ -58,14 +59,20 @@ def simulate_proposal_response(
 
     resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
     context_resolution = build_context_resolution_evidence(resolved_request)
-    result = evaluate_advisory_proposal(
-        request=resolved_request.simulate_request,
-        request_hash=request_hash,
-        idempotency_key=idempotency_key,
-        correlation_id=resolved_correlation_id,
-        resolved_as_of=resolved_request.resolved_context.as_of,
-        policy_context=context_resolution["advisory_policy_context"],
-    )
+    try:
+        result = evaluate_advisory_proposal(
+            request=resolved_request.simulate_request,
+            request_hash=request_hash,
+            idempotency_key=idempotency_key,
+            correlation_id=resolved_correlation_id,
+            resolved_as_of=resolved_request.resolved_context.as_of,
+            policy_context=context_resolution["advisory_policy_context"],
+        )
+    except AlternativesRequestNormalizationError as exc:
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE,
+            detail=f"{exc.reason_code}: {exc}",
+        ) from exc
     result.explanation["context_resolution"] = context_resolution
 
     try:

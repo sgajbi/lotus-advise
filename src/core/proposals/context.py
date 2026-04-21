@@ -75,6 +75,22 @@ def _metadata_with_stateful_defaults(
     )
 
 
+def _merge_alternatives_request(
+    simulate_request: ProposalSimulateRequest,
+    *,
+    alternatives_request: object | None,
+) -> ProposalSimulateRequest:
+    if alternatives_request is None:
+        return simulate_request
+    return cast(
+        ProposalSimulateRequest,
+        simulate_request.model_copy(
+            update={"alternatives_request": alternatives_request},
+            deep=True,
+        ),
+    )
+
+
 def _resolve_stateful_input(
     stateful_input: ProposalStatefulInput,
 ) -> tuple[ProposalSimulateRequest, ProposalResolvedContext]:
@@ -156,6 +172,10 @@ def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSi
     if payload.input_mode == "stateful":
         assert payload.stateful_input is not None
         simulate_request, resolved_context = _resolve_stateful_input(payload.stateful_input)
+        simulate_request = _merge_alternatives_request(
+            simulate_request,
+            alternatives_request=payload.alternatives_request,
+        )
         return ResolvedSimulationContext(
             input_mode="stateful",
             resolution_source="LOTUS_CORE",

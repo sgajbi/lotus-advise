@@ -11,6 +11,12 @@ from src.integrations.lotus_core.contracts import (
 from src.integrations.lotus_core.runtime_config import resolve_lotus_core_timeout
 
 _EXECUTION_PATH = "/integration/advisory/proposals/simulate-execution"
+_SUITABILITY_CLASSIFICATIONS = {
+    "NEW",
+    "RESOLVED",
+    "PERSISTENT",
+    "UNKNOWN_DUE_TO_MISSING_EVIDENCE",
+}
 
 
 class LotusCoreSimulationUnavailableError(Exception):
@@ -29,6 +35,27 @@ def _resolve_base_url() -> str:
 
 def _resolve_timeout() -> httpx.Timeout:
     return resolve_lotus_core_timeout()
+
+
+def _normalize_suitability_issue_classification(payload: dict[str, Any]) -> dict[str, Any]:
+    suitability = payload.get("suitability")
+    if not isinstance(suitability, dict):
+        return payload
+    issues = suitability.get("issues")
+    if not isinstance(issues, list):
+        return payload
+    for issue in issues:
+        if not isinstance(issue, dict):
+            continue
+        classification = issue.get("classification")
+        if isinstance(classification, str) and classification in _SUITABILITY_CLASSIFICATIONS:
+            continue
+        status_change = issue.get("status_change")
+        if isinstance(status_change, str) and status_change in _SUITABILITY_CLASSIFICATIONS:
+            issue["classification"] = status_change
+            continue
+        issue["classification"] = "UNKNOWN_DUE_TO_MISSING_EVIDENCE"
+    return payload
 
 
 def simulate_with_lotus_core(
@@ -91,7 +118,9 @@ def simulate_with_lotus_core(
             f"got {response_contract_version or 'missing'}"
         )
 
-    result: ProposalResult = ProposalResult.model_validate(payload)
+    result: ProposalResult = ProposalResult.model_validate(
+        _normalize_suitability_issue_classification(payload)
+    )
     if result.lineage.simulation_contract_version != ADVISORY_SIMULATION_CONTRACT_VERSION:
         raise LotusCoreSimulationUnavailableError(
             "LOTUS_CORE_SIMULATION_CONTRACT_VERSION_MISMATCH: "

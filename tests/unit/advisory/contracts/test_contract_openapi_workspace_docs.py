@@ -56,6 +56,18 @@ def test_workspace_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(assistant_response_schema, "assistant_output")
     _assert_property_has_docs(assistant_response_schema, "generated_by")
     _assert_property_has_docs(assistant_response_schema, "evidence")
+    _assert_property_has_docs(assistant_response_schema, "workflow_pack_run")
+
+    review_action_request_schema = schemas["WorkspaceAssistantWorkflowPackRunReviewActionRequest"]
+    _assert_property_has_docs(review_action_request_schema, "run_id")
+    _assert_property_has_docs(review_action_request_schema, "action_type")
+    _assert_property_has_docs(review_action_request_schema, "reviewed_by")
+    _assert_property_has_docs(review_action_request_schema, "reason")
+    _assert_property_has_docs(review_action_request_schema, "replacement_run_id")
+
+    review_action_response_schema = schemas["WorkspaceAssistantWorkflowPackRunReviewActionResponse"]
+    _assert_property_has_docs(review_action_response_schema, "workflow_pack_run")
+    _assert_property_has_docs(review_action_response_schema, "summary")
 
     saved_version_schema = schemas["WorkspaceSavedVersion"]
     _assert_property_has_docs(saved_version_schema, "workspace_version_id")
@@ -158,6 +170,25 @@ def test_workspace_endpoint_has_documented_request_and_response_contracts():
     assert assistant_request_ref.endswith("/WorkspaceAssistantRequest")
     assert assistant_response_ref.endswith("/WorkspaceAssistantResponse")
     assert assistant_rationale["summary"] == "Generate an Advisory Workspace Rationale"
+
+    assistant_review_action = openapi["paths"][
+        "/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions"
+    ]["post"]
+    assistant_review_action_request_ref = assistant_review_action["requestBody"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assistant_review_action_response_ref = assistant_review_action["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assert assistant_review_action_request_ref.endswith(
+        "/WorkspaceAssistantWorkflowPackRunReviewActionRequest"
+    )
+    assert assistant_review_action_response_ref.endswith(
+        "/WorkspaceAssistantWorkflowPackRunReviewActionResponse"
+    )
+    assert (
+        assistant_review_action["summary"] == "Apply an Advisory Workspace Rationale Review Action"
+    )
 
     handoff_workspace = openapi["paths"]["/advisory/workspaces/{workspace_id}/handoff"]["post"]
     handoff_request_ref = handoff_workspace["requestBody"]["content"]["application/json"]["schema"][

@@ -298,6 +298,93 @@ def test_advisory_proposal_simulate_supports_stateful_context_resolution(client,
     assert body["explanation"]["context_resolution"]["used_legacy_contract"] is False
 
 
+def test_advisory_proposal_simulate_stateful_requests_preserve_alternatives_request(
+    client, monkeypatch
+):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: build_resolved_stateful_context(
+            stateful_input.portfolio_id,
+            stateful_input.as_of,
+            positions=[
+                {"instrument_id": "EQ_1", "quantity": "20"},
+                {"instrument_id": "EQ_2", "quantity": "10"},
+            ],
+            prices=[
+                {"instrument_id": "EQ_1", "price": "100", "currency": "USD"},
+                {"instrument_id": "EQ_2", "price": "80", "currency": "USD"},
+            ],
+            shelf_entries=[
+                {"instrument_id": "EQ_1", "status": "APPROVED"},
+                {"instrument_id": "EQ_2", "status": "APPROVED"},
+            ],
+        ),
+        raising=False,
+    )
+    payload = {
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_prop_api_stateful_alt",
+            "as_of": "2026-03-25",
+        },
+        "alternatives_request": {
+            "enabled": True,
+            "objectives": ["LOWER_TURNOVER", "REDUCE_CONCENTRATION"],
+            "include_rejected_candidates": True,
+        },
+    }
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-stateful-alt-1"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["explanation"]["context_resolution"]["input_mode"] == "stateful"
+    assert body["proposal_alternatives"]["requested_objectives"] == [
+        "LOWER_TURNOVER",
+        "REDUCE_CONCENTRATION",
+    ]
+    assert body["proposal_alternatives"]["alternatives"] == []
+    assert len(body["proposal_alternatives"]["rejected_candidates"]) == 2
+
+
+def test_advisory_proposal_simulate_rejects_oversized_alternatives_request_with_422(
+    client, monkeypatch
+):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    payload = {
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_prop_api_stateful_alt_invalid",
+            "as_of": "2026-03-25",
+        },
+        "alternatives_request": {
+            "enabled": True,
+            "objectives": ["REDUCE_CONCENTRATION"],
+            "max_alternatives": 4,
+        },
+    }
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-stateful-alt-invalid"},
+    )
+
+    assert response.status_code == 422
+    assert "ALTERNATIVES_MAX_LIMIT_EXCEEDED" in response.json()["detail"]
+
+
 def test_advisory_proposal_simulate_projects_available_policy_context_for_complex_product(
     client, monkeypatch
 ):

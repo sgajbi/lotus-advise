@@ -79,6 +79,10 @@ class LiveParityResult:
     cross_currency_security_id: str
     non_held_security_id: str
     workspace_handoff_portfolio: str
+    workspace_rationale_initial_run_id: str
+    workspace_rationale_replacement_run_id: str
+    workspace_rationale_review_state: str
+    workspace_rationale_supportability_status: str
     lifecycle_portfolio: str
     lifecycle_latest_version_no: int
     lifecycle_current_state: str
@@ -152,6 +156,10 @@ def _extract_live_decision_snapshot(
     return snapshot
 
 
+def _canonicalize_allocation_bucket_value(value: Any) -> str:
+    return "_".join(str(value).strip().upper().replace("-", " ").split())
+
+
 def _normalize_allocation_views(views: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     normalized: dict[str, dict[str, Any]] = {}
     for view in views:
@@ -160,7 +168,7 @@ def _normalize_allocation_views(views: list[dict[str, Any]]) -> dict[str, dict[s
             total = _decimal(view["total_market_value_reporting_currency"])
             buckets = [
                 {
-                    "value": str(bucket["dimension_value"]),
+                    "value": _canonicalize_allocation_bucket_value(bucket["dimension_value"]),
                     "market_value": _decimal(bucket["market_value_reporting_currency"]),
                     "weight": _decimal(bucket["weight"]),
                     "position_count": int(bucket["position_count"]),
@@ -171,7 +179,7 @@ def _normalize_allocation_views(views: list[dict[str, Any]]) -> dict[str, dict[s
             total = _decimal(view["total_value"]["amount"])
             buckets = [
                 {
-                    "value": str(bucket["key"]),
+                    "value": _canonicalize_allocation_bucket_value(bucket["key"]),
                     "market_value": _decimal(bucket["value"]["amount"]),
                     "weight": _decimal(bucket["weight"]),
                     "position_count": int(bucket["position_count"]),
@@ -236,6 +244,21 @@ def _stateful_noop_request(*, portfolio_id: str, as_of_date: str) -> dict[str, A
             "as_of": as_of_date,
         },
     }
+
+
+def _build_alternatives_request(
+    *,
+    objectives: list[str],
+    max_alternatives: int,
+    constraints: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    request: dict[str, Any] = {
+        "objectives": objectives,
+        "max_alternatives": max_alternatives,
+    }
+    if constraints:
+        request["constraints"] = constraints
+    return request
 
 
 def _simulate_stateful_noop(
@@ -393,7 +416,7 @@ def _query_direct_concentration(
                 "include_cash_positions": True,
                 "include_zero_quantity_positions": False,
                 "top_n": 10,
-                "simulation_changes": simulation_changes or [],
+                "simulation_changes": _json_safe_value(simulation_changes or []),
             },
             "issuer_grouping_level": "ultimate_parent",
             "enrichment_policy": "merge_caller_then_core",
@@ -529,6 +552,29 @@ def _extract_live_proposal_alternatives_snapshot(
     return snapshot
 
 
+def _collect_alternative_statuses(
+    proposal_body: dict[str, Any],
+) -> dict[str, set[str]]:
+    proposal_alternatives = proposal_body.get("proposal_alternatives")
+    if not isinstance(proposal_alternatives, dict):
+        return {}
+
+    alternatives = proposal_alternatives.get("alternatives")
+    if not isinstance(alternatives, list):
+        return {}
+
+    statuses_by_objective: dict[str, set[str]] = {}
+    for alternative in alternatives:
+        if not isinstance(alternative, dict):
+            continue
+        objective = str(alternative.get("objective") or "").strip()
+        status = str(alternative.get("status") or "").strip()
+        if not objective or not status:
+            continue
+        statuses_by_objective.setdefault(objective, set()).add(status)
+    return statuses_by_objective
+
+
 def _validate_live_proposal_alternatives_paths(
     client: httpx.Client,
     *,
@@ -548,32 +594,64 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-noop-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": [
+        alternatives_request=_build_alternatives_request(
+            objectives=[
                 "REDUCE_CONCENTRATION",
                 "RAISE_CASH",
                 "IMPROVE_CURRENCY_ALIGNMENT",
                 "AVOID_RESTRICTED_PRODUCTS",
             ],
-            "max_alternatives": 4,
-            "constraints": {
+            max_alternatives=3,
+            constraints={
                 "cash_floor": {
                     "amount": "25000",
                     "currency": complete_scenario.reporting_currency,
                 }
             },
-        },
+        ),
     )
     noop_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=noop_body,
         path_name="no_op_path",
         latency_ms=noop_latency_ms,
     )
+    noop_statuses = _collect_alternative_statuses(noop_body)
     _assert(
-        noop_snapshot.feasible_count + noop_snapshot.feasible_with_review_count >= 3,
+        noop_snapshot.requested_objectives
+        == (
+            "REDUCE_CONCENTRATION",
+            "RAISE_CASH",
+            "IMPROVE_CURRENCY_ALIGNMENT",
+            "AVOID_RESTRICTED_PRODUCTS",
+        ),
+        f"no_op_path: requested objectives drifted, got {noop_snapshot.requested_objectives}",
+    )
+    _assert(
+        noop_statuses.get("REDUCE_CONCENTRATION") == {"REJECTED_POLICY_BLOCKED"},
         (
-            "no_op_path: expected at least three feasible proposal alternatives on canonical "
-            f"stack, got snapshot={noop_snapshot}"
+            "no_op_path: expected concentration objective to surface as policy-blocked under "
+            f"canonical posture, got {noop_statuses}"
+        ),
+    )
+    _assert(
+        noop_statuses.get("IMPROVE_CURRENCY_ALIGNMENT") == {"REJECTED_POLICY_BLOCKED"},
+        (
+            "no_op_path: expected currency objective to surface as policy-blocked under "
+            f"canonical posture, got {noop_statuses}"
+        ),
+    )
+    _assert(
+        "ALTERNATIVE_CASH_ALREADY_SUFFICIENT" in noop_snapshot.rejected_reason_codes,
+        (
+            "no_op_path: expected cash-floor rejection evidence, got "
+            f"{noop_snapshot.rejected_reason_codes}"
+        ),
+    )
+    _assert(
+        "ALTERNATIVE_OBJECTIVE_PENDING_CANONICAL_EVIDENCE" in noop_snapshot.rejected_reason_codes,
+        (
+            "no_op_path: expected restricted-product deferred evidence, got "
+            f"{noop_snapshot.rejected_reason_codes}"
         ),
     )
 
@@ -583,31 +661,30 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-concentration-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": ["REDUCE_CONCENTRATION"],
-            "max_alternatives": 1,
-        },
+        alternatives_request=_build_alternatives_request(
+            objectives=["REDUCE_CONCENTRATION"],
+            max_alternatives=1,
+        ),
     )
     concentration_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=concentration_body,
         path_name="concentration_path",
         latency_ms=concentration_latency_ms,
     )
+    concentration_statuses = _collect_alternative_statuses(concentration_body)
     _assert(
-        concentration_snapshot.feasible_count + concentration_snapshot.feasible_with_review_count
-        >= 1,
-        "concentration_path: expected at least one ranked concentration alternative",
-    )
-    _assert(
-        concentration_snapshot.top_ranked_objective == "REDUCE_CONCENTRATION",
+        concentration_snapshot.requested_objectives == ("REDUCE_CONCENTRATION",),
         (
-            "concentration_path: top ranked objective drifted from concentration posture, got "
-            f"{concentration_snapshot.top_ranked_objective}"
+            "concentration_path: requested objective drifted from concentration posture, got "
+            f"{concentration_snapshot.requested_objectives}"
         ),
     )
     _assert(
-        bool(concentration_snapshot.top_ranked_reason_codes),
-        "concentration_path: top-ranked alternative omitted ranking reason codes",
+        concentration_statuses.get("REDUCE_CONCENTRATION") == {"REJECTED_POLICY_BLOCKED"},
+        (
+            "concentration_path: expected policy-blocked concentration alternative, got "
+            f"{concentration_statuses}"
+        ),
     )
 
     cash_raise_body, cash_raise_latency_ms = _simulate_stateful_alternatives(
@@ -616,16 +693,16 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-cash-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": ["RAISE_CASH"],
-            "max_alternatives": 1,
-            "constraints": {
+        alternatives_request=_build_alternatives_request(
+            objectives=["RAISE_CASH"],
+            max_alternatives=1,
+            constraints={
                 "cash_floor": {
                     "amount": "25000",
                     "currency": complete_scenario.reporting_currency,
                 }
             },
-        },
+        ),
     )
     cash_raise_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=cash_raise_body,
@@ -633,14 +710,10 @@ def _validate_live_proposal_alternatives_paths(
         latency_ms=cash_raise_latency_ms,
     )
     _assert(
-        cash_raise_snapshot.feasible_count + cash_raise_snapshot.feasible_with_review_count >= 1,
-        "cash_raise_path: expected a ranked cash-raise alternative",
-    )
-    _assert(
-        cash_raise_snapshot.top_ranked_objective == "RAISE_CASH",
+        cash_raise_snapshot.rejected_reason_codes == ("ALTERNATIVE_CASH_ALREADY_SUFFICIENT",),
         (
-            "cash_raise_path: expected RAISE_CASH objective, got "
-            f"{cash_raise_snapshot.top_ranked_objective}"
+            "cash_raise_path: expected cash-floor rejection due to already sufficient base cash, "
+            f"got {cash_raise_snapshot.rejected_reason_codes}"
         ),
     )
 
@@ -650,26 +723,29 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-currency-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": ["IMPROVE_CURRENCY_ALIGNMENT"],
-            "max_alternatives": 1,
-        },
+        alternatives_request=_build_alternatives_request(
+            objectives=["IMPROVE_CURRENCY_ALIGNMENT"],
+            max_alternatives=1,
+        ),
     )
     cross_currency_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=cross_currency_body,
         path_name="cross_currency_path",
         latency_ms=cross_currency_latency_ms,
     )
+    cross_currency_statuses = _collect_alternative_statuses(cross_currency_body)
     _assert(
-        cross_currency_snapshot.feasible_count + cross_currency_snapshot.feasible_with_review_count
-        >= 1,
-        "cross_currency_path: expected a ranked cross-currency alternative",
+        cross_currency_snapshot.requested_objectives == ("IMPROVE_CURRENCY_ALIGNMENT",),
+        (
+            "cross_currency_path: requested objective drifted from currency posture, got "
+            f"{cross_currency_snapshot.requested_objectives}"
+        ),
     )
     _assert(
-        cross_currency_snapshot.top_ranked_objective == "IMPROVE_CURRENCY_ALIGNMENT",
+        cross_currency_statuses.get("IMPROVE_CURRENCY_ALIGNMENT") == {"REJECTED_POLICY_BLOCKED"},
         (
-            "cross_currency_path: expected IMPROVE_CURRENCY_ALIGNMENT objective, got "
-            f"{cross_currency_snapshot.top_ranked_objective}"
+            "cross_currency_path: expected policy-blocked currency alternative, got "
+            f"{cross_currency_statuses}"
         ),
     )
 
@@ -679,10 +755,10 @@ def _validate_live_proposal_alternatives_paths(
         portfolio_id=complete_scenario.portfolio_id,
         as_of_date=complete_scenario.as_of_date,
         idempotency_key=f"live-alt-restricted-{uuid.uuid4().hex}",
-        alternatives_request={
-            "requested_objectives": ["AVOID_RESTRICTED_PRODUCTS"],
-            "max_alternatives": 1,
-        },
+        alternatives_request=_build_alternatives_request(
+            objectives=["AVOID_RESTRICTED_PRODUCTS"],
+            max_alternatives=1,
+        ),
     )
     restricted_product_snapshot = _extract_live_proposal_alternatives_snapshot(
         proposal_body=restricted_product_body,
@@ -811,6 +887,16 @@ def _security_trade_changes_from_proposal_body(
             change["currency"] = notional["currency"]
         changes.append(change)
     return changes
+
+
+def _json_safe_value(value: Any) -> Any:
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe_value(item) for item in value]
+    return value
 
 
 def _select_scenarios(
@@ -1021,6 +1107,111 @@ def _get_json(
         url=url,
         expected_status=expected_status,
     )
+
+
+def _assert_workspace_rationale_response(
+    *,
+    scenario: PortfolioParityScenario,
+    workspace_id: str,
+    response_body: dict[str, Any],
+) -> dict[str, Any]:
+    _assert(
+        response_body.get("generated_by") == "lotus-ai",
+        f"{scenario.portfolio_id}: workspace rationale was not generated by lotus-ai",
+    )
+    evidence = response_body.get("evidence")
+    _assert(
+        isinstance(evidence, dict) and evidence.get("workspace_id") == workspace_id,
+        f"{scenario.portfolio_id}: workspace rationale evidence lost workspace identity",
+    )
+    workflow_pack_run = response_body.get("workflow_pack_run")
+    _assert(
+        isinstance(workflow_pack_run, dict),
+        f"{scenario.portfolio_id}: workspace rationale omitted workflow-pack run posture",
+    )
+    _assert(
+        workflow_pack_run.get("workflow_authority_owner") == "lotus-advise",
+        (
+            f"{scenario.portfolio_id}: workspace rationale run owner drifted "
+            "from lotus-advise, "
+            f"got {workflow_pack_run}"
+        ),
+    )
+    _assert(
+        workflow_pack_run.get("runtime_state") == "COMPLETED",
+        f"{scenario.portfolio_id}: workspace rationale run was not completed",
+    )
+    _assert(
+        workflow_pack_run.get("review_state") == "AWAITING_REVIEW",
+        f"{scenario.portfolio_id}: workspace rationale run lost awaiting-review posture",
+    )
+    _assert(
+        workflow_pack_run.get("supportability_status") == "ACTION_REQUIRED",
+        (
+            f"{scenario.portfolio_id}: workspace rationale run lost action-required posture, "
+            f"got {workflow_pack_run}"
+        ),
+    )
+    allowed_review_actions = workflow_pack_run.get("allowed_review_actions")
+    _assert(
+        isinstance(allowed_review_actions, list)
+        and "REVISE" in allowed_review_actions
+        and "SUPERSEDE" in allowed_review_actions,
+        (
+            f"{scenario.portfolio_id}: workspace rationale run omitted bounded replacement "
+            f"review actions {workflow_pack_run}"
+        ),
+    )
+    return cast(dict[str, Any], workflow_pack_run)
+
+
+def _assert_workspace_rationale_review_action(
+    *,
+    scenario: PortfolioParityScenario,
+    initial_run_id: str,
+    replacement_run_id: str,
+    review_action: dict[str, Any],
+) -> tuple[str, str]:
+    review_run = review_action.get("workflow_pack_run")
+    _assert(
+        isinstance(review_run, dict),
+        f"{scenario.portfolio_id}: workspace rationale review action omitted workflow-pack run",
+    )
+    _assert(
+        review_run.get("run_id") == initial_run_id,
+        f"{scenario.portfolio_id}: workspace rationale review action returned the wrong run",
+    )
+    _assert(
+        review_run.get("replacement_run_id") == replacement_run_id,
+        (
+            f"{scenario.portfolio_id}: workspace rationale review action lost replacement "
+            f"lineage {review_run}"
+        ),
+    )
+    _assert(
+        review_run.get("review_state") == "SUPERSEDED",
+        f"{scenario.portfolio_id}: workspace rationale review state drifted after supersede",
+    )
+    _assert(
+        review_run.get("supportability_status") == "HISTORICAL"
+        and review_run.get("superseded") is True,
+        (
+            f"{scenario.portfolio_id}: workspace rationale review action did not produce "
+            f"historical superseded posture {review_run}"
+        ),
+    )
+    _assert(
+        isinstance(review_action.get("summary"), list) and review_action["summary"],
+        f"{scenario.portfolio_id}: workspace rationale review action omitted summary evidence",
+    )
+    _assert(
+        "assistant_output" not in review_action,
+        (
+            f"{scenario.portfolio_id}: workspace rationale review action unexpectedly implied a "
+            "rewritten narrative"
+        ),
+    )
+    return str(review_run["review_state"]), str(review_run["supportability_status"])
 
 
 def _create_stateful_proposal(
@@ -2014,7 +2205,7 @@ def _assert_workspace_flow(
     *,
     advise_base_url: str,
     scenario: PortfolioParityScenario,
-) -> None:
+) -> tuple[str, str, str, str]:
     create_body = _post_json(
         client,
         url=f"{advise_base_url}/advisory/workspaces",
@@ -2118,6 +2309,69 @@ def _assert_workspace_flow(
         workspace_replay["hashes"]["evaluation_request_hash"]
         == proposal_replay["hashes"]["evaluation_request_hash"],
         f"{scenario.portfolio_id}: workspace/proposal replay hashes diverged after handoff",
+    )
+
+    first_rationale = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces/{workspace_id}/assistant/rationale",
+        expected_status=200,
+        json_body={
+            "requested_by": "live-parity-validator",
+            "instruction": "Summarize the evaluated workspace rationale for review.",
+        },
+    )
+    second_rationale = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces/{workspace_id}/assistant/rationale",
+        expected_status=200,
+        json_body={
+            "requested_by": "live-parity-validator",
+            "instruction": "Refresh the rationale to produce a replacement review run.",
+        },
+    )
+    first_run = _assert_workspace_rationale_response(
+        scenario=scenario,
+        workspace_id=workspace_id,
+        response_body=first_rationale,
+    )
+    second_run = _assert_workspace_rationale_response(
+        scenario=scenario,
+        workspace_id=workspace_id,
+        response_body=second_rationale,
+    )
+    initial_run_id = str(first_run["run_id"])
+    replacement_run_id = str(second_run["run_id"])
+    _assert(
+        initial_run_id != replacement_run_id,
+        (
+            f"{scenario.portfolio_id}: workspace rationale replacement run did not "
+            "produce a new run id"
+        ),
+    )
+
+    review_action = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions",
+        expected_status=200,
+        json_body={
+            "run_id": initial_run_id,
+            "action_type": "SUPERSEDE",
+            "reviewed_by": "live-parity-validator",
+            "reason": "Replacement rationale run supersedes the earlier draft.",
+            "replacement_run_id": replacement_run_id,
+        },
+    )
+    review_state, supportability_status = _assert_workspace_rationale_review_action(
+        scenario=scenario,
+        initial_run_id=initial_run_id,
+        replacement_run_id=replacement_run_id,
+        review_action=review_action,
+    )
+    return (
+        initial_run_id,
+        replacement_run_id,
+        review_state,
+        supportability_status,
     )
 
 
@@ -2737,7 +2991,12 @@ def validate_live_cross_service_parity(
             advise_base_url=advise_base_url,
             scenario=complete,
         )
-        _assert_workspace_flow(
+        (
+            workspace_rationale_initial_run_id,
+            workspace_rationale_replacement_run_id,
+            workspace_rationale_review_state,
+            workspace_rationale_supportability_status,
+        ) = _assert_workspace_flow(
             client,
             advise_base_url=advise_base_url,
             scenario=complete,
@@ -2818,6 +3077,10 @@ def validate_live_cross_service_parity(
         cross_currency_security_id=cross_currency_security_id,
         non_held_security_id=non_held_security_id,
         workspace_handoff_portfolio=complete.portfolio_id,
+        workspace_rationale_initial_run_id=workspace_rationale_initial_run_id,
+        workspace_rationale_replacement_run_id=workspace_rationale_replacement_run_id,
+        workspace_rationale_review_state=workspace_rationale_review_state,
+        workspace_rationale_supportability_status=workspace_rationale_supportability_status,
         lifecycle_portfolio=lifecycle_portfolio,
         lifecycle_latest_version_no=lifecycle_latest_version_no,
         lifecycle_current_state=lifecycle_current_state,

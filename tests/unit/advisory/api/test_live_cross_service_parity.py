@@ -1,9 +1,17 @@
 from decimal import Decimal
+from typing import Any
 
 import pytest
 
 from scripts.live_runtime_proposal_alternatives import extract_live_proposal_alternatives_snapshot
 from scripts.validate_cross_service_parity_live import (
+    PortfolioParityScenario,
+    _assert_workspace_flow,
+    _build_alternatives_request,
+    _canonicalize_allocation_bucket_value,
+    _collect_alternative_statuses,
+    _json_safe_value,
+    _normalize_allocation_views,
     _security_trade_changes_from_proposal_body,
     _select_changed_state_security,
     _select_cross_currency_changed_state_security,
@@ -176,3 +184,241 @@ def test_extract_live_proposal_alternatives_snapshot_requires_payload() -> None:
             path_name="alternatives_path",
             latency_ms=10.0,
         )
+
+
+def test_normalize_allocation_views_canonicalizes_bucket_labels() -> None:
+    direct = [
+        {
+            "dimension": "asset_class",
+            "total_market_value_reporting_currency": "100.0",
+            "buckets": [
+                {
+                    "dimension_value": "Fixed Income",
+                    "market_value_reporting_currency": "40.0",
+                    "weight": "0.4",
+                    "position_count": 1,
+                }
+            ],
+        }
+    ]
+    proposal = [
+        {
+            "dimension": "asset_class",
+            "total_value": {"amount": "100.0", "currency": "USD"},
+            "buckets": [
+                {
+                    "key": "Fixed_Income",
+                    "value": {"amount": "40.0", "currency": "USD"},
+                    "weight": "0.4",
+                    "position_count": 1,
+                }
+            ],
+        }
+    ]
+
+    assert _canonicalize_allocation_bucket_value("Fixed Income") == "FIXED_INCOME"
+    assert _canonicalize_allocation_bucket_value("Fixed_Income") == "FIXED_INCOME"
+    assert _normalize_allocation_views(direct) == _normalize_allocation_views(proposal)
+
+
+def test_build_alternatives_request_uses_current_objectives_contract() -> None:
+    request = _build_alternatives_request(
+        objectives=["REDUCE_CONCENTRATION", "RAISE_CASH"],
+        max_alternatives=2,
+        constraints={"cash_floor": {"amount": "25000", "currency": "USD"}},
+    )
+
+    assert request == {
+        "objectives": ["REDUCE_CONCENTRATION", "RAISE_CASH"],
+        "max_alternatives": 2,
+        "constraints": {"cash_floor": {"amount": "25000", "currency": "USD"}},
+    }
+
+
+def test_collect_alternative_statuses_groups_statuses_by_objective() -> None:
+    proposal_body = {
+        "proposal_alternatives": {
+            "alternatives": [
+                {"objective": "REDUCE_CONCENTRATION", "status": "REJECTED_POLICY_BLOCKED"},
+                {"objective": "REDUCE_CONCENTRATION", "status": "REJECTED_POLICY_BLOCKED"},
+                {"objective": "IMPROVE_CURRENCY_ALIGNMENT", "status": "FEASIBLE_WITH_REVIEW"},
+            ]
+        }
+    }
+
+    assert _collect_alternative_statuses(proposal_body) == {
+        "REDUCE_CONCENTRATION": {"REJECTED_POLICY_BLOCKED"},
+        "IMPROVE_CURRENCY_ALIGNMENT": {"FEASIBLE_WITH_REVIEW"},
+    }
+
+
+def test_json_safe_value_serializes_decimals_for_http_payloads() -> None:
+    payload = [
+        {
+            "security_id": "FO_BOND_UST_2030",
+            "quantity": Decimal("1"),
+            "amount": Decimal("101.35"),
+            "metadata": {"proposal_intent_id": "oi_1"},
+        }
+    ]
+
+    assert _json_safe_value(payload) == [
+        {
+            "security_id": "FO_BOND_UST_2030",
+            "quantity": "1",
+            "amount": "101.35",
+            "metadata": {"proposal_intent_id": "oi_1"},
+        }
+    ]
+
+
+def test_assert_workspace_flow_proves_rationale_replacement_lineage(monkeypatch) -> None:
+    workspace_id = "aws_live_workspace"
+    workspace_version_id = "awv_live_version"
+    proposal_id = "ap_live_proposal"
+    first_run_id = "packrun_workspace_rationale_req_001"
+    replacement_run_id = "packrun_workspace_rationale_req_002"
+    posts: list[tuple[str, dict[str, Any]]] = []
+
+    def _fake_post_json(client, *, url, expected_status, json_body, headers=None):  # noqa: ANN001
+        assert expected_status in {200, 201}
+        posts.append((url, json_body))
+        if url.endswith("/advisory/workspaces"):
+            return {
+                "workspace": {
+                    "workspace_id": workspace_id,
+                    "resolved_context": {"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+                }
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/evaluate"):
+            return {
+                "latest_proposal_result": {
+                    "explanation": {
+                        "authority_resolution": {
+                            "simulation_authority": "lotus_core",
+                            "risk_authority": "lotus_risk",
+                            "degraded": False,
+                        }
+                    }
+                }
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/save"):
+            return {
+                "saved_version": {
+                    "workspace_version_id": workspace_version_id,
+                    "replay_evidence": {"risk_lens": {"source_service": "lotus-risk"}},
+                }
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/handoff"):
+            return {
+                "handoff_action": "CREATED_PROPOSAL",
+                "proposal": {
+                    "proposal": {"proposal_id": proposal_id},
+                    "version": {
+                        "version_no": 1,
+                        "proposal_result": {
+                            "explanation": {
+                                "authority_resolution": {
+                                    "simulation_authority": "lotus_core",
+                                    "risk_authority": "lotus_risk",
+                                    "degraded": False,
+                                }
+                            }
+                        },
+                    },
+                },
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/assistant/rationale"):
+            instruction = json_body["instruction"]
+            current_run_id = (
+                first_run_id
+                if instruction == "Summarize the evaluated workspace rationale for review."
+                else replacement_run_id
+            )
+            return {
+                "generated_by": "lotus-ai",
+                "assistant_output": "Evidence grounded rationale.",
+                "evidence": {"workspace_id": workspace_id, "proposal_status": "READY"},
+                "workflow_pack_run": {
+                    "run_id": current_run_id,
+                    "runtime_state": "COMPLETED",
+                    "review_state": "AWAITING_REVIEW",
+                    "supportability_status": "ACTION_REQUIRED",
+                    "workflow_authority_owner": "lotus-advise",
+                    "allowed_review_actions": ["ACCEPT", "REJECT", "REVISE", "SUPERSEDE"],
+                },
+            }
+        if url.endswith(f"/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions"):
+            return {
+                "workflow_pack_run": {
+                    "run_id": first_run_id,
+                    "runtime_state": "COMPLETED",
+                    "review_state": "SUPERSEDED",
+                    "supportability_status": "HISTORICAL",
+                    "workflow_authority_owner": "lotus-advise",
+                    "allowed_review_actions": [],
+                    "superseded": True,
+                    "replacement_run_id": replacement_run_id,
+                },
+                "summary": ["Run superseded in favor of replacement lineage."],
+            }
+        raise AssertionError(f"unexpected POST url: {url}")
+
+    def _fake_request_json(
+        client,
+        *,
+        method,
+        url,
+        expected_status,
+        json_body=None,
+        headers=None,  # noqa: ANN001
+    ):
+        assert method == "GET"
+        assert expected_status == 200
+        if url.endswith(
+            f"/advisory/workspaces/{workspace_id}/saved-versions/"
+            f"{workspace_version_id}/replay-evidence"
+        ):
+            return {
+                "evidence": {"risk_lens": {"source_service": "lotus-risk"}},
+                "subject": {"proposal_id": proposal_id},
+                "continuity": {},
+                "hashes": {"evaluation_request_hash": "hash_live"},
+            }
+        if url.endswith(f"/advisory/proposals/{proposal_id}/versions/1/replay-evidence"):
+            return {
+                "evidence": {"risk_lens": {"source_service": "lotus-risk"}},
+                "subject": {"proposal_version_no": 1},
+                "continuity": {"workspace_version_id": workspace_version_id},
+                "hashes": {"evaluation_request_hash": "hash_live"},
+            }
+        raise AssertionError(f"unexpected GET url: {url}")
+
+    monkeypatch.setattr(
+        "scripts.validate_cross_service_parity_live._post_json",
+        _fake_post_json,
+    )
+    monkeypatch.setattr(
+        "scripts.validate_cross_service_parity_live._request_json",
+        _fake_request_json,
+    )
+
+    result = _assert_workspace_flow(
+        object(),
+        advise_base_url="http://advise.dev.lotus",
+        scenario=PortfolioParityScenario(
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            as_of_date="2026-03-25",
+            reporting_currency="USD",
+            issuer_coverage_status="complete",
+            risk_available=True,
+        ),
+    )
+
+    assert result == (
+        first_run_id,
+        replacement_run_id,
+        "SUPERSEDED",
+        "HISTORICAL",
+    )
+    assert posts[-1][1]["replacement_run_id"] == replacement_run_id

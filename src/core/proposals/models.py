@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
+from src.core.advisory.alternatives_models import ProposalAlternativesRequest
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.models import GateDecision, ProposalResult, ProposalSimulateRequest
 
@@ -231,6 +232,13 @@ class ProposalSimulationRequest(BaseModel):
                 "mandate_id": "mandate_growth_01",
             }
         ],
+    )
+    alternatives_request: ProposalAlternativesRequest | None = Field(
+        default=None,
+        description=(
+            "Optional backend-owned alternatives request. On stateful simulation requests this "
+            "is merged onto the authoritative resolved simulation payload before evaluation."
+        ),
     )
 
     @model_validator(mode="before")
