@@ -8,11 +8,18 @@ from typing import Awaitable, Callable
 from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
+from prometheus_client import Counter
 from prometheus_fastapi_instrumentator import Instrumentator
 
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="")
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 trace_id_var: ContextVar[str] = ContextVar("trace_id", default="")
+
+ADVISORY_SUPPORTABILITY_TOTAL = Counter(
+    "lotus_advise_advisory_supportability_total",
+    "Count of advisory supportability posture evaluations.",
+    ["state", "reason", "freshness_bucket"],
+)
 
 
 class JsonFormatter(logging.Formatter):
@@ -87,3 +94,16 @@ def setup_observability(app: FastAPI) -> None:
         response.headers["X-Trace-Id"] = trace_id
         response.headers["traceparent"] = f"00-{trace_id}-0000000000000001-01"
         return response
+
+
+def record_advisory_supportability(
+    *,
+    state: str,
+    reason: str,
+    freshness_bucket: str,
+) -> None:
+    ADVISORY_SUPPORTABILITY_TOTAL.labels(
+        state=state,
+        reason=reason,
+        freshness_bucket=freshness_bucket,
+    ).inc()

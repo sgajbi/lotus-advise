@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-17T14:37:55.672958+00:00",
+  "generatedAt": "2026-04-29T10:11:24.973314+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -224,10 +224,26 @@
       ]
     },
     {
+      "semanticId": "lotus.allowed_review_actions",
+      "canonicalTerm": "allowed_review_actions",
+      "preferredName": "allowed_review_actions",
+      "description": "Bounded lotus-ai review actions currently accepted by the workflow-pack ledger.",
+      "example": [
+        "example_allowed_review_actions_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.alternatives_request",
       "canonicalTerm": "alternatives_request",
       "preferredName": "alternatives_request",
-      "description": "Optional proposal alternatives request currently attached to the workspace.",
+      "description": "Optional backend-owned alternatives request. On stateful simulation requests this is merged onto the authoritative resolved simulation payload before evaluation.",
       "example": "alternatives_request_example",
       "type": "object",
       "locations": [
@@ -1155,6 +1171,20 @@
       ]
     },
     {
+      "semanticId": "lotus.current_summary_note",
+      "canonicalTerm": "current_summary_note",
+      "preferredName": "current_summary_note",
+      "description": "Single lotus-ai supportability summary note for the workflow-pack run.",
+      "example": "example_current_summary_note",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.current_version",
       "canonicalTerm": "current_version",
       "preferredName": "current_version",
@@ -1271,6 +1301,20 @@
       ]
     },
     {
+      "semanticId": "lotus.degraded_dependency_count",
+      "canonicalTerm": "degraded_dependency_count",
+      "preferredName": "degraded_dependency_count",
+      "description": "Number of advisory dependency seams currently degraded.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
+      ]
+    },
+    {
       "semanticId": "lotus.degraded_reason",
       "canonicalTerm": "degraded_reason",
       "preferredName": "degraded_reason",
@@ -1331,6 +1375,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.dependency_count",
+      "canonicalTerm": "dependency_count",
+      "preferredName": "dependency_count",
+      "description": "Number of advisory dependency seams evaluated for supportability.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
       ]
     },
     {
@@ -1699,6 +1757,20 @@
       ],
       "observedTypes": [
         "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.enabled_feature_count",
+      "canonicalTerm": "enabled_feature_count",
+      "preferredName": "enabled_feature_count",
+      "description": "Number of advisory features enabled in the current runtime policy.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
       ]
     },
     {
@@ -2090,6 +2162,36 @@
       ]
     },
     {
+      "semanticId": "lotus.finding_id",
+      "canonicalTerm": "finding_id",
+      "preferredName": "finding_id",
+      "description": "Stable workflow-pack supportability finding identifier.",
+      "example": "FINDING_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.findings",
+      "canonicalTerm": "findings",
+      "preferredName": "findings",
+      "description": "Workflow-pack supportability findings preserved from lotus-ai.",
+      "example": [
+        "findings_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.finished_at",
       "canonicalTerm": "finished_at",
       "preferredName": "finished_at",
@@ -2101,6 +2203,20 @@
       ],
       "observedTypes": [
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.freshness_bucket",
+      "canonicalTerm": "freshness_bucket",
+      "preferredName": "freshness_bucket",
+      "description": "Bounded freshness bucket for advisory dependency and lifecycle posture.",
+      "example": "current",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -4141,6 +4257,34 @@
       ]
     },
     {
+      "semanticId": "lotus.ready_dependency_count",
+      "canonicalTerm": "ready_dependency_count",
+      "preferredName": "ready_dependency_count",
+      "description": "Number of advisory dependency seams currently operationally ready.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
+      ]
+    },
+    {
+      "semanticId": "lotus.ready_feature_count",
+      "canonicalTerm": "ready_feature_count",
+      "preferredName": "ready_feature_count",
+      "description": "Number of enabled advisory features currently operationally ready.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
+      ]
+    },
+    {
       "semanticId": "lotus.reason",
       "canonicalTerm": "reason",
       "preferredName": "reason",
@@ -4305,6 +4449,20 @@
       "preferredName": "remediation_hint",
       "description": "Optional guidance on remediation.",
       "example": "remediation_hint_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.replacement_run_id",
+      "canonicalTerm": "replacement_run_id",
+      "preferredName": "replacement_run_id",
+      "description": "Replacement workflow-pack run identifier when the review action records replacement lineage.",
+      "example": "REPLACEMENT_RUN_001",
       "type": "object",
       "locations": [
         "body"
@@ -4529,6 +4687,48 @@
       ]
     },
     {
+      "semanticId": "lotus.review_pending",
+      "canonicalTerm": "review_pending",
+      "preferredName": "review_pending",
+      "description": "Whether lotus-ai still reports the workflow-pack run as pending review.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.review_state",
+      "canonicalTerm": "review_state",
+      "preferredName": "review_state",
+      "description": "Current lotus-ai review state for the workflow-pack run.",
+      "example": "example_review_state",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.reviewed_by",
+      "canonicalTerm": "reviewed_by",
+      "preferredName": "reviewed_by",
+      "description": "Actor identifier applying the bounded review action.",
+      "example": "example_reviewed_by",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.risk_disclaimer",
       "canonicalTerm": "risk_disclaimer",
       "preferredName": "risk_disclaimer",
@@ -4587,6 +4787,34 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.run_id",
+      "canonicalTerm": "run_id",
+      "preferredName": "run_id",
+      "description": "Workflow-pack run identifier to update through the bounded review seam.",
+      "example": "RUN_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.runtime_state",
+      "canonicalTerm": "runtime_state",
+      "preferredName": "runtime_state",
+      "description": "Current lotus-ai runtime state for the workflow-pack run.",
+      "example": "2026-03-02T10:30:00Z",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -4946,10 +5174,12 @@
       "example": null,
       "type": "object",
       "locations": [
-        "query"
+        "query",
+        "body"
       ],
       "observedTypes": [
-        "object"
+        "object",
+        "string"
       ]
     },
     {
@@ -5113,6 +5343,51 @@
       "observedTypes": [
         "GateDecisionSummary",
         "ProposalArtifactSummary",
+        "string",
+        "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.superseded",
+      "canonicalTerm": "superseded",
+      "preferredName": "superseded",
+      "description": "Whether lotus-ai marks the workflow-pack run as historical due to replacement lineage.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.supportability",
+      "canonicalTerm": "supportability",
+      "preferredName": "supportability",
+      "description": "Canonical supportability used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "AdvisorySupportability",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "AdvisorySupportability"
+      ]
+    },
+    {
+      "semanticId": "lotus.supportability_status",
+      "canonicalTerm": "supportability_status",
+      "preferredName": "supportability_status",
+      "description": "Current lotus-ai supportability posture for the workflow-pack run.",
+      "example": "ACTIVE",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
         "string"
       ]
     },
@@ -5676,6 +5951,20 @@
       ]
     },
     {
+      "semanticId": "lotus.workflow_authority_owner",
+      "canonicalTerm": "workflow_authority_owner",
+      "preferredName": "workflow_authority_owner",
+      "description": "Service boundary retaining consequence-bearing workflow authority for the run.",
+      "example": "example_workflow_authority_owner",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.workflow_key",
       "canonicalTerm": "workflow_key",
       "preferredName": "workflow_key",
@@ -5687,6 +5976,21 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.workflow_pack_run",
+      "canonicalTerm": "workflow_pack_run",
+      "preferredName": "workflow_pack_run",
+      "description": "Bounded lotus-ai workflow-pack run posture preserved for this workspace rationale when the governed explicit execution seam succeeds.",
+      "example": "workflow_pack_run_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object",
+        "WorkspaceAssistantWorkflowPackRun"
       ]
     },
     {
@@ -6479,6 +6783,18 @@
       "allowedValues": [],
       "semanticId": "lotus.workspace_version_id",
       "attributeRef": "#/attributeCatalog/lotus.workspace_version_id"
+    },
+    {
+      "name": "workspace_id",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "string",
+      "description": "Workspace session identifier.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.workspace_id",
+      "attributeRef": "#/attributeCatalog/lotus.workspace_id"
     },
     {
       "name": "workspace_id",
@@ -22183,6 +22499,14 @@
             "type": "object",
             "semanticId": "lotus.stateful_input",
             "attributeRef": "#/attributeCatalog/lotus.stateful_input"
+          },
+          {
+            "name": "alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
           }
         ]
       },
@@ -23758,6 +24082,14 @@
             "type": "object",
             "semanticId": "lotus.stateful_input",
             "attributeRef": "#/attributeCatalog/lotus.stateful_input"
+          },
+          {
+            "name": "alternatives_request",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.alternatives_request",
+            "attributeRef": "#/attributeCatalog/lotus.alternatives_request"
           }
         ]
       },
@@ -25225,6 +25557,78 @@
             "type": "string",
             "semanticId": "lotus.fallback_mode",
             "attributeRef": "#/attributeCatalog/lotus.fallback_mode"
+          },
+          {
+            "name": "supportability",
+            "location": "body",
+            "required": true,
+            "type": "AdvisorySupportability",
+            "semanticId": "lotus.supportability",
+            "attributeRef": "#/attributeCatalog/lotus.supportability"
+          },
+          {
+            "name": "supportability.state",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.state",
+            "attributeRef": "#/attributeCatalog/lotus.state"
+          },
+          {
+            "name": "supportability.reason",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.reason",
+            "attributeRef": "#/attributeCatalog/lotus.reason"
+          },
+          {
+            "name": "supportability.freshness_bucket",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.freshness_bucket",
+            "attributeRef": "#/attributeCatalog/lotus.freshness_bucket"
+          },
+          {
+            "name": "supportability.dependency_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.dependency_count",
+            "attributeRef": "#/attributeCatalog/lotus.dependency_count"
+          },
+          {
+            "name": "supportability.ready_dependency_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.ready_dependency_count",
+            "attributeRef": "#/attributeCatalog/lotus.ready_dependency_count"
+          },
+          {
+            "name": "supportability.degraded_dependency_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.degraded_dependency_count",
+            "attributeRef": "#/attributeCatalog/lotus.degraded_dependency_count"
+          },
+          {
+            "name": "supportability.enabled_feature_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.enabled_feature_count",
+            "attributeRef": "#/attributeCatalog/lotus.enabled_feature_count"
+          },
+          {
+            "name": "supportability.ready_feature_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.ready_feature_count",
+            "attributeRef": "#/attributeCatalog/lotus.ready_feature_count"
           }
         ]
       }
@@ -31855,6 +32259,205 @@
             "type": "string",
             "semanticId": "lotus.proposal_status",
             "attributeRef": "#/attributeCatalog/lotus.proposal_status"
+          },
+          {
+            "name": "workflow_pack_run",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.workflow_pack_run",
+            "attributeRef": "#/attributeCatalog/lotus.workflow_pack_run"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "advisory_workspace",
+      "method": "POST",
+      "path": "/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions",
+      "operationId": "apply_workspace_rationale_review_action_endpoint_advisory_workspaces__workspace_id__assistant_rationale_review_actions_post",
+      "summary": "Apply an Advisory Workspace Rationale Review Action",
+      "request": {
+        "fields": [
+          {
+            "name": "workspace_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.workspace_id",
+            "attributeRef": "#/attributeCatalog/lotus.workspace_id"
+          },
+          {
+            "name": "run_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.run_id",
+            "attributeRef": "#/attributeCatalog/lotus.run_id"
+          },
+          {
+            "name": "action_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.action_type",
+            "attributeRef": "#/attributeCatalog/lotus.action_type"
+          },
+          {
+            "name": "reviewed_by",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.reviewed_by",
+            "attributeRef": "#/attributeCatalog/lotus.reviewed_by"
+          },
+          {
+            "name": "reason",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.reason",
+            "attributeRef": "#/attributeCatalog/lotus.reason"
+          },
+          {
+            "name": "replacement_run_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.replacement_run_id",
+            "attributeRef": "#/attributeCatalog/lotus.replacement_run_id"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "workflow_pack_run",
+            "location": "body",
+            "required": true,
+            "type": "WorkspaceAssistantWorkflowPackRun",
+            "semanticId": "lotus.workflow_pack_run",
+            "attributeRef": "#/attributeCatalog/lotus.workflow_pack_run"
+          },
+          {
+            "name": "workflow_pack_run.run_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.run_id",
+            "attributeRef": "#/attributeCatalog/lotus.run_id"
+          },
+          {
+            "name": "workflow_pack_run.runtime_state",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.runtime_state",
+            "attributeRef": "#/attributeCatalog/lotus.runtime_state"
+          },
+          {
+            "name": "workflow_pack_run.review_state",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.review_state",
+            "attributeRef": "#/attributeCatalog/lotus.review_state"
+          },
+          {
+            "name": "workflow_pack_run.allowed_review_actions",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allowed_review_actions",
+            "attributeRef": "#/attributeCatalog/lotus.allowed_review_actions"
+          },
+          {
+            "name": "workflow_pack_run.supportability_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.supportability_status",
+            "attributeRef": "#/attributeCatalog/lotus.supportability_status"
+          },
+          {
+            "name": "workflow_pack_run.review_pending",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.review_pending",
+            "attributeRef": "#/attributeCatalog/lotus.review_pending"
+          },
+          {
+            "name": "workflow_pack_run.superseded",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.superseded",
+            "attributeRef": "#/attributeCatalog/lotus.superseded"
+          },
+          {
+            "name": "workflow_pack_run.workflow_authority_owner",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.workflow_authority_owner",
+            "attributeRef": "#/attributeCatalog/lotus.workflow_authority_owner"
+          },
+          {
+            "name": "workflow_pack_run.current_summary_note",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.current_summary_note",
+            "attributeRef": "#/attributeCatalog/lotus.current_summary_note"
+          },
+          {
+            "name": "workflow_pack_run.replacement_run_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.replacement_run_id",
+            "attributeRef": "#/attributeCatalog/lotus.replacement_run_id"
+          },
+          {
+            "name": "workflow_pack_run.findings",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.findings",
+            "attributeRef": "#/attributeCatalog/lotus.findings"
+          },
+          {
+            "name": "workflow_pack_run.findings[].finding_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.finding_id",
+            "attributeRef": "#/attributeCatalog/lotus.finding_id"
+          },
+          {
+            "name": "workflow_pack_run.findings[].severity",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.severity",
+            "attributeRef": "#/attributeCatalog/lotus.severity"
+          },
+          {
+            "name": "workflow_pack_run.findings[].summary",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "summary",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
           }
         ]
       }

@@ -16,6 +16,21 @@ Readiness is not a cosmetic check. Startup and readiness validate:
 
 If the service cannot satisfy the advisory persistence contract, readiness should fail closed.
 
+## Advisory Supportability Metrics
+
+`GET /platform/capabilities` publishes the implemented feature key
+`advise.observability.advisory_supportability` and a source-backed `supportability` summary. The
+summary reports only bounded operational posture:
+
+1. `state`
+2. `reason`
+3. `freshness_bucket`
+4. dependency and feature readiness counts
+
+`/metrics` emits `lotus_advise_advisory_supportability_total` with `state`, `reason`, and
+`freshness_bucket` labels only. Do not add portfolio, client, request, response, correlation, or
+trace identifiers to this metric.
+
 ## Canonical Local Identity
 
 Use:
