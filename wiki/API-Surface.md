@@ -54,3 +54,6 @@ These support surfaces derive operator-facing posture from append-only workflow 
 - REST remains the current contract posture; this service does not justify gRPC today.
 - Lifecycle and support routes can be feature-gated by runtime flags.
 - Readiness should fail closed when required upstream execution authority is not correctly configured.
+- `GET /platform/capabilities` includes `advise.observability.advisory_supportability`
+  and a bounded `supportability` summary for advisory readiness, degraded dependency posture,
+  and lifecycle-disabled posture.

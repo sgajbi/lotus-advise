@@ -45,9 +45,16 @@ Evidence:
 ## Reliability and Operations Baseline
 
 - Health/readiness, retry/timeout controls, migration gating, and supportability runbooks are enforced.
+- `GET /platform/capabilities` publishes `advise.observability.advisory_supportability`
+  plus a source-backed `supportability` summary for Gateway and Workbench consumers.
+- `/metrics` emits `lotus_advise_advisory_supportability_total` with bounded `state`,
+  `reason`, and `freshness_bucket` labels only; it must not include portfolio, client, request,
+  response, correlation, or trace identifiers as labels.
 
 Evidence:
 - `src/api/main.py`
+- `src/api/observability.py`
+- `src/api/routers/integration_capabilities.py`
 - `docs/standards/scalability-availability.md`
 - `docs/standards/migration-contract.md`
 

@@ -88,6 +88,8 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
     )
     assert features["advisory.proposals.execution_handoff"]["operational_ready"] is True
+    assert features["advise.observability.advisory_supportability"]["enabled"] is True
+    assert features["advise.observability.advisory_supportability"]["owner_service"] == "ADVISORY"
 
     workflows = {item["workflow_key"]: item for item in payload["workflows"]}
     assert workflows["advisory_proposal_simulation"]["operational_ready"] is True
@@ -96,6 +98,16 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert workflows["advisory_workspace_ai_rationale"]["operational_ready"] is False
     assert workflows["advisory_proposal_reporting"]["operational_ready"] is False
     assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True
+    assert payload["supportability"] == {
+        "state": "degraded",
+        "reason": "dependency_degraded",
+        "freshness_bucket": "unknown",
+        "dependency_count": 5,
+        "ready_dependency_count": 2,
+        "degraded_dependency_count": 3,
+        "enabled_feature_count": 9,
+        "ready_feature_count": 7,
+    }
 
 
 def test_integration_capabilities_mark_risk_lens_degraded_when_risk_missing(monkeypatch):
@@ -248,3 +260,52 @@ def test_integration_capabilities_disable_reporting_and_execution_with_lifecycle
     assert features["advisory.proposals.execution_handoff"]["enabled"] is False
     assert workflows["advisory_proposal_reporting"]["enabled"] is False
     assert workflows["advisory_proposal_execution_handoff"]["enabled"] is False
+    assert features["advise.observability.advisory_supportability"]["operational_ready"] is False
+    assert payload["supportability"]["state"] == "unsupported"
+    assert payload["supportability"]["reason"] == "lifecycle_disabled"
+
+
+def test_integration_capabilities_reports_ready_advisory_supportability(monkeypatch):
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://lotus-report:8300")
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", "http://lotus-ai:8400")
+    monkeypatch.setenv("LOTUS_PERFORMANCE_BASE_URL", "http://lotus-performance:8301")
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["supportability"] == {
+        "state": "ready",
+        "reason": "advisory_ready",
+        "freshness_bucket": "current",
+        "dependency_count": 5,
+        "ready_dependency_count": 5,
+        "degraded_dependency_count": 0,
+        "enabled_feature_count": 9,
+        "ready_feature_count": 9,
+    }
+
+
+def test_integration_capabilities_records_bounded_supportability_metric(monkeypatch):
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://lotus-report:8300")
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", "http://lotus-ai:8400")
+    monkeypatch.setenv("LOTUS_PERFORMANCE_BASE_URL", "http://lotus-performance:8301")
+
+    with TestClient(app) as client:
+        capabilities_response = client.get("/platform/capabilities")
+        metrics_response = client.get("/metrics")
+
+    assert capabilities_response.status_code == 200
+    assert metrics_response.status_code == 200
+    metrics_text = metrics_response.text
+    assert "lotus_advise_advisory_supportability_total" in metrics_text
+    assert 'freshness_bucket="current"' in metrics_text
+    assert 'reason="advisory_ready"' in metrics_text
+    assert 'state="ready"' in metrics_text
+    assert "portfolio" not in metrics_text
+    assert "client" not in metrics_text
