@@ -1,6 +1,23 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
+
+_FORBIDDEN_SUPPORTABILITY_METRIC_LABELS = (
+    "portfolio_id",
+    "account_id",
+    "client_id",
+    "advisor_id",
+    "proposal_id",
+    "workspace_id",
+    "correlation_id",
+    "trace_id",
+    "request_id",
+    "transaction_id",
+    "security_id",
+    "request_body",
+    "response_body",
+)
 
 
 def test_integration_capabilities_response_uses_canonical_snake_case_fields():
@@ -102,6 +119,7 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "state": "degraded",
         "reason": "dependency_degraded",
         "freshness_bucket": "unknown",
+        "metric_labels": list(ADVISORY_SUPPORTABILITY_METRIC_LABELS),
         "dependency_count": 5,
         "ready_dependency_count": 2,
         "degraded_dependency_count": 3,
@@ -281,6 +299,7 @@ def test_integration_capabilities_reports_ready_advisory_supportability(monkeypa
         "state": "ready",
         "reason": "advisory_ready",
         "freshness_bucket": "current",
+        "metric_labels": list(ADVISORY_SUPPORTABILITY_METRIC_LABELS),
         "dependency_count": 5,
         "ready_dependency_count": 5,
         "degraded_dependency_count": 0,
@@ -307,5 +326,16 @@ def test_integration_capabilities_records_bounded_supportability_metric(monkeypa
     assert 'freshness_bucket="current"' in metrics_text
     assert 'reason="advisory_ready"' in metrics_text
     assert 'state="ready"' in metrics_text
-    assert "portfolio" not in metrics_text
-    assert "client" not in metrics_text
+    for forbidden_label in _FORBIDDEN_SUPPORTABILITY_METRIC_LABELS:
+        assert f"{forbidden_label}=" not in metrics_text
+
+
+def test_integration_capabilities_openapi_documents_supportability_metric_labels():
+    openapi = app.openapi()
+    supportability_schema = openapi["components"]["schemas"]["AdvisorySupportability"]
+    metric_labels = supportability_schema["properties"]["metric_labels"]
+
+    assert metric_labels["default"] == list(ADVISORY_SUPPORTABILITY_METRIC_LABELS)
+    assert "lotus_advise_advisory_supportability_total" in metric_labels["description"]
+    assert "portfolio" in metric_labels["description"]
+    assert "trace" in metric_labels["description"]
