@@ -56,4 +56,5 @@ These support surfaces derive operator-facing posture from append-only workflow 
 - Readiness should fail closed when required upstream execution authority is not correctly configured.
 - `GET /platform/capabilities` includes `advise.observability.advisory_supportability`
   and a bounded `supportability` summary for advisory readiness, degraded dependency posture,
-  and lifecycle-disabled posture.
+  and lifecycle-disabled posture. The `supportability.metric_labels` field documents the exact
+  bounded label tuple for `lotus_advise_advisory_supportability_total`.
