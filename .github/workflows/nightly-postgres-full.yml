@@ -68,7 +68,7 @@ jobs:
 
       - name: Apply Postgres Migrations
         run: |
-          python scripts/postgres_migrate.py --target all
+          python scripts/postgres_migrate.py --target proposals
 
       - name: Validate Production Cutover Contract
         run: |
