@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-04-29T10:11:24.973314+00:00",
+  "generatedAt": "2026-05-01T14:11:20.964097+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -3418,6 +3418,22 @@
       "observedTypes": [
         "ProposalCreateMetadata",
         "WorkspaceLifecycleHandoffMetadata"
+      ]
+    },
+    {
+      "semanticId": "lotus.metric_labels",
+      "canonicalTerm": "metric_labels",
+      "preferredName": "metric_labels",
+      "description": "Prometheus labels emitted by lotus_advise_advisory_supportability_total. The tuple is intentionally bounded and excludes portfolio, client, request, response, correlation, trace, transaction, security, proposal, workspace, and payload identifiers.",
+      "example": [
+        "example_metric_labels_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -25589,6 +25605,14 @@
             "type": "string",
             "semanticId": "lotus.freshness_bucket",
             "attributeRef": "#/attributeCatalog/lotus.freshness_bucket"
+          },
+          {
+            "name": "supportability.metric_labels",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.metric_labels",
+            "attributeRef": "#/attributeCatalog/lotus.metric_labels"
           },
           {
             "name": "supportability.dependency_count",

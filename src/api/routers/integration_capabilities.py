@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from src.api.capabilities import build_operational_readiness
 from src.api.observability import record_advisory_supportability
+from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
 from src.integrations.lotus_core import (
     CONTROLLED_LOCAL_SIMULATION_FALLBACK,
     lotus_core_fallback_mode,
@@ -184,6 +185,16 @@ class AdvisorySupportability(BaseModel):
     freshness_bucket: FreshnessBucket = Field(
         description="Bounded freshness bucket for advisory dependency and lifecycle posture.",
         examples=["current"],
+    )
+    metric_labels: tuple[str, ...] = Field(
+        default=ADVISORY_SUPPORTABILITY_METRIC_LABELS,
+        description=(
+            "Prometheus labels emitted by lotus_advise_advisory_supportability_total. "
+            "The tuple is intentionally bounded and excludes portfolio, client, request, "
+            "response, correlation, trace, transaction, security, proposal, workspace, and "
+            "payload identifiers."
+        ),
+        examples=[list(ADVISORY_SUPPORTABILITY_METRIC_LABELS)],
     )
     dependency_count: int = Field(
         ge=0,

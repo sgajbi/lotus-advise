@@ -28,8 +28,9 @@ summary reports only bounded operational posture:
 4. dependency and feature readiness counts
 
 `/metrics` emits `lotus_advise_advisory_supportability_total` with `state`, `reason`, and
-`freshness_bucket` labels only. Do not add portfolio, client, request, response, correlation, or
-trace identifiers to this metric.
+`freshness_bucket` labels only. The `supportability.metric_labels` response field must match this
+metric exactly. Do not add portfolio, account, client, advisor, proposal, workspace, request,
+response, correlation, trace, transaction, security, or payload identifiers to this metric.
 
 ## Canonical Local Identity
 

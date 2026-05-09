@@ -46,10 +46,13 @@ Evidence:
 
 - Health/readiness, retry/timeout controls, migration gating, and supportability runbooks are enforced.
 - `GET /platform/capabilities` publishes `advise.observability.advisory_supportability`
-  plus a source-backed `supportability` summary for Gateway and Workbench consumers.
+  plus a source-backed `supportability` summary for Gateway and Workbench consumers. The
+  supportability summary includes `metric_labels` so downstream consumers and operators can verify
+  the exact Prometheus label contract without scraping implementation code.
 - `/metrics` emits `lotus_advise_advisory_supportability_total` with bounded `state`,
   `reason`, and `freshness_bucket` labels only; it must not include portfolio, client, request,
-  response, correlation, or trace identifiers as labels.
+  response, correlation, trace, transaction, security, proposal, workspace, or payload identifiers
+  as labels.
 
 Evidence:
 - `src/api/main.py`
@@ -69,4 +72,3 @@ Evidence:
 ## Deviations
 
 - Deviations require ADR with mitigation and expiry review date.
-

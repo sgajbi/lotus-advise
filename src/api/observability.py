@@ -11,6 +11,8 @@ from fastapi import FastAPI, Request, Response
 from prometheus_client import Counter
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
+
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="")
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 trace_id_var: ContextVar[str] = ContextVar("trace_id", default="")
@@ -18,7 +20,7 @@ trace_id_var: ContextVar[str] = ContextVar("trace_id", default="")
 ADVISORY_SUPPORTABILITY_TOTAL = Counter(
     "lotus_advise_advisory_supportability_total",
     "Count of advisory supportability posture evaluations.",
-    ["state", "reason", "freshness_bucket"],
+    ADVISORY_SUPPORTABILITY_METRIC_LABELS,
 )
 
 
