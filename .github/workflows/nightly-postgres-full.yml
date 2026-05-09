@@ -77,9 +77,7 @@ jobs:
       - name: Run Postgres Integration Tests
         run: |
           pytest -q \
-            tests/integration/dpm/supportability/test_dpm_postgres_repository_integration.py \
-            tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py \
-            tests/integration/dpm/supportability/test_dpm_policy_pack_postgres_repository_integration.py
+            tests/integration/advisory/engine/test_engine_proposal_repository_postgres_integration.py
 
       - name: Reset Postgres Tables Before Live Demo
         run: |
@@ -92,9 +90,6 @@ jobs:
               with connection.cursor() as cursor:
                   cursor.execute(
                       "TRUNCATE TABLE "
-                      "dpm_lineage_edges, dpm_workflow_decisions, dpm_run_idempotency_history, "
-                      "dpm_run_idempotency, dpm_run_artifacts, dpm_async_operations, dpm_runs, "
-                      "dpm_policy_packs, "
                       "proposal_approvals, proposal_workflow_events, proposal_versions, "
                       "proposal_records, proposal_async_operations, proposal_idempotency "
                       "CASCADE"
