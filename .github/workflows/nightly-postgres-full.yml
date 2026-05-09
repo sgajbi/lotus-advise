@@ -46,6 +46,8 @@ jobs:
       DPM_POLICY_PACK_POSTGRES_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
       DPM_POSTGRES_INTEGRATION_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
       PROPOSAL_POSTGRES_INTEGRATION_DSN: postgresql://dpm:dpm@127.0.0.1:5432/dpm_supportability
+      ENVIRONMENT: ci
+      LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK: "true"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -106,6 +108,7 @@ jobs:
       - name: Preflight API Health
         run: |
           for attempt in {1..15}; do
+            echo "API preflight attempt ${attempt}/15"
             if curl --fail --silent --show-error --max-time 10 \
               http://127.0.0.1:8010/docs > /dev/null; then
               exit 0
