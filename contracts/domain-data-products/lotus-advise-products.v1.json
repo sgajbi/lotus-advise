@@ -86,6 +86,8 @@
         "product_version",
         "generated_at",
         "as_of_date",
+        "cohort_id",
+        "content_hash",
         "correlation_id"
       ],
       "current_routes": [
