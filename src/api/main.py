@@ -32,6 +32,7 @@ from src.api.routers.advisory_simulation import (
 from src.api.routers.integration_capabilities import (
     router as integration_capabilities_router,
 )
+from src.api.routers.tactical_house_view import router as tactical_house_view_router
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
 from src.api.services.advisory_simulation_service import (
     MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
@@ -98,6 +99,13 @@ app = FastAPI(
             ),
         },
         {
+            "name": "Tactical House View",
+            "description": (
+                "Source-owned advisory cohort endpoints for governed tactical house-view "
+                "affected-portfolio evaluation."
+            ),
+        },
+        {
             "name": "Health",
             "description": (
                 "Operational liveness and readiness probes for runtime health verification."
@@ -120,6 +128,7 @@ app.middleware("http")(build_enterprise_audit_middleware())
 app.include_router(proposal_lifecycle_router)
 app.include_router(advisory_simulation_router)
 app.include_router(integration_capabilities_router)
+app.include_router(tactical_house_view_router)
 app.include_router(workspace_router)
 
 

@@ -15,15 +15,18 @@
 - manage lifecycle transitions, approvals, and consent
 - expose support and delivery posture from append-only workflow history
 - provide an advisory workspace for iterative draft construction before lifecycle handoff
+- evaluate tactical house-view affected cohorts from bank-authored instructions and source-backed
+  candidate portfolios
 
 ## Repository Posture
 
 The repository is advisory-only. It is intentionally separated from discretionary portfolio management and should not absorb `lotus-manage` responsibilities.
 
-The current implementation also makes two backend-owned surfaces explicit:
+The current implementation also makes these backend-owned surfaces explicit:
 
 - `proposal_decision_summary`
 - `proposal_alternatives`
+- `TacticalHouseViewAffectedCohort:v1`
 
 Those outputs are generated and ranked inside `lotus-advise`. UI or support layers should display them, not recreate or reinterpret them as a separate authority.
 
@@ -36,6 +39,7 @@ Those outputs are generated and ranked inside `lotus-advise`. UI or support laye
 - approval requirements
 - lifecycle progression
 - advisor workflow continuity
+- tactical house-view affected-cohort membership for supplied candidate sets
 
 It must not become the source of truth for:
 
@@ -44,6 +48,7 @@ It must not become the source of truth for:
 - risk methodology
 - benchmark methodology
 - execution settlement truth
+- discretionary portfolio-management campaigns or trade approval
 
 ## Runtime Shape
 

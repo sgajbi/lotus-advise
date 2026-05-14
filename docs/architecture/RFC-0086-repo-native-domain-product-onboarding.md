@@ -1,22 +1,27 @@
 # RFC-0086 Repo-Native Domain Product Onboarding
 
-This document records the first governed product and dependency wave for `lotus-advise` under
-`RFC-0086` and the deliberately narrow future telemetry posture for `RFC-0087`.
+This document records the governed product and dependency wave for `lotus-advise` under `RFC-0086`
+and the deliberately narrow future telemetry posture for `RFC-0087`.
 
-## Govern Now
+## Current Governed Products
 
-The first stable governed product for `lotus-advise` is:
+The stable governed products for `lotus-advise` are:
 
 1. `AdvisoryProposalLifecycleRecord`
    Persisted advisory proposal lifecycle state, immutable version evidence, approvals, and workflow
    transitions exposed through the lifecycle API family.
+2. `TacticalHouseViewAffectedCohort`
+   Source-owned affected-cohort evaluation for bank-authored tactical house-view instructions and
+   caller-supplied source-backed candidate portfolios. This product is bounded to the supplied
+   candidate set, preserves source refs, and does not discover the global portfolio universe,
+   create rebalance waves, approve trades, or integrate with OMS.
 
-This is the right first-wave product because it is:
+These are governed now because they are:
 
 1. backend-owned,
-2. persisted,
-3. already consumed through stable lifecycle routes,
-4. explicitly separated from `lotus-manage` discretionary workflow ownership.
+2. exposed through stable API routes,
+3. explicitly separated from `lotus-manage` discretionary workflow ownership,
+4. aligned to source-product ownership instead of UI-derived or duplicate calculation logic.
 
 ## Hold For Later
 
@@ -36,8 +41,8 @@ The following surfaces should not be governed as stable products in this wave:
 
 ## First-Wave Dependencies
 
-The first repo-native consumer declaration only covers upstream products that are already stable in
-the current platform catalog and already approved for `lotus-advise` consumption:
+The repo-native consumer declaration only covers upstream products that are already stable in the
+current platform catalog and already approved for `lotus-advise` consumption:
 
 1. `lotus-core` `HoldingsAsOf`
 2. `lotus-core` `InstrumentReferenceBundle`
@@ -62,10 +67,10 @@ Repo-native declarations live in:
 
 Platform schemas and registries remain owned by `lotus-platform`.
 
-The wave-1 producer declaration intentionally anchors on `portfolio_id` plus `correlation_id`.
-That fallback is transitional, not a durable advisory-native identifier, and it should remain
-explicitly documented as such until the platform semantics registry grows a stable advisory
-identifier family.
+The producer declaration intentionally anchors on `portfolio_id` plus `correlation_id`. That
+fallback is transitional for advisory lifecycle records and appropriate for bounded portfolio-set
+cohort evaluation. It should remain explicitly documented until the platform semantics registry
+grows a stable advisory-native identifier family.
 
 Local validation stages the repo-native declarations together with the current platform declaration
 catalog and platform trust registries. This avoids forking platform-owned schemas or vocabularies
@@ -89,6 +94,8 @@ Do not implement new telemetry contracts in this slice. The important future sea
 3. lineage certification from request hash, simulation hash, artifact hash, and replay continuity,
 4. upstream dependency certification from `lotus-core` and `lotus-risk` readiness and degraded
    reasons.
+5. tactical house-view cohort freshness from the supplied `as_of_date`, preserved source refs, and
+   supportability counts.
 
 These seams already exist conceptually in the codebase and evidence model. RFC-0087 should
 normalize them rather than introduce parallel advisory-only telemetry shapes.
