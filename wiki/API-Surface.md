@@ -48,11 +48,21 @@ These support surfaces derive operator-facing posture from append-only workflow 
 - `POST /advisory/workspaces/{workspace_id}/assistant/rationale`
 - `POST /advisory/workspaces/{workspace_id}/handoff`
 
+## Tactical House View
+
+- `POST /advisory/tactical-house-view/cohorts/evaluate`
+
+This endpoint returns `TacticalHouseViewAffectedCohort:v1` for a governed bank-authored tactical
+house-view instruction and caller-supplied source-backed candidate portfolios. It does not discover
+the global portfolio universe, create rebalance waves, approve trades, or integrate with OMS.
+
 ## Contract Notes
 
 - OpenAPI is the governed external contract.
 - REST remains the current contract posture; this service does not justify gRPC today.
 - Lifecycle and support routes can be feature-gated by runtime flags.
+- Tactical house-view cohorts preserve source refs and supportability posture rather than
+  recalculating source-owned portfolio facts locally.
 - Readiness should fail closed when required upstream execution authority is not correctly configured.
 - `GET /platform/capabilities` includes `advise.observability.advisory_supportability`
   and a bounded `supportability` summary for advisory readiness, degraded dependency posture,

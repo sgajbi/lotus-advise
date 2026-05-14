@@ -47,6 +47,17 @@ Current posture:
 
 If advisory behavior later depends on performance analytics, that dependency should be classified explicitly instead of being inferred through another service.
 
+## `lotus-manage`
+
+Current governed usage includes:
+
+- downstream consumption of `TacticalHouseViewAffectedCohort:v1`
+
+Boundary rule:
+
+- `lotus-advise` evaluates affected-cohort membership for supplied source-backed candidates
+- `lotus-manage` owns DPM campaigns, policies, rebalance workflows, and execution evidence
+
 ## `lotus-report`
 
 Current usage:

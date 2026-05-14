@@ -32,10 +32,21 @@ def test_wave_one_advise_declaration_is_conservative_and_transitional() -> None:
     declaration = json.loads(
         (contract_dir / "lotus-advise-products.v1.json").read_text(encoding="utf-8")
     )
+    products = {product["product_name"]: product for product in declaration["products"]}
 
-    assert declaration["products"][0]["product_name"] == "AdvisoryProposalLifecycleRecord"
-    assert declaration["products"][0]["identifier_refs"] == [
+    assert products["AdvisoryProposalLifecycleRecord"]["identifier_refs"] == [
         "portfolio_id",
         "correlation_id",
     ]
-    assert declaration["products"][0]["approved_consumers"] == ["lotus-gateway"]
+    assert products["AdvisoryProposalLifecycleRecord"]["approved_consumers"] == ["lotus-gateway"]
+    tactical_cohort = products["TacticalHouseViewAffectedCohort"]
+    assert tactical_cohort["approved_consumers"] == ["lotus-manage"]
+    assert tactical_cohort["request_scope"] == {
+        "scope_level": "portfolio_set",
+        "supports_bulk": True,
+    }
+    assert tactical_cohort["current_routes"] == ["/advisory/tactical-house-view/cohorts/evaluate"]
+    assert (
+        "does not discover the global portfolio universe"
+        in (tactical_cohort["freshness_policy"]["max_allowed_age_description"])
+    )

@@ -14,6 +14,7 @@ FastAPI route families are organized into:
 - advisory proposal lifecycle
 - advisory operations and support
 - advisory workspace
+- tactical house view
 - integration
 - health and monitoring
 
@@ -27,6 +28,7 @@ The core advisory domain includes:
 - decision summary generation
 - artifact generation
 - proposal alternatives normalization, enrichment, projection, and ranking
+- tactical house-view affected-cohort evaluation for supplied source-backed candidates
 
 ### Lifecycle Domain
 
@@ -65,6 +67,12 @@ The workspace surface exists for iterative drafting before formal proposal lifec
 - advisory simulation execution contract
 
 `lotus-advise` must not duplicate `lotus-core` execution semantics or source-data authority locally.
+
+### `lotus-manage`
+
+`lotus-advise` can produce `TacticalHouseViewAffectedCohort:v1` as source-owned cohort evidence.
+`lotus-manage` remains responsible for DPM campaign workflows, policy application, evidence
+packaging, rebalance waves, and downstream execution posture.
 
 ### `lotus-risk`
 

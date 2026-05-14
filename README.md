@@ -20,6 +20,8 @@ It is responsible for:
 - persisted proposal lifecycle state and immutable versioning
 - approvals, consent, and execution-readiness posture
 - backend-owned `proposal_decision_summary` and `proposal_alternatives`
+- source-owned tactical house-view affected cohorts from bank-authored house-view instructions and
+  caller-supplied source-backed candidate portfolios
 
 It does not own discretionary management workflows, portfolio source data, risk methodology,
 performance methodology, reporting ownership, or downstream execution ownership.
@@ -46,7 +48,9 @@ Boundary rules that matter:
 1. advisory-only workflows belong here; management workflows belong in `lotus-manage`
 2. proposal alternatives and decision-summary semantics are backend-owned surfaces, not UI-derived interpretations
 3. proposal simulation and alternatives must stay anchored to canonical upstream authorities
-4. REST/OpenAPI remains the governed integration contract for current upstream calls
+4. tactical house-view cohorts consume source-backed candidate portfolios and do not discover the
+   global portfolio universe, open rebalance waves, approve trades, or integrate with OMS
+5. REST/OpenAPI remains the governed integration contract for current upstream calls
 
 ## Current Operational Posture
 
@@ -55,6 +59,8 @@ Boundary rules that matter:
    backend-owned `proposal_decision_summary` and `proposal_alternatives`.
 3. Runtime smoke and production-profile guardrail validation are part of the actual CI contract.
 4. Live operator evidence covers canonical and degraded decision-summary and alternatives posture.
+5. `TacticalHouseViewAffectedCohort:v1` is a governed source-owned cohort product for downstream
+   DPM workflows in `lotus-manage`, bounded to supplied eligible candidates and preserved lineage.
 
 ## Architecture At A Glance
 
@@ -69,6 +75,8 @@ Main runtime surfaces come from [src/api/main.py](src/api/main.py):
 - advisory workspace
   iterative draft, save, resume, compare, rationale, and lifecycle handoff under
   `/advisory/workspaces/*`
+- tactical house view
+  source-owned affected-cohort evaluation under `/advisory/tactical-house-view/*`
 - integration capabilities
   `GET /integration/capabilities`
 - platform surfaces
@@ -191,7 +199,8 @@ Important public route groups:
 2. persisted proposal lifecycle
 3. advisory operations and support
 4. advisory workspace
-5. integration capabilities
+5. tactical house-view affected-cohort evaluation
+6. integration capabilities
 
 Contract rules that are easy to get wrong:
 
@@ -199,11 +208,15 @@ Contract rules that are easy to get wrong:
 2. lifecycle persistence is immutable-by-version
 3. support and delivery posture derive from append-only workflow history
 4. workspace rationale is the implemented AI seam today; broader proposal narrative remains future work
+5. tactical house-view cohort responses must preserve upstream source refs and supportability posture
+   instead of recomputing portfolio source facts locally
 
 ## Integration Boundaries
 
 - primary downstream consumer:
   `lotus-gateway`
+- governed tactical house-view cohort consumer:
+  `lotus-manage`
 - key upstreams:
   `lotus-core`, `lotus-risk`
 - bounded adjacent seams:

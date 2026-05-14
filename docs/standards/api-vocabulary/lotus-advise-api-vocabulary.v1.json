@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-01T14:11:20.964097+00:00",
+  "generatedAt": "2026-05-14T03:36:06.583978+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -54,6 +54,36 @@
       ]
     },
     {
+      "semanticId": "lotus.affected_count",
+      "canonicalTerm": "affected_count",
+      "preferredName": "affected_count",
+      "description": "Number of affected portfolios returned.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
+      ]
+    },
+    {
+      "semanticId": "lotus.affected_portfolios",
+      "canonicalTerm": "affected_portfolios",
+      "preferredName": "affected_portfolios",
+      "description": "Source-backed portfolios affected by the tactical house view.",
+      "example": [
+        "affected_portfolios_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.after",
       "canonicalTerm": "after",
       "preferredName": "after",
@@ -83,6 +113,20 @@
       ],
       "observedTypes": [
         "SimulatedState"
+      ]
+    },
+    {
+      "semanticId": "lotus.alignment_signal",
+      "canonicalTerm": "alignment_signal",
+      "preferredName": "alignment_signal",
+      "description": "Source-supplied alignment posture against the tactical house view.",
+      "example": "OVERWEIGHT",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -658,6 +702,20 @@
       ]
     },
     {
+      "semanticId": "lotus.booking_center_code",
+      "canonicalTerm": "booking_center_code",
+      "preferredName": "booking_center_code",
+      "description": "Booking center or market context for cohort review.",
+      "example": "booking_center_code_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.bucket_id",
       "canonicalTerm": "bucket_id",
       "preferredName": "bucket_id",
@@ -727,6 +785,22 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.candidate_portfolios",
+      "canonicalTerm": "candidate_portfolios",
+      "preferredName": "candidate_portfolios",
+      "description": "Caller-supplied source-backed candidate portfolios. This product does not discover the global portfolio universe.",
+      "example": [
+        "2026-03-02"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -923,6 +997,20 @@
       ]
     },
     {
+      "semanticId": "lotus.cohort_id",
+      "canonicalTerm": "cohort_id",
+      "preferredName": "cohort_id",
+      "description": "Stable content-addressed cohort identifier.",
+      "example": "COHORT_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.compare_target_methods",
       "canonicalTerm": "compare_target_methods",
       "preferredName": "compare_target_methods",
@@ -990,6 +1078,21 @@
         "body"
       ],
       "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.content_hash",
+      "canonicalTerm": "content_hash",
+      "preferredName": "content_hash",
+      "description": "Canonical source content hash when available.",
+      "example": "content_hash_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object",
         "string"
       ]
     },
@@ -1134,6 +1237,20 @@
       "preferredName": "current_evaluation_summary",
       "description": "Current evaluation summary for the active workspace draft.",
       "example": "current_evaluation_summary_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.current_exposure_weight",
+      "canonicalTerm": "current_exposure_weight",
+      "preferredName": "current_exposure_weight",
+      "description": "Optional source-owned exposure weight to the tactical theme.",
+      "example": "current_exposure_weight_example",
       "type": "object",
       "locations": [
         "body"
@@ -1531,6 +1648,20 @@
       ]
     },
     {
+      "semanticId": "lotus.discretionary_mandate",
+      "canonicalTerm": "discretionary_mandate",
+      "preferredName": "discretionary_mandate",
+      "description": "Whether source evidence says the portfolio is discretionary or managed.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
       "semanticId": "lotus.doc_ref",
       "canonicalTerm": "doc_ref",
       "preferredName": "doc_ref",
@@ -1645,6 +1776,22 @@
       ],
       "observedTypes": [
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.eligible_portfolio_types",
+      "canonicalTerm": "eligible_portfolio_types",
+      "preferredName": "eligible_portfolio_types",
+      "description": "Portfolio types eligible for Manage consumption.",
+      "example": [
+        "example_eligible_portfolio_types_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -1847,6 +1994,20 @@
       ]
     },
     {
+      "semanticId": "lotus.evaluated_candidate_count",
+      "canonicalTerm": "evaluated_candidate_count",
+      "preferredName": "evaluated_candidate_count",
+      "description": "Number of source-backed candidate portfolios evaluated.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
+      ]
+    },
+    {
       "semanticId": "lotus.evaluation_request_hash",
       "canonicalTerm": "evaluation_request_hash",
       "preferredName": "evaluation_request_hash",
@@ -1980,6 +2141,52 @@
       "observedTypes": [
         "ProposalArtifactEvidenceBundle",
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.excluded_count",
+      "canonicalTerm": "excluded_count",
+      "preferredName": "excluded_count",
+      "description": "Number of excluded portfolios returned.",
+      "example": 10,
+      "type": "integer",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "integer"
+      ]
+    },
+    {
+      "semanticId": "lotus.excluded_portfolios",
+      "canonicalTerm": "excluded_portfolios",
+      "preferredName": "excluded_portfolios",
+      "description": "Source-backed portfolios excluded from the cohort.",
+      "example": [
+        "excluded_portfolios_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.exclusion_reason_codes",
+      "canonicalTerm": "exclusion_reason_codes",
+      "preferredName": "exclusion_reason_codes",
+      "description": "Bounded exclusion reason codes.",
+      "example": [
+        "example_exclusion_reason_codes_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -2700,6 +2907,22 @@
       ],
       "observedTypes": [
         "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.inclusion_reason_codes",
+      "canonicalTerm": "inclusion_reason_codes",
+      "preferredName": "inclusion_reason_codes",
+      "description": "Bounded inclusion reason codes.",
+      "example": [
+        "example_inclusion_reason_codes_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -3451,6 +3674,20 @@
       ]
     },
     {
+      "semanticId": "lotus.min_exposure_weight",
+      "canonicalTerm": "min_exposure_weight",
+      "preferredName": "min_exposure_weight",
+      "description": "Optional minimum source-owned exposure weight required for inclusion.",
+      "example": "min_exposure_weight_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.min_trade_notional",
       "canonicalTerm": "min_trade_notional",
       "preferredName": "min_trade_notional",
@@ -3849,6 +4086,20 @@
       ]
     },
     {
+      "semanticId": "lotus.portfolio_type",
+      "canonicalTerm": "portfolio_type",
+      "preferredName": "portfolio_type",
+      "description": "Source-owned portfolio type used for DPM/discretionary eligibility.",
+      "example": "example_portfolio_type",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.portfolio_value_delta_base_ccy",
       "canonicalTerm": "portfolio_value_delta_base_ccy",
       "preferredName": "portfolio_value_delta_base_ccy",
@@ -3966,6 +4217,34 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.product_name",
+      "canonicalTerm": "product_name",
+      "preferredName": "product_name",
+      "description": "Domain data product emitted by lotus-advise.",
+      "example": "example_product_name",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.product_version",
+      "canonicalTerm": "product_version",
+      "preferredName": "product_version",
+      "description": "Product version.",
+      "example": "example_product_version",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -4238,7 +4517,8 @@
         "body"
       ],
       "observedTypes": [
-        "ProposalArtifactTradeRationale"
+        "ProposalArtifactTradeRationale",
+        "string"
       ]
     },
     {
@@ -4327,6 +4607,22 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.reason_codes",
+      "canonicalTerm": "reason_codes",
+      "preferredName": "reason_codes",
+      "description": "Bounded house-view reason codes.",
+      "example": [
+        "example_reason_codes_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -5140,6 +5436,36 @@
       ]
     },
     {
+      "semanticId": "lotus.source_id",
+      "canonicalTerm": "source_id",
+      "preferredName": "source_id",
+      "description": "Stable source identifier.",
+      "example": "SOURCE_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.source_refs",
+      "canonicalTerm": "source_refs",
+      "preferredName": "source_refs",
+      "description": "Governed source refs for the house-view decision.",
+      "example": [
+        "source_refs_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.source_service",
       "canonicalTerm": "source_service",
       "preferredName": "source_service",
@@ -5152,6 +5478,48 @@
       "observedTypes": [
         "object",
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.source_system",
+      "canonicalTerm": "source_system",
+      "preferredName": "source_system",
+      "description": "System that owns the source evidence.",
+      "example": "example_source_system",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.source_type",
+      "canonicalTerm": "source_type",
+      "preferredName": "source_type",
+      "description": "Source product, artifact, or evidence type.",
+      "example": "example_source_type",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.source_version",
+      "canonicalTerm": "source_version",
+      "preferredName": "source_version",
+      "description": "Source contract or product version when available.",
+      "example": "source_version_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -5390,7 +5758,8 @@
         "body"
       ],
       "observedTypes": [
-        "AdvisorySupportability"
+        "AdvisorySupportability",
+        "TacticalHouseViewSupportability"
       ]
     },
     {
@@ -5451,6 +5820,64 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.tactical_view",
+      "canonicalTerm": "tactical_view",
+      "preferredName": "tactical_view",
+      "description": "Canonical tactical view used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "TacticalHouseViewDefinition",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "TacticalHouseViewDefinition"
+      ]
+    },
+    {
+      "semanticId": "lotus.tactical_view_id",
+      "canonicalTerm": "tactical_view_id",
+      "preferredName": "tactical_view_id",
+      "description": "Bank tactical house-view identifier.",
+      "example": "TACTICAL_VIEW_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.tactical_view_version",
+      "canonicalTerm": "tactical_view_version",
+      "preferredName": "tactical_view_version",
+      "description": "Immutable tactical house-view version.",
+      "example": "example_tactical_view_version",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.target_action",
+      "canonicalTerm": "target_action",
+      "preferredName": "target_action",
+      "description": "Bank tactical action being evaluated for affected portfolios.",
+      "example": "INCREASE",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -5534,6 +5961,20 @@
       "preferredName": "text",
       "description": "Deterministic summary note text suitable for UI rendering.",
       "example": "example_text",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.theme_id",
+      "canonicalTerm": "theme_id",
+      "preferredName": "theme_id",
+      "description": "Tactical theme or recommendation identifier.",
+      "example": "THEME_001",
       "type": "string",
       "locations": [
         "body"
@@ -25653,6 +26094,613 @@
             "type": "integer",
             "semanticId": "lotus.ready_feature_count",
             "attributeRef": "#/attributeCatalog/lotus.ready_feature_count"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "tactical_house_view",
+      "method": "POST",
+      "path": "/advisory/tactical-house-view/cohorts/evaluate",
+      "operationId": "evaluate_tactical_house_view_cohort_advisory_tactical_house_view_cohorts_evaluate_post",
+      "summary": "Evaluate tactical house-view affected cohort",
+      "request": {
+        "fields": [
+          {
+            "name": "tactical_view",
+            "location": "body",
+            "required": true,
+            "type": "TacticalHouseViewDefinition",
+            "semanticId": "lotus.tactical_view",
+            "attributeRef": "#/attributeCatalog/lotus.tactical_view"
+          },
+          {
+            "name": "tactical_view.tactical_view_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.tactical_view_id",
+            "attributeRef": "#/attributeCatalog/lotus.tactical_view_id"
+          },
+          {
+            "name": "tactical_view.tactical_view_version",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.tactical_view_version",
+            "attributeRef": "#/attributeCatalog/lotus.tactical_view_version"
+          },
+          {
+            "name": "tactical_view.theme_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.theme_id",
+            "attributeRef": "#/attributeCatalog/lotus.theme_id"
+          },
+          {
+            "name": "tactical_view.as_of_date",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.as_of_date",
+            "attributeRef": "#/attributeCatalog/lotus.as_of_date"
+          },
+          {
+            "name": "tactical_view.target_action",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.target_action",
+            "attributeRef": "#/attributeCatalog/lotus.target_action"
+          },
+          {
+            "name": "tactical_view.rationale",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.rationale",
+            "attributeRef": "#/attributeCatalog/lotus.rationale"
+          },
+          {
+            "name": "tactical_view.source_refs",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.source_refs",
+            "attributeRef": "#/attributeCatalog/lotus.source_refs"
+          },
+          {
+            "name": "tactical_view.source_refs[].source_system",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_system",
+            "attributeRef": "#/attributeCatalog/lotus.source_system"
+          },
+          {
+            "name": "tactical_view.source_refs[].source_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_type",
+            "attributeRef": "#/attributeCatalog/lotus.source_type"
+          },
+          {
+            "name": "tactical_view.source_refs[].source_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_id"
+          },
+          {
+            "name": "tactical_view.source_refs[].source_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_version",
+            "attributeRef": "#/attributeCatalog/lotus.source_version"
+          },
+          {
+            "name": "tactical_view.source_refs[].content_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.content_hash",
+            "attributeRef": "#/attributeCatalog/lotus.content_hash"
+          },
+          {
+            "name": "tactical_view.reason_codes",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.reason_codes"
+          },
+          {
+            "name": "candidate_portfolios",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.candidate_portfolios",
+            "attributeRef": "#/attributeCatalog/lotus.candidate_portfolios"
+          },
+          {
+            "name": "candidate_portfolios[].portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
+          },
+          {
+            "name": "candidate_portfolios[].mandate_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.mandate_id",
+            "attributeRef": "#/attributeCatalog/lotus.mandate_id"
+          },
+          {
+            "name": "candidate_portfolios[].portfolio_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_type",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_type"
+          },
+          {
+            "name": "candidate_portfolios[].discretionary_mandate",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.discretionary_mandate",
+            "attributeRef": "#/attributeCatalog/lotus.discretionary_mandate"
+          },
+          {
+            "name": "candidate_portfolios[].booking_center_code",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.booking_center_code",
+            "attributeRef": "#/attributeCatalog/lotus.booking_center_code"
+          },
+          {
+            "name": "candidate_portfolios[].current_exposure_weight",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.current_exposure_weight",
+            "attributeRef": "#/attributeCatalog/lotus.current_exposure_weight"
+          },
+          {
+            "name": "candidate_portfolios[].alignment_signal",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.alignment_signal",
+            "attributeRef": "#/attributeCatalog/lotus.alignment_signal"
+          },
+          {
+            "name": "candidate_portfolios[].source_refs",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.source_refs",
+            "attributeRef": "#/attributeCatalog/lotus.source_refs"
+          },
+          {
+            "name": "candidate_portfolios[].source_refs[].source_system",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_system",
+            "attributeRef": "#/attributeCatalog/lotus.source_system"
+          },
+          {
+            "name": "candidate_portfolios[].source_refs[].source_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_type",
+            "attributeRef": "#/attributeCatalog/lotus.source_type"
+          },
+          {
+            "name": "candidate_portfolios[].source_refs[].source_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_id"
+          },
+          {
+            "name": "candidate_portfolios[].source_refs[].source_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_version",
+            "attributeRef": "#/attributeCatalog/lotus.source_version"
+          },
+          {
+            "name": "candidate_portfolios[].source_refs[].content_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.content_hash",
+            "attributeRef": "#/attributeCatalog/lotus.content_hash"
+          },
+          {
+            "name": "candidate_portfolios[].reason_codes",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.reason_codes"
+          },
+          {
+            "name": "eligible_portfolio_types",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.eligible_portfolio_types",
+            "attributeRef": "#/attributeCatalog/lotus.eligible_portfolio_types"
+          },
+          {
+            "name": "min_exposure_weight",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.min_exposure_weight",
+            "attributeRef": "#/attributeCatalog/lotus.min_exposure_weight"
+          },
+          {
+            "name": "correlation_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.correlation_id"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "product_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.product_name",
+            "attributeRef": "#/attributeCatalog/lotus.product_name"
+          },
+          {
+            "name": "product_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.product_version",
+            "attributeRef": "#/attributeCatalog/lotus.product_version"
+          },
+          {
+            "name": "cohort_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.cohort_id",
+            "attributeRef": "#/attributeCatalog/lotus.cohort_id"
+          },
+          {
+            "name": "tactical_view_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.tactical_view_id",
+            "attributeRef": "#/attributeCatalog/lotus.tactical_view_id"
+          },
+          {
+            "name": "tactical_view_version",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.tactical_view_version",
+            "attributeRef": "#/attributeCatalog/lotus.tactical_view_version"
+          },
+          {
+            "name": "theme_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.theme_id",
+            "attributeRef": "#/attributeCatalog/lotus.theme_id"
+          },
+          {
+            "name": "as_of_date",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.as_of_date",
+            "attributeRef": "#/attributeCatalog/lotus.as_of_date"
+          },
+          {
+            "name": "target_action",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.target_action",
+            "attributeRef": "#/attributeCatalog/lotus.target_action"
+          },
+          {
+            "name": "affected_portfolios",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.affected_portfolios",
+            "attributeRef": "#/attributeCatalog/lotus.affected_portfolios"
+          },
+          {
+            "name": "affected_portfolios[].portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
+          },
+          {
+            "name": "affected_portfolios[].mandate_id",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.mandate_id",
+            "attributeRef": "#/attributeCatalog/lotus.mandate_id"
+          },
+          {
+            "name": "affected_portfolios[].inclusion_reason_codes",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.inclusion_reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.inclusion_reason_codes"
+          },
+          {
+            "name": "affected_portfolios[].source_refs",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.source_refs",
+            "attributeRef": "#/attributeCatalog/lotus.source_refs"
+          },
+          {
+            "name": "affected_portfolios[].source_refs[].source_system",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_system",
+            "attributeRef": "#/attributeCatalog/lotus.source_system"
+          },
+          {
+            "name": "affected_portfolios[].source_refs[].source_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_type",
+            "attributeRef": "#/attributeCatalog/lotus.source_type"
+          },
+          {
+            "name": "affected_portfolios[].source_refs[].source_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_id"
+          },
+          {
+            "name": "affected_portfolios[].source_refs[].source_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_version",
+            "attributeRef": "#/attributeCatalog/lotus.source_version"
+          },
+          {
+            "name": "affected_portfolios[].source_refs[].content_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.content_hash",
+            "attributeRef": "#/attributeCatalog/lotus.content_hash"
+          },
+          {
+            "name": "excluded_portfolios",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.excluded_portfolios",
+            "attributeRef": "#/attributeCatalog/lotus.excluded_portfolios"
+          },
+          {
+            "name": "excluded_portfolios[].portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
+          },
+          {
+            "name": "excluded_portfolios[].exclusion_reason_codes",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.exclusion_reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.exclusion_reason_codes"
+          },
+          {
+            "name": "excluded_portfolios[].source_refs",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.source_refs",
+            "attributeRef": "#/attributeCatalog/lotus.source_refs"
+          },
+          {
+            "name": "excluded_portfolios[].source_refs[].source_system",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_system",
+            "attributeRef": "#/attributeCatalog/lotus.source_system"
+          },
+          {
+            "name": "excluded_portfolios[].source_refs[].source_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_type",
+            "attributeRef": "#/attributeCatalog/lotus.source_type"
+          },
+          {
+            "name": "excluded_portfolios[].source_refs[].source_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_id"
+          },
+          {
+            "name": "excluded_portfolios[].source_refs[].source_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_version",
+            "attributeRef": "#/attributeCatalog/lotus.source_version"
+          },
+          {
+            "name": "excluded_portfolios[].source_refs[].content_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.content_hash",
+            "attributeRef": "#/attributeCatalog/lotus.content_hash"
+          },
+          {
+            "name": "supportability",
+            "location": "body",
+            "required": true,
+            "type": "TacticalHouseViewSupportability",
+            "semanticId": "lotus.supportability",
+            "attributeRef": "#/attributeCatalog/lotus.supportability"
+          },
+          {
+            "name": "supportability.state",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.state",
+            "attributeRef": "#/attributeCatalog/lotus.state"
+          },
+          {
+            "name": "supportability.reason_codes",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.reason_codes"
+          },
+          {
+            "name": "supportability.evaluated_candidate_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.evaluated_candidate_count",
+            "attributeRef": "#/attributeCatalog/lotus.evaluated_candidate_count"
+          },
+          {
+            "name": "supportability.affected_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.affected_count",
+            "attributeRef": "#/attributeCatalog/lotus.affected_count"
+          },
+          {
+            "name": "supportability.excluded_count",
+            "location": "body",
+            "required": true,
+            "type": "integer",
+            "semanticId": "lotus.excluded_count",
+            "attributeRef": "#/attributeCatalog/lotus.excluded_count"
+          },
+          {
+            "name": "source_refs",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.source_refs",
+            "attributeRef": "#/attributeCatalog/lotus.source_refs"
+          },
+          {
+            "name": "source_refs[].source_system",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_system",
+            "attributeRef": "#/attributeCatalog/lotus.source_system"
+          },
+          {
+            "name": "source_refs[].source_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_type",
+            "attributeRef": "#/attributeCatalog/lotus.source_type"
+          },
+          {
+            "name": "source_refs[].source_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_id",
+            "attributeRef": "#/attributeCatalog/lotus.source_id"
+          },
+          {
+            "name": "source_refs[].source_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.source_version",
+            "attributeRef": "#/attributeCatalog/lotus.source_version"
+          },
+          {
+            "name": "source_refs[].content_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.content_hash",
+            "attributeRef": "#/attributeCatalog/lotus.content_hash"
+          },
+          {
+            "name": "content_hash",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.content_hash",
+            "attributeRef": "#/attributeCatalog/lotus.content_hash"
+          },
+          {
+            "name": "generated_at",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.generated_at",
+            "attributeRef": "#/attributeCatalog/lotus.generated_at"
+          },
+          {
+            "name": "correlation_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.correlation_id"
           }
         ]
       }
