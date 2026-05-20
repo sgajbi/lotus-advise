@@ -679,3 +679,33 @@
 - Follow-Up:
   - Continue the same pattern for the larger proposal lifecycle and stateful Lotus Core context
     modules, using `docs/rfcs/WTBD.md` to keep follow-up work scoped and owner-specific.
+
+## LA-REV-026
+
+- Scope: Async proposal submission hashing and replay metadata
+- Pattern: modularity problem / idempotency hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Async create/version submission hash logic and replay metadata extraction were embedded
+  in the large proposal workflow service, even though they are pure domain helpers. That increased
+  the size of `service.py` and made idempotency rules harder to test without constructing the full
+  workflow service.
+- Evidence:
+  - `src/core/proposals/async_payloads.py` now owns canonical async create submission hashing,
+    version submission hashing, and persisted submission-hash extraction.
+  - `src/core/proposals/service.py` now delegates async submission hashing and replay hash
+    extraction to that module while retaining orchestration, repository mutation, and operation
+    state transitions.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_payloads.py` now proves:
+    - legacy and normalized stateless create submissions hash identically,
+    - version submission hashes are scoped to `proposal_id`,
+    - persisted `submission_hash` takes precedence over fallback payload hashing,
+    - fallback payload hashing remains deterministic for older persisted async payloads.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_async_payloads.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - The async idempotency contract is easier to review and extend without expanding the already
+    large workflow service.
+- Follow-Up:
+  - Continue decomposing `src/core/proposals/service.py` by extracting delivery projection,
+    lifecycle transition resolution, and report/execution handoff helpers in separate small slices.

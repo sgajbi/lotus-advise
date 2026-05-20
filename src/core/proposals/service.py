@@ -9,6 +9,11 @@ from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposals.async_payloads import (
+    extract_async_submission_hash,
+    hash_async_create_submission,
+    hash_async_version_submission,
+)
 from src.core.proposals.context import (
     ProposalContextResolutionError,
     build_context_resolution_evidence,
@@ -310,7 +315,7 @@ class ProposalWorkflowService:
             operation
         )
         if not is_new:
-            existing_hash = self._extract_async_submission_hash(stored_operation)
+            existing_hash = extract_async_submission_hash(stored_operation)
             if existing_hash != submission_hash:
                 self._record_async_create_submission_outcome("conflicts")
                 raise ProposalIdempotencyConflictError(
@@ -915,7 +920,7 @@ class ProposalWorkflowService:
             correlation_id=resolved_correlation_id
         )
         if existing_operation is not None:
-            existing_hash = self._extract_async_submission_hash(existing_operation)
+            existing_hash = extract_async_submission_hash(existing_operation)
             if (
                 existing_operation.operation_type != "CREATE_PROPOSAL_VERSION"
                 or existing_operation.proposal_id != proposal_id
@@ -1439,27 +1444,8 @@ class ProposalWorkflowService:
             return None
         return payload, resolved_idempotency_key
 
-    def _extract_async_submission_hash(self, operation: ProposalAsyncOperationRecord) -> str | None:
-        submission_hash = operation.payload_json.get("submission_hash")
-        if isinstance(submission_hash, str) and submission_hash:
-            return submission_hash
-        payload_json = operation.payload_json.get("payload")
-        if not isinstance(payload_json, dict):
-            return None
-        return str(hash_canonical_payload(payload_json))
-
     def _hash_async_create_submission(self, payload: ProposalCreateRequest) -> str:
-        if payload.input_mode == "stateful":
-            return str(hash_canonical_payload(payload.model_dump(mode="json", exclude_none=True)))
-        resolved_request = resolve_create_request(payload)
-        return str(
-            hash_canonical_payload(
-                canonicalize_create_request_payload(
-                    payload=payload,
-                    resolved=resolved_request,
-                )
-            )
-        )
+        return hash_async_create_submission(payload)
 
     def _hash_async_version_submission(
         self,
@@ -1467,27 +1453,7 @@ class ProposalWorkflowService:
         proposal_id: str,
         payload: ProposalVersionRequest,
     ) -> str:
-        if payload.input_mode == "stateful":
-            return str(
-                hash_canonical_payload(
-                    {
-                        "proposal_id": proposal_id,
-                        **payload.model_dump(mode="json", exclude_none=True),
-                    }
-                )
-            )
-        resolved_request = resolve_version_request(payload)
-        return str(
-            hash_canonical_payload(
-                {
-                    "proposal_id": proposal_id,
-                    **canonicalize_version_request_payload(
-                        payload=payload,
-                        resolved=resolved_request,
-                    ),
-                }
-            )
-        )
+        return hash_async_version_submission(proposal_id=proposal_id, payload=payload)
 
     def _record_async_create_submission_outcome(self, key: str) -> None:
         with self._async_create_submission_stats_lock:

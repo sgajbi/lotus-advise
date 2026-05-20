@@ -11,6 +11,9 @@ recorded here with enough detail for later owner-specific slices.
 - Current evidence:
   - `src/core/proposals/service.py` remains a large orchestration module.
   - `src/core/proposals/models.py` remains a large contract module.
+- Progress:
+  - Async create/version submission hashing and replay metadata extraction now live in
+    `src/core/proposals/async_payloads.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, execution handoff, and idempotency helpers into smaller domain modules.
