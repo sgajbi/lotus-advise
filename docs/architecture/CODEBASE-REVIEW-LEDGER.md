@@ -1753,3 +1753,30 @@
 - Follow-Up:
   - Keep idempotency conflict detection in command paths and the dedicated idempotency helper module;
     only response projection belongs here.
+
+## LA-REV-067
+
+- Scope: Proposal execution handoff event and response construction
+- Pattern: modularity problem / auditability hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Execution handoff replay response assembly, handoff requested-event construction, and
+  accepted response projection lived directly in `src/core/proposals/service.py`, mixing deterministic
+  audit payload construction with repository lookup, idempotency replay detection, expected-state
+  validation, and persistence.
+- Evidence:
+  - `src/core/proposals/execution_handoff.py` now owns
+    `build_execution_handoff_replay_response`, `build_execution_handoff_requested_event`, and
+    `build_execution_handoff_response`.
+  - `src/core/proposals/service.py` now delegates deterministic handoff event/response assembly
+    while retaining repository orchestration, replay lookup, expected-state validation, generated
+    execution-request identity selection, and transition persistence.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_handoff.py` directly proves
+    execution-request identity, provider, correlation, external request, notes, idempotency audit
+    metadata, related-version defaulting, replay identity, and accepted response projection.
+- Consequence:
+  - Execution handoff audit payload construction is reusable and directly tested, and the workflow
+    service is narrower without weakening idempotency or state-transition semantics.
+- Follow-Up:
+  - Consider extracting execution update event construction separately only if it can preserve
+    handoff identity matching, terminal-state rejection, timestamp ordering, and replay semantics.

@@ -42,6 +42,11 @@ from src.core.proposals.delivery_summary import (
     build_delivery_history_response,
     build_delivery_summary_response,
 )
+from src.core.proposals.execution_handoff import (
+    build_execution_handoff_replay_response,
+    build_execution_handoff_requested_event,
+    build_execution_handoff_response,
+)
 from src.core.proposals.execution_status import (
     build_execution_status_response,
     latest_execution_requested_event,
@@ -484,16 +489,9 @@ class ProposalWorkflowService:
             request_hash=request_hash,
         )
         if replay_event is not None:
-            return ProposalExecutionHandoffResponse(
-                proposal=to_proposal_summary(proposal),
-                execution_request_id=(
-                    str(replay_event.reason_json.get("execution_request_id"))
-                    if replay_event.reason_json.get("execution_request_id") is not None
-                    else ""
-                ),
-                handoff_status="REQUESTED",
-                execution_provider=str(replay_event.reason_json.get("execution_provider")),
-                latest_workflow_event=to_workflow_event(replay_event),
+            return build_execution_handoff_replay_response(
+                proposal=proposal,
+                replay_event=replay_event,
             )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
         if proposal.current_state != "EXECUTION_READY":
@@ -503,35 +501,22 @@ class ProposalWorkflowService:
 
         occurred_at = _utc_now()
         execution_request_id = payload.external_request_id or new_execution_request_id()
-        reason_json = {
-            "execution_request_id": execution_request_id,
-            "execution_provider": payload.execution_provider,
-            "correlation_id": payload.correlation_id,
-            "external_request_id": payload.external_request_id,
-            "notes": payload.notes,
-        }
-        if idempotency_key:
-            reason_json["idempotency_key"] = idempotency_key
-            reason_json["idempotency_request_hash"] = request_hash
-        event = ProposalWorkflowEventRecord(
+        event = build_execution_handoff_requested_event(
             event_id=new_workflow_event_id(),
-            proposal_id=proposal_id,
-            event_type="EXECUTION_REQUESTED",
-            from_state=proposal.current_state,
-            to_state="EXECUTION_READY",
-            actor_id=payload.actor_id,
+            proposal=proposal,
+            payload=payload,
             occurred_at=occurred_at,
-            reason_json={k: v for k, v in reason_json.items() if v is not None},
-            related_version_no=payload.related_version_no or proposal.current_version_no,
+            execution_request_id=execution_request_id,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
         )
         proposal.last_event_at = occurred_at
         result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
-        return ProposalExecutionHandoffResponse(
-            proposal=to_proposal_summary(result.proposal),
+        return build_execution_handoff_response(
+            proposal=result.proposal,
+            event=result.event,
             execution_request_id=execution_request_id,
-            handoff_status="REQUESTED",
             execution_provider=payload.execution_provider,
-            latest_workflow_event=to_workflow_event(result.event),
         )
 
     def get_execution_status(self, *, proposal_id: str) -> ProposalExecutionStatusResponse:
