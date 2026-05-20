@@ -43,6 +43,7 @@ from src.core.workspace.handoff import (
     build_proposal_create_request,
     build_proposal_version_request,
     build_workspace_handoff_context_resolution,
+    complete_workspace_lifecycle_handoff,
     require_handoff_simulate_request,
 )
 from src.core.workspace.identifiers import (
@@ -57,7 +58,6 @@ from src.core.workspace.models import (
     WorkspaceDraftState,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
-    WorkspaceLifecycleLink,
     WorkspaceResolvedContext,
     WorkspaceResumeRequest,
     WorkspaceSavedVersion,
@@ -69,7 +69,6 @@ from src.core.workspace.models import (
     WorkspaceSessionCreateResponse,
 )
 from src.core.workspace.replay import (
-    apply_workspace_handoff_replay_lineage,
     build_replay_evidence,
     build_workspace_handoff_replay_lineage,
 )
@@ -403,18 +402,13 @@ def handoff_workspace_to_proposal_lifecycle(
     except (ValueError, WorkspaceEvaluationUnavailableError, WorkspaceHandoffError) as exc:
         raise WorkspaceLifecycleHandoffUnavailableError(str(exc)) from exc
 
-    replay_lineage["proposal_id"] = proposal_response.proposal.proposal_id
-    replay_lineage["proposal_version_no"] = proposal_response.version.version_no
-    apply_workspace_handoff_replay_lineage(session, replay_lineage)
-    session.lifecycle_link = WorkspaceLifecycleLink(
-        proposal_id=proposal_response.proposal.proposal_id,
-        current_version_no=proposal_response.version.version_no,
-        last_handoff_at=_utc_now_iso(),
-        last_handoff_by=request.handoff_by,
+    response = complete_workspace_lifecycle_handoff(
+        session=session,
+        request=request,
+        proposal_response=proposal_response,
+        replay_lineage=replay_lineage,
+        handoff_action=handoff_action,
+        completed_at=_utc_now_iso(),
     )
     _save_workspace_session(session)
-    return WorkspaceLifecycleHandoffResponse(
-        workspace=session,
-        handoff_action=handoff_action,
-        proposal=proposal_response,
-    )
+    return response

@@ -1601,3 +1601,28 @@
 - Follow-Up:
   - Keep stateful context-resolution failure behavior in the service until a dedicated integration
     orchestration module can preserve exact Lotus Core error semantics.
+
+## LA-REV-061
+
+- Scope: Workspace lifecycle handoff completion
+- Pattern: modularity problem / lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workspace lifecycle handoff completion lived inside `src/api/services/workspace_service.py`,
+  including proposal ID/version lineage mutation, replay-continuity application, lifecycle-link
+  assignment, and response construction. Proposal service orchestration belongs in the service, but
+  deterministic handoff completion is workspace-domain behavior.
+- Evidence:
+  - `src/core/workspace/handoff.py` now owns `complete_workspace_lifecycle_handoff`, applying
+    proposal lineage, replay continuity, lifecycle link metadata, and response construction.
+  - `src/api/services/workspace_service.py` now delegates completion after proposal create/version
+    orchestration succeeds.
+  - `tests/unit/advisory/api/test_workspace_handoff.py` directly proves proposal link assignment,
+    completed timestamp/actor propagation, response shape, and replay-continuity mutation.
+- Consequence:
+  - Lifecycle handoff state application is reusable and directly tested outside the API service,
+    while the service remains responsible for proposal-service calls, persistence, and error
+    translation.
+- Follow-Up:
+  - Keep proposal create/version orchestration in the service boundary unless a workflow-specific
+    application service is introduced.

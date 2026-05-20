@@ -9,13 +9,17 @@ from src.core.proposals.context import (
 from src.core.proposals.models import (
     ProposalCreateMetadata,
     ProposalCreateRequest,
+    ProposalCreateResponse,
     ProposalResolvedContext,
     ProposalVersionRequest,
 )
 from src.core.workspace.models import (
     WorkspaceLifecycleHandoffRequest,
+    WorkspaceLifecycleHandoffResponse,
+    WorkspaceLifecycleLink,
     WorkspaceSession,
 )
+from src.core.workspace.replay import apply_workspace_handoff_replay_lineage
 
 
 class WorkspaceHandoffError(ValueError):
@@ -100,4 +104,29 @@ def build_proposal_version_request(
         created_by=request.handoff_by,
         expected_current_version_no=expected_current_version_no,
         simulate_request=simulate_request,
+    )
+
+
+def complete_workspace_lifecycle_handoff(
+    *,
+    session: WorkspaceSession,
+    request: WorkspaceLifecycleHandoffRequest,
+    proposal_response: ProposalCreateResponse,
+    replay_lineage: dict[str, str | int | None],
+    handoff_action: str,
+    completed_at: str,
+) -> WorkspaceLifecycleHandoffResponse:
+    replay_lineage["proposal_id"] = proposal_response.proposal.proposal_id
+    replay_lineage["proposal_version_no"] = proposal_response.version.version_no
+    apply_workspace_handoff_replay_lineage(session, replay_lineage)
+    session.lifecycle_link = WorkspaceLifecycleLink(
+        proposal_id=proposal_response.proposal.proposal_id,
+        current_version_no=proposal_response.version.version_no,
+        last_handoff_at=completed_at,
+        last_handoff_by=request.handoff_by,
+    )
+    return WorkspaceLifecycleHandoffResponse(
+        workspace=session,
+        handoff_action=handoff_action,
+        proposal=proposal_response,
     )

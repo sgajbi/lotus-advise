@@ -22,6 +22,7 @@ from src.core.workspace.handoff import (
     build_handoff_metadata,
     build_proposal_version_request,
 )
+from src.core.workspace.models import WorkspaceLifecycleLink
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
@@ -273,7 +274,7 @@ def test_workspace_service_builds_version_request_with_expected_current_version(
             }
         )
     ).workspace
-    session.lifecycle_link = workspace_service.WorkspaceLifecycleLink(
+    session.lifecycle_link = WorkspaceLifecycleLink(
         proposal_id="pp_001",
         current_version_no=3,
         last_handoff_at="2026-03-25T10:00:00+00:00",

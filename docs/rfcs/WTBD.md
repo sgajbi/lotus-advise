@@ -111,6 +111,8 @@ recorded here with enough detail for later owner-specific slices.
   - Workspace stateless resolved-context construction now lives in
     `src/core/workspace/sessions.py`, and stale stateful resolved-context service helper code has
     been removed.
+  - Workspace lifecycle handoff completion, lifecycle-link assignment, and replay-continuity
+    mutation now live in `src/core/workspace/handoff.py`.
 - Follow-up:
   - Continue extracting workspace orchestration support only where behavior can be pinned outside
     the API service without duplicating upstream context resolution semantics.
