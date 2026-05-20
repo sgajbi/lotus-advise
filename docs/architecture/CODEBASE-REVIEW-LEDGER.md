@@ -1881,3 +1881,29 @@
 - Follow-Up:
   - Keep proposal simulation and artifact creation in the service until a larger application command
     boundary is introduced with full create/version characterization coverage.
+
+## LA-REV-072
+
+- Scope: Proposal create and new-version lifecycle event construction
+- Pattern: duplication / lifecycle auditability hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Proposal `CREATED` and `NEW_VERSION_CREATED` workflow events were constructed directly
+  in `src/core/proposals/service.py`, leaving create/version command orchestration responsible for
+  deterministic lifecycle audit event assembly while other lifecycle event builders had already been
+  extracted.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now owns `build_proposal_created_event` and
+    `build_new_version_created_event`.
+  - `src/core/proposals/service.py` now delegates create and create-version lifecycle event
+    construction while retaining proposal aggregate creation, version creation, idempotency
+    persistence, state mutation, and repository orchestration.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` directly proves draft
+    lifecycle state, prior-state preservation for new versions, correlation metadata, and related
+    version linkage.
+- Consequence:
+  - Lifecycle event construction for create, new version, transition, approval, execution handoff,
+    and execution update now follows dedicated domain helpers with direct tests.
+- Follow-Up:
+  - Consider a larger create/version command boundary only with full characterization of
+    idempotency, proposal aggregate defaults, version persistence, and replay lineage.

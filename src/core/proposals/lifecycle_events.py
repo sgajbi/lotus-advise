@@ -12,6 +12,50 @@ from src.core.proposals.models import (
 from src.core.proposals.projections import to_approval_record, to_workflow_event
 
 
+def build_proposal_created_event(
+    *,
+    event_id: str,
+    proposal_id: str,
+    actor_id: str,
+    occurred_at: datetime,
+    related_version_no: int,
+    correlation_id: str | None,
+) -> ProposalWorkflowEventRecord:
+    return ProposalWorkflowEventRecord(
+        event_id=event_id,
+        proposal_id=proposal_id,
+        event_type="CREATED",
+        from_state=None,
+        to_state="DRAFT",
+        actor_id=actor_id,
+        occurred_at=occurred_at,
+        reason_json={"correlation_id": correlation_id} if correlation_id else {},
+        related_version_no=related_version_no,
+    )
+
+
+def build_new_version_created_event(
+    *,
+    event_id: str,
+    proposal: ProposalRecord,
+    actor_id: str,
+    occurred_at: datetime,
+    related_version_no: int,
+    correlation_id: str | None,
+) -> ProposalWorkflowEventRecord:
+    return ProposalWorkflowEventRecord(
+        event_id=event_id,
+        proposal_id=proposal.proposal_id,
+        event_type="NEW_VERSION_CREATED",
+        from_state=proposal.current_state,
+        to_state="DRAFT",
+        actor_id=actor_id,
+        occurred_at=occurred_at,
+        reason_json={"correlation_id": correlation_id} if correlation_id else {},
+        related_version_no=related_version_no,
+    )
+
+
 def build_state_transition_event(
     *,
     event_id: str,

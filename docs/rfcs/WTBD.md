@@ -58,6 +58,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal evidence-bundle enrichment now lives in `src/core/proposals/evidence.py`, consolidating
     context-resolution override handling, risk-lens extraction, and replay-lineage attachment across
     proposal create and version create paths.
+  - Proposal `CREATED` and `NEW_VERSION_CREATED` lifecycle event construction now lives in
+    `src/core/proposals/lifecycle_events.py`, keeping create/version workflow event assembly
+    consistent with the other lifecycle command helpers.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.

@@ -73,6 +73,8 @@ from src.core.proposals.lifecycle_events import (
     build_approval_record,
     build_approval_transition_event,
     build_approval_transition_response,
+    build_new_version_created_event,
+    build_proposal_created_event,
     build_state_transition_event,
     build_state_transition_response,
 )
@@ -288,16 +290,13 @@ class ProposalWorkflowService:
             created_at=now,
             store_evidence_bundle=self._store_evidence_bundle,
         )
-        created_event = ProposalWorkflowEventRecord(
+        created_event = build_proposal_created_event(
             event_id=new_workflow_event_id(),
             proposal_id=proposal_id,
-            event_type="CREATED",
-            from_state=None,
-            to_state="DRAFT",
             actor_id=payload.created_by,
             occurred_at=now,
-            reason_json={"correlation_id": correlation_id} if correlation_id else {},
             related_version_no=version_no,
+            correlation_id=correlation_id,
         )
 
         self._repository.create_proposal(proposal)
@@ -750,16 +749,13 @@ class ProposalWorkflowService:
             created_at=now,
             store_evidence_bundle=self._store_evidence_bundle,
         )
-        event = ProposalWorkflowEventRecord(
+        event = build_new_version_created_event(
             event_id=new_workflow_event_id(),
-            proposal_id=proposal.proposal_id,
-            event_type="NEW_VERSION_CREATED",
-            from_state=proposal.current_state,
-            to_state=reset_state,
+            proposal=proposal,
             actor_id=payload.created_by,
             occurred_at=now,
-            reason_json={"correlation_id": correlation_id} if correlation_id else {},
             related_version_no=next_version_no,
+            correlation_id=correlation_id,
         )
 
         proposal.current_version_no = next_version_no

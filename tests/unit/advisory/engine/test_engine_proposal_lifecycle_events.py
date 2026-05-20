@@ -4,6 +4,8 @@ from src.core.proposals.lifecycle_events import (
     build_approval_record,
     build_approval_transition_event,
     build_approval_transition_response,
+    build_new_version_created_event,
+    build_proposal_created_event,
     build_state_transition_event,
     build_state_transition_response,
 )
@@ -43,6 +45,44 @@ def _transition_request(**overrides) -> ProposalStateTransitionRequest:
     }
     values.update(overrides)
     return ProposalStateTransitionRequest(**values)
+
+
+def test_build_proposal_created_event_uses_draft_lifecycle_origin():
+    event = build_proposal_created_event(
+        event_id="pwe_created",
+        proposal_id="pp_lifecycle_events",
+        actor_id="advisor_lifecycle",
+        occurred_at=datetime(2026, 5, 21, 9, 6, tzinfo=timezone.utc),
+        related_version_no=1,
+        correlation_id="corr_created",
+    )
+
+    assert event.event_type == "CREATED"
+    assert event.from_state is None
+    assert event.to_state == "DRAFT"
+    assert event.actor_id == "advisor_lifecycle"
+    assert event.reason_json == {"correlation_id": "corr_created"}
+    assert event.related_version_no == 1
+
+
+def test_build_new_version_created_event_resets_to_draft_and_preserves_prior_state():
+    proposal = _proposal()
+    proposal.current_state = "EXECUTION_READY"
+
+    event = build_new_version_created_event(
+        event_id="pwe_new_version",
+        proposal=proposal,
+        actor_id="advisor_lifecycle",
+        occurred_at=datetime(2026, 5, 21, 9, 7, tzinfo=timezone.utc),
+        related_version_no=3,
+        correlation_id=None,
+    )
+
+    assert event.event_type == "NEW_VERSION_CREATED"
+    assert event.from_state == "EXECUTION_READY"
+    assert event.to_state == "DRAFT"
+    assert event.reason_json == {}
+    assert event.related_version_no == 3
 
 
 def _approval_request(**overrides) -> ProposalApprovalRequest:
