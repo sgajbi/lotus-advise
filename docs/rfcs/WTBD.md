@@ -42,6 +42,9 @@ recorded here with enough detail for later owner-specific slices.
     `src/core/proposals/idempotency.py`.
   - Expected-state optimistic concurrency validation now lives in
     `src/core/proposals/concurrency.py`.
+  - Proposal simulation enablement validation now lives in
+    `src/core/proposals/simulation_gate.py` and is reused by lifecycle and direct simulation
+    service paths.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

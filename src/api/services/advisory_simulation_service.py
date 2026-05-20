@@ -22,6 +22,10 @@ from src.core.proposals.models import (
     ProposalSimulationIdempotencyRecord,
     ProposalSimulationRequest,
 )
+from src.core.proposals.simulation_gate import (
+    ProposalSimulationGateError,
+    validate_proposal_simulation_enabled,
+)
 
 PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, object]]" = OrderedDict()
 MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
@@ -36,11 +40,13 @@ def simulate_proposal_response(
 ) -> ProposalResult:
     resolved_request = resolved_request or resolve_simulation_input(request)
 
-    if not resolved_request.simulate_request.options.enable_proposal_simulation:
+    try:
+        validate_proposal_simulation_enabled(request=resolved_request.simulate_request)
+    except ProposalSimulationGateError as exc:
         raise HTTPException(
             status_code=HTTP_422_UNPROCESSABLE,
-            detail="PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true",
-        )
+            detail=str(exc),
+        ) from exc
 
     request_payload = canonicalize_simulation_request_payload(
         resolved=resolved_request,

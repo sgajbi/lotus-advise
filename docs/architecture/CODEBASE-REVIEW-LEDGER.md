@@ -1126,3 +1126,31 @@
 - Follow-Up:
   - Continue extracting deterministic validation rules where they improve reuse and testability
     without moving persistence orchestration out of the service boundary.
+
+## LA-REV-043
+
+- Scope: Proposal simulation enablement gate
+- Pattern: duplicated validation / API-service consistency
+- Status: Hardened
+- Finding Class: duplicate logic
+- Summary: The `options.enable_proposal_simulation` proposal guard was enforced separately in the
+  proposal lifecycle service and the direct simulation API service. Both paths used the same
+  private-banking product-control rule and error message, but the implementation lived at two
+  boundaries instead of in shared proposal-domain validation.
+- Evidence:
+  - `src/core/proposals/simulation_gate.py` now owns the simulation enablement guard, canonical
+    disabled message, and bounded domain error.
+  - `src/core/proposals/service.py` delegates lifecycle proposal validation to the shared gate and
+    translates failures into `ProposalValidationError`.
+  - `src/api/services/advisory_simulation_service.py` delegates direct simulation validation to the
+    shared gate and translates failures into the existing HTTP 422 response.
+  - `tests/unit/advisory/engine/test_engine_proposal_simulation_gate.py` directly proves enabled,
+    disabled, and not-required behavior.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_simulation_gate.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py tests\unit\advisory\api\test_api_advisory_proposal_simulate.py tests\unit\advisory\api\test_api_advisory_proposal_lifecycle.py -q`.
+- Consequence:
+  - Proposal simulation gating now has one reusable validation rule while API and lifecycle service
+    boundaries keep their own error translation responsibilities.
+- Follow-Up:
+  - Continue scanning API/service pairs for duplicated proposal product-control rules before they
+    diverge across channels.

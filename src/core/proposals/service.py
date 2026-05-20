@@ -104,6 +104,10 @@ from src.core.proposals.projections import (
 )
 from src.core.proposals.reporting import build_report_requested_event
 from src.core.proposals.repository import ProposalRepository
+from src.core.proposals.simulation_gate import (
+    ProposalSimulationGateError,
+    validate_proposal_simulation_enabled,
+)
 from src.core.proposals.versions import build_proposal_version_record
 from src.core.proposals.workflow_rules import (
     TERMINAL_STATES,
@@ -1360,13 +1364,13 @@ class ProposalWorkflowService:
         )
 
     def _validate_simulation_flag(self, request: ProposalSimulateRequest) -> None:
-        if (
-            self._require_proposal_simulation_flag
-            and not request.options.enable_proposal_simulation
-        ):
-            raise ProposalValidationError(
-                "PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true"
+        try:
+            validate_proposal_simulation_enabled(
+                request=request,
+                require_simulation_flag=self._require_proposal_simulation_flag,
             )
+        except ProposalSimulationGateError as exc:
+            raise ProposalValidationError(str(exc)) from exc
 
     def _validate_expected_state(
         self,
