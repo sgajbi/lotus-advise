@@ -8,6 +8,7 @@
 
 ### Product Surface
 - [API Surface](API-Surface)
+- [Supported Features](Supported-Features)
 - [Proposal Lifecycle](Proposal-Lifecycle)
 - [Advisory Workspace](Advisory-Workspace)
 

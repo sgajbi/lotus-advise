@@ -10,6 +10,7 @@ It does not own canonical portfolio source data, risk methodology, performance m
 - [Getting Started](Getting-Started)
 - [Architecture](Architecture)
 - [API Surface](API-Surface)
+- [Supported Features](Supported-Features)
 - [Proposal Lifecycle](Proposal-Lifecycle)
 - [Advisory Workspace](Advisory-Workspace)
 - [Development Workflow](Development-Workflow)

@@ -649,3 +649,33 @@
 - Follow-Up:
   - If the team wants CI-attached live evidence later, reuse the same bundle and PR-summary writers
     rather than introducing a second evidence format.
+
+## LA-REV-025
+
+- Scope: Integration capability contract modularity
+- Pattern: modularity problem / API contract hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: The `/platform/capabilities` route mixed HTTP wiring, Pydantic contract models,
+  dependency-readiness interpretation, feature/workflow construction, and supportability metric
+  recording in one router-adjacent module. That made a platform-facing contract harder to review,
+  extend, and test without touching controller code.
+- Evidence:
+  - `src/api/routers/integration_capabilities.py` now contains only HTTP route wiring for
+    `GET /platform/capabilities`.
+  - `src/api/capabilities/models.py` now owns the capability, readiness, workflow, and
+    supportability response contracts and Swagger examples.
+  - `src/api/capabilities/service.py` now owns feature/workflow assembly, dependency-readiness
+    interpretation, fail-closed missing-dependency behavior, and supportability metric emission.
+  - `tests/unit/advisory/api/test_api_integration_capabilities.py` now covers the service-level
+    missing-dependency path directly, so a malformed readiness payload cannot silently become an
+    optimistic AI-rationale posture.
+  - `README.md` now references the actual `GET /platform/capabilities` route, and
+    `wiki/Supported-Features.md` records implementation-backed functional and non-functional
+    capability posture for business, operations, sales, pre-sales, demo, and engineering users.
+- Consequence:
+  - The platform capability contract is easier to maintain and safer to evolve without coupling
+    contract changes to controller code.
+- Follow-Up:
+  - Continue the same pattern for the larger proposal lifecycle and stateful Lotus Core context
+    modules, using `docs/rfcs/WTBD.md` to keep follow-up work scoped and owner-specific.

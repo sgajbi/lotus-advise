@@ -30,3 +30,16 @@ def test_readme_documents_canonical_local_docker_urls() -> None:
     assert "http://core-control.dev.lotus" in readme
     assert "http://core-query.dev.lotus" in readme
     assert "http://risk.dev.lotus" in readme
+
+
+def test_public_docs_reference_current_capability_route() -> None:
+    docs = [
+        Path("README.md"),
+        Path("wiki/API-Surface.md"),
+        Path("wiki/Supported-Features.md"),
+    ]
+
+    for path in docs:
+        text = path.read_text(encoding="utf-8")
+        assert "GET /platform/capabilities" in text
+        assert "GET /integration/capabilities" not in text
