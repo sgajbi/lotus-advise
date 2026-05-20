@@ -16,6 +16,8 @@ recorded here with enough detail for later owner-specific slices.
     `src/core/proposals/async_payloads.py`.
   - Workflow transition, approval-transition, execution-update, execution-status, and
     state-correlation rules now live in `src/core/proposals/workflow_rules.py`.
+  - Delivery-summary projection now reuses the shared execution-status vocabulary from
+    `src/core/proposals/workflow_rules.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

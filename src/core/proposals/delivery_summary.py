@@ -3,18 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 from src.core.proposals.models import ProposalWorkflowEventRecord
+from src.core.proposals.workflow_rules import (
+    EXECUTION_STATUS_EVENT_TYPES,
+    execution_status_for_event,
+)
 
-_EXECUTION_EVENT_TYPES = {
-    "EXECUTION_REQUESTED",
-    "EXECUTION_ACCEPTED",
-    "EXECUTION_PARTIALLY_EXECUTED",
-    "EXECUTION_REJECTED",
-    "EXECUTION_CANCELLED",
-    "EXECUTION_EXPIRED",
-    "EXECUTED",
-}
-
-_DELIVERY_EVENT_TYPES = _EXECUTION_EVENT_TYPES | {"REPORT_REQUESTED"}
+_DELIVERY_EVENT_TYPES = EXECUTION_STATUS_EVENT_TYPES | {"REPORT_REQUESTED"}
 
 
 def build_delivery_summary_from_events(
@@ -27,7 +21,7 @@ def build_delivery_summary_from_events(
     for event in events:
         if event.event_type == "EXECUTION_REQUESTED":
             latest_execution_requested = event
-        if event.event_type in _EXECUTION_EVENT_TYPES:
+        if event.event_type in EXECUTION_STATUS_EVENT_TYPES:
             latest_execution_event = event
         if event.event_type == "REPORT_REQUESTED":
             latest_report_request = event
@@ -37,7 +31,7 @@ def build_delivery_summary_from_events(
         target_event = latest_execution_event or latest_execution_requested
         assert target_event is not None
         execution = {
-            "handoff_status": _execution_event_to_status(target_event.event_type),
+            "handoff_status": execution_status_for_event(target_event.event_type),
             "execution_request_id": _optional_str(
                 target_event.reason_json.get("execution_request_id")
                 if target_event.reason_json.get("execution_request_id") is not None
@@ -106,19 +100,6 @@ def select_delivery_events(
     events: list[ProposalWorkflowEventRecord],
 ) -> list[ProposalWorkflowEventRecord]:
     return [event for event in events if event.event_type in _DELIVERY_EVENT_TYPES]
-
-
-def _execution_event_to_status(event_type: str) -> str:
-    mapping = {
-        "EXECUTION_REQUESTED": "REQUESTED",
-        "EXECUTION_ACCEPTED": "ACCEPTED",
-        "EXECUTION_PARTIALLY_EXECUTED": "PARTIALLY_EXECUTED",
-        "EXECUTION_REJECTED": "REJECTED",
-        "EXECUTION_CANCELLED": "CANCELLED",
-        "EXECUTION_EXPIRED": "EXPIRED",
-        "EXECUTED": "EXECUTED",
-    }
-    return mapping[event_type]
 
 
 def _optional_str(value: Any) -> str | None:

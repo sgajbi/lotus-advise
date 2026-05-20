@@ -738,3 +738,27 @@
 - Follow-Up:
   - Replace direct private-method tests with workflow-rule tests over time, then remove the
     compatibility wrappers once no service-internal test reaches through the class boundary.
+
+## LA-REV-028
+
+- Scope: Delivery projection vocabulary convergence
+- Pattern: duplicate logic / workflow correctness hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: `src/core/proposals/delivery_summary.py` carried its own execution event set and
+  execution-status mapping even after proposal workflow rules were extracted. That created a small
+  but important drift risk between execution-status endpoints and delivery-summary projection.
+- Evidence:
+  - `src/core/proposals/delivery_summary.py` now imports `EXECUTION_STATUS_EVENT_TYPES` and
+    `execution_status_for_event(...)` from `src/core/proposals/workflow_rules.py`.
+  - `tests/unit/advisory/engine/test_engine_proposal_delivery_summary.py` now directly proves
+    latest execution-status projection, report-request projection, and delivery-only event
+    filtering.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_delivery_summary.py tests\unit\advisory\engine\test_engine_proposal_workflow_rules.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Execution and delivery surfaces now share one bounded workflow vocabulary instead of maintaining
+    duplicate mappings in separate modules.
+- Follow-Up:
+  - Continue consolidating projection code around explicit modules before decomposing larger
+    report-request and execution-handoff service methods.
