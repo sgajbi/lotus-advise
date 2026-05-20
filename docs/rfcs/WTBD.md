@@ -55,6 +55,9 @@ recorded here with enough detail for later owner-specific slices.
     transition response projection now live in `src/core/proposals/lifecycle_events.py`, while the
     workflow service retains approval replay referent checks, expected-state validation,
     approval-transition rule resolution, and persistence.
+  - Proposal evidence-bundle enrichment now lives in `src/core/proposals/evidence.py`, consolidating
+    context-resolution override handling, risk-lens extraction, and replay-lineage attachment across
+    proposal create and version create paths.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.

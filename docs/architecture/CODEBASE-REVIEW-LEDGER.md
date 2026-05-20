@@ -1857,3 +1857,27 @@
 - Follow-Up:
   - Continue command-path decomposition only where deterministic construction can be separated from
     stateful validation and persistence with direct tests.
+
+## LA-REV-071
+
+- Scope: Proposal evidence-bundle enrichment
+- Pattern: duplication / lineage hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: Proposal create and proposal-version create both assembled evidence bundles inline in
+  `src/core/proposals/service.py`, duplicating context-resolution override handling, risk-lens
+  extraction, and replay-lineage attachment. This lineage behavior should stay consistent across
+  immutable advisory versions.
+- Evidence:
+  - `src/core/proposals/evidence.py` now owns `build_proposal_evidence_bundle`.
+  - `src/core/proposals/service.py` now delegates evidence-bundle enrichment from both create and
+    create-version flows after artifact construction and proposal simulation.
+  - `tests/unit/advisory/engine/test_engine_proposal_evidence.py` directly proves override versus
+    default context-resolution behavior, risk-lens extraction, replay-lineage attachment, and
+    omission of absent replay lineage.
+- Consequence:
+  - Version lineage enrichment is centralized and directly tested, reducing duplicate evidence
+    assembly in the workflow service without moving simulation, artifact creation, or persistence.
+- Follow-Up:
+  - Keep proposal simulation and artifact creation in the service until a larger application command
+    boundary is introduced with full create/version characterization coverage.

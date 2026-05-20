@@ -5,7 +5,6 @@ from typing import Any, Optional, cast
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.orchestration import evaluate_advisory_proposal
-from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.async_operations import (
@@ -42,6 +41,7 @@ from src.core.proposals.delivery_summary import (
     build_delivery_history_response,
     build_delivery_summary_response,
 )
+from src.core.proposals.evidence import build_proposal_evidence_bundle
 from src.core.proposals.execution_handoff import (
     build_execution_handoff_replay_response,
     build_execution_handoff_requested_event,
@@ -252,15 +252,13 @@ class ProposalWorkflowService:
             proposal_result=proposal_result,
             created_at=now.isoformat(),
         )
-        evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
-        evidence_bundle["context_resolution"] = (
-            dict(context_resolution_override)
-            if context_resolution_override is not None
-            else context_resolution
+        evidence_bundle = build_proposal_evidence_bundle(
+            artifact_evidence_bundle=artifact.evidence_bundle,
+            proposal_result=proposal_result,
+            context_resolution=context_resolution,
+            context_resolution_override=context_resolution_override,
+            replay_lineage=replay_lineage,
         )
-        evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
-        if replay_lineage:
-            evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
         proposal_id = new_proposal_id()
         version_no = 1
@@ -731,15 +729,13 @@ class ProposalWorkflowService:
             proposal_result=proposal_result,
             created_at=now.isoformat(),
         )
-        evidence_bundle = artifact.evidence_bundle.model_dump(mode="json")
-        evidence_bundle["context_resolution"] = (
-            dict(context_resolution_override)
-            if context_resolution_override is not None
-            else context_resolution
+        evidence_bundle = build_proposal_evidence_bundle(
+            artifact_evidence_bundle=artifact.evidence_bundle,
+            proposal_result=proposal_result,
+            context_resolution=context_resolution,
+            context_resolution_override=context_resolution_override,
+            replay_lineage=replay_lineage,
         )
-        evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
-        if replay_lineage:
-            evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
         next_version_no = proposal.current_version_no + 1
         reset_state: ProposalWorkflowState = "DRAFT"
