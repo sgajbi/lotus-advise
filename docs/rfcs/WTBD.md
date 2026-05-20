@@ -14,9 +14,11 @@ recorded here with enough detail for later owner-specific slices.
 - Progress:
   - Async create/version submission hashing and replay metadata extraction now live in
     `src/core/proposals/async_payloads.py`.
+  - Workflow transition, approval-transition, execution-update, execution-status, and
+    state-correlation rules now live in `src/core/proposals/workflow_rules.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
-    projection, execution handoff, and idempotency helpers into smaller domain modules.
+    projection, and execution handoff helpers into smaller domain modules.
   - Keep API contracts stable while moving business rules out of controller and persistence seams.
   - Add characterization tests around each extracted rule before or during extraction.
 

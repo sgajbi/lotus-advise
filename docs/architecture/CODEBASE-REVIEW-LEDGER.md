@@ -709,3 +709,32 @@
 - Follow-Up:
   - Continue decomposing `src/core/proposals/service.py` by extracting delivery projection,
     lifecycle transition resolution, and report/execution handoff helpers in separate small slices.
+
+## LA-REV-027
+
+- Scope: Proposal workflow transition and execution-status rules
+- Pattern: modularity problem / workflow correctness hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Proposal transition maps, approval transition logic, execution-update mapping, execution
+  status projection, and state-correlation labels were embedded in `ProposalWorkflowService`.
+  These rules are pure workflow policy and should be directly testable outside the repository-backed
+  service orchestration path.
+- Evidence:
+  - `src/core/proposals/workflow_rules.py` now owns terminal states, transition maps,
+    approval-transition resolution, execution-update mapping, execution-status projection, and
+    execution state-correlation labels.
+  - `src/core/proposals/service.py` now delegates those pure rules while keeping temporary wrapper
+    methods for existing service call sites and compatibility with current tests.
+  - `tests/unit/advisory/engine/test_engine_proposal_workflow_rules.py` directly proves cancel
+    behavior, invalid transition behavior, approval approved/rejected paths, invalid approval
+    states/types, execution update mapping, execution status projection, and default correlation
+    fallback.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_workflow_rules.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Workflow rules can now be reviewed and extended as domain policy rather than as hidden private
+    service implementation details.
+- Follow-Up:
+  - Replace direct private-method tests with workflow-rule tests over time, then remove the
+    compatibility wrappers once no service-internal test reaches through the class boundary.

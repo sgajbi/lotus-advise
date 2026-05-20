@@ -11,8 +11,12 @@ from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.async_payloads import (
     extract_async_submission_hash,
-    hash_async_create_submission,
-    hash_async_version_submission,
+)
+from src.core.proposals.async_payloads import (
+    hash_async_create_submission as build_async_create_submission_hash,
+)
+from src.core.proposals.async_payloads import (
+    hash_async_version_submission as build_async_version_submission_hash,
 )
 from src.core.proposals.context import (
     ProposalContextResolutionError,
@@ -65,49 +69,25 @@ from src.core.proposals.models import (
     ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.repository import ProposalRepository
+from src.core.proposals.workflow_rules import (
+    EXECUTION_STATUS_EVENT_TYPES,
+    TERMINAL_STATES,
+    ProposalWorkflowRuleError,
+    execution_state_correlation,
+    execution_status_for_event,
+    resolve_approval_transition,
+    resolve_execution_update_event,
+    resolve_transition_state,
+)
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import (
     build_async_operation_replay_response,
     build_proposal_version_replay_response,
 )
 
-TERMINAL_STATES = {"EXECUTED", "REJECTED", "CANCELLED", "EXPIRED"}
-ASYNC_TERMINAL_STATUSES = {"SUCCEEDED", "FAILED"}
 ASYNC_DEFAULT_MAX_ATTEMPTS = 3
 ASYNC_OPERATION_LEASE_SECONDS = 60
-
-TRANSITION_MAP: dict[tuple[ProposalWorkflowState, str], ProposalWorkflowState] = {
-    ("DRAFT", "SUBMITTED_FOR_RISK_REVIEW"): "RISK_REVIEW",
-    ("DRAFT", "SUBMITTED_FOR_COMPLIANCE_REVIEW"): "COMPLIANCE_REVIEW",
-    ("RISK_REVIEW", "RISK_APPROVED"): "AWAITING_CLIENT_CONSENT",
-    ("RISK_REVIEW", "REJECTED"): "REJECTED",
-    ("COMPLIANCE_REVIEW", "COMPLIANCE_APPROVED"): "AWAITING_CLIENT_CONSENT",
-    ("COMPLIANCE_REVIEW", "REJECTED"): "REJECTED",
-    ("AWAITING_CLIENT_CONSENT", "CLIENT_CONSENT_RECORDED"): "EXECUTION_READY",
-    ("AWAITING_CLIENT_CONSENT", "REJECTED"): "REJECTED",
-    ("EXECUTION_READY", "EXECUTION_REQUESTED"): "EXECUTION_READY",
-    ("EXECUTION_READY", "EXECUTED"): "EXECUTED",
-    ("EXECUTION_READY", "EXPIRED"): "EXPIRED",
-}
-
-EXECUTION_STATUS_EVENT_TYPES = {
-    "EXECUTION_REQUESTED",
-    "EXECUTION_ACCEPTED",
-    "EXECUTION_PARTIALLY_EXECUTED",
-    "EXECUTION_REJECTED",
-    "EXECUTION_CANCELLED",
-    "EXECUTION_EXPIRED",
-    "EXECUTED",
-}
-
-EXECUTION_UPDATE_EVENT_MAP: dict[str, tuple[str, ProposalWorkflowState]] = {
-    "ACCEPTED": ("EXECUTION_ACCEPTED", "EXECUTION_READY"),
-    "PARTIALLY_EXECUTED": ("EXECUTION_PARTIALLY_EXECUTED", "EXECUTION_READY"),
-    "REJECTED": ("EXECUTION_REJECTED", "REJECTED"),
-    "CANCELLED": ("EXECUTION_CANCELLED", "CANCELLED"),
-    "EXPIRED": ("EXECUTION_EXPIRED", "EXPIRED"),
-    "EXECUTED": ("EXECUTED", "EXECUTED"),
-}
+ASYNC_TERMINAL_STATUSES = {"SUCCEEDED", "FAILED"}
 
 
 class ProposalLifecycleError(Exception):
@@ -683,7 +663,7 @@ class ProposalWorkflowService:
         if replay_event is not None:
             return self.get_execution_status(proposal_id=proposal_id)
 
-        event_type, to_state = EXECUTION_UPDATE_EVENT_MAP[payload.update_status]
+        event_type, to_state = resolve_execution_update_event(payload.update_status)
         if proposal.current_state in TERMINAL_STATES:
             raise ProposalStateConflictError("PROPOSAL_TERMINAL_STATE: execution update rejected")
 
@@ -1445,7 +1425,7 @@ class ProposalWorkflowService:
         return payload, resolved_idempotency_key
 
     def _hash_async_create_submission(self, payload: ProposalCreateRequest) -> str:
-        return hash_async_create_submission(payload)
+        return build_async_create_submission_hash(payload)
 
     def _hash_async_version_submission(
         self,
@@ -1453,7 +1433,7 @@ class ProposalWorkflowService:
         proposal_id: str,
         payload: ProposalVersionRequest,
     ) -> str:
-        return hash_async_version_submission(proposal_id=proposal_id, payload=payload)
+        return build_async_version_submission_hash(proposal_id=proposal_id, payload=payload)
 
     def _record_async_create_submission_outcome(self, key: str) -> None:
         with self._async_create_submission_stats_lock:
@@ -1654,12 +1634,10 @@ class ProposalWorkflowService:
         current_state: ProposalWorkflowState,
         event_type: str,
     ) -> ProposalWorkflowState:
-        if event_type == "CANCELLED" and current_state not in TERMINAL_STATES:
-            return "CANCELLED"
-        next_state = TRANSITION_MAP.get((current_state, event_type))
-        if next_state is None:
-            raise ProposalTransitionError("INVALID_TRANSITION")
-        return next_state
+        try:
+            return resolve_transition_state(current_state=current_state, event_type=event_type)
+        except ProposalWorkflowRuleError as exc:
+            raise ProposalTransitionError(str(exc)) from exc
 
     def _resolve_approval_transition(
         self,
@@ -1668,31 +1646,14 @@ class ProposalWorkflowService:
         approval_type: str,
         approved: bool,
     ) -> tuple[str, ProposalWorkflowState]:
-        if approval_type == "RISK":
-            if current_state != "RISK_REVIEW":
-                raise ProposalTransitionError("INVALID_APPROVAL_STATE")
-            return (
-                "RISK_APPROVED" if approved else "REJECTED",
-                "AWAITING_CLIENT_CONSENT" if approved else "REJECTED",
+        try:
+            return resolve_approval_transition(
+                current_state=current_state,
+                approval_type=approval_type,
+                approved=approved,
             )
-
-        if approval_type == "COMPLIANCE":
-            if current_state != "COMPLIANCE_REVIEW":
-                raise ProposalTransitionError("INVALID_APPROVAL_STATE")
-            return (
-                "COMPLIANCE_APPROVED" if approved else "REJECTED",
-                "AWAITING_CLIENT_CONSENT" if approved else "REJECTED",
-            )
-
-        if approval_type == "CLIENT_CONSENT":
-            if current_state != "AWAITING_CLIENT_CONSENT":
-                raise ProposalTransitionError("INVALID_APPROVAL_STATE")
-            return (
-                "CLIENT_CONSENT_RECORDED" if approved else "REJECTED",
-                "EXECUTION_READY" if approved else "REJECTED",
-            )
-
-        raise ProposalTransitionError("INVALID_APPROVAL_TYPE")
+        except ProposalWorkflowRuleError as exc:
+            raise ProposalTransitionError(str(exc)) from exc
 
     def _latest_execution_requested_event(
         self, events: list[ProposalWorkflowEventRecord]
@@ -1711,28 +1672,10 @@ class ProposalWorkflowService:
         return None
 
     def _execution_status_for_event(self, event_type: str) -> str:
-        mapping = {
-            "EXECUTION_REQUESTED": "REQUESTED",
-            "EXECUTION_ACCEPTED": "ACCEPTED",
-            "EXECUTION_PARTIALLY_EXECUTED": "PARTIALLY_EXECUTED",
-            "EXECUTION_REJECTED": "REJECTED",
-            "EXECUTION_CANCELLED": "CANCELLED",
-            "EXECUTION_EXPIRED": "EXPIRED",
-            "EXECUTED": "EXECUTED",
-        }
-        return mapping.get(event_type, "NOT_REQUESTED")
+        return execution_status_for_event(event_type)
 
     def _execution_state_correlation(self, *, handoff_status: str) -> str:
-        mapping = {
-            "REQUESTED": "EXECUTION_REQUESTED_EVENT",
-            "ACCEPTED": "EXECUTION_REQUESTED_AND_ACCEPTED_EVENTS",
-            "PARTIALLY_EXECUTED": "EXECUTION_REQUESTED_AND_PARTIAL_EXECUTION_EVENTS",
-            "EXECUTED": "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS",
-            "REJECTED": "EXECUTION_REQUESTED_AND_REJECTED_EVENTS",
-            "CANCELLED": "EXECUTION_REQUESTED_AND_CANCELLED_EVENTS",
-            "EXPIRED": "EXECUTION_REQUESTED_AND_EXPIRED_EVENTS",
-        }
-        return mapping.get(handoff_status, "NO_EXECUTION_EVENTS_RECORDED")
+        return execution_state_correlation(handoff_status=handoff_status)
 
 
 def _utc_now() -> datetime:
