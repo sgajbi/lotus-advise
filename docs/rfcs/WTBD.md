@@ -33,6 +33,9 @@ recorded here with enough detail for later owner-specific slices.
     `src/core/proposals/projections.py`.
   - Proposal lineage response assembly now lives in `src/core/proposals/projections.py`, including
     immutable version item projection, latest-version selection, and missing-version detection.
+  - Proposal workflow timeline and approval-history response assembly now live in
+    `src/core/proposals/projections.py`, keeping lifecycle read-model projection out of the
+    workflow service.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.

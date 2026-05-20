@@ -1681,3 +1681,28 @@
 - Follow-Up:
   - Continue extracting proposal lifecycle read-model assembly where behavior is deterministic and
     can be pinned without changing workflow command semantics.
+
+## LA-REV-064
+
+- Scope: Proposal lifecycle timeline and approval read-model projection
+- Pattern: modularity problem / auditability hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workflow timeline and approval-history response assembly lived directly inside
+  `src/core/proposals/service.py`, mixing repository lookup with lifecycle read-model projection and
+  latest approval/event selection. These projections are deterministic and should be reusable
+  outside the workflow service.
+- Evidence:
+  - `src/core/proposals/projections.py` now owns `build_workflow_timeline_response` and
+    `build_approvals_response`.
+  - `src/core/proposals/service.py` now fetches proposal events/approvals and delegates lifecycle
+    read-model assembly to the projection module.
+  - `tests/unit/advisory/engine/test_engine_proposal_projections.py` directly proves ordered
+    timeline projection, latest-event posture, approval filtering, latest approval timestamp, and
+    domain approval vocabulary preservation.
+- Consequence:
+  - Audit-facing lifecycle projections are centralized in the proposal projection module, reducing
+    workflow-service DTO assembly while preserving command and persistence behavior.
+- Follow-Up:
+  - Continue with delivery summary/history projection only if it remains deterministic after
+    preserving the existing execution/reporting summary semantics.

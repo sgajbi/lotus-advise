@@ -9,7 +9,9 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
 )
 from src.core.proposals.projections import (
+    build_approvals_response,
     build_proposal_lineage_response,
+    build_workflow_timeline_response,
     to_approval_record,
     to_async_accepted_response,
     to_async_status_response,
@@ -232,6 +234,82 @@ def test_build_proposal_lineage_response_marks_missing_versions():
     assert response.lineage_complete is False
     assert response.missing_version_numbers == [2]
     assert [version.version_no for version in response.versions] == [1, 3]
+
+
+def test_build_workflow_timeline_response_orders_projected_events():
+    events = [
+        ProposalWorkflowEventRecord(
+            event_id="pwe_projection_1",
+            proposal_id="pp_projection",
+            event_type="CREATED",
+            from_state=None,
+            to_state="DRAFT",
+            actor_id="advisor_projection",
+            occurred_at=datetime(2026, 5, 20, 9, 1, tzinfo=timezone.utc),
+            reason_json={"source": "unit"},
+            related_version_no=1,
+        ),
+        ProposalWorkflowEventRecord(
+            event_id="pwe_projection_2",
+            proposal_id="pp_projection",
+            event_type="SUBMITTED_FOR_COMPLIANCE_REVIEW",
+            from_state="DRAFT",
+            to_state="COMPLIANCE_REVIEW",
+            actor_id="advisor_projection",
+            occurred_at=datetime(2026, 5, 20, 9, 2, tzinfo=timezone.utc),
+            reason_json={"source": "unit"},
+            related_version_no=1,
+        ),
+    ]
+
+    response = build_workflow_timeline_response(
+        proposal=_proposal(current_state="COMPLIANCE_REVIEW"),
+        events=events,
+    )
+
+    assert response.current_state == "COMPLIANCE_REVIEW"
+    assert response.event_count == 2
+    assert response.latest_event is not None
+    assert response.latest_event.event_type == "SUBMITTED_FOR_COMPLIANCE_REVIEW"
+    assert [event.event_id for event in response.events] == [
+        "pwe_projection_1",
+        "pwe_projection_2",
+    ]
+
+
+def test_build_approvals_response_projects_latest_approval_posture():
+    approvals = [
+        None,
+        ProposalApprovalRecordData(
+            approval_id="pap_projection_1",
+            proposal_id="pp_projection",
+            approval_type="COMPLIANCE",
+            approved=True,
+            actor_id="compliance_projection",
+            occurred_at=datetime(2026, 5, 20, 9, 3, tzinfo=timezone.utc),
+            details_json={"decision": "approved"},
+            related_version_no=1,
+        ),
+        ProposalApprovalRecordData(
+            approval_id="pap_projection_2",
+            proposal_id="pp_projection",
+            approval_type="CLIENT_CONSENT",
+            approved=True,
+            actor_id="client_projection",
+            occurred_at=datetime(2026, 5, 20, 9, 4, tzinfo=timezone.utc),
+            details_json={"channel": "IN_PERSON"},
+            related_version_no=1,
+        ),
+    ]
+
+    response = build_approvals_response(proposal=_proposal(), approvals=approvals)
+
+    assert response.approval_count == 2
+    assert response.latest_approval_at == "2026-05-20T09:04:00+00:00"
+    assert [approval.approval_type for approval in response.approvals] == [
+        "COMPLIANCE",
+        "CLIENT_CONSENT",
+    ]
 
 
 def test_async_operation_response_projections_preserve_operational_state():

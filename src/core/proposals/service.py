@@ -97,7 +97,9 @@ from src.core.proposals.models import (
     ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.projections import (
+    build_approvals_response,
     build_proposal_lineage_response,
+    build_workflow_timeline_response,
     to_approval_record,
     to_async_accepted_response,
     to_async_status_response,
@@ -439,30 +441,15 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
         events = self._repository.list_events(proposal_id=proposal_id)
-        timeline_events = [to_workflow_event(event) for event in events]
-        return ProposalWorkflowTimelineResponse(
-            proposal=to_proposal_summary(proposal),
-            current_state=proposal.current_state,
-            event_count=len(timeline_events),
-            latest_event=timeline_events[-1] if timeline_events else None,
-            events=timeline_events,
-        )
+        return build_workflow_timeline_response(proposal=proposal, events=events)
 
     def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        approvals = [
-            to_approval_record(approval)
-            for approval in self._repository.list_approvals(proposal_id=proposal_id)
-            if approval is not None
-        ]
-        latest_approval = approvals[-1] if approvals else None
-        return ProposalApprovalsResponse(
-            proposal=to_proposal_summary(proposal),
-            approval_count=len(approvals),
-            latest_approval_at=latest_approval.occurred_at if latest_approval is not None else None,
-            approvals=approvals,
+        return build_approvals_response(
+            proposal=proposal,
+            approvals=self._repository.list_approvals(proposal_id=proposal_id),
         )
 
     def get_lineage(self, *, proposal_id: str) -> ProposalLineageResponse:

@@ -1,8 +1,10 @@
+from collections.abc import Sequence
 from typing import Any
 
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
+    ProposalApprovalsResponse,
     ProposalAsyncAcceptedResponse,
     ProposalAsyncOperationRecord,
     ProposalAsyncOperationStatusResponse,
@@ -15,6 +17,7 @@ from src.core.proposals.models import (
     ProposalVersionRecord,
     ProposalWorkflowEvent,
     ProposalWorkflowEventRecord,
+    ProposalWorkflowTimelineResponse,
 )
 
 
@@ -134,6 +137,40 @@ def build_proposal_lineage_response(
         lineage_complete=not missing_version_numbers,
         missing_version_numbers=missing_version_numbers,
         versions=versions,
+    )
+
+
+def build_workflow_timeline_response(
+    *,
+    proposal: ProposalRecord,
+    events: list[ProposalWorkflowEventRecord],
+) -> ProposalWorkflowTimelineResponse:
+    timeline_events = [to_workflow_event(event) for event in events]
+    return ProposalWorkflowTimelineResponse(
+        proposal=to_proposal_summary(proposal),
+        current_state=proposal.current_state,
+        event_count=len(timeline_events),
+        latest_event=timeline_events[-1] if timeline_events else None,
+        events=timeline_events,
+    )
+
+
+def build_approvals_response(
+    *,
+    proposal: ProposalRecord,
+    approvals: Sequence[ProposalApprovalRecordData | None],
+) -> ProposalApprovalsResponse:
+    projected_approvals = [
+        approval
+        for approval in (to_approval_record(approval) for approval in approvals)
+        if approval is not None
+    ]
+    latest_approval = projected_approvals[-1] if projected_approvals else None
+    return ProposalApprovalsResponse(
+        proposal=to_proposal_summary(proposal),
+        approval_count=len(projected_approvals),
+        latest_approval_at=latest_approval.occurred_at if latest_approval is not None else None,
+        approvals=projected_approvals,
     )
 
 
