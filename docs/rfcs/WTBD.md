@@ -25,6 +25,8 @@ recorded here with enough detail for later owner-specific slices.
   - Report-request workflow event construction now lives in `src/core/proposals/reporting.py`.
   - Async operation attempt, success, failure, retry, and replay-lineage state helpers now live in
     `src/core/proposals/async_operations.py`.
+  - Async create/version payload recovery and failure outcomes now live in
+    `src/core/proposals/async_payloads.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

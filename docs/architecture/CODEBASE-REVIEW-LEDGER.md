@@ -870,3 +870,30 @@
 - Follow-Up:
   - Continue extracting async payload recovery and execution handoff request construction in
     separate small slices.
+
+## LA-REV-033
+
+- Scope: Proposal async payload recovery
+- Pattern: modularity problem / idempotency recovery hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Async create/version payload recovery was embedded in `ProposalWorkflowService`, mixing
+  persisted payload validation, fallback payload handling, idempotency key recovery, proposal scope
+  recovery, and repository failure marking. The payload recovery rules are deterministic and should
+  be reviewable independently from operation persistence.
+- Evidence:
+  - `src/core/proposals/async_payloads.py` now owns typed create/version async payload recovery
+    results and failure outcomes.
+  - `src/core/proposals/service.py` now delegates payload recovery and remains responsible only for
+    converting recovery failures into persisted async operation errors.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_payloads.py` now proves persisted create
+    payload recovery, missing/invalid create payload behavior, idempotency-key failure behavior,
+    version proposal-scope fallback, and missing version proposal-scope failure behavior.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_async_payloads.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Restart-safe async recovery is now explicit domain logic with typed outcomes rather than
+    service-private branching.
+- Follow-Up:
+  - Continue extracting execution handoff request construction and version-record construction in
+    separate small slices.

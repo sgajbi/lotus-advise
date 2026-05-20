@@ -17,7 +17,12 @@ from src.core.proposals.async_operations import (
     mark_operation_succeeded,
 )
 from src.core.proposals.async_payloads import (
+    AsyncCreatePayloadResolution,
+    AsyncPayloadResolutionFailure,
+    AsyncVersionPayloadResolution,
     extract_async_submission_hash,
+    resolve_async_create_payload,
+    resolve_async_version_payload,
 )
 from src.core.proposals.async_payloads import (
     hash_async_create_submission as build_async_create_submission_hash,
@@ -1292,40 +1297,20 @@ class ProposalWorkflowService:
         fallback_payload: Optional[ProposalCreateRequest],
         fallback_idempotency_key: Optional[str],
     ) -> tuple[ProposalCreateRequest, str] | None:
-        payload_json = operation.payload_json.get("payload")
-        if not isinstance(payload_json, dict):
-            if fallback_payload is None:
-                self._mark_operation_failed(
-                    operation=operation,
-                    code="ProposalLifecycleError",
-                    message="PROPOSAL_ASYNC_PAYLOAD_INVALID",
-                )
-                return None
-            payload = fallback_payload
-        else:
-            try:
-                payload = ProposalCreateRequest.model_validate(payload_json)
-            except Exception:
-                self._mark_operation_failed(
-                    operation=operation,
-                    code="ProposalLifecycleError",
-                    message="PROPOSAL_ASYNC_PAYLOAD_INVALID",
-                )
-                return None
-
-        resolved_idempotency_key = (
-            operation.payload_json.get("idempotency_key")
-            or operation.idempotency_key
-            or fallback_idempotency_key
+        resolution = resolve_async_create_payload(
+            operation=operation,
+            fallback_payload=fallback_payload,
+            fallback_idempotency_key=fallback_idempotency_key,
         )
-        if not isinstance(resolved_idempotency_key, str) or not resolved_idempotency_key:
+        if isinstance(resolution, AsyncPayloadResolutionFailure):
             self._mark_operation_failed(
                 operation=operation,
-                code="ProposalLifecycleError",
-                message="PROPOSAL_ASYNC_IDEMPOTENCY_KEY_REQUIRED",
+                code=resolution.code,
+                message=resolution.message,
             )
             return None
-        return payload, resolved_idempotency_key
+        resolved = cast(AsyncCreatePayloadResolution, resolution)
+        return resolved.payload, resolved.idempotency_key
 
     def _hash_async_create_submission(self, payload: ProposalCreateRequest) -> str:
         return cast(str, build_async_create_submission_hash(payload))
@@ -1360,38 +1345,20 @@ class ProposalWorkflowService:
         fallback_proposal_id: Optional[str],
         fallback_payload: Optional[ProposalVersionRequest],
     ) -> tuple[str, ProposalVersionRequest] | None:
-        payload_json = operation.payload_json.get("payload")
-        if not isinstance(payload_json, dict):
-            if fallback_payload is None:
-                self._mark_operation_failed(
-                    operation=operation,
-                    code="ProposalLifecycleError",
-                    message="PROPOSAL_ASYNC_PAYLOAD_INVALID",
-                )
-                return None
-            payload = fallback_payload
-        else:
-            try:
-                payload = ProposalVersionRequest.model_validate(payload_json)
-            except Exception:
-                self._mark_operation_failed(
-                    operation=operation,
-                    code="ProposalLifecycleError",
-                    message="PROPOSAL_ASYNC_PAYLOAD_INVALID",
-                )
-                return None
-
-        resolved_proposal_id = operation.payload_json.get("proposal_id") or operation.proposal_id
-        if not isinstance(resolved_proposal_id, str) or not resolved_proposal_id:
-            resolved_proposal_id = fallback_proposal_id or ""
-        if not resolved_proposal_id:
+        resolution = resolve_async_version_payload(
+            operation=operation,
+            fallback_proposal_id=fallback_proposal_id,
+            fallback_payload=fallback_payload,
+        )
+        if isinstance(resolution, AsyncPayloadResolutionFailure):
             self._mark_operation_failed(
                 operation=operation,
-                code="ProposalLifecycleError",
-                message="PROPOSAL_ASYNC_PROPOSAL_ID_REQUIRED",
+                code=resolution.code,
+                message=resolution.message,
             )
             return None
-        return resolved_proposal_id, payload
+        resolved = cast(AsyncVersionPayloadResolution, resolution)
+        return resolved.proposal_id, resolved.payload
 
     def _run_async_operation(
         self,
@@ -1470,13 +1437,13 @@ class ProposalWorkflowService:
             finished_at=_utc_now(),
         )
         self._repository.update_operation(operation)
-        return should_requeue
+        return cast(bool, should_requeue)
 
     def _build_async_replay_lineage(
         self,
         operation: ProposalAsyncOperationRecord,
     ) -> dict[str, Any]:
-        return build_async_replay_lineage(operation)
+        return cast(dict[str, Any], build_async_replay_lineage(operation))
 
     def _run_simulation(
         self,

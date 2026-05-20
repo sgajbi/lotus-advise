@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.context import (
     canonicalize_create_request_payload,
@@ -10,6 +12,24 @@ from src.core.proposals.models import (
     ProposalCreateRequest,
     ProposalVersionRequest,
 )
+
+
+@dataclass(frozen=True)
+class AsyncPayloadResolutionFailure:
+    message: str
+    code: str = "ProposalLifecycleError"
+
+
+@dataclass(frozen=True)
+class AsyncCreatePayloadResolution:
+    payload: ProposalCreateRequest
+    idempotency_key: str
+
+
+@dataclass(frozen=True)
+class AsyncVersionPayloadResolution:
+    proposal_id: str
+    payload: ProposalVersionRequest
 
 
 def extract_async_submission_hash(operation: ProposalAsyncOperationRecord) -> str | None:
@@ -61,4 +81,62 @@ def hash_async_version_submission(
                 ),
             }
         )
+    )
+
+
+def resolve_async_create_payload(
+    *,
+    operation: ProposalAsyncOperationRecord,
+    fallback_payload: ProposalCreateRequest | None,
+    fallback_idempotency_key: str | None,
+) -> AsyncCreatePayloadResolution | AsyncPayloadResolutionFailure:
+    payload_json = operation.payload_json.get("payload")
+    if not isinstance(payload_json, dict):
+        if fallback_payload is None:
+            return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_PAYLOAD_INVALID")
+        payload = fallback_payload
+    else:
+        try:
+            payload = ProposalCreateRequest.model_validate(payload_json)
+        except Exception:
+            return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_PAYLOAD_INVALID")
+
+    resolved_idempotency_key = (
+        operation.payload_json.get("idempotency_key")
+        or operation.idempotency_key
+        or fallback_idempotency_key
+    )
+    if not isinstance(resolved_idempotency_key, str) or not resolved_idempotency_key:
+        return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_IDEMPOTENCY_KEY_REQUIRED")
+    return AsyncCreatePayloadResolution(
+        payload=payload,
+        idempotency_key=resolved_idempotency_key,
+    )
+
+
+def resolve_async_version_payload(
+    *,
+    operation: ProposalAsyncOperationRecord,
+    fallback_proposal_id: str | None,
+    fallback_payload: ProposalVersionRequest | None,
+) -> AsyncVersionPayloadResolution | AsyncPayloadResolutionFailure:
+    payload_json = operation.payload_json.get("payload")
+    if not isinstance(payload_json, dict):
+        if fallback_payload is None:
+            return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_PAYLOAD_INVALID")
+        payload = fallback_payload
+    else:
+        try:
+            payload = ProposalVersionRequest.model_validate(payload_json)
+        except Exception:
+            return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_PAYLOAD_INVALID")
+
+    resolved_proposal_id = operation.payload_json.get("proposal_id") or operation.proposal_id
+    if not isinstance(resolved_proposal_id, str) or not resolved_proposal_id:
+        resolved_proposal_id = fallback_proposal_id or ""
+    if not resolved_proposal_id:
+        return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_PROPOSAL_ID_REQUIRED")
+    return AsyncVersionPayloadResolution(
+        proposal_id=resolved_proposal_id,
+        payload=payload,
     )
