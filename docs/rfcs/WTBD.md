@@ -34,6 +34,8 @@ recorded here with enough detail for later owner-specific slices.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.
+  - Stale service-private version-record wrapper has been removed; create paths call the version
+    builder directly.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

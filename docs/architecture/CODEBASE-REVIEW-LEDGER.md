@@ -1023,3 +1023,26 @@
     redundant service-private alias.
 - Follow-Up:
   - Continue checking service-private helpers for real boundary value before preserving them.
+
+## LA-REV-039
+
+- Scope: Proposal version-record wrapper removal
+- Pattern: stale code / lineage hardening
+- Status: Hardened
+- Finding Class: stale code
+- Summary: After extracting immutable version-record construction, `ProposalWorkflowService` still
+  carried `_to_version_record(...)`, a thin wrapper that generated a version id and forwarded to the
+  extracted builder. It was another service-private alias around domain logic now owned by
+  `src/core/proposals/versions.py`.
+- Evidence:
+  - `src/core/proposals/service.py` now calls `build_proposal_version_record(...)` directly at the
+    proposal create and new-version creation sites.
+  - The unused `ProposalVersionRecord` import and `_to_version_record(...)` method were removed from
+    `src/core/proposals/service.py`.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_versions.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Version lineage construction has a single explicit module boundary and no stale service alias.
+- Follow-Up:
+  - Continue decomposing orchestration only where a helper owns domain behavior or removes meaningful
+    coupling.

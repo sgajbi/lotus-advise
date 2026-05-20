@@ -79,7 +79,6 @@ from src.core.proposals.models import (
     ProposalStateTransitionResponse,
     ProposalVersionDetail,
     ProposalVersionLineageItem,
-    ProposalVersionRecord,
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
     ProposalWorkflowState,
@@ -251,7 +250,8 @@ class ProposalWorkflowService:
             lifecycle_origin=lifecycle_origin,
             source_workspace_id=source_workspace_id,
         )
-        version = self._to_version_record(
+        version = build_proposal_version_record(
+            proposal_version_id=f"ppv_{uuid.uuid4().hex[:12]}",
             proposal_id=proposal_id,
             version_no=version_no,
             request_hash=request_hash,
@@ -259,6 +259,7 @@ class ProposalWorkflowService:
             artifact=artifact.model_dump(mode="json"),
             evidence_bundle=evidence_bundle,
             created_at=now,
+            store_evidence_bundle=self._store_evidence_bundle,
         )
         created_event = ProposalWorkflowEventRecord(
             event_id=f"pwe_{uuid.uuid4().hex[:12]}",
@@ -815,7 +816,8 @@ class ProposalWorkflowService:
 
         next_version_no = proposal.current_version_no + 1
         reset_state: ProposalWorkflowState = "DRAFT"
-        version = self._to_version_record(
+        version = build_proposal_version_record(
+            proposal_version_id=f"ppv_{uuid.uuid4().hex[:12]}",
             proposal_id=proposal.proposal_id,
             version_no=next_version_no,
             request_hash=request_hash,
@@ -823,6 +825,7 @@ class ProposalWorkflowService:
             artifact=artifact.model_dump(mode="json"),
             evidence_bundle=evidence_bundle,
             created_at=now,
+            store_evidence_bundle=self._store_evidence_bundle,
         )
         event = ProposalWorkflowEventRecord(
             event_id=f"pwe_{uuid.uuid4().hex[:12]}",
@@ -1143,29 +1146,6 @@ class ProposalWorkflowService:
             )
         except ProposalLifecycleOriginError as exc:
             raise ProposalValidationError(str(exc)) from exc
-
-    def _to_version_record(
-        self,
-        *,
-        proposal_id: str,
-        version_no: int,
-        request_hash: str,
-        proposal_result: ProposalResult,
-        artifact: dict[str, Any],
-        evidence_bundle: dict[str, Any],
-        created_at: datetime,
-    ) -> ProposalVersionRecord:
-        return build_proposal_version_record(
-            proposal_version_id=f"ppv_{uuid.uuid4().hex[:12]}",
-            proposal_id=proposal_id,
-            version_no=version_no,
-            request_hash=request_hash,
-            proposal_result=proposal_result,
-            artifact=artifact,
-            evidence_bundle=evidence_bundle,
-            created_at=created_at,
-            store_evidence_bundle=self._store_evidence_bundle,
-        )
 
     def get_version_replay(
         self,
