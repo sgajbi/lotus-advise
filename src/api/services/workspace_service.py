@@ -29,6 +29,7 @@ from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.models import ProposalCreateMetadata, ProposalResolvedContext
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import build_workspace_saved_version_replay_response
+from src.core.workspace.compare import build_workspace_compare_response
 from src.core.workspace.draft_actions import (
     WorkspaceDraftActionError,
     apply_workspace_draft_action_to_state,
@@ -50,7 +51,6 @@ from src.core.workspace.identifiers import (
     new_workspace_version_id,
 )
 from src.core.workspace.models import (
-    WorkspaceCompareDiffSummary,
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
@@ -395,41 +395,9 @@ def compare_workspace_to_saved_version(
 ) -> WorkspaceCompareResponse:
     session = get_workspace_session(workspace_id)
     saved_version = _find_saved_version(session, request.workspace_version_id)
-    current_status = (
-        session.evaluation_summary.status if session.evaluation_summary is not None else None
-    )
-    baseline_status = (
-        saved_version.evaluation_summary.status
-        if saved_version.evaluation_summary is not None
-        else None
-    )
-    return WorkspaceCompareResponse(
-        workspace_id=session.workspace_id,
-        baseline_version=saved_version.model_copy(deep=True),
-        current_evaluation_summary=(
-            session.evaluation_summary.model_copy(deep=True)
-            if session.evaluation_summary is not None
-            else None
-        ),
-        current_replay_evidence=(
-            session.latest_replay_evidence.model_copy(deep=True)
-            if session.latest_replay_evidence is not None
-            else None
-        ),
-        diff_summary=WorkspaceCompareDiffSummary(
-            trade_count_delta=(
-                len(session.draft_state.trade_drafts) - len(saved_version.draft_state.trade_drafts)
-            ),
-            cash_flow_count_delta=(
-                len(session.draft_state.cash_flow_drafts)
-                - len(saved_version.draft_state.cash_flow_drafts)
-            ),
-            options_changed=session.draft_state.options != saved_version.draft_state.options,
-            reference_model_changed=(
-                session.draft_state.reference_model != saved_version.draft_state.reference_model
-            ),
-            evaluation_status_changed=current_status != baseline_status,
-        ),
+    return build_workspace_compare_response(
+        session=session,
+        baseline_version=saved_version,
     )
 
 

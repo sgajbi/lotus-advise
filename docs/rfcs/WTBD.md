@@ -99,6 +99,8 @@ recorded here with enough detail for later owner-specific slices.
     live in `src/core/workspace/evaluation.py`.
   - Workspace session cache state and LRU eviction now live in
     `src/api/services/workspace_store.py`.
+  - Workspace saved-version comparison projection and diff-summary calculation now live in
+    `src/core/workspace/compare.py`.
 - Follow-up:
   - Continue extracting workspace orchestration support only where behavior can be pinned outside
     the API service without duplicating upstream context resolution semantics.

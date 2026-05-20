@@ -1454,3 +1454,29 @@
 - Follow-Up:
   - Keep the compatibility `MAX_WORKSPACE_SESSION_CACHE_SIZE` assignment path until callers can be
     migrated to explicit store configuration.
+
+## LA-REV-055
+
+- Scope: Workspace saved-version compare projection
+- Pattern: modularity problem / deterministic projection hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Saved-version comparison response assembly and draft-delta calculation lived inside
+  `src/api/services/workspace_service.py`. This comparison is deterministic workspace-domain
+  projection logic, while the service should own lookup, error translation, and persistence
+  boundaries.
+- Evidence:
+  - `src/core/workspace/compare.py` now owns workspace compare response assembly, draft-count
+    deltas, option/reference-model change detection, evaluation-status change detection, and
+    defensive response copying.
+  - `src/api/services/workspace_service.py` now delegates comparison projection after locating the
+    requested saved version.
+  - `tests/unit/advisory/api/test_workspace_compare.py` directly proves trade/cash-flow deltas,
+    options/reference-model change flags, evaluation-status change detection, and defensive
+    baseline copying.
+- Consequence:
+  - Workspace compare behavior is reusable and directly tested outside the API service, reducing
+    controller-service coupling around saved-version workflows.
+- Follow-Up:
+  - Consider moving workspace session creation projection into a similarly deterministic builder if
+    it can be extracted without weakening stateful context-resolution behavior.
