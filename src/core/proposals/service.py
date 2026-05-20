@@ -9,6 +9,13 @@ from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposals.async_operations import (
+    apply_runtime_exception_outcome,
+    begin_async_attempt,
+    build_async_replay_lineage,
+    mark_operation_failed,
+    mark_operation_succeeded,
+)
 from src.core.proposals.async_payloads import (
     extract_async_submission_hash,
 )
@@ -1416,14 +1423,11 @@ class ProposalWorkflowService:
             return
 
     def _begin_async_attempt(self, operation: ProposalAsyncOperationRecord) -> None:
-        attempt_started_at = _utc_now()
-        operation.status = "RUNNING"
-        operation.attempt_count += 1
-        operation.started_at = attempt_started_at
-        operation.lease_expires_at = _utc_after(seconds=ASYNC_OPERATION_LEASE_SECONDS)
-        operation.finished_at = None
-        operation.result_json = None
-        operation.error_json = None
+        begin_async_attempt(
+            operation=operation,
+            attempt_started_at=_utc_now(),
+            lease_seconds=ASYNC_OPERATION_LEASE_SECONDS,
+        )
         self._repository.update_operation(operation)
 
     def _mark_operation_succeeded(
@@ -1432,12 +1436,11 @@ class ProposalWorkflowService:
         operation: ProposalAsyncOperationRecord,
         response: ProposalCreateResponse,
     ) -> None:
-        operation.status = "SUCCEEDED"
-        operation.proposal_id = response.proposal.proposal_id
-        operation.result_json = response.model_dump(mode="json")
-        operation.error_json = None
-        operation.lease_expires_at = None
-        operation.finished_at = _utc_now()
+        mark_operation_succeeded(
+            operation=operation,
+            response=response,
+            finished_at=_utc_now(),
+        )
         self._repository.update_operation(operation)
 
     def _mark_operation_failed(
@@ -1447,11 +1450,12 @@ class ProposalWorkflowService:
         code: str,
         message: str,
     ) -> None:
-        operation.status = "FAILED"
-        operation.result_json = None
-        operation.error_json = {"code": code, "message": message}
-        operation.lease_expires_at = None
-        operation.finished_at = _utc_now()
+        mark_operation_failed(
+            operation=operation,
+            code=code,
+            message=message,
+            finished_at=_utc_now(),
+        )
         self._repository.update_operation(operation)
 
     def _requeue_or_fail_runtime_exception(
@@ -1460,33 +1464,19 @@ class ProposalWorkflowService:
         operation: ProposalAsyncOperationRecord,
         exc: Exception,
     ) -> bool:
-        operation.result_json = None
-        operation.lease_expires_at = None
-        operation.error_json = {
-            "code": type(exc).__name__,
-            "message": str(exc) or type(exc).__name__,
-        }
-        if operation.attempt_count < operation.max_attempts:
-            operation.status = "PENDING"
-            operation.finished_at = None
-            self._repository.update_operation(operation)
-            return True
-
-        operation.status = "FAILED"
-        operation.finished_at = _utc_now()
+        should_requeue = apply_runtime_exception_outcome(
+            operation=operation,
+            exc=exc,
+            finished_at=_utc_now(),
+        )
         self._repository.update_operation(operation)
-        return False
+        return should_requeue
 
     def _build_async_replay_lineage(
         self,
         operation: ProposalAsyncOperationRecord,
     ) -> dict[str, Any]:
-        return {
-            "async_operation_id": operation.operation_id,
-            "async_operation_type": operation.operation_type,
-            "correlation_id": operation.correlation_id,
-            "idempotency_key": operation.idempotency_key,
-        }
+        return build_async_replay_lineage(operation)
 
     def _run_simulation(
         self,

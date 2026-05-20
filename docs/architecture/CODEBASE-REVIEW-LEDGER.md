@@ -843,3 +843,30 @@
 - Follow-Up:
   - Continue extracting execution handoff request construction and async operation payload
     resolution in separate small slices.
+
+## LA-REV-032
+
+- Scope: Proposal async operation state transitions
+- Pattern: modularity problem / async reliability hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Async operation attempt start, success marking, failure marking, runtime retry/fail
+  outcome handling, and replay lineage assembly were embedded in `ProposalWorkflowService`. Those
+  rules are deterministic state transitions on `ProposalAsyncOperationRecord` and should be
+  testable without repository orchestration.
+- Evidence:
+  - `src/core/proposals/async_operations.py` now owns async attempt lifecycle mutation helpers and
+    replay lineage assembly.
+  - `src/core/proposals/service.py` now delegates async operation state transitions while retaining
+    repository lookup, persistence, and executor orchestration.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operations.py` directly proves lease
+    assignment, attempt counting, success result persistence, failure payloads, runtime requeue
+    versus terminal failure, and replay lineage identity.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_async_operations.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Async retry and terminal-state behavior can now be reviewed as explicit operation-state policy
+    instead of service-private mutation code.
+- Follow-Up:
+  - Continue extracting async payload recovery and execution handoff request construction in
+    separate small slices.
