@@ -3,7 +3,7 @@ from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult
-from src.core.proposals.models import ProposalVersionRecord
+from src.core.proposals.models import ProposalRecord, ProposalVersionRecord
 
 
 def build_proposal_version_record(
@@ -43,3 +43,14 @@ def build_proposal_version_record(
             else None
         ),
     )
+
+
+def apply_new_version_lifecycle_state(
+    *,
+    proposal: ProposalRecord,
+    version_no: int,
+    occurred_at: datetime,
+) -> None:
+    proposal.current_version_no = version_no
+    proposal.current_state = "DRAFT"
+    proposal.last_event_at = occurred_at

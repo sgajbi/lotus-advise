@@ -1983,3 +1983,27 @@
 - Follow-Up:
   - Keep repository-backed replay material loading in the service until a larger replay-query
     object can be introduced with current-version fallback characterization.
+
+## LA-REV-076
+
+- Scope: New proposal-version lifecycle state mutation
+- Pattern: modularity problem / lifecycle state hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: The create-version command path directly mutated proposal lifecycle state in
+  `src/core/proposals/service.py`, coupling version-number advancement, `DRAFT` reset semantics,
+  and `last_event_at` update behavior to workflow orchestration.
+- Evidence:
+  - `src/core/proposals/versions.py` now owns `apply_new_version_lifecycle_state`.
+  - `src/core/proposals/service.py` delegates new-version aggregate state mutation while retaining
+    proposal lookup, terminal-state and expected-version checks, context resolution, simulation,
+    event construction, and persistence ordering.
+  - `tests/unit/advisory/engine/test_engine_proposal_versions.py` directly proves current-version
+    advancement, lifecycle reset to `DRAFT`, and last-event timestamp update.
+- Consequence:
+  - New-version lifecycle semantics are centralized beside version-record construction and tested
+    independently from service orchestration.
+- Follow-Up:
+  - Keep create-version eligibility checks in the service until a dedicated command policy can wrap
+    proposal lookup errors, expected-version conflicts, and portfolio-context validation without
+    weakening current API error behavior.

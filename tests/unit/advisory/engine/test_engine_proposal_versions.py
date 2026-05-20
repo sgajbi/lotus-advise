@@ -2,7 +2,11 @@ from datetime import datetime, timezone
 
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import GateDecision, GateDecisionSummary, ProposalResult
-from src.core.proposals.versions import build_proposal_version_record
+from src.core.proposals.models import ProposalRecord
+from src.core.proposals.versions import (
+    apply_new_version_lifecycle_state,
+    build_proposal_version_record,
+)
 
 
 def _proposal_result(*, correlation_id: str = "corr_version") -> ProposalResult:
@@ -91,3 +95,33 @@ def test_build_proposal_version_record_can_omit_evidence_bundle():
     )
 
     assert version.evidence_bundle_json == {}
+
+
+def test_apply_new_version_lifecycle_state_resets_proposal_to_draft():
+    original_event_at = datetime(2026, 5, 20, 8, 0, tzinfo=timezone.utc)
+    occurred_at = datetime(2026, 5, 20, 9, 10, tzinfo=timezone.utc)
+    proposal = ProposalRecord(
+        proposal_id="pp_version_state",
+        portfolio_id="pf_version_state",
+        mandate_id="mandate_version_state",
+        jurisdiction="SG",
+        created_by="advisor_version_state",
+        created_at=original_event_at,
+        last_event_at=original_event_at,
+        current_state="EXECUTION_READY",
+        current_version_no=1,
+        title="Version lifecycle state",
+        advisor_notes=None,
+        lifecycle_origin="DIRECT_CREATE",
+        source_workspace_id=None,
+    )
+
+    apply_new_version_lifecycle_state(
+        proposal=proposal,
+        version_no=2,
+        occurred_at=occurred_at,
+    )
+
+    assert proposal.current_version_no == 2
+    assert proposal.current_state == "DRAFT"
+    assert proposal.last_event_at == occurred_at

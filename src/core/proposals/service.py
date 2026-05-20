@@ -128,7 +128,10 @@ from src.core.proposals.simulation_gate import (
     ProposalSimulationGateError,
     validate_proposal_simulation_enabled,
 )
-from src.core.proposals.versions import build_proposal_version_record
+from src.core.proposals.versions import (
+    apply_new_version_lifecycle_state,
+    build_proposal_version_record,
+)
 from src.core.proposals.workflow_rules import (
     TERMINAL_STATES,
     ProposalWorkflowRuleError,
@@ -718,7 +721,6 @@ class ProposalWorkflowService:
         )
 
         next_version_no = proposal.current_version_no + 1
-        reset_state: ProposalWorkflowState = "DRAFT"
         version = build_proposal_version_record(
             proposal_version_id=new_proposal_version_id(),
             proposal_id=proposal.proposal_id,
@@ -739,9 +741,11 @@ class ProposalWorkflowService:
             correlation_id=correlation_id,
         )
 
-        proposal.current_version_no = next_version_no
-        proposal.current_state = reset_state
-        proposal.last_event_at = now
+        apply_new_version_lifecycle_state(
+            proposal=proposal,
+            version_no=next_version_no,
+            occurred_at=now,
+        )
         self._repository.create_version(version)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return to_create_response(proposal=proposal, version=version, latest_event=event)
