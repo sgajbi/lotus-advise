@@ -1317,3 +1317,30 @@
 - Follow-Up:
   - Continue extracting workspace draft mutation and handoff request assembly only where it reduces
     service coupling and preserves current API contracts.
+
+## LA-REV-050
+
+- Scope: Workspace draft-state projection
+- Pattern: modularity problem / draft workflow hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workspace draft-state construction from proposal simulation requests and reconstruction
+  of simulation requests from draft rows lived inside `src/api/services/workspace_service.py`.
+  These are deterministic workspace-domain mappers used by stateless and stateful workspaces before
+  evaluation, draft actions, and lifecycle handoff.
+- Evidence:
+  - `src/core/workspace/draft_state.py` now owns construction of editable workspace draft state
+    from simulation requests and rehydration of simulation requests from workspace draft rows.
+  - `src/api/services/workspace_service.py` now delegates draft-state projection to the workspace
+    draft-state module while retaining stateful context resolution and persistence orchestration.
+  - `tests/unit/advisory/api/test_workspace_draft_state.py` directly proves trade/cash-flow draft
+    row preservation, governed draft-row identifiers, `Decimal` cash-flow amount normalization, and
+    reconstruction of simulation requests from edited draft state.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\api\test_workspace_draft_state.py tests\unit\advisory\api\test_workspace_service.py tests\unit\advisory\api\test_api_workspace.py -q`.
+- Consequence:
+  - Workspace draft projection now has a reusable, directly tested module boundary and the API
+    service no longer owns row-level mapping behavior.
+- Follow-Up:
+  - Continue extracting mutable draft action application only when error translation and
+    persistence boundaries remain explicit.

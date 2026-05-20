@@ -90,6 +90,8 @@ recorded here with enough detail for later owner-specific slices.
     now live in `src/core/workspace/replay.py`.
   - Workspace saved-version summary refresh and saved-version lookup now live in
     `src/core/workspace/versions.py`.
+  - Workspace draft-state projection and simulation-request reconstruction now live in
+    `src/core/workspace/draft_state.py`.
 - Follow-up:
   - Split replay evidence construction, handoff request assembly, and draft action mutation into
     explicit workspace modules where tests can pin behavior outside the API service.

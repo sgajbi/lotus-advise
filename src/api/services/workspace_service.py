@@ -23,6 +23,10 @@ from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.models import ProposalCreateMetadata, ProposalResolvedContext
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import build_workspace_saved_version_replay_response
+from src.core.workspace.draft_state import (
+    apply_workspace_draft_state,
+    build_draft_state_from_simulate_request,
+)
 from src.core.workspace.identifiers import (
     new_workspace_cash_flow_id,
     new_workspace_id,
@@ -130,65 +134,6 @@ def _build_stateful_resolved_context(
         )
 
 
-def _build_draft_state_from_simulate_request(
-    simulate_request: ProposalSimulateRequest,
-) -> WorkspaceDraftState:
-    return WorkspaceDraftState(
-        options=simulate_request.options.model_copy(deep=True),
-        alternatives_request=(
-            simulate_request.alternatives_request.model_copy(deep=True)
-            if simulate_request.alternatives_request is not None
-            else None
-        ),
-        reference_model=(
-            simulate_request.reference_model.model_copy(deep=True)
-            if simulate_request.reference_model is not None
-            else None
-        ),
-        trade_drafts=[
-            WorkspaceTradeDraft(
-                workspace_trade_id=new_workspace_trade_id(),
-                trade=trade.model_copy(deep=True),
-            )
-            for trade in simulate_request.proposed_trades
-        ],
-        cash_flow_drafts=[
-            WorkspaceCashFlowDraft(
-                workspace_cash_flow_id=new_workspace_cash_flow_id(),
-                cash_flow=cash_flow.model_copy(deep=True),
-            )
-            for cash_flow in simulate_request.proposed_cash_flows
-        ],
-    )
-
-
-def _apply_workspace_draft_state(
-    *,
-    base_request: ProposalSimulateRequest,
-    draft_state: WorkspaceDraftState,
-) -> ProposalSimulateRequest:
-    return ProposalSimulateRequest(
-        portfolio_snapshot=base_request.portfolio_snapshot.model_copy(deep=True),
-        market_data_snapshot=base_request.market_data_snapshot.model_copy(deep=True),
-        shelf_entries=[entry.model_copy(deep=True) for entry in base_request.shelf_entries],
-        options=draft_state.options.model_copy(deep=True),
-        proposed_cash_flows=[
-            draft.cash_flow.model_copy(deep=True) for draft in draft_state.cash_flow_drafts
-        ],
-        proposed_trades=[draft.trade.model_copy(deep=True) for draft in draft_state.trade_drafts],
-        reference_model=(
-            draft_state.reference_model.model_copy(deep=True)
-            if draft_state.reference_model is not None
-            else None
-        ),
-        alternatives_request=(
-            draft_state.alternatives_request.model_copy(deep=True)
-            if draft_state.alternatives_request is not None
-            else None
-        ),
-    )
-
-
 def _build_simulate_request_for_workspace(session: WorkspaceSession) -> ProposalSimulateRequest:
     if session.input_mode == "stateful":
         if session.stateful_input is None:
@@ -201,7 +146,7 @@ def _build_simulate_request_for_workspace(session: WorkspaceSession) -> Proposal
             ) from exc
         session.resolved_context = resolved_stateful_context.resolved_context
         return enrich_stateful_simulate_request_for_trade_drafts(
-            simulate_request=_apply_workspace_draft_state(
+            simulate_request=apply_workspace_draft_state(
                 base_request=resolved_stateful_context.simulate_request,
                 draft_state=session.draft_state,
             ),
@@ -211,7 +156,7 @@ def _build_simulate_request_for_workspace(session: WorkspaceSession) -> Proposal
     if session.stateless_input is None:
         raise WorkspaceEvaluationUnavailableError("WORKSPACE_STATELESS_INPUT_MISSING")
 
-    return _apply_workspace_draft_state(
+    return apply_workspace_draft_state(
         base_request=session.stateless_input.simulate_request,
         draft_state=session.draft_state,
     )
@@ -461,7 +406,7 @@ def create_workspace_session(
         if request.stateless_input is None:
             raise ValueError("stateless workspace creation requires stateless_input")
         resolved_context = _build_stateless_resolved_context(request.stateless_input)
-        draft_state = _build_draft_state_from_simulate_request(
+        draft_state = build_draft_state_from_simulate_request(
             request.stateless_input.simulate_request
         )
     else:
@@ -477,7 +422,7 @@ def create_workspace_session(
             draft_state = WorkspaceDraftState()
         else:
             resolved_context = resolved_stateful_context.resolved_context
-            draft_state = _build_draft_state_from_simulate_request(
+            draft_state = build_draft_state_from_simulate_request(
                 resolved_stateful_context.simulate_request
             )
 
