@@ -1263,3 +1263,30 @@
   - Continue decomposing `workspace_service.py` around replay evidence, handoff orchestration, and
     draft action handling only where the extraction reduces real coupling and keeps API behavior
     stable.
+
+## LA-REV-048
+
+- Scope: Workspace replay evidence and handoff continuity
+- Pattern: modularity problem / lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workspace replay evidence construction, matching saved-version lookup, and handoff
+  continuity mutation lived inside `src/api/services/workspace_service.py`. Those behaviors are
+  deterministic workspace-domain lineage rules and should be directly testable without requiring
+  callers to inspect the API service implementation.
+- Evidence:
+  - `src/core/workspace/replay.py` now owns workspace draft-state hashing, replay evidence
+    construction, saved-version matching, handoff lineage construction, and continuity application.
+  - `src/api/services/workspace_service.py` now delegates replay evidence and handoff continuity
+    behavior to the workspace replay module while retaining orchestration and persistence.
+  - `tests/unit/advisory/api/test_workspace_replay.py` directly proves handoff lineage selects the
+    matching saved version and applies continuity to both latest replay evidence and saved-version
+    replay evidence.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\api\test_workspace_replay.py tests\unit\advisory\api\test_workspace_service.py tests\unit\advisory\api\test_api_workspace.py -q`.
+- Consequence:
+  - Workspace replay lineage is now explicit workspace-domain behavior, reducing the size and
+    responsibility of the API service without changing API contracts.
+- Follow-Up:
+  - Continue extracting workspace handoff request assembly and draft mutation only where direct
+    tests can prove behavior more clearly than API-level coverage alone.

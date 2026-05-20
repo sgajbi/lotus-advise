@@ -86,6 +86,8 @@ recorded here with enough detail for later owner-specific slices.
     workspace session, trade draft, cash-flow draft, and saved-version identifiers.
   - Workspace reevaluation now uses the shared proposal correlation resolver so workspace-originated
     proposal simulations follow the same correlation ID policy as proposal-originated simulations.
+  - Workspace replay evidence, draft-state hashing, saved-version matching, and handoff continuity
+    now live in `src/core/workspace/replay.py`.
 - Follow-up:
   - Split replay evidence construction, handoff request assembly, and draft action mutation into
     explicit workspace modules where tests can pin behavior outside the API service.
