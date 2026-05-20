@@ -1780,3 +1780,28 @@
 - Follow-Up:
   - Consider extracting execution update event construction separately only if it can preserve
     handoff identity matching, terminal-state rejection, timestamp ordering, and replay semantics.
+
+## LA-REV-068
+
+- Scope: Proposal execution update event construction
+- Pattern: modularity problem / execution reconciliation hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Execution update workflow-event construction lived directly in
+  `src/core/proposals/service.py`, mixing deterministic reconciliation payload assembly with
+  handoff identity matching, terminal-state rejection, timestamp ordering, idempotency replay
+  detection, and persistence.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now owns `build_execution_update_event`.
+  - `src/core/proposals/service.py` now delegates deterministic execution update event construction
+    after preserving the existing request-id/provider match, replay lookup, terminal-state guard,
+    and occurred-at ordering checks.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` directly proves update
+    identity, execution request/provider, external execution id, details payload, idempotency audit
+    metadata, explicit related-version handling, fallback to handoff version, and null omission.
+- Consequence:
+  - Execution reconciliation audit payload construction is reusable and directly tested, while the
+    workflow service remains responsible for stateful validation and persistence.
+- Follow-Up:
+  - Keep execution status derivation in `execution_status.py`; only consider further extraction if
+    command validation can remain visibly separated from event construction.

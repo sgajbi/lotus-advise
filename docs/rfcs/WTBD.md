@@ -45,6 +45,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal execution handoff replay response, requested-event construction, and accepted response
     projection now live in `src/core/proposals/execution_handoff.py`, while the workflow service
     retains lookup, idempotency replay detection, expected-state validation, and persistence.
+  - Proposal execution update event construction now lives in
+    `src/core/proposals/execution_update.py`, while the workflow service retains handoff identity
+    matching, terminal-state rejection, timestamp ordering, replay detection, and persistence.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.

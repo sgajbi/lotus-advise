@@ -51,6 +51,7 @@ from src.core.proposals.execution_status import (
     build_execution_status_response,
     latest_execution_requested_event,
 )
+from src.core.proposals.execution_update import build_execution_update_event
 from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
     find_replayed_approval,
@@ -586,27 +587,16 @@ class ProposalWorkflowService:
         )
         if occurred_at < latest_execution_requested.occurred_at:
             raise ProposalValidationError("EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF")
-        reason_json = {
-            "update_id": payload.update_id,
-            "execution_request_id": payload.execution_request_id,
-            "execution_provider": payload.execution_provider,
-            "external_execution_id": payload.external_execution_id,
-            "details": payload.details,
-            "idempotency_key": f"execution-update:{payload.update_id}",
-            "idempotency_request_hash": request_hash,
-        }
-        event = ProposalWorkflowEventRecord(
+        event = build_execution_update_event(
             event_id=new_workflow_event_id(),
             proposal_id=proposal_id,
+            current_state=proposal.current_state,
+            payload=payload,
             event_type=event_type,
-            from_state=proposal.current_state,
             to_state=to_state,
-            actor_id=payload.actor_id,
             occurred_at=occurred_at,
-            reason_json={k: v for k, v in reason_json.items() if v is not None},
-            related_version_no=(
-                payload.related_version_no or latest_execution_requested.related_version_no
-            ),
+            request_hash=request_hash,
+            handoff_related_version_no=latest_execution_requested.related_version_no,
         )
         proposal.current_state = to_state
         proposal.last_event_at = occurred_at
