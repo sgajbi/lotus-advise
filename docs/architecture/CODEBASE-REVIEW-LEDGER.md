@@ -1626,3 +1626,32 @@
 - Follow-Up:
   - Keep proposal create/version orchestration in the service boundary unless a workflow-specific
     application service is introduced.
+
+## LA-REV-062
+
+- Scope: Workspace reevaluation context assembly
+- Pattern: modularity problem / lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workspace reevaluation context assembly lived inside
+  `src/api/services/workspace_service.py`, mixing proposal resolved-context projection, policy
+  selector construction, context-resolution evidence, and canonical request hashing into the service.
+  Actual proposal evaluation and persistence belong in the service, but deterministic context
+  assembly is workspace-domain behavior.
+- Evidence:
+  - `src/core/workspace/reevaluation.py` now owns `build_workspace_evaluation_context`, including
+    resolved request construction, stateful policy selectors, context-resolution evidence, and
+    evaluation request hash construction.
+  - `src/api/services/workspace_service.py` now delegates reevaluation context assembly and
+    translates missing resolved context into the existing `WorkspaceEvaluationUnavailableError`
+    vocabulary.
+  - `tests/unit/advisory/api/test_workspace_reevaluation.py` directly proves stateful selector
+    propagation, resolution source, resolved as-of, request-hash shape, and missing-context error
+    behavior.
+- Consequence:
+  - Workspace reevaluation has a clearer domain boundary for lineage and policy-context assembly,
+    while the service remains responsible for proposal evaluation, correlation, persistence, and
+    error translation.
+- Follow-Up:
+  - Keep `_build_simulate_request_for_workspace` in the service while it owns live Lotus Core
+    resolution and state mutation during stateful reevaluation.

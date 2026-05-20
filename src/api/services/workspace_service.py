@@ -15,17 +15,10 @@ from src.api.services.workspace_store import (
     save_workspace_session as _save_workspace_session_to_store,
 )
 from src.core.advisory.orchestration import evaluate_advisory_proposal
-from src.core.advisory.policy_context import ProposalPolicySelectors
-from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
-from src.core.proposals.context import (
-    ResolvedSimulationContext,
-    build_context_resolution_evidence,
-    canonicalize_simulation_request_payload,
-)
 from src.core.proposals.correlation import resolve_correlation_id
-from src.core.proposals.models import ProposalCreateMetadata, ProposalResolvedContext
+from src.core.proposals.models import ProposalCreateMetadata
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import build_workspace_saved_version_replay_response
 from src.core.workspace.compare import build_workspace_compare_response
@@ -67,6 +60,10 @@ from src.core.workspace.models import (
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
+)
+from src.core.workspace.reevaluation import (
+    WorkspaceReevaluationContextError,
+    build_workspace_evaluation_context,
 )
 from src.core.workspace.replay import (
     build_replay_evidence,
@@ -146,48 +143,28 @@ def _build_simulate_request_for_workspace(session: WorkspaceSession) -> Proposal
 def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     session = get_workspace_session(workspace_id)
     simulate_request = _build_simulate_request_for_workspace(session)
-    if session.resolved_context is None:
-        raise WorkspaceEvaluationUnavailableError("WORKSPACE_RESOLVED_CONTEXT_MISSING")
-    proposal_resolved_context = ProposalResolvedContext.model_validate(
-        session.resolved_context.model_dump(mode="json")
-    )
-    resolved_request = ResolvedSimulationContext(
-        input_mode=session.input_mode,
-        resolution_source="LOTUS_CORE" if session.input_mode == "stateful" else "DIRECT_REQUEST",
-        simulate_request=simulate_request,
-        resolved_context=proposal_resolved_context,
-        policy_selectors=ProposalPolicySelectors(
-            household_id=(
-                session.stateful_input.household_id if session.stateful_input is not None else None
-            ),
-            mandate_id=(
-                session.stateful_input.mandate_id if session.stateful_input is not None else None
-            ),
-            benchmark_id=(
-                session.stateful_input.benchmark_id if session.stateful_input is not None else None
-            ),
-        ),
-        used_legacy_contract=False,
-    )
-    context_resolution = build_context_resolution_evidence(resolved_request)
-    request_hash = hash_canonical_payload(
-        canonicalize_simulation_request_payload(resolved=resolved_request)
-    )
+    try:
+        evaluation_context = build_workspace_evaluation_context(
+            session=session,
+            simulate_request=simulate_request,
+        )
+    except WorkspaceReevaluationContextError as exc:
+        raise WorkspaceEvaluationUnavailableError(str(exc)) from exc
     correlation_id = resolve_correlation_id(None)
     result = evaluate_advisory_proposal(
         request=simulate_request,
-        request_hash=request_hash,
+        request_hash=evaluation_context.request_hash,
         idempotency_key=None,
         correlation_id=correlation_id,
-        resolved_as_of=proposal_resolved_context.as_of,
-        policy_context=context_resolution["advisory_policy_context"],
+        resolved_as_of=evaluation_context.resolved_request.resolved_context.as_of,
+        policy_context=evaluation_context.context_resolution["advisory_policy_context"],
     )
-    result.explanation["context_resolution"] = context_resolution
+    result.explanation["context_resolution"] = evaluation_context.context_resolution
     session.latest_proposal_result = result
     session.evaluation_summary = build_evaluation_summary(result, session)
     session.latest_replay_evidence = build_replay_evidence(
         session,
-        evaluation_request_hash=request_hash,
+        evaluation_request_hash=evaluation_context.request_hash,
     )
     _save_workspace_session(session)
     return session

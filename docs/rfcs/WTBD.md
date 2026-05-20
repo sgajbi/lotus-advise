@@ -113,6 +113,8 @@ recorded here with enough detail for later owner-specific slices.
     been removed.
   - Workspace lifecycle handoff completion, lifecycle-link assignment, and replay-continuity
     mutation now live in `src/core/workspace/handoff.py`.
+  - Workspace reevaluation context assembly, policy selectors, context-resolution evidence, and
+    request hashing now live in `src/core/workspace/reevaluation.py`.
 - Follow-up:
   - Continue extracting workspace orchestration support only where behavior can be pinned outside
     the API service without duplicating upstream context resolution semantics.
