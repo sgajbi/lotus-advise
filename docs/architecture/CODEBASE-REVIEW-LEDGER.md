@@ -1098,3 +1098,31 @@
 - Follow-Up:
   - Continue extracting only deterministic replay or validation logic where repository interaction
     remains clearly owned by the service.
+
+## LA-REV-042
+
+- Scope: Proposal expected-state concurrency validation
+- Pattern: modularity problem / optimistic-concurrency hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Expected-state optimistic concurrency validation was embedded in
+  `ProposalWorkflowService`, even though the rule is deterministic and shared by workflow,
+  approval, and execution lifecycle commands. That made a banking-grade state-concurrency guard
+  harder to test and reuse independently from repository orchestration.
+- Evidence:
+  - `src/core/proposals/concurrency.py` now owns expected-state validation and the bounded
+    proposal-domain validation error.
+  - `src/core/proposals/service.py` delegates expected-state checks to the proposal concurrency
+    helper and translates domain validation failures into the existing service-level
+    `ProposalStateConflictError`.
+  - `tests/unit/advisory/engine/test_engine_proposal_concurrency.py` directly proves matching,
+    optional-missing, required-missing, and mismatched expected-state behavior.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_concurrency.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Optimistic concurrency policy is now explicit proposal-domain logic instead of a
+    service-private condition, while service methods remain the orchestration and error-translation
+    boundary.
+- Follow-Up:
+  - Continue extracting deterministic validation rules where they improve reuse and testability
+    without moving persistence orchestration out of the service boundary.

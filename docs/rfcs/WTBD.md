@@ -40,6 +40,8 @@ recorded here with enough detail for later owner-specific slices.
     and lineage flow with diagrams.
   - Workflow event and approval replay idempotency lookup now lives in
     `src/core/proposals/idempotency.py`.
+  - Expected-state optimistic concurrency validation now lives in
+    `src/core/proposals/concurrency.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

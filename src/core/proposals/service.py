@@ -30,6 +30,10 @@ from src.core.proposals.async_payloads import (
 from src.core.proposals.async_payloads import (
     hash_async_version_submission as build_async_version_submission_hash,
 )
+from src.core.proposals.concurrency import (
+    ProposalExpectedStateError,
+    validate_expected_state,
+)
 from src.core.proposals.context import (
     ProposalContextResolutionError,
     build_context_resolution_evidence,
@@ -1369,10 +1373,14 @@ class ProposalWorkflowService:
         current_state: ProposalWorkflowState,
         expected_state: Optional[ProposalWorkflowState],
     ) -> None:
-        if expected_state is None and self._require_expected_state:
-            raise ProposalStateConflictError("STATE_CONFLICT: expected_state is required")
-        if expected_state is not None and expected_state != current_state:
-            raise ProposalStateConflictError("STATE_CONFLICT: expected_state mismatch")
+        try:
+            validate_expected_state(
+                current_state=current_state,
+                expected_state=expected_state,
+                require_expected_state=self._require_expected_state,
+            )
+        except ProposalExpectedStateError as exc:
+            raise ProposalStateConflictError(str(exc)) from exc
 
     def _resolve_transition_state(
         self,
