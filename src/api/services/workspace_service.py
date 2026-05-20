@@ -78,6 +78,7 @@ from src.core.workspace.replay import (
 )
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
+    apply_saved_workspace_version,
     build_saved_workspace_version,
     find_saved_version,
     refresh_saved_version_metadata,
@@ -356,18 +357,7 @@ def resume_workspace_version(
 ) -> WorkspaceSession:
     session = get_workspace_session(workspace_id)
     saved_version = _find_saved_version(session, request.workspace_version_id)
-    session.draft_state = saved_version.draft_state.model_copy(deep=True)
-    session.evaluation_summary = (
-        saved_version.evaluation_summary.model_copy(deep=True)
-        if saved_version.evaluation_summary is not None
-        else None
-    )
-    session.latest_proposal_result = (
-        saved_version.latest_proposal_result.model_copy(deep=True)
-        if saved_version.latest_proposal_result is not None
-        else None
-    )
-    session.latest_replay_evidence = saved_version.replay_evidence.model_copy(deep=True)
+    apply_saved_workspace_version(session=session, saved_version=saved_version)
     _save_workspace_session(session)
     return session
 

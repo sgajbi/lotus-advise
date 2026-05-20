@@ -1505,3 +1505,27 @@
 - Follow-Up:
   - Keep generated identifier and clock ownership in the service boundary unless a repository-wide
     clock/ID provider abstraction is introduced.
+
+## LA-REV-057
+
+- Scope: Workspace saved-version resume application
+- Pattern: modularity problem / lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Saved-version resume behavior lived inside `src/api/services/workspace_service.py`,
+  including draft, evaluation, proposal-result, and replay-evidence copy semantics. This is
+  deterministic workspace snapshot application logic; the API service should own lookup and
+  persistence boundaries.
+- Evidence:
+  - `src/core/workspace/versions.py` now owns `apply_saved_workspace_version`, restoring the saved
+    draft state, evaluation summary, proposal result, and replay evidence with defensive copies.
+  - `src/api/services/workspace_service.py` now delegates resume snapshot application after locating
+    the requested saved version.
+  - `tests/unit/advisory/api/test_workspace_versions.py` directly proves saved-version resume
+    restores the saved snapshot and does not alias mutable saved-version state.
+- Consequence:
+  - Saved-version resume lineage is reusable and testable outside the API service, reducing the
+    service's responsibility to orchestration and persistence.
+- Follow-Up:
+  - Keep saved-version lookup error translation in the API service unless a broader service-error
+    vocabulary boundary is introduced.

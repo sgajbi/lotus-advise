@@ -78,3 +78,22 @@ def build_saved_workspace_version(
         ),
         replay_evidence=replay_evidence,
     )
+
+
+def apply_saved_workspace_version(
+    *,
+    session: WorkspaceSession,
+    saved_version: WorkspaceSavedVersion,
+) -> None:
+    session.draft_state = saved_version.draft_state.model_copy(deep=True)
+    session.evaluation_summary = (
+        saved_version.evaluation_summary.model_copy(deep=True)
+        if saved_version.evaluation_summary is not None
+        else None
+    )
+    session.latest_proposal_result = (
+        saved_version.latest_proposal_result.model_copy(deep=True)
+        if saved_version.latest_proposal_result is not None
+        else None
+    )
+    session.latest_replay_evidence = saved_version.replay_evidence.model_copy(deep=True)

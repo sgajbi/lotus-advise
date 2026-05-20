@@ -9,6 +9,7 @@ from src.core.workspace.models import WorkspaceSavedVersion, WorkspaceSaveReques
 from src.core.workspace.replay import build_replay_evidence
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
+    apply_saved_workspace_version,
     build_saved_workspace_version,
     find_saved_version,
     refresh_saved_version_metadata,
@@ -112,3 +113,22 @@ def test_build_saved_workspace_version_uses_supplied_identity_and_replay_copy():
     assert saved_version.saved_at == "2026-05-20T10:30:00+00:00"
     assert saved_version.replay_evidence is not session.latest_replay_evidence
     assert saved_version.replay_evidence.evaluation_request_hash == "request_hash_001"
+
+
+def test_apply_saved_workspace_version_restores_snapshot_with_defensive_copies():
+    session = _session()
+    saved_version = build_saved_workspace_version(
+        session=session,
+        request=WorkspaceSaveRequest(saved_by="advisor_123", version_label="Baseline"),
+        workspace_version_id="awv_baseline",
+        saved_at="2026-05-20T10:30:00+00:00",
+    )
+    session.draft_state.options.enable_proposal_simulation = False
+    session.latest_replay_evidence = None
+
+    apply_saved_workspace_version(session=session, saved_version=saved_version)
+
+    assert session.draft_state is not saved_version.draft_state
+    assert session.draft_state == saved_version.draft_state
+    assert session.latest_replay_evidence is not saved_version.replay_evidence
+    assert session.latest_replay_evidence == saved_version.replay_evidence
