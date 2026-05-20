@@ -1551,3 +1551,29 @@
     is narrower.
 - Follow-Up:
   - Keep persistence lookup and service-level error translation in `workspace_service.py`.
+
+## LA-REV-059
+
+- Scope: Workspace session construction
+- Pattern: modularity problem / session lifecycle hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workspace session DTO construction lived directly inside
+  `src/api/services/workspace_service.py`, mixing generated identity, timestamp, resolved context,
+  draft state, and default lifecycle fields into the orchestration service. The service should keep
+  context resolution, ID generation, clock, and persistence concerns, while workspace-domain code
+  owns deterministic session assembly.
+- Evidence:
+  - `src/core/workspace/sessions.py` now owns `build_workspace_session`, including lifecycle state,
+    input payload retention, draft/resolved context assignment, and initial saved-version/link
+    defaults.
+  - `src/api/services/workspace_service.py` now delegates session DTO construction after resolving
+    context and draft state.
+  - `tests/unit/advisory/api/test_workspace_sessions.py` directly proves supplied identity,
+    timestamp, context, draft state, input payload, lifecycle state, and initial metadata defaults.
+- Consequence:
+  - Workspace session assembly is reusable and directly tested, and the API service is narrower
+    without moving upstream stateful context-resolution behavior.
+- Follow-Up:
+  - Keep stateful context resolution in the service boundary unless a dedicated adapter orchestration
+    module is introduced with explicit Lotus Core failure semantics.

@@ -76,6 +76,7 @@ from src.core.workspace.replay import (
     build_replay_evidence,
     build_workspace_handoff_replay_lineage,
 )
+from src.core.workspace.sessions import build_workspace_session
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
     apply_saved_workspace_version,
@@ -272,24 +273,12 @@ def create_workspace_session(
                 resolved_stateful_context.simulate_request
             )
 
-    session = WorkspaceSession(
+    session = build_workspace_session(
+        request=request,
         workspace_id=new_workspace_id(),
-        workspace_name=request.workspace_name,
-        lifecycle_state="ACTIVE",
-        input_mode=request.input_mode,
-        created_by=request.created_by,
         created_at=_utc_now_iso(),
-        stateless_input=request.stateless_input,
-        stateful_input=request.stateful_input,
         draft_state=draft_state,
         resolved_context=resolved_context,
-        evaluation_summary=None,
-        latest_proposal_result=None,
-        latest_replay_evidence=None,
-        saved_version_count=0,
-        latest_saved_version=None,
-        lifecycle_link=None,
-        saved_versions=[],
     )
     _save_workspace_session(session)
     return WorkspaceSessionCreateResponse(workspace=session)

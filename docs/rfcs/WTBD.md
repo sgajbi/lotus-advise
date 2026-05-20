@@ -107,6 +107,7 @@ recorded here with enough detail for later owner-specific slices.
     `src/core/workspace/versions.py`.
   - Workspace saved-version list projection now lives in
     `src/core/workspace/versions.py`.
+  - Workspace session DTO construction now lives in `src/core/workspace/sessions.py`.
 - Follow-up:
   - Continue extracting workspace orchestration support only where behavior can be pinned outside
     the API service without duplicating upstream context resolution semantics.
