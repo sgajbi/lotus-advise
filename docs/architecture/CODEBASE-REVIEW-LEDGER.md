@@ -789,3 +789,31 @@
 - Follow-Up:
   - Continue extracting version record creation, report-request projection, and execution handoff
     helpers in separate small slices.
+
+## LA-REV-030
+
+- Scope: Proposal execution-status projection
+- Pattern: modularity problem / execution lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Execution-status response assembly, latest execution event selection, and state
+  correlation shaping were embedded in `ProposalWorkflowService`. That mixed repository
+  orchestration with derived downstream execution lineage and made the fallback paths harder to
+  test directly.
+- Evidence:
+  - `src/core/proposals/execution_status.py` now owns latest execution request/status event
+    selection and `ProposalExecutionStatusResponse` assembly from proposal records and workflow
+    events.
+  - `src/core/proposals/service.py` now delegates status retrieval projection to the execution
+    status module while retaining repository lookup and write-path validation.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_status.py` directly proves no-handoff
+    defaults, latest handoff/execution projection, execution-id fallback behavior, state-correlation
+    labels, and downstream event-only recovery.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_execution_status.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Execution status can now be reviewed as a deterministic projection over workflow events instead
+    of hidden logic inside the workflow orchestration service.
+- Follow-Up:
+  - Continue extracting execution handoff request construction and report request projection in
+    separate small slices.

@@ -30,6 +30,10 @@ from src.core.proposals.delivery_summary import (
     build_delivery_summary_from_events,
     select_delivery_events,
 )
+from src.core.proposals.execution_status import (
+    build_execution_status_response,
+    latest_execution_requested_event,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
@@ -76,16 +80,9 @@ from src.core.proposals.projections import (
 )
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.workflow_rules import (
-    EXECUTION_STATUS_EVENT_TYPES,
     TERMINAL_STATES,
     ProposalWorkflowRuleError,
     resolve_execution_update_event,
-)
-from src.core.proposals.workflow_rules import (
-    execution_state_correlation as build_execution_state_correlation,
-)
-from src.core.proposals.workflow_rules import (
-    execution_status_for_event as build_execution_status_for_event,
 )
 from src.core.proposals.workflow_rules import (
     resolve_approval_transition as build_approval_transition,
@@ -545,60 +542,7 @@ class ProposalWorkflowService:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
         events = self._repository.list_events(proposal_id=proposal_id)
-        latest_execution_requested = self._latest_execution_requested_event(events)
-        latest_execution_event = self._latest_execution_status_event(events)
-
-        handoff_status = "NOT_REQUESTED"
-        execution_request_id: str | None = None
-        execution_provider: str | None = None
-        related_version_no: int | None = None
-        handoff_requested_at: str | None = None
-        executed_at: str | None = None
-        external_execution_id: str | None = None
-        if latest_execution_requested is not None:
-            handoff_status = "REQUESTED"
-            execution_request_id = latest_execution_requested.reason_json.get(
-                "execution_request_id"
-            )
-            execution_provider = latest_execution_requested.reason_json.get("execution_provider")
-            related_version_no = latest_execution_requested.related_version_no
-            handoff_requested_at = latest_execution_requested.occurred_at.isoformat()
-
-        if latest_execution_event is not None:
-            handoff_status = self._execution_status_for_event(latest_execution_event.event_type)
-            if latest_execution_event.event_type == "EXECUTED":
-                executed_at = latest_execution_event.occurred_at.isoformat()
-            external_execution_id = latest_execution_event.reason_json.get(
-                "external_execution_id"
-            ) or latest_execution_event.reason_json.get("execution_id")
-            related_version_no = latest_execution_event.related_version_no or related_version_no
-            if latest_execution_requested is None:
-                execution_request_id = latest_execution_event.reason_json.get(
-                    "execution_request_id"
-                )
-                execution_provider = latest_execution_event.reason_json.get("execution_provider")
-
-        return ProposalExecutionStatusResponse(
-            proposal=self._to_summary(proposal),
-            handoff_status=handoff_status,
-            execution_request_id=execution_request_id,
-            execution_provider=execution_provider,
-            related_version_no=related_version_no,
-            handoff_requested_at=handoff_requested_at,
-            executed_at=executed_at,
-            external_execution_id=external_execution_id,
-            latest_workflow_event=(
-                self._to_event(latest_execution_event)
-                if latest_execution_event is not None
-                else None
-            ),
-            explanation={
-                "source": "ADVISORY_WORKFLOW_EVENTS",
-                "state_correlation": self._execution_state_correlation(
-                    handoff_status=handoff_status
-                ),
-            },
-        )
+        return build_execution_status_response(proposal=proposal, events=events)
 
     def get_delivery_summary(self, *, proposal_id: str) -> ProposalDeliverySummaryResponse:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
@@ -653,7 +597,7 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
         events = self._repository.list_events(proposal_id=proposal_id)
-        latest_execution_requested = self._latest_execution_requested_event(events)
+        latest_execution_requested = latest_execution_requested_event(events)
         if latest_execution_requested is None:
             raise ProposalValidationError("EXECUTION_HANDOFF_NOT_FOUND")
 
@@ -1624,28 +1568,6 @@ class ProposalWorkflowService:
             )
         except ProposalWorkflowRuleError as exc:
             raise ProposalTransitionError(str(exc)) from exc
-
-    def _latest_execution_requested_event(
-        self, events: list[ProposalWorkflowEventRecord]
-    ) -> ProposalWorkflowEventRecord | None:
-        for event in reversed(events):
-            if event.event_type == "EXECUTION_REQUESTED":
-                return event
-        return None
-
-    def _latest_execution_status_event(
-        self, events: list[ProposalWorkflowEventRecord]
-    ) -> ProposalWorkflowEventRecord | None:
-        for event in reversed(events):
-            if event.event_type in EXECUTION_STATUS_EVENT_TYPES:
-                return event
-        return None
-
-    def _execution_status_for_event(self, event_type: str) -> str:
-        return cast(str, build_execution_status_for_event(event_type))
-
-    def _execution_state_correlation(self, *, handoff_status: str) -> str:
-        return cast(str, build_execution_state_correlation(handoff_status=handoff_status))
 
 
 def _utc_now() -> datetime:

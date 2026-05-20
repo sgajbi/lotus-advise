@@ -20,6 +20,8 @@ recorded here with enough detail for later owner-specific slices.
     `src/core/proposals/workflow_rules.py`.
   - Proposal summary, version detail, workflow event, and approval record projections now live in
     `src/core/proposals/projections.py`.
+  - Execution-status projection and latest execution event selection now live in
+    `src/core/proposals/execution_status.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.
