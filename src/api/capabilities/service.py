@@ -1,0 +1,323 @@
+import os
+from datetime import UTC, date, datetime
+from typing import cast
+
+from src.api.capabilities.models import (
+    AdvisorySupportability,
+    ConsumerSystem,
+    FeatureCapability,
+    FreshnessBucket,
+    IntegrationCapabilitiesResponse,
+    OperationalReadiness,
+    SupportabilityReason,
+    SupportabilityState,
+    WorkflowCapability,
+)
+from src.api.capabilities.readiness import build_operational_readiness
+from src.api.observability import record_advisory_supportability
+from src.integrations.lotus_core import lotus_core_fallback_mode
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _dependency_rows(readiness: dict[str, object]) -> list[dict[str, object]]:
+    return cast(list[dict[str, object]], readiness.get("dependencies", []))
+
+
+def _dependency_map(readiness: dict[str, object]) -> dict[str, dict[str, object]]:
+    return {
+        str(item["dependency_key"]): item
+        for item in _dependency_rows(readiness)
+        if "dependency_key" in item
+    }
+
+
+def _dependency_ready(dependencies: dict[str, dict[str, object]], dependency_key: str) -> bool:
+    dependency = dependencies.get(dependency_key)
+    if dependency is None:
+        return False
+    return bool(dependency.get("operational_ready"))
+
+
+def build_advisory_supportability(
+    *,
+    readiness: dict[str, object],
+    lifecycle_enabled: bool,
+    features: list[FeatureCapability],
+) -> AdvisorySupportability:
+    dependency_rows = _dependency_rows(readiness)
+    dependency_count = len(dependency_rows)
+    ready_dependency_count = sum(
+        1 for dependency in dependency_rows if bool(dependency.get("operational_ready"))
+    )
+    degraded_dependency_count = dependency_count - ready_dependency_count
+    enabled_features = [feature for feature in features if feature.enabled]
+    ready_feature_count = sum(1 for feature in enabled_features if feature.operational_ready)
+
+    if not lifecycle_enabled:
+        state: SupportabilityState = "unsupported"
+        reason: SupportabilityReason = "lifecycle_disabled"
+        freshness_bucket: FreshnessBucket = "unknown"
+    elif degraded_dependency_count > 0 or ready_feature_count < len(enabled_features):
+        state = "degraded"
+        reason = "dependency_degraded"
+        freshness_bucket = "unknown"
+    else:
+        state = "ready"
+        reason = "advisory_ready"
+        freshness_bucket = "current"
+
+    supportability = AdvisorySupportability(
+        state=state,
+        reason=reason,
+        freshness_bucket=freshness_bucket,
+        dependency_count=dependency_count,
+        ready_dependency_count=ready_dependency_count,
+        degraded_dependency_count=degraded_dependency_count,
+        enabled_feature_count=len(enabled_features),
+        ready_feature_count=ready_feature_count,
+    )
+    record_advisory_supportability(
+        state=supportability.state,
+        reason=supportability.reason,
+        freshness_bucket=supportability.freshness_bucket,
+    )
+    return supportability
+
+
+def build_feature_capabilities(
+    *,
+    lifecycle_enabled: bool,
+    async_enabled: bool,
+    ai_rationale_enabled: bool,
+    dependencies: dict[str, dict[str, object]],
+) -> list[FeatureCapability]:
+    lotus_core_ready = _dependency_ready(dependencies, "lotus_core")
+    lotus_risk_ready = _dependency_ready(dependencies, "lotus_risk")
+    lotus_ai_ready = _dependency_ready(dependencies, "lotus_ai")
+    lotus_report_ready = _dependency_ready(dependencies, "lotus_report")
+
+    return [
+        FeatureCapability(
+            key="advisory.proposals.simulation",
+            enabled=True,
+            operational_ready=lotus_core_ready,
+            owner_service="LOTUS_CORE",
+            description=(
+                "Canonical advisory proposal simulation through lotus-core; "
+                "lotus-advise remains the workflow and API owner."
+            ),
+            fallback_mode=lotus_core_fallback_mode(),
+            degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+        ),
+        FeatureCapability(
+            key="advisory.proposals.lifecycle",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            owner_service="ADVISORY",
+            description="Advisory proposal lifecycle APIs.",
+            fallback_mode="NONE",
+            degraded_reason=None,
+        ),
+        FeatureCapability(
+            key="advisory.proposals.async_operations",
+            enabled=async_enabled,
+            operational_ready=async_enabled,
+            owner_service="ADVISORY",
+            description="Async advisory proposal operations.",
+            fallback_mode="NONE",
+            degraded_reason=None,
+        ),
+        FeatureCapability(
+            key="advisory.workspaces.stateful",
+            enabled=True,
+            operational_ready=lotus_core_ready,
+            owner_service="ADVISORY",
+            description=(
+                "Stateful advisory workspace evaluation through Lotus Core context resolution."
+            ),
+            fallback_mode=lotus_core_fallback_mode(),
+            degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+        ),
+        FeatureCapability(
+            key="advisory.workspaces.ai_rationale",
+            enabled=ai_rationale_enabled,
+            operational_ready=ai_rationale_enabled and lotus_ai_ready,
+            owner_service="ADVISORY",
+            description="Evidence-grounded advisory workspace rationale through Lotus AI.",
+            fallback_mode="NONE",
+            degraded_reason=(
+                None
+                if not ai_rationale_enabled or lotus_ai_ready
+                else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+            ),
+        ),
+        FeatureCapability(
+            key="advisory.proposals.risk_lens",
+            enabled=True,
+            operational_ready=lotus_risk_ready,
+            owner_service="LOTUS_RISK",
+            description="Proposal before/after concentration risk lens through lotus-risk.",
+            fallback_mode="LOCAL_RISK_FALLBACK",
+            degraded_reason=(None if lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"),
+        ),
+        FeatureCapability(
+            key="advisory.proposals.reporting",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled and lotus_report_ready,
+            owner_service="LOTUS_REPORT",
+            description="Advisory proposal report-request seam through lotus-report.",
+            fallback_mode="NONE",
+            degraded_reason=(
+                None
+                if not lifecycle_enabled or lotus_report_ready
+                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            ),
+        ),
+        FeatureCapability(
+            key="advisory.proposals.execution_handoff",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            owner_service="ADVISORY",
+            description="Advisory execution handoff and execution-state correlation APIs.",
+            fallback_mode="NONE",
+            degraded_reason=None,
+        ),
+        FeatureCapability(
+            key="advise.observability.advisory_supportability",
+            enabled=True,
+            operational_ready=lifecycle_enabled,
+            owner_service="ADVISORY",
+            description=(
+                "Source-backed advisory supportability posture for Gateway and Workbench consumers."
+            ),
+            fallback_mode="NONE",
+            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+        ),
+    ]
+
+
+def build_workflow_capabilities(
+    *,
+    lifecycle_enabled: bool,
+    ai_rationale_enabled: bool,
+    dependencies: dict[str, dict[str, object]],
+) -> list[WorkflowCapability]:
+    lotus_core_ready = _dependency_ready(dependencies, "lotus_core")
+    lotus_risk_ready = _dependency_ready(dependencies, "lotus_risk")
+    lotus_ai_ready = _dependency_ready(dependencies, "lotus_ai")
+    lotus_report_ready = _dependency_ready(dependencies, "lotus_report")
+
+    return [
+        WorkflowCapability(
+            workflow_key="advisory_proposal_simulation",
+            enabled=True,
+            operational_ready=lotus_core_ready,
+            required_features=["advisory.proposals.simulation"],
+            dependency_keys=["lotus_core"],
+            degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_proposal_lifecycle",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            required_features=["advisory.proposals.lifecycle"],
+            dependency_keys=[],
+            degraded_reason=None,
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_workspace_stateful",
+            enabled=True,
+            operational_ready=lotus_core_ready,
+            required_features=["advisory.workspaces.stateful"],
+            dependency_keys=["lotus_core"],
+            degraded_reason=(None if lotus_core_ready else "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"),
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_workspace_ai_rationale",
+            enabled=ai_rationale_enabled,
+            operational_ready=ai_rationale_enabled and lotus_ai_ready,
+            required_features=["advisory.workspaces.ai_rationale"],
+            dependency_keys=["lotus_ai"],
+            degraded_reason=(
+                None
+                if not ai_rationale_enabled or lotus_ai_ready
+                else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+            ),
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_proposal_risk_lens",
+            enabled=True,
+            operational_ready=lotus_risk_ready,
+            required_features=["advisory.proposals.risk_lens"],
+            dependency_keys=["lotus_risk"],
+            degraded_reason=(None if lotus_risk_ready else "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"),
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_proposal_reporting",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled and lotus_report_ready,
+            required_features=["advisory.proposals.reporting"],
+            dependency_keys=["lotus_report"],
+            degraded_reason=(
+                None
+                if not lifecycle_enabled or lotus_report_ready
+                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            ),
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_proposal_execution_handoff",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            required_features=["advisory.proposals.execution_handoff"],
+            dependency_keys=[],
+            degraded_reason=None,
+        ),
+    ]
+
+
+def build_integration_capabilities(
+    *,
+    consumer_system: ConsumerSystem,
+    tenant_id: str,
+    readiness: dict[str, object] | None = None,
+) -> IntegrationCapabilitiesResponse:
+    lifecycle_enabled = _env_bool("PROPOSAL_WORKFLOW_LIFECYCLE_ENABLED", True)
+    async_enabled = _env_bool("PROPOSAL_ASYNC_OPERATIONS_ENABLED", True)
+    ai_rationale_enabled = _env_bool("LOTUS_AI_WORKSPACE_RATIONALE_ENABLED", True)
+    readiness_payload = readiness if readiness is not None else build_operational_readiness()
+    dependencies = _dependency_map(readiness_payload)
+    features = build_feature_capabilities(
+        lifecycle_enabled=lifecycle_enabled,
+        async_enabled=async_enabled,
+        ai_rationale_enabled=ai_rationale_enabled,
+        dependencies=dependencies,
+    )
+
+    return IntegrationCapabilitiesResponse(
+        contract_version="v1",
+        source_service="lotus-advise",
+        consumer_system=consumer_system,
+        tenant_id=tenant_id,
+        generated_at=datetime.now(UTC),
+        as_of_date=date.today(),
+        policy_version="advisory.v1",
+        supported_input_modes=["stateless", "stateful"],
+        features=features,
+        workflows=build_workflow_capabilities(
+            lifecycle_enabled=lifecycle_enabled,
+            ai_rationale_enabled=ai_rationale_enabled,
+            dependencies=dependencies,
+        ),
+        readiness=OperationalReadiness.model_validate(readiness_payload),
+        supportability=build_advisory_supportability(
+            readiness=readiness_payload,
+            lifecycle_enabled=lifecycle_enabled,
+            features=features,
+        ),
+    )
