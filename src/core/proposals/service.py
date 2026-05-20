@@ -68,16 +68,30 @@ from src.core.proposals.models import (
     ProposalWorkflowState,
     ProposalWorkflowTimelineResponse,
 )
+from src.core.proposals.projections import (
+    to_approval_record,
+    to_proposal_summary,
+    to_version_detail,
+    to_workflow_event,
+)
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.workflow_rules import (
     EXECUTION_STATUS_EVENT_TYPES,
     TERMINAL_STATES,
     ProposalWorkflowRuleError,
-    execution_state_correlation,
-    execution_status_for_event,
-    resolve_approval_transition,
     resolve_execution_update_event,
-    resolve_transition_state,
+)
+from src.core.proposals.workflow_rules import (
+    execution_state_correlation as build_execution_state_correlation,
+)
+from src.core.proposals.workflow_rules import (
+    execution_status_for_event as build_execution_status_for_event,
+)
+from src.core.proposals.workflow_rules import (
+    resolve_approval_transition as build_approval_transition,
+)
+from src.core.proposals.workflow_rules import (
+    resolve_transition_state as build_transition_state,
 )
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import (
@@ -1171,20 +1185,7 @@ class ProposalWorkflowService:
         )
 
     def _to_summary(self, proposal: ProposalRecord) -> ProposalSummary:
-        return ProposalSummary(
-            proposal_id=proposal.proposal_id,
-            portfolio_id=proposal.portfolio_id,
-            mandate_id=proposal.mandate_id,
-            jurisdiction=proposal.jurisdiction,
-            created_by=proposal.created_by,
-            created_at=proposal.created_at.isoformat(),
-            last_event_at=proposal.last_event_at.isoformat(),
-            current_state=proposal.current_state,
-            current_version_no=proposal.current_version_no,
-            title=proposal.title,
-            lifecycle_origin=proposal.lifecycle_origin,
-            source_workspace_id=proposal.source_workspace_id,
-        )
+        return to_proposal_summary(proposal)
 
     def _validate_lifecycle_origin(
         self,
@@ -1200,52 +1201,15 @@ class ProposalWorkflowService:
     def _to_version_detail(
         self, version: ProposalVersionRecord, *, include_evidence: bool
     ) -> ProposalVersionDetail:
-        evidence_bundle_json: dict[str, Any] = (
-            version.evidence_bundle_json if include_evidence else {}
-        )
-        return ProposalVersionDetail(
-            proposal_version_id=version.proposal_version_id,
-            proposal_id=version.proposal_id,
-            version_no=version.version_no,
-            created_at=version.created_at.isoformat(),
-            request_hash=version.request_hash,
-            artifact_hash=version.artifact_hash,
-            simulation_hash=version.simulation_hash,
-            status_at_creation=version.status_at_creation,
-            proposal_result=version.proposal_result_json,
-            artifact=version.artifact_json,
-            evidence_bundle=evidence_bundle_json,
-            gate_decision=version.gate_decision_json,
-        )
+        return to_version_detail(version, include_evidence=include_evidence)
 
     def _to_event(self, event: ProposalWorkflowEventRecord) -> ProposalWorkflowEvent:
-        return ProposalWorkflowEvent(
-            event_id=event.event_id,
-            proposal_id=event.proposal_id,
-            event_type=event.event_type,
-            from_state=event.from_state,
-            to_state=event.to_state,
-            actor_id=event.actor_id,
-            occurred_at=event.occurred_at.isoformat(),
-            reason=event.reason_json,
-            related_version_no=event.related_version_no,
-        )
+        return to_workflow_event(event)
 
     def _to_approval(
         self, approval: Optional[ProposalApprovalRecordData]
     ) -> Optional[ProposalApprovalRecord]:
-        if approval is None:
-            return None
-        return ProposalApprovalRecord(
-            approval_id=approval.approval_id,
-            proposal_id=approval.proposal_id,
-            approval_type=approval.approval_type,
-            approved=approval.approved,
-            actor_id=approval.actor_id,
-            occurred_at=approval.occurred_at.isoformat(),
-            details=approval.details_json,
-            related_version_no=approval.related_version_no,
-        )
+        return to_approval_record(approval)
 
     def _to_version_record(
         self,
@@ -1425,7 +1389,7 @@ class ProposalWorkflowService:
         return payload, resolved_idempotency_key
 
     def _hash_async_create_submission(self, payload: ProposalCreateRequest) -> str:
-        return build_async_create_submission_hash(payload)
+        return cast(str, build_async_create_submission_hash(payload))
 
     def _hash_async_version_submission(
         self,
@@ -1433,7 +1397,10 @@ class ProposalWorkflowService:
         proposal_id: str,
         payload: ProposalVersionRequest,
     ) -> str:
-        return build_async_version_submission_hash(proposal_id=proposal_id, payload=payload)
+        return cast(
+            str,
+            build_async_version_submission_hash(proposal_id=proposal_id, payload=payload),
+        )
 
     def _record_async_create_submission_outcome(self, key: str) -> None:
         with self._async_create_submission_stats_lock:
@@ -1635,7 +1602,7 @@ class ProposalWorkflowService:
         event_type: str,
     ) -> ProposalWorkflowState:
         try:
-            return resolve_transition_state(current_state=current_state, event_type=event_type)
+            return build_transition_state(current_state=current_state, event_type=event_type)
         except ProposalWorkflowRuleError as exc:
             raise ProposalTransitionError(str(exc)) from exc
 
@@ -1647,10 +1614,13 @@ class ProposalWorkflowService:
         approved: bool,
     ) -> tuple[str, ProposalWorkflowState]:
         try:
-            return resolve_approval_transition(
-                current_state=current_state,
-                approval_type=approval_type,
-                approved=approved,
+            return cast(
+                tuple[str, ProposalWorkflowState],
+                build_approval_transition(
+                    current_state=current_state,
+                    approval_type=approval_type,
+                    approved=approved,
+                ),
             )
         except ProposalWorkflowRuleError as exc:
             raise ProposalTransitionError(str(exc)) from exc
@@ -1672,10 +1642,10 @@ class ProposalWorkflowService:
         return None
 
     def _execution_status_for_event(self, event_type: str) -> str:
-        return execution_status_for_event(event_type)
+        return cast(str, build_execution_status_for_event(event_type))
 
     def _execution_state_correlation(self, *, handoff_status: str) -> str:
-        return execution_state_correlation(handoff_status=handoff_status)
+        return cast(str, build_execution_state_correlation(handoff_status=handoff_status))
 
 
 def _utc_now() -> datetime:

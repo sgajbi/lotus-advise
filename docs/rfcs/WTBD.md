@@ -18,6 +18,8 @@ recorded here with enough detail for later owner-specific slices.
     state-correlation rules now live in `src/core/proposals/workflow_rules.py`.
   - Delivery-summary projection now reuses the shared execution-status vocabulary from
     `src/core/proposals/workflow_rules.py`.
+  - Proposal summary, version detail, workflow event, and approval record projections now live in
+    `src/core/proposals/projections.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

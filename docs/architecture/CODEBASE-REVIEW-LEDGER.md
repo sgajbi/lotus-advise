@@ -762,3 +762,30 @@
 - Follow-Up:
   - Continue consolidating projection code around explicit modules before decomposing larger
     report-request and execution-handoff service methods.
+
+## LA-REV-029
+
+- Scope: Proposal record-to-DTO projections
+- Pattern: modularity problem / DTO mapping hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Proposal summary, version detail, workflow event, and approval record projections were
+  pure record-to-DTO mappers embedded in `ProposalWorkflowService`. That kept presentation contract
+  shaping inside the already-large orchestration service and made evidence redaction behavior harder
+  to test directly.
+- Evidence:
+  - `src/core/proposals/projections.py` now owns proposal summary, version detail, workflow event,
+    and approval record projection helpers.
+  - `src/core/proposals/service.py` now delegates those projections while preserving the existing
+    service boundary and API payloads.
+  - `tests/unit/advisory/engine/test_engine_proposal_projections.py` directly proves lifecycle
+    identity projection, evidence bundle redaction/inclusion, gate-decision hydration, workflow
+    event audit payloads, and nullable approval projection.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_projections.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - DTO projection behavior can now be reviewed and tested independently from repository-backed
+    workflow orchestration.
+- Follow-Up:
+  - Continue extracting version record creation, report-request projection, and execution handoff
+    helpers in separate small slices.
