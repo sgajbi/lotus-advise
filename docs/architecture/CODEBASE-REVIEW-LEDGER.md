@@ -1209,3 +1209,27 @@
 - Follow-Up:
   - Keep identifier factories thin unless platform-wide ID policy, entropy length, or audit
     requirements change.
+
+## LA-REV-046
+
+- Scope: Async submission hash wrapper removal
+- Pattern: stale code / async idempotency hardening
+- Status: Hardened
+- Finding Class: stale code
+- Summary: After async create/version submission hashing moved into
+  `src/core/proposals/async_payloads.py`, `ProposalWorkflowService` still carried private
+  `_hash_async_create_submission(...)` and `_hash_async_version_submission(...)` wrappers. Those
+  wrappers added no boundary behavior and obscured the module that owns async submission hash
+  canonicalization.
+- Evidence:
+  - `src/core/proposals/service.py` now imports and calls `hash_async_create_submission(...)` and
+    `hash_async_version_submission(...)` directly.
+  - The stale service-private hash wrapper methods and alias imports were removed.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_async_payloads.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Async submission idempotency hashing has one explicit proposal-domain owner and no redundant
+    service-private alias layer.
+- Follow-Up:
+  - Continue removing service-private wrappers only where they do not provide persistence,
+    orchestration, or error-translation boundary value.

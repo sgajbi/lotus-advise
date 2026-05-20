@@ -20,14 +20,10 @@ from src.core.proposals.async_payloads import (
     AsyncPayloadResolutionFailure,
     AsyncVersionPayloadResolution,
     extract_async_submission_hash,
+    hash_async_create_submission,
+    hash_async_version_submission,
     resolve_async_create_payload,
     resolve_async_version_payload,
-)
-from src.core.proposals.async_payloads import (
-    hash_async_create_submission as build_async_create_submission_hash,
-)
-from src.core.proposals.async_payloads import (
-    hash_async_version_submission as build_async_version_submission_hash,
 )
 from src.core.proposals.concurrency import (
     ProposalExpectedStateError,
@@ -316,7 +312,7 @@ class ProposalWorkflowService:
         idempotency_key: str,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        submission_hash = self._hash_async_create_submission(payload)
+        submission_hash = hash_async_create_submission(payload)
         resolved_correlation_id = resolve_correlation_id(correlation_id)
         operation = ProposalAsyncOperationRecord(
             operation_id=new_async_operation_id(),
@@ -889,7 +885,7 @@ class ProposalWorkflowService:
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
         resolved_correlation_id = resolve_correlation_id(correlation_id)
-        submission_hash = self._hash_async_version_submission(
+        submission_hash = hash_async_version_submission(
             proposal_id=proposal_id,
             payload=payload,
         )
@@ -1223,20 +1219,6 @@ class ProposalWorkflowService:
             return None
         resolved = cast(AsyncCreatePayloadResolution, resolution)
         return resolved.payload, resolved.idempotency_key
-
-    def _hash_async_create_submission(self, payload: ProposalCreateRequest) -> str:
-        return cast(str, build_async_create_submission_hash(payload))
-
-    def _hash_async_version_submission(
-        self,
-        *,
-        proposal_id: str,
-        payload: ProposalVersionRequest,
-    ) -> str:
-        return cast(
-            str,
-            build_async_version_submission_hash(proposal_id=proposal_id, payload=payload),
-        )
 
     def _record_async_create_submission_outcome(self, key: str) -> None:
         with self._async_create_submission_stats_lock:

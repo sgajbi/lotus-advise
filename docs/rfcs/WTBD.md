@@ -51,6 +51,8 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal-domain identifier factories now live in `src/core/proposals/identifiers.py` and cover
     proposal, version, workflow event, async operation, execution request, approval, and report
     request identifiers.
+  - Stale service-private async submission hash wrappers have been removed; async create/version
+    submission hashing is called directly from `src/core/proposals/async_payloads.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.
