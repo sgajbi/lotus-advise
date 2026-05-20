@@ -897,3 +897,28 @@
 - Follow-Up:
   - Continue extracting execution handoff request construction and version-record construction in
     separate small slices.
+
+## LA-REV-034
+
+- Scope: Proposal immutable version-record construction
+- Pattern: modularity problem / lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Immutable proposal version construction was embedded in `ProposalWorkflowService`,
+  combining simulation payload serialization, simulation hash calculation, artifact hash extraction,
+  evidence-bundle retention policy, and gate-decision snapshotting. These rules define version
+  lineage and should be testable without workflow repository orchestration.
+- Evidence:
+  - `src/core/proposals/versions.py` now owns `build_proposal_version_record(...)`.
+  - `src/core/proposals/service.py` now supplies the generated version id and delegates record
+    construction while preserving existing create/version orchestration.
+  - `tests/unit/advisory/engine/test_engine_proposal_versions.py` directly proves artifact hash
+    capture, simulation hash calculation, proposal result persistence, gate-decision snapshotting,
+    and evidence-bundle retention/redaction behavior.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_versions.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Version lineage construction is now explicit domain logic rather than a private service helper.
+- Follow-Up:
+  - Continue extracting execution handoff request construction and proposal lifecycle origin
+    validation in separate small slices.
