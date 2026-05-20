@@ -48,6 +48,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal fallback correlation ID resolution now lives in
     `src/core/proposals/correlation.py` and is reused by lifecycle, async, and direct simulation
     paths.
+  - Proposal-domain identifier factories now live in `src/core/proposals/identifiers.py` and cover
+    proposal, version, workflow event, async operation, execution request, approval, and report
+    request identifiers.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

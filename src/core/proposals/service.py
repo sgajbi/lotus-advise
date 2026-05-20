@@ -1,4 +1,3 @@
-import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from threading import RLock
@@ -55,6 +54,14 @@ from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
     find_replayed_approval,
     find_replayed_event,
+)
+from src.core.proposals.identifiers import (
+    new_approval_id,
+    new_async_operation_id,
+    new_execution_request_id,
+    new_proposal_id,
+    new_proposal_version_id,
+    new_workflow_event_id,
 )
 from src.core.proposals.lifecycle import (
     ProposalLifecycleOriginError,
@@ -247,7 +254,7 @@ class ProposalWorkflowService:
         if replay_lineage:
             evidence_bundle["replay_lineage"] = dict(replay_lineage)
 
-        proposal_id = f"pp_{uuid.uuid4().hex[:12]}"
+        proposal_id = new_proposal_id()
         version_no = 1
         proposal = ProposalRecord(
             proposal_id=proposal_id,
@@ -265,7 +272,7 @@ class ProposalWorkflowService:
             source_workspace_id=source_workspace_id,
         )
         version = build_proposal_version_record(
-            proposal_version_id=f"ppv_{uuid.uuid4().hex[:12]}",
+            proposal_version_id=new_proposal_version_id(),
             proposal_id=proposal_id,
             version_no=version_no,
             request_hash=request_hash,
@@ -276,7 +283,7 @@ class ProposalWorkflowService:
             store_evidence_bundle=self._store_evidence_bundle,
         )
         created_event = ProposalWorkflowEventRecord(
-            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            event_id=new_workflow_event_id(),
             proposal_id=proposal_id,
             event_type="CREATED",
             from_state=None,
@@ -312,7 +319,7 @@ class ProposalWorkflowService:
         submission_hash = self._hash_async_create_submission(payload)
         resolved_correlation_id = resolve_correlation_id(correlation_id)
         operation = ProposalAsyncOperationRecord(
-            operation_id=f"pop_{uuid.uuid4().hex[:12]}",
+            operation_id=new_async_operation_id(),
             operation_type="CREATE_PROPOSAL",
             status="PENDING",
             correlation_id=resolved_correlation_id,
@@ -534,7 +541,7 @@ class ProposalWorkflowService:
             )
 
         occurred_at = _utc_now()
-        execution_request_id = payload.external_request_id or f"pex_{uuid.uuid4().hex[:12]}"
+        execution_request_id = payload.external_request_id or new_execution_request_id()
         reason_json = {
             "execution_request_id": execution_request_id,
             "execution_provider": payload.execution_provider,
@@ -546,7 +553,7 @@ class ProposalWorkflowService:
             reason_json["idempotency_key"] = idempotency_key
             reason_json["idempotency_request_hash"] = request_hash
         event = ProposalWorkflowEventRecord(
-            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            event_id=new_workflow_event_id(),
             proposal_id=proposal_id,
             event_type="EXECUTION_REQUESTED",
             from_state=proposal.current_state,
@@ -672,7 +679,7 @@ class ProposalWorkflowService:
             "idempotency_request_hash": request_hash,
         }
         event = ProposalWorkflowEventRecord(
-            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            event_id=new_workflow_event_id(),
             proposal_id=proposal_id,
             event_type=event_type,
             from_state=proposal.current_state,
@@ -831,7 +838,7 @@ class ProposalWorkflowService:
         next_version_no = proposal.current_version_no + 1
         reset_state: ProposalWorkflowState = "DRAFT"
         version = build_proposal_version_record(
-            proposal_version_id=f"ppv_{uuid.uuid4().hex[:12]}",
+            proposal_version_id=new_proposal_version_id(),
             proposal_id=proposal.proposal_id,
             version_no=next_version_no,
             request_hash=request_hash,
@@ -842,7 +849,7 @@ class ProposalWorkflowService:
             store_evidence_bundle=self._store_evidence_bundle,
         )
         event = ProposalWorkflowEventRecord(
-            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            event_id=new_workflow_event_id(),
             proposal_id=proposal.proposal_id,
             event_type="NEW_VERSION_CREATED",
             from_state=proposal.current_state,
@@ -901,7 +908,7 @@ class ProposalWorkflowService:
                 )
             return to_async_accepted_response(existing_operation), False
         operation = ProposalAsyncOperationRecord(
-            operation_id=f"pop_{uuid.uuid4().hex[:12]}",
+            operation_id=new_async_operation_id(),
             operation_type="CREATE_PROPOSAL_VERSION",
             status="PENDING",
             correlation_id=resolved_correlation_id,
@@ -1005,7 +1012,7 @@ class ProposalWorkflowService:
             reason_json["idempotency_key"] = idempotency_key
             reason_json["idempotency_request_hash"] = request_hash
         event = ProposalWorkflowEventRecord(
-            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            event_id=new_workflow_event_id(),
             proposal_id=proposal_id,
             event_type=payload.event_type,
             from_state=proposal.current_state,
@@ -1062,7 +1069,7 @@ class ProposalWorkflowService:
             details_json["idempotency_key"] = idempotency_key
             details_json["idempotency_request_hash"] = request_hash
         approval = ProposalApprovalRecordData(
-            approval_id=f"pap_{uuid.uuid4().hex[:12]}",
+            approval_id=new_approval_id(),
             proposal_id=proposal_id,
             approval_type=payload.approval_type,
             approved=payload.approved,
@@ -1082,7 +1089,7 @@ class ProposalWorkflowService:
             reason_json["idempotency_key"] = idempotency_key
             reason_json["idempotency_request_hash"] = request_hash
         event = ProposalWorkflowEventRecord(
-            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            event_id=new_workflow_event_id(),
             proposal_id=proposal_id,
             event_type=event_type,
             from_state=proposal.current_state,
@@ -1184,7 +1191,7 @@ class ProposalWorkflowService:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
         event = build_report_requested_event(
-            event_id=f"pwe_{uuid.uuid4().hex[:12]}",
+            event_id=new_workflow_event_id(),
             proposal=proposal,
             report_response=report_response,
             requested_by=requested_by,

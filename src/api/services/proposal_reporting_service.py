@@ -1,11 +1,10 @@
-import uuid
-
 from src.core.proposals import (
     ProposalNotFoundError,
     ProposalReportRequest,
     ProposalReportResponse,
     ProposalWorkflowService,
 )
+from src.core.proposals.identifiers import new_report_request_id
 from src.integrations.lotus_report import request_proposal_report_with_lotus_report
 
 
@@ -26,7 +25,7 @@ def request_proposal_report(
     )
 
     execution_status = service.get_execution_status(proposal_id=proposal_id)
-    request_id = f"prr_{uuid.uuid4().hex[:12]}"
+    request_id = new_report_request_id()
 
     request = {
         "report_request_id": request_id,

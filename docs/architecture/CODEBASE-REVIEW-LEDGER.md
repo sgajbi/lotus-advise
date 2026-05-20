@@ -1181,3 +1181,31 @@
 - Follow-Up:
   - Consider extracting proposal identifier factories only when a broader ID-governance slice can
     cover proposal, version, event, approval, execution, and async operation identifiers together.
+
+## LA-REV-045
+
+- Scope: Proposal identifier factories
+- Pattern: duplicate logic / lineage hardening
+- Status: Hardened
+- Finding Class: duplicate logic
+- Summary: Proposal, version, workflow event, async operation, execution request, approval, and
+  report request identifiers were generated inline across service and reporting boundaries. The
+  prefixes are part of advisory lineage and operational diagnostics, so they should be governed in
+  one proposal-domain module rather than repeated at each write path.
+- Evidence:
+  - `src/core/proposals/identifiers.py` now owns proposal-domain identifier factories for `pp`,
+    `ppv`, `pwe`, `pop`, `pex`, `pap`, and `prr` prefixes.
+  - `src/core/proposals/service.py` now uses the shared factories for proposal lifecycle, async,
+    execution, approval, and workflow event records.
+  - `src/api/services/proposal_reporting_service.py` now uses the shared report-request identifier
+    factory before calling `lotus-report`.
+  - `tests/unit/advisory/engine/test_engine_proposal_identifiers.py` directly proves governed
+    prefix and suffix shape for every proposal-domain factory.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_identifiers.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py tests\unit\advisory\api\test_api_advisory_proposal_lifecycle.py -q`.
+- Consequence:
+  - Proposal lineage identifiers now have a single explicit policy point, reducing drift risk across
+    lifecycle, reporting, async, approval, and execution write paths.
+- Follow-Up:
+  - Keep identifier factories thin unless platform-wide ID policy, entropy length, or audit
+    requirements change.
