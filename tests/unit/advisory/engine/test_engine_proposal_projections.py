@@ -2,12 +2,16 @@ from datetime import datetime, timezone
 
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
+    ProposalAsyncOperationRecord,
     ProposalCreateRequest,
     ProposalRecord,
     ProposalWorkflowEventRecord,
 )
 from src.core.proposals.projections import (
     to_approval_record,
+    to_async_accepted_response,
+    to_async_status_response,
+    to_create_response,
     to_proposal_summary,
     to_version_detail,
     to_workflow_event,
@@ -132,3 +136,66 @@ def test_to_workflow_event_and_approval_record_preserve_audit_payloads():
     assert projected_approval.details == {"channel": "IN_PERSON"}
     assert projected_approval.occurred_at == "2026-05-20T09:16:00+00:00"
     assert to_approval_record(None) is None
+
+
+def test_to_create_response_projects_created_aggregate_version_and_event():
+    repository = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repository)
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_projection",
+            simulate_request=_simulate_request("pf_create_projection"),
+        ),
+        idempotency_key="idem_create_projection",
+        correlation_id="corr_create_projection",
+    )
+    proposal = repository.get_proposal(proposal_id=created.proposal.proposal_id)
+    version = repository.get_version(
+        proposal_id=created.proposal.proposal_id,
+        version_no=created.version.version_no,
+    )
+    events = repository.list_events(proposal_id=created.proposal.proposal_id)
+    assert proposal is not None
+    assert version is not None
+    assert events
+
+    response = to_create_response(proposal=proposal, version=version, latest_event=events[-1])
+
+    assert response.proposal.proposal_id == created.proposal.proposal_id
+    assert response.version.evidence_bundle == version.evidence_bundle_json
+    assert response.latest_workflow_event.event_type == "CREATED"
+
+
+def test_async_operation_response_projections_preserve_operational_state():
+    operation = ProposalAsyncOperationRecord(
+        operation_id="pop_projection",
+        operation_type="CREATE_PROPOSAL",
+        status="FAILED",
+        correlation_id="corr_projection",
+        idempotency_key="idem_projection",
+        proposal_id="pp_projection",
+        created_by="advisor_projection",
+        created_at=datetime(2026, 5, 20, 9, 20, tzinfo=timezone.utc),
+        started_at=datetime(2026, 5, 20, 9, 21, tzinfo=timezone.utc),
+        lease_expires_at=datetime(2026, 5, 20, 9, 22, tzinfo=timezone.utc),
+        finished_at=datetime(2026, 5, 20, 9, 23, tzinfo=timezone.utc),
+        attempt_count=2,
+        max_attempts=3,
+        payload_json={},
+        error_json={"code": "RuntimeError", "message": "downstream unavailable"},
+    )
+
+    accepted = to_async_accepted_response(operation)
+    status = to_async_status_response(operation)
+
+    assert accepted.status_url == "/advisory/proposals/operations/pop_projection"
+    assert accepted.attempt_count == 2
+    assert status.operation_id == "pop_projection"
+    assert status.started_at == "2026-05-20T09:21:00+00:00"
+    assert status.lease_expires_at == "2026-05-20T09:22:00+00:00"
+    assert status.finished_at == "2026-05-20T09:23:00+00:00"
+    assert status.error is not None
+    assert status.error.model_dump(mode="json") == {
+        "code": "RuntimeError",
+        "message": "downstream unavailable",
+    }

@@ -90,6 +90,9 @@ from src.core.proposals.models import (
 )
 from src.core.proposals.projections import (
     to_approval_record,
+    to_async_accepted_response,
+    to_async_status_response,
+    to_create_response,
     to_proposal_summary,
     to_version_detail,
     to_workflow_event,
@@ -1140,11 +1143,7 @@ class ProposalWorkflowService:
         version: ProposalVersionRecord,
         latest_event: ProposalWorkflowEventRecord,
     ) -> ProposalCreateResponse:
-        return ProposalCreateResponse(
-            proposal=self._to_summary(proposal),
-            version=self._to_version_detail(version, include_evidence=True),
-            latest_workflow_event=self._to_event(latest_event),
-        )
+        return to_create_response(proposal=proposal, version=version, latest_event=latest_event)
 
     def _to_summary(self, proposal: ProposalRecord) -> ProposalSummary:
         return to_proposal_summary(proposal)
@@ -1202,43 +1201,12 @@ class ProposalWorkflowService:
     def _to_async_accepted(
         self, operation: ProposalAsyncOperationRecord
     ) -> ProposalAsyncAcceptedResponse:
-        return ProposalAsyncAcceptedResponse(
-            operation_id=operation.operation_id,
-            operation_type=operation.operation_type,
-            status=operation.status,
-            correlation_id=operation.correlation_id,
-            created_at=operation.created_at.isoformat(),
-            attempt_count=operation.attempt_count,
-            max_attempts=operation.max_attempts,
-            status_url=f"/advisory/proposals/operations/{operation.operation_id}",
-        )
+        return to_async_accepted_response(operation)
 
     def _to_async_status(
         self, operation: ProposalAsyncOperationRecord
     ) -> ProposalAsyncOperationStatusResponse:
-        return ProposalAsyncOperationStatusResponse(
-            operation_id=operation.operation_id,
-            operation_type=operation.operation_type,
-            status=operation.status,
-            correlation_id=operation.correlation_id,
-            idempotency_key=operation.idempotency_key,
-            proposal_id=operation.proposal_id,
-            created_by=operation.created_by,
-            created_at=operation.created_at.isoformat(),
-            started_at=(operation.started_at.isoformat() if operation.started_at else None),
-            finished_at=(operation.finished_at.isoformat() if operation.finished_at else None),
-            attempt_count=operation.attempt_count,
-            max_attempts=operation.max_attempts,
-            lease_expires_at=(
-                operation.lease_expires_at.isoformat() if operation.lease_expires_at else None
-            ),
-            result=(
-                ProposalCreateResponse.model_validate(operation.result_json)
-                if operation.result_json is not None
-                else None
-            ),
-            error=operation.error_json,
-        )
+        return to_async_status_response(operation)
 
     def get_version_replay(
         self,

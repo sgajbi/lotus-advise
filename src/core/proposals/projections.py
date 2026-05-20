@@ -3,6 +3,10 @@ from typing import Any
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
+    ProposalAsyncAcceptedResponse,
+    ProposalAsyncOperationRecord,
+    ProposalAsyncOperationStatusResponse,
+    ProposalCreateResponse,
     ProposalRecord,
     ProposalSummary,
     ProposalVersionDetail,
@@ -77,4 +81,60 @@ def to_approval_record(
         occurred_at=approval.occurred_at.isoformat(),
         details=approval.details_json,
         related_version_no=approval.related_version_no,
+    )
+
+
+def to_create_response(
+    *,
+    proposal: ProposalRecord,
+    version: ProposalVersionRecord,
+    latest_event: ProposalWorkflowEventRecord,
+) -> ProposalCreateResponse:
+    return ProposalCreateResponse(
+        proposal=to_proposal_summary(proposal),
+        version=to_version_detail(version, include_evidence=True),
+        latest_workflow_event=to_workflow_event(latest_event),
+    )
+
+
+def to_async_accepted_response(
+    operation: ProposalAsyncOperationRecord,
+) -> ProposalAsyncAcceptedResponse:
+    return ProposalAsyncAcceptedResponse(
+        operation_id=operation.operation_id,
+        operation_type=operation.operation_type,
+        status=operation.status,
+        correlation_id=operation.correlation_id,
+        created_at=operation.created_at.isoformat(),
+        attempt_count=operation.attempt_count,
+        max_attempts=operation.max_attempts,
+        status_url=f"/advisory/proposals/operations/{operation.operation_id}",
+    )
+
+
+def to_async_status_response(
+    operation: ProposalAsyncOperationRecord,
+) -> ProposalAsyncOperationStatusResponse:
+    return ProposalAsyncOperationStatusResponse(
+        operation_id=operation.operation_id,
+        operation_type=operation.operation_type,
+        status=operation.status,
+        correlation_id=operation.correlation_id,
+        idempotency_key=operation.idempotency_key,
+        proposal_id=operation.proposal_id,
+        created_by=operation.created_by,
+        created_at=operation.created_at.isoformat(),
+        started_at=(operation.started_at.isoformat() if operation.started_at else None),
+        finished_at=(operation.finished_at.isoformat() if operation.finished_at else None),
+        attempt_count=operation.attempt_count,
+        max_attempts=operation.max_attempts,
+        lease_expires_at=(
+            operation.lease_expires_at.isoformat() if operation.lease_expires_at else None
+        ),
+        result=(
+            ProposalCreateResponse.model_validate(operation.result_json)
+            if operation.result_json is not None
+            else None
+        ),
+        error=operation.error_json,
     )

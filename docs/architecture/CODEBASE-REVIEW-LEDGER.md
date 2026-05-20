@@ -949,3 +949,30 @@
 - Follow-Up:
   - Continue extracting execution handoff request construction and create-response projection in
     separate small slices.
+
+## LA-REV-036
+
+- Scope: Proposal create and async response projections
+- Pattern: modularity problem / DTO mapping hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Create response, async accepted response, and async status response DTO projection were
+  embedded in `ProposalWorkflowService` alongside orchestration and repository access. These
+  projections are deterministic record-to-contract mappings and belong with the other proposal
+  projection helpers.
+- Evidence:
+  - `src/core/proposals/projections.py` now owns create response, async accepted response, and async
+    operation status response projection helpers.
+  - `src/core/proposals/service.py` now delegates those DTO mappings while retaining repository and
+    workflow orchestration.
+  - `tests/unit/advisory/engine/test_engine_proposal_projections.py` now directly proves create
+    response projection with evidence retention and async operation status projection including
+    timestamps, status URL, attempt counts, lease expiry, and typed error payload.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_projections.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Proposal API response mapping is further consolidated in a single projection module and is
+    testable independently from service orchestration.
+- Follow-Up:
+  - Continue extracting execution handoff request construction and replay/idempotency lookup helpers
+    in separate small slices.
