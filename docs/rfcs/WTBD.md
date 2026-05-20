@@ -74,6 +74,9 @@ recorded here with enough detail for later owner-specific slices.
   - Async operation result-version extraction now lives in
     `src/core/proposals/async_operations.py`, keeping replay-evidence version selection parsing out
     of the workflow service.
+  - Async create-submission outcome counters now live behind
+    `AsyncCreateSubmissionStatsTracker` in `src/core/proposals/async_operations.py`, keeping
+    thread-safe accepted/replayed/conflict bookkeeping out of the workflow service.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale module-level `utc_now` helper has been removed from

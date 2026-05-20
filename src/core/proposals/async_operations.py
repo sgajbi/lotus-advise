@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from threading import RLock
 from typing import Any
 
 from src.core.proposals.models import (
@@ -7,6 +9,40 @@ from src.core.proposals.models import (
     ProposalCreateResponse,
     ProposalVersionRequest,
 )
+
+
+@dataclass(frozen=True)
+class AsyncCreateSubmissionStats:
+    accepted_new: int
+    accepted_replayed: int
+    conflicts: int
+
+
+class AsyncCreateSubmissionStatsTracker:
+    def __init__(self) -> None:
+        self._lock = RLock()
+        self._accepted_new = 0
+        self._accepted_replayed = 0
+        self._conflicts = 0
+
+    def record_acceptance(self, *, is_new: bool) -> None:
+        with self._lock:
+            if is_new:
+                self._accepted_new += 1
+                return
+            self._accepted_replayed += 1
+
+    def record_conflict(self) -> None:
+        with self._lock:
+            self._conflicts += 1
+
+    def snapshot(self) -> AsyncCreateSubmissionStats:
+        with self._lock:
+            return AsyncCreateSubmissionStats(
+                accepted_new=self._accepted_new,
+                accepted_replayed=self._accepted_replayed,
+                conflicts=self._conflicts,
+            )
 
 
 def build_create_proposal_async_operation(

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from src.core.proposals.async_operations import (
+    AsyncCreateSubmissionStatsTracker,
     apply_runtime_exception_outcome,
     begin_async_attempt,
     build_async_replay_lineage,
@@ -79,6 +80,20 @@ def _response() -> ProposalCreateResponse:
             related_version_no=1,
         ),
     )
+
+
+def test_async_create_submission_stats_tracker_counts_outcomes():
+    tracker = AsyncCreateSubmissionStatsTracker()
+
+    tracker.record_acceptance(is_new=True)
+    tracker.record_acceptance(is_new=False)
+    tracker.record_acceptance(is_new=False)
+    tracker.record_conflict()
+
+    snapshot = tracker.snapshot()
+    assert snapshot.accepted_new == 1
+    assert snapshot.accepted_replayed == 2
+    assert snapshot.conflicts == 1
 
 
 def _simulate_request(portfolio_id: str = "pf_async_state") -> dict:

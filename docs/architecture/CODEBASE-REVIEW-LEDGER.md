@@ -2028,3 +2028,28 @@
 - Follow-Up:
   - Continue removing stale service-private wrappers and module-level helpers as proposal workflow
     orchestration is decomposed.
+
+## LA-REV-078
+
+- Scope: Async create-submission outcome statistics
+- Pattern: modularity problem / operational diagnostics hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService` owned a raw dictionary and lock for async create-submission
+  accepted-new, accepted-replayed, and conflict counters, mixing operational diagnostic bookkeeping
+  into workflow orchestration.
+- Evidence:
+  - `src/core/proposals/async_operations.py` now owns `AsyncCreateSubmissionStats` and
+    `AsyncCreateSubmissionStatsTracker`.
+  - `src/core/proposals/service.py` records accepted and conflict outcomes through the tracker while
+    retaining idempotency lookup, hash conflict detection, repository persistence, and accepted
+    response projection.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operations.py` directly proves tracker
+    snapshots for accepted-new, accepted-replayed, and conflict outcomes; existing workflow-service
+    tests continue to prove replay, conflict, and concurrent submission behavior.
+- Consequence:
+  - Async submission diagnostics now have a typed, thread-safe domain helper instead of service-local
+    dictionary mutation.
+- Follow-Up:
+  - Promote these counters into the runtime metrics layer only when a production metrics contract is
+    introduced for async proposal submission observability.

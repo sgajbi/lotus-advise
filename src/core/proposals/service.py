@@ -1,6 +1,4 @@
-from dataclasses import dataclass
 from datetime import datetime, timezone
-from threading import RLock
 from typing import Any, Optional, cast
 
 from src.core.advisory.artifact import build_proposal_artifact
@@ -8,6 +6,8 @@ from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.async_operations import (
+    AsyncCreateSubmissionStats,
+    AsyncCreateSubmissionStatsTracker,
     apply_runtime_exception_outcome,
     begin_async_attempt,
     build_async_replay_lineage,
@@ -178,13 +178,6 @@ class ProposalTransitionError(ProposalLifecycleError):
     pass
 
 
-@dataclass(frozen=True)
-class AsyncCreateSubmissionStats:
-    accepted_new: int
-    accepted_replayed: int
-    conflicts: int
-
-
 class ProposalWorkflowService:
     def __init__(
         self,
@@ -200,12 +193,7 @@ class ProposalWorkflowService:
         self._require_expected_state = require_expected_state
         self._allow_portfolio_id_change_on_new_version = allow_portfolio_id_change_on_new_version
         self._require_proposal_simulation_flag = require_proposal_simulation_flag
-        self._async_create_submission_stats_lock = RLock()
-        self._async_create_submission_stats = {
-            "accepted_new": 0,
-            "accepted_replayed": 0,
-            "conflicts": 0,
-        }
+        self._async_create_submission_stats = AsyncCreateSubmissionStatsTracker()
 
     def create_proposal(
         self,
@@ -341,13 +329,11 @@ class ProposalWorkflowService:
         if not is_new:
             existing_hash = extract_async_submission_hash(stored_operation)
             if existing_hash != submission_hash:
-                self._record_async_create_submission_outcome("conflicts")
+                self._async_create_submission_stats.record_conflict()
                 raise ProposalIdempotencyConflictError(
                     "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
                 )
-        self._record_async_create_submission_outcome(
-            "accepted_new" if is_new else "accepted_replayed"
-        )
+        self._async_create_submission_stats.record_acceptance(is_new=is_new)
         return to_async_accepted_response(stored_operation), is_new
 
     def submit_create_proposal_async(
@@ -1078,17 +1064,8 @@ class ProposalWorkflowService:
         resolved = cast(AsyncCreatePayloadResolution, resolution)
         return resolved.payload, resolved.idempotency_key
 
-    def _record_async_create_submission_outcome(self, key: str) -> None:
-        with self._async_create_submission_stats_lock:
-            self._async_create_submission_stats[key] += 1
-
     def get_async_create_submission_stats_for_tests(self) -> AsyncCreateSubmissionStats:
-        with self._async_create_submission_stats_lock:
-            return AsyncCreateSubmissionStats(
-                accepted_new=self._async_create_submission_stats["accepted_new"],
-                accepted_replayed=self._async_create_submission_stats["accepted_replayed"],
-                conflicts=self._async_create_submission_stats["conflicts"],
-            )
+        return self._async_create_submission_stats.snapshot()
 
     def _resolve_version_async_payload(
         self,
