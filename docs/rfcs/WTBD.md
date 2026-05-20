@@ -92,6 +92,7 @@ recorded here with enough detail for later owner-specific slices.
     `src/core/workspace/versions.py`.
   - Workspace draft-state projection and simulation-request reconstruction now live in
     `src/core/workspace/draft_state.py`.
+  - Workspace draft action mutation now lives in `src/core/workspace/draft_actions.py`.
 - Follow-up:
   - Split replay evidence construction, handoff request assembly, and draft action mutation into
     explicit workspace modules where tests can pin behavior outside the API service.

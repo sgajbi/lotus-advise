@@ -1344,3 +1344,31 @@
 - Follow-Up:
   - Continue extracting mutable draft action application only when error translation and
     persistence boundaries remain explicit.
+
+## LA-REV-051
+
+- Scope: Workspace draft action mutation
+- Pattern: modularity problem / draft workflow hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workspace draft mutation for add, update, remove, and replace actions lived inside
+  `src/api/services/workspace_service.py`. The API service should own session lookup, persistence,
+  reevaluation, and error translation, while deterministic draft-row mutation should be reusable
+  workspace-domain behavior.
+- Evidence:
+  - `src/core/workspace/draft_actions.py` now owns draft action application, trade/cash-flow row
+    lookup, row removal, and bounded draft-action errors.
+  - `src/api/services/workspace_service.py` now delegates draft mutation and translates
+    `WorkspaceDraftActionError` into the existing service-level `WorkspaceNotFoundError`.
+  - `tests/unit/advisory/api/test_workspace_draft_actions.py` directly proves add/update/remove
+    behavior for trade and cash-flow draft rows and missing-row error behavior.
+  - Existing workspace service tests now validate missing row behavior through the service action
+    path rather than removed service-private lookup helpers.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\api\test_workspace_draft_actions.py tests\unit\advisory\api\test_workspace_service.py tests\unit\advisory\api\test_api_workspace.py -q`.
+- Consequence:
+  - Workspace draft mutation now has a directly tested domain module while service responsibilities
+    are narrowed to orchestration, persistence, reevaluation, and API error vocabulary.
+- Follow-Up:
+  - Continue decomposing workspace handoff request assembly and evaluation context construction
+    only where behavior can be pinned by focused tests.

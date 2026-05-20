@@ -23,18 +23,19 @@ from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.models import ProposalCreateMetadata, ProposalResolvedContext
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import build_workspace_saved_version_replay_response
+from src.core.workspace.draft_actions import (
+    WorkspaceDraftActionError,
+    apply_workspace_draft_action_to_state,
+)
 from src.core.workspace.draft_state import (
     apply_workspace_draft_state,
     build_draft_state_from_simulate_request,
 )
 from src.core.workspace.identifiers import (
-    new_workspace_cash_flow_id,
     new_workspace_id,
-    new_workspace_trade_id,
     new_workspace_version_id,
 )
 from src.core.workspace.models import (
-    WorkspaceCashFlowDraft,
     WorkspaceCompareDiffSummary,
     WorkspaceCompareRequest,
     WorkspaceCompareResponse,
@@ -57,7 +58,6 @@ from src.core.workspace.models import (
     WorkspaceSessionCreateResponse,
     WorkspaceStatefulInput,
     WorkspaceStatelessInput,
-    WorkspaceTradeDraft,
 )
 from src.core.workspace.replay import (
     apply_workspace_handoff_replay_lineage,
@@ -366,39 +366,6 @@ def _find_saved_version(
         raise WorkspaceSavedVersionNotFoundError("WORKSPACE_SAVED_VERSION_NOT_FOUND") from exc
 
 
-def _find_trade_draft(
-    session: WorkspaceSession,
-    workspace_trade_id: str,
-) -> WorkspaceTradeDraft:
-    trade_draft = next(
-        (
-            item
-            for item in session.draft_state.trade_drafts
-            if item.workspace_trade_id == workspace_trade_id
-        ),
-        None,
-    )
-    if trade_draft is None:
-        raise WorkspaceNotFoundError("WORKSPACE_TRADE_NOT_FOUND")
-    return trade_draft
-
-
-def _find_cash_flow_draft(
-    session: WorkspaceSession, workspace_cash_flow_id: str
-) -> WorkspaceCashFlowDraft:
-    cash_flow_draft = next(
-        (
-            item
-            for item in session.draft_state.cash_flow_drafts
-            if item.workspace_cash_flow_id == workspace_cash_flow_id
-        ),
-        None,
-    )
-    if cash_flow_draft is None:
-        raise WorkspaceNotFoundError("WORKSPACE_CASH_FLOW_NOT_FOUND")
-    return cash_flow_draft
-
-
 def create_workspace_session(
     request: WorkspaceSessionCreateRequest,
 ) -> WorkspaceSessionCreateResponse:
@@ -454,55 +421,13 @@ def apply_workspace_draft_action(
     request: WorkspaceDraftActionRequest,
 ) -> WorkspaceDraftActionResponse:
     session = get_workspace_session(workspace_id)
-    draft_state = session.draft_state
-
-    if request.action_type == "ADD_TRADE":
-        assert request.trade is not None
-        draft_state.trade_drafts.append(
-            WorkspaceTradeDraft(
-                workspace_trade_id=new_workspace_trade_id(),
-                trade=request.trade.model_copy(deep=True),
-            )
+    try:
+        apply_workspace_draft_action_to_state(
+            draft_state=session.draft_state,
+            request=request,
         )
-    elif request.action_type == "UPDATE_TRADE":
-        assert request.trade is not None and request.workspace_trade_id is not None
-        trade_draft = _find_trade_draft(session, request.workspace_trade_id)
-        trade_draft.trade = request.trade.model_copy(deep=True)
-    elif request.action_type == "REMOVE_TRADE":
-        assert request.workspace_trade_id is not None
-        original_len = len(draft_state.trade_drafts)
-        draft_state.trade_drafts = [
-            item
-            for item in draft_state.trade_drafts
-            if item.workspace_trade_id != request.workspace_trade_id
-        ]
-        if len(draft_state.trade_drafts) == original_len:
-            raise WorkspaceNotFoundError("WORKSPACE_TRADE_NOT_FOUND")
-    elif request.action_type == "ADD_CASH_FLOW":
-        assert request.cash_flow is not None
-        draft_state.cash_flow_drafts.append(
-            WorkspaceCashFlowDraft(
-                workspace_cash_flow_id=new_workspace_cash_flow_id(),
-                cash_flow=request.cash_flow.model_copy(deep=True),
-            )
-        )
-    elif request.action_type == "UPDATE_CASH_FLOW":
-        assert request.cash_flow is not None and request.workspace_cash_flow_id is not None
-        cash_flow_draft = _find_cash_flow_draft(session, request.workspace_cash_flow_id)
-        cash_flow_draft.cash_flow = request.cash_flow.model_copy(deep=True)
-    elif request.action_type == "REMOVE_CASH_FLOW":
-        assert request.workspace_cash_flow_id is not None
-        original_len = len(draft_state.cash_flow_drafts)
-        draft_state.cash_flow_drafts = [
-            item
-            for item in draft_state.cash_flow_drafts
-            if item.workspace_cash_flow_id != request.workspace_cash_flow_id
-        ]
-        if len(draft_state.cash_flow_drafts) == original_len:
-            raise WorkspaceNotFoundError("WORKSPACE_CASH_FLOW_NOT_FOUND")
-    elif request.action_type == "REPLACE_OPTIONS":
-        assert request.options is not None
-        draft_state.options = request.options.model_copy(deep=True)
+    except WorkspaceDraftActionError as exc:
+        raise WorkspaceNotFoundError(str(exc)) from exc
 
     _save_workspace_session(session)
     updated_session = reevaluate_workspace_session(workspace_id)

@@ -186,7 +186,16 @@ def test_workspace_service_trade_and_cash_flow_not_found_guards() -> None:
         workspace_service.WorkspaceNotFoundError,
         match="WORKSPACE_CASH_FLOW_NOT_FOUND",
     ):
-        workspace_service._find_cash_flow_draft(session, "wcf_missing")
+        workspace_service.apply_workspace_draft_action(
+            session.workspace_id,
+            WorkspaceDraftActionRequest.model_validate(
+                {
+                    "actor_id": "advisor_123",
+                    "action_type": "REMOVE_CASH_FLOW",
+                    "workspace_cash_flow_id": "wcf_missing",
+                }
+            ),
+        )
 
     with pytest.raises(workspace_service.WorkspaceNotFoundError, match="WORKSPACE_TRADE_NOT_FOUND"):
         workspace_service.apply_workspace_draft_action(
