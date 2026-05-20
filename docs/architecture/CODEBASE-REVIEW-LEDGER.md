@@ -1046,3 +1046,29 @@
 - Follow-Up:
   - Continue decomposing orchestration only where a helper owns domain behavior or removes meaningful
     coupling.
+
+## LA-REV-040
+
+- Scope: Wiki architecture implementation map
+- Pattern: documentation drift / modularity hardening
+- Status: Hardened
+- Finding Class: documentation drift
+- Summary: The repo-local wiki architecture page described proposal lifecycle ownership at a high
+  level but did not reflect the current modular proposal backend after the service decomposition
+  slices. That left engineering, operations, and demo-facing documentation behind the code.
+- Evidence:
+  - `wiki/Architecture.md` now documents the implementation-backed proposal module map for service
+    orchestration, models, context resolution, workflow rules, projections, version lineage, async
+    payload recovery, async operation state, execution status, delivery summary, reporting, and
+    lifecycle validation.
+  - `wiki/Architecture.md` now includes Mermaid diagrams for proposal lifecycle orchestration and
+    operational lineage.
+  - `python -m pytest tests\unit\test_ci_workflow_contracts.py -q` passed.
+  - `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise` was run and reported expected
+    unpublished repo-local wiki drift: `_Sidebar.md`, `Architecture.md`, `Home.md`, and
+    `Supported-Features.md`.
+- Consequence:
+  - The wiki now explains the current backend module boundaries and evidence flow in a way that is
+    useful to engineering, operations, pre-sales, and client-demo preparation.
+- Follow-Up:
+  - Publish the repo-local wiki after merge to `main` using the governed wiki publication flow.

@@ -36,11 +36,14 @@ recorded here with enough detail for later owner-specific slices.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.
   - Stale service-private version-record wrapper has been removed; create paths call the version
     builder directly.
+  - The wiki architecture page now documents the implementation-backed proposal module boundaries
+    and lineage flow with diagrams.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.
   - Keep API contracts stable while moving business rules out of controller and persistence seams.
   - Add characterization tests around each extracted rule before or during extraction.
+  - Publish repo-local wiki updates after merge to `main`.
 
 ## WTBD-002: Continue Stateful Context Adapter Decomposition
 
