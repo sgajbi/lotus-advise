@@ -976,3 +976,28 @@
 - Follow-Up:
   - Continue extracting execution handoff request construction and replay/idempotency lookup helpers
     in separate small slices.
+
+## LA-REV-037
+
+- Scope: Proposal service projection wrapper removal
+- Pattern: stale code / modularity hardening
+- Status: Hardened
+- Finding Class: stale code
+- Summary: After consolidating proposal response projections, `ProposalWorkflowService` still kept
+  private pass-through methods for create response, summary, version detail, workflow event,
+  approval, async accepted, and async status projection. Those wrappers added indirection without
+  preserving a service-specific boundary.
+- Evidence:
+  - `src/core/proposals/service.py` now calls projection helpers directly and no longer carries the
+    stale projection wrapper methods.
+  - `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` no longer reaches into the
+    removed private approval projection wrapper; nullable approval projection remains covered by
+    `tests/unit/advisory/engine/test_engine_proposal_projections.py`.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_projections.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - The workflow service is smaller and routes DTO mapping through the explicit projection module
+    rather than compatibility wrappers.
+- Follow-Up:
+  - Continue removing service-private wrappers only when the extracted helper owns the behavior and
+    tests no longer need to reach through the service boundary.

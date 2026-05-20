@@ -678,8 +678,6 @@ def test_service_missing_version_paths_and_helper_branches():
     else:
         raise AssertionError("Expected PROPOSAL_NOT_FOUND")
 
-    assert service._to_approval(None) is None
-
     repo.save_idempotency(
         ProposalIdempotencyRecord(
             idempotency_key="idem-bad-ref",

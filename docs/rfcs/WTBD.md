@@ -31,6 +31,8 @@ recorded here with enough detail for later owner-specific slices.
   - Lifecycle-origin validation now lives in `src/core/proposals/lifecycle.py`.
   - Create response and async operation response DTO projections now live in
     `src/core/proposals/projections.py`.
+  - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
+    projection helpers directly.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

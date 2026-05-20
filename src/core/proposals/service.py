@@ -51,7 +51,6 @@ from src.core.proposals.lifecycle import (
     validate_lifecycle_origin,
 )
 from src.core.proposals.models import (
-    ProposalApprovalRecord,
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
     ProposalApprovalsResponse,
@@ -78,12 +77,10 @@ from src.core.proposals.models import (
     ProposalReportResponse,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
-    ProposalSummary,
     ProposalVersionDetail,
     ProposalVersionLineageItem,
     ProposalVersionRecord,
     ProposalVersionRequest,
-    ProposalWorkflowEvent,
     ProposalWorkflowEventRecord,
     ProposalWorkflowState,
     ProposalWorkflowTimelineResponse,
@@ -288,9 +285,7 @@ class ProposalWorkflowService:
             )
         )
 
-        return self._to_create_response(
-            proposal=proposal, version=version, latest_event=created_event
-        )
+        return to_create_response(proposal=proposal, version=version, latest_event=created_event)
 
     def accept_create_proposal_async_submission(
         self,
@@ -336,7 +331,7 @@ class ProposalWorkflowService:
         self._record_async_create_submission_outcome(
             "accepted_new" if is_new else "accepted_replayed"
         )
-        return self._to_async_accepted(stored_operation), is_new
+        return to_async_accepted_response(stored_operation), is_new
 
     def submit_create_proposal_async(
         self,
@@ -390,12 +385,11 @@ class ProposalWorkflowService:
         version = self._repository.get_current_version(proposal_id=proposal_id)
         if version is None:
             raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
+        current_version = to_version_detail(version, include_evidence=include_evidence)
         return ProposalDetailResponse(
-            proposal=self._to_summary(proposal),
-            current_version=self._to_version_detail(version, include_evidence=include_evidence),
-            last_gate_decision=(
-                self._to_version_detail(version, include_evidence=include_evidence).gate_decision
-            ),
+            proposal=to_proposal_summary(proposal),
+            current_version=current_version,
+            last_gate_decision=current_version.gate_decision,
         )
 
     def list_proposals(
@@ -419,7 +413,7 @@ class ProposalWorkflowService:
             cursor=cursor,
         )
         return ProposalListResponse(
-            items=[self._to_summary(row) for row in rows], next_cursor=next_cursor
+            items=[to_proposal_summary(row) for row in rows], next_cursor=next_cursor
         )
 
     def get_workflow_timeline(self, *, proposal_id: str) -> ProposalWorkflowTimelineResponse:
@@ -427,9 +421,9 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
         events = self._repository.list_events(proposal_id=proposal_id)
-        timeline_events = [self._to_event(event) for event in events]
+        timeline_events = [to_workflow_event(event) for event in events]
         return ProposalWorkflowTimelineResponse(
-            proposal=self._to_summary(proposal),
+            proposal=to_proposal_summary(proposal),
             current_state=proposal.current_state,
             event_count=len(timeline_events),
             latest_event=timeline_events[-1] if timeline_events else None,
@@ -441,13 +435,13 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
         approvals = [
-            self._to_approval(approval)
+            to_approval_record(approval)
             for approval in self._repository.list_approvals(proposal_id=proposal_id)
             if approval is not None
         ]
         latest_approval = approvals[-1] if approvals else None
         return ProposalApprovalsResponse(
-            proposal=self._to_summary(proposal),
+            proposal=to_proposal_summary(proposal),
             approval_count=len(approvals),
             latest_approval_at=latest_approval.occurred_at if latest_approval is not None else None,
             approvals=approvals,
@@ -479,7 +473,7 @@ class ProposalWorkflowService:
 
         latest_version = versions[-1] if versions else None
         return ProposalLineageResponse(
-            proposal=self._to_summary(proposal),
+            proposal=to_proposal_summary(proposal),
             version_count=len(versions),
             latest_version_no=latest_version.version_no if latest_version is not None else None,
             latest_version_created_at=(
@@ -508,7 +502,7 @@ class ProposalWorkflowService:
         )
         if replay_event is not None:
             return ProposalExecutionHandoffResponse(
-                proposal=self._to_summary(proposal),
+                proposal=to_proposal_summary(proposal),
                 execution_request_id=(
                     str(replay_event.reason_json.get("execution_request_id"))
                     if replay_event.reason_json.get("execution_request_id") is not None
@@ -516,7 +510,7 @@ class ProposalWorkflowService:
                 ),
                 handoff_status="REQUESTED",
                 execution_provider=str(replay_event.reason_json.get("execution_provider")),
-                latest_workflow_event=self._to_event(replay_event),
+                latest_workflow_event=to_workflow_event(replay_event),
             )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
         if proposal.current_state != "EXECUTION_READY":
@@ -550,11 +544,11 @@ class ProposalWorkflowService:
         proposal.last_event_at = occurred_at
         result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return ProposalExecutionHandoffResponse(
-            proposal=self._to_summary(result.proposal),
+            proposal=to_proposal_summary(result.proposal),
             execution_request_id=execution_request_id,
             handoff_status="REQUESTED",
             execution_provider=payload.execution_provider,
-            latest_workflow_event=self._to_event(result.event),
+            latest_workflow_event=to_workflow_event(result.event),
         )
 
     def get_execution_status(self, *, proposal_id: str) -> ProposalExecutionStatusResponse:
@@ -574,7 +568,7 @@ class ProposalWorkflowService:
         execution_payload = delivery.get("execution")
         reporting_payload = delivery.get("reporting")
         return ProposalDeliverySummaryResponse(
-            proposal=self._to_summary(proposal),
+            proposal=to_proposal_summary(proposal),
             execution=(
                 ProposalDeliveryExecutionSummary.model_validate(execution_payload)
                 if isinstance(execution_payload, dict)
@@ -596,9 +590,9 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
         events = select_delivery_events(self._repository.list_events(proposal_id=proposal_id))
-        history_events = [self._to_event(event) for event in events]
+        history_events = [to_workflow_event(event) for event in events]
         return ProposalDeliveryHistoryResponse(
-            proposal=self._to_summary(proposal),
+            proposal=to_proposal_summary(proposal),
             event_count=len(history_events),
             latest_event=history_events[-1] if history_events else None,
             events=history_events,
@@ -696,7 +690,7 @@ class ProposalWorkflowService:
         operation = self._repository.get_operation(operation_id=operation_id)
         if operation is None:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
-        return self._to_async_status(operation)
+        return to_async_status_response(operation)
 
     def get_async_operation_replay(self, *, operation_id: str) -> AdvisoryReplayEvidenceResponse:
         operation = self._repository.get_operation(operation_id=operation_id)
@@ -740,7 +734,7 @@ class ProposalWorkflowService:
         operation = self._repository.get_operation_by_correlation(correlation_id=correlation_id)
         if operation is None:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
-        return self._to_async_status(operation)
+        return to_async_status_response(operation)
 
     def get_version(
         self,
@@ -752,7 +746,7 @@ class ProposalWorkflowService:
         version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
         if version is None:
             raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-        return self._to_version_detail(version, include_evidence=include_evidence)
+        return to_version_detail(version, include_evidence=include_evidence)
 
     def create_version(
         self,
@@ -847,7 +841,7 @@ class ProposalWorkflowService:
         proposal.last_event_at = now
         self._repository.create_version(version)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
-        return self._to_create_response(proposal=proposal, version=version, latest_event=event)
+        return to_create_response(proposal=proposal, version=version, latest_event=event)
 
     def submit_create_version_async(
         self,
@@ -888,7 +882,7 @@ class ProposalWorkflowService:
                 raise ProposalIdempotencyConflictError(
                     "CORRELATION_ID_CONFLICT: async version submission mismatch"
                 )
-            return self._to_async_accepted(existing_operation), False
+            return to_async_accepted_response(existing_operation), False
         operation = ProposalAsyncOperationRecord(
             operation_id=f"pop_{uuid.uuid4().hex[:12]}",
             operation_type="CREATE_PROPOSAL_VERSION",
@@ -912,7 +906,7 @@ class ProposalWorkflowService:
             error_json=None,
         )
         self._repository.create_operation(operation)
-        return self._to_async_accepted(operation), True
+        return to_async_accepted_response(operation), True
 
     def execute_create_version_async(
         self,
@@ -981,7 +975,7 @@ class ProposalWorkflowService:
             return ProposalStateTransitionResponse(
                 proposal_id=proposal_id,
                 current_state=replay_event.to_state,
-                latest_workflow_event=self._to_event(replay_event),
+                latest_workflow_event=to_workflow_event(replay_event),
             )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
 
@@ -1011,7 +1005,7 @@ class ProposalWorkflowService:
         return ProposalStateTransitionResponse(
             proposal_id=proposal_id,
             current_state=result.proposal.current_state,
-            latest_workflow_event=self._to_event(result.event),
+            latest_workflow_event=to_workflow_event(result.event),
         )
 
     def record_approval(
@@ -1041,8 +1035,8 @@ class ProposalWorkflowService:
             return ProposalStateTransitionResponse(
                 proposal_id=proposal_id,
                 current_state=replay_event.to_state,
-                latest_workflow_event=self._to_event(replay_event),
-                approval=self._to_approval(replay_approval),
+                latest_workflow_event=to_workflow_event(replay_event),
+                approval=to_approval_record(replay_approval),
             )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
 
@@ -1090,8 +1084,8 @@ class ProposalWorkflowService:
         return ProposalStateTransitionResponse(
             proposal_id=proposal_id,
             current_state=result.proposal.current_state,
-            latest_workflow_event=self._to_event(result.event),
-            approval=self._to_approval(result.approval),
+            latest_workflow_event=to_workflow_event(result.event),
+            approval=to_approval_record(result.approval),
         )
 
     def _get_replayed_event(
@@ -1134,19 +1128,7 @@ class ProposalWorkflowService:
         events = self._repository.list_events(proposal_id=proposal_id)
         if proposal is None or version is None or not events:
             raise ProposalNotFoundError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
-        return self._to_create_response(proposal=proposal, version=version, latest_event=events[-1])
-
-    def _to_create_response(
-        self,
-        *,
-        proposal: ProposalRecord,
-        version: ProposalVersionRecord,
-        latest_event: ProposalWorkflowEventRecord,
-    ) -> ProposalCreateResponse:
-        return to_create_response(proposal=proposal, version=version, latest_event=latest_event)
-
-    def _to_summary(self, proposal: ProposalRecord) -> ProposalSummary:
-        return to_proposal_summary(proposal)
+        return to_create_response(proposal=proposal, version=version, latest_event=events[-1])
 
     def _validate_lifecycle_origin(
         self,
@@ -1161,19 +1143,6 @@ class ProposalWorkflowService:
             )
         except ProposalLifecycleOriginError as exc:
             raise ProposalValidationError(str(exc)) from exc
-
-    def _to_version_detail(
-        self, version: ProposalVersionRecord, *, include_evidence: bool
-    ) -> ProposalVersionDetail:
-        return to_version_detail(version, include_evidence=include_evidence)
-
-    def _to_event(self, event: ProposalWorkflowEventRecord) -> ProposalWorkflowEvent:
-        return to_workflow_event(event)
-
-    def _to_approval(
-        self, approval: Optional[ProposalApprovalRecordData]
-    ) -> Optional[ProposalApprovalRecord]:
-        return to_approval_record(approval)
 
     def _to_version_record(
         self,
@@ -1197,16 +1166,6 @@ class ProposalWorkflowService:
             created_at=created_at,
             store_evidence_bundle=self._store_evidence_bundle,
         )
-
-    def _to_async_accepted(
-        self, operation: ProposalAsyncOperationRecord
-    ) -> ProposalAsyncAcceptedResponse:
-        return to_async_accepted_response(operation)
-
-    def _to_async_status(
-        self, operation: ProposalAsyncOperationRecord
-    ) -> ProposalAsyncOperationStatusResponse:
-        return to_async_status_response(operation)
 
     def get_version_replay(
         self,
