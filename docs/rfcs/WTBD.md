@@ -97,9 +97,11 @@ recorded here with enough detail for later owner-specific slices.
     handoff context-resolution evidence now live in `src/core/workspace/handoff.py`.
   - Workspace evaluation summary construction, issue counts, and portfolio delta formatting now
     live in `src/core/workspace/evaluation.py`.
+  - Workspace session cache state and LRU eviction now live in
+    `src/api/services/workspace_store.py`.
 - Follow-up:
-  - Split replay evidence construction, handoff request assembly, and draft action mutation into
-    explicit workspace modules where tests can pin behavior outside the API service.
+  - Continue extracting workspace orchestration support only where behavior can be pinned outside
+    the API service without duplicating upstream context resolution semantics.
   - Preserve existing workspace API contracts and lifecycle handoff semantics while reducing service
     size.
 

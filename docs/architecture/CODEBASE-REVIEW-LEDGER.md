@@ -1430,3 +1430,27 @@
 - Follow-Up:
   - Keep reevaluation orchestration in the service unless context construction can be extracted
     without duplicating proposal context resolution semantics.
+
+## LA-REV-054
+
+- Scope: Workspace session store boundary
+- Pattern: modularity problem / persistence-boundary hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workspace session cache state and LRU eviction logic lived directly inside
+  `src/api/services/workspace_service.py`. This kept mutable persistence concerns interleaved with
+  workspace orchestration and made cache behavior harder to test without invoking workspace
+  creation flows.
+- Evidence:
+  - `src/api/services/workspace_store.py` now owns the in-memory workspace session store, bounded
+    LRU eviction, lookup error vocabulary, and reset behavior.
+  - `src/api/services/workspace_service.py` keeps the existing public service functions while
+    delegating save/get/reset operations to the store boundary.
+  - `tests/unit/advisory/api/test_workspace_store.py` directly proves oldest-session eviction and
+    reset semantics without depending on workspace orchestration.
+- Consequence:
+  - Workspace orchestration is narrower, the mutable session store has a focused replacement
+    boundary for future durable persistence, and cache behavior is directly characterized.
+- Follow-Up:
+  - Keep the compatibility `MAX_WORKSPACE_SESSION_CACHE_SIZE` assignment path until callers can be
+    migrated to explicit store configuration.

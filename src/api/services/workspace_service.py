@@ -1,8 +1,20 @@
-from collections import OrderedDict
 from datetime import datetime, timezone
-from typing import OrderedDict as OrderedDictType
 from typing import cast
 
+from src.api.services.workspace_store import (
+    DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
+    WorkspaceNotFoundError,
+    set_workspace_session_cache_size,
+)
+from src.api.services.workspace_store import (
+    get_workspace_session as _get_workspace_session_from_store,
+)
+from src.api.services.workspace_store import (
+    reset_workspace_sessions as _reset_workspace_sessions_in_store,
+)
+from src.api.services.workspace_store import (
+    save_workspace_session as _save_workspace_session_to_store,
+)
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.advisory.policy_context import ProposalPolicySelectors
 from src.core.common.canonical import hash_canonical_payload
@@ -77,12 +89,7 @@ from src.integrations.lotus_core.stateful_context import (
     enrich_stateful_simulate_request_for_trade_drafts,
 )
 
-MAX_WORKSPACE_SESSION_CACHE_SIZE = 500
-WORKSPACE_SESSIONS: "OrderedDictType[str, WorkspaceSession]" = OrderedDict()
-
-
-class WorkspaceNotFoundError(Exception):
-    pass
+MAX_WORKSPACE_SESSION_CACHE_SIZE = DEFAULT_WORKSPACE_SESSION_CACHE_SIZE
 
 
 class WorkspaceEvaluationUnavailableError(Exception):
@@ -213,21 +220,16 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
 
 
 def _save_workspace_session(session: WorkspaceSession) -> None:
-    WORKSPACE_SESSIONS[session.workspace_id] = session
-    WORKSPACE_SESSIONS.move_to_end(session.workspace_id)
-    while len(WORKSPACE_SESSIONS) > MAX_WORKSPACE_SESSION_CACHE_SIZE:
-        WORKSPACE_SESSIONS.popitem(last=False)
+    set_workspace_session_cache_size(MAX_WORKSPACE_SESSION_CACHE_SIZE)
+    _save_workspace_session_to_store(session)
 
 
 def get_workspace_session(workspace_id: str) -> WorkspaceSession:
-    session = WORKSPACE_SESSIONS.get(workspace_id)
-    if session is None:
-        raise WorkspaceNotFoundError("WORKSPACE_NOT_FOUND")
-    return session
+    return _get_workspace_session_from_store(workspace_id)
 
 
 def reset_workspace_sessions_for_tests() -> None:
-    WORKSPACE_SESSIONS.clear()
+    _reset_workspace_sessions_in_store()
 
 
 def _find_saved_version(
