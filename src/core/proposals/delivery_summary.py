@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.proposals.models import ProposalWorkflowEventRecord
+from src.core.proposals.models import (
+    ProposalDeliveryExecutionSummary,
+    ProposalDeliveryHistoryResponse,
+    ProposalDeliveryReportingSummary,
+    ProposalDeliverySummaryResponse,
+    ProposalRecord,
+    ProposalWorkflowEventRecord,
+)
+from src.core.proposals.projections import to_proposal_summary, to_workflow_event
 from src.core.proposals.workflow_rules import (
     EXECUTION_STATUS_EVENT_TYPES,
     execution_status_for_event,
@@ -100,6 +108,51 @@ def select_delivery_events(
     events: list[ProposalWorkflowEventRecord],
 ) -> list[ProposalWorkflowEventRecord]:
     return [event for event in events if event.event_type in _DELIVERY_EVENT_TYPES]
+
+
+def build_delivery_summary_response(
+    *,
+    proposal: ProposalRecord,
+    events: list[ProposalWorkflowEventRecord],
+) -> ProposalDeliverySummaryResponse:
+    delivery = build_delivery_summary_from_events(events)
+    execution_payload = delivery.get("execution")
+    reporting_payload = delivery.get("reporting")
+    return ProposalDeliverySummaryResponse(
+        proposal=to_proposal_summary(proposal),
+        execution=(
+            ProposalDeliveryExecutionSummary.model_validate(execution_payload)
+            if isinstance(execution_payload, dict)
+            else None
+        ),
+        reporting=(
+            ProposalDeliveryReportingSummary.model_validate(reporting_payload)
+            if isinstance(reporting_payload, dict)
+            else None
+        ),
+        explanation={
+            "source": "ADVISORY_WORKFLOW_EVENTS",
+            "delivery_projection": "LATEST_EXECUTION_AND_REPORTING_POSTURE",
+        },
+    )
+
+
+def build_delivery_history_response(
+    *,
+    proposal: ProposalRecord,
+    events: list[ProposalWorkflowEventRecord],
+) -> ProposalDeliveryHistoryResponse:
+    history_events = [to_workflow_event(event) for event in select_delivery_events(events)]
+    return ProposalDeliveryHistoryResponse(
+        proposal=to_proposal_summary(proposal),
+        event_count=len(history_events),
+        latest_event=history_events[-1] if history_events else None,
+        events=history_events,
+        explanation={
+            "source": "ADVISORY_WORKFLOW_EVENTS",
+            "filter": "DELIVERY_ONLY",
+        },
+    )
 
 
 def _optional_str(value: Any) -> str | None:

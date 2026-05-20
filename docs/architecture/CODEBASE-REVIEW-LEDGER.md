@@ -1706,3 +1706,28 @@
 - Follow-Up:
   - Continue with delivery summary/history projection only if it remains deterministic after
     preserving the existing execution/reporting summary semantics.
+
+## LA-REV-065
+
+- Scope: Proposal delivery summary and history projection
+- Pattern: modularity problem / delivery observability hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Delivery summary and delivery-history response assembly lived in
+  `src/core/proposals/service.py`, while the deterministic delivery event selection and
+  execution/reporting posture extraction already lived in `src/core/proposals/delivery_summary.py`.
+  This split forced the workflow service to know delivery DTO assembly details.
+- Evidence:
+  - `src/core/proposals/delivery_summary.py` now owns `build_delivery_summary_response` and
+    `build_delivery_history_response`, keeping delivery event filtering, execution/reporting
+    posture extraction, response DTO validation, and explanation metadata in one module.
+  - `src/core/proposals/service.py` now delegates delivery summary/history projection after proposal
+    and event lookup.
+  - `tests/unit/advisory/engine/test_engine_proposal_delivery_summary.py` directly proves response
+    projection for execution/reporting posture and delivery-only history filtering.
+- Consequence:
+  - Delivery observability read models are centralized and directly tested, while the workflow
+    service remains focused on lookup and command orchestration.
+- Follow-Up:
+  - Continue decomposing proposal service command paths only where the extraction can preserve
+    idempotency, expected-state, and workflow transition semantics exactly.

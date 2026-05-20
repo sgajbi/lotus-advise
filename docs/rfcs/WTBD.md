@@ -36,6 +36,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal workflow timeline and approval-history response assembly now live in
     `src/core/proposals/projections.py`, keeping lifecycle read-model projection out of the
     workflow service.
+  - Proposal delivery summary and delivery-history response assembly now live in
+    `src/core/proposals/delivery_summary.py`, alongside the existing delivery event selection and
+    execution/reporting posture extraction.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.

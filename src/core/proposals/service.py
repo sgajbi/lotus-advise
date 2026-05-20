@@ -39,8 +39,8 @@ from src.core.proposals.context import (
 )
 from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.delivery_summary import (
-    build_delivery_summary_from_events,
-    select_delivery_events,
+    build_delivery_history_response,
+    build_delivery_summary_response,
 )
 from src.core.proposals.execution_status import (
     build_execution_status_response,
@@ -72,9 +72,7 @@ from src.core.proposals.models import (
     ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
     ProposalCreateResponse,
-    ProposalDeliveryExecutionSummary,
     ProposalDeliveryHistoryResponse,
-    ProposalDeliveryReportingSummary,
     ProposalDeliverySummaryResponse,
     ProposalDetailResponse,
     ProposalExecutionHandoffRequest,
@@ -548,43 +546,14 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
         events = self._repository.list_events(proposal_id=proposal_id)
-        delivery = build_delivery_summary_from_events(events)
-        execution_payload = delivery.get("execution")
-        reporting_payload = delivery.get("reporting")
-        return ProposalDeliverySummaryResponse(
-            proposal=to_proposal_summary(proposal),
-            execution=(
-                ProposalDeliveryExecutionSummary.model_validate(execution_payload)
-                if isinstance(execution_payload, dict)
-                else None
-            ),
-            reporting=(
-                ProposalDeliveryReportingSummary.model_validate(reporting_payload)
-                if isinstance(reporting_payload, dict)
-                else None
-            ),
-            explanation={
-                "source": "ADVISORY_WORKFLOW_EVENTS",
-                "delivery_projection": "LATEST_EXECUTION_AND_REPORTING_POSTURE",
-            },
-        )
+        return build_delivery_summary_response(proposal=proposal, events=events)
 
     def get_delivery_history(self, *, proposal_id: str) -> ProposalDeliveryHistoryResponse:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        events = select_delivery_events(self._repository.list_events(proposal_id=proposal_id))
-        history_events = [to_workflow_event(event) for event in events]
-        return ProposalDeliveryHistoryResponse(
-            proposal=to_proposal_summary(proposal),
-            event_count=len(history_events),
-            latest_event=history_events[-1] if history_events else None,
-            events=history_events,
-            explanation={
-                "source": "ADVISORY_WORKFLOW_EVENTS",
-                "filter": "DELIVERY_ONLY",
-            },
-        )
+        events = self._repository.list_events(proposal_id=proposal_id)
+        return build_delivery_history_response(proposal=proposal, events=events)
 
     def record_execution_update(
         self,
