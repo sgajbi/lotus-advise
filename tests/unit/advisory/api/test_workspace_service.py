@@ -17,6 +17,7 @@ from src.api.services.workspace_service import (
     reset_workspace_sessions_for_tests,
     save_workspace_version,
 )
+from src.core.workspace.evaluation import format_portfolio_delta
 from src.core.workspace.handoff import (
     build_handoff_metadata,
     build_proposal_version_request,
@@ -244,7 +245,7 @@ def test_workspace_service_portfolio_delta_and_mandate_fallback() -> None:
         class before:
             total_value = type("MoneyHolder", (), {"amount": Decimal("100.00")})()
 
-    assert workspace_service._format_portfolio_delta(ResultWithoutReconciliation()) == "20.00"
+    assert format_portfolio_delta(ResultWithoutReconciliation()) == "20.00"
 
 
 def test_workspace_service_builds_version_request_with_expected_current_version() -> None:

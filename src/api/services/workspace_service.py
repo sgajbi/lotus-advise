@@ -1,13 +1,12 @@
 from collections import OrderedDict
 from datetime import datetime, timezone
-from decimal import Decimal
 from typing import OrderedDict as OrderedDictType
 from typing import cast
 
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.advisory.policy_context import ProposalPolicySelectors
 from src.core.common.canonical import hash_canonical_payload
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.context import (
     ResolvedSimulationContext,
@@ -26,6 +25,7 @@ from src.core.workspace.draft_state import (
     apply_workspace_draft_state,
     build_draft_state_from_simulate_request,
 )
+from src.core.workspace.evaluation import build_evaluation_summary
 from src.core.workspace.handoff import (
     WorkspaceHandoffError,
     build_proposal_create_request,
@@ -44,8 +44,6 @@ from src.core.workspace.models import (
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
     WorkspaceDraftState,
-    WorkspaceEvaluationImpactSummary,
-    WorkspaceEvaluationSummary,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
     WorkspaceLifecycleLink,
@@ -164,50 +162,6 @@ def _build_simulate_request_for_workspace(session: WorkspaceSession) -> Proposal
     )
 
 
-def _calculate_review_issue_count(result: ProposalResult) -> int:
-    soft_fail_count = sum(
-        1
-        for rule_result in result.rule_results
-        if rule_result.status == "FAIL" and rule_result.severity == "SOFT"
-    )
-    suitability_issue_count = (
-        len(result.suitability.issues) if result.suitability is not None else 0
-    )
-    return soft_fail_count + suitability_issue_count
-
-
-def _calculate_blocking_issue_count(result: ProposalResult) -> int:
-    return sum(
-        1
-        for rule_result in result.rule_results
-        if rule_result.status == "FAIL" and rule_result.severity == "HARD"
-    )
-
-
-def _format_portfolio_delta(result: ProposalResult) -> str:
-    if result.reconciliation is not None:
-        return str(result.reconciliation.delta.amount)
-    delta = result.after_simulated.total_value.amount - result.before.total_value.amount
-    return str(delta.quantize(Decimal("0.01")))
-
-
-def _build_evaluation_summary(
-    result: ProposalResult,
-    session: WorkspaceSession,
-) -> WorkspaceEvaluationSummary:
-    return WorkspaceEvaluationSummary(
-        status=result.status,
-        gate_decision=result.gate_decision.model_copy(deep=True) if result.gate_decision else None,
-        blocking_issue_count=_calculate_blocking_issue_count(result),
-        review_issue_count=_calculate_review_issue_count(result),
-        impact_summary=WorkspaceEvaluationImpactSummary(
-            portfolio_value_delta_base_ccy=_format_portfolio_delta(result),
-            trade_count=len(session.draft_state.trade_drafts),
-            cash_flow_count=len(session.draft_state.cash_flow_drafts),
-        ),
-    )
-
-
 def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     session = get_workspace_session(workspace_id)
     simulate_request = _build_simulate_request_for_workspace(session)
@@ -249,7 +203,7 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     )
     result.explanation["context_resolution"] = context_resolution
     session.latest_proposal_result = result
-    session.evaluation_summary = _build_evaluation_summary(result, session)
+    session.evaluation_summary = build_evaluation_summary(result, session)
     session.latest_replay_evidence = build_replay_evidence(
         session,
         evaluation_request_hash=request_hash,

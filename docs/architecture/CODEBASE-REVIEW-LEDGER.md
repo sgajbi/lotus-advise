@@ -1401,3 +1401,32 @@
 - Follow-Up:
   - Consider extracting workspace reevaluation context construction only if it can be made
     independently testable without duplicating proposal context resolution behavior.
+
+## LA-REV-053
+
+- Scope: Workspace evaluation summary construction
+- Pattern: modularity problem / evaluation summary hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workspace evaluation summary construction, blocking/review issue counts, and portfolio
+  delta formatting lived inside `src/api/services/workspace_service.py`. These are deterministic
+  workspace-domain presentation rules used after evaluation, while the service should own
+  reevaluation orchestration and persistence.
+- Evidence:
+  - `src/core/workspace/evaluation.py` now owns blocking issue counts, review issue counts,
+    portfolio delta formatting, and workspace evaluation summary assembly.
+  - `src/api/services/workspace_service.py` now delegates summary construction after advisory
+    proposal evaluation.
+  - `tests/unit/advisory/api/test_workspace_evaluation.py` directly proves blocking/review issue
+    counts, no-reconciliation portfolio delta formatting, and draft-row count propagation into the
+    evaluation summary.
+  - Existing workspace service tests now call the workspace evaluation module for portfolio delta
+    formatting instead of service-private helpers.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\api\test_workspace_evaluation.py tests\unit\advisory\api\test_workspace_service.py tests\unit\advisory\api\test_api_workspace.py -q`.
+- Consequence:
+  - Workspace evaluation summary behavior now has a reusable, directly tested module boundary and
+    the workspace service no longer owns summary presentation rules.
+- Follow-Up:
+  - Keep reevaluation orchestration in the service unless context construction can be extracted
+    without duplicating proposal context resolution semantics.
