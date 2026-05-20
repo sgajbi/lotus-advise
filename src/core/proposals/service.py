@@ -95,11 +95,9 @@ from src.core.proposals.models import (
     ProposalExecutionStatusResponse,
     ProposalExecutionUpdateRequest,
     ProposalIdempotencyLookupResponse,
-    ProposalIdempotencyRecord,
     ProposalLifecycleOrigin,
     ProposalLineageResponse,
     ProposalListResponse,
-    ProposalRecord,
     ProposalReportResponse,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
@@ -120,6 +118,7 @@ from src.core.proposals.projections import (
     to_proposal_summary,
     to_version_detail,
 )
+from src.core.proposals.records import build_proposal_idempotency_record, build_proposal_record
 from src.core.proposals.reporting import build_report_requested_event
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_gate import (
@@ -264,16 +263,14 @@ class ProposalWorkflowService:
 
         proposal_id = new_proposal_id()
         version_no = 1
-        proposal = ProposalRecord(
+        proposal = build_proposal_record(
             proposal_id=proposal_id,
             portfolio_id=resolved_request.simulate_request.portfolio_snapshot.portfolio_id,
             mandate_id=resolved_request.metadata.mandate_id,
             jurisdiction=resolved_request.metadata.jurisdiction,
             created_by=payload.created_by,
             created_at=now,
-            last_event_at=now,
-            current_state="DRAFT",
-            current_version_no=version_no,
+            version_no=version_no,
             title=resolved_request.metadata.title,
             advisor_notes=resolved_request.metadata.advisor_notes,
             lifecycle_origin=lifecycle_origin,
@@ -303,7 +300,7 @@ class ProposalWorkflowService:
         self._repository.create_version(version)
         self._repository.append_event(created_event)
         self._repository.save_idempotency(
-            ProposalIdempotencyRecord(
+            build_proposal_idempotency_record(
                 idempotency_key=idempotency_key,
                 request_hash=request_hash,
                 proposal_id=proposal_id,

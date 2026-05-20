@@ -61,6 +61,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal `CREATED` and `NEW_VERSION_CREATED` lifecycle event construction now lives in
     `src/core/proposals/lifecycle_events.py`, keeping create/version workflow event assembly
     consistent with the other lifecycle command helpers.
+  - Initial proposal aggregate construction and proposal-create idempotency record construction now
+    live in `src/core/proposals/records.py`, keeping default lifecycle state and replay identity
+    construction out of the workflow service.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.

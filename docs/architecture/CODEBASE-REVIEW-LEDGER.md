@@ -1907,3 +1907,29 @@
 - Follow-Up:
   - Consider a larger create/version command boundary only with full characterization of
     idempotency, proposal aggregate defaults, version persistence, and replay lineage.
+
+## LA-REV-073
+
+- Scope: Proposal aggregate and create-idempotency record construction
+- Pattern: modularity problem / replay identity hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Initial proposal aggregate construction and proposal-create idempotency record
+  construction lived directly in `src/core/proposals/service.py`, mixing default lifecycle state,
+  metadata propagation, workspace handoff identity, and replay identity construction into the
+  workflow service create path.
+- Evidence:
+  - `src/core/proposals/records.py` now owns `build_proposal_record` and
+    `build_proposal_idempotency_record`.
+  - `src/core/proposals/service.py` now delegates deterministic proposal aggregate and
+    create-idempotency record construction while preserving context resolution, idempotency conflict
+    handling, simulation, artifact/version creation, event append, and persistence orchestration.
+  - `tests/unit/advisory/engine/test_engine_proposal_records.py` directly proves initial `DRAFT`
+    lifecycle state, current-version initialization, `last_event_at` alignment, metadata/workspace
+    propagation, and replay identity preservation.
+- Consequence:
+  - Proposal create defaults and idempotency replay identity are centralized and directly tested,
+    reducing create-path DTO construction inside the workflow service.
+- Follow-Up:
+  - Keep create command orchestration in the service until a larger command handler can be introduced
+    without obscuring idempotency conflict behavior and persistence ordering.
