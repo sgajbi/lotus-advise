@@ -69,6 +69,10 @@ from src.core.proposals.lifecycle import (
     ProposalLifecycleOriginError,
     validate_lifecycle_origin,
 )
+from src.core.proposals.lifecycle_events import (
+    build_state_transition_event,
+    build_state_transition_response,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
@@ -897,10 +901,10 @@ class ProposalWorkflowService:
             request_hash=request_hash,
         )
         if replay_event is not None:
-            return ProposalStateTransitionResponse(
+            return build_state_transition_response(
                 proposal_id=proposal_id,
                 current_state=replay_event.to_state,
-                latest_workflow_event=to_workflow_event(replay_event),
+                event=replay_event,
             )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
 
@@ -908,29 +912,23 @@ class ProposalWorkflowService:
             current_state=proposal.current_state,
             event_type=payload.event_type,
         )
-        reason_json = dict(payload.reason)
-        if idempotency_key:
-            reason_json["idempotency_key"] = idempotency_key
-            reason_json["idempotency_request_hash"] = request_hash
-        event = ProposalWorkflowEventRecord(
+        event = build_state_transition_event(
             event_id=new_workflow_event_id(),
-            proposal_id=proposal_id,
-            event_type=payload.event_type,
-            from_state=proposal.current_state,
+            proposal=proposal,
+            payload=payload,
             to_state=to_state,
-            actor_id=payload.actor_id,
             occurred_at=_utc_now(),
-            reason_json=reason_json,
-            related_version_no=payload.related_version_no,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
         )
         proposal.current_state = to_state
         proposal.last_event_at = event.occurred_at
 
         result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
-        return ProposalStateTransitionResponse(
+        return build_state_transition_response(
             proposal_id=proposal_id,
             current_state=result.proposal.current_state,
-            latest_workflow_event=to_workflow_event(result.event),
+            event=result.event,
         )
 
     def record_approval(

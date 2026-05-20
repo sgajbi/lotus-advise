@@ -1805,3 +1805,29 @@
 - Follow-Up:
   - Keep execution status derivation in `execution_status.py`; only consider further extraction if
     command validation can remain visibly separated from event construction.
+
+## LA-REV-069
+
+- Scope: Proposal state-transition event and response construction
+- Pattern: modularity problem / lifecycle auditability hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Generic state-transition event construction and transition response projection lived
+  directly in `src/core/proposals/service.py`, mixing deterministic lifecycle audit payload
+  assembly with proposal lookup, idempotency replay detection, expected-state validation,
+  transition-rule resolution, and persistence.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now owns `build_state_transition_event` and
+    `build_state_transition_response`.
+  - `src/core/proposals/service.py` now delegates deterministic transition event/response assembly
+    while preserving proposal lookup, replay detection, expected-state validation,
+    transition-rule resolution, state mutation, and repository persistence.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` directly proves
+    transition reason preservation, idempotency audit metadata, actor/version/state propagation,
+    latest-event projection, and no-approval response posture.
+- Consequence:
+  - Generic lifecycle transition audit construction is reusable and directly tested, reducing
+    workflow-service DTO/event assembly without changing command validation behavior.
+- Follow-Up:
+  - Extract approval event/record construction separately only if replay referent handling and
+    approval-transition rule behavior remain visibly service-owned.
