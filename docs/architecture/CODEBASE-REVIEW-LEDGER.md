@@ -1001,3 +1001,25 @@
 - Follow-Up:
   - Continue removing service-private wrappers only when the extracted helper owns the behavior and
     tests no longer need to reach through the service boundary.
+
+## LA-REV-038
+
+- Scope: Proposal async replay-lineage wrapper cleanup
+- Pattern: stale code / async lineage hardening
+- Status: Hardened
+- Finding Class: stale code
+- Summary: After extracting async operation helpers, `ProposalWorkflowService` still kept a pure
+  `_build_async_replay_lineage(...)` pass-through and an unused `_utc_after(...)` helper. Both were
+  stale remnants from earlier async operation state extraction.
+- Evidence:
+  - `src/core/proposals/service.py` now calls `build_async_replay_lineage(...)` directly and no
+    longer defines `_build_async_replay_lineage(...)`.
+  - The unused `_utc_after(...)` helper and its `timedelta` import were removed from
+    `src/core/proposals/service.py`.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_async_operations.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Async replay lineage now flows directly through the extracted async operation module without a
+    redundant service-private alias.
+- Follow-Up:
+  - Continue checking service-private helpers for real boundary value before preserving them.

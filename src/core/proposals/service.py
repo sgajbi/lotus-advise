@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from threading import RLock
 from typing import Any, Optional, cast
 
@@ -372,7 +372,7 @@ class ProposalWorkflowService:
                 payload=request_payload,
                 idempotency_key=resolved_idempotency_key,
                 correlation_id=correlation_id or operation.correlation_id,
-                replay_lineage=self._build_async_replay_lineage(operation),
+                replay_lineage=build_async_replay_lineage(operation),
             ),
         )
 
@@ -933,7 +933,7 @@ class ProposalWorkflowService:
                 proposal_id=resolved_proposal_id,
                 payload=request_payload,
                 correlation_id=correlation_id or operation.correlation_id,
-                replay_lineage=self._build_async_replay_lineage(operation),
+                replay_lineage=build_async_replay_lineage(operation),
             ),
         )
 
@@ -1360,12 +1360,6 @@ class ProposalWorkflowService:
         self._repository.update_operation(operation)
         return cast(bool, should_requeue)
 
-    def _build_async_replay_lineage(
-        self,
-        operation: ProposalAsyncOperationRecord,
-    ) -> dict[str, Any]:
-        return cast(dict[str, Any], build_async_replay_lineage(operation))
-
     def _run_simulation(
         self,
         *,
@@ -1438,7 +1432,3 @@ class ProposalWorkflowService:
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def _utc_after(*, seconds: int) -> datetime:
-    return _utc_now().replace(microsecond=0) + timedelta(seconds=seconds)
