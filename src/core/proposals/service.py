@@ -42,6 +42,7 @@ from src.core.proposals.context import (
     resolve_create_request,
     resolve_version_request,
 )
+from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.delivery_summary import (
     build_delivery_summary_from_events,
     select_delivery_events,
@@ -309,7 +310,7 @@ class ProposalWorkflowService:
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
         submission_hash = self._hash_async_create_submission(payload)
-        resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+        resolved_correlation_id = resolve_correlation_id(correlation_id)
         operation = ProposalAsyncOperationRecord(
             operation_id=f"pop_{uuid.uuid4().hex[:12]}",
             operation_type="CREATE_PROPOSAL",
@@ -880,7 +881,7 @@ class ProposalWorkflowService:
         payload: ProposalVersionRequest,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+        resolved_correlation_id = resolve_correlation_id(correlation_id)
         submission_hash = self._hash_async_version_submission(
             proposal_id=proposal_id,
             payload=payload,
@@ -1353,7 +1354,7 @@ class ProposalWorkflowService:
         correlation_id: Optional[str],
         policy_context: Optional[dict[str, Any]] = None,
     ) -> ProposalResult:
-        resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+        resolved_correlation_id = resolve_correlation_id(correlation_id)
         return evaluate_advisory_proposal(
             request=request,
             request_hash=request_hash,

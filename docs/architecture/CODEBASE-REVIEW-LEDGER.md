@@ -1154,3 +1154,30 @@
 - Follow-Up:
   - Continue scanning API/service pairs for duplicated proposal product-control rules before they
     diverge across channels.
+
+## LA-REV-044
+
+- Scope: Proposal correlation identifier resolution
+- Pattern: observability consistency / lineage hardening
+- Status: Hardened
+- Finding Class: duplicate logic
+- Summary: Proposal lifecycle, async submission, async versioning, and direct simulation paths each
+  generated fallback correlation IDs with local inline UUID formatting. The format was consistent,
+  but the policy was duplicated across API and service boundaries that both feed advisory lineage
+  and operational diagnostics.
+- Evidence:
+  - `src/core/proposals/correlation.py` now owns proposal fallback correlation ID resolution.
+  - `src/core/proposals/service.py` now uses the shared resolver for lifecycle simulation and async
+    operation correlation IDs.
+  - `src/api/services/advisory_simulation_service.py` now uses the same resolver for direct
+    simulation fallback correlation IDs.
+  - `tests/unit/advisory/engine/test_engine_proposal_correlation.py` directly proves supplied ID
+    preservation and governed fallback ID shape.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_correlation.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py tests\unit\advisory\api\test_api_advisory_proposal_simulate.py -q`.
+- Consequence:
+  - Proposal correlation lineage now has one explicit policy point, reducing drift risk across API,
+    async, and lifecycle execution paths.
+- Follow-Up:
+  - Consider extracting proposal identifier factories only when a broader ID-governance slice can
+    cover proposal, version, event, approval, execution, and async operation identifiers together.

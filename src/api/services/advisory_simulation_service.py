@@ -1,4 +1,3 @@
-import uuid
 from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import Dict, Optional, cast
@@ -18,6 +17,7 @@ from src.core.proposals.context import (
     canonicalize_simulation_request_payload,
     resolve_simulation_request,
 )
+from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.models import (
     ProposalSimulationIdempotencyRecord,
     ProposalSimulationRequest,
@@ -63,7 +63,7 @@ def simulate_proposal_response(
     if existing is not None:
         return cast(ProposalResult, ProposalResult.model_validate(existing.response_json))
 
-    resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+    resolved_correlation_id = resolve_correlation_id(correlation_id)
     context_resolution = build_context_resolution_evidence(resolved_request)
     try:
         result = evaluate_advisory_proposal(

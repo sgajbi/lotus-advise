@@ -45,6 +45,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal simulation enablement validation now lives in
     `src/core/proposals/simulation_gate.py` and is reused by lifecycle and direct simulation
     service paths.
+  - Proposal fallback correlation ID resolution now lives in
+    `src/core/proposals/correlation.py` and is reused by lifecycle, async, and direct simulation
+    paths.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.
