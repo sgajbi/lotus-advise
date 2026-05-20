@@ -817,3 +817,29 @@
 - Follow-Up:
   - Continue extracting execution handoff request construction and report request projection in
     separate small slices.
+
+## LA-REV-031
+
+- Scope: Proposal report-request workflow event construction
+- Pattern: modularity problem / reporting lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `REPORT_REQUESTED` workflow event construction was embedded in `ProposalWorkflowService`
+  even though it is a deterministic translation from the downstream report response, proposal
+  aggregate, requesting actor, version scope, and execution-summary flag. That kept report lineage
+  payload shaping inside repository mutation code.
+- Evidence:
+  - `src/core/proposals/reporting.py` now owns `build_report_requested_event(...)`.
+  - `src/core/proposals/service.py` now delegates event construction while retaining proposal lookup,
+    aggregate timestamp mutation, and repository transition persistence.
+  - `tests/unit/advisory/engine/test_engine_proposal_reporting.py` directly proves the report
+    lineage payload, actor, state preservation, version scope, and report artifact reference captured
+    in the workflow event.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_reporting.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Reporting lineage event construction can now be reviewed and tested independently from workflow
+    repository mutation.
+- Follow-Up:
+  - Continue extracting execution handoff request construction and async operation payload
+    resolution in separate small slices.

@@ -78,6 +78,7 @@ from src.core.proposals.projections import (
     to_version_detail,
     to_workflow_event,
 )
+from src.core.proposals.reporting import build_report_requested_event
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.workflow_rules import (
     TERMINAL_STATES,
@@ -1265,28 +1266,15 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
-        occurred_at = datetime.fromisoformat(report_response.generated_at)
-        event = ProposalWorkflowEventRecord(
+        event = build_report_requested_event(
             event_id=f"pwe_{uuid.uuid4().hex[:12]}",
-            proposal_id=proposal_id,
-            event_type="REPORT_REQUESTED",
-            from_state=proposal.current_state,
-            to_state=proposal.current_state,
-            actor_id=requested_by,
-            occurred_at=occurred_at,
-            reason_json={
-                "report_request_id": report_response.report_request_id,
-                "report_type": report_response.report_type,
-                "report_service": report_response.report_service,
-                "status": report_response.status,
-                "report_reference_id": report_response.report_reference_id,
-                "artifact_url": report_response.artifact_url,
-                "related_version_no": related_version_no,
-                "include_execution_summary": include_execution_summary,
-            },
+            proposal=proposal,
+            report_response=report_response,
+            requested_by=requested_by,
             related_version_no=related_version_no,
+            include_execution_summary=include_execution_summary,
         )
-        proposal.last_event_at = max(proposal.last_event_at, occurred_at)
+        proposal.last_event_at = max(proposal.last_event_at, event.occurred_at)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return event
 
