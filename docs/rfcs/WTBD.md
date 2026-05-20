@@ -28,6 +28,7 @@ recorded here with enough detail for later owner-specific slices.
   - Async create/version payload recovery and failure outcomes now live in
     `src/core/proposals/async_payloads.py`.
   - Immutable proposal version-record construction now lives in `src/core/proposals/versions.py`.
+  - Lifecycle-origin validation now lives in `src/core/proposals/lifecycle.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

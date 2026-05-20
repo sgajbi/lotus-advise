@@ -922,3 +922,30 @@
 - Follow-Up:
   - Continue extracting execution handoff request construction and proposal lifecycle origin
     validation in separate small slices.
+
+## LA-REV-035
+
+- Scope: Proposal lifecycle origin validation
+- Pattern: modularity problem / lifecycle-domain hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Lifecycle origin validation was embedded in `ProposalWorkflowService`, even though the
+  invariant is a domain rule: workspace handoffs must carry a source workspace id, and direct
+  creates must not. Keeping the rule in the orchestration service made lifecycle entry-point policy
+  less discoverable and harder to test directly.
+- Evidence:
+  - `src/core/proposals/lifecycle.py` now owns `validate_lifecycle_origin(...)` and the bounded
+    lifecycle-origin validation error.
+  - `src/core/proposals/service.py` now delegates lifecycle-origin validation and preserves existing
+    `ProposalValidationError` behavior at the service boundary.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle.py` directly proves valid direct
+    create and workspace handoff entry points, missing workspace handoff source rejection, and
+    direct-create source workspace rejection.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_lifecycle.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Advisory lifecycle entry-point policy is now explicit domain logic instead of service-private
+    validation code.
+- Follow-Up:
+  - Continue extracting execution handoff request construction and create-response projection in
+    separate small slices.

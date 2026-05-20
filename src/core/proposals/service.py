@@ -46,6 +46,10 @@ from src.core.proposals.execution_status import (
     build_execution_status_response,
     latest_execution_requested_event,
 )
+from src.core.proposals.lifecycle import (
+    ProposalLifecycleOriginError,
+    validate_lifecycle_origin,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalRecordData,
@@ -1151,10 +1155,13 @@ class ProposalWorkflowService:
         lifecycle_origin: ProposalLifecycleOrigin,
         source_workspace_id: Optional[str],
     ) -> None:
-        if lifecycle_origin == "WORKSPACE_HANDOFF" and not source_workspace_id:
-            raise ProposalValidationError("WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED")
-        if lifecycle_origin == "DIRECT_CREATE" and source_workspace_id is not None:
-            raise ProposalValidationError("DIRECT_CREATE_CANNOT_INCLUDE_SOURCE_WORKSPACE_ID")
+        try:
+            validate_lifecycle_origin(
+                lifecycle_origin=lifecycle_origin,
+                source_workspace_id=source_workspace_id,
+            )
+        except ProposalLifecycleOriginError as exc:
+            raise ProposalValidationError(str(exc)) from exc
 
     def _to_version_detail(
         self, version: ProposalVersionRecord, *, include_evidence: bool
