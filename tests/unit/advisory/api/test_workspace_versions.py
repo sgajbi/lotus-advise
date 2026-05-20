@@ -10,6 +10,7 @@ from src.core.workspace.replay import build_replay_evidence
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
     apply_saved_workspace_version,
+    build_saved_version_list_response,
     build_saved_workspace_version,
     find_saved_version,
     refresh_saved_version_metadata,
@@ -86,6 +87,19 @@ def test_find_saved_version_returns_match_and_rejects_missing_id():
         find_saved_version(session, "awv_missing")
 
     assert str(exc.value) == "WORKSPACE_SAVED_VERSION_NOT_FOUND"
+
+
+def test_build_saved_version_list_response_returns_defensive_copies():
+    session = _session()
+    saved = _saved_version(session)
+    session.saved_versions.append(saved)
+
+    response = build_saved_version_list_response(session)
+
+    assert response.workspace_id == session.workspace_id
+    assert len(response.saved_versions) == 1
+    assert response.saved_versions[0] is not saved
+    assert response.saved_versions[0] == saved
 
 
 def test_build_saved_workspace_version_uses_supplied_identity_and_replay_copy():

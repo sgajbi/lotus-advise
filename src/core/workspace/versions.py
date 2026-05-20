@@ -1,5 +1,6 @@
 from src.core.workspace.models import (
     WorkspaceSavedVersion,
+    WorkspaceSavedVersionListResponse,
     WorkspaceSavedVersionSummary,
     WorkspaceSaveRequest,
     WorkspaceSession,
@@ -27,6 +28,15 @@ def refresh_saved_version_metadata(session: WorkspaceSession) -> None:
     session.saved_version_count = len(session.saved_versions)
     session.latest_saved_version = (
         build_saved_version_summary(session.saved_versions[-1]) if session.saved_versions else None
+    )
+
+
+def build_saved_version_list_response(
+    session: WorkspaceSession,
+) -> WorkspaceSavedVersionListResponse:
+    return WorkspaceSavedVersionListResponse(
+        workspace_id=session.workspace_id,
+        saved_versions=[item.model_copy(deep=True) for item in session.saved_versions],
     )
 
 

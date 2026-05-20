@@ -1529,3 +1529,25 @@
 - Follow-Up:
   - Keep saved-version lookup error translation in the API service unless a broader service-error
     vocabulary boundary is introduced.
+
+## LA-REV-058
+
+- Scope: Workspace saved-version list projection
+- Pattern: modularity problem / deterministic projection hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Saved-version list response assembly lived inside `src/api/services/workspace_service.py`,
+  mixing defensive read-model copying into the API service. Saved-version list projection is
+  deterministic workspace-domain behavior.
+- Evidence:
+  - `src/core/workspace/versions.py` now owns `build_saved_version_list_response`, including
+    workspace identity propagation and defensive saved-version copies.
+  - `src/api/services/workspace_service.py` now delegates saved-version list projection after
+    session lookup.
+  - `tests/unit/advisory/api/test_workspace_versions.py` directly proves list response identity and
+    defensive copy behavior.
+- Consequence:
+  - Saved-version read models are consolidated in the workspace versions module and the API service
+    is narrower.
+- Follow-Up:
+  - Keep persistence lookup and service-level error translation in `workspace_service.py`.

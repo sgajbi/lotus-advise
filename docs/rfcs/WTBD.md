@@ -105,6 +105,8 @@ recorded here with enough detail for later owner-specific slices.
     copying now live in `src/core/workspace/versions.py`.
   - Workspace saved-version resume snapshot application now lives in
     `src/core/workspace/versions.py`.
+  - Workspace saved-version list projection now lives in
+    `src/core/workspace/versions.py`.
 - Follow-up:
   - Continue extracting workspace orchestration support only where behavior can be pinned outside
     the API service without duplicating upstream context resolution semantics.

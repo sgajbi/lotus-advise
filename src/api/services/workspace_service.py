@@ -79,6 +79,7 @@ from src.core.workspace.replay import (
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
     apply_saved_workspace_version,
+    build_saved_version_list_response,
     build_saved_workspace_version,
     find_saved_version,
     refresh_saved_version_metadata,
@@ -333,10 +334,7 @@ def list_workspace_saved_versions(
     workspace_id: str,
 ) -> WorkspaceSavedVersionListResponse:
     session = get_workspace_session(workspace_id)
-    return WorkspaceSavedVersionListResponse(
-        workspace_id=session.workspace_id,
-        saved_versions=[item.model_copy(deep=True) for item in session.saved_versions],
-    )
+    return build_saved_version_list_response(session)
 
 
 def get_workspace_saved_version_replay(
