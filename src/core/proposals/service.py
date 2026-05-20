@@ -91,13 +91,13 @@ from src.core.proposals.models import (
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
     ProposalVersionDetail,
-    ProposalVersionLineageItem,
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
     ProposalWorkflowState,
     ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.projections import (
+    build_proposal_lineage_response,
     to_approval_record,
     to_async_accepted_response,
     to_async_status_response,
@@ -470,36 +470,15 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
-        versions: list[ProposalVersionLineageItem] = []
-        missing_version_numbers: list[int] = []
-        for version_no in range(1, proposal.current_version_no + 1):
-            version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
-            if version is None:
-                missing_version_numbers.append(version_no)
-                continue
-            versions.append(
-                ProposalVersionLineageItem(
-                    proposal_version_id=version.proposal_version_id,
-                    version_no=version.version_no,
-                    created_at=version.created_at.isoformat(),
-                    status_at_creation=version.status_at_creation,
-                    request_hash=version.request_hash,
-                    simulation_hash=version.simulation_hash,
-                    artifact_hash=version.artifact_hash,
+        return build_proposal_lineage_response(
+            proposal=proposal,
+            versions_by_number={
+                version_no: self._repository.get_version(
+                    proposal_id=proposal_id,
+                    version_no=version_no,
                 )
-            )
-
-        latest_version = versions[-1] if versions else None
-        return ProposalLineageResponse(
-            proposal=to_proposal_summary(proposal),
-            version_count=len(versions),
-            latest_version_no=latest_version.version_no if latest_version is not None else None,
-            latest_version_created_at=(
-                latest_version.created_at if latest_version is not None else None
-            ),
-            lineage_complete=not missing_version_numbers,
-            missing_version_numbers=missing_version_numbers,
-            versions=versions,
+                for version_no in range(1, proposal.current_version_no + 1)
+            },
         )
 
     def request_execution_handoff(

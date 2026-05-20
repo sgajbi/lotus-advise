@@ -1655,3 +1655,29 @@
 - Follow-Up:
   - Keep `_build_simulate_request_for_workspace` in the service while it owns live Lotus Core
     resolution and state mutation during stateful reevaluation.
+
+## LA-REV-063
+
+- Scope: Proposal lineage response projection
+- Pattern: modularity problem / lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Proposal lineage response assembly lived inside
+  `src/core/proposals/service.py`, mixing repository orchestration with immutable version read-model
+  projection, latest-version selection, and missing-version detection. The service should fetch
+  proposal/version records; deterministic lineage projection belongs in the proposal projection
+  module.
+- Evidence:
+  - `src/core/proposals/projections.py` now owns `build_proposal_lineage_response`, including
+    version-lineage item construction, latest persisted version metadata, and gap detection across
+    the aggregate's current version range.
+  - `src/core/proposals/service.py` now delegates lineage response assembly after fetching version
+    records from the repository.
+  - `tests/unit/advisory/engine/test_engine_proposal_projections.py` directly proves complete
+    lineage projection and missing-version reporting.
+- Consequence:
+  - Proposal lineage semantics are reusable and directly tested outside the workflow service, while
+    service logic remains focused on lookup, not DTO assembly.
+- Follow-Up:
+  - Continue extracting proposal lifecycle read-model assembly where behavior is deterministic and
+    can be pinned without changing workflow command semantics.

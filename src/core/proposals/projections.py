@@ -7,9 +7,11 @@ from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
     ProposalAsyncOperationStatusResponse,
     ProposalCreateResponse,
+    ProposalLineageResponse,
     ProposalRecord,
     ProposalSummary,
     ProposalVersionDetail,
+    ProposalVersionLineageItem,
     ProposalVersionRecord,
     ProposalWorkflowEvent,
     ProposalWorkflowEventRecord,
@@ -94,6 +96,44 @@ def to_create_response(
         proposal=to_proposal_summary(proposal),
         version=to_version_detail(version, include_evidence=True),
         latest_workflow_event=to_workflow_event(latest_event),
+    )
+
+
+def build_proposal_lineage_response(
+    *,
+    proposal: ProposalRecord,
+    versions_by_number: dict[int, ProposalVersionRecord | None],
+) -> ProposalLineageResponse:
+    versions: list[ProposalVersionLineageItem] = []
+    missing_version_numbers: list[int] = []
+    for version_no in range(1, proposal.current_version_no + 1):
+        version = versions_by_number.get(version_no)
+        if version is None:
+            missing_version_numbers.append(version_no)
+            continue
+        versions.append(
+            ProposalVersionLineageItem(
+                proposal_version_id=version.proposal_version_id,
+                version_no=version.version_no,
+                created_at=version.created_at.isoformat(),
+                status_at_creation=version.status_at_creation,
+                request_hash=version.request_hash,
+                simulation_hash=version.simulation_hash,
+                artifact_hash=version.artifact_hash,
+            )
+        )
+
+    latest_version = versions[-1] if versions else None
+    return ProposalLineageResponse(
+        proposal=to_proposal_summary(proposal),
+        version_count=len(versions),
+        latest_version_no=latest_version.version_no if latest_version is not None else None,
+        latest_version_created_at=(
+            latest_version.created_at if latest_version is not None else None
+        ),
+        lineage_complete=not missing_version_numbers,
+        missing_version_numbers=missing_version_numbers,
+        versions=versions,
     )
 
 

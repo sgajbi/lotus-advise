@@ -31,6 +31,8 @@ recorded here with enough detail for later owner-specific slices.
   - Lifecycle-origin validation now lives in `src/core/proposals/lifecycle.py`.
   - Create response and async operation response DTO projections now live in
     `src/core/proposals/projections.py`.
+  - Proposal lineage response assembly now lives in `src/core/proposals/projections.py`, including
+    immutable version item projection, latest-version selection, and missing-version detection.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.
