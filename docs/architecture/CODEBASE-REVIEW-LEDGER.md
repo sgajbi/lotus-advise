@@ -1480,3 +1480,28 @@
 - Follow-Up:
   - Consider moving workspace session creation projection into a similarly deterministic builder if
     it can be extracted without weakening stateful context-resolution behavior.
+
+## LA-REV-056
+
+- Scope: Workspace saved-version record construction
+- Pattern: modularity problem / lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Saved-version record construction lived inside `src/api/services/workspace_service.py`,
+  mixing immutable version DTO assembly, replay-evidence fallback, and defensive copy rules into the
+  API service. The service should supply orchestration inputs such as generated IDs and timestamps,
+  while workspace-domain code should own the saved-version snapshot shape.
+- Evidence:
+  - `src/core/workspace/versions.py` now owns `build_saved_workspace_version`, including version
+    numbering, label/actor/timestamp assignment, draft/evaluation/proposal defensive copies, and
+    replay-evidence fallback.
+  - `src/api/services/workspace_service.py` now delegates saved-version record construction and
+    retains lookup, generated identity, timestamp, metadata refresh, and persistence responsibilities.
+  - `tests/unit/advisory/api/test_workspace_versions.py` directly proves supplied identity/time,
+    version numbering, advisor label/actor propagation, and replay evidence copy semantics.
+- Consequence:
+  - Saved-version lineage behavior is reusable and directly tested in the workspace domain module,
+    reducing service-layer coupling around audit snapshots.
+- Follow-Up:
+  - Keep generated identifier and clock ownership in the service boundary unless a repository-wide
+    clock/ID provider abstraction is introduced.

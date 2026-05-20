@@ -78,6 +78,7 @@ from src.core.workspace.replay import (
 )
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
+    build_saved_workspace_version,
     find_saved_version,
     refresh_saved_version_metadata,
 )
@@ -315,29 +316,11 @@ def save_workspace_version(
     request: WorkspaceSaveRequest,
 ) -> WorkspaceSaveResponse:
     session = get_workspace_session(workspace_id)
-    replay_evidence = (
-        session.latest_replay_evidence.model_copy(deep=True)
-        if session.latest_replay_evidence is not None
-        else build_replay_evidence(session)
-    )
-    saved_version = WorkspaceSavedVersion(
+    saved_version = build_saved_workspace_version(
+        session=session,
+        request=request,
         workspace_version_id=new_workspace_version_id(),
-        version_number=len(session.saved_versions) + 1,
-        version_label=request.version_label,
-        saved_by=request.saved_by,
         saved_at=_utc_now_iso(),
-        draft_state=session.draft_state.model_copy(deep=True),
-        evaluation_summary=(
-            session.evaluation_summary.model_copy(deep=True)
-            if session.evaluation_summary is not None
-            else None
-        ),
-        latest_proposal_result=(
-            session.latest_proposal_result.model_copy(deep=True)
-            if session.latest_proposal_result is not None
-            else None
-        ),
-        replay_evidence=replay_evidence,
     )
     session.saved_versions.append(saved_version)
     refresh_saved_version_metadata(session)

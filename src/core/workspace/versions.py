@@ -1,8 +1,10 @@
 from src.core.workspace.models import (
     WorkspaceSavedVersion,
     WorkspaceSavedVersionSummary,
+    WorkspaceSaveRequest,
     WorkspaceSession,
 )
+from src.core.workspace.replay import build_replay_evidence
 
 
 class WorkspaceSavedVersionLookupError(ValueError):
@@ -43,3 +45,36 @@ def find_saved_version(
     if saved_version is None:
         raise WorkspaceSavedVersionLookupError("WORKSPACE_SAVED_VERSION_NOT_FOUND")
     return saved_version
+
+
+def build_saved_workspace_version(
+    *,
+    session: WorkspaceSession,
+    request: WorkspaceSaveRequest,
+    workspace_version_id: str,
+    saved_at: str,
+) -> WorkspaceSavedVersion:
+    replay_evidence = (
+        session.latest_replay_evidence.model_copy(deep=True)
+        if session.latest_replay_evidence is not None
+        else build_replay_evidence(session)
+    )
+    return WorkspaceSavedVersion(
+        workspace_version_id=workspace_version_id,
+        version_number=len(session.saved_versions) + 1,
+        version_label=request.version_label,
+        saved_by=request.saved_by,
+        saved_at=saved_at,
+        draft_state=session.draft_state.model_copy(deep=True),
+        evaluation_summary=(
+            session.evaluation_summary.model_copy(deep=True)
+            if session.evaluation_summary is not None
+            else None
+        ),
+        latest_proposal_result=(
+            session.latest_proposal_result.model_copy(deep=True)
+            if session.latest_proposal_result is not None
+            else None
+        ),
+        replay_evidence=replay_evidence,
+    )

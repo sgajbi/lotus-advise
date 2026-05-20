@@ -101,6 +101,8 @@ recorded here with enough detail for later owner-specific slices.
     `src/api/services/workspace_store.py`.
   - Workspace saved-version comparison projection and diff-summary calculation now live in
     `src/core/workspace/compare.py`.
+  - Workspace saved-version record construction, replay-evidence fallback, and defensive snapshot
+    copying now live in `src/core/workspace/versions.py`.
 - Follow-up:
   - Continue extracting workspace orchestration support only where behavior can be pinned outside
     the API service without duplicating upstream context resolution semantics.

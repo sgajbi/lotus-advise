@@ -5,10 +5,11 @@ from src.api.services.workspace_service import (
     create_workspace_session,
     reset_workspace_sessions_for_tests,
 )
-from src.core.workspace.models import WorkspaceSavedVersion
+from src.core.workspace.models import WorkspaceSavedVersion, WorkspaceSaveRequest
 from src.core.workspace.replay import build_replay_evidence
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
+    build_saved_workspace_version,
     find_saved_version,
     refresh_saved_version_metadata,
 )
@@ -84,3 +85,30 @@ def test_find_saved_version_returns_match_and_rejects_missing_id():
         find_saved_version(session, "awv_missing")
 
     assert str(exc.value) == "WORKSPACE_SAVED_VERSION_NOT_FOUND"
+
+
+def test_build_saved_workspace_version_uses_supplied_identity_and_replay_copy():
+    session = _session()
+    session.latest_replay_evidence = build_replay_evidence(
+        session,
+        evaluation_request_hash="request_hash_001",
+    )
+    request = WorkspaceSaveRequest(
+        saved_by="advisor_123",
+        version_label="Advisor reviewed draft",
+    )
+
+    saved_version = build_saved_workspace_version(
+        session=session,
+        request=request,
+        workspace_version_id="awv_supplied",
+        saved_at="2026-05-20T10:30:00+00:00",
+    )
+
+    assert saved_version.workspace_version_id == "awv_supplied"
+    assert saved_version.version_number == 1
+    assert saved_version.version_label == "Advisor reviewed draft"
+    assert saved_version.saved_by == "advisor_123"
+    assert saved_version.saved_at == "2026-05-20T10:30:00+00:00"
+    assert saved_version.replay_evidence is not session.latest_replay_evidence
+    assert saved_version.replay_evidence.evaluation_request_hash == "request_hash_001"
