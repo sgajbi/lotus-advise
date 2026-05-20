@@ -1,6 +1,9 @@
 from src.core.workspace.draft_state import build_draft_state_from_simulate_request
 from src.core.workspace.models import WorkspaceResolvedContext, WorkspaceSessionCreateRequest
-from src.core.workspace.sessions import build_workspace_session
+from src.core.workspace.sessions import (
+    build_stateless_workspace_resolved_context,
+    build_workspace_session,
+)
 
 
 def _stateless_create_request() -> WorkspaceSessionCreateRequest:
@@ -62,3 +65,21 @@ def test_build_workspace_session_uses_supplied_identity_context_and_draft_state(
     assert session.saved_version_count == 0
     assert session.latest_saved_version is None
     assert session.lifecycle_link is None
+
+
+def test_build_stateless_workspace_resolved_context_uses_snapshot_ids_and_fallback_date() -> None:
+    request = _stateless_create_request()
+    assert request.stateless_input is not None
+    simulate_request = request.stateless_input.simulate_request
+    simulate_request.portfolio_snapshot.snapshot_id = "ps_sessions"
+    simulate_request.market_data_snapshot.snapshot_id = "md_sessions"
+
+    resolved_context = build_stateless_workspace_resolved_context(
+        stateless_input=request.stateless_input,
+        fallback_as_of="2026-05-20",
+    )
+
+    assert resolved_context.portfolio_id == "pf_sessions"
+    assert resolved_context.as_of == "2026-05-20"
+    assert resolved_context.portfolio_snapshot_id == "ps_sessions"
+    assert resolved_context.market_data_snapshot_id == "md_sessions"

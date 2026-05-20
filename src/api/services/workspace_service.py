@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from typing import cast
 
 from src.api.services.workspace_store import (
     DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
@@ -68,15 +67,16 @@ from src.core.workspace.models import (
     WorkspaceSession,
     WorkspaceSessionCreateRequest,
     WorkspaceSessionCreateResponse,
-    WorkspaceStatefulInput,
-    WorkspaceStatelessInput,
 )
 from src.core.workspace.replay import (
     apply_workspace_handoff_replay_lineage,
     build_replay_evidence,
     build_workspace_handoff_replay_lineage,
 )
-from src.core.workspace.sessions import build_workspace_session
+from src.core.workspace.sessions import (
+    build_stateless_workspace_resolved_context,
+    build_workspace_session,
+)
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
     apply_saved_workspace_version,
@@ -114,35 +114,6 @@ def _utc_now_iso() -> str:
 
 def _current_business_date_iso() -> str:
     return datetime.now(timezone.utc).date().isoformat()
-
-
-def _build_stateless_resolved_context(
-    stateless_input: WorkspaceStatelessInput,
-) -> WorkspaceResolvedContext:
-    simulate_request = stateless_input.simulate_request
-    return WorkspaceResolvedContext(
-        portfolio_id=simulate_request.portfolio_snapshot.portfolio_id,
-        as_of=simulate_request.reference_model.as_of
-        if simulate_request.reference_model is not None
-        else _current_business_date_iso(),
-        portfolio_snapshot_id=simulate_request.portfolio_snapshot.snapshot_id,
-        market_data_snapshot_id=simulate_request.market_data_snapshot.snapshot_id,
-    )
-
-
-def _build_stateful_resolved_context(
-    stateful_input: WorkspaceStatefulInput,
-) -> WorkspaceResolvedContext:
-    try:
-        return cast(
-            WorkspaceResolvedContext,
-            resolve_lotus_core_advisory_context(stateful_input).resolved_context,
-        )
-    except LotusCoreContextResolutionError:
-        return WorkspaceResolvedContext(
-            portfolio_id=stateful_input.portfolio_id,
-            as_of=stateful_input.as_of,
-        )
 
 
 def _build_simulate_request_for_workspace(session: WorkspaceSession) -> ProposalSimulateRequest:
@@ -252,7 +223,10 @@ def create_workspace_session(
     if request.input_mode == "stateless":
         if request.stateless_input is None:
             raise ValueError("stateless workspace creation requires stateless_input")
-        resolved_context = _build_stateless_resolved_context(request.stateless_input)
+        resolved_context = build_stateless_workspace_resolved_context(
+            stateless_input=request.stateless_input,
+            fallback_as_of=_current_business_date_iso(),
+        )
         draft_state = build_draft_state_from_simulate_request(
             request.stateless_input.simulate_request
         )

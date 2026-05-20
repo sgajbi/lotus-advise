@@ -108,6 +108,9 @@ recorded here with enough detail for later owner-specific slices.
   - Workspace saved-version list projection now lives in
     `src/core/workspace/versions.py`.
   - Workspace session DTO construction now lives in `src/core/workspace/sessions.py`.
+  - Workspace stateless resolved-context construction now lives in
+    `src/core/workspace/sessions.py`, and stale stateful resolved-context service helper code has
+    been removed.
 - Follow-up:
   - Continue extracting workspace orchestration support only where behavior can be pinned outside
     the API service without duplicating upstream context resolution semantics.

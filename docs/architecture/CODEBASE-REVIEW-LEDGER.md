@@ -1577,3 +1577,27 @@
 - Follow-Up:
   - Keep stateful context resolution in the service boundary unless a dedicated adapter orchestration
     module is introduced with explicit Lotus Core failure semantics.
+
+## LA-REV-060
+
+- Scope: Workspace stateless resolved-context construction
+- Pattern: modularity problem / dead-code removal
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Stateless workspace resolved-context construction lived in
+  `src/api/services/workspace_service.py`, and the service also retained an unused
+  `_build_stateful_resolved_context` helper. The stateless context builder is deterministic
+  workspace-domain behavior, while the unused stateful helper created misleading service surface.
+- Evidence:
+  - `src/core/workspace/sessions.py` now owns `build_stateless_workspace_resolved_context`,
+    including portfolio identity, reference-model or fallback as-of selection, and snapshot IDs.
+  - `src/api/services/workspace_service.py` now delegates stateless resolved-context construction
+    and no longer carries the unused stateful resolved-context helper.
+  - `tests/unit/advisory/api/test_workspace_sessions.py` directly proves fallback as-of and
+    snapshot ID propagation for stateless workspace contexts.
+- Consequence:
+  - Workspace session context assembly is narrower and directly tested, while a stale private helper
+    path has been removed from the service.
+- Follow-Up:
+  - Keep stateful context-resolution failure behavior in the service until a dedicated integration
+    orchestration module can preserve exact Lotus Core error semantics.
