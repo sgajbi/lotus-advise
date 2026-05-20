@@ -70,6 +70,9 @@ from src.core.proposals.lifecycle import (
     validate_lifecycle_origin,
 )
 from src.core.proposals.lifecycle_events import (
+    build_approval_record,
+    build_approval_transition_event,
+    build_approval_transition_response,
     build_state_transition_event,
     build_state_transition_response,
 )
@@ -108,14 +111,12 @@ from src.core.proposals.projections import (
     build_approvals_response,
     build_proposal_lineage_response,
     build_workflow_timeline_response,
-    to_approval_record,
     to_async_accepted_response,
     to_async_status_response,
     to_create_response,
     to_idempotency_lookup_response,
     to_proposal_summary,
     to_version_detail,
-    to_workflow_event,
 )
 from src.core.proposals.reporting import build_report_requested_event
 from src.core.proposals.repository import ProposalRepository
@@ -955,27 +956,22 @@ class ProposalWorkflowService:
             )
             if replay_event is None:
                 raise ProposalLifecycleError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
-            return ProposalStateTransitionResponse(
+            return build_approval_transition_response(
                 proposal_id=proposal_id,
                 current_state=replay_event.to_state,
-                latest_workflow_event=to_workflow_event(replay_event),
-                approval=to_approval_record(replay_approval),
+                event=replay_event,
+                approval=replay_approval,
             )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
 
-        details_json = dict(payload.details)
-        if idempotency_key:
-            details_json["idempotency_key"] = idempotency_key
-            details_json["idempotency_request_hash"] = request_hash
-        approval = ProposalApprovalRecordData(
+        occurred_at = _utc_now()
+        approval = build_approval_record(
             approval_id=new_approval_id(),
             proposal_id=proposal_id,
-            approval_type=payload.approval_type,
-            approved=payload.approved,
-            actor_id=payload.actor_id,
-            occurred_at=_utc_now(),
-            details_json=details_json,
-            related_version_no=payload.related_version_no,
+            payload=payload,
+            occurred_at=occurred_at,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
         )
 
         event_type, to_state = self._resolve_approval_transition(
@@ -983,20 +979,15 @@ class ProposalWorkflowService:
             approval_type=payload.approval_type,
             approved=payload.approved,
         )
-        reason_json = dict(payload.details)
-        if idempotency_key:
-            reason_json["idempotency_key"] = idempotency_key
-            reason_json["idempotency_request_hash"] = request_hash
-        event = ProposalWorkflowEventRecord(
+        event = build_approval_transition_event(
             event_id=new_workflow_event_id(),
-            proposal_id=proposal_id,
+            proposal=proposal,
+            payload=payload,
             event_type=event_type,
-            from_state=proposal.current_state,
             to_state=to_state,
-            actor_id=payload.actor_id,
             occurred_at=approval.occurred_at,
-            reason_json=reason_json,
-            related_version_no=payload.related_version_no,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
         )
         proposal.current_state = to_state
         proposal.last_event_at = event.occurred_at
@@ -1004,11 +995,11 @@ class ProposalWorkflowService:
         result = self._repository.transition_proposal(
             proposal=proposal, event=event, approval=approval
         )
-        return ProposalStateTransitionResponse(
+        return build_approval_transition_response(
             proposal_id=proposal_id,
             current_state=result.proposal.current_state,
-            latest_workflow_event=to_workflow_event(result.event),
-            approval=to_approval_record(result.approval),
+            event=result.event,
+            approval=result.approval,
         )
 
     def _get_replayed_event(

@@ -1,10 +1,15 @@
 from datetime import datetime, timezone
 
 from src.core.proposals.lifecycle_events import (
+    build_approval_record,
+    build_approval_transition_event,
+    build_approval_transition_response,
     build_state_transition_event,
     build_state_transition_response,
 )
 from src.core.proposals.models import (
+    ProposalApprovalRecordData,
+    ProposalApprovalRequest,
     ProposalRecord,
     ProposalStateTransitionRequest,
     ProposalWorkflowEventRecord,
@@ -38,6 +43,19 @@ def _transition_request(**overrides) -> ProposalStateTransitionRequest:
     }
     values.update(overrides)
     return ProposalStateTransitionRequest(**values)
+
+
+def _approval_request(**overrides) -> ProposalApprovalRequest:
+    values = {
+        "approval_type": "CLIENT_CONSENT",
+        "approved": True,
+        "actor_id": "client_lifecycle",
+        "related_version_no": 2,
+        "details": {"channel": "IN_PERSON"},
+        "expected_state": "AWAITING_CLIENT_CONSENT",
+    }
+    values.update(overrides)
+    return ProposalApprovalRequest(**values)
 
 
 def test_build_state_transition_event_preserves_reason_and_idempotency_metadata():
@@ -87,3 +105,87 @@ def test_build_state_transition_response_projects_latest_event():
     assert response.latest_workflow_event.event_id == "pwe_lifecycle"
     assert response.latest_workflow_event.reason == {"comment": "Risk review"}
     assert response.approval is None
+
+
+def test_build_approval_record_preserves_details_and_idempotency_metadata():
+    approval = build_approval_record(
+        approval_id="pap_lifecycle",
+        proposal_id="pp_lifecycle_events",
+        payload=_approval_request(),
+        occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
+        idempotency_key="idem_approval",
+        request_hash="sha256:approval",
+    )
+
+    assert approval.approval_type == "CLIENT_CONSENT"
+    assert approval.approved is True
+    assert approval.actor_id == "client_lifecycle"
+    assert approval.related_version_no == 2
+    assert approval.details_json == {
+        "channel": "IN_PERSON",
+        "idempotency_key": "idem_approval",
+        "idempotency_request_hash": "sha256:approval",
+    }
+
+
+def test_build_approval_transition_event_matches_approval_audit_payload():
+    proposal = _proposal()
+    proposal.current_state = "AWAITING_CLIENT_CONSENT"
+    event = build_approval_transition_event(
+        event_id="pwe_approval",
+        proposal=proposal,
+        payload=_approval_request(),
+        event_type="CLIENT_CONSENT_RECORDED",
+        to_state="EXECUTION_READY",
+        occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
+        idempotency_key="idem_approval",
+        request_hash="sha256:approval",
+    )
+
+    assert event.event_type == "CLIENT_CONSENT_RECORDED"
+    assert event.from_state == "AWAITING_CLIENT_CONSENT"
+    assert event.to_state == "EXECUTION_READY"
+    assert event.actor_id == "client_lifecycle"
+    assert event.related_version_no == 2
+    assert event.reason_json == {
+        "channel": "IN_PERSON",
+        "idempotency_key": "idem_approval",
+        "idempotency_request_hash": "sha256:approval",
+    }
+
+
+def test_build_approval_transition_response_projects_approval_record():
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_approval",
+        proposal_id="pp_lifecycle_events",
+        event_type="CLIENT_CONSENT_RECORDED",
+        from_state="AWAITING_CLIENT_CONSENT",
+        to_state="EXECUTION_READY",
+        actor_id="client_lifecycle",
+        occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
+        reason_json={"channel": "IN_PERSON"},
+        related_version_no=2,
+    )
+    approval = ProposalApprovalRecordData(
+        approval_id="pap_lifecycle",
+        proposal_id="pp_lifecycle_events",
+        approval_type="CLIENT_CONSENT",
+        approved=True,
+        actor_id="client_lifecycle",
+        occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
+        details_json={"channel": "IN_PERSON"},
+        related_version_no=2,
+    )
+
+    response = build_approval_transition_response(
+        proposal_id="pp_lifecycle_events",
+        current_state="EXECUTION_READY",
+        event=event,
+        approval=approval,
+    )
+
+    assert response.current_state == "EXECUTION_READY"
+    assert response.latest_workflow_event.event_type == "CLIENT_CONSENT_RECORDED"
+    assert response.approval is not None
+    assert response.approval.approval_id == "pap_lifecycle"
+    assert response.approval.details == {"channel": "IN_PERSON"}

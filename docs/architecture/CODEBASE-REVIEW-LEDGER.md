@@ -1831,3 +1831,29 @@
 - Follow-Up:
   - Extract approval event/record construction separately only if replay referent handling and
     approval-transition rule behavior remain visibly service-owned.
+
+## LA-REV-070
+
+- Scope: Proposal approval record, event, and response construction
+- Pattern: modularity problem / approval auditability hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Approval record construction, approval workflow-event construction, and approval
+  transition response projection lived directly in `src/core/proposals/service.py`, mixing
+  deterministic approval audit payload assembly with approval replay lookup, replay referent
+  validation, expected-state validation, approval-transition rule resolution, and persistence.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now owns `build_approval_record`,
+    `build_approval_transition_event`, and `build_approval_transition_response`.
+  - `src/core/proposals/service.py` now delegates deterministic approval record/event/response
+    assembly while preserving approval replay lookup, replay referent checks, expected-state
+    validation, approval-transition rule resolution, state mutation, and repository persistence.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` directly proves approval
+    details preservation, idempotency audit metadata, actor/version/state propagation, approval
+    event payload construction, and response projection with approval details.
+- Consequence:
+  - Approval audit payload construction is reusable and directly tested, and the workflow service
+    is narrower without weakening replay, state, or approval rule semantics.
+- Follow-Up:
+  - Continue command-path decomposition only where deterministic construction can be separated from
+    stateful validation and persistence with direct tests.

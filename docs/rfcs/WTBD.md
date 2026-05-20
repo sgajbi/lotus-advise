@@ -51,6 +51,10 @@ recorded here with enough detail for later owner-specific slices.
   - Generic proposal state-transition event construction and transition response projection now
     live in `src/core/proposals/lifecycle_events.py`, while the workflow service retains proposal
     lookup, replay detection, expected-state validation, transition-rule resolution, and persistence.
+  - Proposal approval record construction, approval workflow-event construction, and approval
+    transition response projection now live in `src/core/proposals/lifecycle_events.py`, while the
+    workflow service retains approval replay referent checks, expected-state validation,
+    approval-transition rule resolution, and persistence.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.
