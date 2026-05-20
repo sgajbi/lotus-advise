@@ -1,7 +1,80 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from src.core.proposals.models import ProposalAsyncOperationRecord, ProposalCreateResponse
+from src.core.proposals.models import (
+    ProposalAsyncOperationRecord,
+    ProposalCreateRequest,
+    ProposalCreateResponse,
+    ProposalVersionRequest,
+)
+
+
+def build_create_proposal_async_operation(
+    *,
+    operation_id: str,
+    correlation_id: str,
+    idempotency_key: str,
+    payload: ProposalCreateRequest,
+    submission_hash: str,
+    created_at: datetime,
+    max_attempts: int,
+) -> ProposalAsyncOperationRecord:
+    return ProposalAsyncOperationRecord(
+        operation_id=operation_id,
+        operation_type="CREATE_PROPOSAL",
+        status="PENDING",
+        correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
+        proposal_id=None,
+        created_by=payload.created_by,
+        created_at=created_at,
+        payload_json={
+            "payload": payload.model_dump(mode="json"),
+            "idempotency_key": idempotency_key,
+            "submission_hash": submission_hash,
+        },
+        attempt_count=0,
+        max_attempts=max_attempts,
+        started_at=None,
+        lease_expires_at=None,
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
+
+
+def build_create_version_async_operation(
+    *,
+    operation_id: str,
+    proposal_id: str,
+    correlation_id: str,
+    payload: ProposalVersionRequest,
+    submission_hash: str,
+    created_at: datetime,
+    max_attempts: int,
+) -> ProposalAsyncOperationRecord:
+    return ProposalAsyncOperationRecord(
+        operation_id=operation_id,
+        operation_type="CREATE_PROPOSAL_VERSION",
+        status="PENDING",
+        correlation_id=correlation_id,
+        idempotency_key=None,
+        proposal_id=proposal_id,
+        created_by=payload.created_by,
+        created_at=created_at,
+        payload_json={
+            "proposal_id": proposal_id,
+            "payload": payload.model_dump(mode="json"),
+            "submission_hash": submission_hash,
+        },
+        attempt_count=0,
+        max_attempts=max_attempts,
+        started_at=None,
+        lease_expires_at=None,
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
 
 
 def begin_async_attempt(

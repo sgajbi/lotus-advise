@@ -1933,3 +1933,30 @@
 - Follow-Up:
   - Keep create command orchestration in the service until a larger command handler can be introduced
     without obscuring idempotency conflict behavior and persistence ordering.
+
+## LA-REV-074
+
+- Scope: Proposal async operation record construction
+- Pattern: modularity problem / async replay lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Async create-proposal and create-version submission paths constructed persisted
+  `ProposalAsyncOperationRecord` instances directly in `src/core/proposals/service.py`, mixing
+  operation payload shape, submission hash lineage, retry defaults, and initial status state into
+  the workflow service.
+- Evidence:
+  - `src/core/proposals/async_operations.py` now owns
+    `build_create_proposal_async_operation` and `build_create_version_async_operation`.
+  - `src/core/proposals/service.py` now delegates deterministic async operation record construction
+    while retaining correlation/idempotency lookup, conflict detection, repository persistence, and
+    accepted-response projection.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operations.py` directly proves persisted
+    create/version operation type, pending status, correlation and idempotency identity, proposal
+    scoping, submission hash lineage, retry counters, and clean initial execution state.
+- Consequence:
+  - Async submission persistence defaults and replay metadata are centralized and directly tested,
+    reducing workflow-service DTO assembly and making retry/recovery behavior easier to reason
+    about.
+- Follow-Up:
+  - Keep async execution orchestration in the service until repository lease, retry, and recovery
+    ordering can be extracted with stronger integration characterization.

@@ -11,6 +11,8 @@ from src.core.proposals.async_operations import (
     apply_runtime_exception_outcome,
     begin_async_attempt,
     build_async_replay_lineage,
+    build_create_proposal_async_operation,
+    build_create_version_async_operation,
     mark_operation_failed,
     mark_operation_succeeded,
 )
@@ -320,27 +322,14 @@ class ProposalWorkflowService:
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
         submission_hash = hash_async_create_submission(payload)
         resolved_correlation_id = resolve_correlation_id(correlation_id)
-        operation = ProposalAsyncOperationRecord(
+        operation = build_create_proposal_async_operation(
             operation_id=new_async_operation_id(),
-            operation_type="CREATE_PROPOSAL",
-            status="PENDING",
             correlation_id=resolved_correlation_id,
             idempotency_key=idempotency_key,
-            proposal_id=None,
-            created_by=payload.created_by,
+            payload=payload,
+            submission_hash=submission_hash,
             created_at=_utc_now(),
-            payload_json={
-                "payload": payload.model_dump(mode="json"),
-                "idempotency_key": idempotency_key,
-                "submission_hash": submission_hash,
-            },
-            attempt_count=0,
             max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
-            started_at=None,
-            lease_expires_at=None,
-            finished_at=None,
-            result_json=None,
-            error_json=None,
         )
         stored_operation, is_new = self._repository.create_operation_if_absent_by_idempotency(
             operation
@@ -802,27 +791,14 @@ class ProposalWorkflowService:
                     "CORRELATION_ID_CONFLICT: async version submission mismatch"
                 )
             return to_async_accepted_response(existing_operation), False
-        operation = ProposalAsyncOperationRecord(
+        operation = build_create_version_async_operation(
             operation_id=new_async_operation_id(),
-            operation_type="CREATE_PROPOSAL_VERSION",
-            status="PENDING",
-            correlation_id=resolved_correlation_id,
-            idempotency_key=None,
             proposal_id=proposal_id,
-            created_by=payload.created_by,
+            correlation_id=resolved_correlation_id,
+            payload=payload,
+            submission_hash=submission_hash,
             created_at=_utc_now(),
-            payload_json={
-                "proposal_id": proposal_id,
-                "payload": payload.model_dump(mode="json"),
-                "submission_hash": submission_hash,
-            },
-            attempt_count=0,
             max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
-            started_at=None,
-            lease_expires_at=None,
-            finished_at=None,
-            result_json=None,
-            error_json=None,
         )
         self._repository.create_operation(operation)
         return to_async_accepted_response(operation), True

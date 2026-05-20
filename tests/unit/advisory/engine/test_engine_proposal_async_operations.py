@@ -4,14 +4,18 @@ from src.core.proposals.async_operations import (
     apply_runtime_exception_outcome,
     begin_async_attempt,
     build_async_replay_lineage,
+    build_create_proposal_async_operation,
+    build_create_version_async_operation,
     mark_operation_failed,
     mark_operation_succeeded,
 )
 from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
+    ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalSummary,
     ProposalVersionDetail,
+    ProposalVersionRequest,
     ProposalWorkflowEvent,
 )
 
@@ -74,6 +78,104 @@ def _response() -> ProposalCreateResponse:
             related_version_no=1,
         ),
     )
+
+
+def _simulate_request(portfolio_id: str = "pf_async_state") -> dict:
+    return {
+        "portfolio_snapshot": {
+            "portfolio_id": portfolio_id,
+            "base_currency": "USD",
+            "positions": [{"instrument_id": "EQ_OLD", "quantity": "10"}],
+            "cash_balances": [{"currency": "USD", "amount": "1000"}],
+        },
+        "market_data_snapshot": {
+            "prices": [
+                {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"},
+                {"instrument_id": "EQ_NEW", "price": "50", "currency": "USD"},
+            ],
+            "fx_rates": [],
+        },
+        "shelf_entries": [
+            {"instrument_id": "EQ_OLD", "status": "APPROVED"},
+            {"instrument_id": "EQ_NEW", "status": "APPROVED"},
+        ],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [{"currency": "USD", "amount": "100"}],
+        "proposed_trades": [{"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "2"}],
+    }
+
+
+def test_build_create_proposal_async_operation_preserves_submission_identity():
+    created_at = datetime(2026, 5, 20, 9, 0, tzinfo=timezone.utc)
+    payload = ProposalCreateRequest(
+        created_by="advisor_async_state",
+        simulate_request=_simulate_request(),
+        metadata={"title": "Async state proposal"},
+    )
+
+    operation = build_create_proposal_async_operation(
+        operation_id="pop_create_async",
+        correlation_id="corr_create_async",
+        idempotency_key="idem_create_async",
+        payload=payload,
+        submission_hash="sha256:create-submission",
+        created_at=created_at,
+        max_attempts=3,
+    )
+
+    assert operation.operation_id == "pop_create_async"
+    assert operation.operation_type == "CREATE_PROPOSAL"
+    assert operation.status == "PENDING"
+    assert operation.correlation_id == "corr_create_async"
+    assert operation.idempotency_key == "idem_create_async"
+    assert operation.proposal_id is None
+    assert operation.created_by == "advisor_async_state"
+    assert operation.created_at == created_at
+    assert operation.payload_json["idempotency_key"] == "idem_create_async"
+    assert operation.payload_json["submission_hash"] == "sha256:create-submission"
+    assert operation.payload_json["payload"]["metadata"]["title"] == "Async state proposal"
+    assert operation.attempt_count == 0
+    assert operation.max_attempts == 3
+    assert operation.started_at is None
+    assert operation.finished_at is None
+    assert operation.result_json is None
+    assert operation.error_json is None
+
+
+def test_build_create_version_async_operation_scopes_replay_to_proposal():
+    created_at = datetime(2026, 5, 20, 9, 1, tzinfo=timezone.utc)
+    payload = ProposalVersionRequest(
+        created_by="advisor_async_state",
+        simulate_request=_simulate_request(portfolio_id="pf_async_version"),
+    )
+
+    operation = build_create_version_async_operation(
+        operation_id="pop_version_async",
+        proposal_id="pp_async_version",
+        correlation_id="corr_version_async",
+        payload=payload,
+        submission_hash="sha256:version-submission",
+        created_at=created_at,
+        max_attempts=4,
+    )
+
+    assert operation.operation_id == "pop_version_async"
+    assert operation.operation_type == "CREATE_PROPOSAL_VERSION"
+    assert operation.status == "PENDING"
+    assert operation.correlation_id == "corr_version_async"
+    assert operation.idempotency_key is None
+    assert operation.proposal_id == "pp_async_version"
+    assert operation.created_by == "advisor_async_state"
+    assert operation.created_at == created_at
+    assert operation.payload_json["proposal_id"] == "pp_async_version"
+    assert operation.payload_json["submission_hash"] == "sha256:version-submission"
+    assert operation.payload_json["payload"]["created_by"] == "advisor_async_state"
+    assert operation.attempt_count == 0
+    assert operation.max_attempts == 4
+    assert operation.started_at is None
+    assert operation.finished_at is None
+    assert operation.result_json is None
+    assert operation.error_json is None
 
 
 def test_begin_async_attempt_sets_running_state_and_lease():

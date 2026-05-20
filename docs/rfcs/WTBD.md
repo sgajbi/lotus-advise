@@ -64,6 +64,10 @@ recorded here with enough detail for later owner-specific slices.
   - Initial proposal aggregate construction and proposal-create idempotency record construction now
     live in `src/core/proposals/records.py`, keeping default lifecycle state and replay identity
     construction out of the workflow service.
+  - Async create-proposal and create-version operation record construction now lives in
+    `src/core/proposals/async_operations.py`, keeping persisted operation payload shape,
+    submission hash lineage, retry counters, and initial status defaults out of the workflow
+    service.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.
