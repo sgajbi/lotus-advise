@@ -6,6 +6,7 @@ from src.core.proposals.async_operations import (
     build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
+    extract_async_result_version_no,
     mark_operation_failed,
     mark_operation_succeeded,
 )
@@ -277,3 +278,21 @@ def test_build_async_replay_lineage_keeps_operation_identity():
         "correlation_id": "corr_async_state",
         "idempotency_key": "idem_async_state",
     }
+
+
+def test_extract_async_result_version_no_reads_successful_result_payload():
+    operation = _operation(attempt_count=1)
+    operation.result_json = {"version": {"version_no": 2}}
+
+    assert extract_async_result_version_no(operation) == 2
+
+
+def test_extract_async_result_version_no_rejects_missing_or_malformed_payload():
+    operation = _operation(attempt_count=1)
+    assert extract_async_result_version_no(operation) is None
+
+    operation.result_json = {"version": None}
+    assert extract_async_result_version_no(operation) is None
+
+    operation.result_json = {"version": {"version_no": "2"}}
+    assert extract_async_result_version_no(operation) is None

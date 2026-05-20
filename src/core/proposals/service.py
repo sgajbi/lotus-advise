@@ -13,6 +13,7 @@ from src.core.proposals.async_operations import (
     build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
+    extract_async_result_version_no,
     mark_operation_failed,
     mark_operation_succeeded,
 )
@@ -614,13 +615,7 @@ class ProposalWorkflowService:
         if operation.proposal_id is not None:
             proposal = self._repository.get_proposal(proposal_id=operation.proposal_id)
             if proposal is not None and operation.status == "SUCCEEDED":
-                version_no = None
-                if operation.result_json is not None:
-                    version_payload = operation.result_json.get("version")
-                    if isinstance(version_payload, dict) and isinstance(
-                        version_payload.get("version_no"), int
-                    ):
-                        version_no = version_payload["version_no"]
+                version_no = extract_async_result_version_no(operation)
                 if version_no is not None:
                     version = self._repository.get_version(
                         proposal_id=operation.proposal_id,

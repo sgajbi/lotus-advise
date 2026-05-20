@@ -151,5 +151,15 @@ def build_async_replay_lineage(operation: ProposalAsyncOperationRecord) -> dict[
     }
 
 
+def extract_async_result_version_no(operation: ProposalAsyncOperationRecord) -> int | None:
+    if operation.result_json is None:
+        return None
+    version_payload = operation.result_json.get("version")
+    if not isinstance(version_payload, dict):
+        return None
+    version_no = version_payload.get("version_no")
+    return version_no if isinstance(version_no, int) else None
+
+
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)

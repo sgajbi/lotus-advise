@@ -1960,3 +1960,26 @@
 - Follow-Up:
   - Keep async execution orchestration in the service until repository lease, retry, and recovery
     ordering can be extracted with stronger integration characterization.
+
+## LA-REV-075
+
+- Scope: Async operation replay result version extraction
+- Pattern: modularity problem / replay evidence hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Async operation replay evidence selection parsed `operation.result_json["version"]`
+  directly inside `src/core/proposals/service.py`, mixing payload-shape interpretation into the
+  workflow-service read path that should otherwise coordinate repository lookups and replay
+  response assembly.
+- Evidence:
+  - `src/core/proposals/async_operations.py` now owns `extract_async_result_version_no`.
+  - `src/core/proposals/service.py` delegates successful async result-version extraction before
+    falling back to the current proposal version when no valid version number is present.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operations.py` directly proves valid
+    version extraction and rejection of missing, non-object, and non-integer result payloads.
+- Consequence:
+  - Replay-evidence version selection now has an explicit, tested parser for async operation result
+    payloads, reducing hidden result-shape coupling in the workflow service.
+- Follow-Up:
+  - Keep repository-backed replay material loading in the service until a larger replay-query
+    object can be introduced with current-version fallback characterization.

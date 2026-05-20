@@ -68,6 +68,9 @@ recorded here with enough detail for later owner-specific slices.
     `src/core/proposals/async_operations.py`, keeping persisted operation payload shape,
     submission hash lineage, retry counters, and initial status defaults out of the workflow
     service.
+  - Async operation result-version extraction now lives in
+    `src/core/proposals/async_operations.py`, keeping replay-evidence version selection parsing out
+    of the workflow service.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.
