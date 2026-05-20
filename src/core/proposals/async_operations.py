@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 from src.core.proposals.models import (
@@ -159,7 +159,3 @@ def extract_async_result_version_no(operation: ProposalAsyncOperationRecord) -> 
         return None
     version_no = version_payload.get("version_no")
     return version_no if isinstance(version_no, int) else None
-
-
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)

@@ -76,6 +76,9 @@ recorded here with enough detail for later owner-specific slices.
     of the workflow service.
   - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
     projection helpers directly.
+  - Stale module-level `utc_now` helper has been removed from
+    `src/core/proposals/async_operations.py`; async operation state transitions receive explicit
+    timestamps from the workflow service.
   - Stale async replay-lineage service wrapper and unused time helper have been removed.
   - Stale service-private version-record wrapper has been removed; create paths call the version
     builder directly.

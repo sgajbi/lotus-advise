@@ -2007,3 +2007,24 @@
   - Keep create-version eligibility checks in the service until a dedicated command policy can wrap
     proposal lookup errors, expected-version conflicts, and portfolio-context validation without
     weakening current API error behavior.
+
+## LA-REV-077
+
+- Scope: Stale async operation time helper removal
+- Pattern: dead code
+- Status: Hardened
+- Finding Class: stale code
+- Summary: `src/core/proposals/async_operations.py` exposed a module-level `utc_now` helper that was
+  no longer called by production code or tests after async state transitions were changed to accept
+  explicit timestamps from the workflow service.
+- Evidence:
+  - Removed the unused `utc_now` helper and its `timezone` import from
+    `src/core/proposals/async_operations.py`.
+  - Repository search confirms remaining proposal clock usage is the service-local `_utc_now`
+    orchestration helper.
+- Consequence:
+  - Async operation state helpers keep deterministic, caller-supplied timestamps without carrying a
+    second unused clock abstraction.
+- Follow-Up:
+  - Continue removing stale service-private wrappers and module-level helpers as proposal workflow
+    orchestration is decomposed.
