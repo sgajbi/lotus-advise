@@ -1372,3 +1372,32 @@
 - Follow-Up:
   - Continue decomposing workspace handoff request assembly and evaluation context construction
     only where behavior can be pinned by focused tests.
+
+## LA-REV-052
+
+- Scope: Workspace handoff request assembly
+- Pattern: modularity problem / lifecycle handoff hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workspace lifecycle handoff metadata construction, proposal create/version request
+  assembly, simulate-request guards, and context-resolution evidence construction lived inside
+  `src/api/services/workspace_service.py`. These rules are deterministic workspace-domain handoff
+  behavior, while the service should retain orchestration, persistence, and proposal service calls.
+- Evidence:
+  - `src/core/workspace/handoff.py` now owns handoff metadata construction, proposal create/version
+    request assembly, handoff context-resolution evidence construction, and bounded handoff errors.
+  - `src/api/services/workspace_service.py` now delegates handoff request assembly and context
+    evidence construction while retaining proposal service orchestration and error translation.
+  - `tests/unit/advisory/api/test_workspace_handoff.py` directly proves title fallback/override,
+    proposal create request assembly, context-resolution evidence shape, and missing resolved
+    context behavior.
+  - Existing workspace service tests now call the workspace handoff module for expected-current
+    version request behavior instead of service-private helpers.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\api\test_workspace_handoff.py tests\unit\advisory\api\test_workspace_service.py tests\unit\advisory\api\test_api_workspace.py -q`.
+- Consequence:
+  - Workspace lifecycle handoff rules now have a reusable, directly tested domain boundary and the
+    API service is narrower.
+- Follow-Up:
+  - Consider extracting workspace reevaluation context construction only if it can be made
+    independently testable without duplicating proposal context resolution behavior.

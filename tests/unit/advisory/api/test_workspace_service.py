@@ -17,6 +17,10 @@ from src.api.services.workspace_service import (
     reset_workspace_sessions_for_tests,
     save_workspace_version,
 )
+from src.core.workspace.handoff import (
+    build_handoff_metadata,
+    build_proposal_version_request,
+)
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
@@ -225,7 +229,7 @@ def test_workspace_service_portfolio_delta_and_mandate_fallback() -> None:
     )
     session = create_workspace_session(summary_request).workspace
 
-    metadata = workspace_service._build_handoff_metadata(
+    metadata = build_handoff_metadata(
         workspace_service.WorkspaceLifecycleHandoffRequest(handoff_by="advisor_123"),
         session,
     )
@@ -275,9 +279,11 @@ def test_workspace_service_builds_version_request_with_expected_current_version(
         last_handoff_by="advisor_123",
     )
 
-    payload = workspace_service._build_proposal_version_request(
+    assert session.stateless_input is not None
+    payload = build_proposal_version_request(
         session,
         workspace_service.WorkspaceLifecycleHandoffRequest(handoff_by="advisor_123"),
+        session.stateless_input.simulate_request,
     )
 
     assert payload.expected_current_version_no == 3

@@ -93,6 +93,8 @@ recorded here with enough detail for later owner-specific slices.
   - Workspace draft-state projection and simulation-request reconstruction now live in
     `src/core/workspace/draft_state.py`.
   - Workspace draft action mutation now lives in `src/core/workspace/draft_actions.py`.
+  - Workspace lifecycle handoff metadata, proposal request assembly, simulate-request guards, and
+    handoff context-resolution evidence now live in `src/core/workspace/handoff.py`.
 - Follow-up:
   - Split replay evidence construction, handoff request assembly, and draft action mutation into
     explicit workspace modules where tests can pin behavior outside the API service.

@@ -1,20 +1,15 @@
 from collections import OrderedDict
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, cast
 from typing import OrderedDict as OrderedDictType
+from typing import cast
 
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.advisory.policy_context import ProposalPolicySelectors
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
-from src.core.proposals import (
-    ProposalCreateRequest,
-    ProposalVersionRequest,
-    ProposalWorkflowService,
-)
+from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.context import (
-    ResolvedProposalContext,
     ResolvedSimulationContext,
     build_context_resolution_evidence,
     canonicalize_simulation_request_payload,
@@ -30,6 +25,13 @@ from src.core.workspace.draft_actions import (
 from src.core.workspace.draft_state import (
     apply_workspace_draft_state,
     build_draft_state_from_simulate_request,
+)
+from src.core.workspace.handoff import (
+    WorkspaceHandoffError,
+    build_proposal_create_request,
+    build_proposal_version_request,
+    build_workspace_handoff_context_resolution,
+    require_handoff_simulate_request,
 )
 from src.core.workspace.identifiers import (
     new_workspace_id,
@@ -203,88 +205,6 @@ def _build_evaluation_summary(
             trade_count=len(session.draft_state.trade_drafts),
             cash_flow_count=len(session.draft_state.cash_flow_drafts),
         ),
-    )
-
-
-def _build_handoff_metadata(
-    request: WorkspaceLifecycleHandoffRequest,
-    session: WorkspaceSession,
-) -> ProposalCreateMetadata:
-    mandate_id = request.metadata.mandate_id
-    if mandate_id is None and session.stateful_input is not None:
-        mandate_id = session.stateful_input.mandate_id
-    return ProposalCreateMetadata(
-        title=request.metadata.title or session.workspace_name,
-        advisor_notes=request.metadata.advisor_notes,
-        jurisdiction=request.metadata.jurisdiction,
-        mandate_id=mandate_id,
-    )
-
-
-def _build_workspace_handoff_context_resolution(
-    session: WorkspaceSession,
-    simulate_request: ProposalSimulateRequest,
-    metadata: ProposalCreateMetadata,
-) -> dict[str, Any]:
-    if session.resolved_context is None:
-        raise WorkspaceEvaluationUnavailableError("WORKSPACE_RESOLVED_CONTEXT_MISSING")
-    resolved_context = ProposalResolvedContext.model_validate(
-        session.resolved_context.model_dump(mode="json")
-    )
-    resolved_request = ResolvedProposalContext(
-        input_mode=session.input_mode,
-        resolution_source="LOTUS_CORE" if session.input_mode == "stateful" else "DIRECT_REQUEST",
-        simulate_request=simulate_request,
-        resolved_context=resolved_context,
-        metadata=metadata,
-        policy_selectors=ProposalPolicySelectors(
-            household_id=(
-                session.stateful_input.household_id if session.stateful_input is not None else None
-            ),
-            mandate_id=metadata.mandate_id,
-            jurisdiction=metadata.jurisdiction,
-            benchmark_id=(
-                session.stateful_input.benchmark_id if session.stateful_input is not None else None
-            ),
-        ),
-        used_legacy_contract=False,
-    )
-    return cast(dict[str, Any], build_context_resolution_evidence(resolved_request))
-
-
-def _require_handoff_simulate_request(
-    simulate_request: ProposalSimulateRequest | None,
-) -> ProposalSimulateRequest:
-    if simulate_request is None:
-        raise WorkspaceLifecycleHandoffUnavailableError(
-            "WORKSPACE_HANDOFF_SIMULATE_REQUEST_MISSING"
-        )
-    return simulate_request
-
-
-def _build_proposal_create_request(
-    session: WorkspaceSession,
-    request: WorkspaceLifecycleHandoffRequest,
-) -> ProposalCreateRequest:
-    simulate_request = _build_simulate_request_for_workspace(session)
-    return ProposalCreateRequest(
-        created_by=request.handoff_by,
-        simulate_request=simulate_request,
-        metadata=_build_handoff_metadata(request, session),
-    )
-
-
-def _build_proposal_version_request(
-    session: WorkspaceSession,
-    request: WorkspaceLifecycleHandoffRequest,
-) -> ProposalVersionRequest:
-    expected_current_version_no = (
-        session.lifecycle_link.current_version_no if session.lifecycle_link is not None else None
-    )
-    return ProposalVersionRequest(
-        created_by=request.handoff_by,
-        expected_current_version_no=expected_current_version_no,
-        simulate_request=_build_simulate_request_for_workspace(session),
     )
 
 
@@ -571,7 +491,11 @@ def handoff_workspace_to_proposal_lifecycle(
                 raise WorkspaceLifecycleHandoffUnavailableError(
                     "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED"
                 )
-            create_request = _build_proposal_create_request(session, request)
+            create_request = build_proposal_create_request(
+                session,
+                request,
+                _build_simulate_request_for_workspace(session),
+            )
             replay_lineage = build_workspace_handoff_replay_lineage(
                 session,
                 request,
@@ -586,15 +510,19 @@ def handoff_workspace_to_proposal_lifecycle(
                 lifecycle_origin="WORKSPACE_HANDOFF",
                 source_workspace_id=workspace_id,
                 replay_lineage=replay_lineage,
-                context_resolution_override=_build_workspace_handoff_context_resolution(
+                context_resolution_override=build_workspace_handoff_context_resolution(
                     session,
-                    _require_handoff_simulate_request(create_request.simulate_request),
+                    require_handoff_simulate_request(create_request.simulate_request),
                     create_request.metadata,
                 ),
             )
             handoff_action = "CREATED_PROPOSAL"
         else:
-            version_request = _build_proposal_version_request(session, request)
+            version_request = build_proposal_version_request(
+                session,
+                request,
+                _build_simulate_request_for_workspace(session),
+            )
             replay_lineage = build_workspace_handoff_replay_lineage(
                 session,
                 request,
@@ -607,14 +535,14 @@ def handoff_workspace_to_proposal_lifecycle(
                 payload=version_request,
                 correlation_id=correlation_id,
                 replay_lineage=replay_lineage,
-                context_resolution_override=_build_workspace_handoff_context_resolution(
+                context_resolution_override=build_workspace_handoff_context_resolution(
                     session,
-                    _require_handoff_simulate_request(version_request.simulate_request),
+                    require_handoff_simulate_request(version_request.simulate_request),
                     ProposalCreateMetadata(),
                 ),
             )
             handoff_action = "CREATED_PROPOSAL_VERSION"
-    except (ValueError, WorkspaceEvaluationUnavailableError) as exc:
+    except (ValueError, WorkspaceEvaluationUnavailableError, WorkspaceHandoffError) as exc:
         raise WorkspaceLifecycleHandoffUnavailableError(str(exc)) from exc
 
     replay_lineage["proposal_id"] = proposal_response.proposal.proposal_id
