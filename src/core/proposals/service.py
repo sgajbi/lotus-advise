@@ -46,6 +46,11 @@ from src.core.proposals.execution_status import (
     build_execution_status_response,
     latest_execution_requested_event,
 )
+from src.core.proposals.idempotency import (
+    ProposalReplayHashConflictError,
+    find_replayed_approval,
+    find_replayed_event,
+)
 from src.core.proposals.lifecycle import (
     ProposalLifecycleOriginError,
     validate_lifecycle_origin,
@@ -1094,36 +1099,26 @@ class ProposalWorkflowService:
     def _get_replayed_event(
         self, *, proposal_id: str, idempotency_key: Optional[str], request_hash: str
     ) -> Optional[ProposalWorkflowEventRecord]:
-        if not idempotency_key:
-            return None
-        for event in reversed(self._repository.list_events(proposal_id=proposal_id)):
-            existing_key = event.reason_json.get("idempotency_key")
-            if existing_key != idempotency_key:
-                continue
-            existing_hash = event.reason_json.get("idempotency_request_hash")
-            if existing_hash is not None and existing_hash != request_hash:
-                raise ProposalIdempotencyConflictError(
-                    "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
-                )
-            return cast(ProposalWorkflowEventRecord, event)
-        return None
+        try:
+            return find_replayed_event(
+                events=self._repository.list_events(proposal_id=proposal_id),
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+            )
+        except ProposalReplayHashConflictError as exc:
+            raise ProposalIdempotencyConflictError(str(exc)) from exc
 
     def _get_replayed_approval(
         self, *, proposal_id: str, idempotency_key: Optional[str], request_hash: str
     ) -> Optional[ProposalApprovalRecordData]:
-        if not idempotency_key:
-            return None
-        for approval in reversed(self._repository.list_approvals(proposal_id=proposal_id)):
-            existing_key = approval.details_json.get("idempotency_key")
-            if existing_key != idempotency_key:
-                continue
-            existing_hash = approval.details_json.get("idempotency_request_hash")
-            if existing_hash is not None and existing_hash != request_hash:
-                raise ProposalIdempotencyConflictError(
-                    "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
-                )
-            return cast(ProposalApprovalRecordData, approval)
-        return None
+        try:
+            return find_replayed_approval(
+                approvals=self._repository.list_approvals(proposal_id=proposal_id),
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+            )
+        except ProposalReplayHashConflictError as exc:
+            raise ProposalIdempotencyConflictError(str(exc)) from exc
 
     def _read_create_response(self, *, proposal_id: str, version_no: int) -> ProposalCreateResponse:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)

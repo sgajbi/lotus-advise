@@ -38,6 +38,8 @@ recorded here with enough detail for later owner-specific slices.
     builder directly.
   - The wiki architecture page now documents the implementation-backed proposal module boundaries
     and lineage flow with diagrams.
+  - Workflow event and approval replay idempotency lookup now lives in
+    `src/core/proposals/idempotency.py`.
 - Follow-up:
   - Split lifecycle command handling, async operation handling, delivery projection, report request
     projection, and execution handoff helpers into smaller domain modules.

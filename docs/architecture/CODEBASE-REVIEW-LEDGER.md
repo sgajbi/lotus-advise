@@ -1072,3 +1072,29 @@
     useful to engineering, operations, pre-sales, and client-demo preparation.
 - Follow-Up:
   - Publish the repo-local wiki after merge to `main` using the governed wiki publication flow.
+
+## LA-REV-041
+
+- Scope: Proposal replay idempotency lookup
+- Pattern: modularity problem / idempotency hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Workflow event and approval replay lookup for idempotent lifecycle calls was embedded in
+  `ProposalWorkflowService`, including latest-match scan behavior and request-hash conflict
+  detection. Those rules are deterministic over append-only event and approval history and should be
+  testable outside repository orchestration.
+- Evidence:
+  - `src/core/proposals/idempotency.py` now owns replay lookup for workflow events and approvals,
+    plus the bounded replay hash conflict error.
+  - `src/core/proposals/service.py` now delegates replay lookup and translates replay hash conflicts
+    into the existing service-level `ProposalIdempotencyConflictError`.
+  - `tests/unit/advisory/engine/test_engine_proposal_idempotency.py` directly proves latest matching
+    event/approval replay behavior, empty idempotency-key behavior, and hash conflict behavior.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\engine\test_engine_proposal_idempotency.py tests\unit\advisory\engine\test_engine_proposal_workflow_service.py -q`.
+- Consequence:
+  - Idempotency replay semantics are now explicit proposal-domain logic instead of service-private
+    list scanning.
+- Follow-Up:
+  - Continue extracting only deterministic replay or validation logic where repository interaction
+    remains clearly owned by the service.
