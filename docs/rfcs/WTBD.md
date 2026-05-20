@@ -73,7 +73,26 @@ recorded here with enough detail for later owner-specific slices.
   - Preserve RFC-0082 authority boundaries: source facts stay in `lotus-core`; advisory context
     translation stays in `lotus-advise`.
 
-## WTBD-003: Keep Gateway And Workbench Capability Consumers Aligned
+## WTBD-003: Continue Workspace Service Decomposition
+
+- Owning repository: `lotus-advise`
+- Finding class: modularity problem
+- Current evidence:
+  - `src/api/services/workspace_service.py` remains a large API service that mixes workspace draft
+    mutation, evaluation orchestration, replay evidence, saved-version handling, lifecycle handoff,
+    and identifier generation.
+- Progress:
+  - Workspace identifier factories now live in `src/core/workspace/identifiers.py` and cover
+    workspace session, trade draft, cash-flow draft, and saved-version identifiers.
+  - Workspace reevaluation now uses the shared proposal correlation resolver so workspace-originated
+    proposal simulations follow the same correlation ID policy as proposal-originated simulations.
+- Follow-up:
+  - Split replay evidence construction, handoff request assembly, and draft action mutation into
+    explicit workspace modules where tests can pin behavior outside the API service.
+  - Preserve existing workspace API contracts and lifecycle handoff semantics while reducing service
+    size.
+
+## WTBD-004: Keep Gateway And Workbench Capability Consumers Aligned
 
 - Owning repositories: `lotus-gateway`, `lotus-workbench`
 - Current action: read-only observation only; no issue has been confirmed in those repositories in

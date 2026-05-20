@@ -1233,3 +1233,33 @@
 - Follow-Up:
   - Continue removing service-private wrappers only where they do not provide persistence,
     orchestration, or error-translation boundary value.
+
+## LA-REV-047
+
+- Scope: Workspace identifier factories
+- Pattern: duplicate logic / workspace lineage hardening
+- Status: Hardened
+- Finding Class: duplicate logic
+- Summary: Workspace session, trade draft, cash-flow draft, and saved-version identifiers were
+  generated inline inside `src/api/services/workspace_service.py`. Those identifiers are part of
+  workspace replay evidence, lifecycle handoff lineage, and client-facing workspace URLs, so their
+  prefix policy should be explicit and testable outside the API service implementation.
+- Evidence:
+  - `src/core/workspace/identifiers.py` now owns workspace identifier factories for `aws`, `wtd`,
+    `wcf`, and `awv` prefixes.
+  - `src/api/services/workspace_service.py` now uses those factories when creating sessions, draft
+    trade rows, draft cash-flow rows, and saved workspace versions.
+  - `src/api/services/workspace_service.py` now uses the shared proposal correlation resolver for
+    workspace reevaluation correlation IDs, aligning workspace-originated simulation lineage with
+    proposal-originated simulation lineage.
+  - `tests/unit/advisory/api/test_workspace_identifiers.py` directly proves governed prefix and
+    suffix shape for every workspace identifier factory.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\api\test_workspace_identifiers.py tests\unit\advisory\api\test_workspace_service.py tests\unit\advisory\api\test_api_workspace.py -q`.
+- Consequence:
+  - Workspace lineage identifiers now have a single explicit policy point and no inline UUID
+    formatting inside the workspace service.
+- Follow-Up:
+  - Continue decomposing `workspace_service.py` around replay evidence, handoff orchestration, and
+    draft action handling only where the extraction reduces real coupling and keeps API behavior
+    stable.

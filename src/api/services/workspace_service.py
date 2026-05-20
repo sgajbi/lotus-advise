@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, cast
 from typing import OrderedDict as OrderedDictType
-from uuid import uuid4
 
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.advisory.policy_context import ProposalPolicySelectors
@@ -21,9 +20,16 @@ from src.core.proposals.context import (
     build_context_resolution_evidence,
     canonicalize_simulation_request_payload,
 )
+from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.models import ProposalCreateMetadata, ProposalResolvedContext
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import build_workspace_saved_version_replay_response
+from src.core.workspace.identifiers import (
+    new_workspace_cash_flow_id,
+    new_workspace_id,
+    new_workspace_trade_id,
+    new_workspace_version_id,
+)
 from src.core.workspace.models import (
     WorkspaceCashFlowDraft,
     WorkspaceCompareDiffSummary,
@@ -134,14 +140,14 @@ def _build_draft_state_from_simulate_request(
         ),
         trade_drafts=[
             WorkspaceTradeDraft(
-                workspace_trade_id=f"wtd_{uuid4().hex[:12]}",
+                workspace_trade_id=new_workspace_trade_id(),
                 trade=trade.model_copy(deep=True),
             )
             for trade in simulate_request.proposed_trades
         ],
         cash_flow_drafts=[
             WorkspaceCashFlowDraft(
-                workspace_cash_flow_id=f"wcf_{uuid4().hex[:12]}",
+                workspace_cash_flow_id=new_workspace_cash_flow_id(),
                 cash_flow=cash_flow.model_copy(deep=True),
             )
             for cash_flow in simulate_request.proposed_cash_flows
@@ -465,7 +471,7 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
     request_hash = hash_canonical_payload(
         canonicalize_simulation_request_payload(resolved=resolved_request)
     )
-    correlation_id = f"corr_{uuid4().hex[:12]}"
+    correlation_id = resolve_correlation_id(None)
     result = evaluate_advisory_proposal(
         request=simulate_request,
         request_hash=request_hash,
@@ -581,7 +587,7 @@ def create_workspace_session(
             )
 
     session = WorkspaceSession(
-        workspace_id=f"aws_{uuid4().hex[:12]}",
+        workspace_id=new_workspace_id(),
         workspace_name=request.workspace_name,
         lifecycle_state="ACTIVE",
         input_mode=request.input_mode,
@@ -614,7 +620,7 @@ def apply_workspace_draft_action(
         assert request.trade is not None
         draft_state.trade_drafts.append(
             WorkspaceTradeDraft(
-                workspace_trade_id=f"wtd_{uuid4().hex[:12]}",
+                workspace_trade_id=new_workspace_trade_id(),
                 trade=request.trade.model_copy(deep=True),
             )
         )
@@ -636,7 +642,7 @@ def apply_workspace_draft_action(
         assert request.cash_flow is not None
         draft_state.cash_flow_drafts.append(
             WorkspaceCashFlowDraft(
-                workspace_cash_flow_id=f"wcf_{uuid4().hex[:12]}",
+                workspace_cash_flow_id=new_workspace_cash_flow_id(),
                 cash_flow=request.cash_flow.model_copy(deep=True),
             )
         )
@@ -674,7 +680,7 @@ def save_workspace_version(
         else _build_replay_evidence(session)
     )
     saved_version = WorkspaceSavedVersion(
-        workspace_version_id=f"awv_{uuid4().hex[:12]}",
+        workspace_version_id=new_workspace_version_id(),
         version_number=len(session.saved_versions) + 1,
         version_label=request.version_label,
         saved_by=request.saved_by,
