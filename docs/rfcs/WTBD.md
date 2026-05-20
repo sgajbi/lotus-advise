@@ -88,6 +88,8 @@ recorded here with enough detail for later owner-specific slices.
     proposal simulations follow the same correlation ID policy as proposal-originated simulations.
   - Workspace replay evidence, draft-state hashing, saved-version matching, and handoff continuity
     now live in `src/core/workspace/replay.py`.
+  - Workspace saved-version summary refresh and saved-version lookup now live in
+    `src/core/workspace/versions.py`.
 - Follow-up:
   - Split replay evidence construction, handoff request assembly, and draft action mutation into
     explicit workspace modules where tests can pin behavior outside the API service.

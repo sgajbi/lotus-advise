@@ -1290,3 +1290,30 @@
 - Follow-Up:
   - Continue extracting workspace handoff request assembly and draft mutation only where direct
     tests can prove behavior more clearly than API-level coverage alone.
+
+## LA-REV-049
+
+- Scope: Workspace saved-version metadata and lookup
+- Pattern: modularity problem / saved-version lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Saved-version summary refresh and saved-version lookup lived inside
+  `src/api/services/workspace_service.py`, even though they are deterministic workspace-domain
+  rules used by save, list, compare, resume, and replay-evidence flows. Keeping them in the large
+  API service made saved-version behavior harder to test directly.
+- Evidence:
+  - `src/core/workspace/versions.py` now owns saved-version summary construction, latest-version
+    metadata refresh, saved-version lookup, and the bounded lookup error.
+  - `src/api/services/workspace_service.py` now delegates saved-version lookup and metadata refresh
+    to the workspace versions module while preserving the existing API-service
+    `WorkspaceSavedVersionNotFoundError` translation.
+  - `tests/unit/advisory/api/test_workspace_versions.py` directly proves latest saved-version
+    metadata refresh and missing saved-version lookup behavior.
+  - Targeted proof passed with
+    `python -m pytest tests\unit\advisory\api\test_workspace_versions.py tests\unit\advisory\api\test_workspace_service.py tests\unit\advisory\api\test_api_workspace.py -q`.
+- Consequence:
+  - Workspace saved-version behavior now has a reusable module boundary and direct tests, while
+    API behavior and error vocabulary remain unchanged.
+- Follow-Up:
+  - Continue extracting workspace draft mutation and handoff request assembly only where it reduces
+    service coupling and preserves current API contracts.

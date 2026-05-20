@@ -46,7 +46,6 @@ from src.core.workspace.models import (
     WorkspaceResumeRequest,
     WorkspaceSavedVersion,
     WorkspaceSavedVersionListResponse,
-    WorkspaceSavedVersionSummary,
     WorkspaceSaveRequest,
     WorkspaceSaveResponse,
     WorkspaceSession,
@@ -60,6 +59,11 @@ from src.core.workspace.replay import (
     apply_workspace_handoff_replay_lineage,
     build_replay_evidence,
     build_workspace_handoff_replay_lineage,
+)
+from src.core.workspace.versions import (
+    WorkspaceSavedVersionLookupError,
+    find_saved_version,
+    refresh_saved_version_metadata,
 )
 from src.integrations.lotus_core import (
     LotusCoreContextResolutionError,
@@ -313,25 +317,6 @@ def _require_handoff_simulate_request(
     return simulate_request
 
 
-def _build_saved_version_summary(
-    version: WorkspaceSavedVersion,
-) -> WorkspaceSavedVersionSummary:
-    return WorkspaceSavedVersionSummary(
-        workspace_version_id=version.workspace_version_id,
-        version_number=version.version_number,
-        version_label=version.version_label,
-        saved_by=version.saved_by,
-        saved_at=version.saved_at,
-    )
-
-
-def _refresh_saved_version_metadata(session: WorkspaceSession) -> None:
-    session.saved_version_count = len(session.saved_versions)
-    session.latest_saved_version = (
-        _build_saved_version_summary(session.saved_versions[-1]) if session.saved_versions else None
-    )
-
-
 def _build_proposal_create_request(
     session: WorkspaceSession,
     request: WorkspaceLifecycleHandoffRequest,
@@ -430,17 +415,10 @@ def _find_saved_version(
     session: WorkspaceSession,
     workspace_version_id: str,
 ) -> WorkspaceSavedVersion:
-    saved_version = next(
-        (
-            item
-            for item in session.saved_versions
-            if item.workspace_version_id == workspace_version_id
-        ),
-        None,
-    )
-    if saved_version is None:
-        raise WorkspaceSavedVersionNotFoundError("WORKSPACE_SAVED_VERSION_NOT_FOUND")
-    return saved_version
+    try:
+        return find_saved_version(session, workspace_version_id)
+    except WorkspaceSavedVersionLookupError as exc:
+        raise WorkspaceSavedVersionNotFoundError("WORKSPACE_SAVED_VERSION_NOT_FOUND") from exc
 
 
 def _find_trade_draft(
@@ -616,7 +594,7 @@ def save_workspace_version(
         replay_evidence=replay_evidence,
     )
     session.saved_versions.append(saved_version)
-    _refresh_saved_version_metadata(session)
+    refresh_saved_version_metadata(session)
     _save_workspace_session(session)
     return WorkspaceSaveResponse(workspace=session, saved_version=saved_version)
 
