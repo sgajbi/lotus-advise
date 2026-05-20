@@ -102,6 +102,7 @@ from src.core.proposals.projections import (
     to_async_accepted_response,
     to_async_status_response,
     to_create_response,
+    to_idempotency_lookup_response,
     to_proposal_summary,
     to_version_detail,
     to_workflow_event,
@@ -631,13 +632,7 @@ class ProposalWorkflowService:
         record = self._repository.get_idempotency(idempotency_key=idempotency_key)
         if record is None:
             raise ProposalNotFoundError("PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND")
-        return ProposalIdempotencyLookupResponse(
-            idempotency_key=record.idempotency_key,
-            request_hash=record.request_hash,
-            proposal_id=record.proposal_id,
-            proposal_version_no=record.proposal_version_no,
-            created_at=record.created_at.isoformat(),
-        )
+        return to_idempotency_lookup_response(record)
 
     def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
         operation = self._repository.get_operation(operation_id=operation_id)

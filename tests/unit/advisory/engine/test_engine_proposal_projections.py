@@ -4,6 +4,7 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalCreateRequest,
+    ProposalIdempotencyRecord,
     ProposalRecord,
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
@@ -16,6 +17,7 @@ from src.core.proposals.projections import (
     to_async_accepted_response,
     to_async_status_response,
     to_create_response,
+    to_idempotency_lookup_response,
     to_proposal_summary,
     to_version_detail,
     to_workflow_event,
@@ -206,6 +208,26 @@ def test_to_create_response_projects_created_aggregate_version_and_event():
     assert response.proposal.proposal_id == created.proposal.proposal_id
     assert response.version.evidence_bundle == version.evidence_bundle_json
     assert response.latest_workflow_event.event_type == "CREATED"
+
+
+def test_to_idempotency_lookup_response_projects_audit_record():
+    response = to_idempotency_lookup_response(
+        ProposalIdempotencyRecord(
+            idempotency_key="idem_projection",
+            request_hash="sha256:req_projection",
+            proposal_id="pp_projection",
+            proposal_version_no=2,
+            created_at=datetime(2026, 5, 20, 9, 6, tzinfo=timezone.utc),
+        )
+    )
+
+    assert response.model_dump(mode="json") == {
+        "idempotency_key": "idem_projection",
+        "request_hash": "sha256:req_projection",
+        "proposal_id": "pp_projection",
+        "proposal_version_no": 2,
+        "created_at": "2026-05-20T09:06:00+00:00",
+    }
 
 
 def test_build_proposal_lineage_response_projects_complete_version_history():

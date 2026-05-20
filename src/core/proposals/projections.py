@@ -9,6 +9,8 @@ from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
     ProposalAsyncOperationStatusResponse,
     ProposalCreateResponse,
+    ProposalIdempotencyLookupResponse,
+    ProposalIdempotencyRecord,
     ProposalLineageResponse,
     ProposalRecord,
     ProposalSummary,
@@ -99,6 +101,18 @@ def to_create_response(
         proposal=to_proposal_summary(proposal),
         version=to_version_detail(version, include_evidence=True),
         latest_workflow_event=to_workflow_event(latest_event),
+    )
+
+
+def to_idempotency_lookup_response(
+    record: ProposalIdempotencyRecord,
+) -> ProposalIdempotencyLookupResponse:
+    return ProposalIdempotencyLookupResponse(
+        idempotency_key=record.idempotency_key,
+        request_hash=record.request_hash,
+        proposal_id=record.proposal_id,
+        proposal_version_no=record.proposal_version_no,
+        created_at=record.created_at.isoformat(),
     )
 
 

@@ -1731,3 +1731,25 @@
 - Follow-Up:
   - Continue decomposing proposal service command paths only where the extraction can preserve
     idempotency, expected-state, and workflow transition semantics exactly.
+
+## LA-REV-066
+
+- Scope: Proposal idempotency lookup projection
+- Pattern: modularity problem / auditability hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Proposal idempotency lookup response assembly lived directly in
+  `src/core/proposals/service.py`, leaving audit timestamp formatting and response DTO construction
+  in the workflow service even after other proposal read-model projections were centralized.
+- Evidence:
+  - `src/core/proposals/projections.py` now owns `to_idempotency_lookup_response`.
+  - `src/core/proposals/service.py` now delegates idempotency lookup response assembly after
+    repository lookup and not-found translation.
+  - `tests/unit/advisory/engine/test_engine_proposal_projections.py` directly proves idempotency
+    key, request hash, proposal/version identity, and UTC audit timestamp projection.
+- Consequence:
+  - Idempotency lookup formatting is reusable and covered with the other proposal projection
+    helpers, and service code retains only repository lookup plus error translation.
+- Follow-Up:
+  - Keep idempotency conflict detection in command paths and the dedicated idempotency helper module;
+    only response projection belongs here.
