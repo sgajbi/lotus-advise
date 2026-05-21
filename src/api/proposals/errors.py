@@ -3,7 +3,7 @@ from typing import NoReturn
 from fastapi import HTTPException, status
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
-from src.core.proposals import (
+from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalStateConflictError,

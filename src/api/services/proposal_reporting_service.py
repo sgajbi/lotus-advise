@@ -1,9 +1,9 @@
 from src.core.proposals import (
-    ProposalNotFoundError,
     ProposalReportRequest,
     ProposalReportResponse,
     ProposalWorkflowService,
 )
+from src.core.proposals.exceptions import ProposalNotFoundError
 from src.core.proposals.identifiers import new_report_request_id
 from src.integrations.lotus_report import request_proposal_report_with_lotus_report
 

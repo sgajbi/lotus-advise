@@ -180,6 +180,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal lifecycle exception vocabulary now lives in `src/core/proposals/exceptions.py`,
     keeping API-facing error taxonomy reusable without requiring callers to depend on the workflow
     service implementation module.
+  - API routers, workspace routing, and proposal-reporting support now import proposal exceptions
+    directly from `src/core/proposals/exceptions.py`, with an import-boundary test preventing
+    service/package coupling from returning.
   - Report-request event creation and aggregate timestamp mutation now live behind
     `build_report_request_event_and_apply_state` in `src/core/proposals/reporting.py`, keeping
     report command state logic out of the workflow service.

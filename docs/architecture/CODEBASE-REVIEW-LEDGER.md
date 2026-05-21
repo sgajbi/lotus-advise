@@ -3326,3 +3326,26 @@
 - Follow-Up:
   - Move router imports to `src.core.proposals.exceptions` in a later compatibility-preserving
     cleanup once service refactoring stabilizes.
+
+## LA-REV-135
+
+- Scope: API proposal exception import boundaries
+- Pattern: modularity / dependency-flow hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: API routers, workspace routing, and proposal-reporting support still imported proposal
+  exception vocabulary through the package facade, leaving API error handling coupled to broad
+  package exports instead of the dedicated exception taxonomy module.
+- Evidence:
+  - `src/api/proposals/errors.py`, proposal lifecycle/async/delivery/support routers,
+    `src/api/workspaces/router.py`, and `src/api/services/proposal_reporting_service.py` now
+    import proposal exceptions from `src.core.proposals.exceptions`.
+  - `tests/unit/advisory/api/test_proposal_exception_import_boundaries.py` prevents API modules
+    from reintroducing proposal exception imports through the package facade.
+  - Existing API error handling and proposal lifecycle tests verify HTTP behavior remains stable.
+- Consequence:
+  - API-facing error mapping now depends on a narrow domain vocabulary module rather than the
+    workflow service/package facade, reducing import coupling and startup side effects.
+- Follow-Up:
+  - Consider moving engine tests to the exception module for exception imports once the service
+    compatibility shim is no longer needed by downstream callers.

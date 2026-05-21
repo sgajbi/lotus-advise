@@ -12,13 +12,15 @@ from src.core.proposals import (
     ProposalExecutionHandoffResponse,
     ProposalExecutionStatusResponse,
     ProposalExecutionUpdateRequest,
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
     ProposalReportRequest,
     ProposalReportResponse,
+    ProposalWorkflowService,
+)
+from src.core.proposals.exceptions import (
+    ProposalIdempotencyConflictError,
+    ProposalNotFoundError,
     ProposalStateConflictError,
     ProposalValidationError,
-    ProposalWorkflowService,
 )
 from src.integrations.lotus_report import LotusReportUnavailableError
 

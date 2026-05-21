@@ -8,10 +8,10 @@ from src.core.proposals import (
     ProposalApprovalsResponse,
     ProposalIdempotencyLookupResponse,
     ProposalLineageResponse,
-    ProposalNotFoundError,
     ProposalWorkflowService,
     ProposalWorkflowTimelineResponse,
 )
+from src.core.proposals.exceptions import ProposalNotFoundError
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 
 
