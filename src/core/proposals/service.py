@@ -3,6 +3,7 @@ from typing import Any, Optional, cast
 
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
+from src.core.proposals.approval_read_model import load_proposal_approval_read_model
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
@@ -447,12 +448,15 @@ class ProposalWorkflowService:
         return build_workflow_timeline_response(proposal=proposal, events=events)
 
     def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        approval_read_model = load_proposal_approval_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+        )
+        if approval_read_model.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
         return build_approvals_response(
-            proposal=proposal,
-            approvals=self._repository.list_approvals(proposal_id=proposal_id),
+            proposal=approval_read_model.proposal,
+            approvals=approval_read_model.approvals,
         )
 
     def get_lineage(self, *, proposal_id: str) -> ProposalLineageResponse:

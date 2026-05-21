@@ -2678,3 +2678,24 @@
 - Follow-Up:
   - Revisit activity read-model pagination once production-sized proposal event histories are
     certified.
+
+## LA-REV-106
+
+- Scope: Proposal approval read-model loading
+- Pattern: duplication / read-model hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: Approval posture reads loaded proposal and approval records directly in
+  `ProposalWorkflowService`, keeping private-banking approval read-model assembly in the service.
+- Evidence:
+  - `src/core/proposals/approval_read_model.py` now owns proposal approval read-model loading.
+  - `src/core/proposals/service.py` delegates approval loading before projecting the approvals
+    response.
+  - `tests/unit/advisory/engine/test_engine_proposal_approval_read_model.py` covers ordered
+    approval loading and missing-proposal boundaries.
+- Consequence:
+  - Approval posture has a reusable domain read boundary that can later absorb pagination,
+    approval filtering, or audit enrichment without growing the workflow service.
+- Follow-Up:
+  - Keep approval replay/idempotency lookup separate until approval audit enrichment requirements
+    are clearer.

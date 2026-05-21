@@ -124,6 +124,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal activity read-model loading now lives in
     `src/core/proposals/activity_read_model.py`, reducing repeated proposal/event loading across
     execution status, delivery summary/history, and execution-update replay paths.
+  - Proposal approval read-model loading now lives in
+    `src/core/proposals/approval_read_model.py`, keeping approval posture repository loading out of
+    the workflow service.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.
