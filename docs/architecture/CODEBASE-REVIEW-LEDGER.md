@@ -2657,3 +2657,24 @@
 - Follow-Up:
   - Review delivery summary/history/report request read paths for similar reusable read-model
     boundaries once replay extraction settles.
+
+## LA-REV-105
+
+- Scope: Proposal activity read-model loading
+- Pattern: duplication / read-model hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: Execution status, delivery summary, delivery history, and execution update replay
+  loaded proposal and workflow events independently in the workflow service.
+- Evidence:
+  - `src/core/proposals/activity_read_model.py` now owns proposal activity read-model loading.
+  - `src/core/proposals/service.py` reuses that loader across execution status, delivery
+    summary/history, and execution update handling.
+  - `tests/unit/advisory/engine/test_engine_proposal_activity_read_model.py` covers ordered event
+    loading and missing-proposal boundaries.
+- Consequence:
+  - Proposal activity read paths now share one tested repository boundary, reducing duplicated
+    service orchestration and making later event pagination/caching changes easier to isolate.
+- Follow-Up:
+  - Revisit activity read-model pagination once production-sized proposal event histories are
+    certified.
