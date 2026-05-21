@@ -3679,3 +3679,27 @@
 - Follow-Up:
   - Reopen only if the Advise capability response shape changes or a downstream surface starts
     deriving advisory readiness from local feature flags instead of source-backed supportability.
+
+## LA-REV-147
+
+- Scope: WTBD ledger closure governance
+- Pattern: documentation contract hardening
+- Status: Hardened
+- Finding Class: governance drift
+- Summary: The WTBD ledger had closed each recorded item, but it still required manual reading to
+  prove that every WTBD carried an explicit closed disposition. That left future refactor agents
+  vulnerable to reopening already-closed work or leaving observation-only downstream language behind.
+- Evidence:
+  - `docs/rfcs/WTBD.md` now has a Closure Register for WTBD-001 through WTBD-004 with owner,
+    status, and closure evidence.
+  - Each WTBD section now carries an explicit `Status: Closed` marker.
+  - `tests/unit/test_wtbd_ledger_contract.py` parses the ledger and fails if a recorded WTBD lacks
+    closed status or if stale observation-only / unconfirmed-defect language is reintroduced.
+- Consequence:
+  - Advise WTBD closure is now test-pinned instead of relying on manual narrative inspection.
+- Documentation:
+  - No wiki change is required for this governance guardrail because it changes the internal RFC
+    ledger contract, not the public API, feature, or operator-facing wiki truth.
+- Follow-Up:
+  - Add new WTBD entries only with an explicit status and owner, and update the closure register in
+    the same slice when a WTBD is closed.

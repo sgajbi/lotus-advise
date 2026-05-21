@@ -4,9 +4,19 @@ This ledger records follow-up work discovered during `lotus-advise` hardening. O
 repositories remain read-only for this refactor program; upstream or downstream issues must be
 recorded here with enough detail for later owner-specific slices.
 
+## Closure Register
+
+| WTBD | Owner | Status | Closure evidence |
+| --- | --- | --- | --- |
+| WTBD-001 | `lotus-advise` | Closed | Proposal workflow and contract model decomposition completed; public proposal imports remain stable. |
+| WTBD-002 | `lotus-advise` | Closed | Stateful context adapter decomposition completed for the recorded source-read, taxonomy, hydration, and cache-policy scope. |
+| WTBD-003 | `lotus-advise` | Closed | Workspace API service decomposition completed for facade, context-resolution, and lifecycle-handoff boundaries. |
+| WTBD-004 | `lotus-gateway`, `lotus-workbench` | Closed | Gateway capability query alignment fixed and Workbench consumer posture verified read-only. |
+
 ## WTBD-001: Continue Proposal Service Decomposition
 
 - Owning repository: `lotus-advise`
+- Status: Closed
 - Finding class: modularity problem
 - Current evidence:
   - `src/core/proposals/service.py` is now a smaller workflow facade over named command,
@@ -319,6 +329,7 @@ recorded here with enough detail for later owner-specific slices.
 ## WTBD-002: Continue Stateful Context Adapter Decomposition
 
 - Owning repository: `lotus-advise`
+- Status: Closed
 - Finding class: query/performance risk
 - Current evidence:
   - `src/integrations/lotus_core/stateful_context.py` is now a thin orchestration adapter for
@@ -357,6 +368,7 @@ recorded here with enough detail for later owner-specific slices.
 ## WTBD-003: Continue Workspace Service Decomposition
 
 - Owning repository: `lotus-advise`
+- Status: Closed
 - Finding class: modularity problem
 - Current evidence:
   - `src/api/services/workspace_service.py` is now a thin API service facade for session lookup,
@@ -416,6 +428,7 @@ recorded here with enough detail for later owner-specific slices.
 ## WTBD-004: Keep Gateway And Workbench Capability Consumers Aligned
 
 - Owning repositories: `lotus-gateway`, `lotus-workbench`
+- Status: Closed
 - Current action: closed with downstream evidence on 2026-05-21.
 - Evidence:
   - `lotus-gateway` read-only review confirmed
