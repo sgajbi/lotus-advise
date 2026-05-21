@@ -112,6 +112,9 @@ recorded here with enough detail for later owner-specific slices.
     orchestration invocation out of the workflow service.
   - The stale service-private simulation execution wrapper has been removed; create and version
     flows now call the proposal-domain simulation execution boundary directly.
+  - Proposal artifact and evidence-bundle materialization now lives in
+    `src/core/proposals/materialization.py`, removing duplicated create/version artifact and
+    evidence assembly from the workflow service.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.

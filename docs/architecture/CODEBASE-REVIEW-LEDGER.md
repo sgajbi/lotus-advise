@@ -2565,3 +2565,26 @@
 - Follow-Up:
   - Continue removing thin service-private wrappers when extracted domain modules fully own the
     behavior.
+
+## LA-REV-101
+
+- Scope: Proposal version artifact/evidence materialization
+- Pattern: duplication / service-boundary hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: Proposal create and version flows duplicated artifact construction and evidence-bundle
+  enrichment in `ProposalWorkflowService`, coupling proposal materialization mechanics to command
+  orchestration.
+- Evidence:
+  - `src/core/proposals/materialization.py` now owns
+    `build_proposal_version_materialization`.
+  - `src/core/proposals/service.py` delegates artifact and evidence-bundle assembly for both
+    create and version flows.
+  - `tests/unit/advisory/engine/test_engine_proposal_materialization.py` proves artifact creation,
+    evidence enrichment inputs, context override, and replay lineage are passed through.
+- Consequence:
+  - Create and version flows share one materialization path before immutable version-record
+    construction, reducing duplicated evidence assembly logic in the workflow service.
+- Follow-Up:
+  - Keep version-record persistence and transaction ordering in the service until a broader
+    create/version command handler owns the full proposal-build transaction.

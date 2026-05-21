@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
-from src.core.advisory.artifact import build_proposal_artifact
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
@@ -42,7 +41,6 @@ from src.core.proposals.delivery_summary import (
     build_delivery_history_response,
     build_delivery_summary_response,
 )
-from src.core.proposals.evidence import build_proposal_evidence_bundle
 from src.core.proposals.execution_handoff import (
     ProposalExecutionHandoffStateError,
     apply_execution_handoff_state,
@@ -100,6 +98,7 @@ from src.core.proposals.lifecycle_events import (
     build_state_transition_request_hash,
     build_state_transition_response,
 )
+from src.core.proposals.materialization import build_proposal_version_materialization
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
@@ -264,14 +263,10 @@ class ProposalWorkflowService:
             correlation_id=correlation_id,
             policy_context=context_resolution["advisory_policy_context"],
         )
-        artifact = build_proposal_artifact(
+        materialization = build_proposal_version_materialization(
             request=resolved_request.simulate_request,
             proposal_result=proposal_result,
-            created_at=now.isoformat(),
-        )
-        evidence_bundle = build_proposal_evidence_bundle(
-            artifact_evidence_bundle=artifact.evidence_bundle,
-            proposal_result=proposal_result,
+            created_at=now,
             context_resolution=context_resolution,
             context_resolution_override=context_resolution_override,
             replay_lineage=replay_lineage,
@@ -298,8 +293,8 @@ class ProposalWorkflowService:
             version_no=version_no,
             request_hash=request_hash,
             proposal_result=proposal_result,
-            artifact=artifact.model_dump(mode="json"),
-            evidence_bundle=evidence_bundle,
+            artifact=materialization.artifact.model_dump(mode="json"),
+            evidence_bundle=materialization.evidence_bundle,
             created_at=now,
             store_evidence_bundle=self._store_evidence_bundle,
         )
@@ -720,14 +715,10 @@ class ProposalWorkflowService:
             correlation_id=correlation_id,
             policy_context=context_resolution["advisory_policy_context"],
         )
-        artifact = build_proposal_artifact(
+        materialization = build_proposal_version_materialization(
             request=resolved_request.simulate_request,
             proposal_result=proposal_result,
-            created_at=now.isoformat(),
-        )
-        evidence_bundle = build_proposal_evidence_bundle(
-            artifact_evidence_bundle=artifact.evidence_bundle,
-            proposal_result=proposal_result,
+            created_at=now,
             context_resolution=context_resolution,
             context_resolution_override=context_resolution_override,
             replay_lineage=replay_lineage,
@@ -740,8 +731,8 @@ class ProposalWorkflowService:
             version_no=next_version_no,
             request_hash=request_hash,
             proposal_result=proposal_result,
-            artifact=artifact.model_dump(mode="json"),
-            evidence_bundle=evidence_bundle,
+            artifact=materialization.artifact.model_dump(mode="json"),
+            evidence_bundle=materialization.evidence_bundle,
             created_at=now,
             store_evidence_bundle=self._store_evidence_bundle,
         )
