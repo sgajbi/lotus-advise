@@ -1,5 +1,7 @@
 from datetime import datetime
+from typing import cast
 
+from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
@@ -10,6 +12,10 @@ from src.core.proposals.models import (
     ProposalWorkflowState,
 )
 from src.core.proposals.projections import to_approval_record, to_workflow_event
+
+
+def build_state_transition_request_hash(*, payload: ProposalStateTransitionRequest) -> str:
+    return cast(str, hash_canonical_payload(payload.model_dump(mode="json")))
 
 
 def build_proposal_created_event(

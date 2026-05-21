@@ -86,6 +86,9 @@ recorded here with enough detail for later owner-specific slices.
   - Generic lifecycle transition aggregate state mutation now lives in
     `src/core/proposals/lifecycle_events.py`, keeping state and last-event timestamp mutation out of
     the workflow service for state transitions and approvals.
+  - Generic proposal state-transition canonical request hashing now lives in
+    `src/core/proposals/lifecycle_events.py`, keeping transition replay hash construction beside
+    transition event construction.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.

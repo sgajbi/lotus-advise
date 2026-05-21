@@ -95,6 +95,7 @@ from src.core.proposals.lifecycle_events import (
     build_new_version_created_event,
     build_proposal_created_event,
     build_state_transition_event,
+    build_state_transition_request_hash,
     build_state_transition_response,
 )
 from src.core.proposals.models import (
@@ -874,7 +875,7 @@ class ProposalWorkflowService:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        request_hash = build_state_transition_request_hash(payload=payload)
         replay_event = self._get_replayed_event(
             proposal_id=proposal_id,
             idempotency_key=idempotency_key,

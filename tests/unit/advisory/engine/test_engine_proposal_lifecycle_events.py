@@ -8,6 +8,7 @@ from src.core.proposals.lifecycle_events import (
     build_new_version_created_event,
     build_proposal_created_event,
     build_state_transition_event,
+    build_state_transition_request_hash,
     build_state_transition_response,
 )
 from src.core.proposals.models import (
@@ -120,6 +121,22 @@ def test_build_state_transition_event_preserves_reason_and_idempotency_metadata(
         "idempotency_key": "idem_lifecycle",
         "idempotency_request_hash": "sha256:lifecycle",
     }
+
+
+def test_build_state_transition_request_hash_is_canonical_and_reason_sensitive():
+    first_hash = build_state_transition_request_hash(
+        payload=_transition_request(reason={"b": "second", "a": "first"})
+    )
+    reordered_hash = build_state_transition_request_hash(
+        payload=_transition_request(reason={"a": "first", "b": "second"})
+    )
+    changed_hash = build_state_transition_request_hash(
+        payload=_transition_request(reason={"a": "first", "b": "changed"})
+    )
+
+    assert first_hash.startswith("sha256:")
+    assert first_hash == reordered_hash
+    assert first_hash != changed_hash
 
 
 def test_build_state_transition_response_projects_latest_event():

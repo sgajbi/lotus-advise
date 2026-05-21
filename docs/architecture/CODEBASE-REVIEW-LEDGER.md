@@ -2355,3 +2355,26 @@
 - Follow-Up:
   - Keep replay lookup ordering and repository orchestration in the service until the complete
     execution update command boundary can be extracted without changing API behavior.
+
+## LA-REV-092
+
+- Scope: State-transition canonical request hashing
+- Pattern: modularity problem / replay-lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.transition_state` directly built the canonical request hash
+  used for transition replay lookup and workflow-event lineage, while transition event construction
+  already lived in `src/core/proposals/lifecycle_events.py`.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now owns `build_state_transition_request_hash`.
+  - `src/core/proposals/service.py` delegates generic state-transition request hashing before
+    replay lookup and event construction.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` directly proves canonical
+    ordering stability and sensitivity to changed transition reason details.
+- Consequence:
+  - Generic transition replay hashing is centralized beside transition event construction and
+    response projection.
+- Follow-Up:
+  - Keep replay lookup ordering, expected-state validation, transition-rule resolution, and
+    persistence orchestration in the service until a broader lifecycle command boundary can be
+    extracted without changing API behavior.
