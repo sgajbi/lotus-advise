@@ -2170,3 +2170,26 @@
 - Follow-Up:
   - Keep report request orchestration in the service until reporting provider calls, lifecycle
     timeline projection, and report delivery-history semantics can be characterized together.
+
+## LA-REV-084
+
+- Scope: Execution handoff aggregate timestamp mutation
+- Pattern: modularity problem / execution handoff hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.request_execution_handoff` directly assigned
+  `proposal.last_event_at` after building the execution handoff workflow event, coupling handoff
+  aggregate mutation to service orchestration.
+- Evidence:
+  - `src/core/proposals/execution_handoff.py` now owns `apply_execution_handoff_state`.
+  - `src/core/proposals/service.py` delegates handoff aggregate timestamp mutation while retaining
+    proposal lookup, replay detection, expected-state validation, execution-ready enforcement,
+    event construction, persistence, and response projection.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_handoff.py` directly proves handoff
+    last-event timestamp mutation from the generated workflow event.
+- Consequence:
+  - Execution handoff timestamp policy is centralized beside handoff event construction and
+    response projection, removing another direct aggregate mutation from the workflow service.
+- Follow-Up:
+  - Keep execution-ready validation and replay lookup in the service until a broader execution
+    handoff command policy can preserve current API error ordering and idempotency behavior.

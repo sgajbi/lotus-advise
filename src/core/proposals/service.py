@@ -46,6 +46,7 @@ from src.core.proposals.delivery_summary import (
 )
 from src.core.proposals.evidence import build_proposal_evidence_bundle
 from src.core.proposals.execution_handoff import (
+    apply_execution_handoff_state,
     build_execution_handoff_replay_response,
     build_execution_handoff_requested_event,
     build_execution_handoff_response,
@@ -499,7 +500,7 @@ class ProposalWorkflowService:
             idempotency_key=idempotency_key,
             request_hash=request_hash,
         )
-        proposal.last_event_at = occurred_at
+        apply_execution_handoff_state(proposal=proposal, event=event)
         result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return build_execution_handoff_response(
             proposal=result.proposal,

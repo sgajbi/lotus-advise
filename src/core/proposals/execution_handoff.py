@@ -58,6 +58,14 @@ def build_execution_handoff_requested_event(
     )
 
 
+def apply_execution_handoff_state(
+    *,
+    proposal: ProposalRecord,
+    event: ProposalWorkflowEventRecord,
+) -> None:
+    proposal.last_event_at = event.occurred_at
+
+
 def build_execution_handoff_response(
     *,
     proposal: ProposalRecord,

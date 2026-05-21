@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from src.core.proposals.execution_handoff import (
+    apply_execution_handoff_state,
     build_execution_handoff_replay_response,
     build_execution_handoff_requested_event,
     build_execution_handoff_response,
@@ -87,6 +88,23 @@ def test_build_execution_handoff_requested_event_defaults_to_current_version():
         "execution_provider": "lotus-manage",
         "notes": {},
     }
+
+
+def test_apply_execution_handoff_state_updates_last_event_timestamp():
+    proposal = _proposal()
+    event = build_execution_handoff_requested_event(
+        event_id="pwe_execution_handoff",
+        proposal=proposal,
+        payload=_payload(),
+        occurred_at=datetime(2026, 5, 21, 9, 10, tzinfo=timezone.utc),
+        execution_request_id="pex_execution",
+        idempotency_key=None,
+        request_hash="sha256:handoff",
+    )
+
+    apply_execution_handoff_state(proposal=proposal, event=event)
+
+    assert proposal.last_event_at == event.occurred_at
 
 
 def test_execution_handoff_response_projects_recorded_event():

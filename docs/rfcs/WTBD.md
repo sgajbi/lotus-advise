@@ -53,6 +53,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal execution handoff replay response, requested-event construction, and accepted response
     projection now live in `src/core/proposals/execution_handoff.py`, while the workflow service
     retains lookup, idempotency replay detection, expected-state validation, and persistence.
+  - Proposal execution handoff aggregate timestamp mutation now lives in
+    `src/core/proposals/execution_handoff.py`, keeping handoff event-time state mutation out of the
+    workflow service.
   - Proposal execution update event construction now lives in
     `src/core/proposals/execution_update.py`, while the workflow service retains handoff identity
     matching, terminal-state rejection, timestamp ordering, replay detection, and persistence.
