@@ -12,6 +12,7 @@ from src.core.proposals.async_operations import (
     build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
+    is_matching_create_proposal_async_submission,
     is_matching_create_version_async_submission,
     mark_operation_failed,
     mark_operation_succeeded,
@@ -20,7 +21,6 @@ from src.core.proposals.async_payloads import (
     AsyncCreatePayloadResolution,
     AsyncPayloadResolutionFailure,
     AsyncVersionPayloadResolution,
-    extract_async_submission_hash,
     hash_async_create_submission,
     hash_async_version_submission,
     resolve_async_create_payload,
@@ -333,8 +333,11 @@ class ProposalWorkflowService:
             operation
         )
         if not is_new:
-            existing_hash = extract_async_submission_hash(stored_operation)
-            if existing_hash != submission_hash:
+            if not is_matching_create_proposal_async_submission(
+                operation=stored_operation,
+                idempotency_key=idempotency_key,
+                submission_hash=submission_hash,
+            ):
                 self._async_create_submission_stats.record_conflict()
                 raise ProposalIdempotencyConflictError(
                     "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"

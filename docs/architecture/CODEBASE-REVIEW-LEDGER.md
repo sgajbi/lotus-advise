@@ -2900,3 +2900,26 @@
 - Follow-Up:
   - Apply the same explicit replay-identity helper pattern to create-proposal async submissions
     once acceptance metrics and conflict bookkeeping are isolated.
+
+## LA-REV-116
+
+- Scope: Async create-proposal submission replay identity
+- Pattern: service-boundary hardening / idempotency correctness
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.accept_create_proposal_async_submission` checked replayed async
+  create submissions by comparing the submission hash inline, leaving operation type and
+  idempotency-key scope implicit in the service path.
+- Evidence:
+  - `src/core/proposals/async_operations.py` now exposes
+    `is_matching_create_proposal_async_submission`.
+  - `src/core/proposals/service.py` delegates create-proposal async replay matching to the async
+    operations domain helper while retaining acceptance metric bookkeeping.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operations.py` covers type,
+    idempotency-key, and submission-hash mismatch behavior.
+- Consequence:
+  - Create-proposal async idempotency replay identity is directly tested beside async operation
+    construction, matching the create-version replay identity boundary.
+- Follow-Up:
+  - Isolate async acceptance metric bookkeeping once create and version submission acceptance share
+    a broader command handler.

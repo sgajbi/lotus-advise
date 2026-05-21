@@ -8,6 +8,7 @@ from src.core.proposals.async_operations import (
     build_create_proposal_async_operation,
     build_create_version_async_operation,
     extract_async_result_version_no,
+    is_matching_create_proposal_async_submission,
     is_matching_create_version_async_submission,
     mark_operation_failed,
     mark_operation_succeeded,
@@ -157,6 +158,44 @@ def test_build_create_proposal_async_operation_preserves_submission_identity():
     assert operation.finished_at is None
     assert operation.result_json is None
     assert operation.error_json is None
+
+
+def test_is_matching_create_proposal_async_submission_requires_type_key_and_hash():
+    operation = build_create_proposal_async_operation(
+        operation_id="pop_create_async",
+        correlation_id="corr_create_async",
+        idempotency_key="idem_create_async",
+        payload=ProposalCreateRequest(
+            created_by="advisor_async_state",
+            simulate_request=_simulate_request(),
+            metadata={"title": "Async state proposal"},
+        ),
+        submission_hash="sha256:create-submission",
+        created_at=datetime(2026, 5, 20, 9, 0, tzinfo=timezone.utc),
+        max_attempts=3,
+    )
+
+    assert is_matching_create_proposal_async_submission(
+        operation=operation,
+        idempotency_key="idem_create_async",
+        submission_hash="sha256:create-submission",
+    )
+    assert not is_matching_create_proposal_async_submission(
+        operation=operation,
+        idempotency_key="idem_other",
+        submission_hash="sha256:create-submission",
+    )
+    assert not is_matching_create_proposal_async_submission(
+        operation=operation,
+        idempotency_key="idem_create_async",
+        submission_hash="sha256:changed",
+    )
+    operation.operation_type = "CREATE_PROPOSAL_VERSION"
+    assert not is_matching_create_proposal_async_submission(
+        operation=operation,
+        idempotency_key="idem_create_async",
+        submission_hash="sha256:create-submission",
+    )
 
 
 def test_build_create_version_async_operation_scopes_replay_to_proposal():

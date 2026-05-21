@@ -113,6 +113,20 @@ def build_create_version_async_operation(
     )
 
 
+def is_matching_create_proposal_async_submission(
+    *,
+    operation: ProposalAsyncOperationRecord,
+    idempotency_key: str,
+    submission_hash: str | None,
+) -> bool:
+    return (
+        operation.operation_type == "CREATE_PROPOSAL"
+        and operation.idempotency_key == idempotency_key
+        and submission_hash is not None
+        and operation.payload_json.get("submission_hash") == submission_hash
+    )
+
+
 def is_matching_create_version_async_submission(
     *,
     operation: ProposalAsyncOperationRecord,
