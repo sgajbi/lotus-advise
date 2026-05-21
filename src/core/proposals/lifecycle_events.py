@@ -96,6 +96,16 @@ def build_state_transition_response(
     )
 
 
+def apply_lifecycle_transition_state(
+    *,
+    proposal: ProposalRecord,
+    to_state: ProposalWorkflowState,
+    event: ProposalWorkflowEventRecord,
+) -> None:
+    proposal.current_state = to_state
+    proposal.last_event_at = event.occurred_at
+
+
 def build_approval_record(
     *,
     approval_id: str,

@@ -73,6 +73,7 @@ from src.core.proposals.lifecycle import (
     validate_lifecycle_origin,
 )
 from src.core.proposals.lifecycle_events import (
+    apply_lifecycle_transition_state,
     build_approval_record,
     build_approval_transition_event,
     build_approval_transition_response,
@@ -883,8 +884,7 @@ class ProposalWorkflowService:
             idempotency_key=idempotency_key,
             request_hash=request_hash,
         )
-        proposal.current_state = to_state
-        proposal.last_event_at = event.occurred_at
+        apply_lifecycle_transition_state(proposal=proposal, to_state=to_state, event=event)
 
         result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return build_state_transition_response(
@@ -950,8 +950,7 @@ class ProposalWorkflowService:
             idempotency_key=idempotency_key,
             request_hash=request_hash,
         )
-        proposal.current_state = to_state
-        proposal.last_event_at = event.occurred_at
+        apply_lifecycle_transition_state(proposal=proposal, to_state=to_state, event=event)
 
         result = self._repository.transition_proposal(
             proposal=proposal, event=event, approval=approval

@@ -2100,3 +2100,26 @@
 - Follow-Up:
   - Keep proposal lookup and API error mapping in the service until a broader command handler can
     preserve not-found, validation, conflict, and persistence ordering semantics.
+
+## LA-REV-081
+
+- Scope: Lifecycle transition aggregate state mutation
+- Pattern: modularity problem / lifecycle state hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: State-transition and approval command paths directly mutated `proposal.current_state`
+  and `proposal.last_event_at` inside `ProposalWorkflowService`, coupling deterministic aggregate
+  state mutation to workflow orchestration after event construction.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now owns `apply_lifecycle_transition_state`.
+  - `src/core/proposals/service.py` delegates aggregate mutation for generic state transitions and
+    approval transitions while retaining lookup, replay detection, expected-state validation,
+    rule resolution, event construction, and persistence ordering.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` directly proves lifecycle
+    state and last-event timestamp mutation from the generated workflow event.
+- Consequence:
+  - Lifecycle aggregate mutation is centralized beside event construction and response projection,
+    reducing repeated state/timestamp assignment in the workflow service.
+- Follow-Up:
+  - Consider a broader lifecycle command boundary only after execution handoff, execution update,
+    reporting, transition, and approval mutation semantics are all characterized together.

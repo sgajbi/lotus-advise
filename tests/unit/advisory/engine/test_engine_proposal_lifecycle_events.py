@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from src.core.proposals.lifecycle_events import (
+    apply_lifecycle_transition_state,
     build_approval_record,
     build_approval_transition_event,
     build_approval_transition_response,
@@ -145,6 +146,30 @@ def test_build_state_transition_response_projects_latest_event():
     assert response.latest_workflow_event.event_id == "pwe_lifecycle"
     assert response.latest_workflow_event.reason == {"comment": "Risk review"}
     assert response.approval is None
+
+
+def test_apply_lifecycle_transition_state_updates_state_and_event_timestamp():
+    proposal = _proposal()
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_apply_lifecycle",
+        proposal_id=proposal.proposal_id,
+        event_type="SUBMITTED_FOR_RISK_REVIEW",
+        from_state="DRAFT",
+        to_state="RISK_REVIEW",
+        actor_id="advisor_lifecycle",
+        occurred_at=datetime(2026, 5, 21, 9, 11, tzinfo=timezone.utc),
+        reason_json={"comment": "Risk review"},
+        related_version_no=2,
+    )
+
+    apply_lifecycle_transition_state(
+        proposal=proposal,
+        to_state="RISK_REVIEW",
+        event=event,
+    )
+
+    assert proposal.current_state == "RISK_REVIEW"
+    assert proposal.last_event_at == event.occurred_at
 
 
 def test_build_approval_record_preserves_details_and_idempotency_metadata():
