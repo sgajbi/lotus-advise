@@ -81,11 +81,18 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
     assert dependencies["lotus_core"]["configured"] is True
     assert dependencies["lotus_core"]["operational_ready"] is True
+    assert dependencies["lotus_core"]["runtime_probe_enabled"] is False
+    assert dependencies["lotus_core"]["readiness_basis"] == "configuration_only"
+    assert dependencies["lotus_core"]["degraded_reason"] is None
     assert dependencies["lotus_core"]["fallback_mode"] == "NONE"
     assert dependencies["lotus_risk"]["configured"] is True
+    assert dependencies["lotus_risk"]["readiness_basis"] == "configuration_only"
     assert dependencies["lotus_risk"]["fallback_mode"] == "LOCAL_RISK_FALLBACK"
     assert dependencies["lotus_report"]["configured"] is False
+    assert dependencies["lotus_report"]["readiness_basis"] == "not_configured"
+    assert dependencies["lotus_report"]["degraded_reason"] == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
     assert dependencies["lotus_ai"]["configured"] is False
+    assert dependencies["lotus_ai"]["readiness_basis"] == "not_configured"
 
     features = {item["key"]: item for item in payload["features"]}
     assert features["advisory.proposals.simulation"]["operational_ready"] is True
@@ -172,6 +179,9 @@ def test_integration_capabilities_mark_risk_lens_degraded_when_production_probe_
     workflows = {item["workflow_key"]: item for item in payload["workflows"]}
 
     assert dependencies["lotus_risk"]["operational_ready"] is False
+    assert dependencies["lotus_risk"]["runtime_probe_enabled"] is True
+    assert dependencies["lotus_risk"]["readiness_basis"] == "probe_failed"
+    assert dependencies["lotus_risk"]["degraded_reason"] == "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
     assert features["advisory.proposals.risk_lens"]["operational_ready"] is False
     assert (
         features["advisory.proposals.risk_lens"]["degraded_reason"]
@@ -229,6 +239,9 @@ def test_integration_capabilities_mark_core_unready_when_production_probe_fails(
     workflows = {item["workflow_key"]: item for item in payload["workflows"]}
 
     assert dependencies["lotus_core"]["operational_ready"] is False
+    assert dependencies["lotus_core"]["runtime_probe_enabled"] is True
+    assert dependencies["lotus_core"]["readiness_basis"] == "probe_failed"
+    assert dependencies["lotus_core"]["degraded_reason"] == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
     assert dependencies["lotus_core"]["fallback_mode"] == "NONE"
     assert features["advisory.proposals.simulation"]["operational_ready"] is False
     assert features["advisory.proposals.simulation"]["fallback_mode"] == "NONE"
@@ -260,6 +273,9 @@ def test_integration_capabilities_quarantine_local_fallback_in_production(monkey
     assert features["advisory.proposals.simulation"]["operational_ready"] is False
     assert features["advisory.proposals.simulation"]["fallback_mode"] == "NONE"
     assert workflows["advisory_proposal_simulation"]["operational_ready"] is False
+    assert dependencies["lotus_core"]["runtime_probe_enabled"] is False
+    assert dependencies["lotus_core"]["readiness_basis"] == "not_configured"
+    assert dependencies["lotus_core"]["degraded_reason"] == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
     assert dependencies["lotus_core"]["fallback_mode"] == "NONE"
 
 
@@ -355,6 +371,9 @@ def test_integration_capabilities_service_fails_closed_for_missing_dependency():
                 "base_url_env": "LOTUS_CORE_BASE_URL",
                 "configured": True,
                 "operational_ready": True,
+                "runtime_probe_enabled": True,
+                "readiness_basis": "probe_succeeded",
+                "degraded_reason": None,
                 "fallback_mode": "NONE",
             },
             {
@@ -364,6 +383,9 @@ def test_integration_capabilities_service_fails_closed_for_missing_dependency():
                 "base_url_env": "LOTUS_RISK_BASE_URL",
                 "configured": True,
                 "operational_ready": True,
+                "runtime_probe_enabled": True,
+                "readiness_basis": "probe_succeeded",
+                "degraded_reason": None,
                 "fallback_mode": "LOCAL_RISK_FALLBACK",
             },
             {
@@ -373,6 +395,9 @@ def test_integration_capabilities_service_fails_closed_for_missing_dependency():
                 "base_url_env": "LOTUS_REPORT_BASE_URL",
                 "configured": True,
                 "operational_ready": True,
+                "runtime_probe_enabled": True,
+                "readiness_basis": "probe_succeeded",
+                "degraded_reason": None,
                 "fallback_mode": "NONE",
             },
         ],

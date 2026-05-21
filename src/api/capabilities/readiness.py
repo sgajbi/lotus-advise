@@ -39,6 +39,9 @@ def build_operational_readiness() -> dict[str, object]:
                 "base_url_env": dependency.base_url_env,
                 "configured": dependency.configured,
                 "operational_ready": dependency.operational_ready,
+                "runtime_probe_enabled": dependency.runtime_probe_enabled,
+                "readiness_basis": dependency.readiness_basis,
+                "degraded_reason": dependency.degraded_reason,
                 "fallback_mode": fallback_modes.get(dependency.key, "NONE"),
             }
             for dependency in dependencies

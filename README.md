@@ -210,6 +210,9 @@ Contract rules that are easy to get wrong:
 4. workspace rationale is the implemented AI seam today; broader proposal narrative remains future work
 5. tactical house-view cohort responses must preserve upstream source refs and supportability posture
    instead of recomputing portfolio source facts locally
+6. `GET /platform/capabilities` separates feature enablement from operational readiness and returns
+   bounded dependency evidence through `runtime_probe_enabled`, `readiness_basis`, and
+   `degraded_reason` without exposing dependency base URLs
 
 ## Integration Boundaries
 

@@ -68,3 +68,7 @@ the global portfolio universe, create rebalance waves, approve trades, or integr
   and a bounded `supportability` summary for advisory readiness, degraded dependency posture,
   and lifecycle-disabled posture. The `supportability.metric_labels` field documents the exact
   bounded label tuple for `lotus_advise_advisory_supportability_total`.
+- Dependency readiness entries include `runtime_probe_enabled`, `readiness_basis`, and
+  `degraded_reason` so operators can distinguish missing configuration, configuration-only
+  non-production posture, successful runtime probes, and failed runtime probes without exposing
+  dependency base URLs.

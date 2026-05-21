@@ -7,6 +7,12 @@ from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABEL
 from src.integrations.lotus_core import CONTROLLED_LOCAL_SIMULATION_FALLBACK
 
 ConsumerSystem = Literal["lotus-gateway", "lotus-performance", "UI", "UNKNOWN"]
+ReadinessBasis = Literal[
+    "not_configured",
+    "configuration_only",
+    "probe_succeeded",
+    "probe_failed",
+]
 
 
 class FeatureCapability(BaseModel):
@@ -77,6 +83,9 @@ class DependencyReadiness(BaseModel):
                 "base_url_env": "LOTUS_CORE_BASE_URL",
                 "configured": True,
                 "operational_ready": True,
+                "runtime_probe_enabled": True,
+                "readiness_basis": "probe_succeeded",
+                "degraded_reason": None,
                 "fallback_mode": "NONE",
             }
         }
@@ -106,6 +115,28 @@ class DependencyReadiness(BaseModel):
         description="Whether the dependency seam is currently ready for use by lotus-advise.",
         examples=[True],
     )
+    runtime_probe_enabled: bool = Field(
+        description=(
+            "Whether this readiness decision used runtime health probing instead of "
+            "configuration-only posture."
+        ),
+        examples=[True],
+    )
+    readiness_basis: ReadinessBasis = Field(
+        description=(
+            "Bounded evidence basis for the readiness decision: missing configuration, "
+            "configuration-only non-production posture, successful runtime probe, or failed "
+            "runtime probe."
+        ),
+        examples=["probe_succeeded"],
+    )
+    degraded_reason: str | None = Field(
+        default=None,
+        description=(
+            "Bounded dependency-level degraded reason when this seam is not operationally ready."
+        ),
+        examples=["LOTUS_CORE_DEPENDENCY_UNAVAILABLE"],
+    )
     fallback_mode: str = Field(
         description="Fallback posture used when the dependency is unavailable.",
         examples=[CONTROLLED_LOCAL_SIMULATION_FALLBACK],
@@ -129,6 +160,9 @@ class OperationalReadiness(BaseModel):
                         "base_url_env": "LOTUS_CORE_BASE_URL",
                         "configured": False,
                         "operational_ready": False,
+                        "runtime_probe_enabled": False,
+                        "readiness_basis": "not_configured",
+                        "degraded_reason": "LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
                         "fallback_mode": "CONTROLLED_LOCAL_SIMULATION_FALLBACK",
                     }
                 ],
@@ -264,6 +298,9 @@ class IntegrationCapabilitiesResponse(BaseModel):
                             "base_url_env": "LOTUS_CORE_BASE_URL",
                             "configured": False,
                             "operational_ready": False,
+                            "runtime_probe_enabled": False,
+                            "readiness_basis": "not_configured",
+                            "degraded_reason": "LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
                             "fallback_mode": "CONTROLLED_LOCAL_SIMULATION_FALLBACK",
                         }
                     ],

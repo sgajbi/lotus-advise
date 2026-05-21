@@ -23,16 +23,25 @@
 
 - Scope: Integration capability contract
 - Pattern: documentation drift / observability gap
-- Status: Refactor Needed
+- Status: Hardened
 - Finding Class: observability gap
-- Summary: `/platform/capabilities` reports local feature flags, but not whether the service can actually complete end-to-end advisory work with required dependencies.
+- Summary: `/platform/capabilities` now separates local feature enablement, workflow readiness,
+  dependency posture, supportability metrics, and dependency readiness evidence.
 - Evidence:
-  - `integration_capabilities.py` resolves lifecycle and async support entirely from environment flags and returns a static feature list.
+  - Capability construction now lives under `src/api/capabilities/` instead of a monolithic router.
+  - `IntegrationCapabilitiesResponse` includes feature, workflow, dependency-readiness, and
+    `supportability` posture for Gateway and platform consumers.
+  - Dependency readiness now reports `runtime_probe_enabled`, `readiness_basis`, and
+    `degraded_reason`, so consumers can distinguish missing configuration, configuration-only
+    non-production posture, successful runtime probes, and failed runtime probes.
+  - Unit coverage proves ready, degraded, lifecycle-disabled, missing-configuration, local fallback,
+    and production probe-failure posture.
 - Consequence:
-  - `lotus-gateway` and `lotus-workbench` can present enabled workflows even when downstream data, analytics, reporting, or execution dependencies are unavailable.
+  - `lotus-gateway`, `lotus-workbench`, operations, and pre-sales demo preparation can present
+    advisory capability truth without treating environment flags as operational readiness.
 - Follow-Up:
-  - Split `feature_enabled` from `operational_ready`.
-  - Include dependency posture for lotus-core, lotus-performance, lotus-report, lotus-ai, and execution adapters.
+  - Keep future capability additions dependency-aware and document their readiness evidence in the
+    OpenAPI contract.
 
 ## LA-REV-003
 
@@ -3791,3 +3800,38 @@
 - Follow-Up:
   - Resolve the existing published GitHub wiki drift during PR/mainline closure or wiki publication
     workflow; the repo-local authored wiki source was not changed by this validation slice.
+
+## LA-REV-151
+
+- Scope: Integration capability dependency diagnostics
+- Pattern: observability gap / operational contract hardening
+- Status: Hardened
+- Finding Class: observability gap
+- Summary: The capability API exposed dependency `configured` and `operational_ready` booleans, but
+  it did not explain the evidence basis behind readiness. That was too weak for banking-grade
+  operational diagnostics because a non-production configuration-only posture, missing
+  configuration, successful runtime probe, and failed runtime probe all require different operator
+  and demo-readiness actions.
+- Evidence:
+  - `src/integrations/base.py` now records bounded dependency readiness evidence:
+    `runtime_probe_enabled`, `readiness_basis`, and `degraded_reason`.
+  - `src/api/capabilities/models.py` and `src/api/capabilities/readiness.py` publish that evidence
+    through `GET /platform/capabilities` without exposing dependency base URLs.
+  - `tests/unit/advisory/api/test_integration_dependency_base.py`,
+    `tests/unit/advisory/api/test_integrations_base.py`, and
+    `tests/unit/advisory/api/test_api_integration_capabilities.py` prove missing configuration,
+    configuration-only readiness, successful production probes, failed production probes, and
+    per-dependency degraded reasons.
+  - Focused validation passed:
+    `python -m pytest tests/unit/advisory/api/test_integration_dependency_base.py tests/unit/advisory/api/test_integrations_base.py tests/unit/advisory/api/test_api_integration_capabilities.py -q`
+    with `21 passed`.
+- Consequence:
+  - Gateway, Workbench, operations, and sales-engineering users can now distinguish enabled
+    advisory capabilities from runtime-proven readiness and can explain degraded states without
+    leaking sensitive endpoint configuration.
+- Documentation:
+  - README and wiki API/supportability pages now describe dependency readiness evidence as part of
+    the implementation-backed capability contract.
+- Follow-Up:
+  - If Gateway begins rendering dependency diagnostics directly, keep consumer wording tied to
+    these bounded evidence fields instead of inventing local supportability copy.

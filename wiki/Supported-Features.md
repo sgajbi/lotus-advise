@@ -17,7 +17,7 @@ written for business, engineering, operations, sales, pre-sales, and demo prepar
 | Proposal decision summary | Supported | simulation, artifact, workspace, replay, and lifecycle surfaces | Backend-owned decision summary; UI and support layers must not infer it independently. |
 | Proposal alternatives | Supported | simulation, artifact, workspace, replay, and lifecycle surfaces | Alternatives remain anchored to canonical simulation and risk enrichment. |
 | Tactical house-view affected cohorts | Supported | `POST /advisory/tactical-house-view/cohorts/evaluate` | Evaluates supplied source-backed candidate portfolios only; no global portfolio discovery or DPM campaign ownership. |
-| Integration capability discovery | Supported | `GET /platform/capabilities` | Publishes feature, workflow, dependency-readiness, and supportability posture for Gateway and platform consumers. |
+| Integration capability discovery | Supported | `GET /platform/capabilities` | Publishes feature, workflow, dependency-readiness evidence, and supportability posture for Gateway and platform consumers. |
 
 ## Current Non-Functional Capability Matrix
 
@@ -29,7 +29,7 @@ written for business, engineering, operations, sales, pre-sales, and demo prepar
 | Trust telemetry fixture validation | Supported | `contracts/trust-telemetry/` and `tests/unit/test_trust_telemetry.py`. |
 | Runtime smoke and production guardrails | Supported | `make ci` includes Postgres runtime smoke and production-profile guardrail negatives. |
 | Dependency health and security audit | Supported | `make verify-dependencies` and `make security-audit`. |
-| Supportability metrics | Supported | `GET /platform/capabilities` documents bounded labels for `lotus_advise_advisory_supportability_total`. |
+| Supportability metrics and readiness evidence | Supported | `GET /platform/capabilities` documents bounded labels for `lotus_advise_advisory_supportability_total` and bounded dependency readiness basis fields. |
 | Live cross-service evidence | Supported when the local stack is configured | Live validation scripts prove canonical and degraded proposal behavior. |
 
 ## Advisory Flow
@@ -75,3 +75,6 @@ flowchart TB
   discovery.
 - For client demos, prepare with `GET /platform/capabilities`, `/health/ready`, and the relevant
   proposal or workspace routes so readiness claims match the current runtime posture.
+- When a dependency is degraded, use the capability contract's `readiness_basis` and
+  `degraded_reason` fields to explain whether the issue is missing configuration, a failed runtime
+  probe, or a configuration-only non-production posture.

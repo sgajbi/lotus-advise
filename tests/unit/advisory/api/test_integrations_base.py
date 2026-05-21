@@ -112,6 +112,9 @@ def test_build_dependency_state_respects_configuration_and_probe_results(
     )
     assert unconfigured.configured is False
     assert unconfigured.operational_ready is False
+    assert unconfigured.runtime_probe_enabled is False
+    assert unconfigured.readiness_basis == "not_configured"
+    assert unconfigured.degraded_reason == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
 
     monkeypatch.setenv("LOTUS_AI_BASE_URL", "http://lotus-ai.dev.lotus")
     monkeypatch.setattr("src.integrations.base.runtime_dependency_probing_enabled", lambda: False)
@@ -123,6 +126,9 @@ def test_build_dependency_state_respects_configuration_and_probe_results(
     )
     assert configured.configured is True
     assert configured.operational_ready is True
+    assert configured.runtime_probe_enabled is False
+    assert configured.readiness_basis == "configuration_only"
+    assert configured.degraded_reason is None
 
     monkeypatch.setattr("src.integrations.base.runtime_dependency_probing_enabled", lambda: True)
     monkeypatch.setattr("src.integrations.base.probe_dependency_health", lambda base_url: False)
@@ -134,3 +140,6 @@ def test_build_dependency_state_respects_configuration_and_probe_results(
     )
     assert degraded.configured is True
     assert degraded.operational_ready is False
+    assert degraded.runtime_probe_enabled is True
+    assert degraded.readiness_basis == "probe_failed"
+    assert degraded.degraded_reason == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
