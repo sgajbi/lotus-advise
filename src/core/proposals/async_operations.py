@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from threading import RLock
-from typing import Any
+from typing import Any, Literal
 
 from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
@@ -9,6 +9,8 @@ from src.core.proposals.models import (
     ProposalCreateResponse,
     ProposalVersionRequest,
 )
+
+RecoverableAsyncOperationKind = Literal["CREATE_PROPOSAL", "CREATE_PROPOSAL_VERSION"]
 
 
 @dataclass(frozen=True)
@@ -139,6 +141,16 @@ def is_matching_create_version_async_submission(
         and submission_hash is not None
         and operation.payload_json.get("submission_hash") == submission_hash
     )
+
+
+def resolve_recoverable_async_operation_kind(
+    operation: ProposalAsyncOperationRecord,
+) -> RecoverableAsyncOperationKind | None:
+    if operation.operation_type == "CREATE_PROPOSAL":
+        return "CREATE_PROPOSAL"
+    if operation.operation_type == "CREATE_PROPOSAL_VERSION":
+        return "CREATE_PROPOSAL_VERSION"
+    return None
 
 
 def begin_async_attempt(

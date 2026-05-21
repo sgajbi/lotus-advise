@@ -2923,3 +2923,26 @@
 - Follow-Up:
   - Isolate async acceptance metric bookkeeping once create and version submission acceptance share
     a broader command handler.
+
+## LA-REV-117
+
+- Scope: Recoverable async operation kind classification
+- Pattern: service-boundary hardening / async recovery correctness
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.recover_async_operations` matched raw async operation type
+  strings inline when routing recoverable create-proposal and create-version operations.
+- Evidence:
+  - `src/core/proposals/async_operations.py` now exposes
+    `resolve_recoverable_async_operation_kind`.
+  - `src/core/proposals/service.py` delegates supported recovery kind classification to the async
+    operations domain helper while retaining execution dispatch and unsupported-operation failure
+    handling.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operations.py` covers supported and
+    unsupported recovery operation kinds.
+- Consequence:
+  - Async recovery supported-operation vocabulary is directly tested beside async operation
+    construction, reducing drift risk when new recoverable operation types are added.
+- Follow-Up:
+  - Move recovery dispatch into a dedicated async command runner once executor ownership and
+    transaction boundaries are isolated.

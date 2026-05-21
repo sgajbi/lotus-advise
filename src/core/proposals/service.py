@@ -16,6 +16,7 @@ from src.core.proposals.async_operations import (
     is_matching_create_version_async_submission,
     mark_operation_failed,
     mark_operation_succeeded,
+    resolve_recoverable_async_operation_kind,
 )
 from src.core.proposals.async_payloads import (
     AsyncCreatePayloadResolution,
@@ -819,11 +820,12 @@ class ProposalWorkflowService:
     def recover_async_operations(self) -> int:
         recovered = 0
         for operation in self._repository.list_recoverable_operations(as_of=_utc_now()):
-            if operation.operation_type == "CREATE_PROPOSAL":
+            operation_kind = resolve_recoverable_async_operation_kind(operation)
+            if operation_kind == "CREATE_PROPOSAL":
                 self.execute_create_proposal_async(operation_id=operation.operation_id)
                 recovered += 1
                 continue
-            if operation.operation_type == "CREATE_PROPOSAL_VERSION":
+            if operation_kind == "CREATE_PROPOSAL_VERSION":
                 self.execute_create_version_async(operation_id=operation.operation_id)
                 recovered += 1
                 continue

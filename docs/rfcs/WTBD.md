@@ -186,6 +186,9 @@ recorded here with enough detail for later owner-specific slices.
   - Async create-version replay identity validation now lives in
     `src/core/proposals/async_operations.py`, keeping operation-type, proposal-scope, and
     submission-hash matching out of the workflow service.
+  - Recoverable async operation kind classification now lives in
+    `src/core/proposals/async_operations.py`, keeping supported recovery operation vocabulary out of
+    the workflow service.
   - Async operation result-version extraction now lives in
     `src/core/proposals/async_operations.py`, keeping replay-evidence version selection parsing out
     of the workflow service.

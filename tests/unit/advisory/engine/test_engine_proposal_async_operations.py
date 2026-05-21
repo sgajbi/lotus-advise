@@ -12,6 +12,7 @@ from src.core.proposals.async_operations import (
     is_matching_create_version_async_submission,
     mark_operation_failed,
     mark_operation_succeeded,
+    resolve_recoverable_async_operation_kind,
 )
 from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
@@ -288,6 +289,19 @@ def test_begin_async_attempt_sets_running_state_and_lease():
     assert operation.finished_at is None
     assert operation.result_json is None
     assert operation.error_json is None
+
+
+def test_resolve_recoverable_async_operation_kind_accepts_supported_types_only():
+    create_operation = _operation()
+    assert resolve_recoverable_async_operation_kind(create_operation) == "CREATE_PROPOSAL"
+
+    version_operation = _operation()
+    version_operation.operation_type = "CREATE_PROPOSAL_VERSION"
+    assert resolve_recoverable_async_operation_kind(version_operation) == "CREATE_PROPOSAL_VERSION"
+
+    unsupported_operation = _operation()
+    unsupported_operation.operation_type = "UNKNOWN_OPERATION"
+    assert resolve_recoverable_async_operation_kind(unsupported_operation) is None
 
 
 def test_mark_operation_succeeded_persists_result_and_clears_failure_state():
