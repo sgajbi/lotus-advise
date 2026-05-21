@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
 from src.core.advisory.artifact import build_proposal_artifact
-from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
@@ -145,6 +144,7 @@ from src.core.proposals.projections import (
 from src.core.proposals.records import build_proposal_idempotency_record, build_proposal_record
 from src.core.proposals.reporting import apply_report_request_state, build_report_requested_event
 from src.core.proposals.repository import ProposalRepository
+from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
 from src.core.proposals.simulation_gate import (
     ProposalSimulationGateError,
     validate_proposal_simulation_enabled,
@@ -1207,12 +1207,11 @@ class ProposalWorkflowService:
         correlation_id: Optional[str],
         policy_context: Optional[dict[str, Any]] = None,
     ) -> ProposalResult:
-        resolved_correlation_id = resolve_correlation_id(correlation_id)
-        return evaluate_advisory_proposal(
+        return run_advisory_proposal_simulation(
             request=request,
             request_hash=request_hash,
             idempotency_key=idempotency_key,
-            correlation_id=resolved_correlation_id,
+            correlation_id=correlation_id,
             resolved_as_of=resolved_as_of,
             policy_context=policy_context,
         )

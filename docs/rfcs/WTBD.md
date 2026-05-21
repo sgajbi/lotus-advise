@@ -107,6 +107,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal create and version canonical request hashing now lives in
     `src/core/proposals/context.py`, keeping request identity beside resolved advisory-context
     canonicalization instead of workflow service orchestration.
+  - Advisory proposal simulation execution now lives in
+    `src/core/proposals/simulation_execution.py`, keeping correlation ID resolution and advisory
+    orchestration invocation out of the workflow service.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.

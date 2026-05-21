@@ -2520,3 +2520,27 @@
 - Follow-Up:
   - Keep context resolution and idempotency repository checks in the service until a broader create
     command boundary can be extracted without changing behavior.
+
+## LA-REV-099
+
+- Scope: Advisory proposal simulation execution boundary
+- Pattern: modularity problem / service-boundary hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService` directly resolved correlation IDs and invoked advisory
+  proposal orchestration for create and version flows, coupling simulation execution mechanics to
+  lifecycle command orchestration.
+- Evidence:
+  - `src/core/proposals/simulation_execution.py` now owns
+    `run_advisory_proposal_simulation`.
+  - `src/core/proposals/service.py` delegates simulation execution and no longer imports advisory
+    orchestration directly.
+  - `tests/unit/advisory/engine/test_engine_proposal_simulation_execution.py` proves missing
+    correlation IDs are resolved and supplied correlation IDs are preserved when invoking advisory
+    orchestration.
+- Consequence:
+  - Proposal create/version command handling now depends on a proposal-domain simulation execution
+    boundary instead of the lower-level advisory orchestration function.
+- Follow-Up:
+  - Keep simulation flag validation and artifact/evidence assembly in the service until a broader
+    create/version command handler can own the complete proposal-build transaction.
