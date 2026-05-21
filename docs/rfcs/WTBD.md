@@ -362,3 +362,27 @@ recorded here with enough detail for later owner-specific slices.
     locally.
   - Record the exact downstream file paths and expected payload deltas before making any
     cross-repository change.
+
+## Cross-Repository Disposition
+
+- Review date: 2026-05-21
+- Source of truth: this `lotus-advise` WTBD ledger plus
+  `docs/architecture/CODEBASE-REVIEW-LEDGER.md` and
+  `docs/architecture/RFC-0082-upstream-contract-family-map.md`.
+- `lotus-core`: no new upstream defect is currently recorded. The active WTBD posture is to keep
+  source facts, simulation execution, classification taxonomy, prices, FX, cash, holdings, and
+  instrument enrichment source-owned in `lotus-core`; WTBD-002 work remains inside
+  `lotus-advise` unless the stateful-context access pattern grows enough to justify a new governed
+  core snapshot or analytics-input contract.
+- `lotus-risk`: no new upstream defect is currently recorded. RFC-0020 convergence is marked
+  implemented, and the active posture is to keep concentration/risk-lens methodology in
+  `lotus-risk` while `lotus-advise` consumes and degrades around that authority.
+- `lotus-ai`, `lotus-report`, `lotus-performance`, and `lotus-render`: no concrete WTBD-owner
+  change is currently recorded from the Advise refactor ledger. Current mentions are integration
+  posture or future-RFC context, not actionable defects.
+- `lotus-gateway` and `lotus-workbench`: WTBD-004 remains the only explicit downstream-owner item.
+  It is not a confirmed defect today; it becomes actionable only when the Advise capability payload
+  changes or a downstream consumer is found inferring advisory supportability locally.
+- `lotus-manage`: no Advise WTBD assigns work to Manage. Manage remains outside advisory workflow
+  ownership except where future product flows explicitly hand off to discretionary management under
+  a governed RFC.
