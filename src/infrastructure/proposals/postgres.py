@@ -311,7 +311,12 @@ class PostgresProposalRepository:
             row = connection.execute(query, (idempotency_key,)).fetchone()
         return _to_operation(row)
 
-    def list_recoverable_operations(self, *, as_of: datetime) -> list[ProposalAsyncOperationRecord]:
+    def list_recoverable_operations(
+        self, *, as_of: datetime, limit: Optional[int] = None
+    ) -> list[ProposalAsyncOperationRecord]:
+        if limit is not None and limit <= 0:
+            return []
+        args: list[object] = [as_of.isoformat()]
         query = """
             SELECT
                 operation_id,
@@ -341,8 +346,11 @@ class PostgresProposalRepository:
                 )
             ORDER BY created_at ASC, operation_id ASC
         """
+        if limit is not None:
+            query = f"{query}\nLIMIT %s"
+            args.append(limit)
         with closing(self._connect()) as connection:
-            rows = connection.execute(query, (as_of.isoformat(),)).fetchall()
+            rows = connection.execute(query, tuple(args)).fetchall()
         return [
             operation for operation in (_to_operation(row) for row in rows) if operation is not None
         ]

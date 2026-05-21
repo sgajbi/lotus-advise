@@ -19,11 +19,12 @@ def load_recoverable_async_operation_read_models(
     *,
     repository: ProposalRepository,
     as_of: datetime,
+    limit: int | None = None,
 ) -> list[RecoverableAsyncOperationReadModel]:
     return [
         RecoverableAsyncOperationReadModel(
             operation=operation,
             operation_kind=resolve_recoverable_async_operation_kind(operation),
         )
-        for operation in repository.list_recoverable_operations(as_of=as_of)
+        for operation in repository.list_recoverable_operations(as_of=as_of, limit=limit)
     ]

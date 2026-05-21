@@ -146,6 +146,7 @@ from src.core.replay.service import (
 )
 
 ASYNC_DEFAULT_MAX_ATTEMPTS = 3
+ASYNC_RECOVERY_BATCH_SIZE = 50
 
 __all__ = [
     "ProposalIdempotencyConflictError",
@@ -734,11 +735,12 @@ class ProposalWorkflowService:
             ),
         )
 
-    def recover_async_operations(self) -> int:
+    def recover_async_operations(self, *, max_operations: int = ASYNC_RECOVERY_BATCH_SIZE) -> int:
         recovered = 0
         for read_model in load_recoverable_async_operation_read_models(
             repository=self._repository,
             as_of=_utc_now(),
+            limit=max_operations,
         ):
             operation = read_model.operation
             if read_model.operation_kind == "CREATE_PROPOSAL":

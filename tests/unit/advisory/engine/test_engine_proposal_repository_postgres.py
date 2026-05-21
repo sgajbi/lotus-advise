@@ -216,6 +216,8 @@ class _FakeConnection:
                 ):
                     rows.append(row)
             rows = sorted(rows, key=lambda row: (row["created_at"], row["operation_id"]))
+            if "LIMIT %s" in sql:
+                rows = rows[: args[1]]
             return _FakeCursor(rows=rows)
         if "INSERT INTO proposal_records" in sql:
             self.proposals[args[0]] = {
@@ -619,7 +621,7 @@ def test_postgres_repository_non_idempotent_operation_create_returns_snapshot(mo
 
 
 def test_postgres_repository_lists_recoverable_operations(monkeypatch):
-    repository, _ = _build_repository(monkeypatch)
+    repository, connection = _build_repository(monkeypatch)
     now = datetime.now(timezone.utc)
     pending = ProposalAsyncOperationRecord(
         operation_id="pop_pending",
@@ -699,6 +701,13 @@ def test_postgres_repository_lists_recoverable_operations(monkeypatch):
     recoverable = repository.list_recoverable_operations(as_of=now)
 
     assert [operation.operation_id for operation in recoverable] == ["pop_expired", "pop_pending"]
+
+    limited = repository.list_recoverable_operations(as_of=now, limit=1)
+
+    assert [operation.operation_id for operation in limited] == ["pop_expired"]
+    assert "LIMIT %s" in connection.executed_sql[-1]
+    assert connection.executed_args[-1] == (now.isoformat(), 1)
+    assert repository.list_recoverable_operations(as_of=now, limit=0) == []
 
 
 def test_postgres_repository_proposal_create_update_get_and_list(monkeypatch):

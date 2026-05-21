@@ -84,6 +84,28 @@ def test_load_recoverable_async_operation_read_models_preserves_unsupported_oper
     assert read_models[0].operation_kind is None
 
 
+def test_load_recoverable_async_operation_read_models_honors_batch_limit():
+    repository = InMemoryProposalRepository()
+    for index in range(3):
+        repository.create_operation(
+            _operation(
+                operation_id=f"pop_recover_batch_{index}",
+                created_at=_now() + timedelta(minutes=index),
+            )
+        )
+
+    read_models = load_recoverable_async_operation_read_models(
+        repository=repository,
+        as_of=_now(),
+        limit=2,
+    )
+
+    assert [read_model.operation.operation_id for read_model in read_models] == [
+        "pop_recover_batch_0",
+        "pop_recover_batch_1",
+    ]
+
+
 def test_load_recoverable_async_operation_read_models_uses_repository_recoverability_filter():
     repository = InMemoryProposalRepository()
     repository.create_operation(
