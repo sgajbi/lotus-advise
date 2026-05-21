@@ -45,6 +45,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal idempotency lookup response projection now lives in
     `src/core/proposals/projections.py`, keeping audit timestamp formatting out of the workflow
     service.
+  - Idempotency replay create-response referent validation now lives in
+    `src/core/proposals/projections.py`, keeping response assembly and missing-referent detection
+    out of the workflow service's repository read path.
   - Proposal execution handoff replay response, requested-event construction, and accepted response
     projection now live in `src/core/proposals/execution_handoff.py`, while the workflow service
     retains lookup, idempotency replay detection, expected-state validation, and persistence.

@@ -11,6 +11,7 @@ from src.core.proposals.models import (
 )
 from src.core.proposals.projections import (
     build_approvals_response,
+    build_create_response_from_referents,
     build_proposal_lineage_response,
     build_workflow_timeline_response,
     to_approval_record,
@@ -208,6 +209,48 @@ def test_to_create_response_projects_created_aggregate_version_and_event():
     assert response.proposal.proposal_id == created.proposal.proposal_id
     assert response.version.evidence_bundle == version.evidence_bundle_json
     assert response.latest_workflow_event.event_type == "CREATED"
+
+
+def test_build_create_response_from_referents_requires_complete_referents():
+    repository = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repository)
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_projection",
+            simulate_request=_simulate_request("pf_referent_projection"),
+        ),
+        idempotency_key="idem_referent_projection",
+        correlation_id="corr_referent_projection",
+    )
+    proposal = repository.get_proposal(proposal_id=created.proposal.proposal_id)
+    version = repository.get_version(
+        proposal_id=created.proposal.proposal_id,
+        version_no=created.version.version_no,
+    )
+    events = repository.list_events(proposal_id=created.proposal.proposal_id)
+    assert proposal is not None
+    assert version is not None
+    assert events
+
+    response = build_create_response_from_referents(
+        proposal=proposal,
+        version=version,
+        events=events,
+    )
+
+    assert response is not None
+    assert response.proposal.proposal_id == proposal.proposal_id
+    assert response.version.version_no == 1
+    assert response.latest_workflow_event.event_type == "CREATED"
+    assert (
+        build_create_response_from_referents(proposal=None, version=version, events=events) is None
+    )
+    assert (
+        build_create_response_from_referents(proposal=proposal, version=None, events=events) is None
+    )
+    assert (
+        build_create_response_from_referents(proposal=proposal, version=version, events=[]) is None
+    )
 
 
 def test_to_idempotency_lookup_response_projects_audit_record():

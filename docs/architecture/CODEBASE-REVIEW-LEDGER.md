@@ -2053,3 +2053,26 @@
 - Follow-Up:
   - Promote these counters into the runtime metrics layer only when a production metrics contract is
     introduced for async proposal submission observability.
+
+## LA-REV-079
+
+- Scope: Idempotency replay create-response referent projection
+- Pattern: modularity problem / replay identity hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: The create-proposal idempotency replay path in `ProposalWorkflowService` directly
+  combined proposal, version, and workflow-event referents into a create response, coupling
+  missing-referent detection and response assembly to repository orchestration.
+- Evidence:
+  - `src/core/proposals/projections.py` now owns `build_create_response_from_referents`.
+  - `src/core/proposals/service.py` keeps repository reads and maps a missing referent response to
+    `PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND`.
+  - `tests/unit/advisory/engine/test_engine_proposal_projections.py` directly proves successful
+    response assembly from complete referents and `None` results for missing proposal, version, or
+    event referents.
+- Consequence:
+  - Create-proposal replay response assembly is centralized with the other proposal response
+    projections, making the service read path smaller and preserving existing API error behavior.
+- Follow-Up:
+  - Keep repository read orchestration in the service until replay query objects can cover
+    idempotency, async replay, and version replay consistently.

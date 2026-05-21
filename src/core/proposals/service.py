@@ -112,6 +112,7 @@ from src.core.proposals.models import (
 )
 from src.core.proposals.projections import (
     build_approvals_response,
+    build_create_response_from_referents,
     build_proposal_lineage_response,
     build_workflow_timeline_response,
     to_async_accepted_response,
@@ -980,9 +981,14 @@ class ProposalWorkflowService:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
         events = self._repository.list_events(proposal_id=proposal_id)
-        if proposal is None or version is None or not events:
+        response = build_create_response_from_referents(
+            proposal=proposal,
+            version=version,
+            events=events,
+        )
+        if response is None:
             raise ProposalNotFoundError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
-        return to_create_response(proposal=proposal, version=version, latest_event=events[-1])
+        return response
 
     def _validate_lifecycle_origin(
         self,

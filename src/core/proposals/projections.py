@@ -104,6 +104,17 @@ def to_create_response(
     )
 
 
+def build_create_response_from_referents(
+    *,
+    proposal: ProposalRecord | None,
+    version: ProposalVersionRecord | None,
+    events: Sequence[ProposalWorkflowEventRecord],
+) -> ProposalCreateResponse | None:
+    if proposal is None or version is None or not events:
+        return None
+    return to_create_response(proposal=proposal, version=version, latest_event=events[-1])
+
+
 def to_idempotency_lookup_response(
     record: ProposalIdempotencyRecord,
 ) -> ProposalIdempotencyLookupResponse:
