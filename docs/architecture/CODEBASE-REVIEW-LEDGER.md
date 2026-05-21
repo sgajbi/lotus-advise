@@ -2613,3 +2613,26 @@
 - Follow-Up:
   - Keep projection-level missing-version reporting unchanged until broader lineage read-model
     certification is performed against production-sized histories.
+
+## LA-REV-103
+
+- Scope: Async operation replay referent loading
+- Pattern: modularity problem / replay evidence hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.get_async_operation_replay` embedded proposal lookup,
+  successful-operation version selection, current-version fallback, and event loading directly in
+  the service method.
+- Evidence:
+  - `src/core/proposals/async_replay.py` now owns async replay referent loading and version
+    selection rules.
+  - `src/core/proposals/service.py` delegates referent loading before building the replay evidence
+    response.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_replay.py` covers exact result-version
+    selection, fallback to current version, no-proposal operations, and pending operations.
+- Consequence:
+  - Async replay evidence assembly has a reusable, directly tested domain boundary instead of
+    service-local orchestration logic.
+- Follow-Up:
+  - Continue extracting replay/report read-model helpers where multiple service methods still
+    duplicate proposal, version, and event loading.

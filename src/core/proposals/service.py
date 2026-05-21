@@ -10,7 +10,6 @@ from src.core.proposals.async_operations import (
     build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
-    extract_async_result_version_no,
     mark_operation_failed,
     mark_operation_succeeded,
 )
@@ -24,6 +23,7 @@ from src.core.proposals.async_payloads import (
     resolve_async_create_payload,
     resolve_async_version_payload,
 )
+from src.core.proposals.async_replay import load_async_operation_replay_referents
 from src.core.proposals.concurrency import (
     ProposalExpectedStateError,
     validate_expected_state,
@@ -619,29 +619,15 @@ class ProposalWorkflowService:
         if operation is None:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
 
-        proposal = None
-        version = None
-        events: list[ProposalWorkflowEventRecord] | None = None
-        if operation.proposal_id is not None:
-            proposal = self._repository.get_proposal(proposal_id=operation.proposal_id)
-            if proposal is not None and operation.status == "SUCCEEDED":
-                version_no = extract_async_result_version_no(operation)
-                if version_no is not None:
-                    version = self._repository.get_version(
-                        proposal_id=operation.proposal_id,
-                        version_no=version_no,
-                    )
-                if version is None:
-                    version = self._repository.get_current_version(
-                        proposal_id=operation.proposal_id
-                    )
-            if proposal is not None:
-                events = self._repository.list_events(proposal_id=operation.proposal_id)
+        referents = load_async_operation_replay_referents(
+            repository=self._repository,
+            operation=operation,
+        )
         return build_async_operation_replay_response(
             operation=operation,
-            proposal=proposal,
-            version=version,
-            events=events,
+            proposal=referents.proposal,
+            version=referents.version,
+            events=referents.events,
         )
 
     def get_async_operation_by_correlation(

@@ -117,6 +117,8 @@ recorded here with enough detail for later owner-specific slices.
     evidence assembly from the workflow service.
   - Proposal lineage now uses a repository-native ordered version list instead of one
     `get_version` read per version number, reducing N+1 read shape while preserving gap detection.
+  - Async operation replay referent loading now lives in `src/core/proposals/async_replay.py`,
+    keeping version-selection and event-loading rules out of the workflow service.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.
