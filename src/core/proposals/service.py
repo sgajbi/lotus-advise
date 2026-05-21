@@ -104,6 +104,7 @@ from src.core.proposals.lifecycle_events import (
     build_state_transition_response,
 )
 from src.core.proposals.lineage_read_model import load_proposal_lineage_read_model
+from src.core.proposals.list_read_model import load_proposal_list_read_model
 from src.core.proposals.materialization import build_proposal_version_materialization
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
@@ -138,6 +139,7 @@ from src.core.proposals.projections import (
     build_approvals_response,
     build_create_response_from_referents,
     build_proposal_lineage_response,
+    build_proposal_list_response,
     build_workflow_timeline_response,
     to_async_accepted_response,
     to_async_status_response,
@@ -428,7 +430,8 @@ class ProposalWorkflowService:
         limit: int,
         cursor: Optional[str],
     ) -> ProposalListResponse:
-        rows, next_cursor = self._repository.list_proposals(
+        read_model = load_proposal_list_read_model(
+            repository=self._repository,
             portfolio_id=portfolio_id,
             state=state,
             created_by=created_by,
@@ -437,8 +440,9 @@ class ProposalWorkflowService:
             limit=limit,
             cursor=cursor,
         )
-        return ProposalListResponse(
-            items=[to_proposal_summary(row) for row in rows], next_cursor=next_cursor
+        return build_proposal_list_response(
+            proposals=read_model.proposals,
+            next_cursor=read_model.next_cursor,
         )
 
     def get_workflow_timeline(self, *, proposal_id: str) -> ProposalWorkflowTimelineResponse:

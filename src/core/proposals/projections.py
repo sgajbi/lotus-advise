@@ -12,6 +12,7 @@ from src.core.proposals.models import (
     ProposalIdempotencyLookupResponse,
     ProposalIdempotencyRecord,
     ProposalLineageResponse,
+    ProposalListResponse,
     ProposalRecord,
     ProposalSummary,
     ProposalVersionDetail,
@@ -37,6 +38,17 @@ def to_proposal_summary(proposal: ProposalRecord) -> ProposalSummary:
         title=proposal.title,
         lifecycle_origin=proposal.lifecycle_origin,
         source_workspace_id=proposal.source_workspace_id,
+    )
+
+
+def build_proposal_list_response(
+    *,
+    proposals: Sequence[ProposalRecord],
+    next_cursor: str | None,
+) -> ProposalListResponse:
+    return ProposalListResponse(
+        items=[to_proposal_summary(proposal) for proposal in proposals],
+        next_cursor=next_cursor,
     )
 
 

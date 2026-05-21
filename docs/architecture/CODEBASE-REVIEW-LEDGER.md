@@ -3074,3 +3074,27 @@
 - Follow-Up:
   - Review proposal list filtering and pagination as the next read-model boundary after compact
     status lookups.
+
+## LA-REV-124
+
+- Scope: Proposal list read-model loading and projection
+- Pattern: modularity / pagination boundary hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.list_proposals` owned repository filtering, pagination tuple
+  handling, and list DTO assembly inline, unlike the newer proposal read paths with dedicated
+  read-model and projection boundaries.
+- Evidence:
+  - `src/core/proposals/list_read_model.py` now owns proposal list filter and cursor loading.
+  - `src/core/proposals/projections.py` now owns `ProposalListResponse` assembly.
+  - `src/core/proposals/service.py` delegates list loading and projection instead of assembling the
+    response inline.
+  - `tests/unit/advisory/engine/test_engine_proposal_list_read_model.py` covers filtered paging and
+    empty-result boundaries.
+- Consequence:
+  - Proposal list pagination now has a reusable domain read boundary that can later absorb stable
+    sort policy, portfolio authorization, cursor hardening, or query diagnostics without expanding
+    the workflow service.
+- Follow-Up:
+  - Review remaining write-path repository reads in create-version and transition commands for
+    opportunities to reuse existing activity/detail read models without hiding command invariants.
