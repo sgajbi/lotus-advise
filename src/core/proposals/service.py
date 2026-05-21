@@ -89,7 +89,6 @@ from src.core.proposals.lifecycle_events import (
     build_approval_replay_response_from_referents,
     build_approval_request_hash,
     build_approval_transition_response,
-    build_new_version_created_event,
     build_proposal_created_event,
     build_state_transition_event_and_apply_state,
     build_state_transition_replay_response,
@@ -152,7 +151,7 @@ from src.core.proposals.versions import (
     ProposalVersionConflictError,
     ProposalVersionPortfolioContextError,
     ProposalVersionTerminalStateError,
-    apply_new_version_lifecycle_state,
+    build_new_version_created_event_and_apply_state,
     build_proposal_version_record,
     validate_create_version_portfolio_context,
     validate_create_version_state,
@@ -732,19 +731,13 @@ class ProposalWorkflowService:
             created_at=now,
             store_evidence_bundle=self._store_evidence_bundle,
         )
-        event = build_new_version_created_event(
+        event = build_new_version_created_event_and_apply_state(
             event_id=new_workflow_event_id(),
             proposal=proposal,
             actor_id=payload.created_by,
             occurred_at=now,
             related_version_no=next_version_no,
             correlation_id=correlation_id,
-        )
-
-        apply_new_version_lifecycle_state(
-            proposal=proposal,
-            version_no=next_version_no,
-            occurred_at=now,
         )
         self._repository.create_version(version)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)

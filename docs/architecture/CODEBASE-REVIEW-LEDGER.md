@@ -2834,3 +2834,25 @@
 - Follow-Up:
   - Keep handoff identity and timestamp validation separate until execution update command handling
     is fully isolated.
+
+## LA-REV-113
+
+- Scope: New-version command state helper
+- Pattern: service-boundary hardening / modularity problem
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.create_version` built the `NEW_VERSION_CREATED` event and
+  applied proposal version-state mutation inline, keeping create-version command state logic in the
+  service layer.
+- Evidence:
+  - `src/core/proposals/versions.py` now exposes
+    `build_new_version_created_event_and_apply_state`.
+  - `src/core/proposals/service.py` delegates new-version lifecycle event construction and
+    aggregate version-state mutation to the versions domain helper.
+  - `tests/unit/advisory/engine/test_engine_proposal_versions.py` covers the combined helper.
+- Consequence:
+  - Version lineage, draft reset, current-version increment, and last-event timestamp behavior are
+    directly tested at the domain boundary and can evolve without expanding the workflow service.
+- Follow-Up:
+  - Review initial proposal creation for the same command-state boundary once create command
+    materialization and idempotency persistence are isolated.

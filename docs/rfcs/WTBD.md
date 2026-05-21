@@ -150,6 +150,9 @@ recorded here with enough detail for later owner-specific slices.
     `build_execution_update_event_and_apply_state` in
     `src/core/proposals/execution_update.py`, keeping execution update command state logic out of
     the workflow service.
+  - New-version lifecycle event creation and aggregate version-state mutation now live behind
+    `build_new_version_created_event_and_apply_state` in `src/core/proposals/versions.py`, keeping
+    create-version command state logic out of the workflow service.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.

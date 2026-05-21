@@ -8,6 +8,7 @@ from src.core.proposals.versions import (
     ProposalVersionPortfolioContextError,
     ProposalVersionTerminalStateError,
     apply_new_version_lifecycle_state,
+    build_new_version_created_event_and_apply_state,
     build_proposal_version_record,
     validate_create_version_portfolio_context,
     validate_create_version_state,
@@ -198,5 +199,28 @@ def test_apply_new_version_lifecycle_state_resets_proposal_to_draft():
     )
 
     assert proposal.current_version_no == 2
+    assert proposal.current_state == "DRAFT"
+    assert proposal.last_event_at == occurred_at
+
+
+def test_build_new_version_created_event_and_apply_state_returns_event_and_updates_proposal():
+    occurred_at = datetime(2026, 5, 20, 9, 15, tzinfo=timezone.utc)
+    proposal = _proposal(current_state="EXECUTION_READY", current_version_no=2)
+
+    event = build_new_version_created_event_and_apply_state(
+        event_id="pwe_new_version",
+        proposal=proposal,
+        actor_id="advisor_version_state",
+        occurred_at=occurred_at,
+        related_version_no=3,
+        correlation_id="corr_version",
+    )
+
+    assert event.event_type == "NEW_VERSION_CREATED"
+    assert event.from_state == "EXECUTION_READY"
+    assert event.to_state == "DRAFT"
+    assert event.reason_json == {"correlation_id": "corr_version"}
+    assert event.related_version_no == 3
+    assert proposal.current_version_no == 3
     assert proposal.current_state == "DRAFT"
     assert proposal.last_event_at == occurred_at
