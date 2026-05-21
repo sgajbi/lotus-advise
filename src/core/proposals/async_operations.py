@@ -11,6 +11,7 @@ from src.core.proposals.models import (
 )
 
 RecoverableAsyncOperationKind = Literal["CREATE_PROPOSAL", "CREATE_PROPOSAL_VERSION"]
+ASYNC_TERMINAL_STATUSES = {"SUCCEEDED", "FAILED"}
 
 
 @dataclass(frozen=True)
@@ -151,6 +152,10 @@ def resolve_recoverable_async_operation_kind(
     if operation.operation_type == "CREATE_PROPOSAL_VERSION":
         return "CREATE_PROPOSAL_VERSION"
     return None
+
+
+def should_skip_async_operation_run(operation: ProposalAsyncOperationRecord | None) -> bool:
+    return operation is None or operation.status in ASYNC_TERMINAL_STATUSES
 
 
 def begin_async_attempt(

@@ -189,6 +189,9 @@ recorded here with enough detail for later owner-specific slices.
   - Recoverable async operation kind classification now lives in
     `src/core/proposals/async_operations.py`, keeping supported recovery operation vocabulary out of
     the workflow service.
+  - Async operation terminal-run skip handling now lives in
+    `src/core/proposals/async_operations.py`, keeping missing/terminal operation retry-loop
+    vocabulary out of the workflow service.
   - Async operation result-version extraction now lives in
     `src/core/proposals/async_operations.py`, keeping replay-evidence version selection parsing out
     of the workflow service.

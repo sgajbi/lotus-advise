@@ -13,6 +13,7 @@ from src.core.proposals.async_operations import (
     mark_operation_failed,
     mark_operation_succeeded,
     resolve_recoverable_async_operation_kind,
+    should_skip_async_operation_run,
 )
 from src.core.proposals.models import (
     ProposalAsyncOperationRecord,
@@ -289,6 +290,21 @@ def test_begin_async_attempt_sets_running_state_and_lease():
     assert operation.finished_at is None
     assert operation.result_json is None
     assert operation.error_json is None
+
+
+def test_should_skip_async_operation_run_accepts_missing_or_terminal_operations():
+    assert should_skip_async_operation_run(None)
+
+    pending = _operation()
+    assert not should_skip_async_operation_run(pending)
+
+    succeeded = _operation()
+    succeeded.status = "SUCCEEDED"
+    assert should_skip_async_operation_run(succeeded)
+
+    failed = _operation()
+    failed.status = "FAILED"
+    assert should_skip_async_operation_run(failed)
 
 
 def test_resolve_recoverable_async_operation_kind_accepts_supported_types_only():

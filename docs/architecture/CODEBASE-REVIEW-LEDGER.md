@@ -2946,3 +2946,24 @@
 - Follow-Up:
   - Move recovery dispatch into a dedicated async command runner once executor ownership and
     transaction boundaries are isolated.
+
+## LA-REV-118
+
+- Scope: Async operation run skip predicate
+- Pattern: service-boundary hardening / async retry correctness
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService._run_async_operation` owned the terminal async status set and
+  checked missing or terminal operations inline before starting a retry attempt.
+- Evidence:
+  - `src/core/proposals/async_operations.py` now exposes `should_skip_async_operation_run`.
+  - `src/core/proposals/service.py` delegates missing/terminal operation run skipping to the async
+    operations domain helper.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operations.py` covers missing, pending,
+    succeeded, and failed operation outcomes.
+- Consequence:
+  - Async retry-loop terminal state vocabulary is directly tested beside attempt, success, failure,
+    and runtime exception state helpers.
+- Follow-Up:
+  - Move the full async runner loop behind a repository-aware command runner when persistence and
+    executor boundaries can be isolated cleanly.

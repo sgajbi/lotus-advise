@@ -17,6 +17,7 @@ from src.core.proposals.async_operations import (
     mark_operation_failed,
     mark_operation_succeeded,
     resolve_recoverable_async_operation_kind,
+    should_skip_async_operation_run,
 )
 from src.core.proposals.async_payloads import (
     AsyncCreatePayloadResolution,
@@ -176,7 +177,6 @@ from src.core.replay.service import (
 
 ASYNC_DEFAULT_MAX_ATTEMPTS = 3
 ASYNC_OPERATION_LEASE_SECONDS = 60
-ASYNC_TERMINAL_STATUSES = {"SUCCEEDED", "FAILED"}
 
 
 class ProposalLifecycleError(Exception):
@@ -1097,8 +1097,9 @@ class ProposalWorkflowService:
     ) -> None:
         while True:
             operation = self._repository.get_operation(operation_id=operation_id)
-            if operation is None or operation.status in ASYNC_TERMINAL_STATUSES:
+            if should_skip_async_operation_run(operation):
                 return
+            assert operation is not None
 
             self._begin_async_attempt(operation)
             try:
