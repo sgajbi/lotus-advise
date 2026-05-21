@@ -35,9 +35,6 @@ from src.core.proposals.async_payloads import (
 from src.core.proposals.async_replay import load_async_operation_replay_referents
 from src.core.proposals.command_read_model import load_proposal_command_read_model
 from src.core.proposals.command_validation import (
-    resolve_proposal_approval_transition,
-    resolve_proposal_transition_state,
-    validate_proposal_expected_state,
     validate_proposal_simulation_flag,
 )
 from src.core.proposals.context import (
@@ -69,14 +66,8 @@ from src.core.proposals.exceptions import (
 from src.core.proposals.execution_handoff_command import request_proposal_execution_handoff
 from src.core.proposals.execution_status import build_execution_status_response
 from src.core.proposals.execution_update_command import record_proposal_execution_update
-from src.core.proposals.idempotency import (
-    ProposalReplayHashConflictError,
-    load_replayed_approval,
-    load_replayed_event,
-)
 from src.core.proposals.idempotency_read_model import load_proposal_idempotency_read_model
 from src.core.proposals.identifiers import (
-    new_approval_id,
     new_async_operation_id,
     new_proposal_id,
     new_proposal_version_id,
@@ -86,21 +77,14 @@ from src.core.proposals.lifecycle import (
     ProposalLifecycleOriginError,
     validate_lifecycle_origin,
 )
-from src.core.proposals.lifecycle_events import (
-    build_approval_command_state_and_apply_transition,
-    build_approval_replay_response_from_referents,
-    build_approval_request_hash,
-    build_approval_transition_response,
-    build_state_transition_event_and_apply_state,
-    build_state_transition_replay_response,
-    build_state_transition_request_hash,
-    build_state_transition_response,
+from src.core.proposals.lifecycle_command import (
+    record_proposal_approval,
+    transition_proposal_state,
 )
 from src.core.proposals.lineage_read_model import load_proposal_lineage_read_model
 from src.core.proposals.list_read_model import load_proposal_list_read_model
 from src.core.proposals.materialization import build_proposal_version_materialization
 from src.core.proposals.models import (
-    ProposalApprovalRecordData,
     ProposalApprovalRequest,
     ProposalApprovalsResponse,
     ProposalAsyncAcceptedResponse,
@@ -145,10 +129,6 @@ from src.core.proposals.records import build_proposal_create_command_state
 from src.core.proposals.report_request_command import record_proposal_report_request
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
-from src.core.proposals.transition_persistence import (
-    persist_proposal_approval_transition,
-    persist_proposal_transition,
-)
 from src.core.proposals.version_read_model import load_proposal_version_read_model
 from src.core.proposals.versions import (
     ProposalVersionConflictError,
@@ -786,53 +766,13 @@ class ProposalWorkflowService:
         payload: ProposalStateTransitionRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
-        command_read_model = load_proposal_command_read_model(
+        return transition_proposal_state(
             repository=self._repository,
             proposal_id=proposal_id,
-        )
-        if command_read_model.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        proposal = command_read_model.proposal
-        request_hash = build_state_transition_request_hash(payload=payload)
-        replay_event = self._get_replayed_event(
-            proposal_id=proposal_id,
-            idempotency_key=idempotency_key,
-            request_hash=request_hash,
-        )
-        if replay_event is not None:
-            return build_state_transition_replay_response(
-                proposal_id=proposal_id,
-                event=replay_event,
-            )
-        validate_proposal_expected_state(
-            current_state=proposal.current_state,
-            expected_state=payload.expected_state,
-            require_expected_state=self._require_expected_state,
-        )
-
-        to_state = resolve_proposal_transition_state(
-            current_state=proposal.current_state,
-            event_type=payload.event_type,
-        )
-        event = build_state_transition_event_and_apply_state(
-            event_id=new_workflow_event_id(),
-            proposal=proposal,
             payload=payload,
-            to_state=to_state,
-            occurred_at=_utc_now(),
             idempotency_key=idempotency_key,
-            request_hash=request_hash,
-        )
-
-        result = persist_proposal_transition(
-            repository=self._repository,
-            proposal=proposal,
-            event=event,
-        )
-        return build_state_transition_response(
-            proposal_id=proposal_id,
-            current_state=result.proposal.current_state,
-            event=result.event,
+            require_expected_state=self._require_expected_state,
+            occurred_at=_utc_now(),
         )
 
     def record_approval(
@@ -842,95 +782,14 @@ class ProposalWorkflowService:
         payload: ProposalApprovalRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
-        command_read_model = load_proposal_command_read_model(
+        return record_proposal_approval(
             repository=self._repository,
             proposal_id=proposal_id,
-        )
-        if command_read_model.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        proposal = command_read_model.proposal
-        request_hash = build_approval_request_hash(payload=payload)
-        replay_approval = self._get_replayed_approval(
-            proposal_id=proposal_id,
-            idempotency_key=idempotency_key,
-            request_hash=request_hash,
-        )
-        if replay_approval is not None:
-            replay_event = self._get_replayed_event(
-                proposal_id=proposal_id,
-                idempotency_key=idempotency_key,
-                request_hash=request_hash,
-            )
-            replay_response = build_approval_replay_response_from_referents(
-                proposal_id=proposal_id,
-                approval=replay_approval,
-                event=replay_event,
-            )
-            if replay_response is None:
-                raise ProposalLifecycleError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
-            return replay_response
-        validate_proposal_expected_state(
-            current_state=proposal.current_state,
-            expected_state=payload.expected_state,
-            require_expected_state=self._require_expected_state,
-        )
-
-        occurred_at = _utc_now()
-        event_type, to_state = resolve_proposal_approval_transition(
-            current_state=proposal.current_state,
-            approval_type=payload.approval_type,
-            approved=payload.approved,
-        )
-        command_state = build_approval_command_state_and_apply_transition(
-            approval_id=new_approval_id(),
-            event_id=new_workflow_event_id(),
-            proposal=proposal,
             payload=payload,
-            event_type=event_type,
-            to_state=to_state,
-            occurred_at=occurred_at,
             idempotency_key=idempotency_key,
-            request_hash=request_hash,
+            require_expected_state=self._require_expected_state,
+            occurred_at=_utc_now(),
         )
-
-        result = persist_proposal_approval_transition(
-            repository=self._repository,
-            proposal=proposal,
-            event=command_state.event,
-            approval=command_state.approval,
-        )
-        return build_approval_transition_response(
-            proposal_id=proposal_id,
-            current_state=result.proposal.current_state,
-            event=result.event,
-            approval=result.approval,
-        )
-
-    def _get_replayed_event(
-        self, *, proposal_id: str, idempotency_key: Optional[str], request_hash: str
-    ) -> Optional[ProposalWorkflowEventRecord]:
-        try:
-            return load_replayed_event(
-                repository=self._repository,
-                proposal_id=proposal_id,
-                idempotency_key=idempotency_key,
-                request_hash=request_hash,
-            )
-        except ProposalReplayHashConflictError as exc:
-            raise ProposalIdempotencyConflictError(str(exc)) from exc
-
-    def _get_replayed_approval(
-        self, *, proposal_id: str, idempotency_key: Optional[str], request_hash: str
-    ) -> Optional[ProposalApprovalRecordData]:
-        try:
-            return load_replayed_approval(
-                repository=self._repository,
-                proposal_id=proposal_id,
-                idempotency_key=idempotency_key,
-                request_hash=request_hash,
-            )
-        except ProposalReplayHashConflictError as exc:
-            raise ProposalIdempotencyConflictError(str(exc)) from exc
 
     def _read_create_response(self, *, proposal_id: str, version_no: int) -> ProposalCreateResponse:
         referents = load_proposal_version_replay_referents(
