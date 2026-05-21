@@ -3210,3 +3210,25 @@
     without expanding workflow orchestration or changing version lifecycle rules.
 - Follow-Up:
   - Add repository-level atomic version-create support before changing transactional semantics.
+
+## LA-REV-130
+
+- Scope: Proposal lifecycle transition persistence
+- Pattern: modularity / transactional-boundary preparation
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Lifecycle commands persisted proposal transitions directly from the workflow service,
+  repeating the same repository transition call across execution handoff, execution update,
+  state transition, approval, and report-request flows.
+- Evidence:
+  - `src/core/proposals/transition_persistence.py` now owns generic transition and
+    approval-transition persistence.
+  - `src/core/proposals/service.py` delegates lifecycle transition writes while preserving
+    command-specific validation, event construction, and response assembly.
+  - `tests/unit/advisory/engine/test_engine_proposal_transition_persistence.py` verifies aggregate
+    state, event persistence, and approval referent persistence through the new helpers.
+- Consequence:
+  - Lifecycle transition persistence now has a focused boundary that can later become lock-aware or
+    repository-atomic without expanding workflow orchestration.
+- Follow-Up:
+  - Review Postgres transaction semantics before changing repository behavior beyond delegation.

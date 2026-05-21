@@ -162,6 +162,10 @@ from src.core.proposals.simulation_gate import (
     ProposalSimulationGateError,
     validate_proposal_simulation_enabled,
 )
+from src.core.proposals.transition_persistence import (
+    persist_proposal_approval_transition,
+    persist_proposal_transition,
+)
 from src.core.proposals.version_read_model import load_proposal_version_read_model
 from src.core.proposals.versions import (
     ProposalVersionConflictError,
@@ -535,7 +539,11 @@ class ProposalWorkflowService:
             idempotency_key=idempotency_key,
             request_hash=request_hash,
         )
-        result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        result = persist_proposal_transition(
+            repository=self._repository,
+            proposal=proposal,
+            event=event,
+        )
         return build_execution_handoff_response(
             proposal=result.proposal,
             event=result.event,
@@ -636,7 +644,11 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             handoff_related_version_no=latest_execution_requested.related_version_no,
         )
-        self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        persist_proposal_transition(
+            repository=self._repository,
+            proposal=proposal,
+            event=event,
+        )
         return self.get_execution_status(proposal_id=proposal_id)
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
@@ -939,7 +951,11 @@ class ProposalWorkflowService:
             request_hash=request_hash,
         )
 
-        result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        result = persist_proposal_transition(
+            repository=self._repository,
+            proposal=proposal,
+            event=event,
+        )
         return build_state_transition_response(
             proposal_id=proposal_id,
             current_state=result.proposal.current_state,
@@ -1000,7 +1016,8 @@ class ProposalWorkflowService:
             request_hash=request_hash,
         )
 
-        result = self._repository.transition_proposal(
+        result = persist_proposal_approval_transition(
+            repository=self._repository,
             proposal=proposal,
             event=command_state.event,
             approval=command_state.approval,
@@ -1113,7 +1130,11 @@ class ProposalWorkflowService:
             related_version_no=related_version_no,
             include_execution_summary=include_execution_summary,
         )
-        self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        persist_proposal_transition(
+            repository=self._repository,
+            proposal=proposal,
+            event=event,
+        )
         return event
 
     def _resolve_create_async_payload(
