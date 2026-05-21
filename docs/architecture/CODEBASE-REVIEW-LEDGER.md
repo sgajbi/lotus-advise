@@ -3918,3 +3918,32 @@
 - Follow-Up:
   - Include this evidence-integrity slice in the next PR merge gate; no API vocabulary semantic
     change is expected from this internal copying hardening.
+
+## LA-REV-154
+
+- Scope: PR dependency freshness gate
+- Pattern: CI health / dependency governance
+- Status: Hardened
+- Finding Class: validation failure
+- Summary: PR #120 initially failed the PR Merge Gate lint/typecheck governance job because the
+  strict dependency freshness check detected `ruff 0.15.13 -> 0.15.14` after local feature-lane
+  validation had passed.
+- Evidence:
+  - `requirements.txt` and `requirements-dev.txt` now pin `ruff==0.15.14`.
+  - Installed and confirmed local `python -m ruff --version` reports `ruff 0.15.14`.
+  - `make check-deps-strict` passed with `Known vulnerabilities: 0` and `Outdated packages
+    (direct scope): 0`.
+  - Reran `make check`: ruff check passed, ruff format check passed for 334 files,
+    monetary-float guard passed, mypy passed for 175 source files, OpenAPI quality gate passed,
+    lifecycle OpenAPI docs tests passed, no-alias guard passed, API vocabulary generated and
+    validate-only passed, domain-data product declarations validated, and unit tests passed with
+    `810 passed in 53.74s`.
+- Consequence:
+  - The branch is aligned with the same strict dependency-freshness posture enforced by the PR Merge
+    Gate, keeping CI health controlled instead of bypassing the gate.
+- Documentation:
+  - No wiki change is required because this is dependency-governance maintenance, not a public
+    capability or operator workflow change.
+- Follow-Up:
+  - Continue treating strict dependency freshness failures as fix-forward dependency hygiene rather
+    than suppressing the gate.
