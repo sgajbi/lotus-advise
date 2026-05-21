@@ -14,14 +14,16 @@ from src.core.proposals.async_operation_read_model import (
     load_proposal_async_operation_by_correlation_read_model,
     load_proposal_async_operation_read_model,
 )
+from src.core.proposals.async_operation_submission import (
+    persist_create_proposal_async_submission,
+    persist_create_version_async_submission,
+)
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
     build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
-    is_matching_create_proposal_async_submission,
-    is_matching_create_version_async_submission,
     resolve_recoverable_async_operation_kind,
     should_skip_async_operation_run,
 )
@@ -355,21 +357,17 @@ class ProposalWorkflowService:
             created_at=_utc_now(),
             max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
         )
-        stored_operation, is_new = self._repository.create_operation_if_absent_by_idempotency(
-            operation
+        submission_result = persist_create_proposal_async_submission(
+            repository=self._repository,
+            operation=operation,
+            idempotency_key=idempotency_key,
+            submission_hash=submission_hash,
         )
-        if not is_new:
-            if not is_matching_create_proposal_async_submission(
-                operation=stored_operation,
-                idempotency_key=idempotency_key,
-                submission_hash=submission_hash,
-            ):
-                self._async_create_submission_stats.record_conflict()
-                raise ProposalIdempotencyConflictError(
-                    "IDEMPOTENCY_KEY_CONFLICT: async submission hash mismatch"
-                )
-        self._async_create_submission_stats.record_acceptance(is_new=is_new)
-        return to_async_accepted_response(stored_operation), is_new
+        if submission_result.is_conflict:
+            self._async_create_submission_stats.record_conflict()
+            raise ProposalIdempotencyConflictError(str(submission_result.conflict_message))
+        self._async_create_submission_stats.record_acceptance(is_new=submission_result.is_new)
+        return to_async_accepted_response(submission_result.operation), submission_result.is_new
 
     def submit_create_proposal_async(
         self,
@@ -837,17 +835,6 @@ class ProposalWorkflowService:
         existing_read_model = load_proposal_async_operation_by_correlation_read_model(
             repository=self._repository, correlation_id=resolved_correlation_id
         )
-        existing_operation = existing_read_model.operation
-        if existing_operation is not None:
-            if not is_matching_create_version_async_submission(
-                operation=existing_operation,
-                proposal_id=proposal_id,
-                submission_hash=submission_hash,
-            ):
-                raise ProposalIdempotencyConflictError(
-                    "CORRELATION_ID_CONFLICT: async version submission mismatch"
-                )
-            return to_async_accepted_response(existing_operation), False
         operation = build_create_version_async_operation(
             operation_id=new_async_operation_id(),
             proposal_id=proposal_id,
@@ -857,8 +844,16 @@ class ProposalWorkflowService:
             created_at=_utc_now(),
             max_attempts=ASYNC_DEFAULT_MAX_ATTEMPTS,
         )
-        self._repository.create_operation(operation)
-        return to_async_accepted_response(operation), True
+        submission_result = persist_create_version_async_submission(
+            repository=self._repository,
+            existing_operation=existing_read_model.operation,
+            operation=operation,
+            proposal_id=proposal_id,
+            submission_hash=submission_hash,
+        )
+        if submission_result.is_conflict:
+            raise ProposalIdempotencyConflictError(str(submission_result.conflict_message))
+        return to_async_accepted_response(submission_result.operation), submission_result.is_new
 
     def execute_create_version_async(
         self,

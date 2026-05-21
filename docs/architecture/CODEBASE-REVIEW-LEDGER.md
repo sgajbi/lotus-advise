@@ -3255,3 +3255,26 @@
 - Follow-Up:
   - Review async operation creation and recoverable-operation listing for similar persistence/read
     boundaries once update semantics settle.
+
+## LA-REV-132
+
+- Scope: Async operation submission persistence
+- Pattern: modularity / replay-boundary hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: `ProposalWorkflowService` still owned async operation creation, replay matching, and
+  conflict classification for create-proposal idempotency keys and create-version correlation IDs.
+- Evidence:
+  - `src/core/proposals/async_operation_submission.py` now owns async submission persistence
+    results for new, replayed, and conflicting submissions.
+  - `src/core/proposals/service.py` delegates create-proposal idempotency and create-version
+    correlation persistence decisions while preserving orchestration, stats, and API error mapping.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operation_submission.py` verifies new
+    persistence, replay behavior, and mismatch classification for both async submission families.
+- Consequence:
+  - Async submission persistence now has a reusable boundary for future idempotency metrics,
+    tenant scoping, optimistic locking, and repository-atomic submission APIs without increasing
+    workflow-service branching.
+- Follow-Up:
+  - Review recoverable-operation listing and async recovery dispatch as the remaining direct
+    repository-owned async operation boundary in `ProposalWorkflowService`.
