@@ -17,8 +17,13 @@ Check upstream posture first:
 1. `LOTUS_CORE_BASE_URL`
 2. `LOTUS_CORE_QUERY_BASE_URL`
 3. `LOTUS_RISK_BASE_URL`
+4. `LOTUS_RISK_TIMEOUT_SECONDS`
+5. `LOTUS_RISK_RETRY_ATTEMPTS`
+6. `LOTUS_RISK_RETRY_BACKOFF_SECONDS`
 
 `lotus-advise` depends on canonical source-data, simulation, and risk enrichment authorities.
+For Lotus Risk enrichment, retry attempts are intentionally capped at `5` and retry backoff at
+`2.0` seconds so a misconfigured environment cannot create unbounded advisory latency.
 
 ## Decision Summary Or Alternatives Drift
 

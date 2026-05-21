@@ -151,12 +151,19 @@ Important local Docker runtime bindings:
 - `LOTUS_CORE_BASE_URL`
 - `LOTUS_CORE_QUERY_BASE_URL`
 - `LOTUS_RISK_BASE_URL`
+- `LOTUS_RISK_TIMEOUT_SECONDS`
+- `LOTUS_RISK_RETRY_ATTEMPTS`
+- `LOTUS_RISK_RETRY_BACKOFF_SECONDS`
 
 Canonical local Docker upstream defaults:
 
 - `LOTUS_CORE_BASE_URL=http://core-control.dev.lotus`
 - `LOTUS_CORE_QUERY_BASE_URL=http://core-query.dev.lotus`
 - `LOTUS_RISK_BASE_URL=http://risk.dev.lotus`
+
+Lotus Risk enrichment uses bounded retries for transient `5xx`, `429`, and network failures.
+`LOTUS_RISK_RETRY_ATTEMPTS` defaults to `2` and is capped at `5`; `LOTUS_RISK_RETRY_BACKOFF_SECONDS`
+defaults to `0.1` seconds and is capped at `2.0` seconds.
 
 ## Common Commands
 

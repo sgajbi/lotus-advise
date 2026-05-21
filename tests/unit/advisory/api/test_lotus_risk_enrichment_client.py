@@ -7,6 +7,8 @@ from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.integrations.lotus_risk.enrichment import (
     LotusRiskEnrichmentUnavailableError,
+    _resolve_retry_attempts,
+    _resolve_retry_backoff_seconds,
     enrich_with_lotus_risk,
 )
 
@@ -276,6 +278,73 @@ def test_enrich_with_lotus_risk_retries_transient_upstream_5xx_then_succeeds(mon
 
     assert len(fake_client.calls) == 2
     assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
+
+
+def test_enrich_with_lotus_risk_uses_bounded_configurable_retry_backoff(monkeypatch):
+    request = _request()
+    fake_client = _FakeClient(
+        [
+            _FakeResponse(status_code=502, payload={"detail": "temporary unavailable"}),
+            _FakeResponse(status_code=503, payload={"detail": "still unavailable"}),
+            _FakeResponse(status_code=200, payload=_risk_response_payload()),
+        ]
+    )
+    sleep_delays: list[float] = []
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setenv("LOTUS_RISK_RETRY_ATTEMPTS", "99")
+    monkeypatch.setenv("LOTUS_RISK_RETRY_BACKOFF_SECONDS", "0.25")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.time.sleep",
+        lambda delay: sleep_delays.append(delay),
+    )
+
+    enriched = enrich_with_lotus_risk(
+        request=request,
+        proposal_result=_proposal_result(request),
+        correlation_id="corr-risk-client",
+    )
+
+    assert _resolve_retry_attempts() == 5
+    assert _resolve_retry_backoff_seconds() == 0.25
+    assert len(fake_client.calls) == 3
+    assert sleep_delays == [0.25, 0.5]
+    assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
+
+
+def test_enrich_with_lotus_risk_caps_retry_backoff_configuration(monkeypatch):
+    monkeypatch.setenv("LOTUS_RISK_RETRY_BACKOFF_SECONDS", "99")
+
+    assert _resolve_retry_backoff_seconds() == 2.0
+
+
+def test_enrich_with_lotus_risk_does_not_retry_non_retryable_4xx(monkeypatch):
+    request = _request()
+    fake_client = _FakeClient(_FakeResponse(status_code=400, payload={"detail": "bad request"}))
+    sleep_delays: list[float] = []
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setenv("LOTUS_RISK_RETRY_ATTEMPTS", "5")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.time.sleep",
+        lambda delay: sleep_delays.append(delay),
+    )
+
+    with pytest.raises(LotusRiskEnrichmentUnavailableError):
+        enrich_with_lotus_risk(
+            request=request,
+            proposal_result=_proposal_result(request),
+            correlation_id="corr-risk-client",
+        )
+
+    assert len(fake_client.calls) == 1
+    assert sleep_delays == []
 
 
 def test_enrich_with_lotus_risk_rejects_contract_mismatch(monkeypatch):
