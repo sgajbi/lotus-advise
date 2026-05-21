@@ -2378,3 +2378,26 @@
   - Keep replay lookup ordering, expected-state validation, transition-rule resolution, and
     persistence orchestration in the service until a broader lifecycle command boundary can be
     extracted without changing API behavior.
+
+## LA-REV-093
+
+- Scope: Approval canonical request hashing
+- Pattern: modularity problem / replay-lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_approval` directly built the canonical request hash used
+  for approval replay lookup, approval record lineage, and approval workflow-event lineage, while
+  approval record and event construction already lived in `src/core/proposals/lifecycle_events.py`.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now owns `build_approval_request_hash`.
+  - `src/core/proposals/service.py` delegates approval request hashing before replay lookup,
+    approval record construction, and approval event construction.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` directly proves canonical
+    ordering stability and sensitivity to changed approval details.
+- Consequence:
+  - Approval replay hashing is centralized beside approval record and approval event construction,
+    reducing service-owned lineage mechanics.
+- Follow-Up:
+  - Keep replay lookup ordering, expected-state validation, approval-transition rule resolution,
+    and persistence orchestration in the service until a broader approval command boundary can be
+    extracted without changing API behavior.

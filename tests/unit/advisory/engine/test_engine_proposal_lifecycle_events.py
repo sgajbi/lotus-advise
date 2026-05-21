@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from src.core.proposals.lifecycle_events import (
     apply_lifecycle_transition_state,
     build_approval_record,
+    build_approval_request_hash,
     build_approval_transition_event,
     build_approval_transition_response,
     build_new_version_created_event,
@@ -208,6 +209,22 @@ def test_build_approval_record_preserves_details_and_idempotency_metadata():
         "idempotency_key": "idem_approval",
         "idempotency_request_hash": "sha256:approval",
     }
+
+
+def test_build_approval_request_hash_is_canonical_and_details_sensitive():
+    first_hash = build_approval_request_hash(
+        payload=_approval_request(details={"b": "second", "a": "first"})
+    )
+    reordered_hash = build_approval_request_hash(
+        payload=_approval_request(details={"a": "first", "b": "second"})
+    )
+    changed_hash = build_approval_request_hash(
+        payload=_approval_request(details={"a": "first", "b": "changed"})
+    )
+
+    assert first_hash.startswith("sha256:")
+    assert first_hash == reordered_hash
+    assert first_hash != changed_hash
 
 
 def test_build_approval_transition_event_matches_approval_audit_payload():

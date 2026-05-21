@@ -18,6 +18,10 @@ def build_state_transition_request_hash(*, payload: ProposalStateTransitionReque
     return cast(str, hash_canonical_payload(payload.model_dump(mode="json")))
 
 
+def build_approval_request_hash(*, payload: ProposalApprovalRequest) -> str:
+    return cast(str, hash_canonical_payload(payload.model_dump(mode="json")))
+
+
 def build_proposal_created_event(
     *,
     event_id: str,
