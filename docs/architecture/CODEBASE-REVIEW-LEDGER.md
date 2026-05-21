@@ -2286,3 +2286,26 @@
 - Follow-Up:
   - Keep replay-before-validation ordering and event timestamp resolution in the service until the
     complete execution update command boundary can be extracted without changing API behavior.
+
+## LA-REV-089
+
+- Scope: Execution update event-time resolution
+- Pattern: modularity problem / execution reconciliation hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_execution_update` directly selected between a
+  payload-supplied execution update timestamp and the service clock fallback, leaving event-time
+  resolution policy inside orchestration.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now owns `resolve_execution_update_occurred_at`.
+  - `src/core/proposals/service.py` provides the service clock fallback while delegating
+    payload-versus-default timestamp selection.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` directly proves payload
+    timestamp precedence and default timestamp fallback.
+- Consequence:
+  - Execution update event-time policy is centralized with identity, terminal-state, timestamp
+    ordering, event construction, and aggregate state mutation.
+- Follow-Up:
+  - Keep repository reads, idempotency replay ordering, and persistence orchestration in the service
+    until the complete execution update command boundary can be extracted without changing API
+    behavior.

@@ -71,6 +71,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal execution update handoff timestamp ordering now lives in
     `src/core/proposals/execution_update.py`, keeping execution update event-time validation out of
     the workflow service while preserving API error mapping.
+  - Proposal execution update event-time resolution now lives in
+    `src/core/proposals/execution_update.py`, keeping payload-versus-service-clock timestamp
+    selection out of the workflow service.
   - Generic proposal state-transition event construction and transition response projection now
     live in `src/core/proposals/lifecycle_events.py`, while the workflow service retains proposal
     lookup, replay detection, expected-state validation, transition-rule resolution, and persistence.

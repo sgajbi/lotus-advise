@@ -63,6 +63,7 @@ from src.core.proposals.execution_update import (
     ProposalExecutionUpdateTimestampError,
     apply_execution_update_state,
     build_execution_update_event,
+    resolve_execution_update_occurred_at,
     validate_execution_update_handoff_identity,
     validate_execution_update_occurred_after_handoff,
     validate_execution_update_state,
@@ -576,10 +577,9 @@ class ProposalWorkflowService:
         except ProposalExecutionUpdateTerminalStateError as exc:
             raise ProposalStateConflictError(str(exc)) from exc
 
-        occurred_at = (
-            datetime.fromisoformat(payload.occurred_at)
-            if payload.occurred_at is not None
-            else _utc_now()
+        occurred_at = resolve_execution_update_occurred_at(
+            payload=payload,
+            default_occurred_at=_utc_now(),
         )
         try:
             validate_execution_update_occurred_after_handoff(

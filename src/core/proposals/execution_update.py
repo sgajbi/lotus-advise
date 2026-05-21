@@ -62,6 +62,16 @@ def validate_execution_update_occurred_after_handoff(
         raise ProposalExecutionUpdateTimestampError("EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF")
 
 
+def resolve_execution_update_occurred_at(
+    *,
+    payload: ProposalExecutionUpdateRequest,
+    default_occurred_at: datetime,
+) -> datetime:
+    if payload.occurred_at is not None:
+        return datetime.fromisoformat(payload.occurred_at)
+    return default_occurred_at
+
+
 def build_execution_update_event(
     *,
     event_id: str,

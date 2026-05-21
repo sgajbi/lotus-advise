@@ -7,6 +7,7 @@ from src.core.proposals.execution_update import (
     ProposalExecutionUpdateTimestampError,
     apply_execution_update_state,
     build_execution_update_event,
+    resolve_execution_update_occurred_at,
     validate_execution_update_handoff_identity,
     validate_execution_update_occurred_after_handoff,
     validate_execution_update_state,
@@ -254,6 +255,26 @@ def test_validate_execution_update_occurred_after_handoff_rejects_earlier_timest
         assert str(exc) == "EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF"
     else:
         raise AssertionError("expected execution update timestamp error")
+
+
+def test_resolve_execution_update_occurred_at_prefers_payload_timestamp():
+    resolved = resolve_execution_update_occurred_at(
+        payload=_payload(occurred_at="2026-05-21T10:15:00+00:00"),
+        default_occurred_at=datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc),
+    )
+
+    assert resolved == datetime(2026, 5, 21, 10, 15, tzinfo=timezone.utc)
+
+
+def test_resolve_execution_update_occurred_at_uses_default_when_payload_omits_timestamp():
+    default_occurred_at = datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc)
+
+    resolved = resolve_execution_update_occurred_at(
+        payload=_payload(occurred_at=None),
+        default_occurred_at=default_occurred_at,
+    )
+
+    assert resolved == default_occurred_at
 
 
 def test_apply_execution_update_state_updates_state_and_event_timestamp():
