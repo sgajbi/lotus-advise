@@ -3098,3 +3098,27 @@
 - Follow-Up:
   - Review remaining write-path repository reads in create-version and transition commands for
     opportunities to reuse existing activity/detail read models without hiding command invariants.
+
+## LA-REV-125
+
+- Scope: Async operation command read-model reuse
+- Pattern: duplication / operational command boundary hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: Async create execution, async version execution, retry-loop reloads, and async version
+  correlation replay checks still loaded operation records directly even after status and replay
+  lookups moved to a domain read-model boundary.
+- Evidence:
+  - `src/core/proposals/service.py` now reuses
+    `src/core/proposals/async_operation_read_model.py` for async execution lookup, retry-loop
+    reloads, and correlation-id submission lookup.
+  - Existing workflow-service tests cover missing operation no-op behavior, async version
+    correlation replay/conflict behavior, and runtime retry/failure paths through the reused read
+    model boundary.
+- Consequence:
+  - Async operational reads now follow one reusable boundary across status, replay, execution, and
+    correlation acceptance paths, reducing future drift in retry, authorization, and diagnostics
+    handling.
+- Follow-Up:
+  - Review proposal aggregate command loading separately; command-state invariants should remain
+    explicit even if a loader is introduced.

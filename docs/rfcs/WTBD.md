@@ -146,6 +146,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal async-operation status read-model loading now lives in
     `src/core/proposals/async_operation_read_model.py`, keeping operation-id and correlation-id
     status lookup repository loading out of the workflow service.
+  - Async operation execution, retry-loop, and version-submission correlation lookup now reuse
+    `src/core/proposals/async_operation_read_model.py`, keeping operational command reads aligned
+    with status and replay lookup boundaries.
   - Proposal list read-model loading now lives in `src/core/proposals/list_read_model.py`, and
     list response projection now lives in `src/core/proposals/projections.py`, keeping filter,
     pagination, and DTO assembly boundaries out of the workflow service.

@@ -377,9 +377,13 @@ class ProposalWorkflowService:
         idempotency_key: Optional[str] = None,
         correlation_id: Optional[str] = None,
     ) -> None:
-        operation = self._repository.get_operation(operation_id=operation_id)
-        if operation is None:
+        read_model = load_proposal_async_operation_read_model(
+            repository=self._repository,
+            operation_id=operation_id,
+        )
+        if read_model.operation is None:
             return
+        operation = read_model.operation
         recovered_payload = self._resolve_create_async_payload(
             operation=operation,
             fallback_payload=payload,
@@ -794,9 +798,10 @@ class ProposalWorkflowService:
             proposal_id=proposal_id,
             payload=payload,
         )
-        existing_operation = self._repository.get_operation_by_correlation(
-            correlation_id=resolved_correlation_id
+        existing_read_model = load_proposal_async_operation_by_correlation_read_model(
+            repository=self._repository, correlation_id=resolved_correlation_id
         )
+        existing_operation = existing_read_model.operation
         if existing_operation is not None:
             if not is_matching_create_version_async_submission(
                 operation=existing_operation,
@@ -827,9 +832,13 @@ class ProposalWorkflowService:
         payload: Optional[ProposalVersionRequest] = None,
         correlation_id: Optional[str] = None,
     ) -> None:
-        operation = self._repository.get_operation(operation_id=operation_id)
-        if operation is None:
+        read_model = load_proposal_async_operation_read_model(
+            repository=self._repository,
+            operation_id=operation_id,
+        )
+        if read_model.operation is None:
             return
+        operation = read_model.operation
         recovered_payload = self._resolve_version_async_payload(
             operation=operation,
             fallback_proposal_id=proposal_id,
@@ -1127,7 +1136,11 @@ class ProposalWorkflowService:
         executor: Any,
     ) -> None:
         while True:
-            operation = self._repository.get_operation(operation_id=operation_id)
+            read_model = load_proposal_async_operation_read_model(
+                repository=self._repository,
+                operation_id=operation_id,
+            )
+            operation = read_model.operation
             if should_skip_async_operation_run(operation):
                 return
             assert operation is not None
