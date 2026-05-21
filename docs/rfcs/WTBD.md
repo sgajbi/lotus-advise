@@ -292,6 +292,11 @@ recorded here with enough detail for later owner-specific slices.
 - Current evidence:
   - `src/integrations/lotus_core/stateful_context.py` remains a large upstream adapter that mixes
     source reads, translation, enrichment, caching, and supportability mapping.
+- Progress:
+  - Lotus Core classification taxonomy parsing, governed label resolution, supportability
+    attributes, and upstream-first liquidity-tier fallback rules now live in
+    `src/integrations/lotus_core/classification.py`, keeping private-banking instrument
+    vocabulary separate from stateful-context HTTP/cache orchestration.
 - Follow-up:
   - Split portfolio source reads, instrument enrichment, market-data hydration, request translation,
     and cache policy into explicit submodules.

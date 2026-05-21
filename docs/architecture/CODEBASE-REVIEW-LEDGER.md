@@ -3372,3 +3372,28 @@
     workflow orchestration.
 - Follow-Up:
   - Review remaining service-local replay helper methods once command modules stabilize.
+
+## LA-REV-137
+
+- Scope: Lotus Core stateful-context classification vocabulary
+- Pattern: modularity / upstream authority boundary hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The Lotus Core stateful-context adapter still mixed upstream HTTP/cache orchestration
+  with classification taxonomy parsing, governed label resolution, supportability attributes, and
+  liquidity-tier fallback rules.
+- Evidence:
+  - `src/integrations/lotus_core/classification.py` now owns the pure instrument-classification
+    vocabulary helpers and the `ClassificationTaxonomy` model.
+  - `src/integrations/lotus_core/stateful_context.py` imports those helpers and remains focused on
+    context resolution, source reads, cache usage, request translation, and enrichment assembly.
+  - `tests/unit/advisory/api/test_lotus_core_stateful_context.py` continues to validate taxonomy
+    mapping, liquidity-tier behavior, source supportability attributes, cache behavior, and resolved
+    simulation request assembly.
+- Consequence:
+  - Private-banking instrument vocabulary is now reusable and testable without expanding the
+    stateful-context adapter, and the adapter lost a pure domain block while preserving public
+    compatibility for existing callers.
+- Follow-Up:
+  - Continue WTBD-002 by extracting source-read, market-data hydration, and cache-policy modules
+    only when behavior can remain pinned to existing RFC-0082 authority tests.
