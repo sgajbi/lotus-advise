@@ -4005,3 +4005,37 @@
 - Follow-Up:
   - Include the focused Postgres repository regression tests and repo-native feature lane in the
     PR evidence before merge.
+
+## LA-REV-157
+
+- Scope: Advisory event-builder audit payload isolation
+- Pattern: auditability hardening / event-construction correctness
+- Status: Hardened
+- Finding Class: correctness risk
+- Summary: Lifecycle, approval, execution-handoff, and execution-update event builders preserved
+  request-supplied audit payloads with shallow dictionary copies. Nested reason, approval,
+  execution notes, or execution details could therefore be mutated by a caller after event
+  construction and alter the in-memory event before persistence or projection.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now deep-copies state-transition reasons and approval
+    details before building workflow events and approval records.
+  - `src/core/proposals/execution_handoff.py` now deep-copies execution handoff notes before
+    embedding them in the append-only execution-requested event.
+  - `src/core/proposals/execution_update.py` now deep-copies downstream execution details before
+    embedding them in execution update events.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py`,
+    `tests/unit/advisory/engine/test_engine_proposal_execution_handoff.py`, and
+    `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` now prove nested audit
+    payloads remain isolated from later request mutation.
+  - Focused validation passed:
+    `python -m pytest tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py tests/unit/advisory/engine/test_engine_proposal_execution_handoff.py tests/unit/advisory/engine/test_engine_proposal_execution_update.py -q`
+    with `44 passed`.
+- Consequence:
+  - Advisory lifecycle and execution events now behave like stable audit facts from construction
+    onward, improving lineage integrity before repository persistence and response projection.
+- Documentation:
+  - No wiki change is required because this is internal audit-event construction hardening, not a
+    public API, operator runbook, or capability-contract change.
+- Follow-Up:
+  - Include this event-builder immutability slice in the next PR merge gate; no OpenAPI vocabulary
+    semantic change is expected.

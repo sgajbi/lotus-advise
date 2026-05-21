@@ -77,6 +77,24 @@ def test_build_execution_handoff_requested_event_preserves_audit_payload():
     }
 
 
+def test_build_execution_handoff_requested_event_isolates_nested_notes():
+    payload = _payload(notes={"routing": {"desk": "ADVISORY_EXECUTION"}})
+
+    event = build_execution_handoff_requested_event(
+        event_id="pwe_execution_handoff_immutable",
+        proposal=_proposal(),
+        payload=payload,
+        occurred_at=datetime(2026, 5, 21, 9, 10, tzinfo=timezone.utc),
+        execution_request_id="pex_execution",
+        idempotency_key="idem_execution_handoff",
+        request_hash="sha256:handoff",
+    )
+
+    payload.notes["routing"]["desk"] = "TAMPERED"
+
+    assert event.reason_json["notes"] == {"routing": {"desk": "ADVISORY_EXECUTION"}}
+
+
 def test_build_execution_handoff_requested_event_defaults_to_current_version():
     event = build_execution_handoff_requested_event(
         event_id="pwe_execution_handoff",

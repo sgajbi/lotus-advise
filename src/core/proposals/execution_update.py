@@ -1,4 +1,5 @@
 from collections.abc import Collection, Sequence
+from copy import deepcopy
 from datetime import datetime
 from typing import cast
 
@@ -113,7 +114,7 @@ def build_execution_update_event(
         "execution_request_id": payload.execution_request_id,
         "execution_provider": payload.execution_provider,
         "external_execution_id": payload.external_execution_id,
-        "details": payload.details,
+        "details": deepcopy(payload.details),
         "idempotency_key": build_execution_update_idempotency_key(payload=payload),
         "idempotency_request_hash": request_hash,
     }

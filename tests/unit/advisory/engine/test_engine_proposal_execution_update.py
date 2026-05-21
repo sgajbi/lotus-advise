@@ -88,6 +88,26 @@ def test_build_execution_update_event_preserves_reconciliation_payload():
     }
 
 
+def test_build_execution_update_event_isolates_nested_details():
+    payload = _payload(details={"fill": {"quantity": "50"}})
+
+    event = build_execution_update_event(
+        event_id="pwe_execution_update_immutable",
+        proposal_id="pp_execution_update",
+        current_state="EXECUTION_READY",
+        payload=payload,
+        event_type="EXECUTION_PARTIALLY_EXECUTED",
+        to_state="EXECUTION_READY",
+        occurred_at=datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc),
+        request_hash="sha256:update",
+        handoff_related_version_no=3,
+    )
+
+    payload.details["fill"]["quantity"] = "999"
+
+    assert event.reason_json["details"] == {"fill": {"quantity": "50"}}
+
+
 def test_build_execution_update_event_defaults_to_handoff_version_and_omits_nulls():
     event = build_execution_update_event(
         event_id="pwe_execution_update",
