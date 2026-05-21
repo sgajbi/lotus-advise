@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
-from threading import RLock
 from typing import Any, cast
 from urllib.parse import urlsplit, urlunsplit
 
@@ -46,9 +44,54 @@ from src.integrations.lotus_core.context_resolution import (
     LotusCoreResolvedAdvisoryContext,
 )
 from src.integrations.lotus_core.runtime_config import (
-    env_non_negative_float,
-    env_positive_int,
     resolve_lotus_core_timeout,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    CLASSIFICATION_TAXONOMY_CACHE as _CLASSIFICATION_TAXONOMY_CACHE,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    FX_LOOKUP_CACHE as _FX_LOOKUP_CACHE,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    INSTRUMENT_ENRICHMENT_CACHE as _INSTRUMENT_ENRICHMENT_CACHE,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    INSTRUMENT_LOOKUP_CACHE as _INSTRUMENT_LOOKUP_CACHE,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    PRICE_LOOKUP_CACHE as _PRICE_LOOKUP_CACHE,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    StatefulContextFetchStats,
+    stateful_context_cache_max_size,
+    stateful_context_cache_ttl_seconds,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    cache_payload as _cache_payload,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    cache_resolved_context as _cache_resolved_context,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    clone_resolved_context as _clone_resolved_context,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    get_cached_payload as _get_cached_payload,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    get_cached_resolved_context as _get_cached_resolved_context,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    get_stateful_context_cache_stats as _get_stateful_context_cache_stats,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    get_stateful_context_fetch_stats as _get_stateful_context_fetch_stats,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    record_fetch_stat as _record_fetch_stat,
+)
+from src.integrations.lotus_core.stateful_context_cache import (
+    reset_stateful_context_cache as _reset_stateful_context_cache,
 )
 from src.integrations.lotus_core.timed_cache import TimedCache, TimedCacheStats
 
@@ -62,18 +105,6 @@ _INSTRUMENT_ENRICHMENT_BULK_PATH = "/integration/instruments/enrichment-bulk"
 _PRICES_PATH = "/prices/?security_id={instrument_id}"
 _FX_RATES_PATH = "/fx-rates/?from_currency={from_currency}&to_currency={to_currency}"
 _CLASSIFICATION_TAXONOMY_PATH = "/integration/reference/classification-taxonomy"
-_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS = 15.0
-_DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE = 128
-
-
-@dataclass(frozen=True)
-class StatefulContextFetchStats:
-    portfolio_fetches: int
-    positions_fetches: int
-    cash_fetches: int
-    instrument_fetches: int
-    price_fetches: int
-    fx_fetches: int
 
 
 class LotusCoreStatefulContextUnavailableError(LotusCoreContextResolutionError):
@@ -85,44 +116,11 @@ def _resolve_timeout() -> httpx.Timeout:
 
 
 def _stateful_context_cache_ttl_seconds() -> float:
-    return env_non_negative_float(
-        "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_TTL_SECONDS",
-        default=_DEFAULT_STATEFUL_CONTEXT_CACHE_TTL_SECONDS,
-    )
+    return stateful_context_cache_ttl_seconds()
 
 
 def _stateful_context_cache_max_size() -> int:
-    return int(
-        env_positive_int(
-            "LOTUS_CORE_STATEFUL_CONTEXT_CACHE_MAX_SIZE",
-            default=_DEFAULT_STATEFUL_CONTEXT_CACHE_MAX_SIZE,
-        )
-    )
-
-
-def _cache_key(stateful_input: WorkspaceStatefulInput) -> str:
-    return "|".join(
-        [
-            stateful_input.portfolio_id,
-            stateful_input.as_of,
-            stateful_input.household_id or "",
-            stateful_input.mandate_id or "",
-            stateful_input.benchmark_id or "",
-        ]
-    )
-
-
-def _clone_resolved_context(
-    resolved: LotusCoreResolvedAdvisoryContext,
-) -> LotusCoreResolvedAdvisoryContext:
-    return LotusCoreResolvedAdvisoryContext(
-        simulate_request=resolved.simulate_request.model_copy(deep=True),
-        resolved_context=resolved.resolved_context.model_copy(deep=True),
-    )
-
-
-def _clone_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    return dict(payload)
+    return stateful_context_cache_max_size()
 
 
 def _shelf_attributes_from_payload(
@@ -150,115 +148,16 @@ def _shelf_attributes_from_payload(
     return attributes
 
 
-_STATEFUL_CONTEXT_CACHE = TimedCache[str, LotusCoreResolvedAdvisoryContext](
-    clone_value=_clone_resolved_context,
-    ttl_seconds=_stateful_context_cache_ttl_seconds,
-    max_size=_stateful_context_cache_max_size,
-)
-_INSTRUMENT_LOOKUP_CACHE = TimedCache[str, dict[str, Any]](
-    clone_value=_clone_payload,
-    ttl_seconds=_stateful_context_cache_ttl_seconds,
-    max_size=_stateful_context_cache_max_size,
-)
-_INSTRUMENT_ENRICHMENT_CACHE = TimedCache[str, dict[str, Any]](
-    clone_value=_clone_payload,
-    ttl_seconds=_stateful_context_cache_ttl_seconds,
-    max_size=_stateful_context_cache_max_size,
-)
-_CLASSIFICATION_TAXONOMY_CACHE = TimedCache[str, dict[str, Any]](
-    clone_value=_clone_payload,
-    ttl_seconds=_stateful_context_cache_ttl_seconds,
-    max_size=_stateful_context_cache_max_size,
-)
-_PRICE_LOOKUP_CACHE = TimedCache[str, dict[str, Any]](
-    clone_value=_clone_payload,
-    ttl_seconds=_stateful_context_cache_ttl_seconds,
-    max_size=_stateful_context_cache_max_size,
-)
-_FX_LOOKUP_CACHE = TimedCache[str, dict[str, Any]](
-    clone_value=_clone_payload,
-    ttl_seconds=_stateful_context_cache_ttl_seconds,
-    max_size=_stateful_context_cache_max_size,
-)
-_FETCH_STATS_LOCK = RLock()
-_FETCH_STATS = {
-    "portfolio_fetches": 0,
-    "positions_fetches": 0,
-    "cash_fetches": 0,
-    "instrument_fetches": 0,
-    "price_fetches": 0,
-    "fx_fetches": 0,
-}
-
-
-def _get_cached_resolved_context(
-    stateful_input: WorkspaceStatefulInput,
-) -> LotusCoreResolvedAdvisoryContext | None:
-    return _STATEFUL_CONTEXT_CACHE.get(_cache_key(stateful_input))
-
-
-def _cache_resolved_context(
-    stateful_input: WorkspaceStatefulInput,
-    resolved: LotusCoreResolvedAdvisoryContext,
-) -> None:
-    _STATEFUL_CONTEXT_CACHE.set(_cache_key(stateful_input), resolved)
-
-
 def reset_stateful_context_cache_for_tests() -> None:
-    _STATEFUL_CONTEXT_CACHE.clear()
-    _INSTRUMENT_LOOKUP_CACHE.clear()
-    _INSTRUMENT_ENRICHMENT_CACHE.clear()
-    _CLASSIFICATION_TAXONOMY_CACHE.clear()
-    _PRICE_LOOKUP_CACHE.clear()
-    _FX_LOOKUP_CACHE.clear()
-    with _FETCH_STATS_LOCK:
-        for key in _FETCH_STATS:
-            _FETCH_STATS[key] = 0
+    _reset_stateful_context_cache()
 
 
 def get_stateful_context_cache_stats_for_tests() -> dict[str, TimedCacheStats]:
-    return {
-        "resolved_context": _STATEFUL_CONTEXT_CACHE.stats(),
-        "instrument_lookup": _INSTRUMENT_LOOKUP_CACHE.stats(),
-        "instrument_enrichment": _INSTRUMENT_ENRICHMENT_CACHE.stats(),
-        "classification_taxonomy": _CLASSIFICATION_TAXONOMY_CACHE.stats(),
-        "price_lookup": _PRICE_LOOKUP_CACHE.stats(),
-        "fx_lookup": _FX_LOOKUP_CACHE.stats(),
-    }
+    return _get_stateful_context_cache_stats()
 
 
 def get_stateful_context_fetch_stats_for_tests() -> StatefulContextFetchStats:
-    with _FETCH_STATS_LOCK:
-        return StatefulContextFetchStats(
-            portfolio_fetches=_FETCH_STATS["portfolio_fetches"],
-            positions_fetches=_FETCH_STATS["positions_fetches"],
-            cash_fetches=_FETCH_STATS["cash_fetches"],
-            instrument_fetches=_FETCH_STATS["instrument_fetches"],
-            price_fetches=_FETCH_STATS["price_fetches"],
-            fx_fetches=_FETCH_STATS["fx_fetches"],
-        )
-
-
-def _record_fetch_stat(name: str) -> None:
-    with _FETCH_STATS_LOCK:
-        _FETCH_STATS[name] += 1
-
-
-def _cache_payload(
-    cache: TimedCache[str, dict[str, Any]],
-    *,
-    cache_key: str,
-    payload: dict[str, Any],
-) -> dict[str, Any]:
-    return cast(dict[str, Any], cache.set(cache_key, payload))
-
-
-def _get_cached_payload(
-    cache: TimedCache[str, dict[str, Any]],
-    *,
-    cache_key: str,
-) -> dict[str, Any] | None:
-    return cast(dict[str, Any] | None, cache.get(cache_key))
+    return _get_stateful_context_fetch_stats()
 
 
 def _resolve_query_base_url() -> str:

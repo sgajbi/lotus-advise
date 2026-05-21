@@ -3397,3 +3397,29 @@
 - Follow-Up:
   - Continue WTBD-002 by extracting source-read, market-data hydration, and cache-policy modules
     only when behavior can remain pinned to existing RFC-0082 authority tests.
+
+## LA-REV-138
+
+- Scope: Lotus Core stateful-context cache policy
+- Pattern: modularity / operational diagnostics hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The stateful-context adapter still owned cache configuration, cache instances,
+  copy-safety policy, fetch counters, cache statistics, and test reset behavior inline with
+  upstream HTTP reads and request translation.
+- Evidence:
+  - `src/integrations/lotus_core/stateful_context_cache.py` now owns stateful-context cache TTL and
+    size policy, cache key construction, clone policy, named cache instances, fetch counters, cache
+    stats, and cache reset behavior.
+  - `src/integrations/lotus_core/stateful_context.py` delegates cache lifecycle and diagnostics to
+    that module while retaining compatibility wrappers for existing characterization tests.
+  - `tests/unit/advisory/api/test_lotus_core_stateful_context.py` continues to prove cache TTL/size
+    parsing, cache reuse, copy-safe cached responses, cache isolation, eviction, failure recovery,
+    and fetch counter behavior.
+- Consequence:
+  - Cache behavior is now a named operational boundary that can be tuned, instrumented, or reused
+    without expanding the upstream adapter. The adapter is smaller and more focused on source reads,
+    request translation, and enrichment assembly.
+- Follow-Up:
+  - Continue WTBD-002 by extracting source-read and market-data hydration modules only where
+    existing RFC-0082 authority and failure-mode tests can pin behavior.

@@ -297,6 +297,10 @@ recorded here with enough detail for later owner-specific slices.
     attributes, and upstream-first liquidity-tier fallback rules now live in
     `src/integrations/lotus_core/classification.py`, keeping private-banking instrument
     vocabulary separate from stateful-context HTTP/cache orchestration.
+  - Stateful-context cache policy, cache instances, clone policy, fetch counters, cache statistics,
+    and reset helpers now live in `src/integrations/lotus_core/stateful_context_cache.py`, keeping
+    cache lifecycle and diagnostics outside the upstream adapter while preserving existing test
+    compatibility imports.
 - Follow-up:
   - Split portfolio source reads, instrument enrichment, market-data hydration, request translation,
     and cache policy into explicit submodules.
