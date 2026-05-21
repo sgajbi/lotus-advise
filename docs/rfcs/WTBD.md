@@ -143,6 +143,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal idempotency read-model loading now lives in
     `src/core/proposals/idempotency_read_model.py`, keeping replay-audit key lookup repository
     loading out of the workflow service.
+  - Proposal create idempotency replay lookup now reuses
+    `src/core/proposals/idempotency_read_model.py`, aligning create replay command lookup with
+    replay-audit lookup behavior.
   - Proposal async-operation status read-model loading now lives in
     `src/core/proposals/async_operation_read_model.py`, keeping operation-id and correlation-id
     status lookup repository loading out of the workflow service.

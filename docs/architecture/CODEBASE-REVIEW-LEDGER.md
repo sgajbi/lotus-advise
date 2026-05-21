@@ -3145,3 +3145,25 @@
 - Follow-Up:
   - Review whether command loaders should become lock-aware in the Postgres repository before
     introducing any stronger transactional behavior.
+
+## LA-REV-127
+
+- Scope: Proposal create idempotency replay lookup
+- Pattern: duplication / replay command boundary hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: `ProposalWorkflowService.create_proposal` still loaded proposal idempotency records
+  directly even after replay-audit lookup moved behind `idempotency_read_model.py`.
+- Evidence:
+  - `src/core/proposals/service.py` now reuses
+    `src/core/proposals/idempotency_read_model.py` for create replay lookup before request-hash
+    conflict checks and create-response reconstruction.
+  - Existing workflow-service tests cover idempotent create replay and hash-conflict behavior, and
+    `tests/unit/advisory/engine/test_engine_proposal_idempotency_read_model.py` covers found and
+    missing idempotency-key boundaries.
+- Consequence:
+  - Create replay and replay-audit lookup now share one idempotency read boundary, reducing drift
+    if indexed lookup, tenant scoping, or audit enrichment is added later.
+- Follow-Up:
+  - Review create persistence as a future transactional-unit boundary; avoid hiding the explicit
+    proposal/version/event/idempotency write sequence until repository semantics are strengthened.

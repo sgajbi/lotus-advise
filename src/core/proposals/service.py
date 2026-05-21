@@ -252,7 +252,11 @@ class ProposalWorkflowService:
             raise ProposalValidationError(str(exc)) from exc
         request_hash = build_create_request_hash(payload=payload, resolved=resolved_request)
 
-        existing = self._repository.get_idempotency(idempotency_key=idempotency_key)
+        idempotency_read_model = load_proposal_idempotency_read_model(
+            repository=self._repository,
+            idempotency_key=idempotency_key,
+        )
+        existing = idempotency_read_model.record
         if existing is not None:
             if existing.request_hash != request_hash:
                 raise ProposalIdempotencyConflictError(
