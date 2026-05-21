@@ -47,6 +47,7 @@ from src.core.proposals.context import (
     resolve_version_request,
 )
 from src.core.proposals.correlation import resolve_correlation_id
+from src.core.proposals.create_persistence import persist_created_proposal
 from src.core.proposals.delivery_summary import (
     build_delivery_history_response,
     build_delivery_summary_response,
@@ -319,10 +320,11 @@ class ProposalWorkflowService:
         )
         created_event = command_state.created_event
 
-        self._repository.create_proposal(proposal)
-        self._repository.create_version(version)
-        self._repository.append_event(created_event)
-        self._repository.save_idempotency(command_state.idempotency_record)
+        persist_created_proposal(
+            repository=self._repository,
+            command_state=command_state,
+            version=version,
+        )
 
         return to_create_response(proposal=proposal, version=version, latest_event=created_event)
 

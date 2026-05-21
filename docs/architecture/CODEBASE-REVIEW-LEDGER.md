@@ -3167,3 +3167,25 @@
 - Follow-Up:
   - Review create persistence as a future transactional-unit boundary; avoid hiding the explicit
     proposal/version/event/idempotency write sequence until repository semantics are strengthened.
+
+## LA-REV-128
+
+- Scope: Initial proposal persistence sequence
+- Pattern: modularity / transactional-boundary preparation
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.create_proposal` persisted the initial proposal aggregate,
+  version, created event, and idempotency record inline, making the future transactional boundary
+  harder to isolate and test.
+- Evidence:
+  - `src/core/proposals/create_persistence.py` now owns the named initial create persistence
+    sequence.
+  - `src/core/proposals/service.py` delegates proposal/version/event/idempotency persistence after
+    command-state and version construction.
+  - `tests/unit/advisory/engine/test_engine_proposal_create_persistence.py` verifies that the
+    proposal, initial version, created event, and replay identity are persisted together.
+- Consequence:
+  - Initial proposal persistence now has a focused boundary that can later become repository-atomic
+    without expanding workflow orchestration or obscuring the write order.
+- Follow-Up:
+  - Add repository-level atomic create support before changing transactional semantics.
