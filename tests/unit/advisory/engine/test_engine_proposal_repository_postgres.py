@@ -522,6 +522,39 @@ def test_postgres_repository_create_operation_if_absent_by_idempotency_is_atomic
     assert list(connection.operations) == ["pop_atomic_1"]
 
 
+def test_postgres_repository_non_idempotent_operation_create_returns_snapshot(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    created_at = datetime.now(timezone.utc)
+    operation = ProposalAsyncOperationRecord(
+        operation_id="pop_non_idempotent_1",
+        operation_type="CREATE_PROPOSAL_VERSION",
+        status="PENDING",
+        correlation_id="corr-non-idempotent-1",
+        idempotency_key=None,
+        proposal_id="pp_001",
+        created_by="advisor_1",
+        created_at=created_at,
+        payload_json={"payload": {"created_by": "advisor_1"}},
+        attempt_count=0,
+        max_attempts=3,
+        started_at=None,
+        lease_expires_at=None,
+        finished_at=None,
+        result_json=None,
+        error_json=None,
+    )
+
+    stored, is_new = repository.create_operation_if_absent_by_idempotency(operation)
+
+    operation.payload_json["payload"]["created_by"] = "tampered"
+    loaded = repository.get_operation(operation_id="pop_non_idempotent_1")
+
+    assert is_new is True
+    assert stored.payload_json == {"payload": {"created_by": "advisor_1"}}
+    assert loaded is not None
+    assert loaded.payload_json == {"payload": {"created_by": "advisor_1"}}
+
+
 def test_postgres_repository_lists_recoverable_operations(monkeypatch):
     repository, _ = _build_repository(monkeypatch)
     now = datetime.now(timezone.utc)
@@ -850,6 +883,13 @@ def test_postgres_repository_transition_proposal_writes_all_records(monkeypatch)
     assert result.event.event_id == "pwe_010"
     assert result.approval is not None
     assert result.approval.approval_id == "pap_010"
+
+    proposal.current_state = "CANCELLED"
+    event.reason_json["comment"] = "tampered"
+    approval.details_json["ticket_id"] = "tampered"
+    assert result.proposal.current_state == "RISK_REVIEW"
+    assert result.event.reason_json == {"comment": "submitted"}
+    assert result.approval.details_json == {"ticket_id": "risk-010"}
 
     stored_proposal = repository.get_proposal(proposal_id="pp_002")
     assert stored_proposal is not None

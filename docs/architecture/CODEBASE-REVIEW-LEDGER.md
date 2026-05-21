@@ -3978,3 +3978,30 @@
 - Follow-Up:
   - Include this response-boundary immutability slice in the next PR merge gate; no OpenAPI
     vocabulary semantic change is expected from this internal copying hardening.
+
+## LA-REV-156
+
+- Scope: Postgres write-return snapshot isolation
+- Pattern: persistence boundary hardening / auditability correctness
+- Status: Hardened
+- Finding Class: correctness risk
+- Summary: The Postgres proposal repository persisted async operations and workflow transitions
+  correctly, but two write-return paths returned caller-owned mutable model instances. A caller
+  could mutate nested payload, reason, approval, or proposal state after persistence and silently
+  alter the object returned as repository evidence, even though the database row remained stable.
+- Evidence:
+  - `src/infrastructure/proposals/postgres.py` now deep-copies the non-idempotent async operation
+    write result and workflow transition result before returning them to callers.
+  - `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` now proves
+    non-idempotent async operation write results and transition results remain isolated from later
+    caller mutation while persisted reads remain stable.
+- Consequence:
+  - Postgres-backed advisory write paths now behave like persistence snapshots instead of passing
+    mutable caller references across repository boundaries, strengthening audit and lineage
+    semantics for bank-grade advisory workflows.
+- Documentation:
+  - No wiki change is required because this is internal persistence-boundary hardening, not a
+    public workflow, operator runbook, or API capability change.
+- Follow-Up:
+  - Include the focused Postgres repository regression tests and repo-native feature lane in the
+    PR evidence before merge.
