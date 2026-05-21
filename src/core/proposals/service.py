@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
@@ -23,14 +23,13 @@ from src.core.proposals.async_operations import (
     build_create_proposal_async_operation,
     build_create_version_async_operation,
 )
+from src.core.proposals.async_payload_resolution import (
+    resolve_create_async_payload_or_fail,
+    resolve_version_async_payload_or_fail,
+)
 from src.core.proposals.async_payloads import (
-    AsyncCreatePayloadResolution,
-    AsyncPayloadResolutionFailure,
-    AsyncVersionPayloadResolution,
     hash_async_create_submission,
     hash_async_version_submission,
-    resolve_async_create_payload,
-    resolve_async_version_payload,
 )
 from src.core.proposals.async_replay import load_async_operation_replay_referents
 from src.core.proposals.command_read_model import load_proposal_command_read_model
@@ -867,22 +866,13 @@ class ProposalWorkflowService:
         fallback_payload: Optional[ProposalCreateRequest],
         fallback_idempotency_key: Optional[str],
     ) -> tuple[ProposalCreateRequest, str] | None:
-        resolution = resolve_async_create_payload(
+        return resolve_create_async_payload_or_fail(
+            repository=self._repository,
             operation=operation,
             fallback_payload=fallback_payload,
             fallback_idempotency_key=fallback_idempotency_key,
+            failed_at=_utc_now(),
         )
-        if isinstance(resolution, AsyncPayloadResolutionFailure):
-            persist_async_operation_failed(
-                repository=self._repository,
-                operation=operation,
-                code=resolution.code,
-                message=resolution.message,
-                finished_at=_utc_now(),
-            )
-            return None
-        resolved = cast(AsyncCreatePayloadResolution, resolution)
-        return resolved.payload, resolved.idempotency_key
 
     def get_async_create_submission_stats_for_tests(self) -> AsyncCreateSubmissionStats:
         return self._async_create_submission_stats.snapshot()
@@ -894,22 +884,13 @@ class ProposalWorkflowService:
         fallback_proposal_id: Optional[str],
         fallback_payload: Optional[ProposalVersionRequest],
     ) -> tuple[str, ProposalVersionRequest] | None:
-        resolution = resolve_async_version_payload(
+        return resolve_version_async_payload_or_fail(
+            repository=self._repository,
             operation=operation,
             fallback_proposal_id=fallback_proposal_id,
             fallback_payload=fallback_payload,
+            failed_at=_utc_now(),
         )
-        if isinstance(resolution, AsyncPayloadResolutionFailure):
-            persist_async_operation_failed(
-                repository=self._repository,
-                operation=operation,
-                code=resolution.code,
-                message=resolution.message,
-                finished_at=_utc_now(),
-            )
-            return None
-        resolved = cast(AsyncVersionPayloadResolution, resolution)
-        return resolved.proposal_id, resolved.payload
 
     def _run_async_operation(
         self,

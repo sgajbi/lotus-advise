@@ -9,8 +9,11 @@ recorded here with enough detail for later owner-specific slices.
 - Owning repository: `lotus-advise`
 - Finding class: modularity problem
 - Current evidence:
-  - `src/core/proposals/service.py` remains a large orchestration module.
-  - `src/core/proposals/models.py` remains a large contract module.
+  - `src/core/proposals/service.py` is now a smaller workflow facade over named command,
+    read-model, persistence, projection, simulation, materialization, idempotency, and async
+    boundaries. It remains intentionally central as the workflow coordinator.
+  - `src/core/proposals/models.py` remains a large contract module and should only be split with
+    explicit OpenAPI/schema compatibility proof.
 - Progress:
   - Async create/version submission hashing and replay metadata extraction now live in
     `src/core/proposals/async_payloads.py`.
@@ -298,9 +301,12 @@ recorded here with enough detail for later owner-specific slices.
     construction, aggregate mutation, and transition persistence now live in
     `src/core/proposals/lifecycle_command.py`, removing the remaining service-private replay
     helpers for workflow events and approval records.
+  - Async create/version payload recovery failure mapping now lives in
+    `src/core/proposals/async_payload_resolution.py`, keeping persisted async payload failure
+    outcomes beside payload resolution instead of the workflow service.
 - Follow-up:
-  - Continue splitting async operation payload failure handling only where behavior is pinned by
-    existing characterization tests.
+  - Treat proposal service command decomposition as complete for the recorded high-risk command
+    paths unless new behavior expands the coordinator again.
   - Reassess `src/core/proposals/models.py` into smaller contract modules only with an explicit
     compatibility/export plan, because API schema stability is more important than file-size
     reduction.
