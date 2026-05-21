@@ -3349,3 +3349,26 @@
 - Follow-Up:
   - Consider moving engine tests to the exception module for exception imports once the service
     compatibility shim is no longer needed by downstream callers.
+
+## LA-REV-136
+
+- Scope: Proposal command validation adapters
+- Pattern: modularity / domain-error mapping hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService` still owned private wrappers that translated low-level
+  simulation-gate, expected-state, transition-rule, and approval-rule errors into proposal
+  lifecycle exceptions.
+- Evidence:
+  - `src/core/proposals/command_validation.py` now owns proposal command validation adapters and
+    domain error mapping for simulation flags, expected state, state transitions, and approvals.
+  - `src/core/proposals/service.py` delegates command validation and transition resolution to the
+    adapter module instead of carrying private wrapper methods.
+  - `tests/unit/advisory/engine/test_engine_proposal_command_validation.py` verifies validation
+    and transition-rule errors map to proposal lifecycle exceptions.
+  - Existing workflow-service tests continue to verify end-to-end command behavior.
+- Consequence:
+  - Validation error mapping is reusable by future command modules and remains test-covered outside
+    workflow orchestration.
+- Follow-Up:
+  - Review remaining service-local replay helper methods once command modules stabilize.

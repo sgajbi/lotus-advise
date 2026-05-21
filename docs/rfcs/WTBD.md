@@ -183,6 +183,9 @@ recorded here with enough detail for later owner-specific slices.
   - API routers, workspace routing, and proposal-reporting support now import proposal exceptions
     directly from `src/core/proposals/exceptions.py`, with an import-boundary test preventing
     service/package coupling from returning.
+  - Proposal command validation adapters now live in `src/core/proposals/command_validation.py`,
+    keeping simulation-flag, expected-state, lifecycle-transition, and approval-transition error
+    mapping outside the workflow service.
   - Report-request event creation and aggregate timestamp mutation now live behind
     `build_report_request_event_and_apply_state` in `src/core/proposals/reporting.py`, keeping
     report command state logic out of the workflow service.

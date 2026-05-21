@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
-from src.core.models import ProposalSimulateRequest
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
 from src.core.proposals.async_operation_persistence import (
@@ -40,9 +39,11 @@ from src.core.proposals.async_payloads import (
 )
 from src.core.proposals.async_replay import load_async_operation_replay_referents
 from src.core.proposals.command_read_model import load_proposal_command_read_model
-from src.core.proposals.concurrency import (
-    ProposalExpectedStateError,
-    validate_expected_state,
+from src.core.proposals.command_validation import (
+    resolve_proposal_approval_transition,
+    resolve_proposal_transition_state,
+    validate_proposal_expected_state,
+    validate_proposal_simulation_flag,
 )
 from src.core.proposals.context import (
     ProposalContextResolutionError,
@@ -151,7 +152,6 @@ from src.core.proposals.models import (
     ProposalVersionDetail,
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
-    ProposalWorkflowState,
     ProposalWorkflowTimelineResponse,
 )
 from src.core.proposals.projections import (
@@ -172,10 +172,6 @@ from src.core.proposals.records import build_proposal_create_command_state
 from src.core.proposals.reporting import build_report_request_event_and_apply_state
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
-from src.core.proposals.simulation_gate import (
-    ProposalSimulationGateError,
-    validate_proposal_simulation_enabled,
-)
 from src.core.proposals.transition_persistence import (
     persist_proposal_approval_transition,
     persist_proposal_transition,
@@ -192,14 +188,7 @@ from src.core.proposals.versions import (
 )
 from src.core.proposals.workflow_rules import (
     TERMINAL_STATES,
-    ProposalWorkflowRuleError,
     resolve_execution_update_event,
-)
-from src.core.proposals.workflow_rules import (
-    resolve_approval_transition as build_approval_transition,
-)
-from src.core.proposals.workflow_rules import (
-    resolve_transition_state as build_transition_state,
 )
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import (
@@ -209,6 +198,16 @@ from src.core.replay.service import (
 
 ASYNC_DEFAULT_MAX_ATTEMPTS = 3
 ASYNC_OPERATION_LEASE_SECONDS = 60
+
+__all__ = [
+    "ProposalIdempotencyConflictError",
+    "ProposalLifecycleError",
+    "ProposalNotFoundError",
+    "ProposalStateConflictError",
+    "ProposalTransitionError",
+    "ProposalValidationError",
+    "ProposalWorkflowService",
+]
 
 
 class ProposalWorkflowService:
@@ -265,7 +264,10 @@ class ProposalWorkflowService:
                 version_no=existing.proposal_version_no,
             )
 
-        self._validate_simulation_flag(resolved_request.simulate_request)
+        validate_proposal_simulation_flag(
+            request=resolved_request.simulate_request,
+            require_simulation_flag=self._require_proposal_simulation_flag,
+        )
         context_resolution = build_context_resolution_evidence(resolved_request)
         proposal_result = run_advisory_proposal_simulation(
             request=resolved_request.simulate_request,
@@ -508,7 +510,11 @@ class ProposalWorkflowService:
                 proposal=proposal,
                 replay_event=replay_event,
             )
-        self._validate_expected_state(proposal.current_state, payload.expected_state)
+        validate_proposal_expected_state(
+            current_state=proposal.current_state,
+            expected_state=payload.expected_state,
+            require_expected_state=self._require_expected_state,
+        )
         try:
             validate_execution_handoff_ready(current_state=proposal.current_state)
         except ProposalExecutionHandoffStateError as exc:
@@ -733,7 +739,10 @@ class ProposalWorkflowService:
             resolved_request = resolve_version_request(payload)
         except ProposalContextResolutionError as exc:
             raise ProposalValidationError(str(exc)) from exc
-        self._validate_simulation_flag(resolved_request.simulate_request)
+        validate_proposal_simulation_flag(
+            request=resolved_request.simulate_request,
+            require_simulation_flag=self._require_proposal_simulation_flag,
+        )
         context_resolution = build_context_resolution_evidence(resolved_request)
         request_hash = build_version_request_hash(payload=payload, resolved=resolved_request)
         try:
@@ -923,9 +932,13 @@ class ProposalWorkflowService:
                 proposal_id=proposal_id,
                 event=replay_event,
             )
-        self._validate_expected_state(proposal.current_state, payload.expected_state)
+        validate_proposal_expected_state(
+            current_state=proposal.current_state,
+            expected_state=payload.expected_state,
+            require_expected_state=self._require_expected_state,
+        )
 
-        to_state = self._resolve_transition_state(
+        to_state = resolve_proposal_transition_state(
             current_state=proposal.current_state,
             event_type=payload.event_type,
         )
@@ -984,10 +997,14 @@ class ProposalWorkflowService:
             if replay_response is None:
                 raise ProposalLifecycleError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
             return replay_response
-        self._validate_expected_state(proposal.current_state, payload.expected_state)
+        validate_proposal_expected_state(
+            current_state=proposal.current_state,
+            expected_state=payload.expected_state,
+            require_expected_state=self._require_expected_state,
+        )
 
         occurred_at = _utc_now()
-        event_type, to_state = self._resolve_approval_transition(
+        event_type, to_state = resolve_proposal_approval_transition(
             current_state=proposal.current_state,
             approval_type=payload.approval_type,
             approved=payload.approved,
@@ -1226,59 +1243,6 @@ class ProposalWorkflowService:
                 finished_at=_utc_now(),
             )
             return
-
-    def _validate_simulation_flag(self, request: ProposalSimulateRequest) -> None:
-        try:
-            validate_proposal_simulation_enabled(
-                request=request,
-                require_simulation_flag=self._require_proposal_simulation_flag,
-            )
-        except ProposalSimulationGateError as exc:
-            raise ProposalValidationError(str(exc)) from exc
-
-    def _validate_expected_state(
-        self,
-        current_state: ProposalWorkflowState,
-        expected_state: Optional[ProposalWorkflowState],
-    ) -> None:
-        try:
-            validate_expected_state(
-                current_state=current_state,
-                expected_state=expected_state,
-                require_expected_state=self._require_expected_state,
-            )
-        except ProposalExpectedStateError as exc:
-            raise ProposalStateConflictError(str(exc)) from exc
-
-    def _resolve_transition_state(
-        self,
-        *,
-        current_state: ProposalWorkflowState,
-        event_type: str,
-    ) -> ProposalWorkflowState:
-        try:
-            return build_transition_state(current_state=current_state, event_type=event_type)
-        except ProposalWorkflowRuleError as exc:
-            raise ProposalTransitionError(str(exc)) from exc
-
-    def _resolve_approval_transition(
-        self,
-        *,
-        current_state: ProposalWorkflowState,
-        approval_type: str,
-        approved: bool,
-    ) -> tuple[str, ProposalWorkflowState]:
-        try:
-            return cast(
-                tuple[str, ProposalWorkflowState],
-                build_approval_transition(
-                    current_state=current_state,
-                    approval_type=approval_type,
-                    approved=approved,
-                ),
-            )
-        except ProposalWorkflowRuleError as exc:
-            raise ProposalTransitionError(str(exc)) from exc
 
 
 def _utc_now() -> datetime:

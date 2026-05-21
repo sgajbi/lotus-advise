@@ -6,6 +6,7 @@ import pytest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest
+from src.core.proposals.command_validation import resolve_proposal_approval_transition
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
@@ -738,7 +739,7 @@ def test_service_rejects_simulation_flag_and_invalid_approval_type():
         raise AssertionError("Expected PROPOSAL_SIMULATION_DISABLED")
 
     try:
-        service._resolve_approval_transition(
+        resolve_proposal_approval_transition(
             current_state="DRAFT",
             approval_type="UNKNOWN",
             approved=True,
@@ -750,14 +751,13 @@ def test_service_rejects_simulation_flag_and_invalid_approval_type():
 
 
 def test_service_invalid_approval_state_variants():
-    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
     for approval_type, expected_state in [
         ("RISK", "COMPLIANCE_REVIEW"),
         ("COMPLIANCE", "RISK_REVIEW"),
         ("CLIENT_CONSENT", "DRAFT"),
     ]:
         try:
-            service._resolve_approval_transition(
+            resolve_proposal_approval_transition(
                 current_state=expected_state,
                 approval_type=approval_type,
                 approved=True,
