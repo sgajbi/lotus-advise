@@ -12,8 +12,8 @@ recorded here with enough detail for later owner-specific slices.
   - `src/core/proposals/service.py` is now a smaller workflow facade over named command,
     read-model, persistence, projection, simulation, materialization, idempotency, and async
     boundaries. It remains intentionally central as the workflow coordinator.
-  - `src/core/proposals/models.py` remains a large contract module and should only be split with
-    explicit OpenAPI/schema compatibility proof.
+  - `src/core/proposals/models.py` is now an import-stable compatibility module that re-exports
+    proposal contract categories from smaller modules.
 - Progress:
   - Async create/version submission hashing and replay metadata extraction now live in
     `src/core/proposals/async_payloads.py`.
@@ -304,14 +304,16 @@ recorded here with enough detail for later owner-specific slices.
   - Async create/version payload recovery failure mapping now lives in
     `src/core/proposals/async_payload_resolution.py`, keeping persisted async payload failure
     outcomes beside payload resolution instead of the workflow service.
+  - Proposal contract types now live in `src/core/proposals/contract_types.py`, proposal input
+    envelopes and validation live in `src/core/proposals/input_models.py`, API/read response DTOs
+    live in `src/core/proposals/response_models.py`, and persistence records live in
+    `src/core/proposals/persistence_models.py`. `src/core/proposals/models.py` remains the stable
+    public import module and is pinned by a contract-boundary test.
 - Follow-up:
   - Treat proposal service command decomposition as complete for the recorded high-risk command
     paths unless new behavior expands the coordinator again.
-  - Reassess `src/core/proposals/models.py` into smaller contract modules only with an explicit
-    compatibility/export plan, because API schema stability is more important than file-size
-    reduction.
+  - WTBD-001 is complete for the recorded Advise-owned decomposition scope.
   - Keep API contracts stable while moving business rules out of controller and persistence seams.
-  - Add characterization tests around each extracted rule before or during extraction.
   - Publish repo-local wiki updates after merge to `main`.
 
 ## WTBD-002: Continue Stateful Context Adapter Decomposition

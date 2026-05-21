@@ -3605,3 +3605,37 @@
 - Follow-Up:
   - Continue WTBD-001 in small command-oriented slices; do not split `models.py` mechanically
     without a compatibility/export plan and OpenAPI regression proof.
+
+## LA-REV-145
+
+- Scope: Proposal contract model module boundaries
+- Pattern: modularity / API-contract compatibility hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: The proposal contract model module still carried literals, input envelopes, API/read
+  response DTOs, and persistence records in one large file even after workflow service command
+  decomposition was substantially complete.
+- Evidence:
+  - `src/core/proposals/contract_types.py` now owns proposal lifecycle, execution, async,
+    reporting, approval, and input-mode literal vocabularies.
+  - `src/core/proposals/input_models.py` now owns proposal create/version/simulation input
+    envelopes and compatibility validators for legacy, stateless, and stateful request shapes.
+  - `src/core/proposals/response_models.py` now owns proposal API/read response DTOs, including
+    workflow, approval, execution, delivery, lineage, idempotency, async status, and transition
+    responses.
+  - `src/core/proposals/persistence_models.py` now owns internal proposal aggregate, version,
+    workflow event, approval, idempotency, simulation idempotency, transition-result, and async
+    operation records.
+  - `src/core/proposals/models.py` remains the stable public import module and re-exports the same
+    proposal contract names for existing callers.
+  - `tests/unit/advisory/contracts/test_proposal_model_module_boundaries.py` pins the compatibility
+    re-export behavior and schema titles after the split.
+- Consequence:
+  - WTBD-001 is closed for the recorded Advise-owned decomposition scope. The proposal workflow
+    service is now a smaller coordinator over named command/read-model boundaries, and the proposal
+    contract module is split by responsibility without forcing immediate caller churn or changing
+    schema titles.
+- Follow-Up:
+  - Treat future proposal contract moves as explicit API-governance work with OpenAPI regression
+    evidence; do not move public DTO names out of `src.core.proposals.models` without a deprecation
+    plan.
