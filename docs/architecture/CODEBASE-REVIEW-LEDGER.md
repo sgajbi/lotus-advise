@@ -2856,3 +2856,24 @@
 - Follow-Up:
   - Review initial proposal creation for the same command-state boundary once create command
     materialization and idempotency persistence are isolated.
+
+## LA-REV-114
+
+- Scope: Initial proposal create command state helper
+- Pattern: service-boundary hardening / modularity problem
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.create_proposal` assembled the initial proposal aggregate,
+  `CREATED` lineage event, and proposal-create idempotency record inline, keeping create command
+  referent construction in the service layer.
+- Evidence:
+  - `src/core/proposals/records.py` now exposes `build_proposal_create_command_state`.
+  - `src/core/proposals/service.py` delegates initial proposal aggregate, lineage event, and
+    idempotency referent construction to the records domain helper.
+  - `tests/unit/advisory/engine/test_engine_proposal_records.py` covers the combined helper.
+- Consequence:
+  - Initial advisory proposal creation now has a directly tested command-state boundary for the
+    persisted aggregate, audit lineage event, and replay identity referent.
+- Follow-Up:
+  - Keep proposal version materialization and persistence ordering in the service until a broader
+    create command handler can own transaction boundaries.

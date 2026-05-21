@@ -89,7 +89,6 @@ from src.core.proposals.lifecycle_events import (
     build_approval_replay_response_from_referents,
     build_approval_request_hash,
     build_approval_transition_response,
-    build_proposal_created_event,
     build_state_transition_event_and_apply_state,
     build_state_transition_replay_response,
     build_state_transition_request_hash,
@@ -139,7 +138,7 @@ from src.core.proposals.projections import (
     to_version_detail,
 )
 from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
-from src.core.proposals.records import build_proposal_idempotency_record, build_proposal_record
+from src.core.proposals.records import build_proposal_create_command_state
 from src.core.proposals.reporting import build_report_request_event_and_apply_state
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
@@ -273,7 +272,7 @@ class ProposalWorkflowService:
 
         proposal_id = new_proposal_id()
         version_no = 1
-        proposal = build_proposal_record(
+        command_state = build_proposal_create_command_state(
             proposal_id=proposal_id,
             portfolio_id=resolved_request.simulate_request.portfolio_snapshot.portfolio_id,
             mandate_id=resolved_request.metadata.mandate_id,
@@ -285,7 +284,12 @@ class ProposalWorkflowService:
             advisor_notes=resolved_request.metadata.advisor_notes,
             lifecycle_origin=lifecycle_origin,
             source_workspace_id=source_workspace_id,
+            event_id=new_workflow_event_id(),
+            correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
         )
+        proposal = command_state.proposal
         version = build_proposal_version_record(
             proposal_version_id=new_proposal_version_id(),
             proposal_id=proposal_id,
@@ -297,27 +301,12 @@ class ProposalWorkflowService:
             created_at=now,
             store_evidence_bundle=self._store_evidence_bundle,
         )
-        created_event = build_proposal_created_event(
-            event_id=new_workflow_event_id(),
-            proposal_id=proposal_id,
-            actor_id=payload.created_by,
-            occurred_at=now,
-            related_version_no=version_no,
-            correlation_id=correlation_id,
-        )
+        created_event = command_state.created_event
 
         self._repository.create_proposal(proposal)
         self._repository.create_version(version)
         self._repository.append_event(created_event)
-        self._repository.save_idempotency(
-            build_proposal_idempotency_record(
-                idempotency_key=idempotency_key,
-                request_hash=request_hash,
-                proposal_id=proposal_id,
-                proposal_version_no=version_no,
-                created_at=now,
-            )
-        )
+        self._repository.save_idempotency(command_state.idempotency_record)
 
         return to_create_response(proposal=proposal, version=version, latest_event=created_event)
 
