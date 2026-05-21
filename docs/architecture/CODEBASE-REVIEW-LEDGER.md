@@ -2309,3 +2309,27 @@
   - Keep repository reads, idempotency replay ordering, and persistence orchestration in the service
     until the complete execution update command boundary can be extracted without changing API
     behavior.
+
+## LA-REV-090
+
+- Scope: Execution update idempotency-key construction
+- Pattern: duplication / replay-lineage hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: The execution update idempotency key format was assembled separately in replay lookup and
+  workflow-event lineage payload construction, creating a small but important drift risk for update
+  replay identity.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now owns
+    `build_execution_update_idempotency_key`.
+  - `src/core/proposals/service.py` uses the shared helper for replay lookup.
+  - `src/core/proposals/execution_update.py` uses the same helper when building update event
+    lineage payloads.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` directly proves the
+    governed execution update idempotency-key format.
+- Consequence:
+  - Execution update replay lookup identity and persisted event lineage identity now share one
+    construction path.
+- Follow-Up:
+  - Keep replay lookup ordering in the service until the complete execution update command boundary
+    can be extracted without changing API behavior.

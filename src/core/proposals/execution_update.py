@@ -29,6 +29,10 @@ class ProposalExecutionUpdateTimestampError(Exception):
     pass
 
 
+def build_execution_update_idempotency_key(*, payload: ProposalExecutionUpdateRequest) -> str:
+    return f"execution-update:{payload.update_id}"
+
+
 def validate_execution_update_handoff_identity(
     *,
     handoff_event: ProposalWorkflowEventRecord,
@@ -90,7 +94,7 @@ def build_execution_update_event(
         "execution_provider": payload.execution_provider,
         "external_execution_id": payload.external_execution_id,
         "details": payload.details,
-        "idempotency_key": f"execution-update:{payload.update_id}",
+        "idempotency_key": build_execution_update_idempotency_key(payload=payload),
         "idempotency_request_hash": request_hash,
     }
     return ProposalWorkflowEventRecord(

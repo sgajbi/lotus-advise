@@ -7,6 +7,7 @@ from src.core.proposals.execution_update import (
     ProposalExecutionUpdateTimestampError,
     apply_execution_update_state,
     build_execution_update_event,
+    build_execution_update_idempotency_key,
     resolve_execution_update_occurred_at,
     validate_execution_update_handoff_identity,
     validate_execution_update_occurred_after_handoff,
@@ -110,6 +111,13 @@ def test_build_execution_update_event_defaults_to_handoff_version_and_omits_null
         "idempotency_key": "execution-update:exec_update_001",
         "idempotency_request_hash": "sha256:update",
     }
+
+
+def test_build_execution_update_idempotency_key_uses_update_identity():
+    assert (
+        build_execution_update_idempotency_key(payload=_payload(update_id="exec_update_987"))
+        == "execution-update:exec_update_987"
+    )
 
 
 def test_validate_execution_update_handoff_identity_accepts_matching_identity():

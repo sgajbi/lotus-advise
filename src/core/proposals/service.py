@@ -63,6 +63,7 @@ from src.core.proposals.execution_update import (
     ProposalExecutionUpdateTimestampError,
     apply_execution_update_state,
     build_execution_update_event,
+    build_execution_update_idempotency_key,
     resolve_execution_update_occurred_at,
     validate_execution_update_handoff_identity,
     validate_execution_update_occurred_after_handoff,
@@ -565,7 +566,7 @@ class ProposalWorkflowService:
         request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
         replay_event = self._get_replayed_event(
             proposal_id=proposal_id,
-            idempotency_key=f"execution-update:{payload.update_id}",
+            idempotency_key=build_execution_update_idempotency_key(payload=payload),
             request_hash=request_hash,
         )
         if replay_event is not None:
