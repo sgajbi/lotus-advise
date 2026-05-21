@@ -9,7 +9,10 @@ from src.core.proposals.async_operation_persistence import (
     persist_async_runtime_exception_outcome,
 )
 from src.core.proposals.async_operation_read_model import load_proposal_async_operation_read_model
-from src.core.proposals.async_operations import should_skip_async_operation_run
+from src.core.proposals.async_operations import (
+    has_exhausted_async_attempts,
+    should_skip_async_operation_run,
+)
 from src.core.proposals.exceptions import ProposalLifecycleError
 from src.core.proposals.repository import ProposalRepository
 
@@ -35,6 +38,15 @@ def run_async_operation_until_terminal(
         if should_skip_async_operation_run(operation):
             return
         assert operation is not None
+        if has_exhausted_async_attempts(operation):
+            persist_async_operation_failed(
+                repository=repository,
+                operation=operation,
+                code="ProposalLifecycleError",
+                message="PROPOSAL_ASYNC_ATTEMPTS_EXHAUSTED",
+                finished_at=utc_now(),
+            )
+            return
 
         persist_async_attempt_started(
             repository=repository,
