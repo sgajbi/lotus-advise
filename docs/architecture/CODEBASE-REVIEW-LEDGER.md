@@ -4067,3 +4067,31 @@
 - Follow-Up:
   - Include the focused Postgres repository regression tests and repo-native feature lane in the PR
     evidence before merge.
+
+## LA-REV-159
+
+- Scope: Postgres proposal list index support
+- Pattern: hot-path DB query shape / migration hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The proposal list repository path now uses SQL keyset pagination, but the schema did
+  not yet include supporting proposal-record indexes for ordered keyset scans and common filtered
+  advisor-book access. Without those indexes, larger bank datasets could still degrade into costly
+  sorts or broad scans even though row transfer is page bounded.
+- Evidence:
+  - `src/infrastructure/postgres_migrations/proposals/0006_proposal_list_keyset_indexes.sql` now
+    adds `idx_proposal_records_list_created` for unfiltered keyset ordering and
+    `idx_proposal_records_list_portfolio_state_advisor` for common portfolio/state/advisor filtered
+    advisory proposal history reads.
+  - `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` now proves repository
+    initialization applies both proposal-list indexes and records the `proposals:0006` migration.
+- Consequence:
+  - The bounded proposal list read path has schema-level support for predictable latency as
+    proposal history grows, reducing operational risk for advisor workbench, audit, and operations
+    list screens.
+- Documentation:
+  - No wiki change is required because this is internal Postgres schema-performance hardening with
+    no public API, OpenAPI, operator workflow, or capability-contract change.
+- Follow-Up:
+  - Include repository migration smoke, focused repository tests, and repo-native feature-lane
+    validation in the PR evidence before merge.

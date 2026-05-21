@@ -407,6 +407,29 @@ def test_postgres_repository_requires_driver(monkeypatch):
         raise AssertionError("Expected RuntimeError for missing proposal postgres driver")
 
 
+def test_postgres_repository_initializes_proposal_list_keyset_indexes(monkeypatch):
+    _, connection = _build_repository(monkeypatch)
+
+    assert any(
+        sql
+        == (
+            "CREATE INDEX IF NOT EXISTS idx_proposal_records_list_created "
+            "ON proposal_records (created_at DESC, proposal_id DESC)"
+        )
+        for sql in connection.executed_sql
+    )
+    assert any(
+        sql
+        == (
+            "CREATE INDEX IF NOT EXISTS idx_proposal_records_list_portfolio_state_advisor "
+            "ON proposal_records ( portfolio_id, current_state, created_by, "
+            "created_at DESC, proposal_id DESC )"
+        )
+        for sql in connection.executed_sql
+    )
+    assert ("proposals", "proposals:0006") in connection.schema_migrations
+
+
 def test_postgres_repository_idempotency_roundtrip(monkeypatch):
     repository, _ = _build_repository(monkeypatch)
     created_at = datetime.now(timezone.utc)
