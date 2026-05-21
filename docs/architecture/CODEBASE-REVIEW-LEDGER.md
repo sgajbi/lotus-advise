@@ -3189,3 +3189,24 @@
     without expanding workflow orchestration or obscuring the write order.
 - Follow-Up:
   - Add repository-level atomic create support before changing transactional semantics.
+
+## LA-REV-129
+
+- Scope: Proposal version persistence sequence
+- Pattern: modularity / transactional-boundary preparation
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.create_version` persisted the new version record and lifecycle
+  transition inline, leaving the future version-create transactional boundary mixed into workflow
+  orchestration.
+- Evidence:
+  - `src/core/proposals/create_persistence.py` now owns `persist_created_proposal_version`.
+  - `src/core/proposals/service.py` delegates new-version record and transition-event persistence
+    after version record and event construction.
+  - `tests/unit/advisory/engine/test_engine_proposal_create_persistence.py` verifies version
+    persistence stores the new version, advances aggregate state, and records the lifecycle event.
+- Consequence:
+  - Proposal version persistence now has a focused boundary that can later become repository-atomic
+    without expanding workflow orchestration or changing version lifecycle rules.
+- Follow-Up:
+  - Add repository-level atomic version-create support before changing transactional semantics.

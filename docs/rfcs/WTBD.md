@@ -162,6 +162,9 @@ recorded here with enough detail for later owner-specific slices.
   - Initial proposal persistence now lives in `src/core/proposals/create_persistence.py`, keeping
     the proposal/version/event/idempotency write sequence named, explicit, and test-covered outside
     workflow orchestration.
+  - Proposal version persistence now reuses `src/core/proposals/create_persistence.py`, keeping the
+    new-version record and transition-event write sequence named and test-covered outside workflow
+    orchestration.
   - Report-request event creation and aggregate timestamp mutation now live behind
     `build_report_request_event_and_apply_state` in `src/core/proposals/reporting.py`, keeping
     report command state logic out of the workflow service.

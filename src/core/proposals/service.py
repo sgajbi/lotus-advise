@@ -47,7 +47,10 @@ from src.core.proposals.context import (
     resolve_version_request,
 )
 from src.core.proposals.correlation import resolve_correlation_id
-from src.core.proposals.create_persistence import persist_created_proposal
+from src.core.proposals.create_persistence import (
+    persist_created_proposal,
+    persist_created_proposal_version,
+)
 from src.core.proposals.delivery_summary import (
     build_delivery_history_response,
     build_delivery_summary_response,
@@ -783,8 +786,12 @@ class ProposalWorkflowService:
             related_version_no=next_version_no,
             correlation_id=correlation_id,
         )
-        self._repository.create_version(version)
-        self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
+        persist_created_proposal_version(
+            repository=self._repository,
+            proposal=proposal,
+            version=version,
+            event=event,
+        )
         return to_create_response(proposal=proposal, version=version, latest_event=event)
 
     def submit_create_version_async(
