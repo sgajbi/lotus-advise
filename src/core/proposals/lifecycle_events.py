@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from typing import cast
@@ -83,7 +84,7 @@ def build_state_transition_event(
     idempotency_key: str | None,
     request_hash: str,
 ) -> ProposalWorkflowEventRecord:
-    reason_json = dict(payload.reason)
+    reason_json = deepcopy(payload.reason)
     if idempotency_key:
         reason_json["idempotency_key"] = idempotency_key
         reason_json["idempotency_request_hash"] = request_hash
@@ -167,7 +168,7 @@ def build_approval_record(
     idempotency_key: str | None,
     request_hash: str,
 ) -> ProposalApprovalRecordData:
-    details_json = dict(payload.details)
+    details_json = deepcopy(payload.details)
     if idempotency_key:
         details_json["idempotency_key"] = idempotency_key
         details_json["idempotency_request_hash"] = request_hash
@@ -194,7 +195,7 @@ def build_approval_transition_event(
     idempotency_key: str | None,
     request_hash: str,
 ) -> ProposalWorkflowEventRecord:
-    reason_json = dict(payload.details)
+    reason_json = deepcopy(payload.details)
     if idempotency_key:
         reason_json["idempotency_key"] = idempotency_key
         reason_json["idempotency_request_hash"] = request_hash

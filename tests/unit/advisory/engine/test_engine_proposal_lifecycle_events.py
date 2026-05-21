@@ -128,6 +128,50 @@ def test_build_state_transition_event_preserves_reason_and_idempotency_metadata(
     }
 
 
+def test_lifecycle_event_builders_isolate_nested_audit_payloads():
+    transition_payload = _transition_request(
+        reason={"evidence": {"document_refs": ["transition_original"]}}
+    )
+    approval_payload = _approval_request(
+        details={"evidence": {"document_refs": ["approval_original"]}}
+    )
+
+    transition_event = build_state_transition_event(
+        event_id="pwe_lifecycle_immutable",
+        proposal=_proposal(),
+        payload=transition_payload,
+        to_state="COMPLIANCE_REVIEW",
+        occurred_at=datetime(2026, 5, 21, 9, 10, tzinfo=timezone.utc),
+        idempotency_key="idem_lifecycle",
+        request_hash="sha256:lifecycle",
+    )
+    approval_record = build_approval_record(
+        approval_id="pap_lifecycle_immutable",
+        proposal_id="pp_lifecycle_events",
+        payload=approval_payload,
+        occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
+        idempotency_key="idem_approval",
+        request_hash="sha256:approval",
+    )
+    approval_event = build_approval_transition_event(
+        event_id="pwe_approval_immutable",
+        proposal=_proposal(),
+        payload=approval_payload,
+        event_type="CLIENT_CONSENT_RECORDED",
+        to_state="EXECUTION_READY",
+        occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
+        idempotency_key="idem_approval",
+        request_hash="sha256:approval",
+    )
+
+    transition_payload.reason["evidence"]["document_refs"][0] = "transition_tampered"
+    approval_payload.details["evidence"]["document_refs"][0] = "approval_tampered"
+
+    assert transition_event.reason_json["evidence"] == {"document_refs": ["transition_original"]}
+    assert approval_record.details_json["evidence"] == {"document_refs": ["approval_original"]}
+    assert approval_event.reason_json["evidence"] == {"document_refs": ["approval_original"]}
+
+
 def test_build_state_transition_request_hash_is_canonical_and_reason_sensitive():
     first_hash = build_state_transition_request_hash(
         payload=_transition_request(reason={"b": "second", "a": "first"})

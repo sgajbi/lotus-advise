@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 from typing import cast
 
@@ -59,7 +60,7 @@ def build_execution_handoff_requested_event(
         "correlation_id": payload.correlation_id,
         "external_request_id": payload.external_request_id,
         "execution_ownership": execution_ownership_boundary(),
-        "notes": payload.notes,
+        "notes": deepcopy(payload.notes),
     }
     if idempotency_key:
         reason_json["idempotency_key"] = idempotency_key
