@@ -4,6 +4,10 @@ from typing import Any, Optional, cast
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
+from src.core.proposals.async_operation_read_model import (
+    load_proposal_async_operation_by_correlation_read_model,
+    load_proposal_async_operation_read_model,
+)
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
@@ -623,22 +627,28 @@ class ProposalWorkflowService:
         return to_idempotency_lookup_response(read_model.record)
 
     def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
-        operation = self._repository.get_operation(operation_id=operation_id)
-        if operation is None:
+        read_model = load_proposal_async_operation_read_model(
+            repository=self._repository,
+            operation_id=operation_id,
+        )
+        if read_model.operation is None:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
-        return to_async_status_response(operation)
+        return to_async_status_response(read_model.operation)
 
     def get_async_operation_replay(self, *, operation_id: str) -> AdvisoryReplayEvidenceResponse:
-        operation = self._repository.get_operation(operation_id=operation_id)
-        if operation is None:
+        read_model = load_proposal_async_operation_read_model(
+            repository=self._repository,
+            operation_id=operation_id,
+        )
+        if read_model.operation is None:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
 
         referents = load_async_operation_replay_referents(
             repository=self._repository,
-            operation=operation,
+            operation=read_model.operation,
         )
         return build_async_operation_replay_response(
-            operation=operation,
+            operation=read_model.operation,
             proposal=referents.proposal,
             version=referents.version,
             events=referents.events,
@@ -647,10 +657,13 @@ class ProposalWorkflowService:
     def get_async_operation_by_correlation(
         self, *, correlation_id: str
     ) -> ProposalAsyncOperationStatusResponse:
-        operation = self._repository.get_operation_by_correlation(correlation_id=correlation_id)
-        if operation is None:
+        read_model = load_proposal_async_operation_by_correlation_read_model(
+            repository=self._repository,
+            correlation_id=correlation_id,
+        )
+        if read_model.operation is None:
             raise ProposalNotFoundError("PROPOSAL_ASYNC_OPERATION_NOT_FOUND")
-        return to_async_status_response(operation)
+        return to_async_status_response(read_model.operation)
 
     def get_version(
         self,

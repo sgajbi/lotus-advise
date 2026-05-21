@@ -143,6 +143,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal idempotency read-model loading now lives in
     `src/core/proposals/idempotency_read_model.py`, keeping replay-audit key lookup repository
     loading out of the workflow service.
+  - Proposal async-operation status read-model loading now lives in
+    `src/core/proposals/async_operation_read_model.py`, keeping operation-id and correlation-id
+    status lookup repository loading out of the workflow service.
   - Report-request event creation and aggregate timestamp mutation now live behind
     `build_report_request_event_and_apply_state` in `src/core/proposals/reporting.py`, keeping
     report command state logic out of the workflow service.

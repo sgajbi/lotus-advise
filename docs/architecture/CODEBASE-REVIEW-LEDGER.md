@@ -3052,3 +3052,25 @@
     workflow service.
 - Follow-Up:
   - Review async-operation status reads for the same direct-read boundary pattern.
+
+## LA-REV-123
+
+- Scope: Proposal async-operation read-model loading
+- Pattern: duplication / operational status read hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: Async operation status and replay endpoints loaded operation records directly from the
+  workflow service by operation id or correlation id before projection and replay referent loading.
+- Evidence:
+  - `src/core/proposals/async_operation_read_model.py` now owns operation-id and correlation-id
+    read-model loading.
+  - `src/core/proposals/service.py` delegates async-operation status and replay operation loading
+    before status projection or replay referent resolution.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operation_read_model.py` covers found
+    and missing operation boundaries for both lookup keys.
+- Consequence:
+  - Async operational diagnostics now have a reusable read boundary for future status caching,
+    tenant authorization, or indexed correlation lookup without expanding the workflow service.
+- Follow-Up:
+  - Review proposal list filtering and pagination as the next read-model boundary after compact
+    status lookups.
