@@ -4039,3 +4039,31 @@
 - Follow-Up:
   - Include this event-builder immutability slice in the next PR merge gate; no OpenAPI vocabulary
     semantic change is expected.
+
+## LA-REV-158
+
+- Scope: Postgres proposal list pagination
+- Pattern: hot-path DB query shape / pagination hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The Postgres proposal listing path applied portfolio, lifecycle state, advisor, date,
+  cursor, and page-size semantics correctly, but fetched every filtered proposal row and built every
+  `ProposalRecord` before slicing in application memory. That creates unbounded transfer and object
+  construction cost for bank-scale advisory books with large proposal histories.
+- Evidence:
+  - `src/infrastructure/proposals/postgres.py` now applies keyset pagination in SQL using
+    `(created_at, proposal_id)` and fetches only `limit + 1` rows to determine `next_cursor`.
+  - Cursor handling now validates the cursor against the same filtered result set, preserving the
+    previous empty-page behavior for missing or mismatched cursors without scanning all rows.
+  - `tests/unit/advisory/engine/test_engine_proposal_repository_postgres.py` now proves DB-side
+    `LIMIT %s`, keyset cursor SQL shape, bounded `limit + 1` fetch behavior, and mismatched-filter
+    cursor rejection.
+- Consequence:
+  - Proposal history reads are now bounded by page size rather than total matching history, reducing
+    latency, database transfer, and service memory pressure for advisor and operations workflows.
+- Documentation:
+  - No wiki change is required because this is internal repository query-shape hardening with no
+    public API, OpenAPI, operator workflow, or capability-contract change.
+- Follow-Up:
+  - Include the focused Postgres repository regression tests and repo-native feature lane in the PR
+    evidence before merge.

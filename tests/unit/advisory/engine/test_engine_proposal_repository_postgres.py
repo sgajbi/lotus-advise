@@ -37,9 +37,13 @@ class _FakeConnection:
         self.events = {}
         self.approvals = {}
         self.schema_migrations = {}
+        self.executed_sql = []
+        self.executed_args = []
 
     def execute(self, query, args=None):
         sql = " ".join(str(query).split())
+        self.executed_sql.append(sql)
+        self.executed_args.append(tuple(args or ()))
         if sql == "SELECT pg_advisory_lock(%s::bigint)":
             return _FakeCursor()
         if sql == "SELECT pg_advisory_unlock(%s::bigint)":
@@ -230,7 +234,7 @@ class _FakeConnection:
                 "source_workspace_id": args[12],
             }
             return _FakeCursor()
-        if "FROM proposal_records WHERE proposal_id = %s" in sql:
+        if "FROM proposal_records WHERE proposal_id = %s" in sql and "ORDER BY" not in sql:
             return _FakeCursor(self.proposals.get(args[0]))
         if "FROM proposal_records" in sql and "ORDER BY created_at DESC, proposal_id DESC" in sql:
             rows = list(self.proposals.values())
@@ -253,12 +257,48 @@ class _FakeConnection:
                 rows = [row for row in rows if row["created_at"] >= created_from]
             if "created_at <= %s" in sql:
                 created_to = args[arg_index]
+                arg_index += 1
                 rows = [row for row in rows if row["created_at"] <= created_to]
+            if "FROM proposal_records cursor_record WHERE cursor_record.proposal_id = %s" in sql:
+                cursor = args[arg_index]
+                arg_index += 1
+                cursor_row = self.proposals.get(cursor)
+                if cursor_row is None:
+                    return _FakeCursor(rows=[])
+                if "cursor_record.portfolio_id = %s" in sql:
+                    cursor_portfolio_id = args[arg_index]
+                    arg_index += 1
+                    if cursor_row["portfolio_id"] != cursor_portfolio_id:
+                        return _FakeCursor(rows=[])
+                if "cursor_record.current_state = %s" in sql:
+                    cursor_state = args[arg_index]
+                    arg_index += 1
+                    if cursor_row["current_state"] != cursor_state:
+                        return _FakeCursor(rows=[])
+                if "cursor_record.created_by = %s" in sql:
+                    cursor_created_by = args[arg_index]
+                    arg_index += 1
+                    if cursor_row["created_by"] != cursor_created_by:
+                        return _FakeCursor(rows=[])
+                if "cursor_record.created_at >= %s" in sql:
+                    cursor_created_from = args[arg_index]
+                    arg_index += 1
+                    if cursor_row["created_at"] < cursor_created_from:
+                        return _FakeCursor(rows=[])
+                if "cursor_record.created_at <= %s" in sql:
+                    cursor_created_to = args[arg_index]
+                    arg_index += 1
+                    if cursor_row["created_at"] > cursor_created_to:
+                        return _FakeCursor(rows=[])
+                cursor_key = (cursor_row["created_at"], cursor_row["proposal_id"])
+                rows = [row for row in rows if (row["created_at"], row["proposal_id"]) < cursor_key]
             rows = sorted(
                 rows,
                 key=lambda row: (row["created_at"], row["proposal_id"]),
                 reverse=True,
             )
+            if "LIMIT %s" in sql:
+                rows = rows[: args[arg_index]]
             return _FakeCursor(rows=rows)
         if "INSERT INTO proposal_versions" in sql:
             self.versions[(args[1], args[2])] = {
@@ -721,6 +761,90 @@ def test_postgres_repository_proposal_create_update_get_and_list(monkeypatch):
         limit=1,
         cursor="pp_missing",
     )
+    assert rows == []
+    assert next_cursor is None
+
+
+def test_postgres_repository_list_proposals_uses_keyset_limit(monkeypatch):
+    repository, connection = _build_repository(monkeypatch)
+    base_created_at = datetime(2026, 1, 15, 9, 0, tzinfo=timezone.utc)
+    for index, proposal_id in enumerate(("pp_a", "pp_b", "pp_c")):
+        created_at = base_created_at + timedelta(minutes=index)
+        repository.create_proposal(
+            ProposalRecord(
+                proposal_id=proposal_id,
+                portfolio_id="pf_keyset",
+                mandate_id=f"mandate_{index}",
+                jurisdiction="SG",
+                created_by="advisor_keyset",
+                created_at=created_at,
+                last_event_at=created_at,
+                current_state="DRAFT",
+                current_version_no=1,
+                title=f"Proposal {proposal_id}",
+                advisor_notes=None,
+            )
+        )
+    other_created_at = base_created_at + timedelta(minutes=10)
+    repository.create_proposal(
+        ProposalRecord(
+            proposal_id="pp_other",
+            portfolio_id="pf_other",
+            mandate_id="mandate_other",
+            jurisdiction="SG",
+            created_by="advisor_keyset",
+            created_at=other_created_at,
+            last_event_at=other_created_at,
+            current_state="DRAFT",
+            current_version_no=1,
+            title="Other portfolio proposal",
+            advisor_notes=None,
+        )
+    )
+
+    rows, next_cursor = repository.list_proposals(
+        portfolio_id="pf_keyset",
+        state=None,
+        created_by=None,
+        created_from=None,
+        created_to=None,
+        limit=1,
+        cursor=None,
+    )
+
+    assert [row.proposal_id for row in rows] == ["pp_c"]
+    assert next_cursor == "pp_c"
+    assert "LIMIT %s" in connection.executed_sql[-1]
+    assert connection.executed_args[-1][-1] == 2
+
+    rows, next_cursor = repository.list_proposals(
+        portfolio_id="pf_keyset",
+        state=None,
+        created_by=None,
+        created_from=None,
+        created_to=None,
+        limit=1,
+        cursor="pp_c",
+    )
+
+    assert [row.proposal_id for row in rows] == ["pp_b"]
+    assert next_cursor == "pp_b"
+    assert (
+        "FROM proposal_records cursor_record WHERE cursor_record.proposal_id = %s"
+        in (connection.executed_sql[-1])
+    )
+    assert connection.executed_args[-1] == ("pf_keyset", "pp_c", "pf_keyset", 2)
+
+    rows, next_cursor = repository.list_proposals(
+        portfolio_id="pf_keyset",
+        state=None,
+        created_by=None,
+        created_from=None,
+        created_to=None,
+        limit=1,
+        cursor="pp_other",
+    )
+
     assert rows == []
     assert next_cursor is None
 
