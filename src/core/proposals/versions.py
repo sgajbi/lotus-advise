@@ -1,4 +1,5 @@
 from collections.abc import Collection
+from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
@@ -84,8 +85,8 @@ def build_proposal_version_record(
         simulation_hash=simulation_hash,
         status_at_creation=proposal_result.status,
         proposal_result_json=simulation_payload,
-        artifact_json=artifact,
-        evidence_bundle_json=evidence_bundle if store_evidence_bundle else {},
+        artifact_json=deepcopy(artifact),
+        evidence_bundle_json=deepcopy(evidence_bundle) if store_evidence_bundle else {},
         gate_decision_json=(
             proposal_result.gate_decision.model_dump(mode="json")
             if proposal_result.gate_decision is not None

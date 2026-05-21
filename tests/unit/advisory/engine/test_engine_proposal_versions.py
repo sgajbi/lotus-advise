@@ -165,6 +165,33 @@ def test_build_proposal_version_record_captures_hashes_and_gate_decision():
     assert version.gate_decision_json == proposal_result.gate_decision.model_dump(mode="json")
 
 
+def test_build_proposal_version_record_isolated_from_mutable_inputs():
+    artifact = _artifact()
+    artifact["evidence_bundle"]["lineage"] = {"source": "artifact_builder"}
+    evidence_bundle = {
+        "hashes": {"artifact_hash": "sha256:artifact"},
+        "risk_lens": {"source_service": "lotus-risk", "risk_proxy": {"hhi_delta": "1600"}},
+    }
+
+    version = build_proposal_version_record(
+        proposal_version_id="ppv_version_immutable",
+        proposal_id="pp_version",
+        version_no=4,
+        request_hash="sha256:request",
+        proposal_result=_proposal_result(),
+        artifact=artifact,
+        evidence_bundle=evidence_bundle,
+        created_at=datetime(2026, 5, 20, 9, 15, tzinfo=timezone.utc),
+        store_evidence_bundle=True,
+    )
+
+    artifact["evidence_bundle"]["lineage"]["source"] = "tampered"
+    evidence_bundle["risk_lens"]["risk_proxy"]["hhi_delta"] = "9999"
+
+    assert version.artifact_json["evidence_bundle"]["lineage"] == {"source": "artifact_builder"}
+    assert version.evidence_bundle_json["risk_lens"]["risk_proxy"]["hhi_delta"] == "1600"
+
+
 def test_build_proposal_version_record_can_omit_evidence_bundle():
     version = build_proposal_version_record(
         proposal_version_id="ppv_version_redacted",

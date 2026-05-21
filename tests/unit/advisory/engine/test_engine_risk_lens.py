@@ -18,6 +18,14 @@ def test_extract_risk_lens_returns_copy_for_valid_payload() -> None:
 
     assert extracted == payload["risk_lens"]
     assert extracted is not payload["risk_lens"]
+    assert (
+        extracted["single_position_concentration"]
+        is not payload["risk_lens"]["single_position_concentration"]
+    )
+
+    payload["risk_lens"]["single_position_concentration"]["top_position_weight_proposed"] = "0.99"
+
+    assert extracted["single_position_concentration"]["top_position_weight_proposed"] == "0.12"
 
 
 def test_extract_risk_lens_rejects_missing_or_invalid_source_service() -> None:

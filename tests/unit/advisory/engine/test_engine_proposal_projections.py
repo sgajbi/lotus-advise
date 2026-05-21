@@ -149,6 +149,41 @@ def test_to_version_detail_can_omit_evidence_bundle():
     assert with_evidence.gate_decision.model_dump(mode="json") == version.gate_decision_json
 
 
+def test_to_version_detail_isolated_from_persisted_record_mutation():
+    repository = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repository)
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_projection",
+            simulate_request=_simulate_request("pf_projection_immutable"),
+        ),
+        idempotency_key="idem_projection_immutable",
+        correlation_id="corr_projection_immutable",
+    )
+    version = repository.get_version(
+        proposal_id=created.proposal.proposal_id,
+        version_no=created.version.version_no,
+    )
+    assert version is not None
+    version.proposal_result_json["lineage"]["request_hash"] = "sha256:original"
+    version.artifact_json["evidence_bundle"]["hashes"]["artifact_hash"] = "sha256:original"
+    version.evidence_bundle_json["context_resolution"]["source"] = "ORIGINAL"
+    assert version.gate_decision_json is not None
+    version.gate_decision_json["summary"]["hard_fail_count"] = 0
+
+    detail = to_version_detail(version, include_evidence=True)
+
+    version.proposal_result_json["lineage"]["request_hash"] = "sha256:tampered"
+    version.artifact_json["evidence_bundle"]["hashes"]["artifact_hash"] = "sha256:tampered"
+    version.evidence_bundle_json["context_resolution"]["source"] = "TAMPERED"
+    version.gate_decision_json["summary"]["hard_fail_count"] = 99
+
+    assert detail.proposal_result.lineage.request_hash == "sha256:original"
+    assert detail.artifact.evidence_bundle.hashes.artifact_hash == "sha256:original"
+    assert detail.evidence_bundle["context_resolution"]["source"] == "ORIGINAL"
+    assert detail.gate_decision.summary.hard_fail_count == 0
+
+
 def test_to_workflow_event_and_approval_record_preserve_audit_payloads():
     event = ProposalWorkflowEventRecord(
         event_id="pwe_projection",
