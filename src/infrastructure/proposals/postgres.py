@@ -392,22 +392,47 @@ class PostgresProposalRepository:
         cursor: Optional[str],
     ) -> tuple[list[ProposalRecord], Optional[str]]:
         where_clauses = []
-        args: list[str] = []
+        args: list[object] = []
+        cursor_where_clauses = ["cursor_record.proposal_id = %s"]
+        cursor_args: list[object] = []
+
+        def add_filter(clause: str, cursor_clause: str, value: object) -> None:
+            where_clauses.append(clause)
+            args.append(value)
+            cursor_where_clauses.append(cursor_clause)
+            cursor_args.append(value)
+
         if portfolio_id is not None:
-            where_clauses.append("portfolio_id = %s")
-            args.append(portfolio_id)
+            add_filter("portfolio_id = %s", "cursor_record.portfolio_id = %s", portfolio_id)
         if state is not None:
-            where_clauses.append("current_state = %s")
-            args.append(state)
+            add_filter("current_state = %s", "cursor_record.current_state = %s", state)
         if created_by is not None:
-            where_clauses.append("created_by = %s")
-            args.append(created_by)
+            add_filter("created_by = %s", "cursor_record.created_by = %s", created_by)
         if created_from is not None:
-            where_clauses.append("created_at >= %s")
-            args.append(created_from.isoformat())
+            add_filter(
+                "created_at >= %s",
+                "cursor_record.created_at >= %s",
+                created_from.isoformat(),
+            )
         if created_to is not None:
-            where_clauses.append("created_at <= %s")
-            args.append(created_to.isoformat())
+            add_filter(
+                "created_at <= %s",
+                "cursor_record.created_at <= %s",
+                created_to.isoformat(),
+            )
+        if cursor:
+            cursor_args.insert(0, cursor)
+            cursor_where_sql = " AND ".join(cursor_where_clauses)
+            where_clauses.append(
+                f"""
+                (created_at, proposal_id) < (
+                    SELECT cursor_record.created_at, cursor_record.proposal_id
+                    FROM proposal_records cursor_record
+                    WHERE {cursor_where_sql}
+                )
+                """
+            )
+            args.extend(cursor_args)
         where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
         query = f"""
             SELECT
@@ -427,25 +452,15 @@ class PostgresProposalRepository:
             FROM proposal_records
             {where_sql}
             ORDER BY created_at DESC, proposal_id DESC
+            LIMIT %s
         """
+        args.append(limit + 1)
         with closing(self._connect()) as connection:
             rows = connection.execute(query, tuple(args)).fetchall()
         proposals = cast(
             list[ProposalRecord],
             [proposal for proposal in (_to_proposal(row) for row in rows) if proposal is not None],
         )
-        if cursor:
-            cursor_index = next(
-                (
-                    index
-                    for index, proposal in enumerate(proposals)
-                    if proposal.proposal_id == cursor
-                ),
-                None,
-            )
-            if cursor_index is None:
-                return [], None
-            proposals = proposals[cursor_index + 1 :]
         page = proposals[:limit]
         next_cursor = page[-1].proposal_id if len(proposals) > limit else None
         return page, next_cursor
