@@ -301,9 +301,13 @@ recorded here with enough detail for later owner-specific slices.
     and reset helpers now live in `src/integrations/lotus_core/stateful_context_cache.py`, keeping
     cache lifecycle and diagnostics outside the upstream adapter while preserving existing test
     compatibility imports.
+  - Lotus Core stateful-context endpoint constants, query/control-plane base URL resolution, and
+    as-of dated positions/cash path construction now live in
+    `src/integrations/lotus_core/stateful_context_routes.py`, keeping upstream route policy
+    separate from HTTP request execution and request translation.
 - Follow-up:
   - Split portfolio source reads, instrument enrichment, market-data hydration, request translation,
-    and cache policy into explicit submodules.
+    and market-data route hydration into explicit submodules.
   - Preserve RFC-0082 authority boundaries: source facts stay in `lotus-core`; advisory context
     translation stays in `lotus-advise`.
 

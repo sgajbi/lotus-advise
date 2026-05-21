@@ -3423,3 +3423,27 @@
 - Follow-Up:
   - Continue WTBD-002 by extracting source-read and market-data hydration modules only where
     existing RFC-0082 authority and failure-mode tests can pin behavior.
+
+## LA-REV-139
+
+- Scope: Lotus Core stateful-context route policy
+- Pattern: modularity / upstream route-boundary hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The stateful-context adapter still owned Lotus Core endpoint constants, query-plane and
+  control-plane base URL derivation, and dated positions/cash path construction inline with HTTP
+  request execution and advisory request translation.
+- Evidence:
+  - `src/integrations/lotus_core/stateful_context_routes.py` now owns stateful-context endpoint
+    constants and the Lotus Core query/control-plane URL derivation policy.
+  - `src/integrations/lotus_core/stateful_context.py` delegates base URL and path construction
+    through compatibility wrappers so existing characterization tests keep pinning behavior.
+  - `tests/unit/advisory/api/test_lotus_core_stateful_context.py` continues to prove query versus
+    control-plane separation, Docker/local port derivation, authenticated URL preservation, default
+    service identity, and as-of propagation to positions/cash reads.
+- Consequence:
+  - Upstream route policy is now a named boundary that can evolve with Lotus Core contract changes
+    without mixing endpoint decisions into source-read execution or advisory context translation.
+- Follow-Up:
+  - Continue WTBD-002 by extracting HTTP source-read execution and market-data hydration only when
+    route policy and failure semantics remain pinned by focused tests.

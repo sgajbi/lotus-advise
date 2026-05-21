@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import os
 from decimal import Decimal, InvalidOperation
 from typing import Any, cast
-from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
@@ -93,18 +91,31 @@ from src.integrations.lotus_core.stateful_context_cache import (
 from src.integrations.lotus_core.stateful_context_cache import (
     reset_stateful_context_cache as _reset_stateful_context_cache,
 )
+from src.integrations.lotus_core.stateful_context_routes import (
+    CLASSIFICATION_TAXONOMY_PATH as _CLASSIFICATION_TAXONOMY_PATH,
+)
+from src.integrations.lotus_core.stateful_context_routes import (
+    FX_RATES_PATH as _FX_RATES_PATH,
+)
+from src.integrations.lotus_core.stateful_context_routes import (
+    INSTRUMENT_ENRICHMENT_BULK_PATH as _INSTRUMENT_ENRICHMENT_BULK_PATH,
+)
+from src.integrations.lotus_core.stateful_context_routes import (
+    INSTRUMENTS_PATH as _INSTRUMENTS_PATH,
+)
+from src.integrations.lotus_core.stateful_context_routes import (
+    PORTFOLIO_PATH as _PORTFOLIO_PATH,
+)
+from src.integrations.lotus_core.stateful_context_routes import (
+    PRICES_PATH as _PRICES_PATH,
+)
+from src.integrations.lotus_core.stateful_context_routes import (
+    cash_balances_path,
+    positions_path,
+    resolve_control_plane_base_url,
+    resolve_query_base_url,
+)
 from src.integrations.lotus_core.timed_cache import TimedCache, TimedCacheStats
-
-_DEFAULT_LOTUS_CORE_QUERY_BASE_URL = "http://core-query.dev.lotus"
-_DEFAULT_LOTUS_CORE_CONTROL_PLANE_BASE_URL = "http://core-control.dev.lotus"
-_PORTFOLIO_PATH = "/portfolios/{portfolio_id}"
-_POSITIONS_PATH = "/portfolios/{portfolio_id}/positions"
-_CASH_BALANCES_PATH = "/portfolios/{portfolio_id}/cash-balances"
-_INSTRUMENTS_PATH = "/instruments/?security_id={instrument_id}"
-_INSTRUMENT_ENRICHMENT_BULK_PATH = "/integration/instruments/enrichment-bulk"
-_PRICES_PATH = "/prices/?security_id={instrument_id}"
-_FX_RATES_PATH = "/fx-rates/?from_currency={from_currency}&to_currency={to_currency}"
-_CLASSIFICATION_TAXONOMY_PATH = "/integration/reference/classification-taxonomy"
 
 
 class LotusCoreStatefulContextUnavailableError(LotusCoreContextResolutionError):
@@ -161,67 +172,29 @@ def get_stateful_context_fetch_stats_for_tests() -> StatefulContextFetchStats:
 
 
 def _resolve_query_base_url() -> str:
-    explicit = os.getenv("LOTUS_CORE_QUERY_BASE_URL")
-    if explicit:
-        return explicit.rstrip("/")
-
-    configured = os.getenv("LOTUS_CORE_BASE_URL")
-    if configured:
-        split = urlsplit(configured)
-        host = split.hostname
-        if host is None:
-            raise LotusCoreStatefulContextUnavailableError(
-                "LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE"
-            )
-        port = split.port
-        netloc = host
-        if split.username or split.password:
-            auth = split.username or ""
-            if split.password:
-                auth = f"{auth}:{split.password}"
-            netloc = f"{auth}@{host}"
-        if port is not None:
-            query_port = 8201 if port == 8202 else port
-            netloc = f"{netloc}:{query_port}"
-        return urlunsplit((split.scheme or "http", netloc, split.path.rstrip("/"), "", ""))
-    return _DEFAULT_LOTUS_CORE_QUERY_BASE_URL
+    try:
+        return resolve_query_base_url()
+    except ValueError as exc:
+        raise LotusCoreStatefulContextUnavailableError(
+            "LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE"
+        ) from exc
 
 
 def _positions_path(*, portfolio_id: str, as_of: str) -> str:
-    return f"{_POSITIONS_PATH.format(portfolio_id=portfolio_id)}?as_of_date={as_of}"
+    return positions_path(portfolio_id=portfolio_id, as_of=as_of)
 
 
 def _cash_balances_path(*, portfolio_id: str, as_of: str) -> str:
-    return f"{_CASH_BALANCES_PATH.format(portfolio_id=portfolio_id)}?as_of_date={as_of}"
+    return cash_balances_path(portfolio_id=portfolio_id, as_of=as_of)
 
 
 def _resolve_control_plane_base_url() -> str:
-    explicit = os.getenv("LOTUS_CORE_BASE_URL")
-    if explicit:
-        return explicit.rstrip("/")
-
-    query_base_url = os.getenv("LOTUS_CORE_QUERY_BASE_URL")
-    if not query_base_url:
-        return _DEFAULT_LOTUS_CORE_CONTROL_PLANE_BASE_URL
-
-    split = urlsplit(query_base_url)
-    host = split.hostname
-    if host is None:
-        raise LotusCoreStatefulContextUnavailableError("LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE")
-    if host == "core-query.dev.lotus":
-        host = "core-control.dev.lotus"
-    elif host == "lotus-core-query":
-        host = "lotus-core-control"
-    netloc = host
-    if split.username or split.password:
-        auth = split.username or ""
-        if split.password:
-            auth = f"{auth}:{split.password}"
-        netloc = f"{auth}@{host}"
-    if split.port is not None:
-        control_plane_port = 8202 if split.port == 8201 else split.port
-        netloc = f"{netloc}:{control_plane_port}"
-    return urlunsplit((split.scheme or "http", netloc, split.path.rstrip("/"), "", ""))
+    try:
+        return resolve_control_plane_base_url()
+    except ValueError as exc:
+        raise LotusCoreStatefulContextUnavailableError(
+            "LOTUS_CORE_STATEFUL_CONTEXT_UNAVAILABLE"
+        ) from exc
 
 
 def _decimal_or_none(value: Any) -> Decimal | None:
