@@ -11,7 +11,7 @@ written for business, engineering, operations, sales, pre-sales, and demo prepar
 | Proposal artifact generation | Supported | `POST /advisory/proposals/artifact` | Artifact generation is deterministic advisory evidence, not report rendering ownership. |
 | Persisted proposal lifecycle | Supported | `/advisory/proposals/*` | Versions are immutable and workflow history is append-only. |
 | Approval and consent workflow | Supported | `/advisory/proposals/{proposal_id}/approvals` and transitions | Approval posture is advisory workflow evidence, not downstream trade approval. |
-| Delivery, report-request, and execution-handoff posture | Supported | delivery, report-request, execution-handoff, and execution-status routes | Execution ownership remains outside `lotus-advise`. |
+| Delivery, report-request, and execution-handoff posture | Supported | delivery, report-request, execution-handoff, and execution-status routes | Execution handoff/status payloads carry ownership-boundary evidence; execution truth remains outside `lotus-advise`. |
 | Advisory workspace drafting | Supported | `/advisory/workspaces/*` | Workspace state is pre-lifecycle advisory drafting, with explicit handoff into proposal ownership. |
 | Workspace AI rationale | Supported through governed seam | `/advisory/workspaces/{workspace_id}/assistant/rationale` | Uses the bounded `lotus-ai` workspace rationale seam; broad proposal narrative remains RFC-0023 future work. |
 | Proposal decision summary | Supported | simulation, artifact, workspace, replay, and lifecycle surfaces | Backend-owned decision summary; UI and support layers must not infer it independently. |
@@ -78,3 +78,5 @@ flowchart TB
 - When a dependency is degraded, use the capability contract's `readiness_basis` and
   `degraded_reason` fields to explain whether the issue is missing configuration, a failed runtime
   probe, or a configuration-only non-production posture.
+- When explaining execution posture, use the `execution_ownership` evidence to distinguish
+  advisory handoff/status reconciliation from downstream execution system-of-record truth.

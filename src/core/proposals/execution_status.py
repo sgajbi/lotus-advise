@@ -1,5 +1,6 @@
 from typing import Any, cast
 
+from src.core.proposals.execution_boundary import execution_ownership_boundary
 from src.core.proposals.models import (
     ProposalExecutionStatusResponse,
     ProposalRecord,
@@ -95,6 +96,7 @@ def build_execution_status_response(
         explanation={
             "source": "ADVISORY_WORKFLOW_EVENTS",
             "state_correlation": execution_state_correlation(handoff_status=handoff_status),
+            "execution_ownership": execution_ownership_boundary(),
         },
     )
 

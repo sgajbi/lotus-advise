@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import cast
 
 from src.core.common.canonical import hash_canonical_payload
+from src.core.proposals.execution_boundary import execution_ownership_boundary
 from src.core.proposals.models import (
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
@@ -57,6 +58,7 @@ def build_execution_handoff_requested_event(
         "execution_provider": payload.execution_provider,
         "correlation_id": payload.correlation_id,
         "external_request_id": payload.external_request_id,
+        "execution_ownership": execution_ownership_boundary(),
         "notes": payload.notes,
     }
     if idempotency_key:

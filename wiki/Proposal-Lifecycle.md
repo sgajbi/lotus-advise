@@ -51,7 +51,9 @@ It can:
 - ingest vendor-neutral execution updates
 - expose delivery summary, delivery history, and execution status
 
-It must not become the downstream execution system of record.
+Execution handoff events and execution posture responses include structured ownership-boundary
+evidence. The advisory role is handoff request and status reconciliation. The downstream execution
+provider remains the execution system of record.
 
 ## Decision Summary And Alternatives
 

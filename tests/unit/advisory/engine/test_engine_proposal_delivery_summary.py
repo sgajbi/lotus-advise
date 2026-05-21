@@ -6,6 +6,7 @@ from src.core.proposals.delivery_summary import (
     build_delivery_summary_response,
     select_delivery_events,
 )
+from src.core.proposals.execution_boundary import execution_ownership_boundary
 from src.core.proposals.models import ProposalRecord, ProposalWorkflowEventRecord
 
 
@@ -76,6 +77,7 @@ def test_delivery_summary_uses_latest_execution_status_with_handoff_context():
         "executed_at": None,
         "latest_event_type": "EXECUTION_PARTIALLY_EXECUTED",
         "external_execution_id": "fill_partial_001",
+        "execution_ownership": execution_ownership_boundary(),
     }
 
 
@@ -165,11 +167,13 @@ def test_delivery_summary_response_projects_execution_and_reporting_posture():
     assert response.execution is not None
     assert response.execution.handoff_status == "EXECUTED"
     assert response.execution.executed_at == "2026-05-20T10:30:00+00:00"
+    assert response.execution.execution_ownership == execution_ownership_boundary()
     assert response.reporting is not None
     assert response.reporting.report_type == "CLIENT_PROPOSAL_SUMMARY"
     assert response.explanation == {
         "source": "ADVISORY_WORKFLOW_EVENTS",
         "delivery_projection": "LATEST_EXECUTION_AND_REPORTING_POSTURE",
+        "execution_ownership": execution_ownership_boundary(),
     }
 
 
@@ -192,4 +196,5 @@ def test_delivery_history_response_filters_to_delivery_events():
     assert response.explanation == {
         "source": "ADVISORY_WORKFLOW_EVENTS",
         "filter": "DELIVERY_ONLY",
+        "execution_ownership": execution_ownership_boundary(),
     }

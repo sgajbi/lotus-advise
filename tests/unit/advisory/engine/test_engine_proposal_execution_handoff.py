@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from src.core.proposals.execution_boundary import execution_ownership_boundary
 from src.core.proposals.execution_handoff import (
     ProposalExecutionHandoffStateError,
     apply_execution_handoff_state,
@@ -69,6 +70,7 @@ def test_build_execution_handoff_requested_event_preserves_audit_payload():
         "execution_provider": "lotus-manage",
         "correlation_id": "corr_execution",
         "external_request_id": "oms_req_001",
+        "execution_ownership": execution_ownership_boundary(),
         "notes": {"priority": "STANDARD"},
         "idempotency_key": "idem_execution_handoff",
         "idempotency_request_hash": "sha256:handoff",
@@ -90,6 +92,7 @@ def test_build_execution_handoff_requested_event_defaults_to_current_version():
     assert event.reason_json == {
         "execution_request_id": "pex_execution",
         "execution_provider": "lotus-manage",
+        "execution_ownership": execution_ownership_boundary(),
         "notes": {},
     }
 
@@ -185,6 +188,7 @@ def test_execution_handoff_response_projects_recorded_event():
 
     assert response.execution_request_id == "pex_execution"
     assert response.handoff_status == "REQUESTED"
+    assert response.execution_ownership == execution_ownership_boundary()
     assert response.latest_workflow_event.event_type == "EXECUTION_REQUESTED"
 
 
@@ -212,4 +216,5 @@ def test_execution_handoff_replay_response_uses_replayed_event_identity():
 
     assert response.execution_request_id == "oms_replay"
     assert response.execution_provider == "lotus-manage"
+    assert response.execution_ownership == execution_ownership_boundary()
     assert response.latest_workflow_event.event_id == "pwe_replayed_handoff"

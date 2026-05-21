@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.core.proposals.execution_boundary import execution_ownership_boundary
 from src.core.proposals.models import (
     ProposalDeliveryExecutionSummary,
     ProposalDeliveryHistoryResponse,
@@ -73,6 +74,7 @@ def build_delivery_summary_from_events(
             "external_execution_id": _optional_str(
                 target_event.reason_json.get("external_execution_id")
             ),
+            "execution_ownership": execution_ownership_boundary(),
         }
 
     reporting: dict[str, Any] | None = None
@@ -133,6 +135,7 @@ def build_delivery_summary_response(
         explanation={
             "source": "ADVISORY_WORKFLOW_EVENTS",
             "delivery_projection": "LATEST_EXECUTION_AND_REPORTING_POSTURE",
+            "execution_ownership": execution_ownership_boundary(),
         },
     )
 
@@ -151,6 +154,7 @@ def build_delivery_history_response(
         explanation={
             "source": "ADVISORY_WORKFLOW_EVENTS",
             "filter": "DELIVERY_ONLY",
+            "execution_ownership": execution_ownership_boundary(),
         },
     )
 

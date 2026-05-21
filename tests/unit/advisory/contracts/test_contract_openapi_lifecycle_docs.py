@@ -80,7 +80,14 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(execution_status_schema, "execution_request_id")
     _assert_property_has_docs(execution_status_schema, "execution_provider")
     _assert_property_has_docs(execution_status_schema, "external_execution_id")
+    _assert_property_has_docs(execution_status_schema, "execution_ownership")
     _assert_property_has_docs(execution_status_schema, "explanation")
+
+    execution_handoff_response_schema = schemas["ProposalExecutionHandoffResponse"]
+    _assert_property_has_docs(execution_handoff_response_schema, "execution_ownership")
+
+    delivery_execution_schema = schemas["ProposalDeliveryExecutionSummary"]
+    _assert_property_has_docs(delivery_execution_schema, "execution_ownership")
 
     idempotency_schema = schemas["ProposalIdempotencyLookupResponse"]
     _assert_property_has_docs(idempotency_schema, "idempotency_key")

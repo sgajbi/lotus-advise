@@ -3835,3 +3835,46 @@
 - Follow-Up:
   - If Gateway begins rendering dependency diagnostics directly, keep consumer wording tied to
     these bounded evidence fields instead of inventing local supportability copy.
+
+## LA-REV-152
+
+- Scope: Advisory execution ownership-boundary evidence
+- Pattern: domain modeling / auditability hardening
+- Status: Hardened
+- Finding Class: auditability gap
+- Summary: Execution handoff, execution-status, and delivery-summary behavior correctly kept
+  downstream execution outside `lotus-advise`, but the event payloads and read projections did not
+  consistently carry a structured boundary label. That left operators and client-demo users relying
+  on surrounding documentation to distinguish advisory handoff/status posture from downstream
+  execution system-of-record truth.
+- Evidence:
+  - `src/core/proposals/execution_boundary.py` now centralizes the execution ownership vocabulary:
+    advisory role, downstream execution system of record, and ownership boundary.
+  - Execution handoff events now preserve `execution_ownership` evidence in append-only workflow
+    history.
+  - Execution handoff responses, execution status responses, delivery execution summaries, and
+    delivery/history explanations now expose the same bounded ownership evidence.
+  - Focused validation passed:
+    `python -m pytest tests/unit/advisory/engine/test_engine_proposal_execution_handoff.py tests/unit/advisory/engine/test_engine_proposal_execution_status.py tests/unit/advisory/engine/test_engine_proposal_delivery_summary.py -q`
+    with `17 passed`.
+  - API contract validation passed:
+    `python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py -q`
+    with `5 passed`.
+  - API lifecycle validation passed:
+    `python -m pytest tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py -q`
+    with `77 passed`.
+  - Repo-native feature lane passed with `make check`: ruff check passed, ruff format check passed
+    for 334 files, monetary-float guard passed, mypy passed for 175 source files, OpenAPI quality
+    gate passed, lifecycle OpenAPI docs tests passed, no-alias guard passed, API vocabulary
+    generated and validate-only passed, domain-data product declarations validated, and unit tests
+    passed with `808 passed in 54.79s`.
+- Consequence:
+  - Advisory execution posture is easier to audit, support, and explain in pre-sales or client
+    settings without overstating `lotus-advise` ownership. The service records handoff and status
+    reconciliation; downstream providers remain the execution systems of record.
+- Documentation:
+  - README, repository context, and repo-local wiki pages now describe the implementation-backed
+    execution ownership evidence.
+- Follow-Up:
+  - Before PR closure, run wiki drift check and Git diff whitespace hygiene because this slice
+    changes repo-local wiki source and generated API vocabulary.

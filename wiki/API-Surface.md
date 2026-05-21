@@ -33,6 +33,10 @@ These endpoints accept normalized advisory input contracts and require `Idempote
 - `GET /advisory/proposals/{proposal_id}/execution-status`
 
 These support surfaces derive operator-facing posture from append-only workflow history.
+Execution handoff, execution-status, delivery-summary, and delivery-history payloads include
+structured ownership-boundary evidence so operators can see that `lotus-advise` records advisory
+handoff and status posture while the downstream execution provider remains the execution system of
+record.
 
 ## Advisory Workspace
 
@@ -72,3 +76,6 @@ the global portfolio universe, create rebalance waves, approve trades, or integr
   `degraded_reason` so operators can distinguish missing configuration, configuration-only
   non-production posture, successful runtime probes, and failed runtime probes without exposing
   dependency base URLs.
+- Execution posture entries include `execution_ownership` evidence with advisory role,
+  downstream system-of-record, and ownership-boundary labels for audit, support, and pre-sales
+  explanation.

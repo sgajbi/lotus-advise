@@ -59,6 +59,7 @@ lineage helpers live outside the orchestration class.
 | `src/core/proposals/persistence_models.py` | Internal proposal aggregate, version, workflow event, approval, idempotency, transition, and async operation records. | Keeps storage-facing records distinct from API-facing response contracts. |
 | `src/core/proposals/context.py` | Stateful/stateless request resolution and canonical request payload shaping. | Preserves upstream source authority while allowing advisory workflows to accept multiple input modes. |
 | `src/core/proposals/workflow_rules.py` | Lifecycle transition, approval, execution-update, and execution-status vocabulary. | Keeps proposal state policy explicit and directly testable. |
+| `src/core/proposals/execution_boundary.py` | Execution ownership-boundary vocabulary for handoff, status, and delivery posture. | Prevents advisory posture from being mistaken for downstream execution system-of-record truth. |
 | `src/core/proposals/lifecycle_command.py` | State-transition and approval command loading, replay, validation, mutation, and persistence. | Keeps approval and lifecycle write behavior auditable outside the workflow facade. |
 | `src/core/proposals/execution_handoff_command.py` | Execution handoff command loading, replay, readiness validation, mutation, and persistence. | Keeps execution-readiness handoff behavior explicit while preserving downstream ownership. |
 | `src/core/proposals/execution_update_command.py` | Execution update command loading, handoff identity checks, replay, timestamp validation, mutation, and persistence. | Keeps downstream execution updates idempotent and ordered. |
@@ -142,6 +143,10 @@ The workspace surface exists for iterative drafting before formal proposal lifec
 `lotus-advise` can produce `TacticalHouseViewAffectedCohort:v1` as source-owned cohort evidence.
 `lotus-manage` remains responsible for DPM campaign workflows, policy application, evidence
 packaging, rebalance waves, and downstream execution posture.
+
+Advisory execution handoff/status routes may reference `lotus-manage` or another downstream
+provider as the execution venue. Those routes expose `execution_ownership` evidence and do not make
+`lotus-advise` the execution system of record.
 
 ### `lotus-risk`
 
