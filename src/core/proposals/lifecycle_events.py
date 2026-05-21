@@ -106,6 +106,18 @@ def build_state_transition_response(
     )
 
 
+def build_state_transition_replay_response(
+    *,
+    proposal_id: str,
+    event: ProposalWorkflowEventRecord,
+) -> ProposalStateTransitionResponse:
+    return build_state_transition_response(
+        proposal_id=proposal_id,
+        current_state=event.to_state,
+        event=event,
+    )
+
+
 def apply_lifecycle_transition_state(
     *,
     proposal: ProposalRecord,

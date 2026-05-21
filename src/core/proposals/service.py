@@ -97,6 +97,7 @@ from src.core.proposals.lifecycle_events import (
     build_new_version_created_event,
     build_proposal_created_event,
     build_state_transition_event,
+    build_state_transition_replay_response,
     build_state_transition_request_hash,
     build_state_transition_response,
 )
@@ -884,9 +885,8 @@ class ProposalWorkflowService:
             request_hash=request_hash,
         )
         if replay_event is not None:
-            return build_state_transition_response(
+            return build_state_transition_replay_response(
                 proposal_id=proposal_id,
-                current_state=replay_event.to_state,
                 event=replay_event,
             )
         self._validate_expected_state(proposal.current_state, payload.expected_state)

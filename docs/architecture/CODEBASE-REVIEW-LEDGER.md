@@ -2424,3 +2424,26 @@
 - Follow-Up:
   - Keep replay lookup ordering and repository access in the service until a broader approval
     command boundary can be extracted without changing API behavior.
+
+## LA-REV-095
+
+- Scope: State-transition replay response projection
+- Pattern: modularity problem / idempotency replay hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.transition_state` directly assembled idempotent replay
+  responses from replayed workflow events, leaving replay projection logic in service
+  orchestration instead of the lifecycle response module.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now owns
+    `build_state_transition_replay_response`.
+  - `src/core/proposals/service.py` delegates transition replay response projection while keeping
+    replay lookup and conflict handling unchanged.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` directly proves replay
+    responses derive current state and lineage from the replayed event.
+- Consequence:
+  - State-transition replay projection now has a named domain helper beside normal transition
+    response projection, reducing service-owned DTO assembly.
+- Follow-Up:
+  - Keep replay-event retrieval in the service until a broader lifecycle command boundary can be
+    extracted without changing repository access behavior.

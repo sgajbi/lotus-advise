@@ -10,6 +10,7 @@ from src.core.proposals.lifecycle_events import (
     build_new_version_created_event,
     build_proposal_created_event,
     build_state_transition_event,
+    build_state_transition_replay_response,
     build_state_transition_request_hash,
     build_state_transition_response,
 )
@@ -165,6 +166,34 @@ def test_build_state_transition_response_projects_latest_event():
     assert response.latest_workflow_event.event_id == "pwe_lifecycle"
     assert response.latest_workflow_event.reason == {"comment": "Risk review"}
     assert response.approval is None
+
+
+def test_build_state_transition_replay_response_uses_replayed_event_state():
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_lifecycle_replay",
+        proposal_id="pp_lifecycle_events",
+        event_type="SUBMITTED_FOR_RISK_REVIEW",
+        from_state="DRAFT",
+        to_state="RISK_REVIEW",
+        actor_id="advisor_lifecycle",
+        occurred_at=datetime(2026, 5, 21, 9, 10, tzinfo=timezone.utc),
+        reason_json={
+            "comment": "Risk review",
+            "idempotency_key": "idem_transition",
+            "idempotency_request_hash": "sha256:transition",
+        },
+        related_version_no=2,
+    )
+
+    response = build_state_transition_replay_response(
+        proposal_id="pp_lifecycle_events",
+        event=event,
+    )
+
+    assert response.proposal_id == "pp_lifecycle_events"
+    assert response.current_state == "RISK_REVIEW"
+    assert response.latest_workflow_event.event_id == "pwe_lifecycle_replay"
+    assert response.latest_workflow_event.reason["idempotency_key"] == "idem_transition"
 
 
 def test_apply_lifecycle_transition_state_updates_state_and_event_timestamp():
