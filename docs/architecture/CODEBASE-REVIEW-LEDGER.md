@@ -3011,3 +3011,23 @@
 - Follow-Up:
   - Keep missing-version detection in projection until lineage response policy changes beyond
     read-model loading.
+
+## LA-REV-121
+
+- Scope: Proposal version read-model loading
+- Pattern: duplication / read-model hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: `ProposalWorkflowService.get_version` loaded proposal version records directly before
+  projection, leaving version-detail read boundaries in service orchestration.
+- Evidence:
+  - `src/core/proposals/version_read_model.py` now owns version-detail read-model loading.
+  - `src/core/proposals/service.py` delegates requested-version loading before projecting the
+    version detail response.
+  - `tests/unit/advisory/engine/test_engine_proposal_version_read_model.py` covers found and
+    missing version boundaries.
+- Consequence:
+  - Version detail loading now has a reusable domain read boundary that can later absorb evidence
+    redaction, caching, or version authorization without expanding the workflow service.
+- Follow-Up:
+  - Review idempotency and async-operation status reads for the same direct-read boundary pattern.

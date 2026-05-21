@@ -150,6 +150,7 @@ from src.core.proposals.simulation_gate import (
     ProposalSimulationGateError,
     validate_proposal_simulation_enabled,
 )
+from src.core.proposals.version_read_model import load_proposal_version_read_model
 from src.core.proposals.versions import (
     ProposalVersionConflictError,
     ProposalVersionPortfolioContextError,
@@ -654,10 +655,14 @@ class ProposalWorkflowService:
         version_no: int,
         include_evidence: bool = True,
     ) -> ProposalVersionDetail:
-        version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
-        if version is None:
+        read_model = load_proposal_version_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+            version_no=version_no,
+        )
+        if read_model.version is None:
             raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-        return to_version_detail(version, include_evidence=include_evidence)
+        return to_version_detail(read_model.version, include_evidence=include_evidence)
 
     def create_version(
         self,

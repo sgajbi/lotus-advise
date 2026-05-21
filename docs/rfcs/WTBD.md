@@ -124,6 +124,9 @@ recorded here with enough detail for later owner-specific slices.
     keeping version-selection and event-loading rules out of the workflow service.
   - Proposal version replay referent loading now lives in `src/core/proposals/proposal_replay.py`,
     reusing one tested boundary for version replay and idempotent create-response reconstruction.
+  - Proposal version read-model loading now lives in
+    `src/core/proposals/version_read_model.py`, keeping direct version-detail repository loading
+    out of the workflow service.
   - Proposal activity read-model loading now lives in
     `src/core/proposals/activity_read_model.py`, reducing repeated proposal/event loading across
     workflow timeline, execution status, delivery summary/history, and execution-update replay
