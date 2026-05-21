@@ -1,6 +1,8 @@
 from collections.abc import Collection
 from datetime import datetime
+from typing import cast
 
+from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.models import (
     ProposalExecutionUpdateRequest,
     ProposalRecord,
@@ -31,6 +33,10 @@ class ProposalExecutionUpdateTimestampError(Exception):
 
 def build_execution_update_idempotency_key(*, payload: ProposalExecutionUpdateRequest) -> str:
     return f"execution-update:{payload.update_id}"
+
+
+def build_execution_update_request_hash(*, payload: ProposalExecutionUpdateRequest) -> str:
+    return cast(str, hash_canonical_payload(payload.model_dump(mode="json")))
 
 
 def validate_execution_update_handoff_identity(

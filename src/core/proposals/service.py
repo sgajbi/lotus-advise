@@ -64,6 +64,7 @@ from src.core.proposals.execution_update import (
     apply_execution_update_state,
     build_execution_update_event,
     build_execution_update_idempotency_key,
+    build_execution_update_request_hash,
     resolve_execution_update_occurred_at,
     validate_execution_update_handoff_identity,
     validate_execution_update_occurred_after_handoff,
@@ -563,7 +564,7 @@ class ProposalWorkflowService:
         except ProposalExecutionUpdateIdentityError as exc:
             raise ProposalStateConflictError(str(exc)) from exc
 
-        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        request_hash = build_execution_update_request_hash(payload=payload)
         replay_event = self._get_replayed_event(
             proposal_id=proposal_id,
             idempotency_key=build_execution_update_idempotency_key(payload=payload),

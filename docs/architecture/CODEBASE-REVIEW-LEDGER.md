@@ -2333,3 +2333,25 @@
 - Follow-Up:
   - Keep replay lookup ordering in the service until the complete execution update command boundary
     can be extracted without changing API behavior.
+
+## LA-REV-091
+
+- Scope: Execution update canonical request hashing
+- Pattern: modularity problem / replay-lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_execution_update` directly built the canonical request
+  hash used for replay lookup and workflow-event lineage, leaving execution update replay hashing
+  outside the execution update module.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now owns `build_execution_update_request_hash`.
+  - `src/core/proposals/service.py` delegates execution update request hashing before replay lookup
+    and event construction.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` directly proves canonical
+    ordering stability and sensitivity to changed execution details.
+- Consequence:
+  - Execution update replay identity now centralizes idempotency-key construction and canonical
+    request hashing beside event lineage construction.
+- Follow-Up:
+  - Keep replay lookup ordering and repository orchestration in the service until the complete
+    execution update command boundary can be extracted without changing API behavior.

@@ -8,6 +8,7 @@ from src.core.proposals.execution_update import (
     apply_execution_update_state,
     build_execution_update_event,
     build_execution_update_idempotency_key,
+    build_execution_update_request_hash,
     resolve_execution_update_occurred_at,
     validate_execution_update_handoff_identity,
     validate_execution_update_occurred_after_handoff,
@@ -118,6 +119,22 @@ def test_build_execution_update_idempotency_key_uses_update_identity():
         build_execution_update_idempotency_key(payload=_payload(update_id="exec_update_987"))
         == "execution-update:exec_update_987"
     )
+
+
+def test_build_execution_update_request_hash_is_canonical_and_payload_sensitive():
+    first_hash = build_execution_update_request_hash(
+        payload=_payload(details={"remaining_quantity": "25", "filled_quantity": "50"})
+    )
+    reordered_hash = build_execution_update_request_hash(
+        payload=_payload(details={"filled_quantity": "50", "remaining_quantity": "25"})
+    )
+    changed_hash = build_execution_update_request_hash(
+        payload=_payload(details={"filled_quantity": "75", "remaining_quantity": "0"})
+    )
+
+    assert first_hash.startswith("sha256:")
+    assert first_hash == reordered_hash
+    assert first_hash != changed_hash
 
 
 def test_validate_execution_update_handoff_identity_accepts_matching_identity():

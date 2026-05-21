@@ -77,6 +77,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal execution update idempotency-key construction now lives in
     `src/core/proposals/execution_update.py`, keeping replay lookup identity and event lineage
     identity aligned.
+  - Proposal execution update canonical request hashing now lives in
+    `src/core/proposals/execution_update.py`, keeping replay hash and event lineage hash
+    construction beside update replay identity.
   - Generic proposal state-transition event construction and transition response projection now
     live in `src/core/proposals/lifecycle_events.py`, while the workflow service retains proposal
     lookup, replay detection, expected-state validation, transition-rule resolution, and persistence.
