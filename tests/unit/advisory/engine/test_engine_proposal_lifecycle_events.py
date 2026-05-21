@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from src.core.proposals.lifecycle_events import (
     apply_lifecycle_transition_state,
+    build_approval_command_state_and_apply_transition,
     build_approval_record,
     build_approval_replay_response_from_referents,
     build_approval_request_hash,
@@ -301,6 +302,29 @@ def test_build_approval_transition_event_matches_approval_audit_payload():
         "idempotency_key": "idem_approval",
         "idempotency_request_hash": "sha256:approval",
     }
+
+
+def test_build_approval_command_state_and_apply_transition_returns_referents():
+    proposal = _proposal()
+    proposal.current_state = "AWAITING_CLIENT_CONSENT"
+
+    command_state = build_approval_command_state_and_apply_transition(
+        approval_id="pap_lifecycle",
+        event_id="pwe_lifecycle",
+        proposal=proposal,
+        payload=_approval_request(),
+        event_type="CLIENT_CONSENT_RECORDED",
+        to_state="EXECUTION_READY",
+        occurred_at=datetime(2026, 5, 21, 9, 13, tzinfo=timezone.utc),
+        idempotency_key="idem_approval",
+        request_hash="sha256:approval",
+    )
+
+    assert command_state.approval.approval_id == "pap_lifecycle"
+    assert command_state.event.event_id == "pwe_lifecycle"
+    assert command_state.event.reason_json["idempotency_key"] == "idem_approval"
+    assert proposal.current_state == "EXECUTION_READY"
+    assert proposal.last_event_at == command_state.event.occurred_at
 
 
 def test_build_approval_transition_response_projects_approval_record():

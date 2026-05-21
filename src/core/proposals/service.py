@@ -86,11 +86,9 @@ from src.core.proposals.lifecycle import (
     validate_lifecycle_origin,
 )
 from src.core.proposals.lifecycle_events import (
-    apply_lifecycle_transition_state,
-    build_approval_record,
+    build_approval_command_state_and_apply_transition,
     build_approval_replay_response_from_referents,
     build_approval_request_hash,
-    build_approval_transition_event,
     build_approval_transition_response,
     build_new_version_created_event,
     build_proposal_created_event,
@@ -931,34 +929,27 @@ class ProposalWorkflowService:
         self._validate_expected_state(proposal.current_state, payload.expected_state)
 
         occurred_at = _utc_now()
-        approval = build_approval_record(
-            approval_id=new_approval_id(),
-            proposal_id=proposal_id,
-            payload=payload,
-            occurred_at=occurred_at,
-            idempotency_key=idempotency_key,
-            request_hash=request_hash,
-        )
-
         event_type, to_state = self._resolve_approval_transition(
             current_state=proposal.current_state,
             approval_type=payload.approval_type,
             approved=payload.approved,
         )
-        event = build_approval_transition_event(
+        command_state = build_approval_command_state_and_apply_transition(
+            approval_id=new_approval_id(),
             event_id=new_workflow_event_id(),
             proposal=proposal,
             payload=payload,
             event_type=event_type,
             to_state=to_state,
-            occurred_at=approval.occurred_at,
+            occurred_at=occurred_at,
             idempotency_key=idempotency_key,
             request_hash=request_hash,
         )
-        apply_lifecycle_transition_state(proposal=proposal, to_state=to_state, event=event)
 
         result = self._repository.transition_proposal(
-            proposal=proposal, event=event, approval=approval
+            proposal=proposal,
+            event=command_state.event,
+            approval=command_state.approval,
         )
         return build_approval_transition_response(
             proposal_id=proposal_id,

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import cast
 
@@ -12,6 +13,12 @@ from src.core.proposals.models import (
     ProposalWorkflowState,
 )
 from src.core.proposals.projections import to_approval_record, to_workflow_event
+
+
+@dataclass(frozen=True)
+class ApprovalCommandState:
+    approval: ProposalApprovalRecordData
+    event: ProposalWorkflowEventRecord
 
 
 def build_state_transition_request_hash(*, payload: ProposalStateTransitionRequest) -> str:
@@ -202,6 +209,40 @@ def build_approval_transition_event(
         reason_json=reason_json,
         related_version_no=payload.related_version_no,
     )
+
+
+def build_approval_command_state_and_apply_transition(
+    *,
+    approval_id: str,
+    event_id: str,
+    proposal: ProposalRecord,
+    payload: ProposalApprovalRequest,
+    event_type: str,
+    to_state: ProposalWorkflowState,
+    occurred_at: datetime,
+    idempotency_key: str | None,
+    request_hash: str,
+) -> ApprovalCommandState:
+    approval = build_approval_record(
+        approval_id=approval_id,
+        proposal_id=proposal.proposal_id,
+        payload=payload,
+        occurred_at=occurred_at,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+    event = build_approval_transition_event(
+        event_id=event_id,
+        proposal=proposal,
+        payload=payload,
+        event_type=event_type,
+        to_state=to_state,
+        occurred_at=approval.occurred_at,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+    apply_lifecycle_transition_state(proposal=proposal, to_state=to_state, event=event)
+    return ApprovalCommandState(approval=approval, event=event)
 
 
 def build_approval_transition_response(

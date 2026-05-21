@@ -2788,3 +2788,26 @@
 - Follow-Up:
   - Apply the same command-state boundary to approval transitions once approval command handling is
     isolated.
+
+## LA-REV-111
+
+- Scope: Approval command state helper
+- Pattern: service-boundary hardening / modularity problem
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_approval` built approval records, approval transition
+  events, and aggregate state mutation inline, keeping approval command state logic in the service
+  layer.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now exposes
+    `build_approval_command_state_and_apply_transition`.
+  - `src/core/proposals/service.py` delegates approval record creation, transition event
+    construction, and aggregate state mutation to the lifecycle domain helper.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` covers the combined
+    helper.
+- Consequence:
+  - Approval audit payload, persisted approval referent, and aggregate mutation behavior are
+    directly tested at the domain boundary and can evolve without expanding the workflow service.
+- Follow-Up:
+  - Keep approval replay response reconstruction separate until approval audit enrichment is
+    expanded.
