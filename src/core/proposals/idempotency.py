@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
 from src.core.proposals.models import ProposalApprovalRecordData, ProposalWorkflowEventRecord
+from src.core.proposals.repository import ProposalRepository
 
 
 class ProposalReplayHashConflictError(ValueError):
@@ -26,6 +27,20 @@ def find_replayed_event(
     return None
 
 
+def load_replayed_event(
+    *,
+    repository: ProposalRepository,
+    proposal_id: str,
+    idempotency_key: str | None,
+    request_hash: str,
+) -> ProposalWorkflowEventRecord | None:
+    return find_replayed_event(
+        events=repository.list_events(proposal_id=proposal_id),
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+
+
 def find_replayed_approval(
     *,
     approvals: Sequence[ProposalApprovalRecordData],
@@ -43,3 +58,17 @@ def find_replayed_approval(
             raise ProposalReplayHashConflictError("IDEMPOTENCY_KEY_CONFLICT: request hash mismatch")
         return approval
     return None
+
+
+def load_replayed_approval(
+    *,
+    repository: ProposalRepository,
+    proposal_id: str,
+    idempotency_key: str | None,
+    request_hash: str,
+) -> ProposalApprovalRecordData | None:
+    return find_replayed_approval(
+        approvals=repository.list_approvals(proposal_id=proposal_id),
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )

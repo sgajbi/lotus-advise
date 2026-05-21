@@ -6,8 +6,11 @@ from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
     find_replayed_approval,
     find_replayed_event,
+    load_replayed_approval,
+    load_replayed_event,
 )
 from src.core.proposals.models import ProposalApprovalRecordData, ProposalWorkflowEventRecord
+from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 
 def _event(
@@ -128,3 +131,45 @@ def test_find_replayed_approval_handles_empty_key_and_hash_conflict():
             idempotency_key="idem_target",
             request_hash="sha256:b",
         )
+
+
+def test_load_replayed_event_reads_repository_events():
+    repository = InMemoryProposalRepository()
+    first = _event(event_id="pwe_first", idempotency_key="idem_target", request_hash="sha256:a")
+    latest = _event(event_id="pwe_latest", idempotency_key="idem_target", request_hash="sha256:a")
+    repository.append_event(first)
+    repository.append_event(latest)
+
+    replayed = load_replayed_event(
+        repository=repository,
+        proposal_id="pp_idem",
+        idempotency_key="idem_target",
+        request_hash="sha256:a",
+    )
+
+    assert replayed == latest
+
+
+def test_load_replayed_approval_reads_repository_approvals():
+    repository = InMemoryProposalRepository()
+    first = _approval(
+        approval_id="pap_first",
+        idempotency_key="idem_target",
+        request_hash="sha256:a",
+    )
+    latest = _approval(
+        approval_id="pap_latest",
+        idempotency_key="idem_target",
+        request_hash="sha256:a",
+    )
+    repository.create_approval(first)
+    repository.create_approval(latest)
+
+    replayed = load_replayed_approval(
+        repository=repository,
+        proposal_id="pp_idem",
+        idempotency_key="idem_target",
+        request_hash="sha256:a",
+    )
+
+    assert replayed == latest

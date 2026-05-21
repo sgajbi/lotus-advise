@@ -71,8 +71,8 @@ from src.core.proposals.execution_update import (
 )
 from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
-    find_replayed_approval,
-    find_replayed_event,
+    load_replayed_approval,
+    load_replayed_event,
 )
 from src.core.proposals.identifiers import (
     new_approval_id,
@@ -974,8 +974,9 @@ class ProposalWorkflowService:
         self, *, proposal_id: str, idempotency_key: Optional[str], request_hash: str
     ) -> Optional[ProposalWorkflowEventRecord]:
         try:
-            return find_replayed_event(
-                events=self._repository.list_events(proposal_id=proposal_id),
+            return load_replayed_event(
+                repository=self._repository,
+                proposal_id=proposal_id,
                 idempotency_key=idempotency_key,
                 request_hash=request_hash,
             )
@@ -986,8 +987,9 @@ class ProposalWorkflowService:
         self, *, proposal_id: str, idempotency_key: Optional[str], request_hash: str
     ) -> Optional[ProposalApprovalRecordData]:
         try:
-            return find_replayed_approval(
-                approvals=self._repository.list_approvals(proposal_id=proposal_id),
+            return load_replayed_approval(
+                repository=self._repository,
+                proposal_id=proposal_id,
                 idempotency_key=idempotency_key,
                 request_hash=request_hash,
             )

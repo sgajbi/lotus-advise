@@ -2699,3 +2699,26 @@
 - Follow-Up:
   - Keep approval replay/idempotency lookup separate until approval audit enrichment requirements
     are clearer.
+
+## LA-REV-107
+
+- Scope: Idempotent replay repository lookup boundary
+- Pattern: duplication / replay-idempotency hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: `ProposalWorkflowService` loaded workflow events and approvals directly before calling
+  idempotency replay matching functions, splitting replay lookup behavior between service and domain
+  helper code.
+- Evidence:
+  - `src/core/proposals/idempotency.py` now exposes repository-backed replay event and approval
+    lookup helpers next to the hash-conflict matching rules.
+  - `src/core/proposals/service.py` delegates replay lookup to those helpers while preserving
+    service-level exception mapping.
+  - `tests/unit/advisory/engine/test_engine_proposal_idempotency.py` covers repository-backed event
+    and approval replay lookup.
+- Consequence:
+  - Idempotent transition and approval replay now share a cohesive lookup boundary, reducing
+    service-level repository orchestration and keeping conflict behavior easier to audit.
+- Follow-Up:
+  - Consider repository-indexed idempotency lookup for workflow events/approvals if production event
+    histories grow beyond acceptable scan latency.

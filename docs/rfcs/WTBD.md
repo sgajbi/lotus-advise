@@ -128,6 +128,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal approval read-model loading now lives in
     `src/core/proposals/approval_read_model.py`, keeping approval posture repository loading out of
     the workflow service.
+  - Idempotent replay event and approval lookups now live in
+    `src/core/proposals/idempotency.py`, keeping replay repository loading next to replay matching
+    rules.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.
