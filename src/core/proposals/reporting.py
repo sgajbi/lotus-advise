@@ -45,3 +45,24 @@ def apply_report_request_state(
     event: ProposalWorkflowEventRecord,
 ) -> None:
     proposal.last_event_at = max(proposal.last_event_at, event.occurred_at)
+
+
+def build_report_request_event_and_apply_state(
+    *,
+    event_id: str,
+    proposal: ProposalRecord,
+    report_response: ProposalReportResponse,
+    requested_by: str,
+    related_version_no: int,
+    include_execution_summary: bool,
+) -> ProposalWorkflowEventRecord:
+    event = build_report_requested_event(
+        event_id=event_id,
+        proposal=proposal,
+        report_response=report_response,
+        requested_by=requested_by,
+        related_version_no=related_version_no,
+        include_execution_summary=include_execution_summary,
+    )
+    apply_report_request_state(proposal=proposal, event=event)
+    return event

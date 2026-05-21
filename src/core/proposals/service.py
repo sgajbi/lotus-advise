@@ -145,7 +145,7 @@ from src.core.proposals.projections import (
 )
 from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
 from src.core.proposals.records import build_proposal_idempotency_record, build_proposal_record
-from src.core.proposals.reporting import apply_report_request_state, build_report_requested_event
+from src.core.proposals.reporting import build_report_request_event_and_apply_state
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
 from src.core.proposals.simulation_gate import (
@@ -1059,7 +1059,7 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
-        event = build_report_requested_event(
+        event = build_report_request_event_and_apply_state(
             event_id=new_workflow_event_id(),
             proposal=proposal,
             report_response=report_response,
@@ -1067,7 +1067,6 @@ class ProposalWorkflowService:
             related_version_no=related_version_no,
             include_execution_summary=include_execution_summary,
         )
-        apply_report_request_state(proposal=proposal, event=event)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return event
 

@@ -2722,3 +2722,24 @@
 - Follow-Up:
   - Consider repository-indexed idempotency lookup for workflow events/approvals if production event
     histories grow beyond acceptable scan latency.
+
+## LA-REV-108
+
+- Scope: Report request command state helper
+- Pattern: service-boundary hardening / modularity problem
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_report_request` built report-request events and applied
+  aggregate timestamp mutation inline, keeping report command state logic in the service layer.
+- Evidence:
+  - `src/core/proposals/reporting.py` now exposes
+    `build_report_request_event_and_apply_state`.
+  - `src/core/proposals/service.py` delegates report event construction and aggregate timestamp
+    mutation to the reporting domain helper.
+  - `tests/unit/advisory/engine/test_engine_proposal_reporting.py` covers the combined helper.
+- Consequence:
+  - Report request lineage and aggregate timestamp behavior are now directly tested at the domain
+    boundary and can evolve without expanding the workflow service.
+- Follow-Up:
+  - Keep repository persistence in the service until broader command-handler extraction is
+    justified for report orchestration.

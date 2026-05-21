@@ -2,7 +2,11 @@ from datetime import datetime, timezone
 
 from src.core.proposals.models import ProposalRecord, ProposalReportResponse
 from src.core.proposals.projections import to_proposal_summary
-from src.core.proposals.reporting import apply_report_request_state, build_report_requested_event
+from src.core.proposals.reporting import (
+    apply_report_request_state,
+    build_report_request_event_and_apply_state,
+    build_report_requested_event,
+)
 
 
 def _proposal(*, last_event_at: datetime | None = None) -> ProposalRecord:
@@ -115,3 +119,30 @@ def test_apply_report_request_state_preserves_newer_last_event_timestamp():
     apply_report_request_state(proposal=proposal, event=event)
 
     assert proposal.last_event_at == newer_last_event_at
+
+
+def test_build_report_request_event_and_apply_state_returns_event_and_updates_timestamp():
+    proposal = _proposal(last_event_at=datetime(2026, 5, 20, 9, 5, tzinfo=timezone.utc))
+    report_response = ProposalReportResponse(
+        proposal=to_proposal_summary(proposal),
+        report_request_id="prr_projection",
+        report_type="CLIENT_PROPOSAL_SUMMARY",
+        report_service="lotus-report",
+        status="READY",
+        report_reference_id="rpt_projection",
+        artifact_url="https://reports.example/client-advisory-pack.pdf",
+        generated_at="2026-05-20T09:10:00+00:00",
+    )
+
+    event = build_report_request_event_and_apply_state(
+        event_id="pwe_report_projection",
+        proposal=proposal,
+        report_response=report_response,
+        requested_by="advisor_report_projection",
+        related_version_no=3,
+        include_execution_summary=True,
+    )
+
+    assert event.event_type == "REPORT_REQUESTED"
+    assert event.reason_json["report_request_id"] == "prr_projection"
+    assert proposal.last_event_at == event.occurred_at
