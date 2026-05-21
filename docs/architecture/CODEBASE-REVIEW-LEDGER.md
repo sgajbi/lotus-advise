@@ -3559,29 +3559,34 @@
 
 ## LA-REV-144
 
-- Scope: Proposal workflow async runner and report-request command
+- Scope: Proposal workflow async runner and command extraction
 - Pattern: modularity / command-boundary hardening
 - Status: Hardened
 - Finding Class: modularity problem
-- Summary: The proposal workflow service still owned async operation retry-loop mechanics and
-  report-request command persistence inline with high-level create, version, lifecycle, approval,
-  execution, query, and replay coordination.
+- Summary: The proposal workflow service still owned async operation retry-loop mechanics,
+  execution handoff command persistence, and report-request command persistence inline with
+  high-level create, version, lifecycle, approval, execution, query, and replay coordination.
 - Evidence:
   - `src/core/proposals/async_operation_runner.py` now owns async operation lease acquisition,
     terminal-skip handling, lifecycle failure persistence, runtime retry/final-failure behavior,
     and success persistence.
   - `src/core/proposals/report_request_command.py` now owns report-request aggregate loading,
     report lineage event construction, aggregate timestamp mutation, and transition persistence.
+  - `src/core/proposals/execution_handoff_command.py` now owns execution-handoff aggregate loading,
+    idempotent replay detection, expected-state validation, execution-ready validation, event
+    construction, aggregate mutation, and transition persistence.
   - `src/core/proposals/service.py` delegates to those helpers while keeping the public workflow
     service API and existing exception behavior stable.
   - `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` continues to prove async
     create/version execution, lifecycle failure handling, runtime retry behavior, recovery of
-    pending/expired operations, report request event recording, and proposal command compatibility.
+    pending/expired operations, execution handoff replay/conflict behavior, report request event
+    recording, and proposal command compatibility.
 - Consequence:
-  - WTBD-001 is narrowed further: async runtime mechanics and report command writes are now named
-    proposal-domain boundaries rather than service-private branches. The remaining WTBD-001 work is
-    concentrated in lifecycle/execution command orchestration and the large API contract module,
-    which should be split only with explicit schema-compatibility safeguards.
+  - WTBD-001 is narrowed further: async runtime mechanics, execution handoff writes, and report
+    command writes are now named proposal-domain boundaries rather than service-private branches.
+    The remaining WTBD-001 work is concentrated in lifecycle/approval/execution-update command
+    orchestration and the large API contract module, which should be split only with explicit
+    schema-compatibility safeguards.
 - Follow-Up:
   - Continue WTBD-001 in small command-oriented slices; do not split `models.py` mechanically
     without a compatibility/export plan and OpenAPI regression proof.

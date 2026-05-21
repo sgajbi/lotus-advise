@@ -284,10 +284,14 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal report-request command loading, event construction, aggregate timestamp mutation, and
     transition persistence now live in `src/core/proposals/report_request_command.py`, keeping
     report command write behavior outside the workflow service facade.
+  - Proposal execution-handoff command loading, idempotent replay detection, expected-state
+    validation, execution-ready validation, event construction, aggregate mutation, and transition
+    persistence now live in `src/core/proposals/execution_handoff_command.py`, keeping execution
+    handoff write behavior outside the workflow service facade.
 - Follow-up:
   - Continue splitting lifecycle command handling, async operation payload failure handling, and
-    execution handoff/update orchestration into smaller domain modules where behavior is pinned by
-    existing characterization tests.
+    execution update orchestration into smaller domain modules where behavior is pinned by existing
+    characterization tests.
   - Reassess `src/core/proposals/models.py` into smaller contract modules only with an explicit
     compatibility/export plan, because API schema stability is more important than file-size
     reduction.

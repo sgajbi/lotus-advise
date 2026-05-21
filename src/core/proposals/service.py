@@ -66,14 +66,7 @@ from src.core.proposals.exceptions import (
     ProposalTransitionError,
     ProposalValidationError,
 )
-from src.core.proposals.execution_handoff import (
-    ProposalExecutionHandoffStateError,
-    build_execution_handoff_event_and_apply_state,
-    build_execution_handoff_replay_response,
-    build_execution_handoff_request_hash,
-    build_execution_handoff_response,
-    validate_execution_handoff_ready,
-)
+from src.core.proposals.execution_handoff_command import request_proposal_execution_handoff
 from src.core.proposals.execution_status import (
     build_execution_status_response,
     latest_execution_requested_event,
@@ -99,7 +92,6 @@ from src.core.proposals.idempotency_read_model import load_proposal_idempotency_
 from src.core.proposals.identifiers import (
     new_approval_id,
     new_async_operation_id,
-    new_execution_request_id,
     new_proposal_id,
     new_proposal_version_id,
     new_workflow_event_id,
@@ -486,55 +478,13 @@ class ProposalWorkflowService:
         payload: ProposalExecutionHandoffRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalExecutionHandoffResponse:
-        command_read_model = load_proposal_command_read_model(
+        return request_proposal_execution_handoff(
             repository=self._repository,
             proposal_id=proposal_id,
-        )
-        if command_read_model.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        proposal = command_read_model.proposal
-        request_hash = build_execution_handoff_request_hash(payload=payload)
-        replay_event = self._get_replayed_event(
-            proposal_id=proposal_id,
-            idempotency_key=idempotency_key,
-            request_hash=request_hash,
-        )
-        if replay_event is not None:
-            return build_execution_handoff_replay_response(
-                proposal=proposal,
-                replay_event=replay_event,
-            )
-        validate_proposal_expected_state(
-            current_state=proposal.current_state,
-            expected_state=payload.expected_state,
-            require_expected_state=self._require_expected_state,
-        )
-        try:
-            validate_execution_handoff_ready(current_state=proposal.current_state)
-        except ProposalExecutionHandoffStateError as exc:
-            raise ProposalStateConflictError(str(exc)) from exc
-
-        occurred_at = _utc_now()
-        execution_request_id = payload.external_request_id or new_execution_request_id()
-        event = build_execution_handoff_event_and_apply_state(
-            event_id=new_workflow_event_id(),
-            proposal=proposal,
             payload=payload,
-            occurred_at=occurred_at,
-            execution_request_id=execution_request_id,
             idempotency_key=idempotency_key,
-            request_hash=request_hash,
-        )
-        result = persist_proposal_transition(
-            repository=self._repository,
-            proposal=proposal,
-            event=event,
-        )
-        return build_execution_handoff_response(
-            proposal=result.proposal,
-            event=result.event,
-            execution_request_id=execution_request_id,
-            execution_provider=payload.execution_provider,
+            require_expected_state=self._require_expected_state,
+            occurred_at=_utc_now(),
         )
 
     def get_execution_status(self, *, proposal_id: str) -> ProposalExecutionStatusResponse:
