@@ -152,6 +152,10 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal list read-model loading now lives in `src/core/proposals/list_read_model.py`, and
     list response projection now lives in `src/core/proposals/projections.py`, keeping filter,
     pagination, and DTO assembly boundaries out of the workflow service.
+  - Proposal command aggregate loading now lives in
+    `src/core/proposals/command_read_model.py`, keeping create-version, execution-handoff,
+    lifecycle transition, approval, and report-request aggregate reads aligned while command
+    invariants remain explicit in the workflow service.
   - Report-request event creation and aggregate timestamp mutation now live behind
     `build_report_request_event_and_apply_state` in `src/core/proposals/reporting.py`, keeping
     report command state logic out of the workflow service.

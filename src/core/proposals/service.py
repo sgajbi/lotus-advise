@@ -33,6 +33,7 @@ from src.core.proposals.async_payloads import (
     resolve_async_version_payload,
 )
 from src.core.proposals.async_replay import load_async_operation_replay_referents
+from src.core.proposals.command_read_model import load_proposal_command_read_model
 from src.core.proposals.concurrency import (
     ProposalExpectedStateError,
     validate_expected_state,
@@ -490,9 +491,13 @@ class ProposalWorkflowService:
         payload: ProposalExecutionHandoffRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalExecutionHandoffResponse:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        command_read_model = load_proposal_command_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+        )
+        if command_read_model.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        proposal = command_read_model.proposal
         request_hash = build_execution_handoff_request_hash(payload=payload)
         replay_event = self._get_replayed_event(
             proposal_id=proposal_id,
@@ -699,9 +704,13 @@ class ProposalWorkflowService:
         context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
         now = _utc_now()
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        command_read_model = load_proposal_command_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+        )
+        if command_read_model.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        proposal = command_read_model.proposal
         try:
             validate_create_version_state(
                 proposal=proposal,
@@ -883,9 +892,13 @@ class ProposalWorkflowService:
         payload: ProposalStateTransitionRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        command_read_model = load_proposal_command_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+        )
+        if command_read_model.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        proposal = command_read_model.proposal
         request_hash = build_state_transition_request_hash(payload=payload)
         replay_event = self._get_replayed_event(
             proposal_id=proposal_id,
@@ -927,9 +940,13 @@ class ProposalWorkflowService:
         payload: ProposalApprovalRequest,
         idempotency_key: Optional[str] = None,
     ) -> ProposalStateTransitionResponse:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        command_read_model = load_proposal_command_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+        )
+        if command_read_model.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        proposal = command_read_model.proposal
         request_hash = build_approval_request_hash(payload=payload)
         replay_approval = self._get_replayed_approval(
             proposal_id=proposal_id,
@@ -1067,9 +1084,13 @@ class ProposalWorkflowService:
         related_version_no: int,
         include_execution_summary: bool,
     ) -> ProposalWorkflowEventRecord:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        command_read_model = load_proposal_command_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+        )
+        if command_read_model.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        proposal = command_read_model.proposal
 
         event = build_report_request_event_and_apply_state(
             event_id=new_workflow_event_id(),

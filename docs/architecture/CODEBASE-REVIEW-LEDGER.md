@@ -3122,3 +3122,26 @@
 - Follow-Up:
   - Review proposal aggregate command loading separately; command-state invariants should remain
     explicit even if a loader is introduced.
+
+## LA-REV-126
+
+- Scope: Proposal command aggregate loading
+- Pattern: duplication / command boundary hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: Create-version, execution-handoff, lifecycle transition, approval, and report-request
+  commands loaded proposal aggregates directly from the workflow service, even though the command
+  invariants around expected state, lifecycle rules, and transition persistence were already split
+  into focused domain helpers.
+- Evidence:
+  - `src/core/proposals/command_read_model.py` now owns command aggregate loading by proposal id.
+  - `src/core/proposals/service.py` delegates proposal aggregate loading to the command read model
+    while leaving command validation and state mutation explicit at the call site.
+  - `tests/unit/advisory/engine/test_engine_proposal_command_read_model.py` covers found and
+    missing proposal aggregate boundaries.
+- Consequence:
+  - Command aggregate reads now have a reusable boundary for future authorization, tenant scoping,
+    or lock-aware loading without obscuring command-specific invariants.
+- Follow-Up:
+  - Review whether command loaders should become lock-aware in the Postgres repository before
+    introducing any stronger transactional behavior.
