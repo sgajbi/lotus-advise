@@ -2877,3 +2877,26 @@
 - Follow-Up:
   - Keep proposal version materialization and persistence ordering in the service until a broader
     create command handler can own transaction boundaries.
+
+## LA-REV-115
+
+- Scope: Async create-version submission replay identity
+- Pattern: service-boundary hardening / idempotency correctness
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.accept_create_version_async_submission` checked async operation
+  type, proposal scope, and submission hash inline when deciding whether a correlation ID replay was
+  valid.
+- Evidence:
+  - `src/core/proposals/async_operations.py` now exposes
+    `is_matching_create_version_async_submission`.
+  - `src/core/proposals/service.py` delegates create-version async replay matching to the async
+    operations domain helper.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operations.py` covers type, proposal,
+    and submission-hash mismatch behavior.
+- Consequence:
+  - Create-version async idempotency replay identity is directly tested beside async operation
+    construction, reducing drift risk in service-level correlation replay checks.
+- Follow-Up:
+  - Apply the same explicit replay-identity helper pattern to create-proposal async submissions
+    once acceptance metrics and conflict bookkeeping are isolated.

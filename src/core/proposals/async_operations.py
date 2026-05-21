@@ -113,6 +113,20 @@ def build_create_version_async_operation(
     )
 
 
+def is_matching_create_version_async_submission(
+    *,
+    operation: ProposalAsyncOperationRecord,
+    proposal_id: str,
+    submission_hash: str | None,
+) -> bool:
+    return (
+        operation.operation_type == "CREATE_PROPOSAL_VERSION"
+        and operation.proposal_id == proposal_id
+        and submission_hash is not None
+        and operation.payload_json.get("submission_hash") == submission_hash
+    )
+
+
 def begin_async_attempt(
     *,
     operation: ProposalAsyncOperationRecord,

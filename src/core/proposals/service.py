@@ -12,6 +12,7 @@ from src.core.proposals.async_operations import (
     build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
+    is_matching_create_version_async_submission,
     mark_operation_failed,
     mark_operation_succeeded,
 )
@@ -762,11 +763,10 @@ class ProposalWorkflowService:
             correlation_id=resolved_correlation_id
         )
         if existing_operation is not None:
-            existing_hash = extract_async_submission_hash(existing_operation)
-            if (
-                existing_operation.operation_type != "CREATE_PROPOSAL_VERSION"
-                or existing_operation.proposal_id != proposal_id
-                or existing_hash != submission_hash
+            if not is_matching_create_version_async_submission(
+                operation=existing_operation,
+                proposal_id=proposal_id,
+                submission_hash=submission_hash,
             ):
                 raise ProposalIdempotencyConflictError(
                     "CORRELATION_ID_CONFLICT: async version submission mismatch"

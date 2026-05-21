@@ -8,6 +8,7 @@ from src.core.proposals.async_operations import (
     build_create_proposal_async_operation,
     build_create_version_async_operation,
     extract_async_result_version_no,
+    is_matching_create_version_async_submission,
     mark_operation_failed,
     mark_operation_succeeded,
 )
@@ -192,6 +193,43 @@ def test_build_create_version_async_operation_scopes_replay_to_proposal():
     assert operation.finished_at is None
     assert operation.result_json is None
     assert operation.error_json is None
+
+
+def test_is_matching_create_version_async_submission_requires_type_proposal_and_hash():
+    operation = build_create_version_async_operation(
+        operation_id="pop_version_async",
+        proposal_id="pp_async_version",
+        correlation_id="corr_version_async",
+        payload=ProposalVersionRequest(
+            created_by="advisor_async_state",
+            simulate_request=_simulate_request(portfolio_id="pf_async_version"),
+        ),
+        submission_hash="sha256:version-submission",
+        created_at=datetime(2026, 5, 20, 9, 1, tzinfo=timezone.utc),
+        max_attempts=4,
+    )
+
+    assert is_matching_create_version_async_submission(
+        operation=operation,
+        proposal_id="pp_async_version",
+        submission_hash="sha256:version-submission",
+    )
+    assert not is_matching_create_version_async_submission(
+        operation=operation,
+        proposal_id="pp_other",
+        submission_hash="sha256:version-submission",
+    )
+    assert not is_matching_create_version_async_submission(
+        operation=operation,
+        proposal_id="pp_async_version",
+        submission_hash="sha256:changed",
+    )
+    operation.operation_type = "CREATE_PROPOSAL"
+    assert not is_matching_create_version_async_submission(
+        operation=operation,
+        proposal_id="pp_async_version",
+        submission_hash="sha256:version-submission",
+    )
 
 
 def test_begin_async_attempt_sets_running_state_and_lease():
