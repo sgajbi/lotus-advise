@@ -84,6 +84,29 @@ def apply_execution_handoff_state(
     proposal.last_event_at = event.occurred_at
 
 
+def build_execution_handoff_event_and_apply_state(
+    *,
+    event_id: str,
+    proposal: ProposalRecord,
+    payload: ProposalExecutionHandoffRequest,
+    occurred_at: datetime,
+    execution_request_id: str,
+    idempotency_key: str | None,
+    request_hash: str,
+) -> ProposalWorkflowEventRecord:
+    event = build_execution_handoff_requested_event(
+        event_id=event_id,
+        proposal=proposal,
+        payload=payload,
+        occurred_at=occurred_at,
+        execution_request_id=execution_request_id,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+    apply_execution_handoff_state(proposal=proposal, event=event)
+    return event
+
+
 def build_execution_handoff_response(
     *,
     proposal: ProposalRecord,

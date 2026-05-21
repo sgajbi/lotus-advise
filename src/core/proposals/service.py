@@ -45,10 +45,9 @@ from src.core.proposals.delivery_summary import (
 )
 from src.core.proposals.execution_handoff import (
     ProposalExecutionHandoffStateError,
-    apply_execution_handoff_state,
+    build_execution_handoff_event_and_apply_state,
     build_execution_handoff_replay_response,
     build_execution_handoff_request_hash,
-    build_execution_handoff_requested_event,
     build_execution_handoff_response,
     validate_execution_handoff_ready,
 )
@@ -504,7 +503,7 @@ class ProposalWorkflowService:
 
         occurred_at = _utc_now()
         execution_request_id = payload.external_request_id or new_execution_request_id()
-        event = build_execution_handoff_requested_event(
+        event = build_execution_handoff_event_and_apply_state(
             event_id=new_workflow_event_id(),
             proposal=proposal,
             payload=payload,
@@ -513,7 +512,6 @@ class ProposalWorkflowService:
             idempotency_key=idempotency_key,
             request_hash=request_hash,
         )
-        apply_execution_handoff_state(proposal=proposal, event=event)
         result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return build_execution_handoff_response(
             proposal=result.proposal,

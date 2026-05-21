@@ -2743,3 +2743,26 @@
 - Follow-Up:
   - Keep repository persistence in the service until broader command-handler extraction is
     justified for report orchestration.
+
+## LA-REV-109
+
+- Scope: Execution handoff command state helper
+- Pattern: service-boundary hardening / modularity problem
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.request_execution_handoff` built execution handoff events and
+  applied aggregate timestamp mutation inline, keeping handoff command state logic in the service
+  layer.
+- Evidence:
+  - `src/core/proposals/execution_handoff.py` now exposes
+    `build_execution_handoff_event_and_apply_state`.
+  - `src/core/proposals/service.py` delegates handoff event construction and aggregate timestamp
+    mutation to the execution handoff domain helper.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_handoff.py` covers the combined
+    helper.
+- Consequence:
+  - Execution handoff audit payload and aggregate timestamp behavior are directly tested at the
+    domain boundary and can evolve without expanding the workflow service.
+- Follow-Up:
+  - Keep execution request id generation and repository persistence in the service until a broader
+    command-handler boundary owns external execution orchestration.
