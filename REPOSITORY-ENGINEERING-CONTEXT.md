@@ -44,7 +44,12 @@ Current repository posture:
 9. RFC-0087 trust telemetry proof for `AdvisoryProposalLifecycleRecord` now lives under
    `contracts/trust-telemetry/` and is validated by `tests/unit/test_trust_telemetry.py` against
    the platform trust telemetry validator when `lotus-platform` is available,
-10. the advisory workspace rationale path now uses the explicit `lotus-ai` workflow-pack execution seam for the `workspace_rationale.pack` family, preserves bounded run posture in the advisory response, and exposes a separate bounded review-action pass-through that retains Lotus AI lineage truth.
+10. the advisory workspace rationale path now uses the explicit `lotus-ai` workflow-pack execution
+   seam for the `workspace_rationale.pack` family, preserves bounded run posture in the advisory
+   response, and exposes a separate bounded review-action pass-through that retains Lotus AI
+   lineage truth,
+11. execution handoff, status, and delivery projections carry explicit ownership-boundary evidence
+   so advisory posture cannot be confused with downstream execution system-of-record truth.
 
 ## Architecture And Module Map
 
@@ -82,8 +87,10 @@ Boundary rules:
 5. proposal alternatives must remain anchored to canonical `lotus-core` simulation and `lotus-risk` enrichment rather than local duplicated calculations,
 6. tactical house-view affected cohorts must remain bounded to supplied source-backed candidates,
    preserve source refs, and must not discover the global portfolio universe or open DPM campaigns,
-7. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
-8. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions.
+7. execution handoff, status, and delivery surfaces must preserve the boundary that `lotus-advise`
+   records advisory posture while downstream providers remain execution systems of record,
+8. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current advisory upstream calls,
+9. runtime smoke should honor injected CI DSNs and canonical service identities rather than stale local assumptions.
 
 ## Repo-Native Commands
 

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from src.core.proposals.execution_boundary import execution_ownership_boundary
 from src.core.proposals.execution_status import (
     build_execution_status_response,
     latest_execution_requested_event,
@@ -54,7 +55,9 @@ def test_execution_status_defaults_when_no_handoff_events_exist():
     assert response.explanation == {
         "source": "ADVISORY_WORKFLOW_EVENTS",
         "state_correlation": "NO_EXECUTION_EVENTS_RECORDED",
+        "execution_ownership": execution_ownership_boundary(),
     }
+    assert response.execution_ownership == execution_ownership_boundary()
 
 
 def test_execution_status_projects_latest_handoff_and_execution_event():
@@ -108,6 +111,8 @@ def test_execution_status_projects_latest_handoff_and_execution_event():
     assert response.latest_workflow_event is not None
     assert response.latest_workflow_event.event_id == "pwe_executed"
     assert response.explanation["state_correlation"] == "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS"
+    assert response.explanation["execution_ownership"] == execution_ownership_boundary()
+    assert response.execution_ownership == execution_ownership_boundary()
 
 
 def test_execution_status_can_be_derived_from_downstream_event_without_request_event():
@@ -132,3 +137,4 @@ def test_execution_status_can_be_derived_from_downstream_event_without_request_e
     assert response.related_version_no == 3
     assert response.handoff_requested_at is None
     assert response.executed_at == "2026-05-20T09:20:00+00:00"
+    assert response.execution_ownership == execution_ownership_boundary()

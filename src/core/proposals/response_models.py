@@ -16,6 +16,7 @@ from src.core.proposals.contract_types import (
     ProposalWorkflowEventType,
     ProposalWorkflowState,
 )
+from src.core.proposals.execution_boundary import execution_ownership_boundary
 
 
 class ProposalWorkflowEvent(BaseModel):
@@ -402,6 +403,20 @@ class ProposalExecutionHandoffResponse(BaseModel):
         description="Execution venue or OMS receiving the advisory handoff.",
         examples=["lotus-manage"],
     )
+    execution_ownership: Dict[str, str] = Field(
+        default_factory=execution_ownership_boundary,
+        description=(
+            "Explicit ownership boundary showing that lotus-advise records handoff posture "
+            "while the downstream execution provider remains the system of record."
+        ),
+        examples=[
+            {
+                "advisory_role": "HANDOFF_REQUEST_AND_STATUS_RECONCILIATION",
+                "execution_system_of_record": "DOWNSTREAM_EXECUTION_PROVIDER",
+                "ownership_boundary": "DOWNSTREAM_EXECUTION_SYSTEM_OF_RECORD",
+            }
+        ],
+    )
     latest_workflow_event: ProposalWorkflowEvent = Field(
         description="Append-only workflow event created for the execution handoff.",
         examples=[{"event_type": "EXECUTION_REQUESTED", "to_state": "EXECUTION_READY"}],
@@ -452,6 +467,20 @@ class ProposalExecutionStatusResponse(BaseModel):
         description="Latest execution-related workflow event correlated for advisory audit.",
         examples=[{"event_type": "EXECUTED", "to_state": "EXECUTED"}],
     )
+    execution_ownership: Dict[str, str] = Field(
+        default_factory=execution_ownership_boundary,
+        description=(
+            "Explicit ownership boundary for execution status projection; lotus-advise "
+            "correlates advisory posture and downstream updates but does not own execution truth."
+        ),
+        examples=[
+            {
+                "advisory_role": "HANDOFF_REQUEST_AND_STATUS_RECONCILIATION",
+                "execution_system_of_record": "DOWNSTREAM_EXECUTION_PROVIDER",
+                "ownership_boundary": "DOWNSTREAM_EXECUTION_SYSTEM_OF_RECORD",
+            }
+        ],
+    )
     explanation: Dict[str, Any] = Field(
         default_factory=dict,
         description="Structured explanation of how advisory execution status was correlated.",
@@ -459,6 +488,11 @@ class ProposalExecutionStatusResponse(BaseModel):
             {
                 "source": "ADVISORY_WORKFLOW_EVENTS",
                 "state_correlation": "EXECUTION_REQUESTED_AND_EXECUTED_EVENTS",
+                "execution_ownership": {
+                    "advisory_role": "HANDOFF_REQUEST_AND_STATUS_RECONCILIATION",
+                    "execution_system_of_record": "DOWNSTREAM_EXECUTION_PROVIDER",
+                    "ownership_boundary": "DOWNSTREAM_EXECUTION_SYSTEM_OF_RECORD",
+                },
             }
         ],
     )
@@ -502,6 +536,20 @@ class ProposalDeliveryExecutionSummary(BaseModel):
         default=None,
         description="External execution identifier captured from downstream execution updates.",
         examples=["oms_fill_001"],
+    )
+    execution_ownership: Dict[str, str] = Field(
+        default_factory=execution_ownership_boundary,
+        description=(
+            "Explicit ownership boundary for delivery execution posture; execution truth remains "
+            "with the downstream provider."
+        ),
+        examples=[
+            {
+                "advisory_role": "HANDOFF_REQUEST_AND_STATUS_RECONCILIATION",
+                "execution_system_of_record": "DOWNSTREAM_EXECUTION_PROVIDER",
+                "ownership_boundary": "DOWNSTREAM_EXECUTION_SYSTEM_OF_RECORD",
+            }
+        ],
     )
 
 
@@ -571,7 +619,16 @@ class ProposalDeliverySummaryResponse(BaseModel):
     explanation: Dict[str, Any] = Field(
         default_factory=dict,
         description="Structured explanation of how the delivery summary was assembled.",
-        examples=[{"source": "ADVISORY_WORKFLOW_EVENTS"}],
+        examples=[
+            {
+                "source": "ADVISORY_WORKFLOW_EVENTS",
+                "execution_ownership": {
+                    "advisory_role": "HANDOFF_REQUEST_AND_STATUS_RECONCILIATION",
+                    "execution_system_of_record": "DOWNSTREAM_EXECUTION_PROVIDER",
+                    "ownership_boundary": "DOWNSTREAM_EXECUTION_SYSTEM_OF_RECORD",
+                },
+            }
+        ],
     )
 
 
@@ -597,7 +654,17 @@ class ProposalDeliveryHistoryResponse(BaseModel):
     explanation: Dict[str, Any] = Field(
         default_factory=dict,
         description="Structured explanation of how the delivery history was assembled.",
-        examples=[{"source": "ADVISORY_WORKFLOW_EVENTS", "filter": "DELIVERY_ONLY"}],
+        examples=[
+            {
+                "source": "ADVISORY_WORKFLOW_EVENTS",
+                "filter": "DELIVERY_ONLY",
+                "execution_ownership": {
+                    "advisory_role": "HANDOFF_REQUEST_AND_STATUS_RECONCILIATION",
+                    "execution_system_of_record": "DOWNSTREAM_EXECUTION_PROVIDER",
+                    "ownership_boundary": "DOWNSTREAM_EXECUTION_SYSTEM_OF_RECORD",
+                },
+            }
+        ],
     )
 
 

@@ -50,7 +50,10 @@ Boundary rules that matter:
 3. proposal simulation and alternatives must stay anchored to canonical upstream authorities
 4. tactical house-view cohorts consume source-backed candidate portfolios and do not discover the
    global portfolio universe, open rebalance waves, approve trades, or integrate with OMS
-5. REST/OpenAPI remains the governed integration contract for current upstream calls
+5. execution handoff, status, and delivery responses carry explicit ownership-boundary evidence;
+   `lotus-advise` records advisory posture while downstream providers remain execution systems of
+   record
+6. REST/OpenAPI remains the governed integration contract for current upstream calls
 
 ## Current Operational Posture
 

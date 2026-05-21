@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-21T13:55:44.389171+00:00",
+  "generatedAt": "2026-05-21T14:12:29.477585+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -2234,6 +2234,22 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.execution_ownership",
+      "canonicalTerm": "execution_ownership",
+      "preferredName": "execution_ownership",
+      "description": "Explicit ownership boundary showing that lotus-advise records handoff posture while the downstream execution provider remains the system of record.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -21998,6 +22014,14 @@
             "attributeRef": "#/attributeCatalog/lotus.execution_provider"
           },
           {
+            "name": "execution_ownership",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.execution_ownership",
+            "attributeRef": "#/attributeCatalog/lotus.execution_ownership"
+          },
+          {
             "name": "latest_workflow_event",
             "location": "body",
             "required": true,
@@ -22651,6 +22675,14 @@
             "attributeRef": "#/attributeCatalog/lotus.latest_workflow_event"
           },
           {
+            "name": "execution_ownership",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.execution_ownership",
+            "attributeRef": "#/attributeCatalog/lotus.execution_ownership"
+          },
+          {
             "name": "explanation",
             "location": "body",
             "required": false,
@@ -22920,6 +22952,14 @@
             "type": "object",
             "semanticId": "lotus.latest_workflow_event",
             "attributeRef": "#/attributeCatalog/lotus.latest_workflow_event"
+          },
+          {
+            "name": "execution_ownership",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.execution_ownership",
+            "attributeRef": "#/attributeCatalog/lotus.execution_ownership"
           },
           {
             "name": "explanation",
