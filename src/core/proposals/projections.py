@@ -84,7 +84,7 @@ def to_workflow_event(event: ProposalWorkflowEventRecord) -> ProposalWorkflowEve
         to_state=event.to_state,
         actor_id=event.actor_id,
         occurred_at=event.occurred_at.isoformat(),
-        reason=event.reason_json,
+        reason=deepcopy(event.reason_json),
         related_version_no=event.related_version_no,
     )
 
@@ -101,7 +101,7 @@ def to_approval_record(
         approved=approval.approved,
         actor_id=approval.actor_id,
         occurred_at=approval.occurred_at.isoformat(),
-        details=approval.details_json,
+        details=deepcopy(approval.details_json),
         related_version_no=approval.related_version_no,
     )
 
@@ -249,9 +249,9 @@ def to_async_status_response(
             operation.lease_expires_at.isoformat() if operation.lease_expires_at else None
         ),
         result=(
-            ProposalCreateResponse.model_validate(operation.result_json)
+            ProposalCreateResponse.model_validate(deepcopy(operation.result_json))
             if operation.result_json is not None
             else None
         ),
-        error=operation.error_json,
+        error=deepcopy(operation.error_json),
     )

@@ -3947,3 +3947,34 @@
 - Follow-Up:
   - Continue treating strict dependency freshness failures as fix-forward dependency hygiene rather
     than suppressing the gate.
+
+## LA-REV-155
+
+- Scope: Workflow audit projection immutability
+- Pattern: auditability hardening / response-boundary correctness
+- Status: Hardened
+- Finding Class: correctness risk
+- Summary: Workflow event reasons, approval details, and asynchronous operation result/error
+  payloads were projected directly from mutable persistence-record JSON. That left audit and
+  lineage-facing response DTOs relying on downstream model behavior instead of an explicit
+  projection-boundary copy, which is too weak for banking-grade audit evidence.
+- Evidence:
+  - `src/core/proposals/projections.py` now deep-copies workflow event reason payloads, approval
+    details, asynchronous result payloads, and asynchronous error payloads before constructing
+    response DTOs.
+  - `tests/unit/advisory/engine/test_engine_proposal_projections.py` now proves workflow event,
+    approval, and asynchronous result projections stay isolated from later nested record mutation.
+  - Focused validation passed:
+    `python -m pytest tests/unit/advisory/engine/test_engine_proposal_projections.py -q`
+    with `13 passed`.
+  - Focused ruff check passed for the changed module and projection tests.
+- Consequence:
+  - Advisory workflow and async-operation read models now preserve append-only audit semantics at
+    the response boundary: once a response projection is built, nested mutation of persistence
+    records cannot silently alter the already projected audit or lineage payload.
+- Documentation:
+  - No wiki change is required because this is internal audit-projection hardening, not a public
+    workflow, operator runbook, or capability-contract change.
+- Follow-Up:
+  - Include this response-boundary immutability slice in the next PR merge gate; no OpenAPI
+    vocabulary semantic change is expected from this internal copying hardening.
