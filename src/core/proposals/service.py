@@ -98,6 +98,7 @@ from src.core.proposals.lifecycle_events import (
     build_state_transition_request_hash,
     build_state_transition_response,
 )
+from src.core.proposals.lineage_read_model import load_proposal_lineage_read_model
 from src.core.proposals.materialization import build_proposal_version_materialization
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
@@ -123,7 +124,6 @@ from src.core.proposals.models import (
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
     ProposalVersionDetail,
-    ProposalVersionRecord,
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
     ProposalWorkflowState,
@@ -457,17 +457,16 @@ class ProposalWorkflowService:
         )
 
     def get_lineage(self, *, proposal_id: str) -> ProposalLineageResponse:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        lineage = load_proposal_lineage_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+        )
+        if lineage.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
-        versions_by_number: dict[int, ProposalVersionRecord | None] = {
-            version.version_no: version
-            for version in self._repository.list_versions(proposal_id=proposal_id)
-        }
         return build_proposal_lineage_response(
-            proposal=proposal,
-            versions_by_number=versions_by_number,
+            proposal=lineage.proposal,
+            versions_by_number=lineage.versions_by_number,
         )
 
     def request_execution_handoff(

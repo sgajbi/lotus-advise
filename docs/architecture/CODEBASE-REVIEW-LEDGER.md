@@ -2989,3 +2989,25 @@
 - Follow-Up:
   - Review `get_version` and idempotency lookup read paths for similarly small read-model
     boundaries once detail loading settles.
+
+## LA-REV-120
+
+- Scope: Proposal lineage read-model loading
+- Pattern: duplication / read-model hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: `ProposalWorkflowService.get_lineage` loaded the proposal aggregate and version list
+  directly before delegating lineage projection, leaving query-shape and missing-proposal behavior
+  in service orchestration.
+- Evidence:
+  - `src/core/proposals/lineage_read_model.py` now owns proposal lineage read-model loading.
+  - `src/core/proposals/service.py` delegates proposal/version-list loading before projecting the
+    lineage response.
+  - `tests/unit/advisory/engine/test_engine_proposal_lineage_read_model.py` covers complete
+    lineage, missing-proposal, and missing-version-gap boundaries.
+- Consequence:
+  - Proposal lineage loading now has a reusable domain read boundary for future lineage pagination,
+    caching, or version-gap diagnostics without expanding the workflow service.
+- Follow-Up:
+  - Keep missing-version detection in projection until lineage response policy changes beyond
+    read-model loading.

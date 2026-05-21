@@ -38,6 +38,9 @@ recorded here with enough detail for later owner-specific slices.
     `src/core/proposals/projections.py`.
   - Proposal lineage response assembly now lives in `src/core/proposals/projections.py`, including
     immutable version item projection, latest-version selection, and missing-version detection.
+  - Proposal lineage read-model loading now lives in
+    `src/core/proposals/lineage_read_model.py`, keeping proposal/version-list repository loading
+    out of the workflow service.
   - Proposal workflow timeline and approval-history response assembly now live in
     `src/core/proposals/projections.py`, keeping lifecycle read-model projection out of the
     workflow service.
