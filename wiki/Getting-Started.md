@@ -15,8 +15,14 @@
 - `LOTUS_CORE_BASE_URL`
 - `LOTUS_CORE_QUERY_BASE_URL`
 - `LOTUS_RISK_BASE_URL`
+- `LOTUS_RISK_TIMEOUT_SECONDS`
+- `LOTUS_RISK_RETRY_ATTEMPTS`
+- `LOTUS_RISK_RETRY_BACKOFF_SECONDS`
 
 These bindings keep proposal simulation and advisory risk-lens behavior aligned to the actual upstream authorities instead of local stand-ins.
+Lotus Risk enrichment retries transient `5xx`, `429`, and network failures with bounded operator
+configuration: retry attempts default to `2` and cap at `5`, while retry backoff defaults to `0.1`
+seconds and caps at `2.0` seconds.
 
 ## API Discovery
 

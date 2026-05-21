@@ -4153,3 +4153,30 @@
 - Follow-Up:
   - Include focused async runner tests and repo-native feature-lane validation in the PR evidence
     before merge.
+
+## LA-REV-162
+
+- Scope: Lotus Risk enrichment retry policy
+- Pattern: upstream integration resilience / bounded retry hardening
+- Status: Hardened
+- Finding Class: operational reliability risk
+- Summary: The Lotus Risk enrichment client had timeout and transient retry handling, but retry
+  attempts were fully environment-controlled and retry backoff was fixed in code. A misconfigured
+  `LOTUS_RISK_RETRY_ATTEMPTS` value could therefore create excessive advisory latency, while
+  operators had no documented knob to tune retry spacing for the risk-lens dependency.
+- Evidence:
+  - `src/integrations/lotus_risk/enrichment.py` now caps Lotus Risk retry attempts at `5`, exposes
+    `LOTUS_RISK_RETRY_BACKOFF_SECONDS`, caps backoff at `2.0` seconds, and computes retry delay
+    through a dedicated policy helper.
+  - `tests/unit/advisory/api/test_lotus_risk_enrichment_client.py` now proves bounded retry
+    attempts, configurable backoff, backoff capping, and no retry for non-retryable `4xx` failures.
+  - `README.md`, `wiki/Getting-Started.md`, `wiki/Integrations.md`, and `wiki/Troubleshooting.md`
+    now document the Lotus Risk timeout and bounded retry operator controls.
+- Consequence:
+  - Risk-lens enrichment has explicit, documented latency bounds under upstream failures, improving
+    predictability for advisor workflows, production operations, and client-demo reliability.
+- Documentation:
+  - Repo-local wiki source was updated because operator-facing integration configuration changed.
+- Follow-Up:
+  - Include focused Lotus Risk client tests, repo-native `make check`, and repo wiki sync check in
+    the PR evidence before merge.

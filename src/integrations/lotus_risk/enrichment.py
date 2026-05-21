@@ -93,7 +93,7 @@ def _resolve_timeout() -> httpx.Timeout:
 
 def _resolve_retry_attempts() -> int:
     attempts = env_positive_int("LOTUS_RISK_RETRY_ATTEMPTS", default=2)
-    return int(attempts)
+    return min(int(attempts), 5)
 
 
 def _is_retryable_http_error(exc: httpx.HTTPError) -> bool:
@@ -137,7 +137,7 @@ def _request_concentration_response(
                 last_error = exc
                 if attempt >= attempts or not _is_retryable_http_error(exc):
                     break
-                time.sleep(0.1 * attempt)
+                time.sleep(_retry_delay_seconds(attempt=attempt))
     raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE") from last_error
 
 
@@ -145,6 +145,14 @@ def _as_float(value: Decimal | None) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+def _resolve_retry_backoff_seconds() -> Any:
+    return min(env_positive_float("LOTUS_RISK_RETRY_BACKOFF_SECONDS", default=0.1), 2.0)
+
+
+def _retry_delay_seconds(*, attempt: int) -> Any:
+    return min(_resolve_retry_backoff_seconds() * attempt, 2.0)
 
 
 def _proposal_as_of(request: ProposalSimulateRequest) -> str:
