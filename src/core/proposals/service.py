@@ -46,6 +46,7 @@ from src.core.proposals.delivery_summary import (
     build_delivery_history_response,
     build_delivery_summary_response,
 )
+from src.core.proposals.detail_read_model import load_proposal_detail_read_model
 from src.core.proposals.execution_handoff import (
     ProposalExecutionHandoffStateError,
     build_execution_handoff_event_and_apply_state,
@@ -392,15 +393,20 @@ class ProposalWorkflowService:
     def get_proposal(
         self, *, proposal_id: str, include_evidence: bool = True
     ) -> ProposalDetailResponse:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        detail = load_proposal_detail_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+        )
+        if detail.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        version = self._repository.get_current_version(proposal_id=proposal_id)
-        if version is None:
+        if detail.current_version is None:
             raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-        current_version = to_version_detail(version, include_evidence=include_evidence)
+        current_version = to_version_detail(
+            detail.current_version,
+            include_evidence=include_evidence,
+        )
         return ProposalDetailResponse(
-            proposal=to_proposal_summary(proposal),
+            proposal=to_proposal_summary(detail.proposal),
             current_version=current_version,
             last_gate_decision=current_version.gate_decision,
         )

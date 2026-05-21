@@ -2967,3 +2967,25 @@
 - Follow-Up:
   - Move the full async runner loop behind a repository-aware command runner when persistence and
     executor boundaries can be isolated cleanly.
+
+## LA-REV-119
+
+- Scope: Proposal detail read-model loading
+- Pattern: duplication / read-model hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: `ProposalWorkflowService.get_proposal` loaded the proposal aggregate and current version
+  directly, unlike other detail-style reads that now use dedicated proposal read-model loaders.
+- Evidence:
+  - `src/core/proposals/detail_read_model.py` now owns proposal detail read-model loading.
+  - `src/core/proposals/service.py` delegates proposal/current-version loading before projecting
+    the detail response.
+  - `tests/unit/advisory/engine/test_engine_proposal_detail_read_model.py` covers complete detail,
+    missing-proposal, and missing-current-version boundaries.
+- Consequence:
+  - Proposal detail loading now has a reusable domain read boundary that can later absorb caching,
+    evidence redaction policy, or current-version fallback rules without expanding the workflow
+    service.
+- Follow-Up:
+  - Review `get_version` and idempotency lookup read paths for similarly small read-model
+    boundaries once detail loading settles.
