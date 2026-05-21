@@ -2447,3 +2447,29 @@
 - Follow-Up:
   - Keep replay-event retrieval in the service until a broader lifecycle command boundary can be
     extracted without changing repository access behavior.
+
+## LA-REV-096
+
+- Scope: Execution-update replay event reuse
+- Pattern: query/performance risk / idempotency replay hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: `ProposalWorkflowService.record_execution_update` loaded workflow events for handoff
+  validation, then reused the generic replay helper and status accessor, causing extra event reads
+  on idempotent execution-update replay.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now owns
+    `find_replayed_execution_update_event`, which scopes replay lookup to execution-update
+    identity while preserving request-hash conflict behavior.
+  - `src/core/proposals/service.py` uses the already-loaded workflow events for replay detection
+    and status projection.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` proves execution-update
+    replay lookup and hash-conflict behavior.
+  - `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` proves an execution
+    update replay projects status with one event-list read.
+- Consequence:
+  - Execution-update replay now avoids duplicate repository event reads and keeps update-specific
+    idempotency vocabulary in the execution-update module.
+- Follow-Up:
+  - Keep non-replay execution-update persistence in the service until a broader execution command
+    boundary can be extracted without changing lifecycle behavior.

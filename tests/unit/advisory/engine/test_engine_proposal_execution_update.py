@@ -9,11 +9,13 @@ from src.core.proposals.execution_update import (
     build_execution_update_event,
     build_execution_update_idempotency_key,
     build_execution_update_request_hash,
+    find_replayed_execution_update_event,
     resolve_execution_update_occurred_at,
     validate_execution_update_handoff_identity,
     validate_execution_update_occurred_after_handoff,
     validate_execution_update_state,
 )
+from src.core.proposals.idempotency import ProposalReplayHashConflictError
 from src.core.proposals.models import (
     ProposalExecutionUpdateRequest,
     ProposalRecord,
@@ -135,6 +137,62 @@ def test_build_execution_update_request_hash_is_canonical_and_payload_sensitive(
     assert first_hash.startswith("sha256:")
     assert first_hash == reordered_hash
     assert first_hash != changed_hash
+
+
+def test_find_replayed_execution_update_event_uses_update_identity_and_hash():
+    payload = _payload(update_id="exec_update_replay")
+    request_hash = build_execution_update_request_hash(payload=payload)
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_execution_update_replay",
+        proposal_id="pp_execution_update",
+        event_type="EXECUTION_PARTIALLY_EXECUTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="lotus-manage",
+        occurred_at=datetime(2026, 5, 21, 10, 5, tzinfo=timezone.utc),
+        reason_json={
+            "idempotency_key": "execution-update:exec_update_replay",
+            "idempotency_request_hash": request_hash,
+        },
+        related_version_no=3,
+    )
+
+    replay = find_replayed_execution_update_event(
+        events=[event],
+        payload=payload,
+        request_hash=request_hash,
+    )
+
+    assert replay == event
+
+
+def test_find_replayed_execution_update_event_rejects_hash_conflict():
+    payload = _payload(update_id="exec_update_replay")
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_execution_update_replay",
+        proposal_id="pp_execution_update",
+        event_type="EXECUTION_PARTIALLY_EXECUTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="lotus-manage",
+        occurred_at=datetime(2026, 5, 21, 10, 5, tzinfo=timezone.utc),
+        reason_json={
+            "idempotency_key": "execution-update:exec_update_replay",
+            "idempotency_request_hash": "sha256:original",
+        },
+        related_version_no=3,
+    )
+
+    try:
+        find_replayed_execution_update_event(
+            events=[event],
+            payload=payload,
+            request_hash="sha256:changed",
+        )
+    except ProposalReplayHashConflictError as exc:
+        assert str(exc) == "IDEMPOTENCY_KEY_CONFLICT: request hash mismatch"
+    else:
+        raise AssertionError("expected execution update replay hash conflict")
 
 
 def test_validate_execution_update_handoff_identity_accepts_matching_identity():

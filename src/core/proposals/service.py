@@ -63,8 +63,8 @@ from src.core.proposals.execution_update import (
     ProposalExecutionUpdateTimestampError,
     apply_execution_update_state,
     build_execution_update_event,
-    build_execution_update_idempotency_key,
     build_execution_update_request_hash,
+    find_replayed_execution_update_event,
     resolve_execution_update_occurred_at,
     validate_execution_update_handoff_identity,
     validate_execution_update_occurred_after_handoff,
@@ -569,13 +569,16 @@ class ProposalWorkflowService:
             raise ProposalStateConflictError(str(exc)) from exc
 
         request_hash = build_execution_update_request_hash(payload=payload)
-        replay_event = self._get_replayed_event(
-            proposal_id=proposal_id,
-            idempotency_key=build_execution_update_idempotency_key(payload=payload),
-            request_hash=request_hash,
-        )
+        try:
+            replay_event = find_replayed_execution_update_event(
+                events=events,
+                payload=payload,
+                request_hash=request_hash,
+            )
+        except ProposalReplayHashConflictError as exc:
+            raise ProposalIdempotencyConflictError(str(exc)) from exc
         if replay_event is not None:
-            return self.get_execution_status(proposal_id=proposal_id)
+            return build_execution_status_response(proposal=proposal, events=events)
 
         event_type, to_state = resolve_execution_update_event(payload.update_status)
         try:

@@ -1,8 +1,9 @@
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from datetime import datetime
 from typing import cast
 
 from src.core.common.canonical import hash_canonical_payload
+from src.core.proposals.idempotency import find_replayed_event
 from src.core.proposals.models import (
     ProposalExecutionUpdateRequest,
     ProposalRecord,
@@ -37,6 +38,19 @@ def build_execution_update_idempotency_key(*, payload: ProposalExecutionUpdateRe
 
 def build_execution_update_request_hash(*, payload: ProposalExecutionUpdateRequest) -> str:
     return cast(str, hash_canonical_payload(payload.model_dump(mode="json")))
+
+
+def find_replayed_execution_update_event(
+    *,
+    events: Sequence[ProposalWorkflowEventRecord],
+    payload: ProposalExecutionUpdateRequest,
+    request_hash: str,
+) -> ProposalWorkflowEventRecord | None:
+    return find_replayed_event(
+        events=events,
+        idempotency_key=build_execution_update_idempotency_key(payload=payload),
+        request_hash=request_hash,
+    )
 
 
 def validate_execution_update_handoff_identity(

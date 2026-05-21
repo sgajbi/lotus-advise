@@ -10,6 +10,7 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
     ProposalCreateRequest,
+    ProposalExecutionUpdateRequest,
     ProposalIdempotencyRecord,
     ProposalRecord,
     ProposalStateTransitionRequest,
@@ -30,6 +31,16 @@ from src.core.workspace.models import WorkspaceResolvedContext
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
+
+
+class CountingListEventsRepository(InMemoryProposalRepository):
+    def __init__(self) -> None:
+        super().__init__()
+        self.list_events_calls = 0
+
+    def list_events(self, *, proposal_id: str) -> list[ProposalWorkflowEventRecord]:
+        self.list_events_calls += 1
+        return super().list_events(proposal_id=proposal_id)
 
 
 def _risk_enriched_result(result):  # noqa: ANN001
@@ -1405,3 +1416,78 @@ def test_service_create_proposal_requires_workspace_reference_for_workspace_hand
         assert str(exc) == "WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED"
     else:
         raise AssertionError("Expected WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED")
+
+
+def test_execution_update_replay_uses_loaded_events_for_status_projection():
+    repo = CountingListEventsRepository()
+    service = ProposalWorkflowService(repository=repo)
+    occurred_at = datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc)
+    proposal = ProposalRecord(
+        proposal_id="pp_execution_update_replay",
+        portfolio_id="pf_execution_update_replay",
+        mandate_id="mandate_execution_update_replay",
+        jurisdiction="SG",
+        created_by="advisor_execution_update",
+        created_at=occurred_at,
+        last_event_at=occurred_at,
+        current_state="EXECUTION_READY",
+        current_version_no=3,
+        title="Execution update replay",
+    )
+    payload = ProposalExecutionUpdateRequest(
+        update_id="exec_update_replay",
+        actor_id="lotus-manage",
+        execution_request_id="pex_execution_update_replay",
+        execution_provider="lotus-manage",
+        update_status="PARTIALLY_EXECUTED",
+        external_execution_id="oms_partial_replay",
+        details={"filled_quantity": "50", "remaining_quantity": "25"},
+    )
+    request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+    repo.create_proposal(proposal)
+    repo.append_event(
+        ProposalWorkflowEventRecord(
+            event_id="pwe_execution_requested_replay",
+            proposal_id=proposal.proposal_id,
+            event_type="EXECUTION_REQUESTED",
+            from_state="EXECUTION_READY",
+            to_state="EXECUTION_READY",
+            actor_id="advisor_execution_update",
+            occurred_at=occurred_at,
+            reason_json={
+                "execution_request_id": "pex_execution_update_replay",
+                "execution_provider": "lotus-manage",
+            },
+            related_version_no=3,
+        )
+    )
+    repo.append_event(
+        ProposalWorkflowEventRecord(
+            event_id="pwe_execution_update_replay",
+            proposal_id=proposal.proposal_id,
+            event_type="EXECUTION_PARTIALLY_EXECUTED",
+            from_state="EXECUTION_READY",
+            to_state="EXECUTION_READY",
+            actor_id="lotus-manage",
+            occurred_at=occurred_at,
+            reason_json={
+                "update_id": "exec_update_replay",
+                "execution_request_id": "pex_execution_update_replay",
+                "execution_provider": "lotus-manage",
+                "external_execution_id": "oms_partial_replay",
+                "idempotency_key": "execution-update:exec_update_replay",
+                "idempotency_request_hash": request_hash,
+            },
+            related_version_no=3,
+        )
+    )
+
+    response = service.record_execution_update(
+        proposal_id=proposal.proposal_id,
+        payload=payload,
+    )
+
+    assert repo.list_events_calls == 1
+    assert response.handoff_status == "PARTIALLY_EXECUTED"
+    assert response.latest_workflow_event is not None
+    assert response.latest_workflow_event.event_id == "pwe_execution_update_replay"

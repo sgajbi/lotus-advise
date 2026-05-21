@@ -98,6 +98,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal state-transition replay response assembly now lives in
     `src/core/proposals/lifecycle_events.py`, keeping idempotency replay projection beside normal
     state-transition response projection.
+  - Execution-update replay detection now uses the already-loaded workflow event stream through
+    `src/core/proposals/execution_update.py`, avoiding duplicate event reads on idempotent replay
+    while preserving replay hash conflict behavior.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.
