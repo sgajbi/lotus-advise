@@ -305,9 +305,13 @@ recorded here with enough detail for later owner-specific slices.
     as-of dated positions/cash path construction now live in
     `src/integrations/lotus_core/stateful_context_routes.py`, keeping upstream route policy
     separate from HTTP request execution and request translation.
+  - Lotus Core stateful-context HTTP request execution, cached JSON reads, bulk instrument
+    enrichment fetch, and classification taxonomy fetch now live in
+    `src/integrations/lotus_core/stateful_context_source_reads.py`, keeping source-read failure
+    mapping and fetch counters separate from advisory request translation.
 - Follow-up:
-  - Split portfolio source reads, instrument enrichment, market-data hydration, request translation,
-    and market-data route hydration into explicit submodules.
+  - Split portfolio source-to-request translation and market-data hydration into explicit
+    submodules.
   - Preserve RFC-0082 authority boundaries: source facts stay in `lotus-core`; advisory context
     translation stays in `lotus-advise`.
 

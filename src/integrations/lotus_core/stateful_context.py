@@ -29,29 +29,19 @@ from src.integrations.lotus_core.classification import (
     normalized_optional_str as _normalized_optional_str,
 )
 from src.integrations.lotus_core.classification import (
-    parse_classification_taxonomy as _parse_classification_taxonomy,
-)
-from src.integrations.lotus_core.classification import (
     prefer_upstream_liquidity_tier as _prefer_upstream_liquidity_tier,
 )
 from src.integrations.lotus_core.classification import (
     resolve_taxonomy_label as _resolve_taxonomy_label,
 )
 from src.integrations.lotus_core.context_resolution import (
-    LotusCoreContextResolutionError,
     LotusCoreResolvedAdvisoryContext,
 )
 from src.integrations.lotus_core.runtime_config import (
     resolve_lotus_core_timeout,
 )
 from src.integrations.lotus_core.stateful_context_cache import (
-    CLASSIFICATION_TAXONOMY_CACHE as _CLASSIFICATION_TAXONOMY_CACHE,
-)
-from src.integrations.lotus_core.stateful_context_cache import (
     FX_LOOKUP_CACHE as _FX_LOOKUP_CACHE,
-)
-from src.integrations.lotus_core.stateful_context_cache import (
-    INSTRUMENT_ENRICHMENT_CACHE as _INSTRUMENT_ENRICHMENT_CACHE,
 )
 from src.integrations.lotus_core.stateful_context_cache import (
     INSTRUMENT_LOOKUP_CACHE as _INSTRUMENT_LOOKUP_CACHE,
@@ -65,16 +55,10 @@ from src.integrations.lotus_core.stateful_context_cache import (
     stateful_context_cache_ttl_seconds,
 )
 from src.integrations.lotus_core.stateful_context_cache import (
-    cache_payload as _cache_payload,
-)
-from src.integrations.lotus_core.stateful_context_cache import (
     cache_resolved_context as _cache_resolved_context,
 )
 from src.integrations.lotus_core.stateful_context_cache import (
     clone_resolved_context as _clone_resolved_context,
-)
-from src.integrations.lotus_core.stateful_context_cache import (
-    get_cached_payload as _get_cached_payload,
 )
 from src.integrations.lotus_core.stateful_context_cache import (
     get_cached_resolved_context as _get_cached_resolved_context,
@@ -86,19 +70,10 @@ from src.integrations.lotus_core.stateful_context_cache import (
     get_stateful_context_fetch_stats as _get_stateful_context_fetch_stats,
 )
 from src.integrations.lotus_core.stateful_context_cache import (
-    record_fetch_stat as _record_fetch_stat,
-)
-from src.integrations.lotus_core.stateful_context_cache import (
     reset_stateful_context_cache as _reset_stateful_context_cache,
 )
 from src.integrations.lotus_core.stateful_context_routes import (
-    CLASSIFICATION_TAXONOMY_PATH as _CLASSIFICATION_TAXONOMY_PATH,
-)
-from src.integrations.lotus_core.stateful_context_routes import (
     FX_RATES_PATH as _FX_RATES_PATH,
-)
-from src.integrations.lotus_core.stateful_context_routes import (
-    INSTRUMENT_ENRICHMENT_BULK_PATH as _INSTRUMENT_ENRICHMENT_BULK_PATH,
 )
 from src.integrations.lotus_core.stateful_context_routes import (
     INSTRUMENTS_PATH as _INSTRUMENTS_PATH,
@@ -115,11 +90,22 @@ from src.integrations.lotus_core.stateful_context_routes import (
     resolve_control_plane_base_url,
     resolve_query_base_url,
 )
-from src.integrations.lotus_core.timed_cache import TimedCache, TimedCacheStats
-
-
-class LotusCoreStatefulContextUnavailableError(LotusCoreContextResolutionError):
-    pass
+from src.integrations.lotus_core.stateful_context_source_reads import (
+    LotusCoreStatefulContextUnavailableError,
+)
+from src.integrations.lotus_core.stateful_context_source_reads import (
+    fetch_classification_taxonomy as _fetch_classification_taxonomy,
+)
+from src.integrations.lotus_core.stateful_context_source_reads import (
+    fetch_instrument_enrichment_bulk as _fetch_instrument_enrichment_bulk,
+)
+from src.integrations.lotus_core.stateful_context_source_reads import (
+    fetch_json_with_cache as _fetch_json_with_cache,
+)
+from src.integrations.lotus_core.stateful_context_source_reads import (
+    request_json as _request_json,
+)
+from src.integrations.lotus_core.timed_cache import TimedCacheStats
 
 
 def _resolve_timeout() -> httpx.Timeout:
@@ -206,141 +192,11 @@ def _decimal_or_none(value: Any) -> Decimal | None:
         return None
 
 
-def _fetch_classification_taxonomy(
-    client: httpx.Client,
-    *,
-    base_url: str,
-    as_of: str,
-    taxonomy_scope: str = "instrument",
-) -> ClassificationTaxonomy:
-    cache_key = f"classification-taxonomy:{taxonomy_scope}:{as_of}"
-    try:
-        payload = _fetch_json_with_cache(
-            client,
-            cache=_CLASSIFICATION_TAXONOMY_CACHE,
-            cache_key=cache_key,
-            method="POST",
-            base_url=base_url,
-            path=_CLASSIFICATION_TAXONOMY_PATH,
-            error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
-            json_body={"as_of_date": as_of, "taxonomy_scope": taxonomy_scope},
-        )
-    except (LotusCoreStatefulContextUnavailableError, AssertionError):
-        return ClassificationTaxonomy(labels_by_dimension={})
-    return _parse_classification_taxonomy(payload)
-
-
 def _require_decimal(value: Any, *, error_code: str) -> Decimal:
     parsed = _decimal_or_none(value)
     if parsed is None:
         raise LotusCoreStatefulContextUnavailableError(error_code)
     return parsed
-
-
-def _request_json(
-    client: httpx.Client,
-    *,
-    method: str,
-    base_url: str,
-    path: str,
-    error_code: str,
-    json_body: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    if error_code == "LOTUS_CORE_STATEFUL_PORTFOLIO_UNAVAILABLE":
-        _record_fetch_stat("portfolio_fetches")
-    elif error_code == "LOTUS_CORE_STATEFUL_POSITIONS_UNAVAILABLE":
-        _record_fetch_stat("positions_fetches")
-    elif error_code == "LOTUS_CORE_STATEFUL_CASH_UNAVAILABLE":
-        _record_fetch_stat("cash_fetches")
-    elif error_code == "LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE":
-        _record_fetch_stat("instrument_fetches")
-    elif error_code == "LOTUS_CORE_STATEFUL_PRICE_LOOKUP_UNAVAILABLE":
-        _record_fetch_stat("price_fetches")
-    elif error_code == "LOTUS_CORE_STATEFUL_FX_LOOKUP_UNAVAILABLE":
-        _record_fetch_stat("fx_fetches")
-    url = f"{base_url}{path}"
-    try:
-        response = client.request(method, url, json=json_body)
-        response.raise_for_status()
-        payload = response.json()
-    except (httpx.HTTPError, ValueError) as exc:
-        raise LotusCoreStatefulContextUnavailableError(error_code) from exc
-
-    if not isinstance(payload, dict):
-        raise LotusCoreStatefulContextUnavailableError(error_code)
-    return payload
-
-
-def _fetch_json_with_cache(
-    client: httpx.Client,
-    *,
-    cache: TimedCache[str, dict[str, Any]],
-    cache_key: str,
-    method: str,
-    base_url: str,
-    path: str,
-    error_code: str,
-    json_body: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    cached_payload = _get_cached_payload(cache, cache_key=cache_key)
-    if cached_payload is not None:
-        return cached_payload
-    payload = _request_json(
-        client,
-        method=method,
-        base_url=base_url,
-        path=path,
-        error_code=error_code,
-        json_body=json_body,
-    )
-    return _cache_payload(cache, cache_key=cache_key, payload=payload)
-
-
-def _fetch_instrument_enrichment_bulk(
-    client: httpx.Client,
-    *,
-    base_url: str,
-    security_ids: list[str],
-) -> dict[str, dict[str, Any]]:
-    if not security_ids:
-        return {}
-    requested_ids = sorted({security_id for security_id in security_ids if security_id})
-    enrichment_by_security_id: dict[str, dict[str, Any]] = {}
-    missing_ids: list[str] = []
-    for security_id in requested_ids:
-        cached_record = _get_cached_payload(
-            _INSTRUMENT_ENRICHMENT_CACHE,
-            cache_key=f"instrument-enrichment:{security_id}",
-        )
-        if cached_record is None:
-            missing_ids.append(security_id)
-        else:
-            enrichment_by_security_id[security_id] = cached_record
-    if not missing_ids:
-        return enrichment_by_security_id
-    payload = _request_json(
-        client,
-        method="POST",
-        base_url=base_url,
-        path=_INSTRUMENT_ENRICHMENT_BULK_PATH,
-        error_code="LOTUS_CORE_STATEFUL_INSTRUMENT_LOOKUP_UNAVAILABLE",
-        json_body={"security_ids": missing_ids},
-    )
-    records = payload.get("records")
-    if not isinstance(records, list):
-        return enrichment_by_security_id
-    for record in records:
-        if not isinstance(record, dict):
-            continue
-        security_id = str(record.get("security_id") or "").strip()
-        if not security_id:
-            continue
-        enrichment_by_security_id[security_id] = _cache_payload(
-            _INSTRUMENT_ENRICHMENT_CACHE,
-            cache_key=f"instrument-enrichment:{security_id}",
-            payload=record,
-        )
-    return enrichment_by_security_id
 
 
 def _build_cash_balances(cash_payload: dict[str, Any]) -> list[CashBalance]:

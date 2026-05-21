@@ -3447,3 +3447,29 @@
 - Follow-Up:
   - Continue WTBD-002 by extracting HTTP source-read execution and market-data hydration only when
     route policy and failure semantics remain pinned by focused tests.
+
+## LA-REV-140
+
+- Scope: Lotus Core stateful-context source reads
+- Pattern: modularity / upstream failure-boundary hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The stateful-context adapter still mixed HTTP request execution, cached JSON lookup,
+  source fetch counters, bulk instrument enrichment reads, and classification taxonomy fetches with
+  advisory context translation.
+- Evidence:
+  - `src/integrations/lotus_core/stateful_context_source_reads.py` now owns stateful request
+    execution, upstream error mapping, fetch counter classification, cached JSON reads, bulk
+    instrument enrichment reads, and classification taxonomy reads.
+  - `src/integrations/lotus_core/stateful_context.py` imports those boundaries while preserving
+    existing private-name compatibility for the focused stateful-context test module.
+  - `tests/unit/advisory/api/test_lotus_core_stateful_context.py` continues to prove source-read
+    error mapping, cache reuse, enrichment caching, taxonomy fallback, fetch counters, and full
+    resolved simulation request assembly.
+- Consequence:
+  - Upstream read mechanics are now separated from advisory translation, making it easier to add
+    batching, diagnostics, retry policy, or lineage around source reads without expanding the
+    stateful-context adapter.
+- Follow-Up:
+  - Continue WTBD-002 by extracting source-to-request translation and market-data hydration where
+    behavior can be characterized without weakening RFC-0082 source authority boundaries.
