@@ -3639,3 +3639,43 @@
   - Treat future proposal contract moves as explicit API-governance work with OpenAPI regression
     evidence; do not move public DTO names out of `src.core.proposals.models` without a deprecation
     plan.
+
+## LA-REV-146
+
+- Scope: Downstream capability consumer alignment
+- Pattern: cross-app contract hardening / supportability preservation
+- Status: Hardened
+- Finding Class: integration drift
+- Summary: WTBD-004 required verifying Gateway and Workbench capability consumers after Advise
+  capability-contract hardening. The source contract remained stable, but the Gateway Advise client
+  was still flattening capability discovery to the default Advise query posture by not sending the
+  canonical snake_case `consumer_system` and `tenant_id` query parameters.
+- Evidence:
+  - `lotus-gateway` branch `feat/advise-capability-query-alignment` commit `7f282e7` updates
+    `src/app/clients/advise_client.py` so Gateway calls Advise `GET /platform/capabilities` with
+    `consumer_system=lotus-gateway` and the caller tenant id.
+  - Gateway test
+    `tests/unit/test_upstream_clients.py::test_advise_client_capabilities_uses_gateway_consumer_and_tenant_context`
+    pins the canonical Advise capability query parameters and tenant propagation.
+  - Gateway read-only review confirmed `src/app/services/platform_capabilities_service.py`
+    preserves Advise `supportability` into proposal/advisory shell workspace descriptors through
+    `_source_supportability(...)`.
+  - Workbench read-only review confirmed `src/features/platform-capabilities/api.ts`,
+    `src/features/platform-capabilities/use-platform-capabilities.ts`, and
+    `src/shell/workspace-supportability-copy.ts` consume the Gateway platform-capability contract
+    and prefer Gateway-provided supportability reasons over local fallback copy.
+  - Gateway validation:
+    `python -m pytest tests/unit/test_upstream_clients.py::test_advise_client_capabilities_uses_gateway_consumer_and_tenant_context tests/unit/test_router_upstream_selection.py tests/integration/test_platform_capabilities_router.py::test_platform_capabilities_router_preserves_correlation_and_query_context -q`
+    passed with `7 passed`; `python -m ruff check src/app/clients/advise_client.py tests/unit/test_upstream_clients.py`
+    and `git diff --check` also passed in `lotus-gateway`.
+- Consequence:
+  - WTBD-004 is closed. Gateway now preserves tenant-shaped Advise capability posture at the source
+    boundary, and Workbench remains a consumer of Gateway capability truth rather than a local
+    advisory supportability authority.
+- Documentation:
+  - No wiki change is required for this closure because the public Advise capability API contract
+    and existing wiki-described supportability fields did not change; the fix was downstream query
+    propagation plus ledger closure evidence.
+- Follow-Up:
+  - Reopen only if the Advise capability response shape changes or a downstream surface starts
+    deriving advisory readiness from local feature flags instead of source-backed supportability.

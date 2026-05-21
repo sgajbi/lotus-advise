@@ -416,14 +416,29 @@ recorded here with enough detail for later owner-specific slices.
 ## WTBD-004: Keep Gateway And Workbench Capability Consumers Aligned
 
 - Owning repositories: `lotus-gateway`, `lotus-workbench`
-- Current action: read-only observation only; no issue has been confirmed in those repositories in
-  this slice.
+- Current action: closed with downstream evidence on 2026-05-21.
+- Evidence:
+  - `lotus-gateway` read-only review confirmed
+    `src/app/services/platform_capabilities_service.py` already preserves the Advise
+    `supportability` payload through `_source_supportability(...)` into proposal/advisory shell
+    workspace descriptors instead of locally inventing advisory supportability reasons.
+  - A concrete Gateway alignment gap was fixed on branch
+    `feat/advise-capability-query-alignment` at commit `7f282e7`: `src/app/clients/advise_client.py`
+    now calls Advise `GET /platform/capabilities` with canonical snake_case
+    `consumer_system=lotus-gateway` and caller `tenant_id`, matching the existing Manage capability
+    pattern and preserving tenant-shaped capability posture.
+  - Gateway proof:
+    `python -m pytest tests/unit/test_upstream_clients.py::test_advise_client_capabilities_uses_gateway_consumer_and_tenant_context tests/unit/test_router_upstream_selection.py tests/integration/test_platform_capabilities_router.py::test_platform_capabilities_router_preserves_correlation_and_query_context -q`
+    passed with `7 passed`.
+  - `lotus-workbench` read-only review confirmed
+    `src/features/platform-capabilities/api.ts`,
+    `src/features/platform-capabilities/use-platform-capabilities.ts`, and
+    `src/shell/workspace-supportability-copy.ts` consume the Gateway platform-capability contract
+    and use Gateway-provided supportability reasons before local disabled-state fallback copy.
 - Follow-up trigger:
-  - If future `GET /platform/capabilities` fields change, verify `lotus-gateway` and
-    `lotus-workbench` consume the capability contract without inferring advisory supportability
-    locally.
-  - Record the exact downstream file paths and expected payload deltas before making any
-    cross-repository change.
+  - Reopen only if the Advise `GET /platform/capabilities` response shape changes or if a
+    downstream consumer starts deriving advisory supportability from local feature flags instead of
+    the Advise/Gateway source-backed `supportability` payload.
 
 ## Cross-Repository Disposition
 
@@ -442,9 +457,9 @@ recorded here with enough detail for later owner-specific slices.
 - `lotus-ai`, `lotus-report`, `lotus-performance`, and `lotus-render`: no concrete WTBD-owner
   change is currently recorded from the Advise refactor ledger. Current mentions are integration
   posture or future-RFC context, not actionable defects.
-- `lotus-gateway` and `lotus-workbench`: WTBD-004 remains the only explicit downstream-owner item.
-  It is not a confirmed defect today; it becomes actionable only when the Advise capability payload
-  changes or a downstream consumer is found inferring advisory supportability locally.
+- `lotus-gateway` and `lotus-workbench`: WTBD-004 is closed. Gateway now forwards the canonical
+  Advise capability query context and preserves Advise source supportability; Workbench consumes the
+  Gateway contract and does not invent advisory supportability when source reasons are absent.
 - `lotus-manage`: no Advise WTBD assigns work to Manage. Manage remains outside advisory workflow
   ownership except where future product flows explicitly hand off to discretionary management under
   a governed RFC.
