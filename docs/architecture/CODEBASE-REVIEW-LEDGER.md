@@ -2473,3 +2473,26 @@
 - Follow-Up:
   - Keep non-replay execution-update persistence in the service until a broader execution command
     boundary can be extracted without changing lifecycle behavior.
+
+## LA-REV-097
+
+- Scope: Execution-handoff request hash construction
+- Pattern: modularity problem / idempotency replay hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.request_execution_handoff` built the canonical replay request
+  hash inline, leaving handoff idempotency identity in service orchestration instead of the
+  execution-handoff domain module.
+- Evidence:
+  - `src/core/proposals/execution_handoff.py` now owns
+    `build_execution_handoff_request_hash`.
+  - `src/core/proposals/service.py` delegates execution-handoff request hashing before replay
+    lookup and event construction.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_handoff.py` proves handoff request
+    hashing is canonical and payload-sensitive.
+- Consequence:
+  - Execution-handoff replay hash construction now sits beside handoff event and replay response
+    construction, matching the lifecycle, approval, and execution-update module boundaries.
+- Follow-Up:
+  - Keep handoff replay lookup and persistence orchestration in the service until a broader
+    execution handoff command boundary can be extracted without changing behavior.

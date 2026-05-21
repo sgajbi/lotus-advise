@@ -4,6 +4,7 @@ from src.core.proposals.execution_handoff import (
     ProposalExecutionHandoffStateError,
     apply_execution_handoff_state,
     build_execution_handoff_replay_response,
+    build_execution_handoff_request_hash,
     build_execution_handoff_requested_event,
     build_execution_handoff_response,
     validate_execution_handoff_ready,
@@ -90,6 +91,22 @@ def test_build_execution_handoff_requested_event_defaults_to_current_version():
         "execution_provider": "lotus-manage",
         "notes": {},
     }
+
+
+def test_build_execution_handoff_request_hash_is_canonical_and_notes_sensitive():
+    first_hash = build_execution_handoff_request_hash(
+        payload=_payload(notes={"b": "second", "a": "first"})
+    )
+    reordered_hash = build_execution_handoff_request_hash(
+        payload=_payload(notes={"a": "first", "b": "second"})
+    )
+    changed_hash = build_execution_handoff_request_hash(
+        payload=_payload(notes={"a": "first", "b": "changed"})
+    )
+
+    assert first_hash.startswith("sha256:")
+    assert first_hash == reordered_hash
+    assert first_hash != changed_hash
 
 
 def test_validate_execution_handoff_ready_accepts_execution_ready_state():

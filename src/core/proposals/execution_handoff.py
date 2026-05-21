@@ -1,5 +1,7 @@
 from datetime import datetime
+from typing import cast
 
+from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.models import (
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
@@ -12,6 +14,10 @@ from src.core.proposals.projections import to_proposal_summary, to_workflow_even
 
 class ProposalExecutionHandoffStateError(Exception):
     pass
+
+
+def build_execution_handoff_request_hash(*, payload: ProposalExecutionHandoffRequest) -> str:
+    return cast(str, hash_canonical_payload(payload.model_dump(mode="json")))
 
 
 def validate_execution_handoff_ready(*, current_state: ProposalWorkflowState) -> None:

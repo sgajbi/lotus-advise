@@ -101,6 +101,9 @@ recorded here with enough detail for later owner-specific slices.
   - Execution-update replay detection now uses the already-loaded workflow event stream through
     `src/core/proposals/execution_update.py`, avoiding duplicate event reads on idempotent replay
     while preserving replay hash conflict behavior.
+  - Execution-handoff canonical request hashing now lives in
+    `src/core/proposals/execution_handoff.py`, keeping handoff replay hash construction beside
+    handoff event and replay response construction.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.

@@ -49,6 +49,7 @@ from src.core.proposals.execution_handoff import (
     ProposalExecutionHandoffStateError,
     apply_execution_handoff_state,
     build_execution_handoff_replay_response,
+    build_execution_handoff_request_hash,
     build_execution_handoff_requested_event,
     build_execution_handoff_response,
     validate_execution_handoff_ready,
@@ -487,7 +488,7 @@ class ProposalWorkflowService:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+        request_hash = build_execution_handoff_request_hash(payload=payload)
         replay_event = self._get_replayed_event(
             proposal_id=proposal_id,
             idempotency_key=idempotency_key,
