@@ -10,6 +10,7 @@ from src.core.proposals.lifecycle_events import (
     build_new_version_created_event,
     build_proposal_created_event,
     build_state_transition_event,
+    build_state_transition_event_and_apply_state,
     build_state_transition_replay_response,
     build_state_transition_request_hash,
     build_state_transition_response,
@@ -217,6 +218,25 @@ def test_apply_lifecycle_transition_state_updates_state_and_event_timestamp():
     )
 
     assert proposal.current_state == "RISK_REVIEW"
+    assert proposal.last_event_at == event.occurred_at
+
+
+def test_build_state_transition_event_and_apply_state_returns_event_and_updates_state():
+    proposal = _proposal()
+
+    event = build_state_transition_event_and_apply_state(
+        event_id="pwe_apply_lifecycle",
+        proposal=proposal,
+        payload=_transition_request(),
+        to_state="COMPLIANCE_REVIEW",
+        occurred_at=datetime(2026, 5, 21, 9, 11, tzinfo=timezone.utc),
+        idempotency_key="idem_lifecycle",
+        request_hash="sha256:lifecycle",
+    )
+
+    assert event.event_type == "SUBMITTED_FOR_COMPLIANCE_REVIEW"
+    assert event.reason_json["idempotency_key"] == "idem_lifecycle"
+    assert proposal.current_state == "COMPLIANCE_REVIEW"
     assert proposal.last_event_at == event.occurred_at
 
 

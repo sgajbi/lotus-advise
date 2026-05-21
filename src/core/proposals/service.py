@@ -94,7 +94,7 @@ from src.core.proposals.lifecycle_events import (
     build_approval_transition_response,
     build_new_version_created_event,
     build_proposal_created_event,
-    build_state_transition_event,
+    build_state_transition_event_and_apply_state,
     build_state_transition_replay_response,
     build_state_transition_request_hash,
     build_state_transition_response,
@@ -881,7 +881,7 @@ class ProposalWorkflowService:
             current_state=proposal.current_state,
             event_type=payload.event_type,
         )
-        event = build_state_transition_event(
+        event = build_state_transition_event_and_apply_state(
             event_id=new_workflow_event_id(),
             proposal=proposal,
             payload=payload,
@@ -890,7 +890,6 @@ class ProposalWorkflowService:
             idempotency_key=idempotency_key,
             request_hash=request_hash,
         )
-        apply_lifecycle_transition_state(proposal=proposal, to_state=to_state, event=event)
 
         result = self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return build_state_transition_response(

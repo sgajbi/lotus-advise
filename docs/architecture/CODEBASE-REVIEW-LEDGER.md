@@ -2766,3 +2766,25 @@
 - Follow-Up:
   - Keep execution request id generation and repository persistence in the service until a broader
     command-handler boundary owns external execution orchestration.
+
+## LA-REV-110
+
+- Scope: State transition command state helper
+- Pattern: service-boundary hardening / modularity problem
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.transition_state` built workflow transition events and applied
+  aggregate state mutation inline, keeping transition command state logic in the service layer.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now exposes
+    `build_state_transition_event_and_apply_state`.
+  - `src/core/proposals/service.py` delegates transition event construction and aggregate state
+    mutation to the lifecycle domain helper.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` covers the combined
+    helper.
+- Consequence:
+  - State-transition audit payload and aggregate mutation behavior are directly tested at the
+    domain boundary and can evolve without expanding the workflow service.
+- Follow-Up:
+  - Apply the same command-state boundary to approval transitions once approval command handling is
+    isolated.

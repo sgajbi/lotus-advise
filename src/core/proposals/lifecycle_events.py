@@ -128,6 +128,29 @@ def apply_lifecycle_transition_state(
     proposal.last_event_at = event.occurred_at
 
 
+def build_state_transition_event_and_apply_state(
+    *,
+    event_id: str,
+    proposal: ProposalRecord,
+    payload: ProposalStateTransitionRequest,
+    to_state: ProposalWorkflowState,
+    occurred_at: datetime,
+    idempotency_key: str | None,
+    request_hash: str,
+) -> ProposalWorkflowEventRecord:
+    event = build_state_transition_event(
+        event_id=event_id,
+        proposal=proposal,
+        payload=payload,
+        to_state=to_state,
+        occurred_at=occurred_at,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+    )
+    apply_lifecycle_transition_state(proposal=proposal, to_state=to_state, event=event)
+    return event
+
+
 def build_approval_record(
     *,
     approval_id: str,
