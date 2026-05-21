@@ -76,6 +76,7 @@ from src.core.proposals.idempotency import (
     load_replayed_approval,
     load_replayed_event,
 )
+from src.core.proposals.idempotency_read_model import load_proposal_idempotency_read_model
 from src.core.proposals.identifiers import (
     new_approval_id,
     new_async_operation_id,
@@ -613,10 +614,13 @@ class ProposalWorkflowService:
         return self.get_execution_status(proposal_id=proposal_id)
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
-        record = self._repository.get_idempotency(idempotency_key=idempotency_key)
-        if record is None:
+        read_model = load_proposal_idempotency_read_model(
+            repository=self._repository,
+            idempotency_key=idempotency_key,
+        )
+        if read_model.record is None:
             raise ProposalNotFoundError("PROPOSAL_IDEMPOTENCY_KEY_NOT_FOUND")
-        return to_idempotency_lookup_response(record)
+        return to_idempotency_lookup_response(read_model.record)
 
     def get_async_operation(self, *, operation_id: str) -> ProposalAsyncOperationStatusResponse:
         operation = self._repository.get_operation(operation_id=operation_id)

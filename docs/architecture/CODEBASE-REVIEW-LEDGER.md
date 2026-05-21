@@ -3031,3 +3031,24 @@
     redaction, caching, or version authorization without expanding the workflow service.
 - Follow-Up:
   - Review idempotency and async-operation status reads for the same direct-read boundary pattern.
+
+## LA-REV-122
+
+- Scope: Proposal idempotency read-model loading
+- Pattern: duplication / replay-audit read hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: `ProposalWorkflowService.get_idempotency_lookup` loaded idempotency replay records
+  directly before projecting replay-audit metadata.
+- Evidence:
+  - `src/core/proposals/idempotency_read_model.py` now owns idempotency key read-model loading.
+  - `src/core/proposals/service.py` delegates replay-audit key lookup before projecting the
+    idempotency lookup response.
+  - `tests/unit/advisory/engine/test_engine_proposal_idempotency_read_model.py` covers found and
+    missing idempotency-key boundaries.
+- Consequence:
+  - Replay-audit key lookup now has a reusable domain read boundary that can later absorb
+    authorization, audit lineage enrichment, or indexed lookup changes without expanding the
+    workflow service.
+- Follow-Up:
+  - Review async-operation status reads for the same direct-read boundary pattern.
