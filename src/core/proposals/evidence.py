@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any, cast
 
 from src.core.advisory.risk_lens import extract_risk_lens
@@ -14,11 +15,11 @@ def build_proposal_evidence_bundle(
 ) -> dict[str, Any]:
     evidence_bundle = cast(dict[str, Any], artifact_evidence_bundle.model_dump(mode="json"))
     evidence_bundle["context_resolution"] = (
-        dict(context_resolution_override)
+        deepcopy(context_resolution_override)
         if context_resolution_override is not None
-        else context_resolution
+        else deepcopy(context_resolution)
     )
     evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
     if replay_lineage:
-        evidence_bundle["replay_lineage"] = dict(replay_lineage)
+        evidence_bundle["replay_lineage"] = deepcopy(replay_lineage)
     return evidence_bundle

@@ -3878,3 +3878,43 @@
 - Follow-Up:
   - Before PR closure, run wiki drift check and Git diff whitespace hygiene because this slice
     changes repo-local wiki source and generated API vocabulary.
+
+## LA-REV-153
+
+- Scope: Proposal evidence immutability
+- Pattern: auditability hardening / lineage correctness
+- Status: Hardened
+- Finding Class: correctness risk
+- Summary: Risk-lens extraction, proposal evidence-bundle assembly, version record construction,
+  and version-detail projection preserved the right data but relied on shallow copies in several
+  places. Nested risk, context, artifact, and replay-lineage objects could be mutated by later
+  caller changes after evidence assembly, weakening the immutability expectation behind proposal
+  versions and replay evidence.
+- Evidence:
+  - `src/core/advisory/risk_lens.py` now deep-copies upstream risk-lens evidence after validating
+    source-service provenance.
+  - `src/core/proposals/evidence.py` now deep-copies context-resolution and replay-lineage payloads
+    before storing them in the evidence bundle.
+  - `src/core/proposals/versions.py` now deep-copies artifact and evidence-bundle JSON into the
+    persisted version record.
+  - `src/core/proposals/projections.py` now deep-copies version result, artifact, evidence, and
+    gate-decision JSON before building the API response DTO.
+  - Focused validation passed:
+    `python -m pytest tests/unit/advisory/engine/test_engine_risk_lens.py tests/unit/advisory/engine/test_engine_proposal_evidence.py tests/unit/advisory/engine/test_engine_proposal_versions.py tests/unit/advisory/engine/test_engine_proposal_projections.py -q`
+    with `23 passed`.
+  - Focused ruff check and format check passed for the changed modules and tests.
+  - Repo-native feature lane passed with `make check`: ruff check passed, ruff format check passed
+    for 334 files, monetary-float guard passed, mypy passed for 175 source files, OpenAPI quality
+    gate passed, lifecycle OpenAPI docs tests passed, no-alias guard passed, API vocabulary
+    generated and validate-only passed, domain-data product declarations validated, and unit tests
+    passed with `810 passed in 54.61s`.
+- Consequence:
+  - Proposal versions and replay-facing evidence are better aligned with bank-grade lineage
+    expectations: once evidence is assembled or projected, nested caller mutations cannot silently
+    alter the captured advisory proof.
+- Documentation:
+  - No wiki change is required because this is internal evidence-integrity hardening, not a new
+    public workflow, operator runbook, or capability claim.
+- Follow-Up:
+  - Include this evidence-integrity slice in the next PR merge gate; no API vocabulary semantic
+    change is expected from this internal copying hardening.

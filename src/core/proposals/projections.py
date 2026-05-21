@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from copy import deepcopy
 from typing import Any
 
 from src.core.proposals.models import (
@@ -55,7 +56,9 @@ def build_proposal_list_response(
 def to_version_detail(
     version: ProposalVersionRecord, *, include_evidence: bool
 ) -> ProposalVersionDetail:
-    evidence_bundle_json: dict[str, Any] = version.evidence_bundle_json if include_evidence else {}
+    evidence_bundle_json: dict[str, Any] = (
+        deepcopy(version.evidence_bundle_json) if include_evidence else {}
+    )
     return ProposalVersionDetail(
         proposal_version_id=version.proposal_version_id,
         proposal_id=version.proposal_id,
@@ -65,10 +68,10 @@ def to_version_detail(
         artifact_hash=version.artifact_hash,
         simulation_hash=version.simulation_hash,
         status_at_creation=version.status_at_creation,
-        proposal_result=version.proposal_result_json,
-        artifact=version.artifact_json,
+        proposal_result=deepcopy(version.proposal_result_json),
+        artifact=deepcopy(version.artifact_json),
         evidence_bundle=evidence_bundle_json,
-        gate_decision=version.gate_decision_json,
+        gate_decision=deepcopy(version.gate_decision_json),
     )
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 
@@ -13,4 +14,4 @@ def extract_risk_lens(proposal_result: Any) -> dict[str, Any] | None:
     source_service = risk_lens.get("source_service")
     if not isinstance(source_service, str) or not source_service:
         return None
-    return {key: value for key, value in risk_lens.items()}
+    return deepcopy(risk_lens)
