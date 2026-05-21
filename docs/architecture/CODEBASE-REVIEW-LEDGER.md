@@ -2496,3 +2496,27 @@
 - Follow-Up:
   - Keep handoff replay lookup and persistence orchestration in the service until a broader
     execution handoff command boundary can be extracted without changing behavior.
+
+## LA-REV-098
+
+- Scope: Proposal create/version request hash construction
+- Pattern: modularity problem / idempotency replay hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService` built proposal create and version canonical request hashes
+  inline after advisory-context resolution, coupling request identity to service orchestration even
+  though canonical payload construction already lived in the context module.
+- Evidence:
+  - `src/core/proposals/context.py` now owns `build_create_request_hash` and
+    `build_version_request_hash`.
+  - `src/core/proposals/service.py` delegates create/version request hash construction after
+    resolving advisory context.
+  - `tests/unit/advisory/engine/test_engine_proposal_context.py` proves legacy/stateless create and
+    version contracts normalize to the same canonical hash, while version concurrency input remains
+    hash-sensitive.
+- Consequence:
+  - Create and version idempotency identity now sits beside resolved advisory-context
+    canonicalization, reducing service-owned hash assembly.
+- Follow-Up:
+  - Keep context resolution and idempotency repository checks in the service until a broader create
+    command boundary can be extracted without changing behavior.

@@ -3,7 +3,6 @@ from typing import Any, Optional, cast
 
 from src.core.advisory.artifact import build_proposal_artifact
 from src.core.advisory.orchestration import evaluate_advisory_proposal
-from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
@@ -34,8 +33,8 @@ from src.core.proposals.concurrency import (
 from src.core.proposals.context import (
     ProposalContextResolutionError,
     build_context_resolution_evidence,
-    canonicalize_create_request_payload,
-    canonicalize_version_request_payload,
+    build_create_request_hash,
+    build_version_request_hash,
     resolve_create_request,
     resolve_version_request,
 )
@@ -242,11 +241,7 @@ class ProposalWorkflowService:
             resolved_request = resolve_create_request(payload)
         except ProposalContextResolutionError as exc:
             raise ProposalValidationError(str(exc)) from exc
-        request_payload = canonicalize_create_request_payload(
-            payload=payload,
-            resolved=resolved_request,
-        )
-        request_hash = hash_canonical_payload(request_payload)
+        request_hash = build_create_request_hash(payload=payload, resolved=resolved_request)
 
         existing = self._repository.get_idempotency(idempotency_key=idempotency_key)
         if existing is not None:
@@ -705,12 +700,7 @@ class ProposalWorkflowService:
             raise ProposalValidationError(str(exc)) from exc
         self._validate_simulation_flag(resolved_request.simulate_request)
         context_resolution = build_context_resolution_evidence(resolved_request)
-        request_hash = hash_canonical_payload(
-            canonicalize_version_request_payload(
-                payload=payload,
-                resolved=resolved_request,
-            )
-        )
+        request_hash = build_version_request_hash(payload=payload, resolved=resolved_request)
         try:
             validate_create_version_portfolio_context(
                 proposal_portfolio_id=proposal.portfolio_id,
