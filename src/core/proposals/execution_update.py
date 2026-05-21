@@ -2,6 +2,7 @@ from datetime import datetime
 
 from src.core.proposals.models import (
     ProposalExecutionUpdateRequest,
+    ProposalRecord,
     ProposalWorkflowEventRecord,
     ProposalWorkflowState,
 )
@@ -39,3 +40,13 @@ def build_execution_update_event(
         reason_json={key: value for key, value in reason_json.items() if value is not None},
         related_version_no=payload.related_version_no or handoff_related_version_no,
     )
+
+
+def apply_execution_update_state(
+    *,
+    proposal: ProposalRecord,
+    to_state: ProposalWorkflowState,
+    event: ProposalWorkflowEventRecord,
+) -> None:
+    proposal.current_state = to_state
+    proposal.last_event_at = event.occurred_at

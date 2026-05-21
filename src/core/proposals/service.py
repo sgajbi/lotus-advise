@@ -54,7 +54,10 @@ from src.core.proposals.execution_status import (
     build_execution_status_response,
     latest_execution_requested_event,
 )
-from src.core.proposals.execution_update import build_execution_update_event
+from src.core.proposals.execution_update import (
+    apply_execution_update_state,
+    build_execution_update_event,
+)
 from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
     find_replayed_approval,
@@ -583,8 +586,7 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             handoff_related_version_no=latest_execution_requested.related_version_no,
         )
-        proposal.current_state = to_state
-        proposal.last_event_at = occurred_at
+        apply_execution_update_state(proposal=proposal, to_state=to_state, event=event)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return self.get_execution_status(proposal_id=proposal_id)
 

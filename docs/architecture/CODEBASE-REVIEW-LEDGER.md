@@ -2123,3 +2123,27 @@
 - Follow-Up:
   - Consider a broader lifecycle command boundary only after execution handoff, execution update,
     reporting, transition, and approval mutation semantics are all characterized together.
+
+## LA-REV-082
+
+- Scope: Execution update aggregate state mutation
+- Pattern: modularity problem / execution lifecycle hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_execution_update` directly mutated proposal lifecycle
+  state and `last_event_at` after execution update event construction, coupling execution update
+  aggregate mutation to service orchestration.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now owns `apply_execution_update_state`.
+  - `src/core/proposals/service.py` delegates execution update aggregate mutation while retaining
+    proposal lookup, handoff identity matching, replay detection, terminal-state rejection,
+    timestamp ordering, event construction, and persistence.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` directly proves execution
+    update state and last-event timestamp mutation from the generated workflow event.
+- Consequence:
+  - Execution update lifecycle mutation is centralized beside execution update event construction,
+    reducing repeated state/timestamp mutation in the workflow service.
+- Follow-Up:
+  - Keep handoff lookup, execution request/provider matching, and timestamp ordering in the service
+    until execution update policy is extracted with full replay and handoff identity
+    characterization.

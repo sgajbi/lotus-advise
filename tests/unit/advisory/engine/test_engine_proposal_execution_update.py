@@ -1,7 +1,14 @@
 from datetime import datetime, timezone
 
-from src.core.proposals.execution_update import build_execution_update_event
-from src.core.proposals.models import ProposalExecutionUpdateRequest
+from src.core.proposals.execution_update import (
+    apply_execution_update_state,
+    build_execution_update_event,
+)
+from src.core.proposals.models import (
+    ProposalExecutionUpdateRequest,
+    ProposalRecord,
+    ProposalWorkflowEventRecord,
+)
 
 
 def _payload(**overrides) -> ProposalExecutionUpdateRequest:
@@ -18,6 +25,25 @@ def _payload(**overrides) -> ProposalExecutionUpdateRequest:
     }
     values.update(overrides)
     return ProposalExecutionUpdateRequest(**values)
+
+
+def _proposal() -> ProposalRecord:
+    created_at = datetime(2026, 5, 21, 9, 0, tzinfo=timezone.utc)
+    return ProposalRecord(
+        proposal_id="pp_execution_update",
+        portfolio_id="pf_execution_update",
+        mandate_id="mandate_execution_update",
+        jurisdiction="SG",
+        created_by="advisor_execution_update",
+        created_at=created_at,
+        last_event_at=created_at,
+        current_state="EXECUTION_READY",
+        current_version_no=3,
+        title="Execution update state",
+        advisor_notes=None,
+        lifecycle_origin="DIRECT_CREATE",
+        source_workspace_id=None,
+    )
 
 
 def test_build_execution_update_event_preserves_reconciliation_payload():
@@ -76,3 +102,27 @@ def test_build_execution_update_event_defaults_to_handoff_version_and_omits_null
         "idempotency_key": "execution-update:exec_update_001",
         "idempotency_request_hash": "sha256:update",
     }
+
+
+def test_apply_execution_update_state_updates_state_and_event_timestamp():
+    proposal = _proposal()
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_execution_update",
+        proposal_id=proposal.proposal_id,
+        event_type="EXECUTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTED",
+        actor_id="lotus-manage",
+        occurred_at=datetime(2026, 5, 21, 10, 5, tzinfo=timezone.utc),
+        reason_json={"execution_request_id": "pex_execution_update"},
+        related_version_no=3,
+    )
+
+    apply_execution_update_state(
+        proposal=proposal,
+        to_state="EXECUTED",
+        event=event,
+    )
+
+    assert proposal.current_state == "EXECUTED"
+    assert proposal.last_event_at == event.occurred_at
