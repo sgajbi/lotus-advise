@@ -3473,3 +3473,28 @@
 - Follow-Up:
   - Continue WTBD-002 by extracting source-to-request translation and market-data hydration where
     behavior can be characterized without weakening RFC-0082 source authority boundaries.
+
+## LA-REV-141
+
+- Scope: Lotus Core stateful-context payload translation
+- Pattern: modularity / advisory translation boundary hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The stateful-context adapter still owned payload translation from Lotus Core portfolio,
+  position, cash, enrichment, price, and FX records into Advise simulation request models.
+- Evidence:
+  - `src/integrations/lotus_core/stateful_context_translation.py` now owns decimal parsing, shelf
+    attribute construction, cash balance construction, position construction, price construction,
+    FX-rate derivation, and governed shelf-entry translation.
+  - `src/integrations/lotus_core/stateful_context.py` imports the translation helpers while
+    preserving compatibility for focused characterization tests.
+  - `tests/unit/advisory/api/test_lotus_core_stateful_context.py` continues to prove invalid
+    source rows are skipped safely, cash/positions/prices/FX/shelf entries are built correctly,
+    governed taxonomy supportability attributes survive, and full resolved request assembly remains
+    stable.
+- Consequence:
+  - Advisory source-to-request translation is now a named boundary separate from upstream reads,
+    route policy, cache policy, and non-held trade-draft hydration.
+- Follow-Up:
+  - Continue WTBD-002 by extracting non-held trade-draft market-data hydration into a separate
+    module with the existing cache and taxonomy behavior pinned.

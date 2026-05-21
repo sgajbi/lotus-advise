@@ -309,9 +309,12 @@ recorded here with enough detail for later owner-specific slices.
     enrichment fetch, and classification taxonomy fetch now live in
     `src/integrations/lotus_core/stateful_context_source_reads.py`, keeping source-read failure
     mapping and fetch counters separate from advisory request translation.
+  - Lotus Core stateful-context payload translation now lives in
+    `src/integrations/lotus_core/stateful_context_translation.py`, including decimal parsing, cash
+    balance construction, position construction, price construction, FX derivation, shelf-entry
+    attributes, and governed shelf-entry translation.
 - Follow-up:
-  - Split portfolio source-to-request translation and market-data hydration into explicit
-    submodules.
+  - Split non-held trade-draft market-data hydration into an explicit submodule.
   - Preserve RFC-0082 authority boundaries: source facts stay in `lotus-core`; advisory context
     translation stays in `lotus-advise`.
 
