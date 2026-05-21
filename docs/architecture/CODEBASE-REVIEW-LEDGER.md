@@ -2664,12 +2664,12 @@
 - Pattern: duplication / read-model hardening
 - Status: Hardened
 - Finding Class: duplication
-- Summary: Execution status, delivery summary, delivery history, and execution update replay
-  loaded proposal and workflow events independently in the workflow service.
+- Summary: Workflow timeline, execution status, delivery summary, delivery history, and execution
+  update replay loaded proposal and workflow events independently in the workflow service.
 - Evidence:
   - `src/core/proposals/activity_read_model.py` now owns proposal activity read-model loading.
-  - `src/core/proposals/service.py` reuses that loader across execution status, delivery
-    summary/history, and execution update handling.
+  - `src/core/proposals/service.py` reuses that loader across workflow timeline, execution status,
+    delivery summary/history, and execution update handling.
   - `tests/unit/advisory/engine/test_engine_proposal_activity_read_model.py` covers ordered event
     loading and missing-proposal boundaries.
 - Consequence:

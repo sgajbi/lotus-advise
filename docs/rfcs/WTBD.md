@@ -123,7 +123,8 @@ recorded here with enough detail for later owner-specific slices.
     reusing one tested boundary for version replay and idempotent create-response reconstruction.
   - Proposal activity read-model loading now lives in
     `src/core/proposals/activity_read_model.py`, reducing repeated proposal/event loading across
-    execution status, delivery summary/history, and execution-update replay paths.
+    workflow timeline, execution status, delivery summary/history, and execution-update replay
+    paths.
   - Proposal approval read-model loading now lives in
     `src/core/proposals/approval_read_model.py`, keeping approval posture repository loading out of
     the workflow service.

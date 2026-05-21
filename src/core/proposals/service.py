@@ -441,11 +441,13 @@ class ProposalWorkflowService:
         )
 
     def get_workflow_timeline(self, *, proposal_id: str) -> ProposalWorkflowTimelineResponse:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        activity = load_proposal_activity_read_model(
+            repository=self._repository,
+            proposal_id=proposal_id,
+        )
+        if activity.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        events = self._repository.list_events(proposal_id=proposal_id)
-        return build_workflow_timeline_response(proposal=proposal, events=events)
+        return build_workflow_timeline_response(proposal=activity.proposal, events=activity.events)
 
     def get_approvals(self, *, proposal_id: str) -> ProposalApprovalsResponse:
         approval_read_model = load_proposal_approval_read_model(
