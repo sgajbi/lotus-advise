@@ -1,5 +1,6 @@
 import json
 from contextlib import closing
+from copy import deepcopy
 from datetime import datetime
 from importlib.util import find_spec
 from typing import Any, Optional, cast
@@ -133,7 +134,7 @@ class PostgresProposalRepository:
     ) -> tuple[ProposalAsyncOperationRecord, bool]:
         if not operation.idempotency_key:
             self._upsert_operation(operation)
-            return operation, True
+            return deepcopy(operation), True
 
         query = """
             WITH inserted AS (
@@ -630,9 +631,9 @@ class PostgresProposalRepository:
             connection.commit()
 
         return ProposalTransitionResult(
-            proposal=proposal,
-            event=event,
-            approval=approval,
+            proposal=deepcopy(proposal),
+            event=deepcopy(event),
+            approval=deepcopy(approval) if approval is not None else None,
         )
 
     def _connect(self) -> Any:
