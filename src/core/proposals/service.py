@@ -127,7 +127,7 @@ from src.core.proposals.projections import (
     to_version_detail,
 )
 from src.core.proposals.records import build_proposal_idempotency_record, build_proposal_record
-from src.core.proposals.reporting import build_report_requested_event
+from src.core.proposals.reporting import apply_report_request_state, build_report_requested_event
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_gate import (
     ProposalSimulationGateError,
@@ -1055,7 +1055,7 @@ class ProposalWorkflowService:
             related_version_no=related_version_no,
             include_execution_summary=include_execution_summary,
         )
-        proposal.last_event_at = max(proposal.last_event_at, event.occurred_at)
+        apply_report_request_state(proposal=proposal, event=event)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return event
 

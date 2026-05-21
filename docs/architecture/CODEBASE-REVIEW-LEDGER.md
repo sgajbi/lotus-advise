@@ -2147,3 +2147,26 @@
   - Keep handoff lookup, execution request/provider matching, and timestamp ordering in the service
     until execution update policy is extracted with full replay and handoff identity
     characterization.
+
+## LA-REV-083
+
+- Scope: Report-request aggregate timestamp mutation
+- Pattern: modularity problem / reporting lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_report_request` directly applied report-request
+  `last_event_at` mutation after building the reporting workflow event, leaving the report lineage
+  timestamp policy inside service orchestration.
+- Evidence:
+  - `src/core/proposals/reporting.py` now owns `apply_report_request_state`.
+  - `src/core/proposals/service.py` delegates report-request aggregate timestamp mutation while
+    retaining proposal lookup, event construction, persistence, and API-facing error behavior.
+  - `tests/unit/advisory/engine/test_engine_proposal_reporting.py` directly proves timestamp
+    advancement for newer report events and preservation when the proposal already has a newer
+    lifecycle timestamp.
+- Consequence:
+  - Report-request timestamp policy is centralized beside reporting event construction, reducing
+    inline aggregate mutation in the workflow service.
+- Follow-Up:
+  - Keep report request orchestration in the service until reporting provider calls, lifecycle
+    timeline projection, and report delivery-history semantics can be characterized together.

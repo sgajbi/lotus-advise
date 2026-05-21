@@ -37,3 +37,11 @@ def build_report_requested_event(
         },
         related_version_no=related_version_no,
     )
+
+
+def apply_report_request_state(
+    *,
+    proposal: ProposalRecord,
+    event: ProposalWorkflowEventRecord,
+) -> None:
+    proposal.last_event_at = max(proposal.last_event_at, event.occurred_at)
