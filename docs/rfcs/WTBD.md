@@ -278,9 +278,19 @@ recorded here with enough detail for later owner-specific slices.
     request identifiers.
   - Stale service-private async submission hash wrappers have been removed; async create/version
     submission hashing is called directly from `src/core/proposals/async_payloads.py`.
+  - Async operation execution retry, lease, terminal-skip, lifecycle-failure, runtime-failure, and
+    success persistence now live in `src/core/proposals/async_operation_runner.py`, keeping the
+    workflow service focused on selecting the async executor for create versus version operations.
+  - Proposal report-request command loading, event construction, aggregate timestamp mutation, and
+    transition persistence now live in `src/core/proposals/report_request_command.py`, keeping
+    report command write behavior outside the workflow service facade.
 - Follow-up:
-  - Split lifecycle command handling, async operation handling, delivery projection, report request
-    projection, and execution handoff helpers into smaller domain modules.
+  - Continue splitting lifecycle command handling, async operation payload failure handling, and
+    execution handoff/update orchestration into smaller domain modules where behavior is pinned by
+    existing characterization tests.
+  - Reassess `src/core/proposals/models.py` into smaller contract modules only with an explicit
+    compatibility/export plan, because API schema stability is more important than file-size
+    reduction.
   - Keep API contracts stable while moving business rules out of controller and persistence seams.
   - Add characterization tests around each extracted rule before or during extraction.
   - Publish repo-local wiki updates after merge to `main`.

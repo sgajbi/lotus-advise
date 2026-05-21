@@ -3,12 +3,7 @@ from typing import Any, Optional, cast
 
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
-from src.core.proposals.async_operation_persistence import (
-    persist_async_attempt_started,
-    persist_async_operation_failed,
-    persist_async_operation_succeeded,
-    persist_async_runtime_exception_outcome,
-)
+from src.core.proposals.async_operation_persistence import persist_async_operation_failed
 from src.core.proposals.async_operation_read_model import (
     load_proposal_async_operation_by_correlation_read_model,
     load_proposal_async_operation_read_model,
@@ -16,6 +11,7 @@ from src.core.proposals.async_operation_read_model import (
 from src.core.proposals.async_operation_recovery_read_model import (
     load_recoverable_async_operation_read_models,
 )
+from src.core.proposals.async_operation_runner import run_async_operation_until_terminal
 from src.core.proposals.async_operation_submission import (
     persist_create_proposal_async_submission,
     persist_create_version_async_submission,
@@ -26,7 +22,6 @@ from src.core.proposals.async_operations import (
     build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
-    should_skip_async_operation_run,
 )
 from src.core.proposals.async_payloads import (
     AsyncCreatePayloadResolution,
@@ -169,7 +164,7 @@ from src.core.proposals.projections import (
 )
 from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
 from src.core.proposals.records import build_proposal_create_command_state
-from src.core.proposals.reporting import build_report_request_event_and_apply_state
+from src.core.proposals.report_request_command import record_proposal_report_request
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.simulation_execution import run_advisory_proposal_simulation
 from src.core.proposals.transition_persistence import (
@@ -197,7 +192,6 @@ from src.core.replay.service import (
 )
 
 ASYNC_DEFAULT_MAX_ATTEMPTS = 3
-ASYNC_OPERATION_LEASE_SECONDS = 60
 
 __all__ = [
     "ProposalIdempotencyConflictError",
@@ -1119,28 +1113,15 @@ class ProposalWorkflowService:
         related_version_no: int,
         include_execution_summary: bool,
     ) -> ProposalWorkflowEventRecord:
-        command_read_model = load_proposal_command_read_model(
+        return record_proposal_report_request(
             repository=self._repository,
             proposal_id=proposal_id,
-        )
-        if command_read_model.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        proposal = command_read_model.proposal
-
-        event = build_report_request_event_and_apply_state(
             event_id=new_workflow_event_id(),
-            proposal=proposal,
             report_response=report_response,
             requested_by=requested_by,
             related_version_no=related_version_no,
             include_execution_summary=include_execution_summary,
         )
-        persist_proposal_transition(
-            repository=self._repository,
-            proposal=proposal,
-            event=event,
-        )
-        return event
 
     def _resolve_create_async_payload(
         self,
@@ -1199,50 +1180,12 @@ class ProposalWorkflowService:
         operation_id: str,
         executor: Any,
     ) -> None:
-        while True:
-            read_model = load_proposal_async_operation_read_model(
-                repository=self._repository,
-                operation_id=operation_id,
-            )
-            operation = read_model.operation
-            if should_skip_async_operation_run(operation):
-                return
-            assert operation is not None
-
-            persist_async_attempt_started(
-                repository=self._repository,
-                operation=operation,
-                attempt_started_at=_utc_now(),
-                lease_seconds=ASYNC_OPERATION_LEASE_SECONDS,
-            )
-            try:
-                response = executor()
-            except ProposalLifecycleError as exc:
-                persist_async_operation_failed(
-                    repository=self._repository,
-                    operation=operation,
-                    code=type(exc).__name__,
-                    message=str(exc),
-                    finished_at=_utc_now(),
-                )
-                return
-            except Exception as exc:
-                if persist_async_runtime_exception_outcome(
-                    repository=self._repository,
-                    operation=operation,
-                    exc=exc,
-                    finished_at=_utc_now(),
-                ):
-                    continue
-                return
-
-            persist_async_operation_succeeded(
-                repository=self._repository,
-                operation=operation,
-                response=response,
-                finished_at=_utc_now(),
-            )
-            return
+        run_async_operation_until_terminal(
+            repository=self._repository,
+            operation_id=operation_id,
+            executor=executor,
+            utc_now=_utc_now,
+        )
 
 
 def _utc_now() -> datetime:

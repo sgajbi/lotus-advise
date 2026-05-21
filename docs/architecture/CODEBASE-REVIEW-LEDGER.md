@@ -3556,3 +3556,32 @@
 - Follow-Up:
   - Track any future workspace service growth as a new finding only when a concrete behavior starts
     mixing endpoint facade responsibilities with domain or integration orchestration again.
+
+## LA-REV-144
+
+- Scope: Proposal workflow async runner and report-request command
+- Pattern: modularity / command-boundary hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: The proposal workflow service still owned async operation retry-loop mechanics and
+  report-request command persistence inline with high-level create, version, lifecycle, approval,
+  execution, query, and replay coordination.
+- Evidence:
+  - `src/core/proposals/async_operation_runner.py` now owns async operation lease acquisition,
+    terminal-skip handling, lifecycle failure persistence, runtime retry/final-failure behavior,
+    and success persistence.
+  - `src/core/proposals/report_request_command.py` now owns report-request aggregate loading,
+    report lineage event construction, aggregate timestamp mutation, and transition persistence.
+  - `src/core/proposals/service.py` delegates to those helpers while keeping the public workflow
+    service API and existing exception behavior stable.
+  - `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` continues to prove async
+    create/version execution, lifecycle failure handling, runtime retry behavior, recovery of
+    pending/expired operations, report request event recording, and proposal command compatibility.
+- Consequence:
+  - WTBD-001 is narrowed further: async runtime mechanics and report command writes are now named
+    proposal-domain boundaries rather than service-private branches. The remaining WTBD-001 work is
+    concentrated in lifecycle/execution command orchestration and the large API contract module,
+    which should be split only with explicit schema-compatibility safeguards.
+- Follow-Up:
+  - Continue WTBD-001 in small command-oriented slices; do not split `models.py` mechanically
+    without a compatibility/export plan and OpenAPI regression proof.
