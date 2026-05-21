@@ -3703,3 +3703,29 @@
 - Follow-Up:
   - Add new WTBD entries only with an explicit status and owner, and update the closure register in
     the same slice when a WTBD is closed.
+
+## LA-REV-148
+
+- Scope: WTBD closure proof pack
+- Pattern: validation evidence / closure hardening
+- Status: Hardened
+- Finding Class: test evidence gap
+- Summary: After WTBD-001 through WTBD-004 were closed, the branch needed one consolidated
+  WTBD-aligned proof pass that exercised the closure-critical surfaces together rather than relying
+  only on the incremental test runs from each slice.
+- Evidence:
+  - Ran
+    `python -m pytest tests/unit/test_wtbd_ledger_contract.py tests/unit/advisory/contracts/test_proposal_model_module_boundaries.py tests/unit/advisory/contracts tests/unit/advisory/api/test_api_integration_capabilities.py tests/unit/advisory/api/test_api_workspace.py tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py tests/unit/advisory/api/test_lotus_core_stateful_context.py tests/unit/advisory/engine/test_engine_proposal_workflow_service.py -q`.
+  - Result: `256 passed in 30.81s`.
+  - Covered WTBD ledger closure governance, proposal contract compatibility, OpenAPI contract docs,
+    integration capabilities/supportability, workspace API/service decomposition behavior,
+    Lotus Core stateful-context adapter behavior, and proposal workflow service command behavior.
+- Consequence:
+  - The recorded WTBD closures now have a consolidated feature-lane proof pack tied to the review
+    ledger.
+- Documentation:
+  - No wiki change is required because this is validation evidence for internal WTBD closure, not a
+    public capability or operator workflow change.
+- Follow-Up:
+  - Before PR merge, run the repo-native `make check` or stronger local/CI equivalent and keep the
+    published wiki drift disposition explicit.
