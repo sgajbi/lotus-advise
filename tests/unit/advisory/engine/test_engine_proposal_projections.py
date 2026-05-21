@@ -193,7 +193,10 @@ def test_to_workflow_event_and_approval_record_preserve_audit_payloads():
         to_state="EXECUTION_READY",
         actor_id="client_projection",
         occurred_at=datetime(2026, 5, 20, 9, 15, tzinfo=timezone.utc),
-        reason_json={"channel": "IN_PERSON"},
+        reason_json={
+            "channel": "IN_PERSON",
+            "evidence": {"document_refs": ["consent_original"]},
+        },
         related_version_no=2,
     )
     approval = ProposalApprovalRecordData(
@@ -203,17 +206,29 @@ def test_to_workflow_event_and_approval_record_preserve_audit_payloads():
         approved=True,
         actor_id="client_projection",
         occurred_at=datetime(2026, 5, 20, 9, 16, tzinfo=timezone.utc),
-        details_json={"channel": "IN_PERSON"},
+        details_json={
+            "channel": "IN_PERSON",
+            "evidence": {"document_refs": ["approval_original"]},
+        },
         related_version_no=2,
     )
 
     projected_event = to_workflow_event(event)
     projected_approval = to_approval_record(approval)
 
-    assert projected_event.reason == {"channel": "IN_PERSON"}
+    event.reason_json["evidence"]["document_refs"][0] = "consent_tampered"
+    approval.details_json["evidence"]["document_refs"][0] = "approval_tampered"
+
+    assert projected_event.reason == {
+        "channel": "IN_PERSON",
+        "evidence": {"document_refs": ["consent_original"]},
+    }
     assert projected_event.occurred_at == "2026-05-20T09:15:00+00:00"
     assert projected_approval is not None
-    assert projected_approval.details == {"channel": "IN_PERSON"}
+    assert projected_approval.details == {
+        "channel": "IN_PERSON",
+        "evidence": {"document_refs": ["approval_original"]},
+    }
     assert projected_approval.occurred_at == "2026-05-20T09:16:00+00:00"
     assert to_approval_record(None) is None
 
@@ -445,3 +460,43 @@ def test_async_operation_response_projections_preserve_operational_state():
         "code": "RuntimeError",
         "message": "downstream unavailable",
     }
+
+
+def test_async_operation_status_response_isolated_from_result_record_mutation():
+    repository = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repository)
+    created = service.create_proposal(
+        payload=ProposalCreateRequest(
+            created_by="advisor_projection",
+            simulate_request=_simulate_request("pf_async_projection_immutable"),
+        ),
+        idempotency_key="idem_async_projection_immutable",
+        correlation_id="corr_async_projection_immutable",
+    )
+    result_json = created.model_dump(mode="json", warnings=False)
+    result_json["version"]["evidence_bundle"]["projection_test"] = {"source": "RESULT_ORIGINAL"}
+    operation = ProposalAsyncOperationRecord(
+        operation_id="pop_projection_success",
+        operation_type="CREATE_PROPOSAL",
+        status="SUCCEEDED",
+        correlation_id="corr_projection_success",
+        idempotency_key="idem_projection_success",
+        proposal_id=created.proposal.proposal_id,
+        created_by="advisor_projection",
+        created_at=datetime(2026, 5, 20, 9, 24, tzinfo=timezone.utc),
+        started_at=datetime(2026, 5, 20, 9, 25, tzinfo=timezone.utc),
+        finished_at=datetime(2026, 5, 20, 9, 26, tzinfo=timezone.utc),
+        attempt_count=1,
+        max_attempts=3,
+        payload_json={},
+        result_json=result_json,
+    )
+
+    status = to_async_status_response(operation)
+
+    operation.result_json["version"]["evidence_bundle"]["projection_test"]["source"] = (
+        "RESULT_TAMPERED"
+    )
+
+    assert status.result is not None
+    assert status.result.version.evidence_bundle["projection_test"] == {"source": "RESULT_ORIGINAL"}
