@@ -3759,3 +3759,35 @@
     closure, not a public capability or operator workflow change.
 - Follow-Up:
   - Keep `make check` as the minimum local gate for any further WTBD reopening or closure claim.
+
+## LA-REV-150
+
+- Scope: WTBD PR-grade local gate
+- Pattern: merge-gate validation evidence
+- Status: Hardened
+- Finding Class: validation evidence gap
+- Summary: WTBD closure had feature-lane proof, but bank-buyable closure also needs the stronger
+  local PR-grade gate covering dependency posture, security audit, migration smoke, integration and
+  e2e coverage, and the repository coverage threshold.
+- Evidence:
+  - Ran `make ci-local`.
+  - Dependency health check completed; direct outdated package posture remains informational under
+    the current repository gate: `certifi 2026.4.22 -> 2026.5.20`, `click 8.3.3 -> 8.4.0`,
+    `cvxpy 1.8.2 -> 1.9.0`, `numpy 2.4.4 -> 2.4.6`, `ruff 0.15.12 -> 0.15.13`, and
+    `uvicorn 0.46.0 -> 0.47.0`.
+  - Security audit reported `Known vulnerabilities: 0`.
+  - Lint, formatting, monetary-float guard, mypy, OpenAPI quality, lifecycle OpenAPI docs tests,
+    no-alias guard, API vocabulary generation plus validate-only, domain-data product validation,
+    and migration smoke all passed.
+  - Coverage-combined ran unit, integration, and e2e suites:
+    `807 passed in 61.50s`, `54 passed in 7.57s`, and `12 passed, 3 skipped in 4.06s`.
+  - Coverage report passed the repository threshold with `TOTAL 98%` against `--fail-under=97`.
+- Consequence:
+  - WTBD-001 through WTBD-004 closure is now backed by the local PR-grade gate, not only targeted
+    or feature-lane checks.
+- Documentation:
+  - No wiki change is required because this is validation evidence for internal WTBD closure, not a
+    public API, feature, or operator workflow change.
+- Follow-Up:
+  - Resolve the existing published GitHub wiki drift during PR/mainline closure or wiki publication
+    workflow; the repo-local authored wiki source was not changed by this validation slice.
