@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from src.api.capabilities.service import build_integration_capabilities
 from src.api.main import app
 from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
 
@@ -339,3 +340,64 @@ def test_integration_capabilities_openapi_documents_supportability_metric_labels
     assert "lotus_advise_advisory_supportability_total" in metric_labels["description"]
     assert "portfolio" in metric_labels["description"]
     assert "trace" in metric_labels["description"]
+
+
+def test_integration_capabilities_service_fails_closed_for_missing_dependency():
+    readiness = {
+        "operational_ready": True,
+        "degraded": False,
+        "degraded_reasons": [],
+        "dependencies": [
+            {
+                "dependency_key": "lotus_core",
+                "service_name": "lotus-core",
+                "description": "Canonical portfolio state and portfolio simulation authority.",
+                "base_url_env": "LOTUS_CORE_BASE_URL",
+                "configured": True,
+                "operational_ready": True,
+                "fallback_mode": "NONE",
+            },
+            {
+                "dependency_key": "lotus_risk",
+                "service_name": "lotus-risk",
+                "description": "Canonical advisory risk-lens authority.",
+                "base_url_env": "LOTUS_RISK_BASE_URL",
+                "configured": True,
+                "operational_ready": True,
+                "fallback_mode": "LOCAL_RISK_FALLBACK",
+            },
+            {
+                "dependency_key": "lotus_report",
+                "service_name": "lotus-report",
+                "description": "Advisory proposal report-request seam.",
+                "base_url_env": "LOTUS_REPORT_BASE_URL",
+                "configured": True,
+                "operational_ready": True,
+                "fallback_mode": "NONE",
+            },
+        ],
+    }
+
+    response = build_integration_capabilities(
+        consumer_system="lotus-gateway",
+        tenant_id="default",
+        readiness=readiness,
+    )
+
+    features = {feature.key: feature for feature in response.features}
+    workflows = {workflow.workflow_key: workflow for workflow in response.workflows}
+
+    assert features["advisory.workspaces.ai_rationale"].operational_ready is False
+    assert (
+        features["advisory.workspaces.ai_rationale"].degraded_reason
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
+    assert workflows["advisory_workspace_ai_rationale"].operational_ready is False
+    assert (
+        workflows["advisory_workspace_ai_rationale"].degraded_reason
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
+    assert response.supportability.state == "degraded"
+    assert (
+        response.supportability.ready_feature_count < response.supportability.enabled_feature_count
+    )

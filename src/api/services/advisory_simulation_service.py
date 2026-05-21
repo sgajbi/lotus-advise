@@ -1,4 +1,3 @@
-import uuid
 from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import Dict, Optional, cast
@@ -18,9 +17,14 @@ from src.core.proposals.context import (
     canonicalize_simulation_request_payload,
     resolve_simulation_request,
 )
+from src.core.proposals.correlation import resolve_correlation_id
 from src.core.proposals.models import (
     ProposalSimulationIdempotencyRecord,
     ProposalSimulationRequest,
+)
+from src.core.proposals.simulation_gate import (
+    ProposalSimulationGateError,
+    validate_proposal_simulation_enabled,
 )
 
 PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, object]]" = OrderedDict()
@@ -36,11 +40,13 @@ def simulate_proposal_response(
 ) -> ProposalResult:
     resolved_request = resolved_request or resolve_simulation_input(request)
 
-    if not resolved_request.simulate_request.options.enable_proposal_simulation:
+    try:
+        validate_proposal_simulation_enabled(request=resolved_request.simulate_request)
+    except ProposalSimulationGateError as exc:
         raise HTTPException(
             status_code=HTTP_422_UNPROCESSABLE,
-            detail="PROPOSAL_SIMULATION_DISABLED: set options.enable_proposal_simulation=true",
-        )
+            detail=str(exc),
+        ) from exc
 
     request_payload = canonicalize_simulation_request_payload(
         resolved=resolved_request,
@@ -57,7 +63,7 @@ def simulate_proposal_response(
     if existing is not None:
         return cast(ProposalResult, ProposalResult.model_validate(existing.response_json))
 
-    resolved_correlation_id = correlation_id or f"corr_{uuid.uuid4().hex[:12]}"
+    resolved_correlation_id = resolve_correlation_id(correlation_id)
     context_resolution = build_context_resolution_evidence(resolved_request)
     try:
         result = evaluate_advisory_proposal(

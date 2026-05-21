@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, cast
 
 from src.core.advisory.policy_context import ProposalPolicySelectors, build_advisory_policy_context
+from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.models import (
     ProposalCreateMetadata,
@@ -271,6 +272,19 @@ def canonicalize_create_request_payload(
     }
 
 
+def build_create_request_hash(
+    *,
+    payload: ProposalCreateRequest,
+    resolved: ResolvedProposalContext,
+) -> str:
+    return cast(
+        str,
+        hash_canonical_payload(
+            canonicalize_create_request_payload(payload=payload, resolved=resolved)
+        ),
+    )
+
+
 def canonicalize_simulation_request_payload(
     *,
     resolved: ResolvedSimulationContext,
@@ -300,6 +314,19 @@ def canonicalize_version_request_payload(
             "simulate_request": resolved.simulate_request.model_dump(mode="json"),
         },
     }
+
+
+def build_version_request_hash(
+    *,
+    payload: ProposalVersionRequest,
+    resolved: ResolvedProposalContext,
+) -> str:
+    return cast(
+        str,
+        hash_canonical_payload(
+            canonicalize_version_request_payload(payload=payload, resolved=resolved)
+        ),
+    )
 
 
 def build_context_resolution_evidence(

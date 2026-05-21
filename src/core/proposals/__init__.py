@@ -1,3 +1,11 @@
+from src.core.proposals.exceptions import (
+    ProposalIdempotencyConflictError,
+    ProposalLifecycleError,
+    ProposalNotFoundError,
+    ProposalStateConflictError,
+    ProposalTransitionError,
+    ProposalValidationError,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecord,
     ProposalApprovalsResponse,
@@ -35,12 +43,6 @@ from src.core.proposals.models import (
 )
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.service import (
-    ProposalIdempotencyConflictError,
-    ProposalLifecycleError,
-    ProposalNotFoundError,
-    ProposalStateConflictError,
-    ProposalTransitionError,
-    ProposalValidationError,
     ProposalWorkflowService,
 )
 

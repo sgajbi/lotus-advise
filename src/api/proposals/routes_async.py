@@ -8,10 +8,12 @@ from src.core.proposals import (
     ProposalAsyncAcceptedResponse,
     ProposalAsyncOperationStatusResponse,
     ProposalCreateRequest,
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
     ProposalVersionRequest,
     ProposalWorkflowService,
+)
+from src.core.proposals.exceptions import (
+    ProposalIdempotencyConflictError,
+    ProposalNotFoundError,
 )
 
 

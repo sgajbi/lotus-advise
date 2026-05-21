@@ -9,16 +9,18 @@ from src.core.proposals import (
     ProposalCreateRequest,
     ProposalCreateResponse,
     ProposalDetailResponse,
-    ProposalIdempotencyConflictError,
-    ProposalNotFoundError,
-    ProposalStateConflictError,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
-    ProposalTransitionError,
-    ProposalValidationError,
     ProposalVersionDetail,
     ProposalVersionRequest,
     ProposalWorkflowService,
+)
+from src.core.proposals.exceptions import (
+    ProposalIdempotencyConflictError,
+    ProposalNotFoundError,
+    ProposalStateConflictError,
+    ProposalTransitionError,
+    ProposalValidationError,
 )
 from src.core.proposals.models import ProposalApprovalRequest, ProposalListResponse
 

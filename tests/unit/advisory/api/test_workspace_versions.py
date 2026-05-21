@@ -1,0 +1,148 @@
+import pytest
+
+from src.api.services.workspace_service import (
+    WorkspaceSessionCreateRequest,
+    create_workspace_session,
+    reset_workspace_sessions_for_tests,
+)
+from src.core.workspace.models import WorkspaceSavedVersion, WorkspaceSaveRequest
+from src.core.workspace.replay import build_replay_evidence
+from src.core.workspace.versions import (
+    WorkspaceSavedVersionLookupError,
+    apply_saved_workspace_version,
+    build_saved_version_list_response,
+    build_saved_workspace_version,
+    find_saved_version,
+    refresh_saved_version_metadata,
+)
+
+
+def setup_function() -> None:
+    reset_workspace_sessions_for_tests()
+
+
+def _session():
+    return create_workspace_session(
+        WorkspaceSessionCreateRequest.model_validate(
+            {
+                "workspace_name": "Version workspace",
+                "created_by": "advisor_123",
+                "input_mode": "stateless",
+                "stateless_input": {
+                    "simulate_request": {
+                        "portfolio_snapshot": {
+                            "portfolio_id": "pf_versions",
+                            "base_currency": "USD",
+                            "positions": [],
+                            "cash_balances": [{"currency": "USD", "amount": "1000"}],
+                        },
+                        "market_data_snapshot": {"prices": [], "fx_rates": []},
+                        "shelf_entries": [],
+                        "options": {"enable_proposal_simulation": True},
+                        "proposed_cash_flows": [],
+                        "proposed_trades": [],
+                    }
+                },
+            }
+        )
+    ).workspace
+
+
+def _saved_version(session, *, workspace_version_id: str = "awv_saved"):
+    return WorkspaceSavedVersion(
+        workspace_version_id=workspace_version_id,
+        version_number=1,
+        version_label="Baseline",
+        saved_by="advisor_123",
+        saved_at="2026-05-20T00:00:00+00:00",
+        draft_state=session.draft_state.model_copy(deep=True),
+        evaluation_summary=None,
+        latest_proposal_result=None,
+        replay_evidence=build_replay_evidence(session),
+    )
+
+
+def test_refresh_saved_version_metadata_tracks_latest_version_summary():
+    session = _session()
+    first = _saved_version(session, workspace_version_id="awv_first")
+    second = _saved_version(session, workspace_version_id="awv_second")
+    second.version_number = 2
+    session.saved_versions.extend([first, second])
+
+    refresh_saved_version_metadata(session)
+
+    assert session.saved_version_count == 2
+    assert session.latest_saved_version is not None
+    assert session.latest_saved_version.workspace_version_id == "awv_second"
+    assert session.latest_saved_version.version_number == 2
+
+
+def test_find_saved_version_returns_match_and_rejects_missing_id():
+    session = _session()
+    saved = _saved_version(session)
+    session.saved_versions.append(saved)
+
+    assert find_saved_version(session, "awv_saved") is saved
+    with pytest.raises(WorkspaceSavedVersionLookupError) as exc:
+        find_saved_version(session, "awv_missing")
+
+    assert str(exc.value) == "WORKSPACE_SAVED_VERSION_NOT_FOUND"
+
+
+def test_build_saved_version_list_response_returns_defensive_copies():
+    session = _session()
+    saved = _saved_version(session)
+    session.saved_versions.append(saved)
+
+    response = build_saved_version_list_response(session)
+
+    assert response.workspace_id == session.workspace_id
+    assert len(response.saved_versions) == 1
+    assert response.saved_versions[0] is not saved
+    assert response.saved_versions[0] == saved
+
+
+def test_build_saved_workspace_version_uses_supplied_identity_and_replay_copy():
+    session = _session()
+    session.latest_replay_evidence = build_replay_evidence(
+        session,
+        evaluation_request_hash="request_hash_001",
+    )
+    request = WorkspaceSaveRequest(
+        saved_by="advisor_123",
+        version_label="Advisor reviewed draft",
+    )
+
+    saved_version = build_saved_workspace_version(
+        session=session,
+        request=request,
+        workspace_version_id="awv_supplied",
+        saved_at="2026-05-20T10:30:00+00:00",
+    )
+
+    assert saved_version.workspace_version_id == "awv_supplied"
+    assert saved_version.version_number == 1
+    assert saved_version.version_label == "Advisor reviewed draft"
+    assert saved_version.saved_by == "advisor_123"
+    assert saved_version.saved_at == "2026-05-20T10:30:00+00:00"
+    assert saved_version.replay_evidence is not session.latest_replay_evidence
+    assert saved_version.replay_evidence.evaluation_request_hash == "request_hash_001"
+
+
+def test_apply_saved_workspace_version_restores_snapshot_with_defensive_copies():
+    session = _session()
+    saved_version = build_saved_workspace_version(
+        session=session,
+        request=WorkspaceSaveRequest(saved_by="advisor_123", version_label="Baseline"),
+        workspace_version_id="awv_baseline",
+        saved_at="2026-05-20T10:30:00+00:00",
+    )
+    session.draft_state.options.enable_proposal_simulation = False
+    session.latest_replay_evidence = None
+
+    apply_saved_workspace_version(session=session, saved_version=saved_version)
+
+    assert session.draft_state is not saved_version.draft_state
+    assert session.draft_state == saved_version.draft_state
+    assert session.latest_replay_evidence is not saved_version.replay_evidence
+    assert session.latest_replay_evidence == saved_version.replay_evidence

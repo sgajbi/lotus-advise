@@ -1,0 +1,478 @@
+# Lotus Advise Work To Be Done
+
+This ledger records follow-up work discovered during `lotus-advise` hardening. Other Lotus
+repositories remain read-only for this refactor program; upstream or downstream issues must be
+recorded here with enough detail for later owner-specific slices.
+
+## Closure Register
+
+| WTBD | Owner | Status | Closure evidence |
+| --- | --- | --- | --- |
+| WTBD-001 | `lotus-advise` | Closed | Proposal workflow and contract model decomposition completed; public proposal imports remain stable. |
+| WTBD-002 | `lotus-advise` | Closed | Stateful context adapter decomposition completed for the recorded source-read, taxonomy, hydration, and cache-policy scope. |
+| WTBD-003 | `lotus-advise` | Closed | Workspace API service decomposition completed for facade, context-resolution, and lifecycle-handoff boundaries. |
+| WTBD-004 | `lotus-gateway`, `lotus-workbench` | Closed | Gateway capability query alignment fixed and Workbench consumer posture verified read-only. |
+
+## WTBD-001: Continue Proposal Service Decomposition
+
+- Owning repository: `lotus-advise`
+- Status: Closed
+- Finding class: modularity problem
+- Current evidence:
+  - `src/core/proposals/service.py` is now a smaller workflow facade over named command,
+    read-model, persistence, projection, simulation, materialization, idempotency, and async
+    boundaries. It remains intentionally central as the workflow coordinator.
+  - `src/core/proposals/models.py` is now an import-stable compatibility module that re-exports
+    proposal contract categories from smaller modules.
+- Progress:
+  - Async create/version submission hashing and replay metadata extraction now live in
+    `src/core/proposals/async_payloads.py`.
+  - Workflow transition, approval-transition, execution-update, execution-status, and
+    state-correlation rules now live in `src/core/proposals/workflow_rules.py`.
+  - Delivery-summary projection now reuses the shared execution-status vocabulary from
+    `src/core/proposals/workflow_rules.py`.
+  - Proposal summary, version detail, workflow event, and approval record projections now live in
+    `src/core/proposals/projections.py`.
+  - Execution-status projection and latest execution event selection now live in
+    `src/core/proposals/execution_status.py`.
+  - Report-request workflow event construction now lives in `src/core/proposals/reporting.py`.
+  - Async operation attempt, success, failure, retry, and replay-lineage state helpers now live in
+    `src/core/proposals/async_operations.py`.
+  - Async create/version payload recovery and failure outcomes now live in
+    `src/core/proposals/async_payloads.py`.
+  - Immutable proposal version-record construction now lives in `src/core/proposals/versions.py`.
+  - Create-version eligibility policy now lives in `src/core/proposals/versions.py`, keeping
+    terminal-state, expected-version, and portfolio-context validation out of the workflow service.
+  - New proposal-version lifecycle state mutation now lives in
+    `src/core/proposals/versions.py`, keeping current-version increment, draft reset, and
+    last-event timestamp mutation out of the workflow service.
+  - Lifecycle-origin validation now lives in `src/core/proposals/lifecycle.py`.
+  - Create response and async operation response DTO projections now live in
+    `src/core/proposals/projections.py`.
+  - Proposal lineage response assembly now lives in `src/core/proposals/projections.py`, including
+    immutable version item projection, latest-version selection, and missing-version detection.
+  - Proposal lineage read-model loading now lives in
+    `src/core/proposals/lineage_read_model.py`, keeping proposal/version-list repository loading
+    out of the workflow service.
+  - Proposal workflow timeline and approval-history response assembly now live in
+    `src/core/proposals/projections.py`, keeping lifecycle read-model projection out of the
+    workflow service.
+  - Proposal delivery summary and delivery-history response assembly now live in
+    `src/core/proposals/delivery_summary.py`, alongside the existing delivery event selection and
+    execution/reporting posture extraction.
+  - Proposal idempotency lookup response projection now lives in
+    `src/core/proposals/projections.py`, keeping audit timestamp formatting out of the workflow
+    service.
+  - Idempotency replay create-response referent validation now lives in
+    `src/core/proposals/projections.py`, keeping response assembly and missing-referent detection
+    out of the workflow service's repository read path.
+  - Proposal execution handoff replay response, requested-event construction, and accepted response
+    projection now live in `src/core/proposals/execution_handoff.py`, while the workflow service
+    retains lookup, idempotency replay detection, expected-state validation, and persistence.
+  - Proposal execution handoff aggregate timestamp mutation now lives in
+    `src/core/proposals/execution_handoff.py`, keeping handoff event-time state mutation out of the
+    workflow service.
+  - Proposal execution handoff readiness validation now lives in
+    `src/core/proposals/execution_handoff.py`, keeping the execution-ready domain rule out of the
+    workflow service while preserving API error mapping.
+  - Proposal execution update event construction now lives in
+    `src/core/proposals/execution_update.py`, while the workflow service retains handoff identity
+    matching, terminal-state rejection, timestamp ordering, replay detection, and persistence.
+  - Proposal execution update handoff identity validation now lives in
+    `src/core/proposals/execution_update.py`, keeping execution request/provider reconciliation
+    vocabulary out of the workflow service while preserving API error mapping.
+  - Proposal execution update terminal-state validation now lives in
+    `src/core/proposals/execution_update.py`, keeping terminal lifecycle rejection out of the
+    workflow service while preserving API error mapping.
+  - Proposal execution update handoff timestamp ordering now lives in
+    `src/core/proposals/execution_update.py`, keeping execution update event-time validation out of
+    the workflow service while preserving API error mapping.
+  - Proposal execution update event-time resolution now lives in
+    `src/core/proposals/execution_update.py`, keeping payload-versus-service-clock timestamp
+    selection out of the workflow service.
+  - Proposal execution update idempotency-key construction now lives in
+    `src/core/proposals/execution_update.py`, keeping replay lookup identity and event lineage
+    identity aligned.
+  - Proposal execution update canonical request hashing now lives in
+    `src/core/proposals/execution_update.py`, keeping replay hash and event lineage hash
+    construction beside update replay identity.
+  - Generic proposal state-transition event construction and transition response projection now
+    live in `src/core/proposals/lifecycle_events.py`, while the workflow service retains proposal
+    lookup, replay detection, expected-state validation, transition-rule resolution, and persistence.
+  - Generic lifecycle transition aggregate state mutation now lives in
+    `src/core/proposals/lifecycle_events.py`, keeping state and last-event timestamp mutation out of
+    the workflow service for state transitions and approvals.
+  - Generic proposal state-transition canonical request hashing now lives in
+    `src/core/proposals/lifecycle_events.py`, keeping transition replay hash construction beside
+    transition event construction.
+  - Proposal approval canonical request hashing now lives in
+    `src/core/proposals/lifecycle_events.py`, keeping approval replay hash construction beside
+    approval record and approval event construction.
+  - Proposal approval replay response assembly now lives in
+    `src/core/proposals/lifecycle_events.py`, keeping replay referent projection beside approval
+    response projection.
+  - Proposal state-transition replay response assembly now lives in
+    `src/core/proposals/lifecycle_events.py`, keeping idempotency replay projection beside normal
+    state-transition response projection.
+  - Execution-update replay detection now uses the already-loaded workflow event stream through
+    `src/core/proposals/execution_update.py`, avoiding duplicate event reads on idempotent replay
+    while preserving replay hash conflict behavior.
+  - Execution-handoff canonical request hashing now lives in
+    `src/core/proposals/execution_handoff.py`, keeping handoff replay hash construction beside
+    handoff event and replay response construction.
+  - Proposal create and version canonical request hashing now lives in
+    `src/core/proposals/context.py`, keeping request identity beside resolved advisory-context
+    canonicalization instead of workflow service orchestration.
+  - Advisory proposal simulation execution now lives in
+    `src/core/proposals/simulation_execution.py`, keeping correlation ID resolution and advisory
+    orchestration invocation out of the workflow service.
+  - The stale service-private simulation execution wrapper has been removed; create and version
+    flows now call the proposal-domain simulation execution boundary directly.
+  - Proposal artifact and evidence-bundle materialization now lives in
+    `src/core/proposals/materialization.py`, removing duplicated create/version artifact and
+    evidence assembly from the workflow service.
+  - Proposal lineage now uses a repository-native ordered version list instead of one
+    `get_version` read per version number, reducing N+1 read shape while preserving gap detection.
+  - Async operation replay referent loading now lives in `src/core/proposals/async_replay.py`,
+    keeping version-selection and event-loading rules out of the workflow service.
+  - Proposal version replay referent loading now lives in `src/core/proposals/proposal_replay.py`,
+    reusing one tested boundary for version replay and idempotent create-response reconstruction.
+  - Proposal version read-model loading now lives in
+    `src/core/proposals/version_read_model.py`, keeping direct version-detail repository loading
+    out of the workflow service.
+  - Proposal activity read-model loading now lives in
+    `src/core/proposals/activity_read_model.py`, reducing repeated proposal/event loading across
+    workflow timeline, execution status, delivery summary/history, and execution-update replay
+    paths.
+  - Proposal approval read-model loading now lives in
+    `src/core/proposals/approval_read_model.py`, keeping approval posture repository loading out of
+    the workflow service.
+  - Proposal detail read-model loading now lives in
+    `src/core/proposals/detail_read_model.py`, keeping proposal/current-version repository loading
+    out of the workflow service.
+  - Idempotent replay event and approval lookups now live in
+    `src/core/proposals/idempotency.py`, keeping replay repository loading next to replay matching
+    rules.
+  - Proposal idempotency read-model loading now lives in
+    `src/core/proposals/idempotency_read_model.py`, keeping replay-audit key lookup repository
+    loading out of the workflow service.
+  - Proposal create idempotency replay lookup now reuses
+    `src/core/proposals/idempotency_read_model.py`, aligning create replay command lookup with
+    replay-audit lookup behavior.
+  - Proposal async-operation status read-model loading now lives in
+    `src/core/proposals/async_operation_read_model.py`, keeping operation-id and correlation-id
+    status lookup repository loading out of the workflow service.
+  - Async operation execution, retry-loop, and version-submission correlation lookup now reuse
+    `src/core/proposals/async_operation_read_model.py`, keeping operational command reads aligned
+    with status and replay lookup boundaries.
+  - Proposal list read-model loading now lives in `src/core/proposals/list_read_model.py`, and
+    list response projection now lives in `src/core/proposals/projections.py`, keeping filter,
+    pagination, and DTO assembly boundaries out of the workflow service.
+  - Proposal command aggregate loading now lives in
+    `src/core/proposals/command_read_model.py`, keeping create-version, execution-handoff,
+    lifecycle transition, approval, and report-request aggregate reads aligned while command
+    invariants remain explicit in the workflow service.
+  - Initial proposal persistence now lives in `src/core/proposals/create_persistence.py`, keeping
+    the proposal/version/event/idempotency write sequence named, explicit, and test-covered outside
+    workflow orchestration.
+  - Proposal version persistence now reuses `src/core/proposals/create_persistence.py`, keeping the
+    new-version record and transition-event write sequence named and test-covered outside workflow
+    orchestration.
+  - Generic proposal transition and approval-transition persistence now live in
+    `src/core/proposals/transition_persistence.py`, keeping lifecycle write boundaries named and
+    test-covered outside workflow orchestration.
+  - Async operation attempt, success, failure, and retry/final-failure persistence now live in
+    `src/core/proposals/async_operation_persistence.py`, keeping async state mutation and
+    repository update boundaries test-covered outside workflow orchestration.
+  - Async operation submission creation, replay, and conflict detection now live in
+    `src/core/proposals/async_operation_submission.py`, keeping create-proposal idempotency and
+    create-version correlation semantics reusable and test-covered outside workflow orchestration.
+  - Recoverable async operation listing and operation-kind classification now live in
+    `src/core/proposals/async_operation_recovery_read_model.py`, keeping recovery scanning
+    reusable and test-covered outside workflow orchestration.
+  - Proposal lifecycle exception vocabulary now lives in `src/core/proposals/exceptions.py`,
+    keeping API-facing error taxonomy reusable without requiring callers to depend on the workflow
+    service implementation module.
+  - API routers, workspace routing, and proposal-reporting support now import proposal exceptions
+    directly from `src/core/proposals/exceptions.py`, with an import-boundary test preventing
+    service/package coupling from returning.
+  - Proposal command validation adapters now live in `src/core/proposals/command_validation.py`,
+    keeping simulation-flag, expected-state, lifecycle-transition, and approval-transition error
+    mapping outside the workflow service.
+  - Report-request event creation and aggregate timestamp mutation now live behind
+    `build_report_request_event_and_apply_state` in `src/core/proposals/reporting.py`, keeping
+    report command state logic out of the workflow service.
+  - Execution handoff event creation and aggregate timestamp mutation now live behind
+    `build_execution_handoff_event_and_apply_state` in
+    `src/core/proposals/execution_handoff.py`, keeping handoff command state logic out of the
+    workflow service.
+  - State-transition event creation and aggregate state mutation now live behind
+    `build_state_transition_event_and_apply_state` in
+    `src/core/proposals/lifecycle_events.py`, keeping transition command state logic out of the
+    workflow service.
+  - Approval record creation, approval transition event creation, and aggregate state mutation now
+    live behind `build_approval_command_state_and_apply_transition` in
+    `src/core/proposals/lifecycle_events.py`, keeping approval command state logic out of the
+    workflow service.
+  - Execution update event creation and aggregate state mutation now live behind
+    `build_execution_update_event_and_apply_state` in
+    `src/core/proposals/execution_update.py`, keeping execution update command state logic out of
+    the workflow service.
+  - New-version lifecycle event creation and aggregate version-state mutation now live behind
+    `build_new_version_created_event_and_apply_state` in `src/core/proposals/versions.py`, keeping
+    create-version command state logic out of the workflow service.
+  - Initial proposal aggregate, `CREATED` lineage event, and proposal-create idempotency record
+    assembly now live behind `build_proposal_create_command_state` in
+    `src/core/proposals/records.py`, keeping create command state referent construction out of the
+    workflow service.
+  - Execution-update aggregate state mutation now lives in
+    `src/core/proposals/execution_update.py`, keeping execution update state and last-event
+    timestamp mutation out of the workflow service.
+  - Report-request aggregate timestamp mutation now lives in
+    `src/core/proposals/reporting.py`, keeping report lineage event-time policy out of the
+    workflow service.
+  - Proposal approval record construction, approval workflow-event construction, and approval
+    transition response projection now live in `src/core/proposals/lifecycle_events.py`, while the
+    workflow service retains approval replay referent checks, expected-state validation,
+    approval-transition rule resolution, and persistence.
+  - Proposal evidence-bundle enrichment now lives in `src/core/proposals/evidence.py`, consolidating
+    context-resolution override handling, risk-lens extraction, and replay-lineage attachment across
+    proposal create and version create paths.
+  - Proposal `CREATED` and `NEW_VERSION_CREATED` lifecycle event construction now lives in
+    `src/core/proposals/lifecycle_events.py`, keeping create/version workflow event assembly
+    consistent with the other lifecycle command helpers.
+  - Initial proposal aggregate construction and proposal-create idempotency record construction now
+    live in `src/core/proposals/records.py`, keeping default lifecycle state and replay identity
+    construction out of the workflow service.
+  - Async create-proposal and create-version operation record construction now lives in
+    `src/core/proposals/async_operations.py`, keeping persisted operation payload shape,
+    submission hash lineage, retry counters, and initial status defaults out of the workflow
+    service.
+  - Async create-proposal replay identity validation now lives in
+    `src/core/proposals/async_operations.py`, keeping operation-type, idempotency-key, and
+    submission-hash matching out of the workflow service.
+  - Async create-version replay identity validation now lives in
+    `src/core/proposals/async_operations.py`, keeping operation-type, proposal-scope, and
+    submission-hash matching out of the workflow service.
+  - Recoverable async operation kind classification now lives in
+    `src/core/proposals/async_operations.py`, keeping supported recovery operation vocabulary out of
+    the workflow service.
+  - Async operation terminal-run skip handling now lives in
+    `src/core/proposals/async_operations.py`, keeping missing/terminal operation retry-loop
+    vocabulary out of the workflow service.
+  - Async operation result-version extraction now lives in
+    `src/core/proposals/async_operations.py`, keeping replay-evidence version selection parsing out
+    of the workflow service.
+  - Async create-submission outcome counters now live behind
+    `AsyncCreateSubmissionStatsTracker` in `src/core/proposals/async_operations.py`, keeping
+    thread-safe accepted/replayed/conflict bookkeeping out of the workflow service.
+  - Stale service-private projection wrappers have been removed; `ProposalWorkflowService` now calls
+    projection helpers directly.
+  - Stale module-level `utc_now` helper has been removed from
+    `src/core/proposals/async_operations.py`; async operation state transitions receive explicit
+    timestamps from the workflow service.
+  - Stale async replay-lineage service wrapper and unused time helper have been removed.
+  - Stale service-private version-record wrapper has been removed; create paths call the version
+    builder directly.
+  - The wiki architecture page now documents the implementation-backed proposal module boundaries
+    and lineage flow with diagrams.
+  - Workflow event and approval replay idempotency lookup now lives in
+    `src/core/proposals/idempotency.py`.
+  - Expected-state optimistic concurrency validation now lives in
+    `src/core/proposals/concurrency.py`.
+  - Proposal simulation enablement validation now lives in
+    `src/core/proposals/simulation_gate.py` and is reused by lifecycle and direct simulation
+    service paths.
+  - Proposal fallback correlation ID resolution now lives in
+    `src/core/proposals/correlation.py` and is reused by lifecycle, async, and direct simulation
+    paths.
+  - Proposal-domain identifier factories now live in `src/core/proposals/identifiers.py` and cover
+    proposal, version, workflow event, async operation, execution request, approval, and report
+    request identifiers.
+  - Stale service-private async submission hash wrappers have been removed; async create/version
+    submission hashing is called directly from `src/core/proposals/async_payloads.py`.
+  - Async operation execution retry, lease, terminal-skip, lifecycle-failure, runtime-failure, and
+    success persistence now live in `src/core/proposals/async_operation_runner.py`, keeping the
+    workflow service focused on selecting the async executor for create versus version operations.
+  - Proposal report-request command loading, event construction, aggregate timestamp mutation, and
+    transition persistence now live in `src/core/proposals/report_request_command.py`, keeping
+    report command write behavior outside the workflow service facade.
+  - Proposal execution-handoff command loading, idempotent replay detection, expected-state
+    validation, execution-ready validation, event construction, aggregate mutation, and transition
+    persistence now live in `src/core/proposals/execution_handoff_command.py`, keeping execution
+    handoff write behavior outside the workflow service facade.
+  - Proposal execution-update command loading, handoff identity validation, idempotent replay
+    detection, terminal-state validation, timestamp ordering, event construction, aggregate
+    mutation, and transition persistence now live in
+    `src/core/proposals/execution_update_command.py`, keeping execution update write behavior
+    outside the workflow service facade while preserving the existing reload-after-write response.
+  - Proposal lifecycle state-transition and approval command loading, idempotent replay detection,
+    expected-state validation, transition resolution, approval record construction, event
+    construction, aggregate mutation, and transition persistence now live in
+    `src/core/proposals/lifecycle_command.py`, removing the remaining service-private replay
+    helpers for workflow events and approval records.
+  - Async create/version payload recovery failure mapping now lives in
+    `src/core/proposals/async_payload_resolution.py`, keeping persisted async payload failure
+    outcomes beside payload resolution instead of the workflow service.
+  - Proposal contract types now live in `src/core/proposals/contract_types.py`, proposal input
+    envelopes and validation live in `src/core/proposals/input_models.py`, API/read response DTOs
+    live in `src/core/proposals/response_models.py`, and persistence records live in
+    `src/core/proposals/persistence_models.py`. `src/core/proposals/models.py` remains the stable
+    public import module and is pinned by a contract-boundary test.
+- Follow-up:
+  - Treat proposal service command decomposition as complete for the recorded high-risk command
+    paths unless new behavior expands the coordinator again.
+  - WTBD-001 is complete for the recorded Advise-owned decomposition scope.
+  - Keep API contracts stable while moving business rules out of controller and persistence seams.
+  - Publish repo-local wiki updates after merge to `main`.
+
+## WTBD-002: Continue Stateful Context Adapter Decomposition
+
+- Owning repository: `lotus-advise`
+- Status: Closed
+- Finding class: query/performance risk
+- Current evidence:
+  - `src/integrations/lotus_core/stateful_context.py` is now a thin orchestration adapter for
+    stateful context resolution. Cache policy, route policy, source reads, payload translation,
+    classification vocabulary, and non-held trade-draft hydration are separated into named modules.
+- Progress:
+  - Lotus Core classification taxonomy parsing, governed label resolution, supportability
+    attributes, and upstream-first liquidity-tier fallback rules now live in
+    `src/integrations/lotus_core/classification.py`, keeping private-banking instrument
+    vocabulary separate from stateful-context HTTP/cache orchestration.
+  - Stateful-context cache policy, cache instances, clone policy, fetch counters, cache statistics,
+    and reset helpers now live in `src/integrations/lotus_core/stateful_context_cache.py`, keeping
+    cache lifecycle and diagnostics outside the upstream adapter while preserving existing test
+    compatibility imports.
+  - Lotus Core stateful-context endpoint constants, query/control-plane base URL resolution, and
+    as-of dated positions/cash path construction now live in
+    `src/integrations/lotus_core/stateful_context_routes.py`, keeping upstream route policy
+    separate from HTTP request execution and request translation.
+  - Lotus Core stateful-context HTTP request execution, cached JSON reads, bulk instrument
+    enrichment fetch, and classification taxonomy fetch now live in
+    `src/integrations/lotus_core/stateful_context_source_reads.py`, keeping source-read failure
+    mapping and fetch counters separate from advisory request translation.
+  - Lotus Core stateful-context payload translation now lives in
+    `src/integrations/lotus_core/stateful_context_translation.py`, including decimal parsing, cash
+    balance construction, position construction, price construction, FX derivation, shelf-entry
+    attributes, and governed shelf-entry translation.
+  - Non-held trade-draft market-data hydration now lives in
+    `src/integrations/lotus_core/stateful_context_hydration.py`, including missing instrument
+    detection, instrument/price/FX lookup selection, shelf-entry append behavior, and
+    classification-aware enrichment for proposed trades that are absent from the held context.
+- Follow-up:
+  - WTBD-002 is complete for the recorded Advise-owned decomposition scope.
+  - Preserve RFC-0082 authority boundaries: source facts stay in `lotus-core`; advisory context
+    translation stays in `lotus-advise`.
+
+## WTBD-003: Continue Workspace Service Decomposition
+
+- Owning repository: `lotus-advise`
+- Status: Closed
+- Finding class: modularity problem
+- Current evidence:
+  - `src/api/services/workspace_service.py` is now a thin API service facade for session lookup,
+    persistence, and endpoint-facing response assembly. Stateful/stateless context resolution,
+    lifecycle handoff orchestration, draft mutation, evaluation projection, replay evidence,
+    saved-version handling, comparison, identifier generation, and cache storage are separated
+    into named modules.
+- Progress:
+  - Workspace identifier factories now live in `src/core/workspace/identifiers.py` and cover
+    workspace session, trade draft, cash-flow draft, and saved-version identifiers.
+  - Workspace reevaluation now uses the shared proposal correlation resolver so workspace-originated
+    proposal simulations follow the same correlation ID policy as proposal-originated simulations.
+  - Workspace replay evidence, draft-state hashing, saved-version matching, and handoff continuity
+    now live in `src/core/workspace/replay.py`.
+  - Workspace saved-version summary refresh and saved-version lookup now live in
+    `src/core/workspace/versions.py`.
+  - Workspace draft-state projection and simulation-request reconstruction now live in
+    `src/core/workspace/draft_state.py`.
+  - Workspace draft action mutation now lives in `src/core/workspace/draft_actions.py`.
+  - Workspace lifecycle handoff metadata, proposal request assembly, simulate-request guards, and
+    handoff context-resolution evidence now live in `src/core/workspace/handoff.py`.
+  - Workspace evaluation summary construction, issue counts, and portfolio delta formatting now
+    live in `src/core/workspace/evaluation.py`.
+  - Workspace session cache state and LRU eviction now live in
+    `src/api/services/workspace_store.py`.
+  - Workspace saved-version comparison projection and diff-summary calculation now live in
+    `src/core/workspace/compare.py`.
+  - Workspace saved-version record construction, replay-evidence fallback, and defensive snapshot
+    copying now live in `src/core/workspace/versions.py`.
+  - Workspace saved-version resume snapshot application now lives in
+    `src/core/workspace/versions.py`.
+  - Workspace saved-version list projection now lives in
+    `src/core/workspace/versions.py`.
+  - Workspace session DTO construction now lives in `src/core/workspace/sessions.py`.
+  - Workspace stateless resolved-context construction now lives in
+    `src/core/workspace/sessions.py`, and stale stateful resolved-context service helper code has
+    been removed.
+  - Workspace lifecycle handoff completion, lifecycle-link assignment, and replay-continuity
+    mutation now live in `src/core/workspace/handoff.py`.
+  - Workspace reevaluation context assembly, policy selectors, context-resolution evidence, and
+    request hashing now live in `src/core/workspace/reevaluation.py`.
+  - Workspace lifecycle handoff create-versus-version orchestration now lives in
+    `src/api/services/workspace_lifecycle_handoff.py`, keeping proposal service calls,
+    idempotency-key enforcement, replay-lineage construction, and handoff context evidence out of
+    the API facade.
+  - Workspace stateful/stateless simulate-request assembly and create-time context fallback now
+    live in `src/api/services/workspace_context_resolution.py`, keeping Lotus Core context
+    resolution and trade-draft hydration outside the API facade while preserving existing
+    compatibility hooks.
+  - Workspace service exception vocabulary now lives in `src/api/services/workspace_errors.py` and
+    is re-exported by the API facade for existing callers.
+- Follow-up:
+  - WTBD-003 is complete for the recorded Advise-owned decomposition scope.
+  - Preserve existing workspace API contracts and lifecycle handoff semantics; record any future
+    growth as a fresh ledger finding with behavior-specific evidence.
+
+## WTBD-004: Keep Gateway And Workbench Capability Consumers Aligned
+
+- Owning repositories: `lotus-gateway`, `lotus-workbench`
+- Status: Closed
+- Current action: closed with downstream evidence on 2026-05-21.
+- Evidence:
+  - `lotus-gateway` read-only review confirmed
+    `src/app/services/platform_capabilities_service.py` already preserves the Advise
+    `supportability` payload through `_source_supportability(...)` into proposal/advisory shell
+    workspace descriptors instead of locally inventing advisory supportability reasons.
+  - A concrete Gateway alignment gap was fixed on branch
+    `feat/advise-capability-query-alignment` at commit `7f282e7`: `src/app/clients/advise_client.py`
+    now calls Advise `GET /platform/capabilities` with canonical snake_case
+    `consumer_system=lotus-gateway` and caller `tenant_id`, matching the existing Manage capability
+    pattern and preserving tenant-shaped capability posture.
+  - Gateway proof:
+    `python -m pytest tests/unit/test_upstream_clients.py::test_advise_client_capabilities_uses_gateway_consumer_and_tenant_context tests/unit/test_router_upstream_selection.py tests/integration/test_platform_capabilities_router.py::test_platform_capabilities_router_preserves_correlation_and_query_context -q`
+    passed with `7 passed`.
+  - `lotus-workbench` read-only review confirmed
+    `src/features/platform-capabilities/api.ts`,
+    `src/features/platform-capabilities/use-platform-capabilities.ts`, and
+    `src/shell/workspace-supportability-copy.ts` consume the Gateway platform-capability contract
+    and use Gateway-provided supportability reasons before local disabled-state fallback copy.
+- Follow-up trigger:
+  - Reopen only if the Advise `GET /platform/capabilities` response shape changes or if a
+    downstream consumer starts deriving advisory supportability from local feature flags instead of
+    the Advise/Gateway source-backed `supportability` payload.
+
+## Cross-Repository Disposition
+
+- Review date: 2026-05-21
+- Source of truth: this `lotus-advise` WTBD ledger plus
+  `docs/architecture/CODEBASE-REVIEW-LEDGER.md` and
+  `docs/architecture/RFC-0082-upstream-contract-family-map.md`.
+- `lotus-core`: no new upstream defect is currently recorded. The active WTBD posture is to keep
+  source facts, simulation execution, classification taxonomy, prices, FX, cash, holdings, and
+  instrument enrichment source-owned in `lotus-core`; WTBD-002 work remains inside
+  `lotus-advise` unless the stateful-context access pattern grows enough to justify a new governed
+  core snapshot or analytics-input contract.
+- `lotus-risk`: no new upstream defect is currently recorded. RFC-0020 convergence is marked
+  implemented, and the active posture is to keep concentration/risk-lens methodology in
+  `lotus-risk` while `lotus-advise` consumes and degrades around that authority.
+- `lotus-ai`, `lotus-report`, `lotus-performance`, and `lotus-render`: no concrete WTBD-owner
+  change is currently recorded from the Advise refactor ledger. Current mentions are integration
+  posture or future-RFC context, not actionable defects.
+- `lotus-gateway` and `lotus-workbench`: WTBD-004 is closed. Gateway now forwards the canonical
+  Advise capability query context and preserves Advise source supportability; Workbench consumes the
+  Gateway contract and does not invent advisory supportability when source reasons are absent.
+- `lotus-manage`: no Advise WTBD assigns work to Manage. Manage remains outside advisory workflow
+  ownership except where future product flows explicitly hand off to discretionary management under
+  a governed RFC.

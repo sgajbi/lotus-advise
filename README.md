@@ -78,7 +78,7 @@ Main runtime surfaces come from [src/api/main.py](src/api/main.py):
 - tactical house view
   source-owned affected-cohort evaluation under `/advisory/tactical-house-view/*`
 - integration capabilities
-  `GET /integration/capabilities`
+  `GET /platform/capabilities`
 - platform surfaces
   `/health`, `/health/live`, `/health/ready`, `/docs`
 

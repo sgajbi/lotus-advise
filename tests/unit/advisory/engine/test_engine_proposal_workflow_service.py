@@ -6,10 +6,12 @@ import pytest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest
+from src.core.proposals.command_validation import resolve_proposal_approval_transition
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
     ProposalCreateRequest,
+    ProposalExecutionUpdateRequest,
     ProposalIdempotencyRecord,
     ProposalRecord,
     ProposalStateTransitionRequest,
@@ -30,6 +32,31 @@ from src.core.workspace.models import WorkspaceResolvedContext
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
+
+
+class CountingListEventsRepository(InMemoryProposalRepository):
+    def __init__(self) -> None:
+        super().__init__()
+        self.list_events_calls = 0
+
+    def list_events(self, *, proposal_id: str) -> list[ProposalWorkflowEventRecord]:
+        self.list_events_calls += 1
+        return super().list_events(proposal_id=proposal_id)
+
+
+class CountingLineageRepository(InMemoryProposalRepository):
+    def __init__(self) -> None:
+        super().__init__()
+        self.get_version_calls = 0
+        self.list_versions_calls = 0
+
+    def get_version(self, *, proposal_id: str, version_no: int) -> ProposalVersionRecord | None:
+        self.get_version_calls += 1
+        return super().get_version(proposal_id=proposal_id, version_no=version_no)
+
+    def list_versions(self, *, proposal_id: str) -> list[ProposalVersionRecord]:
+        self.list_versions_calls += 1
+        return super().list_versions(proposal_id=proposal_id)
 
 
 def _risk_enriched_result(result):  # noqa: ANN001
@@ -678,8 +705,6 @@ def test_service_missing_version_paths_and_helper_branches():
     else:
         raise AssertionError("Expected PROPOSAL_NOT_FOUND")
 
-    assert service._to_approval(None) is None
-
     repo.save_idempotency(
         ProposalIdempotencyRecord(
             idempotency_key="idem-bad-ref",
@@ -714,7 +739,7 @@ def test_service_rejects_simulation_flag_and_invalid_approval_type():
         raise AssertionError("Expected PROPOSAL_SIMULATION_DISABLED")
 
     try:
-        service._resolve_approval_transition(
+        resolve_proposal_approval_transition(
             current_state="DRAFT",
             approval_type="UNKNOWN",
             approved=True,
@@ -726,14 +751,13 @@ def test_service_rejects_simulation_flag_and_invalid_approval_type():
 
 
 def test_service_invalid_approval_state_variants():
-    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
     for approval_type, expected_state in [
         ("RISK", "COMPLIANCE_REVIEW"),
         ("COMPLIANCE", "RISK_REVIEW"),
         ("CLIENT_CONSENT", "DRAFT"),
     ]:
         try:
-            service._resolve_approval_transition(
+            resolve_proposal_approval_transition(
                 current_state=expected_state,
                 approval_type=approval_type,
                 approved=True,
@@ -1106,7 +1130,7 @@ def test_service_expected_state_can_be_optional_when_disabled():
 
 
 def test_service_lineage_skips_missing_version_rows():
-    repo = InMemoryProposalRepository()
+    repo = CountingLineageRepository()
     service = ProposalWorkflowService(repository=repo)
     now = datetime.now(timezone.utc)
     repo.create_proposal(
@@ -1161,6 +1185,8 @@ def test_service_lineage_skips_missing_version_rows():
     assert lineage.lineage_complete is False
     assert lineage.missing_version_numbers == [2]
     assert [version.version_no for version in lineage.versions] == [1]
+    assert repo.list_versions_calls == 1
+    assert repo.get_version_calls == 0
 
 
 def test_transition_idempotency_replay_and_conflict():
@@ -1407,3 +1433,78 @@ def test_service_create_proposal_requires_workspace_reference_for_workspace_hand
         assert str(exc) == "WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED"
     else:
         raise AssertionError("Expected WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED")
+
+
+def test_execution_update_replay_uses_loaded_events_for_status_projection():
+    repo = CountingListEventsRepository()
+    service = ProposalWorkflowService(repository=repo)
+    occurred_at = datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc)
+    proposal = ProposalRecord(
+        proposal_id="pp_execution_update_replay",
+        portfolio_id="pf_execution_update_replay",
+        mandate_id="mandate_execution_update_replay",
+        jurisdiction="SG",
+        created_by="advisor_execution_update",
+        created_at=occurred_at,
+        last_event_at=occurred_at,
+        current_state="EXECUTION_READY",
+        current_version_no=3,
+        title="Execution update replay",
+    )
+    payload = ProposalExecutionUpdateRequest(
+        update_id="exec_update_replay",
+        actor_id="lotus-manage",
+        execution_request_id="pex_execution_update_replay",
+        execution_provider="lotus-manage",
+        update_status="PARTIALLY_EXECUTED",
+        external_execution_id="oms_partial_replay",
+        details={"filled_quantity": "50", "remaining_quantity": "25"},
+    )
+    request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
+    repo.create_proposal(proposal)
+    repo.append_event(
+        ProposalWorkflowEventRecord(
+            event_id="pwe_execution_requested_replay",
+            proposal_id=proposal.proposal_id,
+            event_type="EXECUTION_REQUESTED",
+            from_state="EXECUTION_READY",
+            to_state="EXECUTION_READY",
+            actor_id="advisor_execution_update",
+            occurred_at=occurred_at,
+            reason_json={
+                "execution_request_id": "pex_execution_update_replay",
+                "execution_provider": "lotus-manage",
+            },
+            related_version_no=3,
+        )
+    )
+    repo.append_event(
+        ProposalWorkflowEventRecord(
+            event_id="pwe_execution_update_replay",
+            proposal_id=proposal.proposal_id,
+            event_type="EXECUTION_PARTIALLY_EXECUTED",
+            from_state="EXECUTION_READY",
+            to_state="EXECUTION_READY",
+            actor_id="lotus-manage",
+            occurred_at=occurred_at,
+            reason_json={
+                "update_id": "exec_update_replay",
+                "execution_request_id": "pex_execution_update_replay",
+                "execution_provider": "lotus-manage",
+                "external_execution_id": "oms_partial_replay",
+                "idempotency_key": "execution-update:exec_update_replay",
+                "idempotency_request_hash": request_hash,
+            },
+            related_version_no=3,
+        )
+    )
+
+    response = service.record_execution_update(
+        proposal_id=proposal.proposal_id,
+        payload=payload,
+    )
+
+    assert repo.list_events_calls == 1
+    assert response.handoff_status == "PARTIALLY_EXECUTED"
+    assert response.latest_workflow_event is not None
+    assert response.latest_workflow_event.event_id == "pwe_execution_update_replay"

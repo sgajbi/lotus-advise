@@ -25,11 +25,11 @@ from src.api.services.workspace_service import (
     resume_workspace_version,
     save_workspace_version,
 )
-from src.core.proposals import (
+from src.core.proposals import ProposalWorkflowService
+from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalValidationError,
-    ProposalWorkflowService,
 )
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.workspace.models import (

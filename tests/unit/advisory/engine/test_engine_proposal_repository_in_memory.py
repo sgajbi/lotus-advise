@@ -157,6 +157,8 @@ def test_repository_versions_and_transition_transaction_path():
     )
     repo.create_version(version)
     assert repo.get_version(proposal_id="pp_repo_txn", version_no=1) is not None
+    assert [row.version_no for row in repo.list_versions(proposal_id="pp_repo_txn")] == [1]
+    assert repo.list_versions(proposal_id="pp_missing") == []
     assert repo.get_current_version(proposal_id="pp_repo_txn") is not None
 
     transition_event = ProposalWorkflowEventRecord(

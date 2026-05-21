@@ -17,6 +17,12 @@ from src.api.services.workspace_service import (
     reset_workspace_sessions_for_tests,
     save_workspace_version,
 )
+from src.core.workspace.evaluation import format_portfolio_delta
+from src.core.workspace.handoff import (
+    build_handoff_metadata,
+    build_proposal_version_request,
+)
+from src.core.workspace.models import WorkspaceLifecycleLink
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
@@ -186,7 +192,16 @@ def test_workspace_service_trade_and_cash_flow_not_found_guards() -> None:
         workspace_service.WorkspaceNotFoundError,
         match="WORKSPACE_CASH_FLOW_NOT_FOUND",
     ):
-        workspace_service._find_cash_flow_draft(session, "wcf_missing")
+        workspace_service.apply_workspace_draft_action(
+            session.workspace_id,
+            WorkspaceDraftActionRequest.model_validate(
+                {
+                    "actor_id": "advisor_123",
+                    "action_type": "REMOVE_CASH_FLOW",
+                    "workspace_cash_flow_id": "wcf_missing",
+                }
+            ),
+        )
 
     with pytest.raises(workspace_service.WorkspaceNotFoundError, match="WORKSPACE_TRADE_NOT_FOUND"):
         workspace_service.apply_workspace_draft_action(
@@ -216,7 +231,7 @@ def test_workspace_service_portfolio_delta_and_mandate_fallback() -> None:
     )
     session = create_workspace_session(summary_request).workspace
 
-    metadata = workspace_service._build_handoff_metadata(
+    metadata = build_handoff_metadata(
         workspace_service.WorkspaceLifecycleHandoffRequest(handoff_by="advisor_123"),
         session,
     )
@@ -231,7 +246,7 @@ def test_workspace_service_portfolio_delta_and_mandate_fallback() -> None:
         class before:
             total_value = type("MoneyHolder", (), {"amount": Decimal("100.00")})()
 
-    assert workspace_service._format_portfolio_delta(ResultWithoutReconciliation()) == "20.00"
+    assert format_portfolio_delta(ResultWithoutReconciliation()) == "20.00"
 
 
 def test_workspace_service_builds_version_request_with_expected_current_version() -> None:
@@ -259,16 +274,18 @@ def test_workspace_service_builds_version_request_with_expected_current_version(
             }
         )
     ).workspace
-    session.lifecycle_link = workspace_service.WorkspaceLifecycleLink(
+    session.lifecycle_link = WorkspaceLifecycleLink(
         proposal_id="pp_001",
         current_version_no=3,
         last_handoff_at="2026-03-25T10:00:00+00:00",
         last_handoff_by="advisor_123",
     )
 
-    payload = workspace_service._build_proposal_version_request(
+    assert session.stateless_input is not None
+    payload = build_proposal_version_request(
         session,
         workspace_service.WorkspaceLifecycleHandoffRequest(handoff_by="advisor_123"),
+        session.stateless_input.simulate_request,
     )
 
     assert payload.expected_current_version_no == 3

@@ -2,19 +2,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.core.proposals.models import ProposalWorkflowEventRecord
+from src.core.proposals.models import (
+    ProposalDeliveryExecutionSummary,
+    ProposalDeliveryHistoryResponse,
+    ProposalDeliveryReportingSummary,
+    ProposalDeliverySummaryResponse,
+    ProposalRecord,
+    ProposalWorkflowEventRecord,
+)
+from src.core.proposals.projections import to_proposal_summary, to_workflow_event
+from src.core.proposals.workflow_rules import (
+    EXECUTION_STATUS_EVENT_TYPES,
+    execution_status_for_event,
+)
 
-_EXECUTION_EVENT_TYPES = {
-    "EXECUTION_REQUESTED",
-    "EXECUTION_ACCEPTED",
-    "EXECUTION_PARTIALLY_EXECUTED",
-    "EXECUTION_REJECTED",
-    "EXECUTION_CANCELLED",
-    "EXECUTION_EXPIRED",
-    "EXECUTED",
-}
-
-_DELIVERY_EVENT_TYPES = _EXECUTION_EVENT_TYPES | {"REPORT_REQUESTED"}
+_DELIVERY_EVENT_TYPES = EXECUTION_STATUS_EVENT_TYPES | {"REPORT_REQUESTED"}
 
 
 def build_delivery_summary_from_events(
@@ -27,7 +29,7 @@ def build_delivery_summary_from_events(
     for event in events:
         if event.event_type == "EXECUTION_REQUESTED":
             latest_execution_requested = event
-        if event.event_type in _EXECUTION_EVENT_TYPES:
+        if event.event_type in EXECUTION_STATUS_EVENT_TYPES:
             latest_execution_event = event
         if event.event_type == "REPORT_REQUESTED":
             latest_report_request = event
@@ -37,7 +39,7 @@ def build_delivery_summary_from_events(
         target_event = latest_execution_event or latest_execution_requested
         assert target_event is not None
         execution = {
-            "handoff_status": _execution_event_to_status(target_event.event_type),
+            "handoff_status": execution_status_for_event(target_event.event_type),
             "execution_request_id": _optional_str(
                 target_event.reason_json.get("execution_request_id")
                 if target_event.reason_json.get("execution_request_id") is not None
@@ -108,17 +110,49 @@ def select_delivery_events(
     return [event for event in events if event.event_type in _DELIVERY_EVENT_TYPES]
 
 
-def _execution_event_to_status(event_type: str) -> str:
-    mapping = {
-        "EXECUTION_REQUESTED": "REQUESTED",
-        "EXECUTION_ACCEPTED": "ACCEPTED",
-        "EXECUTION_PARTIALLY_EXECUTED": "PARTIALLY_EXECUTED",
-        "EXECUTION_REJECTED": "REJECTED",
-        "EXECUTION_CANCELLED": "CANCELLED",
-        "EXECUTION_EXPIRED": "EXPIRED",
-        "EXECUTED": "EXECUTED",
-    }
-    return mapping[event_type]
+def build_delivery_summary_response(
+    *,
+    proposal: ProposalRecord,
+    events: list[ProposalWorkflowEventRecord],
+) -> ProposalDeliverySummaryResponse:
+    delivery = build_delivery_summary_from_events(events)
+    execution_payload = delivery.get("execution")
+    reporting_payload = delivery.get("reporting")
+    return ProposalDeliverySummaryResponse(
+        proposal=to_proposal_summary(proposal),
+        execution=(
+            ProposalDeliveryExecutionSummary.model_validate(execution_payload)
+            if isinstance(execution_payload, dict)
+            else None
+        ),
+        reporting=(
+            ProposalDeliveryReportingSummary.model_validate(reporting_payload)
+            if isinstance(reporting_payload, dict)
+            else None
+        ),
+        explanation={
+            "source": "ADVISORY_WORKFLOW_EVENTS",
+            "delivery_projection": "LATEST_EXECUTION_AND_REPORTING_POSTURE",
+        },
+    )
+
+
+def build_delivery_history_response(
+    *,
+    proposal: ProposalRecord,
+    events: list[ProposalWorkflowEventRecord],
+) -> ProposalDeliveryHistoryResponse:
+    history_events = [to_workflow_event(event) for event in select_delivery_events(events)]
+    return ProposalDeliveryHistoryResponse(
+        proposal=to_proposal_summary(proposal),
+        event_count=len(history_events),
+        latest_event=history_events[-1] if history_events else None,
+        events=history_events,
+        explanation={
+            "source": "ADVISORY_WORKFLOW_EVENTS",
+            "filter": "DELIVERY_ONLY",
+        },
+    )
 
 
 def _optional_str(value: Any) -> str | None:
