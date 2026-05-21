@@ -290,8 +290,9 @@ recorded here with enough detail for later owner-specific slices.
 - Owning repository: `lotus-advise`
 - Finding class: query/performance risk
 - Current evidence:
-  - `src/integrations/lotus_core/stateful_context.py` remains a large upstream adapter that mixes
-    source reads, translation, enrichment, caching, and supportability mapping.
+  - `src/integrations/lotus_core/stateful_context.py` is now a thin orchestration adapter for
+    stateful context resolution. Cache policy, route policy, source reads, payload translation,
+    classification vocabulary, and non-held trade-draft hydration are separated into named modules.
 - Progress:
   - Lotus Core classification taxonomy parsing, governed label resolution, supportability
     attributes, and upstream-first liquidity-tier fallback rules now live in
@@ -313,8 +314,12 @@ recorded here with enough detail for later owner-specific slices.
     `src/integrations/lotus_core/stateful_context_translation.py`, including decimal parsing, cash
     balance construction, position construction, price construction, FX derivation, shelf-entry
     attributes, and governed shelf-entry translation.
+  - Non-held trade-draft market-data hydration now lives in
+    `src/integrations/lotus_core/stateful_context_hydration.py`, including missing instrument
+    detection, instrument/price/FX lookup selection, shelf-entry append behavior, and
+    classification-aware enrichment for proposed trades that are absent from the held context.
 - Follow-up:
-  - Split non-held trade-draft market-data hydration into an explicit submodule.
+  - WTBD-002 is complete for the recorded Advise-owned decomposition scope.
   - Preserve RFC-0082 authority boundaries: source facts stay in `lotus-core`; advisory context
     translation stays in `lotus-advise`.
 

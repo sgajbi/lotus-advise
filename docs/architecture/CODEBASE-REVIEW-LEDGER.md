@@ -3498,3 +3498,29 @@
 - Follow-Up:
   - Continue WTBD-002 by extracting non-held trade-draft market-data hydration into a separate
     module with the existing cache and taxonomy behavior pinned.
+
+## LA-REV-142
+
+- Scope: Lotus Core stateful-context trade-draft hydration
+- Pattern: modularity / advisory enrichment boundary hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The stateful-context adapter still owned non-held trade-draft hydration inline with
+  context resolution, including missing-instrument detection, instrument/price/FX lookup selection,
+  shelf-entry append behavior, and classification-aware enrichment.
+- Evidence:
+  - `src/integrations/lotus_core/stateful_context_hydration.py` now owns non-held proposed-trade
+    market-data hydration and delegates source reads through the existing cache/source-read seams.
+  - `src/integrations/lotus_core/stateful_context.py` delegates trade-draft enrichment through a
+    thin wrapper that keeps existing public imports and test monkeypatch points stable.
+  - `tests/unit/advisory/api/test_lotus_core_stateful_context.py` continues to prove missing
+    trade input hydration, malformed lookup skipping, duplicate avoidance, FX append behavior,
+    cache reuse, taxonomy supportability attributes, and resolved request compatibility.
+- Consequence:
+  - WTBD-002 is closed for the recorded Advise-owned decomposition scope. The adapter now keeps
+    source facts in Lotus Core, advisory translation in Advise, and trade-draft hydration in a
+    named module that can be tuned for batching, diagnostics, or lineage without expanding context
+    resolution orchestration.
+- Follow-Up:
+  - Monitor future stateful-context growth through the codebase review ledger; do not reopen
+    WTBD-002 unless new behavior materially expands the adapter boundary.
