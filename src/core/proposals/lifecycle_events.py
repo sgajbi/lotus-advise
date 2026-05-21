@@ -182,3 +182,19 @@ def build_approval_transition_response(
         latest_workflow_event=to_workflow_event(event),
         approval=to_approval_record(approval),
     )
+
+
+def build_approval_replay_response_from_referents(
+    *,
+    proposal_id: str,
+    approval: ProposalApprovalRecordData,
+    event: ProposalWorkflowEventRecord | None,
+) -> ProposalStateTransitionResponse | None:
+    if event is None:
+        return None
+    return build_approval_transition_response(
+        proposal_id=proposal_id,
+        current_state=event.to_state,
+        event=event,
+        approval=approval,
+    )

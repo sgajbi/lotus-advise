@@ -2401,3 +2401,26 @@
   - Keep replay lookup ordering, expected-state validation, approval-transition rule resolution,
     and persistence orchestration in the service until a broader approval command boundary can be
     extracted without changing API behavior.
+
+## LA-REV-094
+
+- Scope: Approval replay response referent projection
+- Pattern: modularity problem / replay-lineage hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_approval` directly assembled approval replay responses
+  and handled missing replay-event referents after repository lookup, coupling replay projection to
+  service orchestration.
+- Evidence:
+  - `src/core/proposals/lifecycle_events.py` now owns
+    `build_approval_replay_response_from_referents`.
+  - `src/core/proposals/service.py` delegates replay response assembly and preserves the existing
+    `PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND` error when the replay event is missing.
+  - `tests/unit/advisory/engine/test_engine_proposal_lifecycle_events.py` directly proves replay
+    response projection from complete referents and `None` for a missing replay event.
+- Consequence:
+  - Approval replay projection now lives beside approval response projection, reducing service-owned
+    DTO assembly for replay paths.
+- Follow-Up:
+  - Keep replay lookup ordering and repository access in the service until a broader approval
+    command boundary can be extracted without changing API behavior.

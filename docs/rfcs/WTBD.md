@@ -92,6 +92,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal approval canonical request hashing now lives in
     `src/core/proposals/lifecycle_events.py`, keeping approval replay hash construction beside
     approval record and approval event construction.
+  - Proposal approval replay response assembly now lives in
+    `src/core/proposals/lifecycle_events.py`, keeping replay referent projection beside approval
+    response projection.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.

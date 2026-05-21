@@ -90,6 +90,7 @@ from src.core.proposals.lifecycle import (
 from src.core.proposals.lifecycle_events import (
     apply_lifecycle_transition_state,
     build_approval_record,
+    build_approval_replay_response_from_referents,
     build_approval_request_hash,
     build_approval_transition_event,
     build_approval_transition_response,
@@ -934,14 +935,14 @@ class ProposalWorkflowService:
                 idempotency_key=idempotency_key,
                 request_hash=request_hash,
             )
-            if replay_event is None:
-                raise ProposalLifecycleError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
-            return build_approval_transition_response(
+            replay_response = build_approval_replay_response_from_referents(
                 proposal_id=proposal_id,
-                current_state=replay_event.to_state,
-                event=replay_event,
                 approval=replay_approval,
+                event=replay_event,
             )
+            if replay_response is None:
+                raise ProposalLifecycleError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
+            return replay_response
         self._validate_expected_state(proposal.current_state, payload.expected_state)
 
         occurred_at = _utc_now()

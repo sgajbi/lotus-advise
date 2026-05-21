@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from src.core.proposals.lifecycle_events import (
     apply_lifecycle_transition_state,
     build_approval_record,
+    build_approval_replay_response_from_referents,
     build_approval_request_hash,
     build_approval_transition_event,
     build_approval_transition_response,
@@ -288,3 +289,60 @@ def test_build_approval_transition_response_projects_approval_record():
     assert response.approval is not None
     assert response.approval.approval_id == "pap_lifecycle"
     assert response.approval.details == {"channel": "IN_PERSON"}
+
+
+def test_build_approval_replay_response_from_referents_projects_replayed_event_and_approval():
+    event = ProposalWorkflowEventRecord(
+        event_id="pwe_approval_replay",
+        proposal_id="pp_lifecycle_events",
+        event_type="CLIENT_CONSENT_RECORDED",
+        from_state="AWAITING_CLIENT_CONSENT",
+        to_state="EXECUTION_READY",
+        actor_id="client_lifecycle",
+        occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
+        reason_json={"channel": "IN_PERSON"},
+        related_version_no=2,
+    )
+    approval = ProposalApprovalRecordData(
+        approval_id="pap_lifecycle_replay",
+        proposal_id="pp_lifecycle_events",
+        approval_type="CLIENT_CONSENT",
+        approved=True,
+        actor_id="client_lifecycle",
+        occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
+        details_json={"channel": "IN_PERSON"},
+        related_version_no=2,
+    )
+
+    response = build_approval_replay_response_from_referents(
+        proposal_id="pp_lifecycle_events",
+        approval=approval,
+        event=event,
+    )
+
+    assert response is not None
+    assert response.current_state == "EXECUTION_READY"
+    assert response.latest_workflow_event.event_id == "pwe_approval_replay"
+    assert response.approval is not None
+    assert response.approval.approval_id == "pap_lifecycle_replay"
+
+
+def test_build_approval_replay_response_from_referents_returns_none_for_missing_event():
+    approval = ProposalApprovalRecordData(
+        approval_id="pap_lifecycle_replay",
+        proposal_id="pp_lifecycle_events",
+        approval_type="CLIENT_CONSENT",
+        approved=True,
+        actor_id="client_lifecycle",
+        occurred_at=datetime(2026, 5, 21, 9, 12, tzinfo=timezone.utc),
+        details_json={"channel": "IN_PERSON"},
+        related_version_no=2,
+    )
+
+    response = build_approval_replay_response_from_referents(
+        proposal_id="pp_lifecycle_events",
+        approval=approval,
+        event=None,
+    )
+
+    assert response is None
