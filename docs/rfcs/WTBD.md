@@ -174,6 +174,9 @@ recorded here with enough detail for later owner-specific slices.
   - Async operation submission creation, replay, and conflict detection now live in
     `src/core/proposals/async_operation_submission.py`, keeping create-proposal idempotency and
     create-version correlation semantics reusable and test-covered outside workflow orchestration.
+  - Recoverable async operation listing and operation-kind classification now live in
+    `src/core/proposals/async_operation_recovery_read_model.py`, keeping recovery scanning
+    reusable and test-covered outside workflow orchestration.
   - Report-request event creation and aggregate timestamp mutation now live behind
     `build_report_request_event_and_apply_state` in `src/core/proposals/reporting.py`, keeping
     report command state logic out of the workflow service.

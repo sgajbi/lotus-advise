@@ -3278,3 +3278,27 @@
 - Follow-Up:
   - Review recoverable-operation listing and async recovery dispatch as the remaining direct
     repository-owned async operation boundary in `ProposalWorkflowService`.
+
+## LA-REV-133
+
+- Scope: Async operation recovery read model
+- Pattern: modularity / recovery-boundary hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.recover_async_operations` still owned recoverable-operation
+  repository listing and operation-kind classification inline, leaving recovery scanning as the
+  remaining direct async repository read boundary in workflow orchestration.
+- Evidence:
+  - `src/core/proposals/async_operation_recovery_read_model.py` now owns recoverable async
+    operation listing plus supported/unsupported operation-kind classification.
+  - `src/core/proposals/service.py` delegates recovery scanning while preserving dispatch and
+    unsupported-operation failure handling.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operation_recovery_read_model.py`
+    verifies supported classification, unsupported preservation, and repository recoverability
+    filtering for expired running operations.
+- Consequence:
+  - Async recovery scanning now has a reusable boundary for future batching, lease diagnostics,
+    recovery metrics, or tenant-scoped recovery without increasing workflow-service coupling.
+- Follow-Up:
+  - Review recovery dispatch as a possible command-router boundary only if more async operation
+    families are added.

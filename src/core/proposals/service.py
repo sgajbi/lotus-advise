@@ -14,6 +14,9 @@ from src.core.proposals.async_operation_read_model import (
     load_proposal_async_operation_by_correlation_read_model,
     load_proposal_async_operation_read_model,
 )
+from src.core.proposals.async_operation_recovery_read_model import (
+    load_recoverable_async_operation_read_models,
+)
 from src.core.proposals.async_operation_submission import (
     persist_create_proposal_async_submission,
     persist_create_version_async_submission,
@@ -24,7 +27,6 @@ from src.core.proposals.async_operations import (
     build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
-    resolve_recoverable_async_operation_kind,
     should_skip_async_operation_run,
 )
 from src.core.proposals.async_payloads import (
@@ -890,13 +892,16 @@ class ProposalWorkflowService:
 
     def recover_async_operations(self) -> int:
         recovered = 0
-        for operation in self._repository.list_recoverable_operations(as_of=_utc_now()):
-            operation_kind = resolve_recoverable_async_operation_kind(operation)
-            if operation_kind == "CREATE_PROPOSAL":
+        for read_model in load_recoverable_async_operation_read_models(
+            repository=self._repository,
+            as_of=_utc_now(),
+        ):
+            operation = read_model.operation
+            if read_model.operation_kind == "CREATE_PROPOSAL":
                 self.execute_create_proposal_async(operation_id=operation.operation_id)
                 recovered += 1
                 continue
-            if operation_kind == "CREATE_PROPOSAL_VERSION":
+            if read_model.operation_kind == "CREATE_PROPOSAL_VERSION":
                 self.execute_create_version_async(operation_id=operation.operation_id)
                 recovered += 1
                 continue
