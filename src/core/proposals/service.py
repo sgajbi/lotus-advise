@@ -4,6 +4,12 @@ from typing import Any, Optional, cast
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
+from src.core.proposals.async_operation_persistence import (
+    persist_async_attempt_started,
+    persist_async_operation_failed,
+    persist_async_operation_succeeded,
+    persist_async_runtime_exception_outcome,
+)
 from src.core.proposals.async_operation_read_model import (
     load_proposal_async_operation_by_correlation_read_model,
     load_proposal_async_operation_read_model,
@@ -11,15 +17,11 @@ from src.core.proposals.async_operation_read_model import (
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
-    apply_runtime_exception_outcome,
-    begin_async_attempt,
     build_async_replay_lineage,
     build_create_proposal_async_operation,
     build_create_version_async_operation,
     is_matching_create_proposal_async_submission,
     is_matching_create_version_async_submission,
-    mark_operation_failed,
-    mark_operation_succeeded,
     resolve_recoverable_async_operation_kind,
     should_skip_async_operation_run,
 )
@@ -903,10 +905,12 @@ class ProposalWorkflowService:
                 self.execute_create_version_async(operation_id=operation.operation_id)
                 recovered += 1
                 continue
-            self._mark_operation_failed(
+            persist_async_operation_failed(
+                repository=self._repository,
                 operation=operation,
                 code="ProposalLifecycleError",
                 message="PROPOSAL_ASYNC_OPERATION_TYPE_UNSUPPORTED",
+                finished_at=_utc_now(),
             )
         return recovered
 
@@ -1150,10 +1154,12 @@ class ProposalWorkflowService:
             fallback_idempotency_key=fallback_idempotency_key,
         )
         if isinstance(resolution, AsyncPayloadResolutionFailure):
-            self._mark_operation_failed(
+            persist_async_operation_failed(
+                repository=self._repository,
                 operation=operation,
                 code=resolution.code,
                 message=resolution.message,
+                finished_at=_utc_now(),
             )
             return None
         resolved = cast(AsyncCreatePayloadResolution, resolution)
@@ -1175,10 +1181,12 @@ class ProposalWorkflowService:
             fallback_payload=fallback_payload,
         )
         if isinstance(resolution, AsyncPayloadResolutionFailure):
-            self._mark_operation_failed(
+            persist_async_operation_failed(
+                repository=self._repository,
                 operation=operation,
                 code=resolution.code,
                 message=resolution.message,
+                finished_at=_utc_now(),
             )
             return None
         resolved = cast(AsyncVersionPayloadResolution, resolution)
@@ -1200,73 +1208,40 @@ class ProposalWorkflowService:
                 return
             assert operation is not None
 
-            self._begin_async_attempt(operation)
+            persist_async_attempt_started(
+                repository=self._repository,
+                operation=operation,
+                attempt_started_at=_utc_now(),
+                lease_seconds=ASYNC_OPERATION_LEASE_SECONDS,
+            )
             try:
                 response = executor()
             except ProposalLifecycleError as exc:
-                self._mark_operation_failed(
+                persist_async_operation_failed(
+                    repository=self._repository,
                     operation=operation,
                     code=type(exc).__name__,
                     message=str(exc),
+                    finished_at=_utc_now(),
                 )
                 return
             except Exception as exc:
-                if self._requeue_or_fail_runtime_exception(operation=operation, exc=exc):
+                if persist_async_runtime_exception_outcome(
+                    repository=self._repository,
+                    operation=operation,
+                    exc=exc,
+                    finished_at=_utc_now(),
+                ):
                     continue
                 return
 
-            self._mark_operation_succeeded(operation=operation, response=response)
+            persist_async_operation_succeeded(
+                repository=self._repository,
+                operation=operation,
+                response=response,
+                finished_at=_utc_now(),
+            )
             return
-
-    def _begin_async_attempt(self, operation: ProposalAsyncOperationRecord) -> None:
-        begin_async_attempt(
-            operation=operation,
-            attempt_started_at=_utc_now(),
-            lease_seconds=ASYNC_OPERATION_LEASE_SECONDS,
-        )
-        self._repository.update_operation(operation)
-
-    def _mark_operation_succeeded(
-        self,
-        *,
-        operation: ProposalAsyncOperationRecord,
-        response: ProposalCreateResponse,
-    ) -> None:
-        mark_operation_succeeded(
-            operation=operation,
-            response=response,
-            finished_at=_utc_now(),
-        )
-        self._repository.update_operation(operation)
-
-    def _mark_operation_failed(
-        self,
-        *,
-        operation: ProposalAsyncOperationRecord,
-        code: str,
-        message: str,
-    ) -> None:
-        mark_operation_failed(
-            operation=operation,
-            code=code,
-            message=message,
-            finished_at=_utc_now(),
-        )
-        self._repository.update_operation(operation)
-
-    def _requeue_or_fail_runtime_exception(
-        self,
-        *,
-        operation: ProposalAsyncOperationRecord,
-        exc: Exception,
-    ) -> bool:
-        should_requeue = apply_runtime_exception_outcome(
-            operation=operation,
-            exc=exc,
-            finished_at=_utc_now(),
-        )
-        self._repository.update_operation(operation)
-        return cast(bool, should_requeue)
 
     def _validate_simulation_flag(self, request: ProposalSimulateRequest) -> None:
         try:

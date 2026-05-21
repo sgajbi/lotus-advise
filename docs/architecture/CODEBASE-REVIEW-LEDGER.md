@@ -3232,3 +3232,26 @@
     repository-atomic without expanding workflow orchestration.
 - Follow-Up:
   - Review Postgres transaction semantics before changing repository behavior beyond delegation.
+
+## LA-REV-131
+
+- Scope: Async operation state persistence
+- Pattern: modularity / operational persistence hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: `ProposalWorkflowService` owned repeated async operation state mutation plus
+  `update_operation` persistence for attempts, success, lifecycle failure, payload recovery
+  failure, and runtime retry/final-failure outcomes.
+- Evidence:
+  - `src/core/proposals/async_operation_persistence.py` now owns async operation state mutation plus
+    repository update persistence.
+  - `src/core/proposals/service.py` delegates async attempt, success, failure, and runtime outcome
+    persistence while preserving async orchestration flow.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operation_persistence.py` verifies
+    running leases, success results, terminal errors, and retry/final-failure persistence.
+- Consequence:
+  - Async operation persistence now has a reusable boundary for future metrics, tracing, optimistic
+    locking, or repository-atomic updates without expanding workflow orchestration.
+- Follow-Up:
+  - Review async operation creation and recoverable-operation listing for similar persistence/read
+    boundaries once update semantics settle.
