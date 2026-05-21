@@ -28,6 +28,8 @@ recorded here with enough detail for later owner-specific slices.
   - Async create/version payload recovery and failure outcomes now live in
     `src/core/proposals/async_payloads.py`.
   - Immutable proposal version-record construction now lives in `src/core/proposals/versions.py`.
+  - Create-version eligibility policy now lives in `src/core/proposals/versions.py`, keeping
+    terminal-state, expected-version, and portfolio-context validation out of the workflow service.
   - New proposal-version lifecycle state mutation now lives in
     `src/core/proposals/versions.py`, keeping current-version increment, draft reset, and
     last-event timestamp mutation out of the workflow service.

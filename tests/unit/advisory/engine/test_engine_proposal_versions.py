@@ -4,8 +4,13 @@ from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import GateDecision, GateDecisionSummary, ProposalResult
 from src.core.proposals.models import ProposalRecord
 from src.core.proposals.versions import (
+    ProposalVersionConflictError,
+    ProposalVersionPortfolioContextError,
+    ProposalVersionTerminalStateError,
     apply_new_version_lifecycle_state,
     build_proposal_version_record,
+    validate_create_version_portfolio_context,
+    validate_create_version_state,
 )
 
 
@@ -44,6 +49,84 @@ def _artifact() -> dict:
             }
         },
     }
+
+
+def _proposal(
+    *,
+    current_state: str = "DRAFT",
+    current_version_no: int = 2,
+    portfolio_id: str = "pf_version",
+) -> ProposalRecord:
+    created_at = datetime(2026, 5, 20, 8, 0, tzinfo=timezone.utc)
+    return ProposalRecord(
+        proposal_id="pp_version_state",
+        portfolio_id=portfolio_id,
+        mandate_id="mandate_version_state",
+        jurisdiction="SG",
+        created_by="advisor_version_state",
+        created_at=created_at,
+        last_event_at=created_at,
+        current_state=current_state,
+        current_version_no=current_version_no,
+        title="Version lifecycle state",
+        advisor_notes=None,
+        lifecycle_origin="DIRECT_CREATE",
+        source_workspace_id=None,
+    )
+
+
+def test_validate_create_version_state_rejects_terminal_state_and_version_conflict():
+    validate_create_version_state(
+        proposal=_proposal(current_state="DRAFT", current_version_no=2),
+        expected_current_version_no=2,
+        terminal_states={"EXECUTED", "REJECTED", "CANCELLED", "EXPIRED"},
+    )
+
+    try:
+        validate_create_version_state(
+            proposal=_proposal(current_state="EXECUTED", current_version_no=2),
+            expected_current_version_no=2,
+            terminal_states={"EXECUTED", "REJECTED", "CANCELLED", "EXPIRED"},
+        )
+    except ProposalVersionTerminalStateError as exc:
+        assert str(exc) == "PROPOSAL_TERMINAL_STATE: cannot create version"
+    else:
+        raise AssertionError("Expected terminal-state rejection")
+
+    try:
+        validate_create_version_state(
+            proposal=_proposal(current_state="DRAFT", current_version_no=2),
+            expected_current_version_no=1,
+            terminal_states={"EXECUTED", "REJECTED", "CANCELLED", "EXPIRED"},
+        )
+    except ProposalVersionConflictError as exc:
+        assert str(exc) == "VERSION_CONFLICT: expected_current_version_no mismatch"
+    else:
+        raise AssertionError("Expected expected-version conflict")
+
+
+def test_validate_create_version_portfolio_context_allows_only_configured_changes():
+    validate_create_version_portfolio_context(
+        proposal_portfolio_id="pf_version",
+        request_portfolio_id="pf_version",
+        allow_portfolio_id_change=False,
+    )
+    validate_create_version_portfolio_context(
+        proposal_portfolio_id="pf_version",
+        request_portfolio_id="pf_other",
+        allow_portfolio_id_change=True,
+    )
+
+    try:
+        validate_create_version_portfolio_context(
+            proposal_portfolio_id="pf_version",
+            request_portfolio_id="pf_other",
+            allow_portfolio_id_change=False,
+        )
+    except ProposalVersionPortfolioContextError as exc:
+        assert str(exc) == "PORTFOLIO_CONTEXT_MISMATCH"
+    else:
+        raise AssertionError("Expected portfolio context mismatch")
 
 
 def test_build_proposal_version_record_captures_hashes_and_gate_decision():
@@ -100,21 +183,13 @@ def test_build_proposal_version_record_can_omit_evidence_bundle():
 def test_apply_new_version_lifecycle_state_resets_proposal_to_draft():
     original_event_at = datetime(2026, 5, 20, 8, 0, tzinfo=timezone.utc)
     occurred_at = datetime(2026, 5, 20, 9, 10, tzinfo=timezone.utc)
-    proposal = ProposalRecord(
-        proposal_id="pp_version_state",
-        portfolio_id="pf_version_state",
-        mandate_id="mandate_version_state",
-        jurisdiction="SG",
-        created_by="advisor_version_state",
-        created_at=original_event_at,
-        last_event_at=original_event_at,
+    proposal = _proposal(
         current_state="EXECUTION_READY",
         current_version_no=1,
-        title="Version lifecycle state",
-        advisor_notes=None,
-        lifecycle_origin="DIRECT_CREATE",
-        source_workspace_id=None,
+        portfolio_id="pf_version_state",
     )
+    proposal.created_at = original_event_at
+    proposal.last_event_at = original_event_at
 
     apply_new_version_lifecycle_state(
         proposal=proposal,

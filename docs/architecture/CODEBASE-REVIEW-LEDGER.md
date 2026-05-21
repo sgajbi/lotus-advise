@@ -2076,3 +2076,27 @@
 - Follow-Up:
   - Keep repository read orchestration in the service until replay query objects can cover
     idempotency, async replay, and version replay consistently.
+
+## LA-REV-080
+
+- Scope: Create-version eligibility policy
+- Pattern: modularity problem / lifecycle correctness hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.create_version` directly owned terminal-state rejection,
+  expected-current-version conflict detection, and portfolio-context mismatch validation, mixing
+  create-version policy with context resolution, simulation, event construction, and persistence.
+- Evidence:
+  - `src/core/proposals/versions.py` now owns `validate_create_version_state` and
+    `validate_create_version_portfolio_context` plus typed version eligibility exceptions.
+  - `src/core/proposals/service.py` delegates create-version eligibility policy while preserving the
+    existing API-facing exception classes and messages.
+  - `tests/unit/advisory/engine/test_engine_proposal_versions.py` directly proves terminal-state
+    rejection, expected-version conflict rejection, matching portfolio acceptance, configured
+    portfolio-change allowance, and portfolio-context mismatch rejection.
+- Consequence:
+  - Create-version eligibility policy is centralized beside version record and lifecycle helpers,
+    reducing inline business policy in the workflow service.
+- Follow-Up:
+  - Keep proposal lookup and API error mapping in the service until a broader command handler can
+    preserve not-found, validation, conflict, and persistence ordering semantics.

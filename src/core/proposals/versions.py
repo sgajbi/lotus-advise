@@ -1,9 +1,53 @@
+from collections.abc import Collection
 from datetime import datetime
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.models import ProposalResult
 from src.core.proposals.models import ProposalRecord, ProposalVersionRecord
+
+
+class ProposalVersionEligibilityError(Exception):
+    pass
+
+
+class ProposalVersionTerminalStateError(ProposalVersionEligibilityError):
+    pass
+
+
+class ProposalVersionConflictError(ProposalVersionEligibilityError):
+    pass
+
+
+class ProposalVersionPortfolioContextError(ProposalVersionEligibilityError):
+    pass
+
+
+def validate_create_version_state(
+    *,
+    proposal: ProposalRecord,
+    expected_current_version_no: int | None,
+    terminal_states: Collection[str],
+) -> None:
+    if proposal.current_state in terminal_states:
+        raise ProposalVersionTerminalStateError("PROPOSAL_TERMINAL_STATE: cannot create version")
+    if (
+        expected_current_version_no is not None
+        and expected_current_version_no != proposal.current_version_no
+    ):
+        raise ProposalVersionConflictError("VERSION_CONFLICT: expected_current_version_no mismatch")
+
+
+def validate_create_version_portfolio_context(
+    *,
+    proposal_portfolio_id: str,
+    request_portfolio_id: str,
+    allow_portfolio_id_change: bool,
+) -> None:
+    if allow_portfolio_id_change:
+        return
+    if request_portfolio_id != proposal_portfolio_id:
+        raise ProposalVersionPortfolioContextError("PORTFOLIO_CONTEXT_MISMATCH")
 
 
 def build_proposal_version_record(

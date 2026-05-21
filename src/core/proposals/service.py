@@ -130,8 +130,13 @@ from src.core.proposals.simulation_gate import (
     validate_proposal_simulation_enabled,
 )
 from src.core.proposals.versions import (
+    ProposalVersionConflictError,
+    ProposalVersionPortfolioContextError,
+    ProposalVersionTerminalStateError,
     apply_new_version_lifecycle_state,
     build_proposal_version_record,
+    validate_create_version_portfolio_context,
+    validate_create_version_state,
 )
 from src.core.proposals.workflow_rules import (
     TERMINAL_STATES,
@@ -657,15 +662,16 @@ class ProposalWorkflowService:
         proposal = self._repository.get_proposal(proposal_id=proposal_id)
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        if proposal.current_state in TERMINAL_STATES:
-            raise ProposalValidationError("PROPOSAL_TERMINAL_STATE: cannot create version")
-        if (
-            payload.expected_current_version_no is not None
-            and payload.expected_current_version_no != proposal.current_version_no
-        ):
-            raise ProposalStateConflictError(
-                "VERSION_CONFLICT: expected_current_version_no mismatch"
+        try:
+            validate_create_version_state(
+                proposal=proposal,
+                expected_current_version_no=payload.expected_current_version_no,
+                terminal_states=TERMINAL_STATES,
             )
+        except ProposalVersionTerminalStateError as exc:
+            raise ProposalValidationError(str(exc)) from exc
+        except ProposalVersionConflictError as exc:
+            raise ProposalStateConflictError(str(exc)) from exc
 
         try:
             resolved_request = resolve_version_request(payload)
@@ -679,12 +685,16 @@ class ProposalWorkflowService:
                 resolved=resolved_request,
             )
         )
-        if (
-            not self._allow_portfolio_id_change_on_new_version
-            and resolved_request.simulate_request.portfolio_snapshot.portfolio_id
-            != proposal.portfolio_id
-        ):
-            raise ProposalValidationError("PORTFOLIO_CONTEXT_MISMATCH")
+        try:
+            validate_create_version_portfolio_context(
+                proposal_portfolio_id=proposal.portfolio_id,
+                request_portfolio_id=(
+                    resolved_request.simulate_request.portfolio_snapshot.portfolio_id
+                ),
+                allow_portfolio_id_change=self._allow_portfolio_id_change_on_new_version,
+            )
+        except ProposalVersionPortfolioContextError as exc:
+            raise ProposalValidationError(str(exc)) from exc
 
         proposal_result = self._run_simulation(
             request=resolved_request.simulate_request,
