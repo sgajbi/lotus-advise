@@ -13,6 +13,9 @@ class IntegrationDependencyState:
     base_url: str | None
     configured: bool
     operational_ready: bool
+    runtime_probe_enabled: bool
+    readiness_basis: str
+    degraded_reason: str | None
 
 
 def runtime_dependency_probing_enabled() -> bool:
@@ -50,9 +53,24 @@ def build_dependency_state(
 ) -> IntegrationDependencyState:
     base_url = os.getenv(base_url_env, "").strip() or None
     configured = bool(base_url)
-    operational_ready = configured
-    if configured and base_url and runtime_dependency_probing_enabled():
+    probe_enabled = configured and runtime_dependency_probing_enabled()
+    reason_key = key.upper().replace("-", "_")
+    degraded_reason: str | None = f"{reason_key}_DEPENDENCY_UNAVAILABLE"
+
+    if not configured:
+        operational_ready = False
+        readiness_basis = "not_configured"
+    elif not probe_enabled:
+        operational_ready = True
+        readiness_basis = "configuration_only"
+        degraded_reason = None
+    else:
+        assert base_url is not None
         operational_ready = probe_dependency_health(base_url)
+        readiness_basis = "probe_succeeded" if operational_ready else "probe_failed"
+        if operational_ready:
+            degraded_reason = None
+
     return IntegrationDependencyState(
         key=key,
         service_name=service_name,
@@ -61,4 +79,7 @@ def build_dependency_state(
         base_url=base_url,
         configured=configured,
         operational_ready=operational_ready,
+        runtime_probe_enabled=probe_enabled,
+        readiness_basis=readiness_basis,
+        degraded_reason=degraded_reason,
     )

@@ -21,6 +21,9 @@ def test_build_dependency_state_skips_network_probe_outside_production(monkeypat
 
     assert state.configured is True
     assert state.operational_ready is True
+    assert state.runtime_probe_enabled is False
+    assert state.readiness_basis == "configuration_only"
+    assert state.degraded_reason is None
     assert calls == []
 
 
@@ -38,6 +41,29 @@ def test_build_dependency_state_marks_dependency_unready_when_production_probe_f
 
     assert state.configured is True
     assert state.operational_ready is False
+    assert state.runtime_probe_enabled is True
+    assert state.readiness_basis == "probe_failed"
+    assert state.degraded_reason == "LOTUS_TEST_DEPENDENCY_UNAVAILABLE"
+
+
+def test_build_dependency_state_does_not_claim_probe_when_production_dependency_unconfigured(
+    monkeypatch,
+):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.delenv("TEST_BASE_URL", raising=False)
+
+    state = build_dependency_state(
+        key="lotus_test",
+        service_name="lotus-test",
+        description="Test dependency",
+        base_url_env="TEST_BASE_URL",
+    )
+
+    assert state.configured is False
+    assert state.operational_ready is False
+    assert state.runtime_probe_enabled is False
+    assert state.readiness_basis == "not_configured"
+    assert state.degraded_reason == "LOTUS_TEST_DEPENDENCY_UNAVAILABLE"
 
 
 def test_build_dependency_state_marks_dependency_ready_when_production_probe_succeeds(monkeypatch):
@@ -54,3 +80,6 @@ def test_build_dependency_state_marks_dependency_ready_when_production_probe_suc
 
     assert state.configured is True
     assert state.operational_ready is True
+    assert state.runtime_probe_enabled is True
+    assert state.readiness_basis == "probe_succeeded"
+    assert state.degraded_reason is None

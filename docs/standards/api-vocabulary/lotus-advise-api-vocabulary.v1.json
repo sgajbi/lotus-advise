@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-14T03:36:06.583978+00:00",
+  "generatedAt": "2026-05-21T13:55:44.389171+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -4535,10 +4535,13 @@
           {
             "base_url_env": "LOTUS_CORE_BASE_URL",
             "configured": false,
+            "degraded_reason": "LOTUS_CORE_DEPENDENCY_UNAVAILABLE",
             "dependency_key": "lotus_core",
             "description": "Canonical portfolio state and portfolio simulation authority.",
             "fallback_mode": "CONTROLLED_LOCAL_SIMULATION_FALLBACK",
             "operational_ready": false,
+            "readiness_basis": "not_configured",
+            "runtime_probe_enabled": false,
             "service_name": "lotus-core"
           }
         ],
@@ -4550,6 +4553,20 @@
       ],
       "observedTypes": [
         "OperationalReadiness"
+      ]
+    },
+    {
+      "semanticId": "lotus.readiness_basis",
+      "canonicalTerm": "readiness_basis",
+      "preferredName": "readiness_basis",
+      "description": "Bounded evidence basis for the readiness decision: missing configuration, configuration-only non-production posture, successful runtime probe, or failed runtime probe.",
+      "example": "not_configured",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -5113,6 +5130,20 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.runtime_probe_enabled",
+      "canonicalTerm": "runtime_probe_enabled",
+      "preferredName": "runtime_probe_enabled",
+      "description": "Whether this readiness decision used runtime health probing instead of configuration-only posture.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
       ]
     },
     {
@@ -26006,6 +26037,30 @@
             "type": "boolean",
             "semanticId": "lotus.operational_ready",
             "attributeRef": "#/attributeCatalog/lotus.operational_ready"
+          },
+          {
+            "name": "readiness.dependencies[].runtime_probe_enabled",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.runtime_probe_enabled",
+            "attributeRef": "#/attributeCatalog/lotus.runtime_probe_enabled"
+          },
+          {
+            "name": "readiness.dependencies[].readiness_basis",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.readiness_basis",
+            "attributeRef": "#/attributeCatalog/lotus.readiness_basis"
+          },
+          {
+            "name": "readiness.dependencies[].degraded_reason",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.degraded_reason",
+            "attributeRef": "#/attributeCatalog/lotus.degraded_reason"
           },
           {
             "name": "readiness.dependencies[].fallback_mode",
