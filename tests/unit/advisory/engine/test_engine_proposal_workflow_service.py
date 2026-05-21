@@ -1050,6 +1050,31 @@ def test_service_recover_async_operations_replays_pending_create_from_persisted_
     assert operation.result.proposal.proposal_id
 
 
+def test_service_recover_async_operations_respects_max_operations_batch():
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    first = service.submit_create_proposal_async(
+        payload=_create_payload(),
+        idempotency_key="idem-async-recover-batch-1",
+        correlation_id="corr-async-recover-batch-1",
+    )
+    second = service.submit_create_proposal_async(
+        payload=_create_payload(),
+        idempotency_key="idem-async-recover-batch-2",
+        correlation_id="corr-async-recover-batch-2",
+    )
+
+    recovered = service.recover_async_operations(max_operations=1)
+
+    first_operation = service.get_async_operation(operation_id=first.operation_id)
+    second_operation = service.get_async_operation(operation_id=second.operation_id)
+    assert recovered == 1
+    assert first_operation.status == "SUCCEEDED"
+    assert first_operation.result is not None
+    assert second_operation.status == "PENDING"
+    assert second_operation.result is None
+
+
 def test_service_recover_async_operations_replays_expired_running_version_operation():
     repo = InMemoryProposalRepository()
     service = ProposalWorkflowService(repository=repo)

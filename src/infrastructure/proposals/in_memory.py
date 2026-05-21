@@ -106,7 +106,11 @@ class InMemoryProposalRepository(ProposalRepository):
             operation = self._operations.get(operation_id)
             return deepcopy(operation) if operation is not None else None
 
-    def list_recoverable_operations(self, *, as_of: datetime) -> list[ProposalAsyncOperationRecord]:
+    def list_recoverable_operations(
+        self, *, as_of: datetime, limit: Optional[int] = None
+    ) -> list[ProposalAsyncOperationRecord]:
+        if limit is not None and limit <= 0:
+            return []
         with self._lock:
             operations = list(self._operations.values())
         recoverable = [
@@ -121,6 +125,8 @@ class InMemoryProposalRepository(ProposalRepository):
             )
         ]
         recoverable.sort(key=lambda operation: (operation.created_at, operation.operation_id))
+        if limit is not None:
+            recoverable = recoverable[:limit]
         return [deepcopy(operation) for operation in recoverable]
 
     def create_proposal(self, proposal: ProposalRecord) -> None:

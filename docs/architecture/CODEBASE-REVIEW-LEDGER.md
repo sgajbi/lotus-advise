@@ -4095,3 +4095,32 @@
 - Follow-Up:
   - Include repository migration smoke, focused repository tests, and repo-native feature-lane
     validation in the PR evidence before merge.
+
+## LA-REV-160
+
+- Scope: Async recovery startup batching
+- Pattern: async orchestration / startup reliability hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: FastAPI startup recovery invoked `recover_async_operations()` without a batch bound,
+  causing the service to load and process every pending or expired async operation before readiness.
+  That is functionally correct for small queues, but bank-scale backlogs can delay process startup,
+  readiness, and deployment recovery.
+- Evidence:
+  - `ProposalRepository.list_recoverable_operations` now accepts an optional `limit`.
+  - `InMemoryProposalRepository` and `PostgresProposalRepository` now apply the recoverable-operation
+    limit; the Postgres path pushes the bound down to SQL with `LIMIT %s`.
+  - `ProposalWorkflowService.recover_async_operations` now uses a bounded default recovery batch
+    while retaining an override for tests and controlled maintenance runs.
+  - Focused tests now prove read-model batch limiting, Postgres SQL limit behavior, zero-limit
+    handling, and service-level max-operation recovery behavior.
+- Consequence:
+  - Advisory startup recovery remains deterministic and bounded under async backlog, reducing
+    readiness risk while preserving repeatable recovery across subsequent startup or operator
+    recovery passes.
+- Documentation:
+  - No wiki change is required because this is internal startup/recovery hardening with no public
+    API, OpenAPI, operator workflow, or capability-contract change.
+- Follow-Up:
+  - Include focused async recovery tests and repo-native feature-lane validation in the PR evidence
+    before merge.
