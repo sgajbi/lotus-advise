@@ -58,8 +58,10 @@ from src.core.proposals.execution_status import (
     latest_execution_requested_event,
 )
 from src.core.proposals.execution_update import (
+    ProposalExecutionUpdateIdentityError,
     apply_execution_update_state,
     build_execution_update_event,
+    validate_execution_update_handoff_identity,
 )
 from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
@@ -547,16 +549,13 @@ class ProposalWorkflowService:
         if latest_execution_requested is None:
             raise ProposalValidationError("EXECUTION_HANDOFF_NOT_FOUND")
 
-        expected_execution_request_id = latest_execution_requested.reason_json.get(
-            "execution_request_id"
-        )
-        if expected_execution_request_id != payload.execution_request_id:
-            raise ProposalStateConflictError("EXECUTION_REQUEST_ID_MISMATCH")
-        expected_execution_provider = latest_execution_requested.reason_json.get(
-            "execution_provider"
-        )
-        if expected_execution_provider != payload.execution_provider:
-            raise ProposalStateConflictError("EXECUTION_PROVIDER_MISMATCH")
+        try:
+            validate_execution_update_handoff_identity(
+                handoff_event=latest_execution_requested,
+                payload=payload,
+            )
+        except ProposalExecutionUpdateIdentityError as exc:
+            raise ProposalStateConflictError(str(exc)) from exc
 
         request_hash = hash_canonical_payload(payload.model_dump(mode="json"))
         replay_event = self._get_replayed_event(

@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 
 from src.core.proposals.execution_update import (
+    ProposalExecutionUpdateProviderMismatchError,
+    ProposalExecutionUpdateRequestIdMismatchError,
     apply_execution_update_state,
     build_execution_update_event,
+    validate_execution_update_handoff_identity,
 )
 from src.core.proposals.models import (
     ProposalExecutionUpdateRequest,
@@ -102,6 +105,82 @@ def test_build_execution_update_event_defaults_to_handoff_version_and_omits_null
         "idempotency_key": "execution-update:exec_update_001",
         "idempotency_request_hash": "sha256:update",
     }
+
+
+def test_validate_execution_update_handoff_identity_accepts_matching_identity():
+    handoff_event = ProposalWorkflowEventRecord(
+        event_id="pwe_execution_requested",
+        proposal_id="pp_execution_update",
+        event_type="EXECUTION_REQUESTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="advisor_execution_update",
+        occurred_at=datetime(2026, 5, 21, 9, 55, tzinfo=timezone.utc),
+        reason_json={
+            "execution_request_id": "pex_execution_update",
+            "execution_provider": "lotus-manage",
+        },
+        related_version_no=3,
+    )
+
+    validate_execution_update_handoff_identity(
+        handoff_event=handoff_event,
+        payload=_payload(),
+    )
+
+
+def test_validate_execution_update_handoff_identity_rejects_request_id_mismatch():
+    handoff_event = ProposalWorkflowEventRecord(
+        event_id="pwe_execution_requested",
+        proposal_id="pp_execution_update",
+        event_type="EXECUTION_REQUESTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="advisor_execution_update",
+        occurred_at=datetime(2026, 5, 21, 9, 55, tzinfo=timezone.utc),
+        reason_json={
+            "execution_request_id": "pex_other",
+            "execution_provider": "lotus-manage",
+        },
+        related_version_no=3,
+    )
+
+    try:
+        validate_execution_update_handoff_identity(
+            handoff_event=handoff_event,
+            payload=_payload(),
+        )
+    except ProposalExecutionUpdateRequestIdMismatchError as exc:
+        assert str(exc) == "EXECUTION_REQUEST_ID_MISMATCH"
+    else:
+        raise AssertionError("expected execution request ID mismatch")
+
+
+def test_validate_execution_update_handoff_identity_rejects_provider_mismatch():
+    handoff_event = ProposalWorkflowEventRecord(
+        event_id="pwe_execution_requested",
+        proposal_id="pp_execution_update",
+        event_type="EXECUTION_REQUESTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="advisor_execution_update",
+        occurred_at=datetime(2026, 5, 21, 9, 55, tzinfo=timezone.utc),
+        reason_json={
+            "execution_request_id": "pex_execution_update",
+            "execution_provider": "external-oms",
+        },
+        related_version_no=3,
+    )
+
+    try:
+        validate_execution_update_handoff_identity(
+            handoff_event=handoff_event,
+            payload=_payload(),
+        )
+    except ProposalExecutionUpdateProviderMismatchError as exc:
+        assert str(exc) == "EXECUTION_PROVIDER_MISMATCH"
+    else:
+        raise AssertionError("expected execution provider mismatch")
 
 
 def test_apply_execution_update_state_updates_state_and_event_timestamp():

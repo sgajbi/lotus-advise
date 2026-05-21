@@ -8,6 +8,31 @@ from src.core.proposals.models import (
 )
 
 
+class ProposalExecutionUpdateIdentityError(Exception):
+    pass
+
+
+class ProposalExecutionUpdateRequestIdMismatchError(ProposalExecutionUpdateIdentityError):
+    pass
+
+
+class ProposalExecutionUpdateProviderMismatchError(ProposalExecutionUpdateIdentityError):
+    pass
+
+
+def validate_execution_update_handoff_identity(
+    *,
+    handoff_event: ProposalWorkflowEventRecord,
+    payload: ProposalExecutionUpdateRequest,
+) -> None:
+    expected_execution_request_id = handoff_event.reason_json.get("execution_request_id")
+    if expected_execution_request_id != payload.execution_request_id:
+        raise ProposalExecutionUpdateRequestIdMismatchError("EXECUTION_REQUEST_ID_MISMATCH")
+    expected_execution_provider = handoff_event.reason_json.get("execution_provider")
+    if expected_execution_provider != payload.execution_provider:
+        raise ProposalExecutionUpdateProviderMismatchError("EXECUTION_PROVIDER_MISMATCH")
+
+
 def build_execution_update_event(
     *,
     event_id: str,

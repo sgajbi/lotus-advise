@@ -62,6 +62,9 @@ recorded here with enough detail for later owner-specific slices.
   - Proposal execution update event construction now lives in
     `src/core/proposals/execution_update.py`, while the workflow service retains handoff identity
     matching, terminal-state rejection, timestamp ordering, replay detection, and persistence.
+  - Proposal execution update handoff identity validation now lives in
+    `src/core/proposals/execution_update.py`, keeping execution request/provider reconciliation
+    vocabulary out of the workflow service while preserving API error mapping.
   - Generic proposal state-transition event construction and transition response projection now
     live in `src/core/proposals/lifecycle_events.py`, while the workflow service retains proposal
     lookup, replay detection, expected-state validation, transition-rule resolution, and persistence.

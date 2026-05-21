@@ -2216,3 +2216,27 @@
 - Follow-Up:
   - Keep expected-state validation and idempotency replay orchestration in the service until a
     broader command boundary can preserve replay-before-validation ordering.
+
+## LA-REV-086
+
+- Scope: Execution update handoff identity validation
+- Pattern: modularity problem / execution reconciliation hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_execution_update` directly compared execution update
+  request/provider identity against the latest execution handoff event, leaving reconciliation
+  vocabulary and mismatch messages inside service orchestration.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now owns
+    `validate_execution_update_handoff_identity` and typed mismatch errors.
+  - `src/core/proposals/service.py` delegates request/provider identity validation and maps domain
+    errors back to the existing `ProposalStateConflictError` details.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` directly proves matching
+    identity acceptance plus request ID and provider mismatch rejection.
+- Consequence:
+  - Execution update reconciliation identity rules are centralized beside update event construction
+    and aggregate state mutation.
+- Follow-Up:
+  - Keep handoff lookup, replay-before-validation ordering, terminal-state rejection, and timestamp
+    ordering in the service until execution update command orchestration can be extracted as a
+    single policy boundary.
