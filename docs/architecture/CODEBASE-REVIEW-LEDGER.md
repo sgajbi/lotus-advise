@@ -3729,3 +3729,33 @@
 - Follow-Up:
   - Before PR merge, run the repo-native `make check` or stronger local/CI equivalent and keep the
     published wiki drift disposition explicit.
+
+## LA-REV-149
+
+- Scope: WTBD feature-lane gate
+- Pattern: type safety / feature-lane validation
+- Status: Hardened
+- Finding Class: validation failure
+- Summary: The consolidated WTBD proof pack passed, but the repo-native `make check` gate initially
+  failed because three recently extracted proposal command helper functions lacked explicit return
+  type annotations.
+- Evidence:
+  - `src/core/proposals/lifecycle_command.py` now annotates replayed lifecycle event and approval
+    helper return types with `ProposalWorkflowEventRecord | None` and
+    `ProposalApprovalRecordData | None`.
+  - `src/core/proposals/execution_handoff_command.py` now annotates replayed execution-handoff
+    event lookup with `ProposalWorkflowEventRecord | None`.
+  - Reran `make check`.
+  - Result: ruff check passed, ruff format check passed for 333 files, monetary-float guard passed,
+    mypy passed for 174 source files, OpenAPI quality gate passed, lifecycle OpenAPI docs tests
+    passed (`5 passed`), no-alias guard passed, API vocabulary inventory generated and validate-only
+    passed with no drift, domain-data product declarations validated, and unit tests passed
+    (`807 passed in 59.13s`).
+- Consequence:
+  - WTBD closure now satisfies the repository-native feature-lane gate, not only the targeted proof
+    pack.
+- Documentation:
+  - No wiki change is required because this is validation/type-safety evidence for internal WTBD
+    closure, not a public capability or operator workflow change.
+- Follow-Up:
+  - Keep `make check` as the minimum local gate for any further WTBD reopening or closure claim.

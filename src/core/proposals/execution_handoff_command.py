@@ -23,6 +23,7 @@ from src.core.proposals.identifiers import new_execution_request_id, new_workflo
 from src.core.proposals.models import (
     ProposalExecutionHandoffRequest,
     ProposalExecutionHandoffResponse,
+    ProposalWorkflowEventRecord,
 )
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.transition_persistence import persist_proposal_transition
@@ -95,7 +96,7 @@ def _load_replayed_execution_handoff_event(
     proposal_id: str,
     idempotency_key: str | None,
     request_hash: str,
-):
+) -> ProposalWorkflowEventRecord | None:
     try:
         return load_replayed_event(
             repository=repository,

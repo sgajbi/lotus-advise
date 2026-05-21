@@ -28,9 +28,11 @@ from src.core.proposals.lifecycle_events import (
     build_state_transition_response,
 )
 from src.core.proposals.models import (
+    ProposalApprovalRecordData,
     ProposalApprovalRequest,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
+    ProposalWorkflowEventRecord,
 )
 from src.core.proposals.repository import ProposalRepository
 from src.core.proposals.transition_persistence import (
@@ -180,7 +182,7 @@ def _load_replayed_event(
     proposal_id: str,
     idempotency_key: str | None,
     request_hash: str,
-):
+) -> ProposalWorkflowEventRecord | None:
     try:
         return load_replayed_event(
             repository=repository,
@@ -198,7 +200,7 @@ def _load_replayed_approval(
     proposal_id: str,
     idempotency_key: str | None,
     request_hash: str,
-):
+) -> ProposalApprovalRecordData | None:
     try:
         return load_replayed_approval(
             repository=repository,
