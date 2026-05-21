@@ -328,9 +328,11 @@ recorded here with enough detail for later owner-specific slices.
 - Owning repository: `lotus-advise`
 - Finding class: modularity problem
 - Current evidence:
-  - `src/api/services/workspace_service.py` remains a large API service that mixes workspace draft
-    mutation, evaluation orchestration, replay evidence, saved-version handling, lifecycle handoff,
-    and identifier generation.
+  - `src/api/services/workspace_service.py` is now a thin API service facade for session lookup,
+    persistence, and endpoint-facing response assembly. Stateful/stateless context resolution,
+    lifecycle handoff orchestration, draft mutation, evaluation projection, replay evidence,
+    saved-version handling, comparison, identifier generation, and cache storage are separated
+    into named modules.
 - Progress:
   - Workspace identifier factories now live in `src/core/workspace/identifiers.py` and cover
     workspace session, trade draft, cash-flow draft, and saved-version identifiers.
@@ -365,11 +367,20 @@ recorded here with enough detail for later owner-specific slices.
     mutation now live in `src/core/workspace/handoff.py`.
   - Workspace reevaluation context assembly, policy selectors, context-resolution evidence, and
     request hashing now live in `src/core/workspace/reevaluation.py`.
+  - Workspace lifecycle handoff create-versus-version orchestration now lives in
+    `src/api/services/workspace_lifecycle_handoff.py`, keeping proposal service calls,
+    idempotency-key enforcement, replay-lineage construction, and handoff context evidence out of
+    the API facade.
+  - Workspace stateful/stateless simulate-request assembly and create-time context fallback now
+    live in `src/api/services/workspace_context_resolution.py`, keeping Lotus Core context
+    resolution and trade-draft hydration outside the API facade while preserving existing
+    compatibility hooks.
+  - Workspace service exception vocabulary now lives in `src/api/services/workspace_errors.py` and
+    is re-exported by the API facade for existing callers.
 - Follow-up:
-  - Continue extracting workspace orchestration support only where behavior can be pinned outside
-    the API service without duplicating upstream context resolution semantics.
-  - Preserve existing workspace API contracts and lifecycle handoff semantics while reducing service
-    size.
+  - WTBD-003 is complete for the recorded Advise-owned decomposition scope.
+  - Preserve existing workspace API contracts and lifecycle handoff semantics; record any future
+    growth as a fresh ledger finding with behavior-specific evidence.
 
 ## WTBD-004: Keep Gateway And Workbench Capability Consumers Aligned
 

@@ -1,5 +1,17 @@
 from datetime import datetime, timezone
 
+from src.api.services.workspace_context_resolution import (
+    build_initial_workspace_context,
+    build_workspace_simulate_request,
+)
+from src.api.services.workspace_errors import (
+    WorkspaceEvaluationUnavailableError,
+    WorkspaceSavedVersionNotFoundError,
+)
+from src.api.services.workspace_errors import (
+    WorkspaceLifecycleHandoffUnavailableError as WorkspaceLifecycleHandoffUnavailableError,
+)
+from src.api.services.workspace_lifecycle_handoff import execute_workspace_lifecycle_handoff
 from src.api.services.workspace_store import (
     DEFAULT_WORKSPACE_SESSION_CACHE_SIZE,
     WorkspaceNotFoundError,
@@ -18,7 +30,6 @@ from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.correlation import resolve_correlation_id
-from src.core.proposals.models import ProposalCreateMetadata
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import build_workspace_saved_version_replay_response
 from src.core.workspace.compare import build_workspace_compare_response
@@ -26,19 +37,7 @@ from src.core.workspace.draft_actions import (
     WorkspaceDraftActionError,
     apply_workspace_draft_action_to_state,
 )
-from src.core.workspace.draft_state import (
-    apply_workspace_draft_state,
-    build_draft_state_from_simulate_request,
-)
 from src.core.workspace.evaluation import build_evaluation_summary
-from src.core.workspace.handoff import (
-    WorkspaceHandoffError,
-    build_proposal_create_request,
-    build_proposal_version_request,
-    build_workspace_handoff_context_resolution,
-    complete_workspace_lifecycle_handoff,
-    require_handoff_simulate_request,
-)
 from src.core.workspace.identifiers import (
     new_workspace_id,
     new_workspace_version_id,
@@ -48,10 +47,8 @@ from src.core.workspace.models import (
     WorkspaceCompareResponse,
     WorkspaceDraftActionRequest,
     WorkspaceDraftActionResponse,
-    WorkspaceDraftState,
     WorkspaceLifecycleHandoffRequest,
     WorkspaceLifecycleHandoffResponse,
-    WorkspaceResolvedContext,
     WorkspaceResumeRequest,
     WorkspaceSavedVersion,
     WorkspaceSavedVersionListResponse,
@@ -65,14 +62,8 @@ from src.core.workspace.reevaluation import (
     WorkspaceReevaluationContextError,
     build_workspace_evaluation_context,
 )
-from src.core.workspace.replay import (
-    build_replay_evidence,
-    build_workspace_handoff_replay_lineage,
-)
-from src.core.workspace.sessions import (
-    build_stateless_workspace_resolved_context,
-    build_workspace_session,
-)
+from src.core.workspace.replay import build_replay_evidence
+from src.core.workspace.sessions import build_workspace_session
 from src.core.workspace.versions import (
     WorkspaceSavedVersionLookupError,
     apply_saved_workspace_version,
@@ -81,27 +72,8 @@ from src.core.workspace.versions import (
     find_saved_version,
     refresh_saved_version_metadata,
 )
-from src.integrations.lotus_core import (
-    LotusCoreContextResolutionError,
-    resolve_lotus_core_advisory_context,
-)
-from src.integrations.lotus_core.stateful_context import (
-    enrich_stateful_simulate_request_for_trade_drafts,
-)
 
 MAX_WORKSPACE_SESSION_CACHE_SIZE = DEFAULT_WORKSPACE_SESSION_CACHE_SIZE
-
-
-class WorkspaceEvaluationUnavailableError(Exception):
-    pass
-
-
-class WorkspaceSavedVersionNotFoundError(Exception):
-    pass
-
-
-class WorkspaceLifecycleHandoffUnavailableError(Exception):
-    pass
 
 
 def _utc_now_iso() -> str:
@@ -113,31 +85,7 @@ def _current_business_date_iso() -> str:
 
 
 def _build_simulate_request_for_workspace(session: WorkspaceSession) -> ProposalSimulateRequest:
-    if session.input_mode == "stateful":
-        if session.stateful_input is None:
-            raise WorkspaceEvaluationUnavailableError("WORKSPACE_STATEFUL_INPUT_MISSING")
-        try:
-            resolved_stateful_context = resolve_lotus_core_advisory_context(session.stateful_input)
-        except LotusCoreContextResolutionError as exc:
-            raise WorkspaceEvaluationUnavailableError(
-                "WORKSPACE_STATEFUL_CONTEXT_RESOLUTION_UNAVAILABLE"
-            ) from exc
-        session.resolved_context = resolved_stateful_context.resolved_context
-        return enrich_stateful_simulate_request_for_trade_drafts(
-            simulate_request=apply_workspace_draft_state(
-                base_request=resolved_stateful_context.simulate_request,
-                draft_state=session.draft_state,
-            ),
-            as_of=session.resolved_context.as_of,
-        )
-
-    if session.stateless_input is None:
-        raise WorkspaceEvaluationUnavailableError("WORKSPACE_STATELESS_INPUT_MISSING")
-
-    return apply_workspace_draft_state(
-        base_request=session.stateless_input.simulate_request,
-        draft_state=session.draft_state,
-    )
+    return build_workspace_simulate_request(session)
 
 
 def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
@@ -196,32 +144,10 @@ def _find_saved_version(
 def create_workspace_session(
     request: WorkspaceSessionCreateRequest,
 ) -> WorkspaceSessionCreateResponse:
-    if request.input_mode == "stateless":
-        if request.stateless_input is None:
-            raise ValueError("stateless workspace creation requires stateless_input")
-        resolved_context = build_stateless_workspace_resolved_context(
-            stateless_input=request.stateless_input,
-            fallback_as_of=_current_business_date_iso(),
-        )
-        draft_state = build_draft_state_from_simulate_request(
-            request.stateless_input.simulate_request
-        )
-    else:
-        if request.stateful_input is None:
-            raise ValueError("stateful workspace creation requires stateful_input")
-        try:
-            resolved_stateful_context = resolve_lotus_core_advisory_context(request.stateful_input)
-        except LotusCoreContextResolutionError:
-            resolved_context = WorkspaceResolvedContext(
-                portfolio_id=request.stateful_input.portfolio_id,
-                as_of=request.stateful_input.as_of,
-            )
-            draft_state = WorkspaceDraftState()
-        else:
-            resolved_context = resolved_stateful_context.resolved_context
-            draft_state = build_draft_state_from_simulate_request(
-                resolved_stateful_context.simulate_request
-            )
+    resolved_context, draft_state = build_initial_workspace_context(
+        request=request,
+        fallback_as_of=_current_business_date_iso(),
+    )
 
     session = build_workspace_session(
         request=request,
@@ -319,72 +245,14 @@ def handoff_workspace_to_proposal_lifecycle(
     correlation_id: str | None,
 ) -> WorkspaceLifecycleHandoffResponse:
     session = get_workspace_session(workspace_id)
-    try:
-        if session.lifecycle_link is None:
-            if not idempotency_key:
-                raise WorkspaceLifecycleHandoffUnavailableError(
-                    "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED"
-                )
-            create_request = build_proposal_create_request(
-                session,
-                request,
-                _build_simulate_request_for_workspace(session),
-            )
-            replay_lineage = build_workspace_handoff_replay_lineage(
-                session,
-                request,
-                "CREATED_PROPOSAL",
-                proposal_id="",
-                proposal_version_no=1,
-            )
-            proposal_response = proposal_service.create_proposal(
-                payload=create_request,
-                idempotency_key=idempotency_key,
-                correlation_id=correlation_id,
-                lifecycle_origin="WORKSPACE_HANDOFF",
-                source_workspace_id=workspace_id,
-                replay_lineage=replay_lineage,
-                context_resolution_override=build_workspace_handoff_context_resolution(
-                    session,
-                    require_handoff_simulate_request(create_request.simulate_request),
-                    create_request.metadata,
-                ),
-            )
-            handoff_action = "CREATED_PROPOSAL"
-        else:
-            version_request = build_proposal_version_request(
-                session,
-                request,
-                _build_simulate_request_for_workspace(session),
-            )
-            replay_lineage = build_workspace_handoff_replay_lineage(
-                session,
-                request,
-                "CREATED_PROPOSAL_VERSION",
-                proposal_id=session.lifecycle_link.proposal_id,
-                proposal_version_no=session.lifecycle_link.current_version_no + 1,
-            )
-            proposal_response = proposal_service.create_version(
-                proposal_id=session.lifecycle_link.proposal_id,
-                payload=version_request,
-                correlation_id=correlation_id,
-                replay_lineage=replay_lineage,
-                context_resolution_override=build_workspace_handoff_context_resolution(
-                    session,
-                    require_handoff_simulate_request(version_request.simulate_request),
-                    ProposalCreateMetadata(),
-                ),
-            )
-            handoff_action = "CREATED_PROPOSAL_VERSION"
-    except (ValueError, WorkspaceEvaluationUnavailableError, WorkspaceHandoffError) as exc:
-        raise WorkspaceLifecycleHandoffUnavailableError(str(exc)) from exc
-
-    response = complete_workspace_lifecycle_handoff(
+    response = execute_workspace_lifecycle_handoff(
+        workspace_id=workspace_id,
         session=session,
         request=request,
-        proposal_response=proposal_response,
-        replay_lineage=replay_lineage,
-        handoff_action=handoff_action,
+        proposal_service=proposal_service,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+        simulate_request_builder=_build_simulate_request_for_workspace,
         completed_at=_utc_now_iso(),
     )
     _save_workspace_session(session)

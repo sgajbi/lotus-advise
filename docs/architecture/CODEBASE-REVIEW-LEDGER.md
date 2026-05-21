@@ -3524,3 +3524,35 @@
 - Follow-Up:
   - Monitor future stateful-context growth through the codebase review ledger; do not reopen
     WTBD-002 unless new behavior materially expands the adapter boundary.
+
+## LA-REV-143
+
+- Scope: Workspace API service orchestration
+- Pattern: modularity / service-boundary hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: The workspace API service still carried stateful/stateless context resolution and
+  lifecycle handoff branch orchestration alongside session lookup, persistence, draft actions,
+  evaluation, saved-version operations, replay reads, and comparison.
+- Evidence:
+  - `src/api/services/workspace_context_resolution.py` now owns workspace simulate-request
+    assembly, stateful Lotus Core context resolution, trade-draft hydration, stateless request
+    application, and create-time stateful fallback context construction.
+  - `src/api/services/workspace_lifecycle_handoff.py` now owns workspace-to-proposal create versus
+    version handoff orchestration, idempotency-key enforcement, replay-lineage construction,
+    context-resolution override assembly, and proposal service invocation.
+  - `src/api/services/workspace_errors.py` now owns workspace service exception vocabulary, while
+    `src/api/services/workspace_service.py` re-exports the existing symbols for callers and tests.
+  - `tests/unit/advisory/api/test_workspace_service.py`,
+    `tests/unit/advisory/api/test_workspace_handoff.py`,
+    `tests/unit/advisory/api/test_workspace_replay.py`, and
+    `tests/unit/advisory/api/test_workspace_versions.py` continue to prove create validation,
+    context-resolution failure mapping, reevaluation, lifecycle handoff, replay continuity,
+    saved-version resume/list/replay behavior, and comparison compatibility.
+- Consequence:
+  - WTBD-003 is closed for the recorded Advise-owned decomposition scope. The API service is now a
+    smaller facade over named workspace boundaries, with upstream context resolution and proposal
+    lifecycle handoff isolated for future diagnostics, lineage, and contract testing.
+- Follow-Up:
+  - Track any future workspace service growth as a new finding only when a concrete behavior starts
+    mixing endpoint facade responsibilities with domain or integration orchestration again.
