@@ -3,9 +3,11 @@ from datetime import datetime, timezone
 from src.core.proposals.execution_update import (
     ProposalExecutionUpdateProviderMismatchError,
     ProposalExecutionUpdateRequestIdMismatchError,
+    ProposalExecutionUpdateTerminalStateError,
     apply_execution_update_state,
     build_execution_update_event,
     validate_execution_update_handoff_identity,
+    validate_execution_update_state,
 )
 from src.core.proposals.models import (
     ProposalExecutionUpdateRequest,
@@ -181,6 +183,28 @@ def test_validate_execution_update_handoff_identity_rejects_provider_mismatch():
         assert str(exc) == "EXECUTION_PROVIDER_MISMATCH"
     else:
         raise AssertionError("expected execution provider mismatch")
+
+
+def test_validate_execution_update_state_accepts_non_terminal_state():
+    validate_execution_update_state(
+        proposal=_proposal(),
+        terminal_states={"EXECUTED", "CANCELLED"},
+    )
+
+
+def test_validate_execution_update_state_rejects_terminal_state():
+    proposal = _proposal()
+    proposal.current_state = "EXECUTED"
+
+    try:
+        validate_execution_update_state(
+            proposal=proposal,
+            terminal_states={"EXECUTED", "CANCELLED"},
+        )
+    except ProposalExecutionUpdateTerminalStateError as exc:
+        assert str(exc) == "PROPOSAL_TERMINAL_STATE: execution update rejected"
+    else:
+        raise AssertionError("expected execution update terminal state error")
 
 
 def test_apply_execution_update_state_updates_state_and_event_timestamp():

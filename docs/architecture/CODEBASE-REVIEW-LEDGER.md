@@ -2240,3 +2240,25 @@
   - Keep handoff lookup, replay-before-validation ordering, terminal-state rejection, and timestamp
     ordering in the service until execution update command orchestration can be extracted as a
     single policy boundary.
+
+## LA-REV-087
+
+- Scope: Execution update terminal-state validation
+- Pattern: modularity problem / execution lifecycle hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_execution_update` directly rejected execution updates
+  for terminal proposal states, leaving terminal lifecycle policy inside service orchestration.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now owns `validate_execution_update_state` and
+    `ProposalExecutionUpdateTerminalStateError`.
+  - `src/core/proposals/service.py` delegates terminal-state validation and maps the domain error
+    back to the existing `ProposalStateConflictError` detail.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` directly proves
+    non-terminal acceptance and terminal-state rejection.
+- Consequence:
+  - Execution update lifecycle eligibility is centralized beside update identity validation, event
+    construction, and aggregate state mutation.
+- Follow-Up:
+  - Keep replay-before-validation ordering and handoff timestamp ordering in the service until the
+    complete execution update command boundary can be extracted without changing API behavior.

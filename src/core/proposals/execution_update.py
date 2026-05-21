@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from datetime import datetime
 
 from src.core.proposals.models import (
@@ -20,6 +21,10 @@ class ProposalExecutionUpdateProviderMismatchError(ProposalExecutionUpdateIdenti
     pass
 
 
+class ProposalExecutionUpdateTerminalStateError(Exception):
+    pass
+
+
 def validate_execution_update_handoff_identity(
     *,
     handoff_event: ProposalWorkflowEventRecord,
@@ -31,6 +36,17 @@ def validate_execution_update_handoff_identity(
     expected_execution_provider = handoff_event.reason_json.get("execution_provider")
     if expected_execution_provider != payload.execution_provider:
         raise ProposalExecutionUpdateProviderMismatchError("EXECUTION_PROVIDER_MISMATCH")
+
+
+def validate_execution_update_state(
+    *,
+    proposal: ProposalRecord,
+    terminal_states: Collection[str],
+) -> None:
+    if proposal.current_state in terminal_states:
+        raise ProposalExecutionUpdateTerminalStateError(
+            "PROPOSAL_TERMINAL_STATE: execution update rejected"
+        )
 
 
 def build_execution_update_event(

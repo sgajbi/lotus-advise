@@ -59,9 +59,11 @@ from src.core.proposals.execution_status import (
 )
 from src.core.proposals.execution_update import (
     ProposalExecutionUpdateIdentityError,
+    ProposalExecutionUpdateTerminalStateError,
     apply_execution_update_state,
     build_execution_update_event,
     validate_execution_update_handoff_identity,
+    validate_execution_update_state,
 )
 from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
@@ -567,8 +569,10 @@ class ProposalWorkflowService:
             return self.get_execution_status(proposal_id=proposal_id)
 
         event_type, to_state = resolve_execution_update_event(payload.update_status)
-        if proposal.current_state in TERMINAL_STATES:
-            raise ProposalStateConflictError("PROPOSAL_TERMINAL_STATE: execution update rejected")
+        try:
+            validate_execution_update_state(proposal=proposal, terminal_states=TERMINAL_STATES)
+        except ProposalExecutionUpdateTerminalStateError as exc:
+            raise ProposalStateConflictError(str(exc)) from exc
 
         occurred_at = (
             datetime.fromisoformat(payload.occurred_at)
