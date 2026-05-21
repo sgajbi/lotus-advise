@@ -177,6 +177,9 @@ recorded here with enough detail for later owner-specific slices.
   - Recoverable async operation listing and operation-kind classification now live in
     `src/core/proposals/async_operation_recovery_read_model.py`, keeping recovery scanning
     reusable and test-covered outside workflow orchestration.
+  - Proposal lifecycle exception vocabulary now lives in `src/core/proposals/exceptions.py`,
+    keeping API-facing error taxonomy reusable without requiring callers to depend on the workflow
+    service implementation module.
   - Report-request event creation and aggregate timestamp mutation now live behind
     `build_report_request_event_and_apply_state` in `src/core/proposals/reporting.py`, keeping
     report command state logic out of the workflow service.

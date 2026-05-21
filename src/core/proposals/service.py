@@ -62,6 +62,14 @@ from src.core.proposals.delivery_summary import (
     build_delivery_summary_response,
 )
 from src.core.proposals.detail_read_model import load_proposal_detail_read_model
+from src.core.proposals.exceptions import (
+    ProposalIdempotencyConflictError,
+    ProposalLifecycleError,
+    ProposalNotFoundError,
+    ProposalStateConflictError,
+    ProposalTransitionError,
+    ProposalValidationError,
+)
 from src.core.proposals.execution_handoff import (
     ProposalExecutionHandoffStateError,
     build_execution_handoff_event_and_apply_state,
@@ -201,30 +209,6 @@ from src.core.replay.service import (
 
 ASYNC_DEFAULT_MAX_ATTEMPTS = 3
 ASYNC_OPERATION_LEASE_SECONDS = 60
-
-
-class ProposalLifecycleError(Exception):
-    pass
-
-
-class ProposalNotFoundError(ProposalLifecycleError):
-    pass
-
-
-class ProposalValidationError(ProposalLifecycleError):
-    pass
-
-
-class ProposalIdempotencyConflictError(ProposalLifecycleError):
-    pass
-
-
-class ProposalStateConflictError(ProposalLifecycleError):
-    pass
-
-
-class ProposalTransitionError(ProposalLifecycleError):
-    pass
 
 
 class ProposalWorkflowService:

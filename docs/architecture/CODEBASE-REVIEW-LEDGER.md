@@ -3302,3 +3302,27 @@
 - Follow-Up:
   - Review recovery dispatch as a possible command-router boundary only if more async operation
     families are added.
+
+## LA-REV-134
+
+- Scope: Proposal exception taxonomy
+- Pattern: modularity / API-facing vocabulary hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Proposal lifecycle exceptions were defined inside `ProposalWorkflowService`, forcing API
+  routers, workspace integration, tests, and package exports to depend on the workflow service
+  module for reusable domain error vocabulary.
+- Evidence:
+  - `src/core/proposals/exceptions.py` now owns proposal lifecycle, not-found, validation,
+    idempotency-conflict, state-conflict, and transition error classes.
+  - `src/core/proposals/service.py` imports the exception taxonomy instead of defining it inline.
+  - `src/core/proposals/__init__.py` exports exceptions from the dedicated module while preserving
+    package-level compatibility.
+  - `tests/unit/advisory/engine/test_engine_proposal_exceptions.py` verifies inheritance and
+    existing service/package import compatibility.
+- Consequence:
+  - API-facing proposal error vocabulary is now reusable by routers, support services, and future
+    command modules without expanding workflow-service coupling.
+- Follow-Up:
+  - Move router imports to `src.core.proposals.exceptions` in a later compatibility-preserving
+    cleanup once service refactoring stabilizes.
