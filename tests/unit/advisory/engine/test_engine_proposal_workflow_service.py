@@ -43,6 +43,21 @@ class CountingListEventsRepository(InMemoryProposalRepository):
         return super().list_events(proposal_id=proposal_id)
 
 
+class CountingLineageRepository(InMemoryProposalRepository):
+    def __init__(self) -> None:
+        super().__init__()
+        self.get_version_calls = 0
+        self.list_versions_calls = 0
+
+    def get_version(self, *, proposal_id: str, version_no: int) -> ProposalVersionRecord | None:
+        self.get_version_calls += 1
+        return super().get_version(proposal_id=proposal_id, version_no=version_no)
+
+    def list_versions(self, *, proposal_id: str) -> list[ProposalVersionRecord]:
+        self.list_versions_calls += 1
+        return super().list_versions(proposal_id=proposal_id)
+
+
 def _risk_enriched_result(result):  # noqa: ANN001
     result.explanation["risk_lens"] = {
         "source_service": "lotus-risk",
@@ -1115,7 +1130,7 @@ def test_service_expected_state_can_be_optional_when_disabled():
 
 
 def test_service_lineage_skips_missing_version_rows():
-    repo = InMemoryProposalRepository()
+    repo = CountingLineageRepository()
     service = ProposalWorkflowService(repository=repo)
     now = datetime.now(timezone.utc)
     repo.create_proposal(
@@ -1170,6 +1185,8 @@ def test_service_lineage_skips_missing_version_rows():
     assert lineage.lineage_complete is False
     assert lineage.missing_version_numbers == [2]
     assert [version.version_no for version in lineage.versions] == [1]
+    assert repo.list_versions_calls == 1
+    assert repo.get_version_calls == 0
 
 
 def test_transition_idempotency_replay_and_conflict():

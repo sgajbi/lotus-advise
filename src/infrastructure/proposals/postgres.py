@@ -519,6 +519,29 @@ class PostgresProposalRepository:
             row = connection.execute(query, (proposal_id, version_no)).fetchone()
         return _to_version(row)
 
+    def list_versions(self, *, proposal_id: str) -> list[ProposalVersionRecord]:
+        query = """
+            SELECT
+                proposal_version_id,
+                proposal_id,
+                version_no,
+                created_at,
+                request_hash,
+                artifact_hash,
+                simulation_hash,
+                status_at_creation,
+                proposal_result_json,
+                artifact_json,
+                evidence_bundle_json,
+                gate_decision_json
+            FROM proposal_versions
+            WHERE proposal_id = %s
+            ORDER BY version_no ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (proposal_id,)).fetchall()
+        return [version for row in rows if (version := _to_version(row)) is not None]
+
     def get_current_version(self, *, proposal_id: str) -> Optional[ProposalVersionRecord]:
         query = """
             SELECT

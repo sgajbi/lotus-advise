@@ -2588,3 +2588,28 @@
 - Follow-Up:
   - Keep version-record persistence and transaction ordering in the service until a broader
     create/version command handler owns the full proposal-build transaction.
+
+## LA-REV-102
+
+- Scope: Proposal lineage version-list query shape
+- Pattern: query/performance risk / read-model hardening
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: `ProposalWorkflowService.get_lineage` loaded proposal versions by calling
+  `get_version` for every version number up to `current_version_no`, creating an N+1 read shape for
+  lineage reads.
+- Evidence:
+  - `src/core/proposals/repository.py` now exposes `list_versions`.
+  - `src/infrastructure/proposals/in_memory.py` and
+    `src/infrastructure/proposals/postgres.py` implement ordered version listing.
+  - `src/core/proposals/service.py` builds lineage from a single ordered version-list read while
+    preserving missing-version detection in projection logic.
+  - Repository tests cover ordered list behavior for in-memory and Postgres implementations.
+  - `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` proves lineage uses
+    `list_versions` once and does not call per-version `get_version`.
+- Consequence:
+  - Proposal lineage read latency and database round trips now scale with one ordered query rather
+    than one query per version number.
+- Follow-Up:
+  - Keep projection-level missing-version reporting unchanged until broader lineage read-model
+    certification is performed against production-sized histories.

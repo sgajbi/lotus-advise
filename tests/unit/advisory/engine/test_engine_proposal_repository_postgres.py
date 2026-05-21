@@ -278,6 +278,11 @@ class _FakeConnection:
             return _FakeCursor()
         if "FROM proposal_versions WHERE proposal_id = %s AND version_no = %s" in sql:
             return _FakeCursor(self.versions.get((args[0], args[1])))
+        if "FROM proposal_versions" in sql and "ORDER BY version_no ASC" in sql:
+            proposal_id = args[0]
+            rows = [row for (pid, _), row in self.versions.items() if pid == proposal_id]
+            rows = sorted(rows, key=lambda row: row["version_no"])
+            return _FakeCursor(rows=rows)
         if "FROM proposal_versions" in sql and "ORDER BY version_no DESC" in sql:
             proposal_id = args[0]
             rows = [row for (pid, _), row in self.versions.items() if pid == proposal_id]
@@ -731,6 +736,11 @@ def test_postgres_repository_version_create_get_and_current(monkeypatch):
     assert loaded_2 is not None
     assert loaded_2.proposal_version_id == "ppv_002"
     assert loaded_2.gate_decision_json == {"gate": "CLIENT_CONSENT_REQUIRED"}
+
+    listed = repository.list_versions(proposal_id="pp_001")
+    assert [version.version_no for version in listed] == [1, 2]
+    assert [version.proposal_version_id for version in listed] == ["ppv_001", "ppv_002"]
+    assert repository.list_versions(proposal_id="pp_missing") == []
 
     missing = repository.get_version(proposal_id="pp_001", version_no=3)
     assert missing is None

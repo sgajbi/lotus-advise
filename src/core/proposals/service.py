@@ -123,6 +123,7 @@ from src.core.proposals.models import (
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
     ProposalVersionDetail,
+    ProposalVersionRecord,
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
     ProposalWorkflowState,
@@ -457,15 +458,13 @@ class ProposalWorkflowService:
         if proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
 
+        versions_by_number: dict[int, ProposalVersionRecord | None] = {
+            version.version_no: version
+            for version in self._repository.list_versions(proposal_id=proposal_id)
+        }
         return build_proposal_lineage_response(
             proposal=proposal,
-            versions_by_number={
-                version_no: self._repository.get_version(
-                    proposal_id=proposal_id,
-                    version_no=version_no,
-                )
-                for version_no in range(1, proposal.current_version_no + 1)
-            },
+            versions_by_number=versions_by_number,
         )
 
     def request_execution_handoff(

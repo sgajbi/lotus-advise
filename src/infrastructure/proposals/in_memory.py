@@ -182,6 +182,16 @@ class InMemoryProposalRepository(ProposalRepository):
             version = self._versions.get((proposal_id, version_no))
             return deepcopy(version) if version is not None else None
 
+    def list_versions(self, *, proposal_id: str) -> list[ProposalVersionRecord]:
+        with self._lock:
+            versions = [
+                version
+                for (stored_proposal_id, _), version in self._versions.items()
+                if stored_proposal_id == proposal_id
+            ]
+        versions.sort(key=lambda version: version.version_no)
+        return [deepcopy(version) for version in versions]
+
     def get_current_version(self, *, proposal_id: str) -> Optional[ProposalVersionRecord]:
         with self._lock:
             versions = [v for (pid, _), v in self._versions.items() if pid == proposal_id]
