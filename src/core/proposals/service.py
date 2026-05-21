@@ -67,22 +67,8 @@ from src.core.proposals.exceptions import (
     ProposalValidationError,
 )
 from src.core.proposals.execution_handoff_command import request_proposal_execution_handoff
-from src.core.proposals.execution_status import (
-    build_execution_status_response,
-    latest_execution_requested_event,
-)
-from src.core.proposals.execution_update import (
-    ProposalExecutionUpdateIdentityError,
-    ProposalExecutionUpdateTerminalStateError,
-    ProposalExecutionUpdateTimestampError,
-    build_execution_update_event_and_apply_state,
-    build_execution_update_request_hash,
-    find_replayed_execution_update_event,
-    resolve_execution_update_occurred_at,
-    validate_execution_update_handoff_identity,
-    validate_execution_update_occurred_after_handoff,
-    validate_execution_update_state,
-)
+from src.core.proposals.execution_status import build_execution_status_response
+from src.core.proposals.execution_update_command import record_proposal_execution_update
 from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
     load_replayed_approval,
@@ -173,10 +159,7 @@ from src.core.proposals.versions import (
     validate_create_version_portfolio_context,
     validate_create_version_state,
 )
-from src.core.proposals.workflow_rules import (
-    TERMINAL_STATES,
-    resolve_execution_update_event,
-)
+from src.core.proposals.workflow_rules import TERMINAL_STATES
 from src.core.replay.models import AdvisoryReplayEvidenceResponse
 from src.core.replay.service import (
     build_async_operation_replay_response,
@@ -521,70 +504,15 @@ class ProposalWorkflowService:
         proposal_id: str,
         payload: ProposalExecutionUpdateRequest,
     ) -> ProposalExecutionStatusResponse:
-        activity = load_proposal_activity_read_model(
+        replay_response = record_proposal_execution_update(
             repository=self._repository,
             proposal_id=proposal_id,
-        )
-        if activity.proposal is None:
-            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        proposal = activity.proposal
-        events = activity.events
-        latest_execution_requested = latest_execution_requested_event(events)
-        if latest_execution_requested is None:
-            raise ProposalValidationError("EXECUTION_HANDOFF_NOT_FOUND")
-
-        try:
-            validate_execution_update_handoff_identity(
-                handoff_event=latest_execution_requested,
-                payload=payload,
-            )
-        except ProposalExecutionUpdateIdentityError as exc:
-            raise ProposalStateConflictError(str(exc)) from exc
-
-        request_hash = build_execution_update_request_hash(payload=payload)
-        try:
-            replay_event = find_replayed_execution_update_event(
-                events=events,
-                payload=payload,
-                request_hash=request_hash,
-            )
-        except ProposalReplayHashConflictError as exc:
-            raise ProposalIdempotencyConflictError(str(exc)) from exc
-        if replay_event is not None:
-            return build_execution_status_response(proposal=proposal, events=events)
-
-        event_type, to_state = resolve_execution_update_event(payload.update_status)
-        try:
-            validate_execution_update_state(proposal=proposal, terminal_states=TERMINAL_STATES)
-        except ProposalExecutionUpdateTerminalStateError as exc:
-            raise ProposalStateConflictError(str(exc)) from exc
-
-        occurred_at = resolve_execution_update_occurred_at(
             payload=payload,
+            terminal_states=TERMINAL_STATES,
             default_occurred_at=_utc_now(),
         )
-        try:
-            validate_execution_update_occurred_after_handoff(
-                occurred_at=occurred_at,
-                handoff_event=latest_execution_requested,
-            )
-        except ProposalExecutionUpdateTimestampError as exc:
-            raise ProposalValidationError(str(exc)) from exc
-        event = build_execution_update_event_and_apply_state(
-            event_id=new_workflow_event_id(),
-            proposal=proposal,
-            payload=payload,
-            event_type=event_type,
-            to_state=to_state,
-            occurred_at=occurred_at,
-            request_hash=request_hash,
-            handoff_related_version_no=latest_execution_requested.related_version_no,
-        )
-        persist_proposal_transition(
-            repository=self._repository,
-            proposal=proposal,
-            event=event,
-        )
+        if replay_response is not None:
+            return replay_response
         return self.get_execution_status(proposal_id=proposal_id)
 
     def get_idempotency_lookup(self, *, idempotency_key: str) -> ProposalIdempotencyLookupResponse:
