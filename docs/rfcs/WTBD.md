@@ -146,6 +146,10 @@ recorded here with enough detail for later owner-specific slices.
     live behind `build_approval_command_state_and_apply_transition` in
     `src/core/proposals/lifecycle_events.py`, keeping approval command state logic out of the
     workflow service.
+  - Execution update event creation and aggregate state mutation now live behind
+    `build_execution_update_event_and_apply_state` in
+    `src/core/proposals/execution_update.py`, keeping execution update command state logic out of
+    the workflow service.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.

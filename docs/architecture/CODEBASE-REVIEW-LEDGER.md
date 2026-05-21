@@ -2811,3 +2811,26 @@
 - Follow-Up:
   - Keep approval replay response reconstruction separate until approval audit enrichment is
     expanded.
+
+## LA-REV-112
+
+- Scope: Execution update command state helper
+- Pattern: service-boundary hardening / modularity problem
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_execution_update` built execution update events and
+  applied aggregate state mutation inline, keeping execution update command state logic in the
+  service layer.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now exposes
+    `build_execution_update_event_and_apply_state`.
+  - `src/core/proposals/service.py` delegates execution update event construction and aggregate
+    state mutation to the execution update domain helper.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` covers the combined
+    helper.
+- Consequence:
+  - Execution reconciliation audit payload and aggregate mutation behavior are directly tested at
+    the domain boundary and can evolve without expanding the workflow service.
+- Follow-Up:
+  - Keep handoff identity and timestamp validation separate until execution update command handling
+    is fully isolated.

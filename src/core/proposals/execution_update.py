@@ -130,6 +130,32 @@ def build_execution_update_event(
     )
 
 
+def build_execution_update_event_and_apply_state(
+    *,
+    event_id: str,
+    proposal: ProposalRecord,
+    payload: ProposalExecutionUpdateRequest,
+    event_type: str,
+    to_state: ProposalWorkflowState,
+    occurred_at: datetime,
+    request_hash: str,
+    handoff_related_version_no: int | None,
+) -> ProposalWorkflowEventRecord:
+    event = build_execution_update_event(
+        event_id=event_id,
+        proposal_id=proposal.proposal_id,
+        current_state=proposal.current_state,
+        payload=payload,
+        event_type=event_type,
+        to_state=to_state,
+        occurred_at=occurred_at,
+        request_hash=request_hash,
+        handoff_related_version_no=handoff_related_version_no,
+    )
+    apply_execution_update_state(proposal=proposal, to_state=to_state, event=event)
+    return event
+
+
 def apply_execution_update_state(
     *,
     proposal: ProposalRecord,

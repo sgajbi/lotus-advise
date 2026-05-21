@@ -59,8 +59,7 @@ from src.core.proposals.execution_update import (
     ProposalExecutionUpdateIdentityError,
     ProposalExecutionUpdateTerminalStateError,
     ProposalExecutionUpdateTimestampError,
-    apply_execution_update_state,
-    build_execution_update_event,
+    build_execution_update_event_and_apply_state,
     build_execution_update_request_hash,
     find_replayed_execution_update_event,
     resolve_execution_update_occurred_at,
@@ -601,10 +600,9 @@ class ProposalWorkflowService:
             )
         except ProposalExecutionUpdateTimestampError as exc:
             raise ProposalValidationError(str(exc)) from exc
-        event = build_execution_update_event(
+        event = build_execution_update_event_and_apply_state(
             event_id=new_workflow_event_id(),
-            proposal_id=proposal_id,
-            current_state=proposal.current_state,
+            proposal=proposal,
             payload=payload,
             event_type=event_type,
             to_state=to_state,
@@ -612,7 +610,6 @@ class ProposalWorkflowService:
             request_hash=request_hash,
             handoff_related_version_no=latest_execution_requested.related_version_no,
         )
-        apply_execution_update_state(proposal=proposal, to_state=to_state, event=event)
         self._repository.transition_proposal(proposal=proposal, event=event, approval=None)
         return self.get_execution_status(proposal_id=proposal_id)
 

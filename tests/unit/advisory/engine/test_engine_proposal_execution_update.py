@@ -7,6 +7,7 @@ from src.core.proposals.execution_update import (
     ProposalExecutionUpdateTimestampError,
     apply_execution_update_state,
     build_execution_update_event,
+    build_execution_update_event_and_apply_state,
     build_execution_update_idempotency_key,
     build_execution_update_request_hash,
     find_replayed_execution_update_event,
@@ -382,3 +383,26 @@ def test_apply_execution_update_state_updates_state_and_event_timestamp():
 
     assert proposal.current_state == "EXECUTED"
     assert proposal.last_event_at == event.occurred_at
+
+
+def test_build_execution_update_event_and_apply_state_returns_event_and_updates_state():
+    proposal = _proposal()
+    occurred_at = datetime(2026, 5, 21, 10, 5, tzinfo=timezone.utc)
+
+    event = build_execution_update_event_and_apply_state(
+        event_id="pwe_execution_update",
+        proposal=proposal,
+        payload=_payload(update_status="EXECUTED", related_version_no=None),
+        event_type="EXECUTED",
+        to_state="EXECUTED",
+        occurred_at=occurred_at,
+        request_hash="sha256:update",
+        handoff_related_version_no=3,
+    )
+
+    assert event.proposal_id == proposal.proposal_id
+    assert event.from_state == "EXECUTION_READY"
+    assert event.to_state == "EXECUTED"
+    assert event.related_version_no == 3
+    assert proposal.current_state == "EXECUTED"
+    assert proposal.last_event_at == occurred_at
