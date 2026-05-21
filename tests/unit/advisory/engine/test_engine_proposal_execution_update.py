@@ -4,9 +4,11 @@ from src.core.proposals.execution_update import (
     ProposalExecutionUpdateProviderMismatchError,
     ProposalExecutionUpdateRequestIdMismatchError,
     ProposalExecutionUpdateTerminalStateError,
+    ProposalExecutionUpdateTimestampError,
     apply_execution_update_state,
     build_execution_update_event,
     validate_execution_update_handoff_identity,
+    validate_execution_update_occurred_after_handoff,
     validate_execution_update_state,
 )
 from src.core.proposals.models import (
@@ -205,6 +207,53 @@ def test_validate_execution_update_state_rejects_terminal_state():
         assert str(exc) == "PROPOSAL_TERMINAL_STATE: execution update rejected"
     else:
         raise AssertionError("expected execution update terminal state error")
+
+
+def test_validate_execution_update_occurred_after_handoff_accepts_equal_or_later_timestamp():
+    handoff_event = ProposalWorkflowEventRecord(
+        event_id="pwe_execution_requested",
+        proposal_id="pp_execution_update",
+        event_type="EXECUTION_REQUESTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="advisor_execution_update",
+        occurred_at=datetime(2026, 5, 21, 9, 55, tzinfo=timezone.utc),
+        reason_json={"execution_request_id": "pex_execution_update"},
+        related_version_no=3,
+    )
+
+    validate_execution_update_occurred_after_handoff(
+        occurred_at=handoff_event.occurred_at,
+        handoff_event=handoff_event,
+    )
+    validate_execution_update_occurred_after_handoff(
+        occurred_at=datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc),
+        handoff_event=handoff_event,
+    )
+
+
+def test_validate_execution_update_occurred_after_handoff_rejects_earlier_timestamp():
+    handoff_event = ProposalWorkflowEventRecord(
+        event_id="pwe_execution_requested",
+        proposal_id="pp_execution_update",
+        event_type="EXECUTION_REQUESTED",
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="advisor_execution_update",
+        occurred_at=datetime(2026, 5, 21, 9, 55, tzinfo=timezone.utc),
+        reason_json={"execution_request_id": "pex_execution_update"},
+        related_version_no=3,
+    )
+
+    try:
+        validate_execution_update_occurred_after_handoff(
+            occurred_at=datetime(2026, 5, 21, 9, 54, 59, tzinfo=timezone.utc),
+            handoff_event=handoff_event,
+        )
+    except ProposalExecutionUpdateTimestampError as exc:
+        assert str(exc) == "EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF"
+    else:
+        raise AssertionError("expected execution update timestamp error")
 
 
 def test_apply_execution_update_state_updates_state_and_event_timestamp():

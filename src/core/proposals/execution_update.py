@@ -25,6 +25,10 @@ class ProposalExecutionUpdateTerminalStateError(Exception):
     pass
 
 
+class ProposalExecutionUpdateTimestampError(Exception):
+    pass
+
+
 def validate_execution_update_handoff_identity(
     *,
     handoff_event: ProposalWorkflowEventRecord,
@@ -47,6 +51,15 @@ def validate_execution_update_state(
         raise ProposalExecutionUpdateTerminalStateError(
             "PROPOSAL_TERMINAL_STATE: execution update rejected"
         )
+
+
+def validate_execution_update_occurred_after_handoff(
+    *,
+    occurred_at: datetime,
+    handoff_event: ProposalWorkflowEventRecord,
+) -> None:
+    if occurred_at < handoff_event.occurred_at:
+        raise ProposalExecutionUpdateTimestampError("EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF")
 
 
 def build_execution_update_event(

@@ -60,9 +60,11 @@ from src.core.proposals.execution_status import (
 from src.core.proposals.execution_update import (
     ProposalExecutionUpdateIdentityError,
     ProposalExecutionUpdateTerminalStateError,
+    ProposalExecutionUpdateTimestampError,
     apply_execution_update_state,
     build_execution_update_event,
     validate_execution_update_handoff_identity,
+    validate_execution_update_occurred_after_handoff,
     validate_execution_update_state,
 )
 from src.core.proposals.idempotency import (
@@ -579,8 +581,13 @@ class ProposalWorkflowService:
             if payload.occurred_at is not None
             else _utc_now()
         )
-        if occurred_at < latest_execution_requested.occurred_at:
-            raise ProposalValidationError("EXECUTION_UPDATE_OCCURRED_BEFORE_HANDOFF")
+        try:
+            validate_execution_update_occurred_after_handoff(
+                occurred_at=occurred_at,
+                handoff_event=latest_execution_requested,
+            )
+        except ProposalExecutionUpdateTimestampError as exc:
+            raise ProposalValidationError(str(exc)) from exc
         event = build_execution_update_event(
             event_id=new_workflow_event_id(),
             proposal_id=proposal_id,

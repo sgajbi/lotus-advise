@@ -2262,3 +2262,27 @@
 - Follow-Up:
   - Keep replay-before-validation ordering and handoff timestamp ordering in the service until the
     complete execution update command boundary can be extracted without changing API behavior.
+
+## LA-REV-088
+
+- Scope: Execution update handoff timestamp ordering
+- Pattern: modularity problem / execution reconciliation hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.record_execution_update` directly rejected update events that
+  occurred before the latest execution handoff event, keeping event-time reconciliation policy
+  inside service orchestration.
+- Evidence:
+  - `src/core/proposals/execution_update.py` now owns
+    `validate_execution_update_occurred_after_handoff` and
+    `ProposalExecutionUpdateTimestampError`.
+  - `src/core/proposals/service.py` delegates update-versus-handoff timestamp ordering and maps the
+    domain error back to the existing `ProposalValidationError` detail.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_update.py` directly proves equal and
+    later timestamps are accepted while earlier timestamps are rejected.
+- Consequence:
+  - Execution update reconciliation rules now centralize identity, terminal-state, event-time,
+    event construction, and aggregate state mutation in the execution update module.
+- Follow-Up:
+  - Keep replay-before-validation ordering and event timestamp resolution in the service until the
+    complete execution update command boundary can be extracted without changing API behavior.
