@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
 from src.core.advisory.artifact import build_proposal_artifact
-from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.models import ProposalSimulateRequest
 from src.core.proposals.async_operations import (
     AsyncCreateSubmissionStats,
     AsyncCreateSubmissionStatsTracker,
@@ -256,7 +256,7 @@ class ProposalWorkflowService:
 
         self._validate_simulation_flag(resolved_request.simulate_request)
         context_resolution = build_context_resolution_evidence(resolved_request)
-        proposal_result = self._run_simulation(
+        proposal_result = run_advisory_proposal_simulation(
             request=resolved_request.simulate_request,
             resolved_as_of=resolved_request.resolved_context.as_of,
             request_hash=request_hash,
@@ -712,7 +712,7 @@ class ProposalWorkflowService:
         except ProposalVersionPortfolioContextError as exc:
             raise ProposalValidationError(str(exc)) from exc
 
-        proposal_result = self._run_simulation(
+        proposal_result = run_advisory_proposal_simulation(
             request=resolved_request.simulate_request,
             resolved_as_of=resolved_request.resolved_context.as_of,
             request_hash=request_hash,
@@ -1196,25 +1196,6 @@ class ProposalWorkflowService:
         )
         self._repository.update_operation(operation)
         return cast(bool, should_requeue)
-
-    def _run_simulation(
-        self,
-        *,
-        request: ProposalSimulateRequest,
-        resolved_as_of: str,
-        request_hash: str,
-        idempotency_key: Optional[str],
-        correlation_id: Optional[str],
-        policy_context: Optional[dict[str, Any]] = None,
-    ) -> ProposalResult:
-        return run_advisory_proposal_simulation(
-            request=request,
-            request_hash=request_hash,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-            resolved_as_of=resolved_as_of,
-            policy_context=policy_context,
-        )
 
     def _validate_simulation_flag(self, request: ProposalSimulateRequest) -> None:
         try:

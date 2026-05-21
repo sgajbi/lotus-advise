@@ -2544,3 +2544,24 @@
 - Follow-Up:
   - Keep simulation flag validation and artifact/evidence assembly in the service until a broader
     create/version command handler can own the complete proposal-build transaction.
+
+## LA-REV-100
+
+- Scope: Stale simulation execution wrapper removal
+- Pattern: stale code / modularity hardening
+- Status: Hardened
+- Finding Class: stale code
+- Summary: After extracting `run_advisory_proposal_simulation`, `ProposalWorkflowService` retained
+  a private `_run_simulation` wrapper that only forwarded arguments to the new proposal-domain
+  boundary.
+- Evidence:
+  - `src/core/proposals/service.py` now calls `run_advisory_proposal_simulation` directly from
+    create and version flows.
+  - The stale `_run_simulation` method and unused `ProposalResult` import were removed.
+  - Existing workflow service tests and simulation execution tests cover the direct call path.
+- Consequence:
+  - Proposal create/version orchestration has one fewer service-private indirection and a clearer
+    dependency on the proposal-domain simulation execution boundary.
+- Follow-Up:
+  - Continue removing thin service-private wrappers when extracted domain modules fully own the
+    behavior.
