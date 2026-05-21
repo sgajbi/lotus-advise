@@ -141,6 +141,7 @@ from src.core.proposals.projections import (
     to_proposal_summary,
     to_version_detail,
 )
+from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
 from src.core.proposals.records import build_proposal_idempotency_record, build_proposal_record
 from src.core.proposals.reporting import apply_report_request_state, build_report_requested_event
 from src.core.proposals.repository import ProposalRepository
@@ -977,13 +978,15 @@ class ProposalWorkflowService:
             raise ProposalIdempotencyConflictError(str(exc)) from exc
 
     def _read_create_response(self, *, proposal_id: str, version_no: int) -> ProposalCreateResponse:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
-        events = self._repository.list_events(proposal_id=proposal_id)
+        referents = load_proposal_version_replay_referents(
+            repository=self._repository,
+            proposal_id=proposal_id,
+            version_no=version_no,
+        )
         response = build_create_response_from_referents(
-            proposal=proposal,
-            version=version,
-            events=events,
+            proposal=referents.proposal,
+            version=referents.version,
+            events=referents.events,
         )
         if response is None:
             raise ProposalNotFoundError("PROPOSAL_IDEMPOTENCY_REFERENT_NOT_FOUND")
@@ -1009,17 +1012,19 @@ class ProposalWorkflowService:
         proposal_id: str,
         version_no: int,
     ) -> AdvisoryReplayEvidenceResponse:
-        proposal = self._repository.get_proposal(proposal_id=proposal_id)
-        if proposal is None:
+        referents = load_proposal_version_replay_referents(
+            repository=self._repository,
+            proposal_id=proposal_id,
+            version_no=version_no,
+        )
+        if referents.proposal is None:
             raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
-        version = self._repository.get_version(proposal_id=proposal_id, version_no=version_no)
-        if version is None:
+        if referents.version is None:
             raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
-        events = self._repository.list_events(proposal_id=proposal_id)
         return build_proposal_version_replay_response(
-            proposal=proposal,
-            version=version,
-            events=events,
+            proposal=referents.proposal,
+            version=referents.version,
+            events=referents.events,
         )
 
     def record_report_request(

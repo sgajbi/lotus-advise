@@ -119,6 +119,8 @@ recorded here with enough detail for later owner-specific slices.
     `get_version` read per version number, reducing N+1 read shape while preserving gap detection.
   - Async operation replay referent loading now lives in `src/core/proposals/async_replay.py`,
     keeping version-selection and event-loading rules out of the workflow service.
+  - Proposal version replay referent loading now lives in `src/core/proposals/proposal_replay.py`,
+    reusing one tested boundary for version replay and idempotent create-response reconstruction.
   - Execution-update aggregate state mutation now lives in
     `src/core/proposals/execution_update.py`, keeping execution update state and last-event
     timestamp mutation out of the workflow service.

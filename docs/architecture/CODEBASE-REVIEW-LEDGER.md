@@ -2636,3 +2636,24 @@
 - Follow-Up:
   - Continue extracting replay/report read-model helpers where multiple service methods still
     duplicate proposal, version, and event loading.
+
+## LA-REV-104
+
+- Scope: Proposal version replay referent loading
+- Pattern: duplication / replay evidence hardening
+- Status: Hardened
+- Finding Class: duplication
+- Summary: Version replay and idempotent create replay both loaded proposal, version, and workflow
+  events directly inside `ProposalWorkflowService`, duplicating read-model boundary rules.
+- Evidence:
+  - `src/core/proposals/proposal_replay.py` now owns proposal-version replay referent loading.
+  - `src/core/proposals/service.py` reuses that loader for `get_version_replay` and
+    idempotent create-response reconstruction.
+  - `tests/unit/advisory/engine/test_engine_proposal_replay.py` covers complete replay context,
+    missing proposal, and missing version boundaries.
+- Consequence:
+  - Replay evidence paths now share one tested proposal/version/event loading boundary, reducing
+    service coupling and drift risk as replay evidence expands.
+- Follow-Up:
+  - Review delivery summary/history/report request read paths for similar reusable read-model
+    boundaries once replay extraction settles.
