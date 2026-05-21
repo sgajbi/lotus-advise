@@ -46,10 +46,12 @@ from src.core.proposals.delivery_summary import (
 )
 from src.core.proposals.evidence import build_proposal_evidence_bundle
 from src.core.proposals.execution_handoff import (
+    ProposalExecutionHandoffStateError,
     apply_execution_handoff_state,
     build_execution_handoff_replay_response,
     build_execution_handoff_requested_event,
     build_execution_handoff_response,
+    validate_execution_handoff_ready,
 )
 from src.core.proposals.execution_status import (
     build_execution_status_response,
@@ -484,10 +486,10 @@ class ProposalWorkflowService:
                 replay_event=replay_event,
             )
         self._validate_expected_state(proposal.current_state, payload.expected_state)
-        if proposal.current_state != "EXECUTION_READY":
-            raise ProposalStateConflictError(
-                "STATE_CONFLICT: proposal must be EXECUTION_READY for execution handoff"
-            )
+        try:
+            validate_execution_handoff_ready(current_state=proposal.current_state)
+        except ProposalExecutionHandoffStateError as exc:
+            raise ProposalStateConflictError(str(exc)) from exc
 
         occurred_at = _utc_now()
         execution_request_id = payload.external_request_id or new_execution_request_id()

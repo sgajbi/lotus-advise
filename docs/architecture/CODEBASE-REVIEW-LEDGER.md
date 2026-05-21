@@ -2193,3 +2193,26 @@
 - Follow-Up:
   - Keep execution-ready validation and replay lookup in the service until a broader execution
     handoff command policy can preserve current API error ordering and idempotency behavior.
+
+## LA-REV-085
+
+- Scope: Execution handoff readiness validation
+- Pattern: modularity problem / execution handoff hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: `ProposalWorkflowService.request_execution_handoff` directly enforced the
+  `EXECUTION_READY` precondition for handoff requests, leaving a domain execution-readiness rule
+  inside service orchestration.
+- Evidence:
+  - `src/core/proposals/execution_handoff.py` now owns `validate_execution_handoff_ready` and the
+    typed `ProposalExecutionHandoffStateError`.
+  - `src/core/proposals/service.py` delegates the readiness rule and maps the domain exception back
+    to the existing `ProposalStateConflictError` message.
+  - `tests/unit/advisory/engine/test_engine_proposal_execution_handoff.py` directly proves accepted
+    `EXECUTION_READY` state and rejected non-ready state behavior.
+- Consequence:
+  - Execution handoff readiness vocabulary is centralized beside handoff event construction,
+    response projection, and aggregate timestamp mutation.
+- Follow-Up:
+  - Keep expected-state validation and idempotency replay orchestration in the service until a
+    broader command boundary can preserve replay-before-validation ordering.

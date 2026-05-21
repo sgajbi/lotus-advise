@@ -5,8 +5,20 @@ from src.core.proposals.models import (
     ProposalExecutionHandoffResponse,
     ProposalRecord,
     ProposalWorkflowEventRecord,
+    ProposalWorkflowState,
 )
 from src.core.proposals.projections import to_proposal_summary, to_workflow_event
+
+
+class ProposalExecutionHandoffStateError(Exception):
+    pass
+
+
+def validate_execution_handoff_ready(*, current_state: ProposalWorkflowState) -> None:
+    if current_state != "EXECUTION_READY":
+        raise ProposalExecutionHandoffStateError(
+            "STATE_CONFLICT: proposal must be EXECUTION_READY for execution handoff"
+        )
 
 
 def build_execution_handoff_replay_response(

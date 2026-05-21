@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
 
 from src.core.proposals.execution_handoff import (
+    ProposalExecutionHandoffStateError,
     apply_execution_handoff_state,
     build_execution_handoff_replay_response,
     build_execution_handoff_requested_event,
     build_execution_handoff_response,
+    validate_execution_handoff_ready,
 )
 from src.core.proposals.models import (
     ProposalExecutionHandoffRequest,
@@ -88,6 +90,19 @@ def test_build_execution_handoff_requested_event_defaults_to_current_version():
         "execution_provider": "lotus-manage",
         "notes": {},
     }
+
+
+def test_validate_execution_handoff_ready_accepts_execution_ready_state():
+    validate_execution_handoff_ready(current_state="EXECUTION_READY")
+
+
+def test_validate_execution_handoff_ready_rejects_non_ready_state():
+    try:
+        validate_execution_handoff_ready(current_state="APPROVAL_REQUIRED")
+    except ProposalExecutionHandoffStateError as exc:
+        assert str(exc) == "STATE_CONFLICT: proposal must be EXECUTION_READY for execution handoff"
+    else:
+        raise AssertionError("expected execution handoff state error")
 
 
 def test_apply_execution_handoff_state_updates_last_event_timestamp():
