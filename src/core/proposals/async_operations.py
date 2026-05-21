@@ -158,6 +158,10 @@ def should_skip_async_operation_run(operation: ProposalAsyncOperationRecord | No
     return operation is None or operation.status in ASYNC_TERMINAL_STATUSES
 
 
+def has_exhausted_async_attempts(operation: ProposalAsyncOperationRecord) -> bool:
+    return operation.attempt_count >= operation.max_attempts
+
+
 def begin_async_attempt(
     *,
     operation: ProposalAsyncOperationRecord,

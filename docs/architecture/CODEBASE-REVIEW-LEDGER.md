@@ -4124,3 +4124,32 @@
 - Follow-Up:
   - Include focused async recovery tests and repo-native feature-lane validation in the PR evidence
     before merge.
+
+## LA-REV-161
+
+- Scope: Async exhausted-attempt guard
+- Pattern: async orchestration / retry correctness hardening
+- Status: Hardened
+- Finding Class: correctness risk
+- Summary: Non-terminal async operations whose `attempt_count` had already reached `max_attempts`
+  could still enter `run_async_operation_until_terminal`, start another attempt, and invoke the
+  executor. That could exceed the configured retry budget after restart or operator recovery,
+  weakening bounded retry semantics.
+- Evidence:
+  - `src/core/proposals/async_operations.py` now exposes `has_exhausted_async_attempts` as an
+    explicit domain predicate for retry-budget exhaustion.
+  - `src/core/proposals/async_operation_runner.py` now fails exhausted non-terminal operations with
+    `PROPOSAL_ASYNC_ATTEMPTS_EXHAUSTED` before leasing or invoking the executor.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operations.py` proves the retry-budget
+    boundary.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operation_runner.py` proves exhausted
+    operations fail without executor invocation or extra attempt-count mutation.
+- Consequence:
+  - Advisory async execution now enforces configured retry budgets consistently across direct
+    execution, startup recovery, and operator recovery paths.
+- Documentation:
+  - No wiki change is required because this is internal retry correctness hardening with no public
+    API, OpenAPI, operator workflow, or capability-contract change.
+- Follow-Up:
+  - Include focused async runner tests and repo-native feature-lane validation in the PR evidence
+    before merge.

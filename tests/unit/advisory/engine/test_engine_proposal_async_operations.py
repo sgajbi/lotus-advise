@@ -8,6 +8,7 @@ from src.core.proposals.async_operations import (
     build_create_proposal_async_operation,
     build_create_version_async_operation,
     extract_async_result_version_no,
+    has_exhausted_async_attempts,
     is_matching_create_proposal_async_submission,
     is_matching_create_version_async_submission,
     mark_operation_failed,
@@ -305,6 +306,12 @@ def test_should_skip_async_operation_run_accepts_missing_or_terminal_operations(
     failed = _operation()
     failed.status = "FAILED"
     assert should_skip_async_operation_run(failed)
+
+
+def test_has_exhausted_async_attempts_uses_attempt_count_boundary():
+    assert not has_exhausted_async_attempts(_operation(attempt_count=2, max_attempts=3))
+    assert has_exhausted_async_attempts(_operation(attempt_count=3, max_attempts=3))
+    assert has_exhausted_async_attempts(_operation(attempt_count=4, max_attempts=3))
 
 
 def test_resolve_recoverable_async_operation_kind_accepts_supported_types_only():
