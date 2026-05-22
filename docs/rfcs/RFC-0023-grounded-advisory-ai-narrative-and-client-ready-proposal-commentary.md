@@ -1,12 +1,24 @@
 # RFC-0023: Grounded Advisory AI Narrative and Client-Ready Proposal Commentary
 
-- Status: DRAFT
-- Created: 2026-04-12
-- Owners: lotus-advise
-- Requires Approval From: lotus-advise, lotus-ai, lotus-core, lotus-risk, lotus-manage maintainers
-- Depends On: RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0015, RFC-0019, RFC-0020, RFC-0021, RFC-0022
-- Related Platform Guidance: `lotus-platform/context/LOTUS-ENGINEERING-CONTEXT.md`
-- Related Platform Governance: `lotus-platform/rfcs/RFC-0072-platform-wide-multi-lane-ci-validation-and-release-governance.md`
+| Metadata | Details |
+| --- | --- |
+| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
+| **Created** | 2026-04-12 |
+| **Last Tightened** | 2026-05-22 |
+| **Owner** | `lotus-advise` for proposal narrative authority, grounding packets, review lifecycle, persistence, replay, and advisory API truth |
+| **Business Sponsor Persona** | relationship manager, investment advisor, compliance reviewer, investment desk reviewer, operations support, audit, client-reporting owner, sales/pre-sales |
+| **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |
+| **Requires Approval From** | `lotus-advise`, `lotus-ai`, `lotus-core`, `lotus-risk`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, `lotus-workbench`, `lotus-platform`, and `lotus-manage` maintainers where handoff proof is required |
+| **Depends On** | RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0015, RFC-0019, RFC-0020, RFC-0021, RFC-0022 |
+| **Cross-Repository Scope** | `lotus-advise`, `lotus-ai`, `lotus-core`, `lotus-risk`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, `lotus-workbench`, `lotus-platform`, and `lotus-manage` only where advisory-to-DPM handoff proof is required |
+| **Compatibility Posture** | backward compatibility is not a constraint while the app remains pre-live; breaking API/contract cleanup is allowed when it is cleaner, but all affected downstream consumers must be migrated in this RFC before closure |
+| **Tightening Branch** | `docs/rfc0023-gold-standard-tightening` |
+| **Implementation Branching Rule** | use one remote feature branch for RFC-0023 or one coherent implementation slice; all branch names, PRs, commits, checks, evidence paths, and closure state must be recorded in RFC closure evidence |
+| **Related Platform Guidance** | `lotus-platform/context/LOTUS-ENGINEERING-CONTEXT.md` |
+| **Related Platform Governance** | `lotus-platform/rfcs/RFC-0072-platform-wide-multi-lane-ci-validation-and-release-governance.md` |
+| **Doc Location** | `docs/rfcs/RFC-0023-grounded-advisory-ai-narrative-and-client-ready-proposal-commentary.md` |
+
+---
 
 ## Executive Summary
 
@@ -26,6 +38,82 @@ The target outcome is not generic AI text generation. The target is governed nar
 8. full persistence and replay.
 
 Because `lotus-advise` is not live and all callers are controlled, this RFC enhances existing APIs in place. It does not introduce public `/v2` APIs.
+
+This RFC is now the single execution source for grounded advisory narrative. New WTBD records must
+not be created for this work. If implementation discovers upstream, downstream, platform, UI,
+report, archive, AI, security, documentation, data-product, or operational work needed to support
+the narrative claim, that work must be added to this RFC as a slice, owner-repository PR, acceptance
+criterion, explicit blocked state, or removed claim.
+
+This RFC cannot close as "backend done, UI later," "AI prompt done, guardrails later," or
+"documentation later." Client-ready commentary is a banking-grade product claim and must be backed
+by source authority, review workflow, audit, replay, lineage, OpenAPI, Gateway/Workbench consumption,
+report/render/archive realization where client artifacts are claimed, and mainline CI evidence.
+
+## Critical Review of the Previous RFC
+
+| Area | Previous state | Gap | Tightening applied |
+| --- | --- | --- | --- |
+| Scope | Focused on grounded proposal narrative inside `lotus-advise`. | Downstream report, archive, Gateway, Workbench, supportability, data-product, and platform proof were not hard gates. | Added full cross-repo ownership, product-surface proof, report/archive realization, platform automation, and closure requirements. |
+| Compatibility | Correctly avoided public `/v2` APIs because the service is pre-live. | Did not state whether breaking cleanup is allowed. | Compatibility is explicit: clean breaking changes are allowed, but all affected consumers must be migrated in the same RFC. |
+| AI authority | Correctly said AI must not own investment truth. | Needed stronger source-authority language across suitability, risk, alternatives, approval, disclosure, and execution posture. | Added source-authority rules, data-product posture, unsupported-claim controls, and AI non-authority acceptance gates. |
+| Business outcome | Explained why narrative matters. | Did not define bank-buyable outcomes for advisor productivity, compliance confidence, client conversation quality, audit, and commercial proof. | Added explicit business outcomes and documentation-as-product expectations. |
+| Product gap handling | Listed narrative capability and open questions. | Did not allocate overlap with RFC-0024, RFC-0025, RFC-0026, RFC-0027, RFC-0028, report stack, or Workbench. | Added product-gap allocation and cross-RFC integration rules. |
+| Data mesh | Mentioned evidence refs. | Did not require producer/consumer declarations, trust telemetry, SLO/access/evidence policy, mesh certification, or safe evidence-pack posture where a data-product claim is made. | Added data-mesh and trust-telemetry requirements for any promoted narrative evidence product. |
+| API certification | Proposed additive request/response fields and endpoints. | Did not require Swagger quality, field descriptions, examples, error responses, API vocabulary, no-alias checks, or endpoint certification. | Added certified API and OpenAPI gates. |
+| Testing | Had a broad test strategy. | Needed stronger live/canonical, report/archive, Gateway/Workbench, degraded-source, guardrail, replay, idempotency, and security evidence. | Expanded slices and acceptance gates to cover all material proof paths. |
+| Final closure | Had documentation and branch-hygiene language. | Did not explicitly require wiki publication, Main Releasability Gate, stranded-truth reconciliation, supported-features promotion rules, or post-completion communication posture. | Added final closure, wiki, branch hygiene, and implementation-backed communication rules. |
+
+Decision:
+
+1. RFC-0023 remains the owning RFC for grounded advisory narrative and client-ready proposal
+   commentary.
+2. RFC-0023 must deliver the narrative-critical subset end to end before downstream RFCs may claim
+   supported client-ready narrative behavior.
+3. Adjacent RFCs may consume or extend RFC-0023, but no adjacent RFC may close by relying on
+   unimplemented narrative truth outside this RFC.
+
+## Business Outcomes
+
+RFC-0023 must deliver these outcomes:
+
+1. **Advisor productivity**
+   advisors receive structured commentary drafts from source-backed proposal evidence rather than
+   hand-writing explanations from raw endpoint responses.
+2. **Compliance confidence**
+   suitability, risk, approvals, disclosures, unsupported claims, missing evidence, model lineage,
+   and human-review state are visible and auditable.
+3. **Client conversation quality**
+   client-draft and client-ready commentary use clear private-banking language while preserving
+   review gates and evidence references.
+4. **Audit and replay**
+   narrative versions, grounding packets, guardrail results, review actions, policy versions, and
+   model/template lineage can be replayed exactly.
+5. **Operational resilience**
+   AI unavailable, missing policy, missing disclosure, insufficient evidence, and guardrail failure
+   degrade safely without blocking core proposal workflows.
+6. **Product-surface truth**
+   Gateway, Workbench, report, render, and archive surfaces expose only implementation-backed
+   narrative states and never infer narrative facts locally.
+7. **Commercial readiness**
+   wiki, demo, and sales/pre-sales wording distinguish supported narrative behavior from planned
+   roadmap without implying unsupported AI or regulatory capability.
+
+## Product Gap Allocation
+
+| Product area or gap | RFC-0023 treatment | Owning RFC or repo for broader scope |
+| --- | --- | --- |
+| Grounded proposal narrative | In scope as the core capability. | `lotus-advise` owns narrative use case and lifecycle. |
+| AI model execution | In scope only through bounded workflow-pack or provider adapter calls. | `lotus-ai` owns shared AI execution primitives and model telemetry. |
+| Advisor proposal memo sections | In scope where narrative feeds memo sections. | RFC-0024 owns the full memo evidence product. |
+| Suitability, best-interest, fees, conflicts, and disclosure packs | In scope only for narrative-critical source-backed input and blockers. | RFC-0025 owns full enterprise policy packs; RFC-0016 owns broader costs/frictions. |
+| Advisor cockpit workflow | In scope only where narrative review actions must surface. | RFC-0026 owns full cockpit operating workflow. |
+| Broader AI copilot | Out of scope except for shared narrative lineage and safety controls. | RFC-0027 owns broad copilot interaction. |
+| Bank demo and client-ready proof | In scope for narrative proof consumed by demo journey. | RFC-0028 owns complete bank demo journey and RFP/client-ready packaging. |
+| Report/render/archive client artifacts | In scope when client-ready narrative is included in generated artifacts. | `lotus-report`, `lotus-render`, and `lotus-archive` own document lifecycle. |
+| Gateway and Workbench consumption | In scope for any supported UI or experience API claim. | `lotus-gateway` and `lotus-workbench` own product delivery boundaries. |
+| Advisory/DPM handoff commentary | In scope only where narrative explains advisory-to-execution boundary evidence. | `lotus-manage` owns DPM campaigns, action registers, and execution supportability. |
+| Platform automation and governance | In scope when reusable gaps are discovered. | `lotus-platform` owns scaffolding, validators, standards, mesh certification, and canonical proof automation. |
 
 ## Why This RFC Exists
 
@@ -101,7 +189,10 @@ AI can draft language. It must not own suitability, risk, allocation, AUM, recom
 | Narrative must be reviewable and replayable | Persistence and Replay, Review Workflow | Persistence tests prove exact narrative version replay and approval state |
 | Jurisdiction disclosure must be controlled | Disclosure and Jurisdiction Policy | Tests prove required disclosures are selected by policy, not model invention |
 | UI must not generate client-ready text locally | API and UI Alignment | Contract exposes backend-generated narrative sections and review metadata |
-| Final documentation and agent guidance must be assessed | Slice 8 | Final slice evidence records context updates or explicit no-change decision |
+| Report/render/archive client artifacts must stay source-backed | Product Gap Allocation, Delivery Slices | Cross-repo tests prove client-ready narrative enters artifacts only after review and policy gates |
+| Gateway and Workbench must consume backend-owned narrative | API and UI Alignment, Delivery Slices | Gateway contract and browser tests prove no local UI narrative generation or unsupported inference |
+| Data-product and supportability claims must be implementation-backed | Data Mesh, Trust, and Supportability Baseline | Domain-product, trust telemetry, capability, SLO/access/evidence, and mesh proof exist before promotion |
+| Final documentation and agent guidance must be assessed | Final Closure Slice | Final slice evidence records README/wiki/context/skill updates or explicit no-change decision |
 
 ## Goals
 
@@ -204,6 +295,44 @@ Narrative must not claim client suitability or mandate fit when that evidence is
 6. narrative review lifecycle,
 7. persistence and replay of narrative evidence,
 8. artifact and UI projection.
+
+## Source Authority and Dependency Map
+
+Narrative output must never be treated as an originating source. It is a projection over source
+evidence.
+
+| Evidence family | Source authority | RFC-0023 consumption rule |
+| --- | --- | --- |
+| Portfolio identity, holdings, cash, AUM, valuation, allocation, simulation | `lotus-core` | Consume source refs and source-readiness posture; do not recalculate or infer missing portfolio facts. |
+| Risk, concentration, drawdown, stress, risk-lineage posture | `lotus-risk` | Explain only provided metrics and degraded states; missing risk evidence blocks risk-improvement claims. |
+| Proposal lifecycle, proposal version, artifact, workspace, approval posture | `lotus-advise` | Persist narrative against exact proposal version and lifecycle evidence; replay must not call AI again. |
+| Decision summary and recommendation readiness | `lotus-advise` RFC-0021 implementation | Use as source for recommended action and blockers; AI cannot promote readiness. |
+| Alternatives comparison | `lotus-advise` RFC-0022 implementation | Use backend alternatives evidence and rejected-alternative reason codes; AI cannot invent alternatives. |
+| Suitability, best-interest, jurisdiction, policy, disclosure, fee/cost/conflict posture | `lotus-advise` and policy/source owners; RFC-0025/RFC-0015/RFC-0016 where implemented | Use implemented policy evidence or explicit blocked/missing posture; never convert absence into positive language. |
+| Model execution, prompt/workflow-pack lineage, model telemetry | `lotus-ai` or governed provider adapter | Receive bounded grounding packets only; return draft text plus lineage for validation. |
+| Report, render, archive, retention, access audit | `lotus-report`, `lotus-render`, `lotus-archive` | Client-ready artifacts require review-approved narrative and returned report/archive lineage refs. |
+| Experience API and product surface | `lotus-gateway`, `lotus-workbench` | Consume canonical Advise narrative APIs through Gateway/BFF only; no UI-owned client-ready generation. |
+| Advisory-to-DPM handoff state | `lotus-advise` for advisory posture; `lotus-manage` for DPM system-of-record truth | Narrative may explain boundary evidence only when source handoff status and ownership are explicit. |
+
+## Data Mesh, Trust, and Supportability Baseline
+
+If RFC-0023 promotes a narrative evidence product or exposes narrative as supported product truth,
+the implementation must satisfy the current Lotus data-product and supportability baseline:
+
+1. add or update repo-native domain-product declarations only for implementation-backed narrative
+   products,
+2. emit trust telemetry for the supported narrative product or record a deliberate blocked posture
+   until runtime telemetry exists,
+3. define SLO, access, and evidence policy posture where platform certification requires it,
+4. update `/platform/capabilities` only after deterministic narrative, policy, guardrail, review,
+   replay, and dependency readiness are real,
+5. preserve bounded metric labels and safe operator diagnostics without proposal text, client names,
+   portfolio identifiers, raw prompts, raw responses, trace IDs, or correlation IDs as metric labels,
+6. run the repo-native domain-product gate and relevant platform mesh certification when product
+   declarations or trust evidence change,
+7. publish only audience-filtered evidence packs; public or sales-demo material must not expose raw
+   grounding packets, restricted telemetry paths, prompts, model outputs, entitlement details, or
+   client-identifying data.
 
 ## Target Capability
 
@@ -540,7 +669,71 @@ UI must not:
 
 ## Delivery Slices
 
-### Slice 1: Current-State Assessment and Narrative Contract Baseline
+Each slice must produce a small, meaningful commit or coordinated cross-repo PR set. Required
+upstream, downstream, UI, report, archive, platform, documentation, data-product, and security work
+must be added to these slices rather than parked in WTBD or a side ledger.
+
+### Slice 0: Critical Review, Source Map, and Product Gap Allocation
+
+Outcome:
+
+1. complete the pre-implementation source map for proposal, artifact, workspace, decision summary,
+   alternatives, suitability/policy, risk, disclosures, AI, report, archive, Gateway, Workbench,
+   DPM handoff, data product, trust telemetry, and supportability evidence,
+2. classify RFC-0023 overlap with RFC-0024 through RFC-0028,
+3. decide which narrative-critical dependencies must be implemented now, blocked explicitly, or
+   removed from supported claims.
+
+Acceptance gate:
+
+1. every material narrative claim has a source authority or blocked-state owner,
+2. required cross-repo work is represented as an RFC-0023 slice, owner-repository PR, or explicit
+   blocked/removed supported claim,
+3. no broad "later", WTBD, or side-branch truth remains for the narrative supported claim.
+
+### Slice 1: Platform Automation and Scaffolding Improvement
+
+Outcome:
+
+1. identify repeatable gaps that should be solved in `lotus-platform` rather than locally,
+2. improve platform automation or scaffolding when gaps are found.
+
+Required review areas:
+
+1. API certification and Swagger/OpenAPI quality,
+2. bounded observability, safe diagnostics, health, liveness, readiness, and capabilities posture,
+3. structured logging, correlation, error handling, and problem-details defaults,
+4. AI workflow-pack safety and evidence scaffolding,
+5. data-product declarations, trust telemetry, SLO/access/evidence policy, and mesh certification,
+6. live-evidence capture and canonical front-office proof patterns,
+7. README/wiki/documentation scaffolding and governance hooks.
+
+Acceptance gate:
+
+1. reusable platform improvements are implemented in `lotus-platform` or explicitly rejected with
+   rationale,
+2. platform changes have platform-native tests and PR evidence,
+3. RFC-0023 does not create one-off local patterns where a reusable standard is required.
+
+### Slice 2: Cleanup and Structure
+
+Outcome:
+
+1. clean advisory narrative-adjacent module boundaries before adding capability,
+2. remove stale docs, duplicate target-state language, misleading AI claims, and obsolete prompt or
+   artifact conventions,
+3. establish clear domain, policy, grounding, validation, persistence, AI-adapter, report-handoff,
+   API, supportability, and projection boundaries.
+
+Acceptance gate:
+
+1. controllers remain thin and narrative business logic is not embedded in API facades or UI helper
+   code,
+2. dead code and duplicate documentation discovered in the slice are removed or explicitly
+   retained with rationale,
+3. repo docs are layered rather than duplicated.
+
+### Slice 3: Current-State Assessment and Narrative Contract Baseline
 
 Outcome:
 
@@ -557,7 +750,23 @@ Acceptance gate:
 3. first implementation scope is explicit,
 4. no implementation begins until evidence ownership and review workflow are clear.
 
-### Slice 2: Grounding Packet and Deterministic Template Baseline
+### Slice 4: Data Product and Supportability Baseline
+
+Outcome:
+
+1. define whether RFC-0023 promotes a narrative evidence product,
+2. implement domain-product declarations, trust telemetry, SLO/access/evidence policy, and
+   supportability posture only when implementation-backed,
+3. expose `/platform/capabilities` narrative support only after deterministic readiness exists.
+
+Acceptance gate:
+
+1. repo-native domain-product gate passes when declarations change,
+2. trust telemetry and mesh certification pass where a product claim is made,
+3. capabilities and supported-features material do not overclaim AI-assisted or client-ready
+   readiness.
+
+### Slice 5: Grounding Packet and Deterministic Template Baseline
 
 Outcome:
 
@@ -573,7 +782,7 @@ Acceptance gate:
 3. deterministic template produces stable output,
 4. no model calls are needed for baseline narrative.
 
-### Slice 3: Narrative Policy, Disclosures, and Guardrail Framework
+### Slice 6: Narrative Policy, Disclosures, and Guardrail Framework
 
 Outcome:
 
@@ -589,7 +798,7 @@ Acceptance gate:
 3. missing disclosure policy blocks client-ready narrative,
 4. policy versions are persisted.
 
-### Slice 4: lotus-ai Adapter and AI-Assisted Draft Generation
+### Slice 7: lotus-ai Adapter and AI-Assisted Draft Generation
 
 Outcome:
 
@@ -606,7 +815,7 @@ Acceptance gate:
 3. validation rejects unsupported AI claims,
 4. AI-assisted output remains draft until review.
 
-### Slice 5: Review Workflow, Persistence, Artifact, and Replay
+### Slice 8: Review Workflow, Persistence, Idempotency, Artifact, and Replay
 
 Outcome:
 
@@ -621,9 +830,10 @@ Acceptance gate:
 1. persistence tests prove exact narrative replay,
 2. review tests prove client-ready status requires approval,
 3. artifact tests prove only approved client-ready narrative is included,
-4. regeneration tests prove new narrative version lineage.
+4. regeneration tests prove new narrative version lineage,
+5. duplicate generation or review requests are idempotent where the API contract requires it.
 
-### Slice 6: Alternatives and Decision Summary Narrative Integration
+### Slice 9: Alternatives, Decision Summary, and Policy Evidence Integration
 
 Outcome:
 
@@ -639,7 +849,42 @@ Acceptance gate:
 3. alternatives narrative explains tradeoffs using backend comparison evidence,
 4. approval requirements are not omitted.
 
-### Slice 7: Live Validation and Operator Evidence
+### Slice 10: Certified APIs and OpenAPI
+
+Outcome:
+
+1. expose canonical narrative request/read/review/regeneration/lineage/replay endpoints or additive
+   fields under the existing advisory route family,
+2. update OpenAPI, vocabulary, no-alias, examples, error responses, field descriptions, and header
+   guidance,
+3. migrate affected consumers in the same RFC.
+
+Acceptance gate:
+
+1. OpenAPI quality, API vocabulary, and no-alias gates pass,
+2. endpoint certification covers behavior and every material returned field,
+3. stale or duplicate narrative route shapes are removed or explicitly deprecated.
+
+### Slice 11: Report, Render, Archive, Gateway, and Workbench Realization
+
+Outcome:
+
+1. include review-approved narrative in report/render/archive flows where client artifacts are
+   claimed,
+2. expose narrative review, guardrail, disclosure, lineage, and artifact posture through Gateway and
+   Workbench,
+3. preserve advisory-to-DPM boundary evidence where narrative references execution handoff.
+
+Acceptance gate:
+
+1. `lotus-gateway` consumes canonical `lotus-advise` narrative endpoints,
+2. Workbench consumes Gateway/BFF only and does not infer narrative facts locally,
+3. report/render/archive references are source-backed and blocked when review posture is
+   insufficient,
+4. browser validation proves advisor, compliance, client-draft, blocked, degraded, and guardrail
+   states where UI support is claimed.
+
+### Slice 12: Live Validation, Canonical Proof, and Operator Evidence
 
 Outcome:
 
@@ -653,26 +898,92 @@ Acceptance gate:
 1. live suite validates deterministic narrative without AI dependency,
 2. AI-assisted mode is validated where credentials/runtime are available,
 3. unavailable AI does not break proposal core flow,
-4. guardrail failure path is observable and reproducible.
+4. guardrail failure path is observable and reproducible,
+5. canonical Workbench proof uses the governed front-office runtime when product-surface claims are
+   made,
+6. evidence is captured under non-git-tracked `output/` and critically reviewed for every material
+   field, reason code, evidence ref, lineage ref, review state, latency, and degraded state.
 
-### Slice 8: Documentation, Agent Context, and Branch Hygiene
+### Slice 13: Commercial, Demo, and Documentation-As-Product Material
+
+Outcome:
+
+1. produce implementation-backed narrative docs, API examples, wiki guidance, demo notes, operator
+   material, and sales/pre-sales wording,
+2. separate supported deterministic, AI-assisted, client-draft, and client-ready states from target
+   roadmap.
+
+Acceptance gate:
+
+1. README/wiki/supported-features material does not exceed implementation,
+2. no demo, sales, RFP, regulatory, or AI claim is unsupported,
+3. wiki source is updated in the repo and prepared for publication after merge if changed.
+
+### Slice 14: Second-Last Hardening and Review
+
+Outcome:
+
+1. perform a proper code, contract, security, data-mesh, AI-safety, documentation, and operations
+   review before closure.
+
+Acceptance gate:
+
+1. API certification pattern compliance is verified,
+2. Swagger is complete and contains what/when/how guidance,
+3. every request/response attribute has description, type, and example value,
+4. error handling, guardrail failures, disclosure failures, model timeout, persistence, replay,
+   idempotency, and review transitions are tested,
+5. security and sensitive-data controls reject raw prompts, raw model responses, client names,
+   portfolio identifiers, holdings, or entitlement details in unsafe logs, metrics, docs, and
+   evidence packs,
+6. no dead code, duplicate paths, stale docs, or unsupported product claims remain.
+
+### Slice 15: Final Closure
 
 Outcome:
 
 1. update RFC status and index when implemented,
-2. update API docs, artifact docs, narrative policy docs, and operator runbooks,
+2. update API docs, artifact docs, narrative policy docs, operator runbooks, README, wiki source,
+   supported-features, proof summaries, and repo context where behavior changed,
 3. update `REPOSITORY-ENGINEERING-CONTEXT.md` if grounded narrative patterns become durable guidance,
 4. update platform or agent context if future agents need reusable AI-safety guidance,
 5. assess whether skill guidance should change,
-6. complete PR loop, merge, delete local and remote feature branches, and sync `main`.
+6. run stranded-truth reconciliation before final closure,
+7. run repo-native local gates, wiki check when docs/wiki changed, GitHub Feature Lane, PR Merge
+   Gate, and Main Releasability Gate,
+8. publish wiki after merge when wiki source changed,
+9. delete local and remote feature branches and leave `local = remote = main`.
 
 Acceptance gate:
 
 1. docs clearly distinguish deterministic evidence from AI-assisted draft text,
 2. context/skill changes are either made or explicitly assessed as no-change-needed,
 3. RFC index is current,
-4. required GitHub checks are green,
-5. branch hygiene leaves `local = remote = main` after merge.
+4. required GitHub checks and Main Releasability Gate are green,
+5. branch hygiene leaves `local = remote = main` after merge,
+6. no required cross-repo PR, WTBD dependency, unmerged branch, or stranded durable truth remains.
+
+### Slice 16: Post-Completion Communication
+
+Outcome:
+
+1. draft a LinkedIn post only after implementation proof and closure are complete.
+
+Requirements:
+
+1. use the `lotus-linkedin-thought-leadership` workflow,
+2. read the content ledger, themes, voice/style guide, and recent drafts before drafting,
+3. draft under `lotus-platform/thought-leadership/linkedin/drafts/`,
+4. update `content-ledger.md`,
+5. keep the post employer-safe, non-confidential, non-promotional, and grounded only in what was
+   actually implemented,
+6. do not imply any bank or employer uses Lotus,
+7. do not make unsupported product, regulatory, investment, or AI claims.
+
+Acceptance gate:
+
+1. post draft exists and ledger is updated, or closure notes record a deliberate no-post decision
+   with rationale approved by the user.
 
 Skill/context assessment requirement:
 
@@ -778,6 +1089,44 @@ Update or add:
 9. repository engineering context if new patterns emerge,
 10. agent operating guidance if new repeatable workflows emerge.
 
+## Supported-Features Ledger
+
+| Capability | RFC state before implementation | Promotion rule |
+| --- | --- | --- |
+| Grounding packet builder | Proposed | Promote only after deterministic builder tests prove all material facts come from allowed evidence refs and missing evidence is explicit. |
+| Deterministic advisor-review narrative | Proposed | Promote only after template output is stable, source-backed, review-marked, and available without AI dependency. |
+| AI-assisted narrative draft | Gated | Promote only after bounded `lotus-ai` or provider adapter execution, prompt/workflow lineage, timeout behavior, unsupported-claim validation, and safe degraded behavior are proven. |
+| Client-draft narrative | Proposed | Promote only after disclosure, suitability, risk, approval, and evidence-limitations posture is enforced and review state is visible. |
+| Client-ready narrative | Gated | Promote only after explicit human approval, disclosure policy, guardrail pass, report/render/archive readiness, and replay evidence are green. |
+| Narrative review workflow | Proposed | Promote only after approve/reject/regenerate transitions are auditable, idempotent where required, and persist exact actor/action/reason/version lineage. |
+| Narrative replay | Proposed | Promote only after replay returns the exact persisted narrative evidence without model calls and verifies source-input hashes. |
+| Report/render/archive narrative package | Proposed | Promote only after typed package, deterministic rendering, archive record, retention/access-audit refs, and blocked-state behavior are proven. |
+| Gateway narrative API | Proposed | Promote only after Gateway consumes canonical Advise endpoints and passes contract/integration tests. |
+| Workbench narrative review UX | Proposed | Promote only after browser validation proves backed advisor, compliance, client-draft, blocked, degraded, and guardrail states through Gateway/BFF only. |
+| Narrative evidence data product | Proposed | Promote only after producer declaration, trust telemetry, SLO/access/evidence policy, mesh certification, and catalog publication are complete. |
+| Sales/demo-safe narrative proof | Proposed | Promote only after synthetic/approved demo data, supported-claim taxonomy, wiki/demo material, and canonical proof are implementation-backed. |
+
+## Existing WTBD Import and No-WTBD Execution Rule
+
+RFC-0023 is the execution source for grounded advisory AI narrative. New WTBD records must not be
+created. Existing closed WTBD lessons are imported only as constraints:
+
+| Closed WTBD | Imported RFC-0023 requirement | Slice ownership |
+| --- | --- | --- |
+| WTBD-001 proposal service decomposition | Narrative implementation must not re-expand `ProposalWorkflowService`; use named grounding, policy, validation, persistence, adapter, and API boundaries. | Slice 2, Slice 5, Slice 10, Slice 14 |
+| WTBD-002 stateful context adapter decomposition | Narrative source evidence must preserve source-read, route, cache, taxonomy, translation, and hydration boundaries; richer source fields are source-owned or blocked. | Slice 0, Slice 3, Slice 5, Slice 12 |
+| WTBD-003 workspace service decomposition | Workspace narrative integration must not place narrative business logic in API facades or UI helpers; Gateway and Workbench consume canonical Advise contracts. | Slice 2, Slice 8, Slice 11, Slice 14 |
+| WTBD-004 Gateway/Workbench capability alignment | Narrative capability and `/platform/capabilities` changes must migrate Gateway and Workbench in the same RFC branch set with source-backed supportability proof. | Slice 4, Slice 11, Slice 12, Slice 14 |
+
+Closure rule:
+
+1. RFC-0023 must have no active WTBD dependency at closure,
+2. no cross-repo requirement may be represented only in `WTBD.md`,
+3. any existing WTBD lesson relevant to narrative work must appear in slice evidence or closure
+   notes,
+4. branch cleanup must prove narrative truth is on `main`, not stranded in an unmerged branch or
+   side ledger.
+
 ## Naming and Vocabulary Rules
 
 Use private-banking advisory language and avoid generic AI product wording.
@@ -809,7 +1158,7 @@ Narrative language must reflect private banking, portfolio analytics, suitabilit
 
 ## Open Questions Before Implementation
 
-These must be resolved in Slice 1:
+These must be resolved in Slice 3:
 
 1. Should the first implementation support advisor-review only, or advisor-review plus client-draft?
 2. Which `lotus-ai` adapter contract is canonical for proposal narrative?
@@ -878,5 +1227,21 @@ This RFC is implemented when:
 6. narrative versions persist and replay exactly,
 7. client-ready output requires explicit review and approval,
 8. artifacts include only allowed narrative sections,
-9. live validation proves ready, blocked, insufficient-evidence, fallback, and guardrail paths,
-10. documentation, agent context assessment, and branch hygiene are completed in the final slice.
+9. report/render/archive integration is complete for any client-ready artifact claim,
+10. Gateway and Workbench expose only backend-owned narrative through canonical boundaries where UI
+    support is claimed,
+11. `/platform/capabilities`, supported-features, README, wiki, and demo material claim only
+    implementation-backed narrative states,
+12. data-product declarations, trust telemetry, mesh certification, SLO/access/evidence policy, and
+    supportability posture are complete where a narrative evidence product is promoted,
+13. live validation proves ready, blocked, insufficient-evidence, fallback, AI-unavailable, replay,
+    review, report/archive, Gateway/Workbench, and guardrail paths where in scope,
+14. security and sensitive-data controls prevent raw prompt, raw model output, client-identifying
+    data, holdings, restricted telemetry, entitlement details, and unsafe identifiers from leaking
+    into logs, metrics, public docs, wiki, or evidence packs,
+15. repository-native local gates, wiki check when docs/wiki changed, GitHub Feature Lane, PR Merge
+    Gate, and Main Releasability Gate are green,
+16. documentation, agent context assessment, skill guidance assessment, wiki publication, branch
+    deletion, and local/remote clean-state proof are completed in the final slice,
+17. no required follow-up RFC, WTBD dependency, unmerged branch, side ledger, or stranded durable
+    truth remains.

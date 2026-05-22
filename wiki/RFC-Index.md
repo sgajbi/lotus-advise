@@ -35,11 +35,22 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
 - RFC-0023 grounded advisory AI narrative and client-ready proposal commentary
+- RFC-0024 advisor proposal memo and evidence pack
+- RFC-0025 enterprise suitability and best-interest policy packs
+- RFC-0026 advisor cockpit operating workflow
+- RFC-0027 governed advisory AI copilot
+- RFC-0028 bank demo journey and client-ready proof
 
 ## Important Interpretation
 
+RFC-0023 through RFC-0028 are gold-standard implementation plans for the next advisory crown-jewel
+roadmap. RFC-0023 is now the recommended first implementation slice because it defines the grounded
+narrative prerequisite consumed by proposal memo, policy, cockpit, copilot, and demo work.
+
 RFC-0023 is not the current implemented proposal narrative source of truth. The implemented AI seam
-today is workspace rationale support. Proposal narrative remains planned future work.
+today is workspace rationale support. Proposal narrative remains planned future work until RFC-0023
+is implemented, merged to `main`, validated, and published with implementation-backed feature
+truth.
 
 ## Source Index
 
