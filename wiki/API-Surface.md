@@ -31,8 +31,9 @@ package propagation. The request is blocked unless the selected immutable propos
 persisted narrative, an `APPROVED_FOR_ADVISOR_USE` review, and matching source narrative hash.
 Delivery evidence records the compact narrative package summary. `lotus-report` now consumes and
 snapshots the reviewed package, and `lotus-render` renders it as an optional advisor-use
-portfolio-review advisory narrative page. Archive ownership, Gateway composition, Workbench
-rendering, and client-ready publication remain gated.
+portfolio-review advisory narrative page. `lotus-archive` stores a support-safe archive metadata
+summary for rendered advisor-use portfolio-review artifacts with approved review posture and source
+hash lineage. Gateway composition, Workbench rendering, and client-ready publication remain gated.
 
 ## Advisory Operations And Support
 
