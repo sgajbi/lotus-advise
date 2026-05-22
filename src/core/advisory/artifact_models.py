@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from src.core.advisory.alternatives_models import ProposalAlternatives
 from src.core.advisory.decision_summary_models import ProposalDecisionSummary
+from src.core.advisory.narrative_models import ProposalNarrative
 from src.core.models import GateDecision, Money, SuitabilityIssue
 
 
@@ -397,6 +398,14 @@ class ProposalArtifact(BaseModel):
         description=(
             "Backend-owned proposal alternatives copied from proposal simulation output when "
             "alternatives are requested or persisted."
+        ),
+    )
+    proposal_narrative: ProposalNarrative | None = Field(
+        default=None,
+        description=(
+            "Optional deterministic advisor-review narrative generated from artifact evidence "
+            "when explicitly requested. AI-assisted and client-ready narrative are not supported "
+            "by this Slice 5 baseline."
         ),
     )
     summary: ProposalArtifactSummary = Field(description="Artifact summary section.")

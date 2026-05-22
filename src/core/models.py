@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_serializer, field_validator, model_
 
 from src.core.advisory.alternatives_models import ProposalAlternatives, ProposalAlternativesRequest
 from src.core.advisory.decision_summary_models import ProposalDecisionSummary
+from src.core.advisory.narrative_models import ProposalNarrativeRequest
 
 
 class ValuationMode(str, Enum):
@@ -1470,6 +1471,14 @@ class ProposalSimulateRequest(BaseModel):
         default=None,
         description=(
             "Optional backend-owned alternatives request for proposal comparison generation."
+        ),
+    )
+    narrative_request: ProposalNarrativeRequest | None = Field(
+        default=None,
+        description=(
+            "Optional deterministic advisor-review proposal narrative request. Slice 5 supports "
+            "only backend-generated `ADVISOR_REVIEW` narrative without AI dependency; client-ready "
+            "commentary remains gated."
         ),
     )
 

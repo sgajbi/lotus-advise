@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-21T14:12:29.477585+00:00",
+  "generatedAt": "2026-05-22T05:05:44.731326+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -4363,6 +4363,20 @@
       ],
       "observedTypes": [
         "string",
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.proposal_narrative",
+      "canonicalTerm": "proposal_narrative",
+      "preferredName": "proposal_narrative",
+      "description": "Optional deterministic advisor-review narrative generated from artifact evidence when explicitly requested. AI-assisted and client-ready narrative are not supported by this Slice 5 baseline.",
+      "example": "proposal_narrative_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
         "object"
       ]
     },
@@ -9360,6 +9374,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
+            "name": "version.artifact.proposal_narrative",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_narrative",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_narrative"
+          },
+          {
             "name": "version.artifact.summary",
             "location": "body",
             "required": true,
@@ -12526,6 +12548,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
           },
           {
+            "name": "current_version.artifact.proposal_narrative",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_narrative",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_narrative"
+          },
+          {
             "name": "current_version.artifact.summary",
             "location": "body",
             "required": true,
@@ -15331,6 +15361,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_alternatives",
             "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
+            "name": "artifact.proposal_narrative",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_narrative",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_narrative"
           },
           {
             "name": "artifact.summary",
@@ -18282,6 +18320,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_alternatives",
             "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
+            "name": "version.artifact.proposal_narrative",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_narrative",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_narrative"
           },
           {
             "name": "version.artifact.summary",
@@ -24782,6 +24828,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_alternatives",
             "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
+            "name": "proposal_narrative",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_narrative",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_narrative"
           },
           {
             "name": "summary",
@@ -36240,6 +36294,14 @@
             "type": "object",
             "semanticId": "lotus.proposal_alternatives",
             "attributeRef": "#/attributeCatalog/lotus.proposal_alternatives"
+          },
+          {
+            "name": "proposal.version.artifact.proposal_narrative",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.proposal_narrative",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_narrative"
           },
           {
             "name": "proposal.version.artifact.summary",
