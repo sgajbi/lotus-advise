@@ -35,20 +35,25 @@ Current repository posture:
 2. runtime smoke and production-profile guardrail validation are part of the real CI contract,
 3. canonical upstream integration with `lotus-core` and `lotus-risk` matters for truthful proposal behavior,
 4. proposal simulation, artifact, workspace, replay, and lifecycle surfaces now expose persisted backend-owned `proposal_decision_summary` and `proposal_alternatives`,
-5. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
-6. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
-7. repo-native CI is already aligned to explicit lane expectations,
-8. RFC-0086 repo-native declaration onboarding now covers the advisory proposal lifecycle product
+5. RFC-0023 advisor-review proposal narrative is supported in the proposal artifact,
+   proposal-version review/replay, reviewed report-request package propagation, and downstream
+   `lotus-report`/`lotus-render` advisor-use report rendering path; archive realization,
+   Gateway/Workbench surfaces, client-ready commentary, data-product promotion, trust telemetry,
+   and `/platform/capabilities` narrative promotion remain gated,
+6. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
+7. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
+8. repo-native CI is already aligned to explicit lane expectations,
+9. RFC-0086 repo-native declaration onboarding now covers the advisory proposal lifecycle product
    and a bounded tactical house-view affected-cohort product in `contracts/domain-data-products/`,
    with explicit upstream dependencies,
-9. RFC-0087 trust telemetry proof for `AdvisoryProposalLifecycleRecord` now lives under
+10. RFC-0087 trust telemetry proof for `AdvisoryProposalLifecycleRecord` now lives under
    `contracts/trust-telemetry/` and is validated by `tests/unit/test_trust_telemetry.py` against
    the platform trust telemetry validator when `lotus-platform` is available,
-10. the advisory workspace rationale path now uses the explicit `lotus-ai` workflow-pack execution
+11. the advisory workspace rationale path now uses the explicit `lotus-ai` workflow-pack execution
    seam for the `workspace_rationale.pack` family, preserves bounded run posture in the advisory
    response, and exposes a separate bounded review-action pass-through that retains Lotus AI
    lineage truth,
-11. execution handoff, status, and delivery projections carry explicit ownership-boundary evidence
+12. execution handoff, status, and delivery projections carry explicit ownership-boundary evidence
    so advisory posture cannot be confused with downstream execution system-of-record truth.
 
 ## Architecture And Module Map
