@@ -3,8 +3,14 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 ProposalNarrativeAudience = Literal["ADVISOR_REVIEW"]
+ProposalNarrativeClientAudience = Literal["ADVISOR_REVIEW", "CLIENT_READY"]
 ProposalNarrativeGenerationMode = Literal["DETERMINISTIC_TEMPLATE"]
-ProposalNarrativeStatus = Literal["READY_FOR_ADVISOR_REVIEW", "BLOCKED_INSUFFICIENT_EVIDENCE"]
+ProposalNarrativeStatus = Literal[
+    "READY_FOR_ADVISOR_REVIEW",
+    "BLOCKED_INSUFFICIENT_EVIDENCE",
+    "BLOCKED_POLICY_INCOMPLETE",
+    "BLOCKED_GUARDRAIL_FAILURE",
+]
 ProposalNarrativeReviewState = Literal["DRAFT"]
 ProposalNarrativeSectionKey = Literal[
     "EXECUTIVE_SUMMARY",
@@ -16,6 +22,9 @@ ProposalNarrativeSectionKey = Literal[
     "APPROVALS_AND_NEXT_STEPS",
     "LIMITATIONS_AND_DISCLOSURES",
 ]
+ProposalNarrativeRiskPosture = Literal["STANDARD", "CONCENTRATION_REVIEW", "UNAVAILABLE"]
+ProposalNarrativePolicyStatus = Literal["READY_FOR_ADVISOR_REVIEW", "BLOCKED_CLIENT_READY"]
+ProposalNarrativeGuardrailStatus = Literal["PASS", "FAIL"]
 
 
 class ProposalNarrativeRequest(BaseModel):
@@ -39,6 +48,30 @@ class ProposalNarrativeRequest(BaseModel):
         default=None,
         description="Optional actor identifier requesting deterministic advisor-review narrative.",
         examples=["advisor_123"],
+    )
+    jurisdiction: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional booking or client jurisdiction used for deterministic disclosure policy "
+            "selection. Unsupported or missing jurisdictions block client-ready posture."
+        ),
+        examples=["SG"],
+    )
+    product_types: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Optional product-type hints used for disclosure policy selection. When omitted, "
+            "Slice 6 derives product types from proposal evidence where possible."
+        ),
+        examples=[["EQUITY", "FX"]],
+    )
+    client_audience: ProposalNarrativeClientAudience = Field(
+        default="ADVISOR_REVIEW",
+        description=(
+            "Policy audience used for disclosure and promotion gating. Slice 6 may return a "
+            "blocked policy result for `CLIENT_READY`, but does not promote client-ready output."
+        ),
+        examples=["ADVISOR_REVIEW"],
     )
 
 
@@ -126,6 +159,83 @@ class ProposalNarrativeSection(BaseModel):
     )
 
 
+class ProposalNarrativePolicyContext(BaseModel):
+    jurisdiction: str = Field(
+        description="Resolved jurisdiction used by narrative policy.",
+        examples=["SG"],
+    )
+    product_types: List[str] = Field(
+        default_factory=list,
+        description="Resolved product types used by disclosure policy.",
+        examples=[["EQUITY", "FX"]],
+    )
+    risk_posture: ProposalNarrativeRiskPosture = Field(
+        description="Resolved risk posture used by disclosure policy.",
+        examples=["CONCENTRATION_REVIEW"],
+    )
+    client_audience: ProposalNarrativeClientAudience = Field(
+        description="Policy audience used for promotion and disclosure gating.",
+        examples=["ADVISOR_REVIEW"],
+    )
+
+
+class ProposalNarrativeDisclosure(BaseModel):
+    disclosure_id: str = Field(
+        description="Stable approved disclosure identifier.",
+        examples=["DISC_SG_GENERAL_MARKET_RISK"],
+    )
+    jurisdiction: str = Field(description="Disclosure jurisdiction.", examples=["SG"])
+    product_type: str = Field(description="Product type or posture the disclosure covers.")
+    required_for: ProposalNarrativeClientAudience = Field(
+        description="Audience for which this disclosure is required."
+    )
+    text: str = Field(description="Approved disclosure text selected by policy.")
+    source_authority: str = Field(
+        description="Policy authority that owns the disclosure text.",
+        examples=["lotus-advise.rfc0023.slice6"],
+    )
+    policy_version: str = Field(
+        description="Disclosure policy version that selected the disclosure.",
+        examples=["advisory-narrative-policy.2026-05"],
+    )
+
+
+class ProposalNarrativeGuardrailResult(BaseModel):
+    guardrail_id: str = Field(
+        description="Stable guardrail identifier.",
+        examples=["GR_UNSUPPORTED_GUARANTEE_CLAIM"],
+    )
+    status: ProposalNarrativeGuardrailStatus = Field(description="Guardrail evaluation status.")
+    message: str = Field(description="Human-readable guardrail result.")
+    section_key: Optional[ProposalNarrativeSectionKey] = Field(
+        default=None,
+        description="Section key that triggered the guardrail result, when applicable.",
+    )
+
+
+class ProposalNarrativePolicy(BaseModel):
+    policy_version: str = Field(
+        description="Narrative policy version used for disclosure and guardrail decisions.",
+        examples=["advisory-narrative-policy.2026-05"],
+    )
+    status: ProposalNarrativePolicyStatus = Field(description="Policy readiness status.")
+    context: ProposalNarrativePolicyContext = Field(
+        description="Resolved policy context for the narrative."
+    )
+    required_disclosures: List[ProposalNarrativeDisclosure] = Field(
+        default_factory=list,
+        description="Approved disclosures selected by deterministic policy.",
+    )
+    client_ready_blockers: List[str] = Field(
+        default_factory=list,
+        description="Policy blockers preventing client-ready posture.",
+    )
+    prohibited_claims: List[str] = Field(
+        default_factory=list,
+        description="Unsupported claim patterns rejected by narrative guardrails.",
+    )
+
+
 class ProposalNarrative(BaseModel):
     narrative_id: str = Field(
         description="Deterministic narrative identifier for this transient artifact narrative.",
@@ -145,12 +255,23 @@ class ProposalNarrative(BaseModel):
         description="Narrative policy or template version used for deterministic rendering.",
         examples=["proposal-narrative-deterministic.v1"],
     )
+    narrative_policy: ProposalNarrativePolicy = Field(
+        description="Resolved narrative policy, disclosure selection, and promotion blockers."
+    )
     grounding_packet: ProposalNarrativeGroundingPacket = Field(
         description="Grounding packet used by deterministic narrative rendering."
     )
     sections: List[ProposalNarrativeSection] = Field(
         default_factory=list,
         description="Ordered deterministic narrative sections.",
+    )
+    disclosures: List[ProposalNarrativeDisclosure] = Field(
+        default_factory=list,
+        description="Approved disclosures selected by deterministic narrative policy.",
+    )
+    guardrail_results: List[ProposalNarrativeGuardrailResult] = Field(
+        default_factory=list,
+        description="Deterministic unsupported-claim and source-reference guardrail results.",
     )
     limitations: List[ProposalNarrativeMissingEvidence] = Field(
         default_factory=list,

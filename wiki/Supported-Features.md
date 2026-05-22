@@ -14,7 +14,7 @@ written for business, engineering, operations, sales, pre-sales, and demo prepar
 | Delivery, report-request, and execution-handoff posture | Supported | delivery, report-request, execution-handoff, and execution-status routes | Execution handoff/status payloads carry ownership-boundary evidence; execution truth remains outside `lotus-advise`. |
 | Advisory workspace drafting | Supported | `/advisory/workspaces/*` | Workspace state is pre-lifecycle advisory drafting, with explicit handoff into proposal ownership. |
 | Workspace AI rationale | Supported through governed seam | `/advisory/workspaces/{workspace_id}/assistant/rationale` | Uses the bounded `lotus-ai` workspace rationale seam; broad proposal narrative remains RFC-0023 future work. |
-| Deterministic advisor-review proposal narrative | Supported in proposal artifact path | `POST /advisory/proposals/artifact` with `narrative_request` | Generates opt-in `ADVISOR_REVIEW` narrative from proposal artifact grounding evidence without AI dependency; standalone narrative endpoints, persistence, review approval, AI-assisted drafts, and client-ready commentary remain gated. |
+| Deterministic advisor-review proposal narrative | Supported in proposal artifact path | `POST /advisory/proposals/artifact` with `narrative_request` | Generates opt-in `ADVISOR_REVIEW` narrative from proposal artifact grounding evidence without AI dependency and includes deterministic policy, disclosure, and guardrail metadata; standalone narrative endpoints, persistence, review approval, AI-assisted drafts, and client-ready commentary remain gated. |
 | Proposal decision summary | Supported | simulation, artifact, workspace, replay, and lifecycle surfaces | Backend-owned decision summary; UI and support layers must not infer it independently. |
 | Proposal alternatives | Supported | simulation, artifact, workspace, replay, and lifecycle surfaces | Alternatives remain anchored to canonical simulation and risk enrichment. |
 | Tactical house-view affected cohorts | Supported | `POST /advisory/tactical-house-view/cohorts/evaluate` | Evaluates supplied source-backed candidate portfolios only; no global portfolio discovery or DPM campaign ownership. |
@@ -41,7 +41,7 @@ are complete.
 
 | RFC | Feature | Product value | Current support |
 | --- | --- | --- | --- |
-| `RFC-0023` | Grounded advisory AI narrative and client-ready proposal commentary | Creates governed advisor-review, compliance-review, and client-ready proposal narrative from deterministic evidence. | Slices 0-5 complete: source authority, platform-scaffolding review, cleanup/structure, contract baseline, data-product/supportability non-promotion baseline, and deterministic advisor-review artifact-path narrative; AI-assisted, persisted/replayable, compliance-review, client-draft, and client-ready narrative remain gated |
+| `RFC-0023` | Grounded advisory AI narrative and client-ready proposal commentary | Creates governed advisor-review, compliance-review, and client-ready proposal narrative from deterministic evidence. | Slices 0-6 complete: source authority, platform-scaffolding review, cleanup/structure, contract baseline, data-product/supportability non-promotion baseline, deterministic advisor-review artifact-path narrative, and policy/disclosure/guardrail baseline; AI-assisted, persisted/replayable, compliance-review, client-draft, and client-ready narrative remain gated |
 | `RFC-0024` | Advisor proposal memo and evidence pack | Turns proposal evidence into an advisor, compliance, operations, audit, and sales-ready memo package. | Planned RFC only |
 | `RFC-0025` | Enterprise suitability and best-interest policy packs | Adds versioned policy packs for suitability, best-interest, product eligibility, disclosures, approvals, and source-readiness gaps. | Planned RFC only |
 | `RFC-0026` | Advisor cockpit operating workflow | Creates backend-owned advisor worklists, action items, meeting-preparation packets, and workflow readiness summaries. | Planned RFC only |
@@ -65,11 +65,12 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    Core[lotus-core source facts] --> Grounding[Future RFC-0023 grounding packet]
+    Core[lotus-core source facts] --> Grounding[Artifact-path grounding packet]
     Risk[lotus-risk risk lens] --> Grounding
     Decision[lotus-advise decision summary] --> Grounding
     Alternatives[lotus-advise alternatives] --> Grounding
-    Grounding --> Narrative[Future proposal narrative authority]
+    Grounding --> Policy[Deterministic policy, disclosure, and guardrail baseline]
+    Policy --> Narrative[Artifact-path advisor-review narrative]
     AI[lotus-ai workflow-pack execution] --> Narrative
     Narrative --> Review[Human review and replay gates]
     Review --> Gateway[Future Gateway consumption]
@@ -77,12 +78,13 @@ flowchart LR
     Review --> Report[Future report/render/archive handoff]
 ```
 
-The diagram is deliberately future-facing. Today, only the source-map and ownership gate is
-implementation-backed for RFC-0023. Slice 5 now supports deterministic advisor-review narrative
-inside the proposal artifact path when explicitly requested. Proposal narrative is still not a
-domain data product, trust-telemetry fixture, standalone endpoint, persisted/replayable narrative,
-review-approved workflow, `/platform/capabilities` feature, AI-assisted draft, client-ready
-commentary, or report/render/archive artifact inclusion until the later implementing slices close.
+The diagram separates implemented artifact-path narrative support from future promotion gates.
+Slices 5-6 now support deterministic advisor-review narrative inside the proposal artifact path
+when explicitly requested, with grounding packet, policy version, disclosure selection, guardrail
+results, and client-ready blockers. Proposal narrative is still not a domain data product,
+trust-telemetry fixture, standalone endpoint, persisted/replayable narrative, review-approved workflow,
+`/platform/capabilities` feature, AI-assisted draft, client-ready commentary, or report/render/archive
+artifact inclusion until the later implementing slices close.
 
 ## Integration Boundaries
 

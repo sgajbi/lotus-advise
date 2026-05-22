@@ -5,23 +5,21 @@ from pathlib import Path
 RFC_PATH = Path(
     "docs/rfcs/RFC-0023-grounded-advisory-ai-narrative-and-client-ready-proposal-commentary.md"
 )
-SLICE5_PATH = Path(
-    "docs/rfcs/RFC-0023-slice-5-grounding-packet-and-deterministic-template-baseline.md"
+SLICE6_PATH = Path(
+    "docs/rfcs/RFC-0023-slice-6-narrative-policy-disclosure-and-guardrail-framework.md"
 )
 RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 
 
-def test_rfc0023_slice5_grounding_baseline_is_indexed() -> None:
+def test_rfc0023_slice6_policy_guardrail_baseline_is_indexed() -> None:
     rfc_text = RFC_PATH.read_text(encoding="utf-8")
-    slice5_text = SLICE5_PATH.read_text(encoding="utf-8")
+    slice6_text = SLICE6_PATH.read_text(encoding="utf-8")
     index_text = RFC_INDEX_PATH.read_text(encoding="utf-8")
     wiki_index_text = WIKI_RFC_INDEX_PATH.read_text(encoding="utf-8")
 
-    source_ref = (
-        "docs/rfcs/RFC-0023-slice-5-grounding-packet-and-deterministic-template-baseline.md"
-    )
+    source_ref = "docs/rfcs/RFC-0023-slice-6-narrative-policy-disclosure-and-guardrail-framework.md"
     assert source_ref in rfc_text
     assert source_ref in index_text
     assert source_ref in wiki_index_text
@@ -30,29 +28,29 @@ def test_rfc0023_slice5_grounding_baseline_is_indexed() -> None:
         "## Implementation",
         "## Supported Request Shape",
         "## Supported Response Shape",
-        "## Grounding Rules",
-        "## Missing Evidence",
+        "## Disclosure Rules",
+        "## Guardrail Rules",
+        "## Client-Ready Blocking",
         "## Non-Promoted Behavior",
     ):
-        assert section in slice5_text
+        assert section in slice6_text
 
-    assert "IMPLEMENTED - DETERMINISTIC ADVISOR-REVIEW BASELINE" in slice5_text
-    assert "does not call `lotus-ai` or any model provider" in slice5_text
+    assert "IMPLEMENTED - POLICY, DISCLOSURE, AND GUARDRAIL BASELINE" in slice6_text
+    assert "advisory-narrative-policy.2026-05" in slice6_text
 
 
-def test_rfc0023_slice5_supported_features_promote_only_artifact_path_narrative() -> None:
+def test_rfc0023_slice6_supported_features_promote_only_metadata_not_client_ready() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "Deterministic advisor-review proposal narrative" in supported_features
-    assert "`POST /advisory/proposals/artifact` with `narrative_request`" in supported_features
+    assert "Slices 0-6 complete" in supported_features
+    assert "policy/disclosure/guardrail baseline" in supported_features
     assert "deterministic policy, disclosure, and guardrail metadata" in supported_features
     assert "client-ready commentary remain gated" in supported_features
-    assert "Proposal narrative | Supported" not in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features
 
 
-def test_rfc0023_slice5_documents_non_promoted_behavior() -> None:
-    slice5_text = SLICE5_PATH.read_text(encoding="utf-8")
+def test_rfc0023_slice6_documents_non_promoted_behavior() -> None:
+    slice6_text = SLICE6_PATH.read_text(encoding="utf-8")
 
     for blocked in (
         "standalone narrative request/read/review/replay endpoints",
@@ -64,4 +62,4 @@ def test_rfc0023_slice5_documents_non_promoted_behavior() -> None:
         "`/platform/capabilities` narrative feature rows",
         "narrative data-product or trust-telemetry promotion",
     ):
-        assert blocked in slice5_text
+        assert blocked in slice6_text

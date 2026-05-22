@@ -1128,6 +1128,82 @@ def test_advisory_proposal_artifact_can_include_deterministic_advisor_narrative(
     }
 
 
+def test_advisory_proposal_artifact_selects_policy_disclosures_for_sg_equity_fx(client):
+    payload = _base_simulation_payload("pf_narrative_policy_sg")
+    payload["shelf_entries"][0]["asset_class"] = "EQUITY"
+    payload["shelf_entries"][0]["attributes"] = {"product_type": "EQUITY"}
+    payload["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "jurisdiction": "SG",
+        "product_types": ["FX"],
+        "client_audience": "ADVISOR_REVIEW",
+        "sections": ["LIMITATIONS_AND_DISCLOSURES"],
+    }
+
+    response = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-policy-sg"},
+    )
+
+    assert response.status_code == 200
+    narrative = response.json()["proposal_narrative"]
+    policy = narrative["narrative_policy"]
+    assert policy["policy_version"] == "advisory-narrative-policy.2026-05"
+    assert policy["status"] == "READY_FOR_ADVISOR_REVIEW"
+    assert policy["context"]["jurisdiction"] == "SG"
+    assert policy["context"]["client_audience"] == "ADVISOR_REVIEW"
+    assert set(policy["context"]["product_types"]) >= {"EQUITY", "FX"}
+    assert {item["disclosure_id"] for item in narrative["disclosures"]} >= {
+        "DISC_SG_GENERAL_MARKET_RISK",
+        "DISC_SG_EQUITY_PRODUCT_RISK",
+        "DISC_SG_FX_EXECUTION_RISK",
+    }
+    assert {item["evidence_key"] for item in narrative["limitations"]}.isdisjoint(
+        {"disclosure_policy"}
+    )
+    assert narrative["guardrail_results"] == [
+        {
+            "guardrail_id": "GR_UNSUPPORTED_CLAIMS",
+            "status": "PASS",
+            "message": "No unsupported deterministic narrative claims detected.",
+            "section_key": None,
+        }
+    ]
+
+
+def test_advisory_proposal_artifact_blocks_client_ready_when_disclosure_policy_missing(client):
+    payload = _base_simulation_payload("pf_narrative_policy_blocked")
+    payload["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "jurisdiction": "ZZ",
+        "client_audience": "CLIENT_READY",
+        "sections": ["EXECUTIVE_SUMMARY"],
+    }
+
+    response = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-policy-blocked"},
+    )
+
+    assert response.status_code == 200
+    narrative = response.json()["proposal_narrative"]
+    policy = narrative["narrative_policy"]
+    assert narrative["status"] == "BLOCKED_POLICY_INCOMPLETE"
+    assert policy["status"] == "BLOCKED_CLIENT_READY"
+    assert policy["context"]["jurisdiction"] == "ZZ"
+    assert policy["client_ready_blockers"] == [
+        "CLIENT_READY_DISCLOSURE_POLICY_UNAVAILABLE",
+        "CLIENT_READY_DISCLOSURES_NOT_SELECTED",
+        "CLIENT_READY_REVIEW_WORKFLOW_NOT_IMPLEMENTED",
+    ]
+    assert {item["evidence_key"] for item in narrative["limitations"]} >= {
+        "disclosure_policy",
+        "review_workflow",
+    }
+
+
 def test_advisory_proposal_artifact_supports_stateful_context_resolution(client, monkeypatch):
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
