@@ -217,7 +217,10 @@ Contract rules that are easy to get wrong:
 1. proposal simulation and artifact flows require `Idempotency-Key`
 2. lifecycle persistence is immutable-by-version
 3. support and delivery posture derive from append-only workflow history
-4. workspace rationale is the implemented AI seam today; broader proposal narrative remains future work
+4. workspace rationale and RFC-0023 advisor-review proposal narrative are separate governed AI seams;
+   advisor-review narrative is implemented for proposal artifact, review/replay, reviewed
+   report-request package, report/render/archive, Gateway posture, and Workbench posture, while
+   client-ready narrative remains gated
 5. tactical house-view cohort responses must preserve upstream source refs and supportability posture
    instead of recomputing portfolio source facts locally
 6. `GET /platform/capabilities` separates feature enablement from operational readiness and returns

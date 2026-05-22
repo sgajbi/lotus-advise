@@ -11,12 +11,12 @@ Slices 11B and 11C close the downstream report/render portion of RFC-0023 Slice 
 `lotus-render` as an optional advisor-use advisory narrative page in the portfolio-review report
 path.
 
-This closure does not promote client-ready commentary, archive retention, Gateway composition,
-Workbench rendering, data-product registration, trust telemetry, or `/platform/capabilities`
-narrative support. Those remain gated by later implementation slices.
+This closure does not promote client-ready commentary, archive retention, data-product
+registration, trust telemetry, or `/platform/capabilities` narrative support. Archive retention and
+Gateway/Workbench posture are tracked separately in later implementation slices.
 
-Slice 11D later closed the archive metadata-summary portion. This document remains the report and
-render closure record.
+Slice 11D later closed the archive metadata-summary portion, and Slice 11E later closed
+Gateway/Workbench advisor-use posture. This document remains the report and render closure record.
 
 ## Implemented Behavior
 
