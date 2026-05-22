@@ -37,7 +37,8 @@ Current repository posture:
 4. proposal simulation, artifact, workspace, replay, and lifecycle surfaces now expose persisted backend-owned `proposal_decision_summary` and `proposal_alternatives`,
 5. RFC-0023 advisor-review proposal narrative is supported in the proposal artifact,
    proposal-version review/replay, reviewed report-request package propagation, and downstream
-   `lotus-report`/`lotus-render` advisor-use report rendering path; archive realization,
+   `lotus-report`/`lotus-render` advisor-use report rendering path, with `lotus-archive`
+   support-safe archive metadata summaries for rendered advisor-use portfolio-review artifacts;
    Gateway/Workbench surfaces, client-ready commentary, data-product promotion, trust telemetry,
    and `/platform/capabilities` narrative promotion remain gated,
 6. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,

@@ -127,11 +127,17 @@ hashes, and advisor-use restrictions. `lotus-render` consumes that payload and r
 portfolio-review v1 advisory narrative page when the package status is `included`, while omitting
 the page for reports without a reviewed package.
 
+RFC-0023 Slice 11D is implemented as downstream archive realization work. `lotus-archive` stores a
+support-safe `reviewed_advisory_narrative` metadata summary for rendered advisor-use
+portfolio-review artifacts, requires approved advisor-review posture and `sha256:` source hashes,
+rejects client-ready statuses, and records source events with reviewed narrative package lineage
+without storing raw narrative sections separately.
+
 RFC-0023 is now implemented for artifact-path advisor-review narrative and proposal-version
 review/replay evidence with decision-summary and alternatives-aware section rendering, and the
 canonical API/OpenAPI surface is certified. Report requests can include a reviewed narrative package
 only when review posture and hash continuity are sufficient, and the package can now flow through
-`lotus-report` and `lotus-render` as advisor-use report content. `lotus-archive`, Gateway,
+`lotus-report`, `lotus-render`, and `lotus-archive` as advisor-use report/archive content. Gateway,
 Workbench, client-ready artifact publication, data-product promotion, trust telemetry, and
 `/platform/capabilities` narrative rows remain planned future work until the remaining RFC-0023
 slices are merged to `main`, validated, and published with implementation-backed feature truth.
@@ -154,3 +160,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-10-certified-api-and-openapi.md`
 - `docs/rfcs/RFC-0023-slice-11A-reviewed-narrative-report-request-package-propagation.md`
 - `docs/rfcs/RFC-0023-slice-11B-11C-report-render-reviewed-narrative-realization.md`
+- `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md`

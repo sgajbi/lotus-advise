@@ -15,6 +15,9 @@ This closure does not promote client-ready commentary, archive retention, Gatewa
 Workbench rendering, data-product registration, trust telemetry, or `/platform/capabilities`
 narrative support. Those remain gated by later implementation slices.
 
+Slice 11D later closed the archive metadata-summary portion. This document remains the report and
+render closure record.
+
 ## Implemented Behavior
 
 `lotus-report` now:
@@ -62,9 +65,9 @@ narrative support. Those remain gated by later implementation slices.
 
 ## Remaining Slice 11 Work
 
-Still gated:
+Still gated after the report/render closure:
 
-- `lotus-archive` artifact realization, retention, lineage, and access-audit references,
+- archive artifact realization, retention, lineage, and access-audit references until Slice 11D,
 - `lotus-gateway` consumption of canonical narrative posture,
 - Workbench consumption through Gateway/BFF only,
 - browser validation for advisor, compliance, client-draft, blocked, degraded, and guardrail
