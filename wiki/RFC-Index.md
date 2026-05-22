@@ -59,6 +59,11 @@ RFC-0023 Slice 2 is implemented as cleanup and structure work. It moves workspac
 evidence construction into core workspace code, keeps the API service thin, removes a premature
 client-ready OpenAPI wording claim, and does not promote proposal narrative support.
 
+RFC-0023 Slice 3 is implemented as current-state assessment and narrative contract baseline work.
+It maps current artifact, proposal detail, workspace, lifecycle, replay, decision-summary, and
+alternatives evidence, defines an additive `proposal_narrative` contract baseline, and proves no
+public API v2 is needed before implementation-bearing slices.
+
 RFC-0023 is not the current implemented proposal narrative source of truth. The implemented AI seam
 today is workspace rationale support. Proposal narrative remains planned future work until the
 implementing RFC-0023 slices are merged to `main`, validated, and published with
@@ -72,3 +77,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-0-critical-review-source-map-and-product-gap-allocation.md`
 - `docs/rfcs/RFC-0023-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0023-slice-2-cleanup-and-structure.md`
+- `docs/rfcs/RFC-0023-slice-3-current-state-assessment-and-narrative-contract-baseline.md`
