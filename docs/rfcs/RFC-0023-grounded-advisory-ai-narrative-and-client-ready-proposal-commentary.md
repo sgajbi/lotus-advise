@@ -21,6 +21,7 @@
 | **Slice 11B/11C Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11B-11C-report-render-reviewed-narrative-realization.md`; `lotus-report` now consumes and snapshots reviewed advisory narrative packages and `lotus-render` now renders the optional portfolio-review advisory narrative page; archive closure is tracked separately in Slice 11D and Gateway/Workbench posture is tracked separately in Slice 11E, while client-ready, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
 | **Slice 11D Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md`; `lotus-archive` now stores support-safe reviewed advisory narrative archive summaries for rendered advisor-use portfolio-review artifacts, while Gateway/Workbench posture is tracked separately in Slice 11E and client-ready, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
 | **Slice 11E Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md`; `lotus-gateway` now exposes product-facing reviewed-narrative posture through canonical `lotus-advise` APIs and `lotus-workbench` now renders the Gateway-backed advisor-use proposal narrative posture, while compliance-review, client-draft, client-ready, data-product, trust-telemetry, canonical demo screenshot proof, and `/platform/capabilities` promotion remain gated |
+| **Slice 11F Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11F-narrative-data-product-trust-capability-promotion.md`; advisor-review proposal narrative evidence is now promoted as `ProposalNarrativeEvidence:v1`, backed by repo-native trust telemetry, platform catalog/certification refresh, and `/platform/capabilities` reviewed narrative evidence feature/workflow, while compliance-review, client-draft, client-ready publication, and canonical demo screenshot proof remain gated |
 | **Owner** | `lotus-advise` for proposal narrative authority, grounding packets, review lifecycle, persistence, replay, and advisory API truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, compliance reviewer, investment desk reviewer, operations support, audit, client-reporting owner, sales/pre-sales |
 | **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |
@@ -899,7 +900,8 @@ canonical proposal-version review route, proposal/async replay evidence routes, 
 documentation, idempotency header guidance, stale-route absence, and material returned-field
 coverage. Slice 10B adds explicit standalone proposal-version narrative read and non-persistent
 regeneration APIs. Client-ready publication, data-product, trust telemetry, canonical demo
-screenshot proof, and capability promotion remain gated.
+screenshot proof, and capability promotion remained gated at Slice 10 and were later narrowed by
+Slice 11F for advisor-review narrative evidence only.
 
 Outcome:
 
@@ -935,7 +937,8 @@ rendered advisor-use portfolio-review documents. Slice 11E in
 `lotus-gateway` product-facing composition and `lotus-workbench` advisor-use proposal posture
 rendering for reviewed narrative packages. Compliance-review, client-draft, client-ready
 publication, data-product promotion, trust telemetry, canonical demo screenshot proof, and
-`/platform/capabilities` narrative promotion remain gated.
+`/platform/capabilities` narrative promotion remained gated at Slice 11E and were later narrowed by
+Slice 11F for advisor-review narrative evidence only.
 
 Outcome:
 
@@ -955,6 +958,31 @@ Acceptance gate:
    is insufficient,
 5. browser validation proves advisor, compliance, client-draft, blocked, degraded, and guardrail
    states where UI support is claimed.
+
+### Slice 11F: Narrative Data Product, Trust Telemetry, and Capability Promotion
+
+Implementation status: implemented on 2026-05-22 in
+`docs/rfcs/RFC-0023-slice-11F-narrative-data-product-trust-capability-promotion.md`. The
+implemented baseline promotes only advisor-review proposal narrative evidence as
+`ProposalNarrativeEvidence:v1`, adds repo-native trust telemetry, refreshes `lotus-platform`
+catalog/certification artifacts, and publishes bounded reviewed narrative evidence posture through
+`/platform/capabilities`. Compliance-review, client-draft, client-ready publication, and canonical
+demo screenshot proof remain gated.
+
+Outcome:
+
+1. declare advisor-review proposal narrative evidence as a governed domain product,
+2. validate trust telemetry against the source declaration and platform catalog,
+3. publish a bounded reviewed narrative evidence feature and workflow in `/platform/capabilities`,
+4. keep client-ready, compliance-review, client-draft, and demo-proof claims blocked.
+
+Acceptance gate:
+
+1. domain-product declaration validation passes,
+2. trust telemetry validates locally and against the platform generated catalog,
+3. capability tests prove reviewed narrative evidence is advertised while client-ready capability
+   remains absent,
+4. README, RFC index, wiki source, and repository context reflect the new support boundary.
 
 ### Slice 12: Live Validation, Canonical Proof, and Operator Evidence
 
@@ -1189,7 +1217,7 @@ created. Existing closed WTBD lessons are imported only as constraints:
 | WTBD-001 proposal service decomposition | Narrative implementation must not re-expand `ProposalWorkflowService`; use named grounding, policy, validation, persistence, adapter, and API boundaries. | Slice 2, Slice 5, Slice 10, Slice 14 |
 | WTBD-002 stateful context adapter decomposition | Narrative source evidence must preserve source-read, route, cache, taxonomy, translation, and hydration boundaries; richer source fields are source-owned or blocked. | Slice 0, Slice 3, Slice 5, Slice 12 |
 | WTBD-003 workspace service decomposition | Workspace narrative integration must not place narrative business logic in API facades or UI helpers; Gateway and Workbench consume canonical Advise contracts. | Slice 2, Slice 8, Slice 11, Slice 14 |
-| WTBD-004 Gateway/Workbench capability alignment | Narrative capability and `/platform/capabilities` changes must migrate Gateway and Workbench in the same RFC branch set with source-backed supportability proof. | Slice 4, Slice 11, Slice 12, Slice 14 |
+| WTBD-004 Gateway/Workbench capability alignment | Narrative capability and `/platform/capabilities` changes must migrate Gateway and Workbench in the same RFC branch set with source-backed supportability proof. | Slice 4, Slice 11, Slice 11F, Slice 14 |
 
 Closure rule:
 

@@ -52,7 +52,7 @@ def test_integration_capabilities_response_uses_canonical_snake_case_fields():
         assert legacy_key not in payload
 
 
-def test_rfc0023_slice4_capabilities_do_not_advertise_proposal_narrative():
+def test_rfc0023_capabilities_advertise_reviewed_narrative_evidence_only():
     with TestClient(app) as client:
         response = client.get(
             "/platform/capabilities",
@@ -65,10 +65,11 @@ def test_rfc0023_slice4_capabilities_do_not_advertise_proposal_narrative():
     workflow_keys = {item["workflow_key"] for item in payload["workflows"]}
     payload_text = str(payload).lower()
 
-    assert "advisory.proposals.narrative" not in feature_keys
+    assert "advisory.proposals.reviewed_narrative_evidence" in feature_keys
     assert "advisory.proposals.client_ready_commentary" not in feature_keys
-    assert "advisory_proposal_narrative" not in workflow_keys
-    assert "proposal_narrative" not in payload_text
+    assert "advisory_proposal_reviewed_narrative_evidence" in workflow_keys
+    assert "reviewed_narrative_evidence" in payload_text
+    assert "compliance-review, client-draft, client-ready publication" in payload_text
     assert "client_ready_commentary" not in payload_text
 
 
@@ -132,6 +133,9 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         features["advisory.proposals.reporting"]["degraded_reason"]
         == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
     )
+    assert features["advisory.proposals.reviewed_narrative_evidence"]["enabled"] is True
+    assert features["advisory.proposals.reviewed_narrative_evidence"]["operational_ready"] is True
+    assert features["advisory.proposals.reviewed_narrative_evidence"]["owner_service"] == "ADVISORY"
     assert features["advisory.proposals.execution_handoff"]["operational_ready"] is True
     assert features["advise.observability.advisory_supportability"]["enabled"] is True
     assert features["advise.observability.advisory_supportability"]["owner_service"] == "ADVISORY"
@@ -142,6 +146,11 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert workflows["advisory_workspace_stateful"]["operational_ready"] is True
     assert workflows["advisory_workspace_ai_rationale"]["operational_ready"] is False
     assert workflows["advisory_proposal_reporting"]["operational_ready"] is False
+    assert workflows["advisory_proposal_reviewed_narrative_evidence"]["enabled"] is True
+    assert workflows["advisory_proposal_reviewed_narrative_evidence"]["required_features"] == [
+        "advisory.proposals.lifecycle",
+        "advisory.proposals.reviewed_narrative_evidence",
+    ]
     assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True
     assert payload["supportability"] == {
         "state": "degraded",
@@ -151,8 +160,8 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "dependency_count": 5,
         "ready_dependency_count": 2,
         "degraded_dependency_count": 3,
-        "enabled_feature_count": 9,
-        "ready_feature_count": 7,
+        "enabled_feature_count": 10,
+        "ready_feature_count": 8,
     }
 
 
@@ -312,8 +321,14 @@ def test_integration_capabilities_disable_reporting_and_execution_with_lifecycle
     workflows = {item["workflow_key"]: item for item in payload["workflows"]}
     assert features["advisory.proposals.reporting"]["enabled"] is False
     assert features["advisory.proposals.reporting"]["operational_ready"] is False
+    assert features["advisory.proposals.reviewed_narrative_evidence"]["enabled"] is False
+    assert (
+        features["advisory.proposals.reviewed_narrative_evidence"]["degraded_reason"]
+        == "ADVISORY_LIFECYCLE_DISABLED"
+    )
     assert features["advisory.proposals.execution_handoff"]["enabled"] is False
     assert workflows["advisory_proposal_reporting"]["enabled"] is False
+    assert workflows["advisory_proposal_reviewed_narrative_evidence"]["enabled"] is False
     assert workflows["advisory_proposal_execution_handoff"]["enabled"] is False
     assert features["advise.observability.advisory_supportability"]["operational_ready"] is False
     assert payload["supportability"]["state"] == "unsupported"
@@ -340,8 +355,8 @@ def test_integration_capabilities_reports_ready_advisory_supportability(monkeypa
         "dependency_count": 5,
         "ready_dependency_count": 5,
         "degraded_dependency_count": 0,
-        "enabled_feature_count": 9,
-        "ready_feature_count": 9,
+        "enabled_feature_count": 10,
+        "ready_feature_count": 10,
     }
 
 

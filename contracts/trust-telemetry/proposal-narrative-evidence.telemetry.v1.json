@@ -1,0 +1,54 @@
+{
+  "contract_id": "lotus-domain-product-trust-telemetry-snapshot",
+  "contract_version": "1.0.0",
+  "governed_by_rfcs": [
+    "RFC-0087",
+    "RFC-0023"
+  ],
+  "emitted_at_utc": "2026-05-22T00:00:00Z",
+  "product_id": "lotus-advise:ProposalNarrativeEvidence:v1",
+  "producer_repository": "lotus-advise",
+  "product_name": "ProposalNarrativeEvidence",
+  "product_version": "v1",
+  "source_repository": "lotus-advise",
+  "freshness": {
+    "freshness_class": "event_driven",
+    "freshness_state": "current",
+    "evaluated_at_utc": "2026-05-22T00:00:00Z",
+    "observed_at_utc": "2026-05-22T00:00:00Z",
+    "age_seconds": 0,
+    "max_allowed_age_seconds": 86400
+  },
+  "completeness_status": "complete",
+  "reconciliation_status": "not_applicable",
+  "data_quality_status": "quality_passed",
+  "lineage": {
+    "lineage_materialized": true,
+    "lineage_bundle_id": "lineage:lotus-advise:proposal-narrative-evidence:2026-05-22",
+    "evidence_access_class": "customer_consumable",
+    "evidence_uris": [
+      "lotus-advise://evidence/proposal-narrative/PB_SG_GLOBAL_BAL_001/2026-05-22",
+      "lotus-advise://contracts/domain-data-products/lotus-advise-products.v1.json#ProposalNarrativeEvidence"
+    ]
+  },
+  "blocking": {
+    "blocked": false
+  },
+  "observed_trust_metadata": {
+    "product_name": "ProposalNarrativeEvidence",
+    "product_version": "v1",
+    "generated_at": "2026-05-22T00:00:00Z",
+    "content_hash": "sha256:rfc0023-proposal-narrative-evidence-v1",
+    "correlation_id": "rfc-0023-proposal-narrative-evidence"
+  },
+  "evidence": {
+    "correlation_id": "rfc-0023-proposal-narrative-evidence",
+    "validation_lanes": [
+      "feature",
+      "pr-merge",
+      "main-releasability"
+    ],
+    "source_event_id": "source-event:lotus-advise:proposal-narrative-evidence:2026-05-22",
+    "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/proposal-narrative-evidence.telemetry.v1.json"
+  }
+}
