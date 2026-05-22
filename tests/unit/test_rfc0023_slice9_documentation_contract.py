@@ -45,7 +45,7 @@ def test_rfc0023_slice9_evidence_integration_is_indexed() -> None:
 def test_rfc0023_slice9_supported_features_promote_only_advisor_review_enrichment() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "Slices 0-9 complete" in supported_features
+    assert "Slices 0-10 complete" in supported_features
     assert "decision-summary/alternatives-aware section rendering" in supported_features
     assert "selected-alternative tradeoffs" in supported_features
     assert "risk/suitability limitation wording" in supported_features

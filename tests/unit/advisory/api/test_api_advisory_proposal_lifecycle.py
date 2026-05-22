@@ -2949,6 +2949,25 @@ def test_persisted_proposal_narrative_review_is_idempotent_and_replayable(
         replay_body["evidence"]["proposal_narrative_review"]["review_id"]
         == (first_body["narrative_review"]["review_id"])
     )
+    assert (
+        replay_body["evidence"]["proposal_narrative_review"]["source_narrative_hash"]
+        == first_body["narrative_review"]["source_narrative_hash"]
+    )
+    for material_field in (
+        "review_id",
+        "proposal_id",
+        "proposal_version_no",
+        "narrative_id",
+        "action",
+        "review_state",
+        "client_ready_status",
+        "reviewed_by",
+        "reviewed_at",
+        "reason",
+        "source_narrative_hash",
+        "replayed",
+    ):
+        assert material_field in first_body["narrative_review"]
 
 
 def test_narrative_review_blocks_client_ready_release_without_approval() -> None:
@@ -2977,6 +2996,74 @@ def test_narrative_review_blocks_client_ready_release_without_approval() -> None
     body = review.json()
     assert body["narrative_review"]["review_state"] == "REJECTED"
     assert body["narrative_review"]["client_ready_status"] == "BLOCKED_REVIEW_REQUIRED"
+
+
+def test_narrative_review_certifies_404_409_and_missing_narrative_behavior() -> None:
+    with TestClient(app) as client:
+        created_without_narrative = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload("pf_lifecycle_narrative_missing_001"),
+            headers={"Idempotency-Key": "lifecycle-narrative-missing-create"},
+        )
+        assert created_without_narrative.status_code == 200
+        proposal_without_narrative_id = created_without_narrative.json()["proposal"]["proposal_id"]
+
+        missing_narrative = client.post(
+            (f"/advisory/proposals/{proposal_without_narrative_id}/versions/1/narrative/review"),
+            json={
+                "action": "APPROVE",
+                "reviewed_by": "compliance_001",
+                "reason": "No narrative exists on this version.",
+            },
+            headers={"Idempotency-Key": "lifecycle-narrative-missing-review"},
+        )
+
+        missing_proposal = client.post(
+            "/advisory/proposals/pp_missing/versions/1/narrative/review",
+            json={
+                "action": "APPROVE",
+                "reviewed_by": "compliance_001",
+                "reason": "Missing proposal.",
+            },
+            headers={"Idempotency-Key": "lifecycle-narrative-missing-proposal-review"},
+        )
+
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload_with_narrative("pf_lifecycle_narrative_conflict_001"),
+            headers={"Idempotency-Key": "lifecycle-narrative-conflict-create"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        version_no = created.json()["version"]["version_no"]
+        route = f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review"
+        first_review = client.post(
+            route,
+            json={
+                "action": "APPROVE",
+                "reviewed_by": "compliance_001",
+                "reason": "Evidence-grounded advisor-review narrative.",
+            },
+            headers={"Idempotency-Key": "lifecycle-narrative-review-conflict"},
+        )
+        conflict = client.post(
+            route,
+            json={
+                "action": "REQUEST_REGENERATION",
+                "reviewed_by": "compliance_001",
+                "reason": "Changed payload must not replay.",
+                "replacement_narrative_id": "pn_replacement_001",
+            },
+            headers={"Idempotency-Key": "lifecycle-narrative-review-conflict"},
+        )
+
+    assert missing_narrative.status_code == 422
+    assert missing_narrative.json()["detail"] == "PROPOSAL_NARRATIVE_NOT_FOUND"
+    assert missing_proposal.status_code == 404
+    assert missing_proposal.json()["detail"] == "PROPOSAL_NOT_FOUND"
+    assert first_review.status_code == 200
+    assert conflict.status_code == 409
+    assert "IDEMPOTENCY_KEY_CONFLICT" in conflict.json()["detail"]
 
 
 def test_async_and_proposal_replay_evidence_stay_hash_aligned():

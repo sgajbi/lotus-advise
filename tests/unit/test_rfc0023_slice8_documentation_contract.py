@@ -45,7 +45,7 @@ def test_rfc0023_slice8_review_replay_baseline_is_indexed() -> None:
 def test_rfc0023_slice8_supported_features_promote_only_review_replay_baseline() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "Slices 0-9 complete" in supported_features
+    assert "Slices 0-10 complete" in supported_features
     assert "proposal-version narrative review/replay baseline" in supported_features
     assert "version-scoped review events" in supported_features
     assert "source narrative hashes" in supported_features

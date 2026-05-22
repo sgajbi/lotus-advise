@@ -252,6 +252,76 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     assert execution_update_response_ref.endswith("/ProposalExecutionStatusResponse")
 
 
+def test_rfc0023_narrative_route_family_is_canonical_and_error_documented():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    paths = openapi["paths"]
+    narrative_paths = sorted(path for path in paths if "narrative" in path.lower())
+    assert narrative_paths == [
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review"
+    ]
+
+    narrative_review = paths[
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review"
+    ]["post"]
+    assert narrative_review["summary"] == "Review Persisted Proposal Narrative"
+    assert "never regenerates narrative text" in narrative_review["description"]
+    assert narrative_review["tags"] == ["Advisory Proposal Lifecycle"]
+
+    parameter_docs = {param["name"]: param for param in narrative_review["parameters"]}
+    assert parameter_docs["proposal_id"]["schema"]["type"] == "string"
+    assert parameter_docs["version_no"]["schema"]["type"] == "integer"
+    idempotency_header = parameter_docs["Idempotency-Key"]
+    assert idempotency_header["in"] == "header"
+    assert "replay-safe narrative review writes" in idempotency_header["description"]
+    assert "proposal-narrative-review-idem-001" in str(idempotency_header)
+
+    responses = narrative_review["responses"]
+    assert responses["200"]["description"] == "Successful Response"
+    assert "proposal version was not found" in responses["404"]["description"]
+    assert "Idempotency key was reused" in responses["409"]["description"]
+    assert "no reviewable `proposal_narrative`" in responses["422"]["description"]
+    assert "runtime persistence is unavailable" in responses["503"]["description"]
+
+    for stale_fragment in ("/narratives", "/narrative/regenerate", "/narrative/lineage"):
+        assert not any(stale_fragment in path.lower() for path in paths)
+
+
+def test_rfc0023_narrative_additive_fields_are_openapi_documented():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    schemas = openapi["components"]["schemas"]
+    proposal_artifact = schemas["ProposalArtifact"]
+    assert "proposal_narrative" in proposal_artifact["properties"]
+    assert (
+        "advisor-review narrative"
+        in (proposal_artifact["properties"]["proposal_narrative"]["description"])
+    )
+
+    replay_response = schemas["AdvisoryReplayEvidenceResponse"]
+    evidence_description = replay_response["properties"]["evidence"]["description"]
+    assert "Supporting evidence references" in evidence_description
+
+    narrative_schema = schemas["ProposalNarrative"]
+    for property_name in (
+        "narrative_id",
+        "status",
+        "audience",
+        "generation_mode",
+        "review_state",
+        "narrative_policy",
+        "ai_lineage",
+        "grounding_packet",
+        "sections",
+        "disclosures",
+        "guardrail_results",
+        "limitations",
+    ):
+        _assert_property_has_docs(narrative_schema, property_name)
+
+
 def test_openapi_does_not_expose_api_v1_compatibility_paths():
     with TestClient(app) as client:
         openapi = client.get("/openapi.json").json()
