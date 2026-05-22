@@ -40,6 +40,7 @@ are complete.
 
 | RFC | Feature | Product value | Current support |
 | --- | --- | --- | --- |
+| `RFC-0023` | Grounded advisory AI narrative and client-ready proposal commentary | Creates governed advisor-review, compliance-review, and client-ready proposal narrative from deterministic evidence. | Slice 0 source-map and product-gap allocation complete; generated proposal narrative remains planned |
 | `RFC-0024` | Advisor proposal memo and evidence pack | Turns proposal evidence into an advisor, compliance, operations, audit, and sales-ready memo package. | Planned RFC only |
 | `RFC-0025` | Enterprise suitability and best-interest policy packs | Adds versioned policy packs for suitability, best-interest, product eligibility, disclosures, approvals, and source-readiness gaps. | Planned RFC only |
 | `RFC-0026` | Advisor cockpit operating workflow | Creates backend-owned advisor worklists, action items, meeting-preparation packets, and workflow readiness summaries. | Planned RFC only |
@@ -58,6 +59,26 @@ flowchart LR
     Advise --> Gateway[lotus-gateway]
     Gateway --> Workbench[lotus-workbench]
 ```
+
+## RFC-0023 Narrative Implementation Boundary
+
+```mermaid
+flowchart LR
+    Core[lotus-core source facts] --> Grounding[Future RFC-0023 grounding packet]
+    Risk[lotus-risk risk lens] --> Grounding
+    Decision[lotus-advise decision summary] --> Grounding
+    Alternatives[lotus-advise alternatives] --> Grounding
+    Grounding --> Narrative[Future proposal narrative authority]
+    AI[lotus-ai workflow-pack execution] --> Narrative
+    Narrative --> Review[Human review and replay gates]
+    Review --> Gateway[Future Gateway consumption]
+    Gateway --> Workbench[Future Workbench rendering]
+    Review --> Report[Future report/render/archive handoff]
+```
+
+The diagram is deliberately future-facing. Today, only the source-map and ownership gate is
+implementation-backed for RFC-0023; generated proposal narrative, client-ready commentary, and
+document artifact inclusion remain planned until the implementing slices close.
 
 ## Integration Boundaries
 
