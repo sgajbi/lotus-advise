@@ -15,11 +15,12 @@
 | **Slice 7 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-7-lotus-ai-adapter-and-ai-assisted-draft-baseline.md`; opt-in `AI_ASSISTED_DRAFT` advisor-review narrative is available through a narrow `lotus-ai` workflow-pack adapter with deterministic fallback and guardrail validation, while persistence, replay, review approval, compliance-review, client-draft, and client-ready states remain gated |
 | **Slice 8 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-8-review-workflow-persistence-idempotency-artifact-and-replay.md`; proposal-version narratives are reviewable through append-only `NARRATIVE_REVIEWED` events, idempotent review requests, source narrative hashes, and exact replay evidence, while client-ready, report/render/archive, Gateway, Workbench, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
 | **Slice 9 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-9-alternatives-decision-summary-and-policy-evidence-integration.md`; advisor-review narrative sections now integrate RFC-0021 decision summary, RFC-0022 alternatives tradeoffs, approval/remediation requirements, material changes, and risk/suitability limitations, while client-ready, report/render/archive, Gateway, Workbench, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
-| **Slice 10 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-10-certified-api-and-openapi.md`; canonical advisor-review narrative API/OpenAPI routes, idempotency guidance, response fields, and stale-route absence are certified, while standalone read/regeneration, client-ready, downstream artifact realization, Gateway, Workbench, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
+| **Slice 10 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-10-certified-api-and-openapi.md`; canonical advisor-review narrative API/OpenAPI routes, idempotency guidance, response fields, and stale-route absence are certified, while standalone read/regeneration was tracked separately for Slice 10B and client-ready, downstream artifact realization, Gateway, Workbench, data-product, trust-telemetry, and `/platform/capabilities` promotion remained gated at that point |
+| **Slice 10B Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-10B-standalone-narrative-read-regeneration-api.md`; standalone proposal-version narrative read and non-persistent regeneration APIs are implemented with OpenAPI coverage, source-hash evidence, and immutable-version posture, while compliance-review, client-draft, client-ready, data-product, trust-telemetry, canonical demo screenshot proof, and `/platform/capabilities` promotion remain gated |
 | **Slice 11A Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11A-reviewed-narrative-report-request-package-propagation.md`; reviewed narrative report-request package propagation is supported in `lotus-advise`, creating the source-backed package consumed by downstream Slice 11B/11C work |
 | **Slice 11B/11C Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11B-11C-report-render-reviewed-narrative-realization.md`; `lotus-report` now consumes and snapshots reviewed advisory narrative packages and `lotus-render` now renders the optional portfolio-review advisory narrative page; archive closure is tracked separately in Slice 11D and Gateway/Workbench posture is tracked separately in Slice 11E, while client-ready, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
 | **Slice 11D Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md`; `lotus-archive` now stores support-safe reviewed advisory narrative archive summaries for rendered advisor-use portfolio-review artifacts, while Gateway/Workbench posture is tracked separately in Slice 11E and client-ready, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
-| **Slice 11E Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md`; `lotus-gateway` now exposes product-facing reviewed-narrative posture through canonical `lotus-advise` APIs and `lotus-workbench` now renders the Gateway-backed advisor-use proposal narrative posture, while compliance-review, client-draft, client-ready, standalone read/regeneration, data-product, trust-telemetry, canonical demo screenshot proof, and `/platform/capabilities` promotion remain gated |
+| **Slice 11E Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md`; `lotus-gateway` now exposes product-facing reviewed-narrative posture through canonical `lotus-advise` APIs and `lotus-workbench` now renders the Gateway-backed advisor-use proposal narrative posture, while compliance-review, client-draft, client-ready, data-product, trust-telemetry, canonical demo screenshot proof, and `/platform/capabilities` promotion remain gated |
 | **Owner** | `lotus-advise` for proposal narrative authority, grounding packets, review lifecycle, persistence, replay, and advisory API truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, compliance reviewer, investment desk reviewer, operations support, audit, client-reporting owner, sales/pre-sales |
 | **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |
@@ -891,12 +892,14 @@ Acceptance gate:
 ### Slice 10: Certified APIs and OpenAPI
 
 Implementation status: implemented on 2026-05-22 in
-`docs/rfcs/RFC-0023-slice-10-certified-api-and-openapi.md`. The implemented baseline
-certifies the existing additive advisor-review narrative API shape, including the canonical
-proposal-version review route, proposal/async replay evidence routes, OpenAPI response
+`docs/rfcs/RFC-0023-slice-10-certified-api-and-openapi.md`, with standalone route closure in
+`docs/rfcs/RFC-0023-slice-10B-standalone-narrative-read-regeneration-api.md`. The implemented
+baseline certifies the existing additive advisor-review narrative API shape, including the
+canonical proposal-version review route, proposal/async replay evidence routes, OpenAPI response
 documentation, idempotency header guidance, stale-route absence, and material returned-field
-coverage. Standalone narrative read/regeneration routes, client-ready publication, downstream
-artifact inclusion, Gateway, Workbench, data-product, and capability promotion remain gated.
+coverage. Slice 10B adds explicit standalone proposal-version narrative read and non-persistent
+regeneration APIs. Client-ready publication, data-product, trust telemetry, canonical demo
+screenshot proof, and capability promotion remain gated.
 
 Outcome:
 
@@ -931,8 +934,8 @@ rendered advisor-use portfolio-review documents. Slice 11E in
 `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md` closes
 `lotus-gateway` product-facing composition and `lotus-workbench` advisor-use proposal posture
 rendering for reviewed narrative packages. Compliance-review, client-draft, client-ready
-publication, standalone read/regeneration APIs, data-product promotion, trust telemetry, canonical
-demo screenshot proof, and `/platform/capabilities` narrative promotion remain gated.
+publication, data-product promotion, trust telemetry, canonical demo screenshot proof, and
+`/platform/capabilities` narrative promotion remain gated.
 
 Outcome:
 
@@ -1170,6 +1173,7 @@ Update or add:
 | Narrative review workflow | Proposed | Promote only after approve/reject/regenerate transitions are auditable, idempotent where required, and persist exact actor/action/reason/version lineage. |
 | Narrative replay | Proposed | Promote only after replay returns the exact persisted narrative evidence without model calls and verifies source-input hashes. |
 | Report/render/archive narrative package | Proposed | Report request, report, render, archive, Gateway posture, and Workbench posture support is implemented for advisor-use reviewed narrative packages; promote only after client-ready controls, data-product posture, trust telemetry, and capability publication are proven. |
+| Standalone narrative read/regeneration API | Supported for advisor-review posture | `GET /advisory/proposals/{proposal_id}/versions/{version_no}/narrative` returns exact persisted narrative and latest review posture; `POST /advisory/proposals/{proposal_id}/versions/{version_no}/narrative/regenerate` returns a non-persisted review-required candidate from immutable version evidence. |
 | Gateway narrative API | Supported for advisor-use reviewed narrative posture | `lotus-gateway` consumes canonical Advise review, report-request, delivery-summary, and delivery-event APIs with contract and integration proof; compliance-review, client-draft, client-ready publication, and capability promotion remain gated. |
 | Workbench narrative review UX | Supported for advisor-use proposal posture | `lotus-workbench` renders Gateway-backed proposal narrative posture and does not infer narrative facts locally; broader compliance, client-draft, blocked, degraded, and canonical demo screenshot proof remain gated. |
 | Narrative evidence data product | Proposed | Promote only after producer declaration, trust telemetry, SLO/access/evidence policy, mesh certification, and catalog publication are complete. |

@@ -3083,6 +3083,128 @@ def test_persisted_proposal_narrative_review_is_idempotent_and_replayable(
         assert material_field in first_body["narrative_review"]
 
 
+def test_persisted_proposal_narrative_can_be_read_without_regeneration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload_with_narrative("pf_lifecycle_narrative_read_001"),
+            headers={"Idempotency-Key": "lifecycle-narrative-read-create"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        version_no = created.json()["version"]["version_no"]
+        narrative_id = created.json()["version"]["artifact"]["proposal_narrative"]["narrative_id"]
+
+        review = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
+            json={
+                "action": "APPROVE",
+                "reviewed_by": "compliance_001",
+                "reason": "Evidence-grounded advisor-review narrative.",
+            },
+            headers={"Idempotency-Key": "lifecycle-narrative-read-review"},
+        )
+        assert review.status_code == 200
+
+        def _fail_if_read_regenerates_narrative(**kwargs):  # noqa: ANN003
+            raise AssertionError("Standalone narrative read must not regenerate text")
+
+        monkeypatch.setattr(
+            "src.core.advisory.narrative.generate_proposal_narrative_draft_with_lotus_ai",
+            _fail_if_read_regenerates_narrative,
+        )
+        read_response = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative"
+        )
+
+    assert read_response.status_code == 200
+    body = read_response.json()
+    assert body["proposal_narrative"]["narrative_id"] == narrative_id
+    assert body["narrative_review"]["review_state"] == "APPROVED_FOR_ADVISOR_USE"
+    assert body["source_narrative_hash"].startswith("sha256:")
+    assert body["replay_evidence_path"].endswith(f"/versions/{version_no}/replay-evidence")
+    assert body["read_posture"] == {
+        "source": "IMMUTABLE_PROPOSAL_VERSION_ARTIFACT",
+        "mutation_performed": False,
+        "client_ready_publication": "GATED",
+    }
+
+
+def test_proposal_narrative_regeneration_returns_non_persisted_review_required_candidate() -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload_with_narrative("pf_lifecycle_narrative_regen_001"),
+            headers={"Idempotency-Key": "lifecycle-narrative-regenerate-create"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        version_no = created.json()["version"]["version_no"]
+        current_narrative_id = created.json()["version"]["artifact"]["proposal_narrative"][
+            "narrative_id"
+        ]
+
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/regenerate",
+            json={
+                "requested_by": "advisor_001",
+                "reason": "Refresh advisor wording with a narrower section set.",
+                "sections": ["EXECUTIVE_SUMMARY"],
+            },
+        )
+        reread = client.get(f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["current_narrative_id"] == current_narrative_id
+    assert body["regenerated_narrative"]["audience"] == "ADVISOR_REVIEW"
+    assert [section["section_key"] for section in body["regenerated_narrative"]["sections"]] == [
+        "EXECUTIVE_SUMMARY"
+    ]
+    assert body["current_source_narrative_hash"].startswith("sha256:")
+    assert body["regenerated_source_narrative_hash"].startswith("sha256:")
+    assert body["materially_changed"] is True
+    assert body["regeneration_posture"] == {
+        "source": "IMMUTABLE_PROPOSAL_VERSION_ARTIFACT",
+        "persistence_status": "NOT_PERSISTED_REVIEW_REQUIRED",
+        "mutation_performed": False,
+        "client_ready_publication": "GATED",
+        "review_required_before_report_package": True,
+    }
+    assert reread.status_code == 200
+    assert reread.json()["proposal_narrative"]["narrative_id"] == current_narrative_id
+
+
+def test_standalone_narrative_read_and_regeneration_certify_missing_inputs() -> None:
+    with TestClient(app) as client:
+        created_without_narrative = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload("pf_lifecycle_narrative_read_missing_001"),
+            headers={"Idempotency-Key": "lifecycle-narrative-read-missing-create"},
+        )
+        assert created_without_narrative.status_code == 200
+        proposal_id = created_without_narrative.json()["proposal"]["proposal_id"]
+
+        missing_read = client.get(f"/advisory/proposals/{proposal_id}/versions/1/narrative")
+        missing_regeneration = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/1/narrative/regenerate",
+            json={
+                "requested_by": "advisor_001",
+                "reason": "No narrative exists on this version.",
+            },
+        )
+        missing_proposal = client.get("/advisory/proposals/pp_missing/versions/1/narrative")
+
+    assert missing_read.status_code == 422
+    assert missing_read.json()["detail"] == "PROPOSAL_NARRATIVE_NOT_FOUND"
+    assert missing_regeneration.status_code == 422
+    assert missing_regeneration.json()["detail"] == "PROPOSAL_NARRATIVE_NOT_FOUND"
+    assert missing_proposal.status_code == 404
+    assert missing_proposal.json()["detail"] == "PROPOSAL_NOT_FOUND"
+
+
 def test_narrative_review_blocks_client_ready_release_without_approval() -> None:
     with TestClient(app) as client:
         created = client.post(

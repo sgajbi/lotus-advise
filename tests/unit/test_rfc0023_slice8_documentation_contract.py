@@ -58,6 +58,8 @@ def test_rfc0023_slice8_documents_non_promoted_behavior() -> None:
 
     for blocked in (
         "standalone narrative read/regeneration endpoints",
+        "later closed",
+        "by Slice 10B",
         "mutable narrative text updates",
         "client-ready proposal commentary",
         "report/render/archive artifact inclusion",

@@ -219,8 +219,8 @@ Contract rules that are easy to get wrong:
 3. support and delivery posture derive from append-only workflow history
 4. workspace rationale and RFC-0023 advisor-review proposal narrative are separate governed AI seams;
    advisor-review narrative is implemented for proposal artifact, review/replay, reviewed
-   report-request package, report/render/archive, Gateway posture, and Workbench posture, while
-   client-ready narrative remains gated
+   report-request package, report/render/archive, Gateway posture, Workbench posture, standalone
+   read, and non-persistent regeneration, while client-ready narrative remains gated
 5. tactical house-view cohort responses must preserve upstream source refs and supportability posture
    instead of recomputing portfolio source facts locally
 6. `GET /platform/capabilities` separates feature enablement from operational readiness and returns

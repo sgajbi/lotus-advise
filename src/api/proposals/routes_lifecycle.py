@@ -26,6 +26,9 @@ from src.core.proposals.exceptions import (
 from src.core.proposals.models import (
     ProposalApprovalRequest,
     ProposalListResponse,
+    ProposalNarrativeReadResponse,
+    ProposalNarrativeRegenerationRequest,
+    ProposalNarrativeRegenerationResponse,
     ProposalNarrativeReviewResponse,
 )
 
@@ -339,6 +342,93 @@ def record_proposal_approval(
         ProposalStateConflictError,
         ProposalTransitionError,
     ) as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.post(
+    "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/regenerate",
+    response_model=ProposalNarrativeRegenerationResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
+    summary="Regenerate Proposal Narrative Candidate",
+    description=(
+        "Builds a non-persisted advisor-review narrative candidate from the immutable proposal "
+        "version artifact. This route does not mutate proposal state, does not replace the "
+        "persisted narrative, and does not publish client-ready commentary."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Proposal or immutable proposal version was not found."
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": "The proposal version has no persisted `proposal_narrative`."
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Proposal runtime persistence is unavailable or misconfigured."
+        },
+    },
+)
+def regenerate_proposal_narrative(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    version_no: Annotated[
+        int,
+        Path(description="Immutable proposal version number containing the narrative.", ge=1),
+    ],
+    payload: ProposalNarrativeRegenerationRequest,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
+) -> ProposalNarrativeRegenerationResponse:
+    shared._assert_lifecycle_enabled()
+    try:
+        return service.regenerate_narrative(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            payload=payload,
+        )
+    except (ProposalNotFoundError, ProposalValidationError) as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.get(
+    "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative",
+    response_model=ProposalNarrativeReadResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
+    summary="Read Persisted Proposal Narrative",
+    description=(
+        "Returns the exact proposal narrative persisted on an immutable proposal version, plus "
+        "latest review posture and source hash evidence. The route is read-only and never "
+        "regenerates text."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Proposal or immutable proposal version was not found."
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": "The proposal version has no persisted `proposal_narrative`."
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Proposal runtime persistence is unavailable or misconfigured."
+        },
+    },
+)
+def get_proposal_narrative(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    version_no: Annotated[
+        int,
+        Path(description="Immutable proposal version number containing the narrative.", ge=1),
+    ],
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
+) -> ProposalNarrativeReadResponse:
+    shared._assert_lifecycle_enabled()
+    try:
+        return service.get_narrative(proposal_id=proposal_id, version_no=version_no)
+    except (ProposalNotFoundError, ProposalValidationError) as exc:
         raise_proposal_http_exception(exc)
 
 

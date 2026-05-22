@@ -10,9 +10,9 @@ Owner repositories: `lotus-advise`, `lotus-gateway`, `lotus-workbench`
 
 Slice 11E closes the product-facing Gateway and Workbench portion of RFC-0023 Slice 11 for
 advisor-use reviewed narrative posture. The slice does not promote client-ready commentary,
-compliance-review narrative, client-draft narrative, standalone narrative read/regeneration APIs,
-data-product posture, trust telemetry, canonical demo screenshot proof, or
-`/platform/capabilities` narrative support.
+compliance-review narrative, client-draft narrative, data-product posture, trust telemetry,
+canonical demo screenshot proof, or `/platform/capabilities` narrative support. Standalone
+narrative read/regeneration APIs are tracked separately and later closed by Slice 10B.
 
 ## Implemented Behavior
 
@@ -84,9 +84,7 @@ documentation, and publication evidence:
 1. compliance-review narrative,
 2. client-draft narrative,
 3. client-ready commentary and publication,
-4. standalone narrative read/regeneration APIs,
-5. narrative data-product declaration and catalog posture,
-6. trust-telemetry fixture and validation,
-7. canonical demo screenshot proof for populated proposal narrative journeys,
-8. `/platform/capabilities` narrative support promotion.
-
+4. narrative data-product declaration and catalog posture,
+5. trust-telemetry fixture and validation,
+6. canonical demo screenshot proof for populated proposal narrative journeys,
+7. `/platform/capabilities` narrative support promotion.

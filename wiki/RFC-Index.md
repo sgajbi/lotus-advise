@@ -109,9 +109,12 @@ RFC-0023 Slice 10 is implemented as certified API and OpenAPI baseline work. It 
 existing additive advisor-review narrative API shape, canonical proposal-version review route,
 proposal/async replay evidence routes, response documentation, idempotency header guidance,
 stale-route absence, and material returned-field coverage. Standalone narrative read/regeneration
-routes, client-ready commentary, report/render/archive integration, Gateway and Workbench surfaces,
-data-product promotion, trust telemetry, and `/platform/capabilities` narrative rows remain gated by
-later slices.
+is tracked separately in Slice 10B.
+
+RFC-0023 Slice 10B is implemented as standalone narrative read and regeneration API work. It adds
+exact persisted narrative reads and non-persistent advisor-review regeneration candidates under the
+canonical proposal-version route family, with source hashes, replay path, material-change posture,
+and explicit review-required/non-client-ready posture.
 
 RFC-0023 Slice 11A is implemented as reviewed narrative report-request package propagation
 baseline work. It adds explicit `include_reviewed_narrative` support to proposal report requests,
@@ -140,13 +143,14 @@ Gateway-backed advisor-use proposal narrative posture without inferring narrativ
 
 RFC-0023 is now implemented for artifact-path advisor-review narrative and proposal-version
 review/replay evidence with decision-summary and alternatives-aware section rendering, and the
-canonical API/OpenAPI surface is certified. Report requests can include a reviewed narrative package
-only when review posture and hash continuity are sufficient, and the package can now flow through
+canonical API/OpenAPI surface is certified for standalone read, non-persistent regeneration,
+review, and replay. Report requests can include a reviewed narrative package only when review
+posture and hash continuity are sufficient, and the package can now flow through
 `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, and `lotus-workbench` as
 advisor-use product content and posture. Compliance-review, client-draft, client-ready artifact
-publication, standalone read/regeneration APIs, data-product promotion, trust telemetry, canonical
-demo screenshot proof, and `/platform/capabilities` narrative rows remain planned future work until
-the remaining RFC-0023 slices are merged to `main`, validated, and published with
+publication, data-product promotion, trust telemetry, canonical demo screenshot proof, and
+`/platform/capabilities` narrative rows remain planned future work until the remaining RFC-0023
+slices are merged to `main`, validated, and published with
 implementation-backed feature truth.
 
 ## Source Index
@@ -165,6 +169,7 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-8-review-workflow-persistence-idempotency-artifact-and-replay.md`
 - `docs/rfcs/RFC-0023-slice-9-alternatives-decision-summary-and-policy-evidence-integration.md`
 - `docs/rfcs/RFC-0023-slice-10-certified-api-and-openapi.md`
+- `docs/rfcs/RFC-0023-slice-10B-standalone-narrative-read-regeneration-api.md`
 - `docs/rfcs/RFC-0023-slice-11A-reviewed-narrative-report-request-package-propagation.md`
 - `docs/rfcs/RFC-0023-slice-11B-11C-report-render-reviewed-narrative-realization.md`
 - `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md`

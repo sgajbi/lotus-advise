@@ -62,7 +62,9 @@ def test_rfc0023_slice11a_supported_features_keep_downstream_claims_gated() -> N
     assert "support-safe reviewed narrative archive metadata summaries" in supported_features
     assert "`lotus-gateway` product-facing reviewed-narrative posture" in supported_features
     assert "`lotus-workbench` Gateway-backed advisor-use proposal posture" in supported_features
-    assert "client-ready narrative, standalone read/regeneration APIs" in supported_features
+    assert "standalone proposal-version narrative read" in supported_features
+    assert "non-persistent regeneration APIs" in supported_features
+    assert "client-ready narrative, data-product" in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features
 
 
