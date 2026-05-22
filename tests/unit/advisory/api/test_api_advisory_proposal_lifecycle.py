@@ -75,6 +75,18 @@ def _base_create_payload(portfolio_id: str = "pf_lifecycle_1") -> dict:
     }
 
 
+def _base_create_payload_with_narrative(portfolio_id: str = "pf_lifecycle_narrative") -> dict:
+    payload = _base_create_payload(portfolio_id)
+    payload["simulate_request"]["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "jurisdiction": "SG",
+        "client_audience": "ADVISOR_REVIEW",
+        "sections": ["EXECUTIVE_SUMMARY", "RISK_AND_CONCENTRATION"],
+        "requested_by": "advisor_1",
+    }
+    return payload
+
+
 def _create(client: TestClient, idempotency_key: str, payload: dict | None = None) -> dict:
     response = client.post(
         "/advisory/proposals",
@@ -2874,6 +2886,97 @@ def test_proposal_version_and_async_replay_evidence_endpoints_return_normalized_
     assert async_body["continuity"]["correlation_id"] == "corr-lifecycle-replay-async-001"
     assert async_body["evidence"]["async_runtime"]["attempt_count"] >= 1
     assert async_body["evidence"]["proposal_decision_summary"]["decision_status"]
+
+
+def test_persisted_proposal_narrative_review_is_idempotent_and_replayable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload_with_narrative("pf_lifecycle_narrative_review_001"),
+            headers={"Idempotency-Key": "lifecycle-narrative-review-create"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        version_no = created.json()["version"]["version_no"]
+        narrative_id = created.json()["version"]["artifact"]["proposal_narrative"]["narrative_id"]
+
+        review_payload = {
+            "action": "APPROVE",
+            "reviewed_by": "compliance_001",
+            "reason": "Evidence-grounded advisor-review narrative.",
+        }
+        first_review = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
+            json=review_payload,
+            headers={"Idempotency-Key": "lifecycle-narrative-review-approve"},
+        )
+        replayed_review = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
+            json=review_payload,
+            headers={"Idempotency-Key": "lifecycle-narrative-review-approve"},
+        )
+
+        def _fail_if_replay_regenerates_narrative(**kwargs):  # noqa: ANN003
+            raise AssertionError("Replay must use persisted narrative evidence only")
+
+        monkeypatch.setattr(
+            "src.core.advisory.narrative.generate_proposal_narrative_draft_with_lotus_ai",
+            _fail_if_replay_regenerates_narrative,
+        )
+        replay = client.get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
+        )
+
+    assert first_review.status_code == 200
+    assert replayed_review.status_code == 200
+    first_body = first_review.json()
+    replayed_body = replayed_review.json()
+    assert first_body["latest_workflow_event"]["event_type"] == "NARRATIVE_REVIEWED"
+    assert first_body["narrative_review"]["narrative_id"] == narrative_id
+    assert first_body["narrative_review"]["review_state"] == "APPROVED_FOR_ADVISOR_USE"
+    assert first_body["narrative_review"]["client_ready_status"] == "NOT_REQUESTED"
+    assert (
+        replayed_body["narrative_review"]["review_id"]
+        == (first_body["narrative_review"]["review_id"])
+    )
+    assert replayed_body["narrative_review"]["replayed"] is True
+    assert replay.status_code == 200
+    replay_body = replay.json()
+    assert replay_body["evidence"]["proposal_narrative"]["narrative_id"] == narrative_id
+    assert (
+        replay_body["evidence"]["proposal_narrative_review"]["review_id"]
+        == (first_body["narrative_review"]["review_id"])
+    )
+
+
+def test_narrative_review_blocks_client_ready_release_without_approval() -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload_with_narrative("pf_lifecycle_narrative_reject_001"),
+            headers={"Idempotency-Key": "lifecycle-narrative-reject-create"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        version_no = created.json()["version"]["version_no"]
+
+        review = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
+            json={
+                "action": "REJECT",
+                "reviewed_by": "compliance_001",
+                "reason": "Rejected narrative cannot be released as client-ready.",
+                "client_ready_release_requested": True,
+            },
+            headers={"Idempotency-Key": "lifecycle-narrative-reject-review"},
+        )
+
+    assert review.status_code == 200
+    body = review.json()
+    assert body["narrative_review"]["review_state"] == "REJECTED"
+    assert body["narrative_review"]["client_ready_status"] == "BLOCKED_REVIEW_REQUIRED"
 
 
 def test_async_and_proposal_replay_evidence_stay_hash_aligned():

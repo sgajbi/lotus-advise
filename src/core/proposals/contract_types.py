@@ -26,6 +26,7 @@ ProposalWorkflowEventType = Literal[
     "EXECUTION_REJECTED",
     "EXECUTION_CANCELLED",
     "EXECUTION_EXPIRED",
+    "NARRATIVE_REVIEWED",
     "REPORT_REQUESTED",
     "EXECUTED",
     "REJECTED",

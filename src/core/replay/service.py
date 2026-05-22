@@ -7,6 +7,7 @@ from src.core.proposals.models import (
     ProposalVersionRecord,
     ProposalWorkflowEventRecord,
 )
+from src.core.proposals.narrative_review import latest_narrative_review_record
 from src.core.replay.models import (
     AdvisoryReplayContinuity,
     AdvisoryReplayEvidenceResponse,
@@ -79,6 +80,8 @@ def build_proposal_version_replay_response(
     context_resolution = version.evidence_bundle_json.get("context_resolution", {})
     replay_lineage = version.evidence_bundle_json.get("replay_lineage", {})
     delivery_summary = build_delivery_summary_from_events(events)
+    proposal_narrative = version.artifact_json.get("proposal_narrative")
+    narrative_review = latest_narrative_review_record(events=events, version=version)
     return AdvisoryReplayEvidenceResponse(
         subject=AdvisoryReplaySubject(
             scope="PROPOSAL_VERSION",
@@ -118,6 +121,10 @@ def build_proposal_version_replay_response(
                 "proposal_decision_summary"
             ),
             "proposal_alternatives": version.proposal_result_json.get("proposal_alternatives"),
+            "proposal_narrative": proposal_narrative,
+            "proposal_narrative_review": (
+                narrative_review.model_dump(mode="json") if narrative_review is not None else None
+            ),
             "delivery": delivery_summary,
         },
         explanation={

@@ -5,6 +5,7 @@ from fastapi import Depends, Header, Path, Query, status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import raise_proposal_http_exception
+from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.proposals import (
     ProposalCreateRequest,
     ProposalCreateResponse,
@@ -22,7 +23,11 @@ from src.core.proposals.exceptions import (
     ProposalTransitionError,
     ProposalValidationError,
 )
-from src.core.proposals.models import ProposalApprovalRequest, ProposalListResponse
+from src.core.proposals.models import (
+    ProposalApprovalRequest,
+    ProposalListResponse,
+    ProposalNarrativeReviewResponse,
+)
 
 
 @shared.router.post(
@@ -309,5 +314,53 @@ def record_proposal_approval(
         ProposalIdempotencyConflictError,
         ProposalStateConflictError,
         ProposalTransitionError,
+    ) as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.post(
+    "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
+    response_model=ProposalNarrativeReviewResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Lifecycle"],
+    summary="Review Persisted Proposal Narrative",
+    description=(
+        "Records an idempotent review decision against the immutable narrative stored on a "
+        "proposal version. The operation never regenerates narrative text and preserves exact "
+        "review, policy, guardrail, and source-hash evidence for replay."
+    ),
+)
+def review_proposal_narrative(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    version_no: Annotated[
+        int,
+        Path(description="Immutable proposal version number containing the narrative.", ge=1),
+    ],
+    payload: ProposalNarrativeReviewRequest,
+    idempotency_key: Annotated[
+        Optional[str],
+        Header(
+            alias="Idempotency-Key",
+            description="Optional idempotency key for replay-safe narrative review writes.",
+            examples=["proposal-narrative-review-idem-001"],
+        ),
+    ] = None,
+    service: ProposalWorkflowService = Depends(shared.get_proposal_workflow_service),
+) -> ProposalNarrativeReviewResponse:
+    shared._assert_lifecycle_enabled()
+    try:
+        return service.record_narrative_review(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
+    except (
+        ProposalNotFoundError,
+        ProposalIdempotencyConflictError,
+        ProposalValidationError,
     ) as exc:
         raise_proposal_http_exception(exc)

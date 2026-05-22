@@ -26,6 +26,18 @@ ProposalNarrativeSectionKey = Literal[
 ProposalNarrativeRiskPosture = Literal["STANDARD", "CONCENTRATION_REVIEW", "UNAVAILABLE"]
 ProposalNarrativePolicyStatus = Literal["READY_FOR_ADVISOR_REVIEW", "BLOCKED_CLIENT_READY"]
 ProposalNarrativeGuardrailStatus = Literal["PASS", "FAIL"]
+ProposalNarrativeReviewAction = Literal["APPROVE", "REJECT", "REQUEST_REGENERATION"]
+ProposalNarrativeReviewedState = Literal[
+    "APPROVED_FOR_ADVISOR_USE",
+    "REJECTED",
+    "REGENERATION_REQUESTED",
+]
+ProposalNarrativeClientReadyStatus = Literal[
+    "NOT_REQUESTED",
+    "BLOCKED_REVIEW_REQUIRED",
+    "BLOCKED_POLICY_OR_GUARDRAIL",
+    "APPROVED_FOR_CLIENT_READY",
+]
 
 
 class ProposalNarrativeRequest(BaseModel):
@@ -333,4 +345,82 @@ class ProposalNarrative(BaseModel):
     limitations: List[ProposalNarrativeMissingEvidence] = Field(
         default_factory=list,
         description="Explicit limitations and missing evidence for this narrative.",
+    )
+
+
+class ProposalNarrativeReviewRequest(BaseModel):
+    action: ProposalNarrativeReviewAction = Field(
+        description="Bounded review action for the persisted proposal narrative version.",
+        examples=["APPROVE"],
+    )
+    reviewed_by: str = Field(
+        description="Actor id recording the narrative review decision.",
+        examples=["compliance_reviewer_001"],
+    )
+    reason: str = Field(
+        description="Human-readable review rationale captured for audit.",
+        examples=["Narrative is evidence-grounded and suitable for advisor use."],
+    )
+    client_ready_release_requested: bool = Field(
+        default=False,
+        description=(
+            "Whether the reviewer is requesting client-ready release posture. Slice 8 only "
+            "permits this when policy and guardrails are already clear."
+        ),
+        examples=[False],
+    )
+    replacement_narrative_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional replacement narrative identifier when this review supersedes a prior draft."
+        ),
+        examples=["pn_replacement_001"],
+    )
+
+
+class ProposalNarrativeReviewRecord(BaseModel):
+    review_id: str = Field(
+        description="Review event identifier for this persisted narrative review.",
+        examples=["pwe_narrative_review_001"],
+    )
+    proposal_id: str = Field(description="Proposal aggregate identifier.", examples=["pp_001"])
+    proposal_version_no: int = Field(description="Reviewed immutable proposal version number.")
+    narrative_id: str = Field(description="Reviewed narrative identifier.", examples=["pn_001"])
+    action: ProposalNarrativeReviewAction = Field(
+        description="Review action recorded.",
+        examples=["APPROVE"],
+    )
+    review_state: ProposalNarrativeReviewedState = Field(
+        description="Resulting narrative review state.",
+        examples=["APPROVED_FOR_ADVISOR_USE"],
+    )
+    client_ready_status: ProposalNarrativeClientReadyStatus = Field(
+        description="Client-ready release posture after this review action.",
+        examples=["NOT_REQUESTED"],
+    )
+    reviewed_by: str = Field(
+        description="Actor id that recorded the review.",
+        examples=["compliance_reviewer_001"],
+    )
+    reviewed_at: str = Field(
+        description="UTC ISO8601 review timestamp.",
+        examples=["2026-05-22T08:30:00+00:00"],
+    )
+    reason: str = Field(
+        description="Review rationale captured for audit.",
+        examples=["Narrative is evidence-grounded and suitable for advisor use."],
+    )
+    source_narrative_hash: str = Field(
+        description="Canonical hash of the reviewed narrative payload.",
+        examples=["sha256:9c8a2f1d"],
+    )
+    replacement_narrative_id: Optional[str] = Field(
+        default=None,
+        description="Replacement narrative identifier requested by regeneration review, if any.",
+        examples=["pn_replacement_001"],
+    )
+    replayed: bool = Field(
+        default=False,
+        description="Whether this response is an idempotent replay of an existing review event.",
+        examples=[False],
     )
