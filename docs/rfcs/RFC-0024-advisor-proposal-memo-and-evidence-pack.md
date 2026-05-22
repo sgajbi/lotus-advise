@@ -666,9 +666,9 @@ Acceptance gate:
 
 1. memo-critical source gaps are classified as implement-now, implement in owner repo, explicitly
    unavailable-with-blocked-state, or out-of-scope,
-2. `docs/rfcs/WTBD.md` records only genuine cross-repo defects or follow-up owner tasks that are
-   not part of the RFC implementation branch set,
-3. no broad "later" dependency remains for the memo supported claim.
+2. required upstream, downstream, platform, documentation, or product-surface work is added as an
+   RFC-0024 slice, owner-repository PR, or explicit blocked/removed supported claim,
+3. no broad "later", WTBD, or side-ledger dependency remains for the memo supported claim.
 
 ### Slice 1 - Platform Automation and Scaffolding Improvement
 
@@ -955,7 +955,32 @@ Acceptance gate:
 | Advisory memo data product | Proposed | Promote only after producer declaration, trust telemetry, mesh certification, SLO/access/evidence policy, and catalog publication are complete. |
 | Sales/demo-safe memo projection | Proposed | Promote only after synthetic/approved demo data, supported-claim taxonomy, and wiki/demo material are implementation-backed. |
 
-## 18. Acceptance Criteria
+## 18. Existing WTBD Import and No-WTBD Execution Rule
+
+RFC-0024 is the single execution source for advisor proposal memo and evidence-pack work. New WTBD
+records must not be created for this RFC. If implementation discovers upstream, downstream,
+platform, documentation, data-product, report/render/archive, Gateway, Workbench, AI, security, or
+commercial work needed for the memo supported claim, that work must be added to RFC-0024 as a
+slice, owner-repository PR, acceptance criterion, or explicit blocked/removed claim.
+
+Existing closed WTBD lessons are imported as execution constraints only:
+
+| Closed WTBD | Imported RFC-0024 requirement | Slice ownership |
+| --- | --- | --- |
+| WTBD-001 proposal service decomposition | Memo implementation must not re-expand `ProposalWorkflowService`; memo behavior needs named domain, projection, replay, persistence, report-handoff, and API boundaries. | Slice 2, Slice 5, Slice 7 |
+| WTBD-002 stateful context adapter decomposition | Memo source evidence must preserve `lotus-core` source-read, route, cache, taxonomy, translation, and hydration boundaries; richer source fields are source-owned or explicit blockers. | Slice 4, Slice 5, Slice 13 |
+| WTBD-003 workspace service decomposition | Memo/workspace integration must not place memo business logic in API facades or UI helpers; Gateway and Workbench consume canonical Advise contracts. | Slice 2, Slice 11, Slice 14 |
+| WTBD-004 Gateway/Workbench capability alignment | Any memo capability or `/platform/capabilities` response change must migrate Gateway and Workbench in the same RFC branch set, with proof that supportability is source-backed. | Slice 3, Slice 11, Slice 14 |
+
+Closure rule:
+
+1. RFC-0024 must have no active WTBD dependency at closure,
+2. no cross-repo requirement may be represented only in `WTBD.md`,
+3. any existing WTBD lesson relevant to memo work must appear in slice evidence or closure notes,
+4. branch cleanup must prove memo truth is on `main`, not stranded in an unmerged branch or side
+   ledger.
+
+## 19. Acceptance Criteria
 
 RFC-0024 is implemented only when:
 
@@ -974,9 +999,10 @@ RFC-0024 is implemented only when:
     backed,
 11. the wiki is published,
 12. the LinkedIn post-completion draft and ledger update are complete or deliberately waived,
-13. no required follow-up RFC, second wave, unmerged branch, or stranded durable truth remains.
+13. no required follow-up RFC, second wave, WTBD dependency, unmerged branch, or stranded durable
+    truth remains.
 
-## 19. Risks and Mitigations
+## 20. Risks and Mitigations
 
 | Risk | Mitigation |
 | --- | --- |
@@ -989,9 +1015,10 @@ RFC-0024 is implemented only when:
 | Report/archive integration drifts from memo evidence | Typed package, hash, lineage, render, archive, and replay refs are required acceptance evidence. |
 | Data product claim is decorative | Mesh producer declaration, trust telemetry, SLO/access/evidence policy, catalog, and certification are merge gates. |
 | Documentation overclaims product readiness | Supported-features ledger, wiki publication, demo-safe projection, and proof review gate product claims. |
+| Cross-repo work is pushed into WTBD | RFC-0024 is the execution ledger; required owner-repo work is added to the slice plan and blocks closure until merged and validated. |
 | CI passes locally but fails remotely | Use GitHub Feature Lane, PR Merge Gate, and Main Releasability Gate; monitor and fix forward continuously. |
 
-## 20. Open Questions to Resolve in Slice 0
+## 21. Open Questions to Resolve in Slice 0
 
 These questions must be resolved before implementation work beyond Slice 0:
 
