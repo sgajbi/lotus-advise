@@ -885,6 +885,14 @@ Acceptance gate:
 
 ### Slice 10: Certified APIs and OpenAPI
 
+Implementation status: implemented on 2026-05-22 in
+`docs/rfcs/RFC-0023-slice-10-certified-api-and-openapi.md`. The implemented baseline
+certifies the existing additive advisor-review narrative API shape, including the canonical
+proposal-version review route, proposal/async replay evidence routes, OpenAPI response
+documentation, idempotency header guidance, stale-route absence, and material returned-field
+coverage. Standalone narrative read/regeneration routes, client-ready publication, downstream
+artifact inclusion, Gateway, Workbench, data-product, and capability promotion remain gated.
+
 Outcome:
 
 1. expose canonical narrative request/read/review/regeneration/lineage/replay endpoints or additive

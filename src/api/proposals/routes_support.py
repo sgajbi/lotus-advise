@@ -81,6 +81,12 @@ def get_proposal_approvals(
         "Returns immutable version lineage metadata with hashes "
         "for reproducibility and root-cause analysis."
     ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Proposal was not found."},
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Proposal runtime persistence is unavailable or misconfigured."
+        },
+    },
 )
 def get_proposal_lineage(
     proposal_id: Annotated[
@@ -110,6 +116,14 @@ def get_proposal_lineage(
         "Returns normalized replay evidence for an immutable proposal version, including "
         "context resolution, continuity links, and canonical hashes."
     ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Proposal or immutable proposal version was not found."
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Proposal runtime persistence is unavailable or misconfigured."
+        },
+    },
 )
 def get_proposal_version_replay_evidence(
     proposal_id: Annotated[
@@ -174,6 +188,12 @@ def get_proposal_idempotency_lookup(
         "Returns normalized replay evidence for an async proposal operation, linking async "
         "runtime truth to proposal version evidence when a terminal proposal result exists."
     ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Async proposal operation was not found."},
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Proposal runtime persistence is unavailable or misconfigured."
+        },
+    },
 )
 def get_proposal_async_replay_evidence(
     operation_id: Annotated[

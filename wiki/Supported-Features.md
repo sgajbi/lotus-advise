@@ -14,7 +14,7 @@ written for business, engineering, operations, sales, pre-sales, and demo prepar
 | Delivery, report-request, and execution-handoff posture | Supported | delivery, report-request, execution-handoff, and execution-status routes | Execution handoff/status payloads carry ownership-boundary evidence; execution truth remains outside `lotus-advise`. |
 | Advisory workspace drafting | Supported | `/advisory/workspaces/*` | Workspace state is pre-lifecycle advisory drafting, with explicit handoff into proposal ownership. |
 | Workspace AI rationale | Supported through governed seam | `/advisory/workspaces/{workspace_id}/assistant/rationale` | Uses the bounded `lotus-ai` workspace rationale seam; proposal narrative uses its own RFC-0023 artifact-path boundary. |
-| Advisor-review proposal narrative | Supported in proposal artifact and proposal-version review/replay paths | `POST /advisory/proposals/artifact` with `narrative_request`; lifecycle create/version with `narrative_request`; `POST /advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review`; replay evidence endpoints | Generates opt-in `ADVISOR_REVIEW` narrative from proposal artifact grounding evidence with deterministic template mode, deterministic policy, disclosure, and guardrail metadata, optional `AI_ASSISTED_DRAFT` through a bounded `lotus-ai` workflow-pack adapter, version-scoped review events, idempotent review replay, source narrative hashes, exact persisted replay evidence, and decision-summary/alternatives-aware section rendering for blockers, insufficient evidence, approvals, material changes, selected-alternative tradeoffs, and limitations; compliance-review, client-draft, client-ready commentary, downstream artifact inclusion, and capability promotion remain gated. |
+| Advisor-review proposal narrative | Supported in proposal artifact and proposal-version review/replay paths | `POST /advisory/proposals/artifact` with `narrative_request`; lifecycle create/version with `narrative_request`; `POST /advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review`; proposal lineage and replay evidence endpoints | Generates opt-in `ADVISOR_REVIEW` narrative from proposal artifact grounding evidence with deterministic template mode, deterministic policy, disclosure, and guardrail metadata, optional `AI_ASSISTED_DRAFT` through a bounded `lotus-ai` workflow-pack adapter, version-scoped review events, idempotent review replay, source narrative hashes, exact persisted replay evidence, decision-summary/alternatives-aware section rendering for blockers, insufficient evidence, approvals, material changes, selected-alternative tradeoffs, and limitations, plus certified canonical API/OpenAPI route inventory and error-response documentation; standalone narrative read/regeneration routes, compliance-review, client-draft, client-ready commentary, downstream artifact inclusion, and capability promotion remain gated. |
 | Proposal decision summary | Supported | simulation, artifact, workspace, replay, and lifecycle surfaces | Backend-owned decision summary; UI and support layers must not infer it independently. |
 | Proposal alternatives | Supported | simulation, artifact, workspace, replay, and lifecycle surfaces | Alternatives remain anchored to canonical simulation and risk enrichment. |
 | Tactical house-view affected cohorts | Supported | `POST /advisory/tactical-house-view/cohorts/evaluate` | Evaluates supplied source-backed candidate portfolios only; no global portfolio discovery or DPM campaign ownership. |
@@ -41,7 +41,7 @@ are complete.
 
 | RFC | Feature | Product value | Current support |
 | --- | --- | --- | --- |
-| `RFC-0023` | Grounded advisory AI narrative and client-ready proposal commentary | Creates governed advisor-review, compliance-review, and client-ready proposal narrative from deterministic evidence. | Slices 0-9 complete: source authority, platform-scaffolding review, cleanup/structure, contract baseline, data-product/supportability non-promotion baseline, deterministic advisor-review artifact-path narrative, policy/disclosure/guardrail baseline, AI-assisted draft adapter baseline, proposal-version narrative review/replay baseline, and decision-summary/alternatives/approval/limitation narrative integration; compliance-review, client-draft, client-ready narrative, downstream artifact inclusion, data-product, and capability promotion remain gated |
+| `RFC-0023` | Grounded advisory AI narrative and client-ready proposal commentary | Creates governed advisor-review, compliance-review, and client-ready proposal narrative from deterministic evidence. | Slices 0-10 complete: source authority, platform-scaffolding review, cleanup/structure, contract baseline, data-product/supportability non-promotion baseline, deterministic advisor-review artifact-path narrative, policy/disclosure/guardrail baseline, AI-assisted draft adapter baseline, proposal-version narrative review/replay baseline, decision-summary/alternatives/approval/limitation narrative integration, and certified API/OpenAPI baseline; compliance-review, client-draft, client-ready narrative, downstream artifact inclusion, data-product, and capability promotion remain gated |
 | `RFC-0024` | Advisor proposal memo and evidence pack | Turns proposal evidence into an advisor, compliance, operations, audit, and sales-ready memo package. | Planned RFC only |
 | `RFC-0025` | Enterprise suitability and best-interest policy packs | Adds versioned policy packs for suitability, best-interest, product eligibility, disclosures, approvals, and source-readiness gaps. | Planned RFC only |
 | `RFC-0026` | Advisor cockpit operating workflow | Creates backend-owned advisor worklists, action items, meeting-preparation packets, and workflow readiness summaries. | Planned RFC only |
@@ -79,16 +79,19 @@ flowchart LR
 ```
 
 The diagram separates implemented artifact-path narrative plus proposal-version review/replay
-support from future promotion gates. Slices 5-9 now support advisor-review narrative inside the
+support from future promotion gates. Slices 5-10 now support advisor-review narrative inside the
 proposal artifact path when explicitly requested, with grounding packet, policy version, disclosure
 selection, guardrail results, client-ready blockers, deterministic template mode, optional
 `AI_ASSISTED_DRAFT` through a bounded `lotus-ai` workflow-pack adapter with deterministic fallback,
 append-only review events, idempotent review replay, source narrative hashes, and exact persisted
 replay evidence. Slice 9 adds decision-summary, approval/remediation, material-change,
 selected-alternative tradeoff, rejected-candidate, and risk/suitability limitation wording from
-backend-owned evidence. Proposal narrative is still not a domain data product, trust-telemetry
-fixture, client-ready commentary, `/platform/capabilities` feature, Gateway/Workbench surface, or
-report/render/archive artifact inclusion until the later implementing slices close.
+backend-owned evidence. Slice 10 certifies the canonical API/OpenAPI route inventory, error-response
+documentation, idempotency header guidance, stale-route absence, and material returned-field
+coverage. Proposal narrative is still not a domain data product, trust-telemetry fixture,
+client-ready commentary, `/platform/capabilities` feature, Gateway/Workbench surface, standalone
+read/regeneration API, or report/render/archive artifact inclusion until the later implementing
+slices close.
 
 ## Integration Boundaries
 

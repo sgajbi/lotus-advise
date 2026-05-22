@@ -45,7 +45,7 @@ def test_rfc0023_slice3_contract_baseline_keeps_supported_features_non_claiming(
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
     slice3_text = SLICE3_PATH.read_text(encoding="utf-8")
 
-    assert "Slices 0-9 complete" in supported_features
+    assert "Slices 0-10 complete" in supported_features
     assert "deterministic advisor-review artifact-path narrative" in supported_features
     assert "data-product/supportability non-promotion baseline" in supported_features
     assert "policy/disclosure/guardrail baseline" in supported_features
