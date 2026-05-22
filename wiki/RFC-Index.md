@@ -148,6 +148,13 @@ advisor-review narrative trust telemetry against that declaration, and advertise
 `advisory_proposal_reviewed_narrative_evidence` in `/platform/capabilities`. `lotus-platform`
 catalog and certification artifacts include the new product.
 
+RFC-0023 Slice 12 is implemented as live validation, canonical proof, and operator-evidence
+hardening. The live suite now creates stateful advisor-review narrative proposals from Lotus Core
+context, validates immutable read, non-persistent regeneration, advisor-use review, reviewed
+report-package request, replay evidence, guardrail failure reproduction, and optional
+AI-assisted validation when enabled. Workbench canonical validation now proves
+`proposal.narrative_posture` with a governed screenshot and panel-registry classification.
+
 RFC-0023 is now implemented for artifact-path advisor-review narrative and proposal-version
 review/replay evidence with decision-summary and alternatives-aware section rendering, and the
 canonical API/OpenAPI surface is certified for standalone read, non-persistent regeneration,
@@ -155,10 +162,10 @@ review, and replay. Report requests can include a reviewed narrative package onl
 posture and hash continuity are sufficient, and the package can now flow through
 `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, and `lotus-workbench` as
 advisor-use product content and posture. Advisor-review narrative evidence now has data-product,
-trust telemetry, platform catalog/certification, and capability-discovery posture. Compliance-review,
-client-draft, client-ready artifact publication, and canonical demo screenshot proof remain planned
-future work until the remaining RFC-0023 slices are merged to `main`, validated, and published with
-implementation-backed feature truth.
+trust telemetry, platform catalog/certification, capability-discovery posture, live validation, and
+governed canonical Workbench proof. Compliance-review, client-draft, client-ready artifact
+publication, and client communication remain planned future work until the remaining RFC-0023
+slices are merged to `main`, validated, and published with implementation-backed feature truth.
 
 ## Source Index
 
@@ -182,3 +189,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md`
 - `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md`
 - `docs/rfcs/RFC-0023-slice-11F-narrative-data-product-trust-capability-promotion.md`
+- `docs/rfcs/RFC-0023-slice-12-live-validation-canonical-proof-and-operator-evidence.md`

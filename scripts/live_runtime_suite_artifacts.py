@@ -74,6 +74,37 @@ def _format_alternatives_summary_lines(
     ]
 
 
+def _format_narrative_summary_lines(narrative: dict[str, Any]) -> list[str]:
+    guardrails = narrative.get("persisted_guardrail_statuses") or []
+    guardrail_label = ", ".join(f"`{item}`" for item in guardrails) if guardrails else "`NONE`"
+    failure_ids = narrative.get("guardrail_failure_ids") or []
+    failure_label = ", ".join(f"`{item}`" for item in failure_ids) if failure_ids else "`NONE`"
+    return [
+        "## Proposal Narrative Proof",
+        f"- proposal id: `{narrative['proposal_id']}`",
+        f"- version: `{narrative['version_no']}`",
+        f"- narrative id: `{narrative['narrative_id']}`",
+        f"- generation mode: `{narrative['generation_mode']}`",
+        f"- policy status: `{narrative['policy_status']}`",
+        f"- persisted guardrails: {guardrail_label}",
+        f"- read source: `{narrative['read_posture_source']}`",
+        f"- regeneration persistence: `{narrative['regeneration_persistence_status']}`",
+        f"- review state: `{narrative['review_state']}`",
+        f"- client-ready status: `{narrative['client_ready_status']}`",
+        (
+            "- report package: "
+            f"`{narrative['report_status']}` / `{narrative['report_package_status']}`"
+        ),
+        (
+            "- guardrail failure path: "
+            f"`{narrative['guardrail_failure_status']}` via {failure_label}"
+        ),
+        f"- AI-assisted status: `{narrative['ai_assisted_status']}`",
+        f"- latency ms: `{float(narrative['latency_ms']):.2f}`",
+        "",
+    ]
+
+
 def _inline_reason_codes(values: list[str]) -> str:
     return ", ".join(values) or "NONE"
 
@@ -141,6 +172,7 @@ def build_markdown_summary(result: "LiveRuntimeSuiteResult") -> str:
             asdict(result.parity.restricted_product_alternatives),
             title="Restricted-Product Path",
         ),
+        *_format_narrative_summary_lines(asdict(result.parity.proposal_narrative)),
         "## Degraded Runtime",
         f"- risk drill portfolio: `{result.degraded.risk_drill_portfolio}`",
         f"- risk degraded reason: `{result.degraded.risk_degraded_reason}`",
@@ -264,6 +296,12 @@ def build_pr_summary(
         ),
         f"- execution terminal status: `{parity['execution_terminal_status']}`",
         f"- report status: `{parity['report_status']}`",
+        (
+            "- proposal narrative: "
+            f"`{parity['proposal_narrative']['generation_mode']}` / "
+            f"`{parity['proposal_narrative']['review_state']}` / "
+            f"`{parity['proposal_narrative']['report_package_status']}`"
+        ),
         "",
         "### Decision Summary Paths",
         f"- ready path: `{parity['ready_decision']['decision_status']}` / "

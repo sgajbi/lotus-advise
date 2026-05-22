@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, model_validator
 
 from src.core.advisory.alternatives_models import ProposalAlternativesRequest
+from src.core.advisory.narrative_models import ProposalNarrativeRequest
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals.contract_types import ProposalInputMode
 
@@ -75,6 +76,13 @@ class ProposalStatefulInput(BaseModel):
         default=None,
         description="Optional benchmark identifier for context-aware evaluation and comparison.",
         examples=["benchmark_balanced_usd"],
+    )
+    narrative_request: Optional[ProposalNarrativeRequest] = Field(
+        default=None,
+        description=(
+            "Optional advisor-review narrative request applied after authoritative portfolio "
+            "context is resolved from Lotus Core. Client-ready publication remains gated."
+        ),
     )
 
 

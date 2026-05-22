@@ -269,6 +269,50 @@ def test_create_proposal_supports_stateful_context_resolution(monkeypatch):
     )
 
 
+def test_stateful_create_can_request_advisor_review_narrative(monkeypatch):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    payload = {
+        "created_by": "advisor_1",
+        "input_mode": "stateful",
+        "stateful_input": {
+            "portfolio_id": "pf_stateful_narrative_001",
+            "as_of": "2026-03-25",
+            "mandate_id": "mandate_stateful_narrative_001",
+            "narrative_request": {
+                "audience": "ADVISOR_REVIEW",
+                "jurisdiction": "SG",
+                "client_audience": "ADVISOR_REVIEW",
+                "sections": ["EXECUTIVE_SUMMARY", "RISK_AND_CONCENTRATION"],
+                "requested_by": "advisor_1",
+            },
+        },
+        "metadata": {"jurisdiction": "SG"},
+    }
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/proposals",
+            json=payload,
+            headers={"Idempotency-Key": "lifecycle-create-stateful-narrative"},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    narrative = body["version"]["artifact"]["proposal_narrative"]
+    assert narrative["generation_mode"] == "DETERMINISTIC_TEMPLATE"
+    assert narrative["audience"] == "ADVISOR_REVIEW"
+    assert narrative["review_state"] == "DRAFT"
+    assert narrative["narrative_policy"]["status"] == "READY_FOR_ADVISOR_REVIEW"
+    assert body["version"]["evidence_bundle"]["context_resolution"]["input_mode"] == "stateful"
+
+
 def test_stateful_simulate_and_create_share_warm_lotus_core_context(monkeypatch):
     base_url = "http://host.docker.internal:8201"
     monkeypatch.setenv("LOTUS_CORE_QUERY_BASE_URL", base_url)
@@ -560,6 +604,48 @@ def test_create_version_supports_stateful_context_resolution(monkeypatch):
     assert context_resolution["resolved_context"]["portfolio_snapshot_id"] == (
         "ps_pf_lifecycle_1_2026-03-25"
     )
+
+
+def test_stateful_version_can_request_fresh_advisor_review_narrative(monkeypatch):
+    monkeypatch.setattr(
+        "src.api.main.resolve_lotus_core_advisory_context",
+        lambda stateful_input: _resolved_stateful_context(
+            portfolio_id=stateful_input.portfolio_id,
+            as_of=stateful_input.as_of,
+        ),
+        raising=False,
+    )
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-create-stateful-narrative-version-base")
+        proposal_id = created["proposal"]["proposal_id"]
+
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/versions",
+            json={
+                "created_by": "advisor_2",
+                "expected_current_version_no": 1,
+                "input_mode": "stateful",
+                "stateful_input": {
+                    "portfolio_id": "pf_lifecycle_1",
+                    "as_of": "2026-03-25",
+                    "narrative_request": {
+                        "audience": "ADVISOR_REVIEW",
+                        "jurisdiction": "SG",
+                        "client_audience": "ADVISOR_REVIEW",
+                        "sections": ["EXECUTIVE_SUMMARY"],
+                        "requested_by": "advisor_2",
+                    },
+                },
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["proposal"]["current_version_no"] == 2
+    narrative = body["version"]["artifact"]["proposal_narrative"]
+    assert narrative["generation_mode"] == "DETERMINISTIC_TEMPLATE"
+    assert [section["section_key"] for section in narrative["sections"]] == ["EXECUTIVE_SUMMARY"]
+    assert body["version"]["evidence_bundle"]["context_resolution"]["input_mode"] == "stateful"
 
 
 def test_stateful_create_and_version_share_warm_lotus_core_context(monkeypatch):
