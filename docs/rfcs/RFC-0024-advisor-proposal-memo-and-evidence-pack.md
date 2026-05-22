@@ -2,94 +2,209 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT |
+| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
 | **Created** | 2026-05-22 |
-| **Owner** | `lotus-advise` |
-| **Business Sponsor Persona** | relationship manager, investment advisor, advisory desk head, compliance reviewer, operations support, audit, sales/pre-sales |
+| **Last Tightened** | 2026-05-22 |
+| **Owner** | `lotus-advise` for advisory memo authority and evidence product truth |
+| **Business Sponsor Persona** | relationship manager, investment advisor, advisory desk head, compliance reviewer, investment desk reviewer, operations support, audit, sales/pre-sales |
+| **Primary Business Outcome** | make every advisory proposal explainable, reviewable, replayable, documentable, and client-conversation-ready through one governed evidence product |
 | **Depends On** | RFC-0006, RFC-0011, RFC-0013, RFC-0019, RFC-0020, RFC-0021, RFC-0022, RFC-0023 |
-| **Downstream Realization Depends On** | `lotus-gateway`, `lotus-workbench`, `lotus-report`, `lotus-render`, and `lotus-archive` product-surface and document-delivery work after the backend contract is stable |
+| **Cross-Repository Scope** | `lotus-advise`, `lotus-core`, `lotus-risk`, `lotus-ai`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, `lotus-workbench`, `lotus-platform` |
+| **Compatibility Posture** | backward compatibility is not a constraint; breaking API/contract changes are allowed when they are the cleanest design, but every affected downstream consumer must be updated in this RFC before closure |
+| **Tightening Branch** | `docs/rfc0024-gold-standard-tightening` |
+| **Implementation Branching Rule** | implementation may continue on this branch or a follow-on RFC-0024 feature branch, but all branch names, PRs, commits, checks, and cross-repo closures must be recorded in RFC closure evidence |
 | **Doc Location** | `docs/rfcs/RFC-0024-advisor-proposal-memo-and-evidence-pack.md` |
 
 ---
 
 ## 0. Executive Summary
 
-RFC-0024 defines the `AdvisoryProposalMemo`: a durable, reviewable advisory evidence product that
+RFC-0024 creates the `AdvisoryProposalMemoEvidencePack`: the governed advisory evidence product that
 turns a proposal, decision summary, alternatives comparison, risk lens, suitability posture,
-approval trail, and downstream readiness into a business-readable memo package.
+approval trail, client-ready narrative, report package, and downstream readiness into one
+business-readable and machine-readable product.
 
-The memo is not a generic report and not an AI free-text feature. It is a governed advisory
-decision artifact for:
+The memo is not a prettier proposal artifact. It is the private-banking decision record that
+connects:
 
 1. advisor preparation,
-2. client conversation support,
-3. compliance review,
-4. investment committee or desk approval,
-5. operations handoff explanation,
-6. audit and replay,
-7. sales and pre-sales demonstration.
+2. client conversation,
+3. suitability and best-interest review,
+4. rejected-alternative explanation,
+5. fee, cost, conflict, and disclosure posture,
+6. compliance and investment desk approval,
+7. report/render/archive materialization,
+8. Gateway and Workbench product realization,
+9. audit, replay, lineage, supportability, and data-product certification.
 
-This RFC is deliberately focused on a bank-buyable product outcome: a private bank should be able to
-look at a proposal and understand why the recommendation exists, what evidence supports it, what
-alternatives were considered, what suitability and approval issues remain, and what downstream
-actions are ready or blocked.
+The implementation must deliver the complete outcome end to end. This RFC does not allow a
+"backend done, UI later" closure, a "memo generated but report/archive later" closure, or a
+"documentation later" closure. If a cross-repository change is required to realize the memo's
+business value, it is part of this RFC's implementation program and must be merged, validated, and
+documented before the RFC is marked implemented.
 
-The initial implementation belongs in `lotus-advise`. Rendering, external archive retention,
-product UI, and gateway composition remain owned by their respective applications. The advisory
-backend must still provide the canonical memo evidence and never rely on the UI to reconstruct
-proposal truth.
+The memo may reuse RFC-0023 AI narrative, RFC-0025 policy-pack work, RFC-0026 cockpit work, and
+RFC-0028 demo proof where those RFCs are already implemented. If those capabilities are not
+implemented when RFC-0024 starts, RFC-0024 must deliver the memo-critical subset inside this RFC and
+then update the adjacent RFCs to reflect what became implementation-backed. There must be no
+unimplemented integration required for RFC-0024's supported feature claim.
 
 ---
 
-## 1. Problem Statement
+## 1. Critical Review of the Previous RFC
 
-Current `lotus-advise` proposal surfaces are materially stronger than an MVP. They expose proposal
-simulation, artifact generation, lifecycle persistence, approval posture, decision summaries,
-proposal alternatives, workspace handoff, execution-boundary evidence, and supportability state.
+| Area | Previous state | Gap | Tightening applied |
+| --- | --- | --- | --- |
+| Scope | Focused on `lotus-advise` memo aggregate and handoff packages. | Downstream product value was mostly deferred to Gateway, Workbench, report, render, archive, and AI. | Scope now includes all required upstream, downstream, platform, docs, and product-surface work inside the RFC. |
+| Compatibility | Said it extends existing advisory route family. | Did not state whether breaking API cleanup is allowed. | Compatibility is now explicit: no backward-compatibility constraint, but all consumers must be migrated in the same RFC. |
+| Architecture | Listed owners and a simple flow. | Did not define complete authority, data-product, report/archive, AI, Gateway, Workbench, and platform proof boundaries. | Added ownership matrix, canonical flow, cross-repo responsibilities, source authority, and data-product rules. |
+| Product gap handling | Covered memo basics. | Did not map bank-buyable gaps such as client-ready narrative, policy, fees, conflicts, report pack, and commercial proof. | Added a product-gap allocation table and memo-critical inclusion rules. |
+| Data mesh | Mentioned evidence refs. | Did not require new producer declaration, trust telemetry, SLO/access/evidence policy, catalog certification, or Gateway/Workbench mesh consumption. | Added a mandatory data product and platform hardening slice. |
+| API design | Proposed endpoints only. | Did not require certified examples, breaking-change migration, downstream consumer updates, or endpoint retirement checks. | Added API certification, migration, consumer update, OpenAPI, and error-handling requirements. |
+| Testing | Had unit, contract, integration, live proof. | Did not define cross-repo proof, source-critical figure review, report/render/archive proof, UI/browser proof, or security proof. | Added test pyramid, live proof, platform proof, critical evidence review, and acceptance gates. |
+| Platform automation | Had a decision point. | Did not require improving reusable scaffolding when gaps are found. | Added explicit platform automation/scaffolding improvement slice. |
+| Documentation | Mentioned README/wiki/support features. | Did not specify audience, depth, wiki publication, commercial material, or implementation-backed grounding. | Added detailed documentation-as-product requirements and final wiki publication gates. |
+| Communication | Not covered. | User explicitly requires a LinkedIn post after completion. | Added post-completion communication slice using the LinkedIn thought-leadership workflow. |
 
-The remaining product gap is human consumption. A banker, reviewer, or buyer should not need to
-inspect raw JSON across several endpoints to understand the advisory story.
+Decision:
 
-The product needs one memo package that answers:
+1. RFC-0024 remains the owning RFC for the advisor proposal memo and evidence pack.
+2. The implementation must include every cross-repository change required to make the memo usable
+   by advisors, compliance, operations, sales/pre-sales, Gateway, Workbench, report/render/archive,
+   and data-product consumers.
+3. Adjacent RFCs may own broader product families, but RFC-0024 cannot close while memo-critical
+   dependencies remain unimplemented.
+
+---
+
+## 2. Problem Statement
+
+Current `lotus-advise` proposal surfaces are strong. They support proposal simulation, deterministic
+artifact generation, persisted lifecycle/versioning, approval and consent workflow, decision
+summary, proposal alternatives, workspace handoff, execution-boundary evidence, capability
+discovery, OpenAPI quality, vocabulary governance, runtime smoke, and production-profile guardrails.
+
+The bank-buyable gap is not that Lotus lacks proposal data. The gap is that advisory data is still
+spread across machine-oriented contracts. A private banker, compliance reviewer, investment desk
+reviewer, operations team, audit team, or buyer should not need to inspect raw JSON across many
+endpoints to understand:
 
 1. what is being recommended,
-2. why the recommendation is suitable or not suitable,
-3. what material portfolio impact is expected,
-4. which alternatives were considered and rejected,
-5. what evidence was available, degraded, or missing,
-6. what approvals, consents, and disclosures are required,
-7. what downstream report, execution, and archive posture exists,
-8. how the memo can be replayed for audit.
+2. why it is recommended,
+3. which alternatives were rejected,
+4. which suitability, best-interest, fee, cost, conflict, and disclosure issues exist,
+5. what portfolio, risk, cash, FX, liquidity, product-eligibility, and concentration impact exists,
+6. what client or household context was used,
+7. what approval, consent, report, archive, and execution posture exists,
+8. whether any evidence is missing, stale, degraded, or not implemented,
+9. how the memo can be replayed and defended later.
 
-Without this capability, `lotus-advise` can look technically competent but not bank-buyable. Banks
-buy controls, evidence, repeatability, and human workflow, not only simulation endpoints.
+RFC-0024 creates one governed evidence product to answer those questions.
 
-## 2. Business Outcomes
+## 3. Business Outcomes
 
-RFC-0024 targets these outcomes:
+RFC-0024 must deliver these outcomes:
 
-1. **Improve advisor productivity**
-   reduce manual preparation time for client meetings and internal reviews.
-2. **Increase compliance confidence**
-   expose suitability, approvals, disclosures, lineage, and missing evidence in one artifact.
-3. **Strengthen advisory consistency**
-   make proposal explanations repeatable across bankers, desks, jurisdictions, and channels.
-4. **Improve client conversation quality**
-   give advisors a clear, evidence-backed narrative without letting unapproved text become final
-   advice.
-5. **Create a premium demo asset**
-   show a full advisory evidence story with concrete source refs, reason codes, decision timeline,
-   alternatives, and readiness posture.
-6. **Reduce support and audit cost**
-   make a proposal diagnosable from a single memo id and immutable evidence refs.
+1. **Advisor productivity**
+   advisors can prepare client conversations from a memo rather than assembling evidence manually.
+2. **Compliance confidence**
+   suitability, best-interest, conflicts, fees/costs, approvals, disclosures, lineage, and missing
+   evidence are visible in one artifact.
+3. **Client conversation quality**
+   client-facing draft projections use clear private-banking language while preserving review
+   gates and evidence references.
+4. **Rejected-alternative transparency**
+   the memo explains why selected alternatives are preferred and why rejected alternatives were not
+   selected.
+5. **Operational handoff clarity**
+   report, archive, execution, and downstream owner boundaries are visible before client-facing
+   material is used.
+6. **Audit and replay**
+   finalized memo evidence is immutable, hash-backed, source-ref backed, and replayable.
+7. **Data-product maturity**
+   `lotus-advise` promotes a real governed advisory evidence product with trust telemetry,
+   certification, access, SLO, and evidence policies.
+8. **Commercial readiness**
+   sales/pre-sales can demo and explain the memo from implementation-backed docs and proof, without
+   unsupported product claims.
 
-## 3. Current Baseline
+## 4. Scope and Non-Scope
+
+### 4.1 In Scope
+
+RFC-0024 includes all work required to deliver a supported advisor proposal memo outcome:
+
+1. `lotus-advise` memo domain model, builders, persistence, replay, APIs, OpenAPI, tests, metrics,
+   logs, audit, supportability, data-product declarations, trust telemetry, docs, and wiki.
+2. `lotus-core` source enhancements when the memo needs richer client, household, account,
+   mandate, booking-center, product-eligibility, product-complexity, price, FX, cash, holding, or
+   objective/constraint evidence and the existing source contract is insufficient.
+3. `lotus-risk` source enhancements when memo-critical stress, drawdown, concentration, issuer,
+   country, sector, liquidity, private-asset, climate, geopolitical, or degraded-risk evidence is
+   needed and the current risk lens is insufficient.
+4. `lotus-ai` workflow-pack changes required for memo narrative, unsupported-claim validation,
+   source-ref validation, prompt/output lineage, model-run posture, and human review.
+5. `lotus-report`, `lotus-render`, and `lotus-archive` work required to generate, render, archive,
+   retain, retrieve, and audit the client-ready proposal memo package.
+6. `lotus-gateway` and `lotus-workbench` changes required to expose the memo review, projection,
+   approval, report-package, archive, and supportability value to users.
+7. `lotus-platform` automation/scaffolding improvements when reusable gaps are discovered in API
+   certification, Swagger quality, observability, health, structured logging, error handling, test
+   scaffolding, CI defaults, documentation scaffolding, governance hooks, security baseline, data
+   mesh onboarding, or live-evidence capture.
+8. README, wiki, supported-features, architecture docs, operator docs, sales/pre-sales demo
+   material, commercial proof, and post-completion communication.
+
+### 4.2 Non-Scope
+
+RFC-0024 does not own:
+
+1. discretionary portfolio-management campaigns or DPM execution orchestration, which remain
+   `lotus-manage` ownership,
+2. external OMS or broker execution as a system of record, except for memo-visible handoff and
+   status boundary evidence,
+3. broad advisor cockpit worklists beyond memo review and memo-derived next actions, which are
+   RFC-0026 unless needed to expose memo value,
+4. complete enterprise policy-pack management beyond the memo-critical subset, which is RFC-0025
+   unless required to produce the memo-supported claim,
+5. broad advisory AI chat/copilot beyond memo narrative and explanation support, which is RFC-0027
+   unless required for memo value,
+6. broad RFP pack, enterprise sales deck, and full client-demo journey beyond memo evidence, which
+   is RFC-0028 unless required to explain the memo product.
+
+Non-scope does not mean "ignore it." If a non-scope item blocks the memo from being supported,
+RFC-0024 must either implement the needed subset or remove the unsupported claim.
+
+## 5. Product Gap Allocation
+
+The table below decides what this RFC tackles directly and what belongs in adjacent RFCs.
+
+| Product area or gap | RFC-0024 treatment | Owning RFC or repo for broader scope |
+| --- | --- | --- |
+| Client-ready advisory narrative | In scope for memo sections, report package, review posture, and client-facing draft projection. | RFC-0023 owns broader grounded narrative workflow. |
+| Proposal artifact generation | In scope to upgrade artifact evidence into memo evidence and document handoff. | `lotus-report`, `lotus-render`, `lotus-archive` own document lifecycle. |
+| Decision summary best-interest narrative | In scope for memo summary and rejected-alternative explanation. | RFC-0025 owns full policy-pack engine. |
+| Rejected-alternative explanation | In scope using existing proposal alternatives plus missing evidence posture. | RFC-0022 owns broader construction alternatives. |
+| Fee, tax, and transaction-friction explanation | In scope for memo-critical evidence and explicit unavailable/degraded posture. | RFC-0016 owns broad cost/friction modeling. |
+| Conflict-of-interest handling | In scope for memo-critical disclosures, conflicts section, and review blockers. | RFC-0025 owns full conflict policy packs. |
+| Product eligibility and complex product review | In scope if required for client-ready memo claim. | RFC-0025 and upstream product-governance source owner own broader policy. |
+| Household/account/mandate context | In scope for memo-critical source fields. | `lotus-core` owns source truth. |
+| Broader risk scenarios | In scope for memo-critical risk appendix and degraded posture. | `lotus-risk` owns risk methodology. |
+| Advisor meeting workflow | Memo-derived preparation section is in scope. Full cockpit/worklists are RFC-0026. | RFC-0026. |
+| End-to-end Workbench experience | In scope for memo review, projection, report package, and archive visibility. | `lotus-workbench` owns UI implementation. |
+| AI model-risk governance and supervisory review | In scope for memo narrative runs and memo explanation. | RFC-0027 and `lotus-ai` own broader copilot governance. |
+| Execution handoff/status | In scope for memo-visible boundary evidence. External OMS integration remains outside unless needed for memo support. | RFC-0017 and downstream execution owners. |
+| Capability discovery | In scope to expose memo support and dependency readiness through `/platform/capabilities`. | `lotus-gateway`/Workbench consume it. |
+| Load benchmarks, SLOs, tenant/legal-entity config, DR/RTO/RPO | In scope for memo endpoints and data product production readiness. | `lotus-platform` owns reusable standards; `lotus-advise` implements repo truth. |
+| Commercial packaging | In scope for memo product one-pager/demo notes and implementation-backed wiki. Full RFP pack belongs in RFC-0028 unless needed for memo closure. | RFC-0028. |
+
+## 6. Current Baseline
 
 Implementation-backed foundations already available:
 
-1. `POST /advisory/proposals/simulate` with canonical proposal execution,
-2. `POST /advisory/proposals/artifact` with deterministic artifact posture,
-3. persisted proposal lifecycle and immutable versions,
+1. `POST /advisory/proposals/simulate` with canonical proposal execution anchored to `lotus-core`,
+2. `POST /advisory/proposals/artifact` with deterministic artifact evidence,
+3. persisted proposal lifecycle with immutable versions and append-only workflow history,
 4. approval and consent workflow history,
 5. advisory workspace drafting and handoff,
 6. backend-owned `proposal_decision_summary`,
@@ -97,113 +212,98 @@ Implementation-backed foundations already available:
 8. canonical allocation and risk-lens convergence,
 9. execution handoff/status boundary evidence,
 10. `GET /platform/capabilities` supportability posture,
-11. bounded workspace rationale seam through `lotus-ai`.
+11. bounded workspace rationale seam through `lotus-ai`,
+12. repo-native domain-product declarations for `AdvisoryProposalLifecycleRecord` and
+   `TacticalHouseViewAffectedCohort`,
+13. RFC-0087 trust telemetry fixture for `AdvisoryProposalLifecycleRecord`,
+14. OpenAPI, vocabulary, no-alias, domain-product, runtime-smoke, security-audit, Docker, and
+   production-profile guardrail checks.
 
 Known gaps:
 
-1. no first-class memo aggregate,
+1. no first-class memo evidence-product aggregate,
 2. no memo section model or section readiness taxonomy,
-3. no memo-level hash, version, replay, or immutable evidence manifest,
-4. no audience-aware memo projection for advisor, client, compliance, and operations views,
-5. no typed handoff package for report/render/archive,
-6. no backend-owned memo API contract for Gateway/Workbench to consume,
-7. no supported-feature claim for advisor proposal memos.
+3. no memo-level hash, replay, immutable evidence manifest, or trust telemetry,
+4. no audience-aware memo projection for advisor, client draft, compliance, investment desk,
+   operations, audit, sales/pre-sales, and support users,
+5. no memo-critical fee/cost/conflict/product-eligibility policy evidence,
+6. no typed report/render/archive package,
+7. no Gateway/Workbench memo review experience,
+8. no memo-specific SLO/access/evidence policy or mesh certification,
+9. no implementation-backed wiki/sales/demo material for proposal memos,
+10. no LinkedIn post-completion draft requirement.
 
-## 4. Product Vision
+## 7. Target Product Capability
 
-One-sentence vision:
+The target product is `AdvisoryProposalMemoEvidencePack`.
 
-`lotus-advise` produces an advisor-ready proposal memo that explains the recommendation, evidence,
-risks, suitability posture, alternatives, approvals, and downstream readiness with replayable
-lineage.
-
-Product promises:
-
-1. **Evidence-first:** every material memo claim maps to proposal evidence or an explicit missing
-   evidence reason.
-2. **Audience-aware:** advisor, client, compliance, operations, and audit projections can differ
-   without changing source truth.
-3. **Replayable:** a memo can be reproduced from immutable proposal and policy versions.
-4. **Reviewable:** memo sections carry review state, blockers, and approval dependencies.
-5. **Safe for AI:** RFC-0023 narrative can enrich language, but deterministic memo evidence remains
-   authoritative.
-6. **Safe for reports:** report/render/archive services receive a typed evidence package, not raw
-   free-form payloads.
-
-Non-promises:
-
-1. `lotus-advise` does not render PDFs directly.
-2. `lotus-advise` does not become an external archive.
-3. `lotus-advise` does not create final client communication without review state.
-4. `lotus-advise` does not invent risk, performance, suitability, or product-eligibility facts.
-5. `lotus-advise` does not own downstream execution system-of-record truth.
-
-## 5. Domain Vocabulary
-
-| Concept | Preferred Term | Avoid |
-| --- | --- | --- |
-| Recommendation artifact | advisor proposal memo | generic report |
-| Source-backed collection of facts | evidence pack | JSON dump |
-| Reviewable memo part | memo section | text block |
-| Client-safe version | client-facing projection | final advice if unapproved |
-| Compliance view | compliance appendix | hidden admin data |
-| Evidence linkage | source ref, lineage ref, claim ref | copied value with no origin |
-| Readiness | READY, PENDING_REVIEW, BLOCKED | partial success |
-| Reviewer state | review posture, approval dependency | manual comment only |
-| Recommendation explanation | advisory rationale | AI story |
-| Downstream handoff | report package, archive package, execution handoff | external side effect |
-
-## 6. Target Capability
-
-The `AdvisoryProposalMemo` aggregate contains:
+It must contain:
 
 1. memo identity and proposal identity,
-2. proposal version and artifact refs,
-3. memo audience and projection policy,
-4. section list with readiness state,
+2. proposal version, artifact, workspace, and lifecycle refs,
+3. audience and projection policy,
+4. memo section list with readiness state,
 5. proposal decision summary snapshot,
-6. selected recommendation and intended client action,
-7. alternatives comparison summary,
-8. suitability and best-interest posture,
-9. risk, allocation, cash, FX, and concentration lens summary,
-10. approval, consent, and disclosure posture,
-11. execution, report, and archive readiness posture,
-12. source-authority and lineage manifest,
-13. reviewer notes and decision timeline refs,
-14. redaction policy,
-15. hash and replay metadata.
+6. recommended action and rationale,
+7. rejected-alternative explanation,
+8. suitability, best-interest, mandate, product-eligibility, fee, cost, conflict, and disclosure
+   posture,
+9. risk, allocation, cash, FX, liquidity, concentration, and scenario evidence,
+10. approval, consent, maker-checker, sign-off, and escalation posture,
+11. report/render/archive readiness,
+12. execution handoff/status boundary evidence,
+13. source-authority and lineage manifest,
+14. redaction and audience-projection policy,
+15. review events and decision timeline refs,
+16. memo, section, projection, and source-input hashes,
+17. replay metadata,
+18. data-product trust metadata,
+19. supportability diagnostics.
 
-### 6.1 Memo Section Model
+### 7.1 Memo Sections
 
-Initial sections:
+Required memo sections:
 
 1. `EXECUTIVE_SUMMARY`
-2. `CLIENT_CONTEXT`
-3. `RECOMMENDATION`
-4. `PORTFOLIO_IMPACT`
-5. `RISK_AND_SUITABILITY`
-6. `ALTERNATIVES_CONSIDERED`
-7. `APPROVALS_AND_CONSENTS`
-8. `DISCLOSURES`
-9. `DOWNSTREAM_READINESS`
-10. `EVIDENCE_APPENDIX`
-11. `COMPLIANCE_APPENDIX`
-12. `OPERATIONS_APPENDIX`
+2. `CLIENT_AND_HOUSEHOLD_CONTEXT`
+3. `ADVISORY_OBJECTIVE_AND_CONSTRAINTS`
+4. `RECOMMENDATION`
+5. `REJECTED_ALTERNATIVES`
+6. `PORTFOLIO_IMPACT`
+7. `RISK_AND_SCENARIO_CONTEXT`
+8. `SUITABILITY_AND_BEST_INTEREST`
+9. `FEES_COSTS_TAX_AND_FRICTIONS`
+10. `CONFLICTS_AND_DISCLOSURES`
+11. `APPROVALS_CONSENTS_AND_MAKER_CHECKER`
+12. `REPORT_ARCHIVE_AND_DELIVERY_READINESS`
+13. `EXECUTION_HANDOFF_BOUNDARY`
+14. `EVIDENCE_AND_LINEAGE_APPENDIX`
+15. `COMPLIANCE_APPENDIX`
+16. `OPERATIONS_APPENDIX`
+17. `SUPPORTABILITY_APPENDIX`
 
 Each section must expose:
 
 1. `section_id`,
-2. `status` using `READY`, `PENDING_REVIEW`, or `BLOCKED`,
-3. `summary`,
-4. `evidence_refs`,
-5. `missing_evidence`,
-6. `reason_codes`,
-7. `review_required`,
-8. `last_material_input_hash`.
+2. `title`,
+3. `status` using `READY`, `PENDING_REVIEW`, or `BLOCKED`,
+4. `audience_visibility`,
+5. `summary`,
+6. `material_claims`,
+7. `claim_refs`,
+8. `evidence_refs`,
+9. `source_authority_refs`,
+10. `missing_evidence`,
+11. `degraded_evidence`,
+12. `reason_codes`,
+13. `review_required`,
+14. `owner_role`,
+15. `last_material_input_hash`,
+16. `section_hash`.
 
-### 6.2 Audience Projections
+### 7.2 Audience Projections
 
-The memo should support these projections:
+Required projections:
 
 1. `ADVISOR_PREPARATION`
 2. `CLIENT_REVIEW_DRAFT`
@@ -211,372 +311,698 @@ The memo should support these projections:
 4. `INVESTMENT_DESK_REVIEW`
 5. `OPERATIONS_HANDOFF`
 6. `AUDIT_EVIDENCE`
+7. `SALES_DEMO_SAFE`
+8. `SUPPORT_DIAGNOSTIC`
 
 Projection rules:
 
-1. projections can hide restricted internal fields,
-2. projections cannot alter the underlying memo evidence,
-3. client-facing projections must not be final unless the approval posture permits it,
-4. compliance and audit projections must retain missing/degraded evidence.
+1. projections can redact restricted fields but cannot alter source truth,
+2. client-facing projections are draft-only until review and approval posture permits release,
+3. compliance, audit, and support projections must preserve missing/degraded evidence,
+4. sales-demo projections must use synthetic or approved demo data and must not hide unsupported
+   capability,
+5. every projection must carry projection policy version and redaction evidence.
 
-## 7. Architecture Direction
+## 8. Architecture Direction
 
-### 7.1 Ownership Model
+### 8.1 Ownership Model
 
-`lotus-advise` owns:
+| Repository | RFC-0024 responsibility |
+| --- | --- |
+| `lotus-advise` | memo aggregate, section builders, projections, persistence, replay, idempotency, API contracts, supportability, audit, memo data product, trust telemetry, docs, wiki, supported-features truth |
+| `lotus-core` | authoritative portfolio, account, household, client objective, mandate, booking-center, holding, cash, price, FX, product, eligibility, and source-readiness evidence needed by the memo |
+| `lotus-risk` | authoritative risk, concentration, drawdown, stress, issuer/country/sector, liquidity, scenario, and degraded-risk evidence used by the memo |
+| `lotus-ai` | memo narrative workflow packs, model/provider execution, prompt/output lineage, model-run safety, unsupported-claim checks, model-risk posture |
+| `lotus-report` | proposal memo report-job contract, report package orchestration, document generation handoff, report evidence refs |
+| `lotus-render` | deterministic rendering of the memo package into client-ready formats |
+| `lotus-archive` | generated-document archive, retention, legal hold, access audit, retrieval, and archive refs |
+| `lotus-gateway` | experience API routes that expose memo capabilities, projections, report/archive readiness, and degraded posture to Workbench |
+| `lotus-workbench` | advisor/compliance/operations memo review UX, client-draft preview, report package trigger, archive visibility, browser proof |
+| `lotus-platform` | reusable scaffolding, API certification, data mesh, trust telemetry, SLO/access/evidence policy, cross-repo validation, wiki publication automation, CI governance |
 
-1. memo aggregate and section model,
-2. memo evidence assembly,
-3. proposal-to-memo projection,
-4. memo persistence, replay, hash, and lineage,
-5. memo API contracts and OpenAPI documentation,
-6. report/archive handoff package shape,
-7. memo readiness and supportability diagnostics.
-
-`lotus-core` remains authoritative for:
-
-1. portfolio state,
-2. holdings, cash, prices, FX, valuation,
-3. simulation input and output truth.
-
-`lotus-risk` remains authoritative for:
-
-1. risk metrics,
-2. concentration lenses,
-3. risk lineage and degraded risk posture.
-
-`lotus-ai` owns:
-
-1. optional RFC-0023 narrative drafting,
-2. workflow-pack execution,
-3. model provider safety and run telemetry.
-
-`lotus-report`, `lotus-render`, and `lotus-archive` own:
-
-1. document generation,
-2. deterministic rendering,
-3. durable archive and retention after handoff.
-
-`lotus-gateway` and `lotus-workbench` own:
-
-1. product-facing composition,
-2. advisor cockpit or memo review UI,
-3. browser validation and accessibility.
-
-### 7.2 Product Flow
+### 8.2 Product Flow
 
 ```mermaid
 flowchart LR
-    Proposal[Proposal version] --> Memo[AdvisoryProposalMemo]
-    Decision[Decision summary] --> Memo
-    Alternatives[Proposal alternatives] --> Memo
-    Risk[Risk lens] --> Memo
-    Policy[Suitability and approval posture] --> Memo
-    Memo --> Gateway[lotus-gateway]
-    Gateway --> Workbench[lotus-workbench memo review]
-    Memo --> Report[lotus-report memo package]
+    Core[lotus-core<br/>portfolio, client, mandate, product, price, FX] --> Advise[lotus-advise<br/>memo evidence authority]
+    Risk[lotus-risk<br/>risk and scenario evidence] --> Advise
+    Policy[Policy and suitability evidence] --> Advise
+    AI[lotus-ai<br/>memo narrative packs] --> Advise
+    Advise --> Gateway[lotus-gateway<br/>experience API]
+    Gateway --> Workbench[lotus-workbench<br/>memo review UX]
+    Advise --> Report[lotus-report<br/>proposal memo report package]
     Report --> Render[lotus-render]
     Report --> Archive[lotus-archive]
-    Memo --> AI[lotus-ai optional narrative drafting]
+    Advise --> Mesh[domain-product contracts<br/>trust telemetry<br/>capabilities]
 ```
 
 Rules:
 
-1. Gateway must not rebuild memo sections from raw proposal data.
-2. Workbench must not generate memo facts in the browser.
-3. AI narrative must consume memo evidence and return draft language only.
-4. Report/render/archive handoffs must preserve memo id, proposal version, and evidence refs.
+1. Workbench must not reconstruct memo facts from raw proposal data.
+2. Gateway must not become memo authority or product registry.
+3. `lotus-report` must not infer advisory facts absent from the memo package.
+4. `lotus-render` must render deterministic package content and preserve package refs.
+5. `lotus-archive` owns archive lifecycle after generated document handoff.
+6. `lotus-ai` may draft language, but deterministic memo evidence remains source of truth.
+7. Source-authority gaps must be visible in the memo rather than hidden behind generic success
+   states.
 
-## 8. Proposed API Direction
+## 9. Data Product and Data Mesh Requirements
 
-This RFC extends the existing advisory route family. It does not introduce public `/v2` routes.
+RFC-0024 must promote a new governed data product:
 
-Proposed endpoints:
+`lotus-advise:AdvisoryProposalMemoEvidencePack:v1`
+
+Required work:
+
+1. add repo-native producer declaration under `contracts/domain-data-products/`,
+2. add consumer declaration updates where `lotus-report`, `lotus-gateway`, `lotus-workbench`,
+   `lotus-ai`, and `lotus-archive` consume memo evidence,
+3. add or update RFC-0087 trust telemetry snapshot for the memo product,
+4. define freshness, completeness, reconciliation, data-quality, lineage, access, evidence, and
+   lifecycle posture,
+5. define SLO, access policy, and evidence policy in the platform-owned mesh contract families if
+   the product joins the enterprise maturity wave,
+6. update generated platform catalog and dependency graph through platform automation,
+7. validate with repo-native `make domain-data-products-gate` and platform mesh certification,
+8. expose memo support and dependency readiness through `GET /platform/capabilities`,
+9. ensure Gateway and Workbench consume certified product posture from governed APIs rather than
+   local feature flags.
+
+Minimum trust metadata:
+
+1. `product_name`,
+2. `product_version`,
+3. `memo_id`,
+4. `proposal_id`,
+5. `proposal_version_id`,
+6. `generated_at`,
+7. `correlation_id`,
+8. `tenant_id` or explicit tenancy posture,
+9. `legal_entity_id` or explicit legal-entity posture,
+10. `evidence_hash`,
+11. `lineage_bundle_id`,
+12. `source_authority_refs`.
+
+## 10. API and Contract Direction
+
+Backward compatibility is not a design constraint. The implementation may change or retire older
+artifact/report paths if that produces a cleaner canonical contract, provided every downstream
+consumer is updated in the same RFC.
+
+Compatibility and migration rules:
+
+1. no old and new memo authority can remain active in parallel without a documented cutover reason,
+2. deprecated or retired endpoints must be removed from OpenAPI or clearly marked unsupported with
+   tested error behavior,
+3. Gateway, Workbench, report, render, archive, AI, and platform consumers must migrate in the
+   same RFC branch set before the Advise supported-feature claim is promoted,
+4. any breaking contract change must include an owner-by-owner migration checklist, contract tests,
+   and proof that no downstream consumer still relies on the retired contract,
+5. `/platform/capabilities` must expose the active memo contract version and degraded dependency
+   state so downstream consumers do not infer support from static flags.
+
+Canonical endpoints:
 
 1. `POST /advisory/proposals/{proposal_id}/versions/{version_id}/memos`
-   create a memo from an immutable proposal version.
+   create or replay an idempotent memo draft/finalization request from an immutable proposal
+   version.
 2. `GET /advisory/proposals/{proposal_id}/memos/{memo_id}`
-   retrieve memo evidence and selected projection metadata.
+   retrieve canonical memo evidence.
 3. `GET /advisory/proposals/{proposal_id}/memos/{memo_id}/projections/{audience}`
-   retrieve an audience-specific projection.
-4. `POST /advisory/proposals/{proposal_id}/memos/{memo_id}/review`
-   record memo review, approval, rejection, or requested changes.
-5. `POST /advisory/proposals/{proposal_id}/memos/{memo_id}/report-package`
-   build a typed report handoff package without rendering the document locally.
+   retrieve an audience projection.
+4. `POST /advisory/proposals/{proposal_id}/memos/{memo_id}/reviews`
+   record memo review, approval, rejection, requested changes, or sign-off.
+5. `POST /advisory/proposals/{proposal_id}/memos/{memo_id}/report-packages`
+   create a typed report/render/archive package request.
+6. `GET /advisory/proposals/{proposal_id}/memos/{memo_id}/lineage`
+   retrieve source refs, hashes, data-product trust metadata, report/archive refs, and replay
+   posture.
+7. `POST /advisory/proposals/{proposal_id}/memos/{memo_id}/replay`
+   replay memo generation against immutable proposal, policy, evidence, and builder versions.
+
+Required headers:
+
+1. `X-Correlation-ID`,
+2. `Idempotency-Key` for creation/report/review commands,
+3. tenant/legal-entity caller context if the platform contract requires it,
+4. caller role or entitlement context where required by Gateway/Workbench.
 
 OpenAPI requirements:
 
-1. every endpoint has summary, description, tags, response descriptions, and examples,
-2. examples include `READY`, `PENDING_REVIEW`, and `BLOCKED` memo states,
-3. field descriptions explain audience projection, evidence refs, and redaction posture,
-4. error examples include proposal not found, version not immutable, missing evidence, and
-   unsupported audience.
+1. every endpoint has summary, description, operation id, tags, response descriptions, and
+   examples,
+2. every request and response attribute has description, type, and example value,
+3. examples cover `READY`, `PENDING_REVIEW`, `BLOCKED`, degraded source, missing policy evidence,
+   AI unavailable, report unavailable, archive unavailable, and unauthorized projection,
+4. Swagger text explains what the endpoint does, when it should be used, how idempotency works, and
+   what downstream systems consume,
+5. error responses are consistent, documented, and tested,
+6. OpenAPI, vocabulary, no-alias, and endpoint certification gates are merge blockers,
+7. old or misleading endpoint descriptions are removed or rewritten.
 
-## 9. Persistence, Replay, and Lineage
+## 11. Persistence, Replay, and Lineage
 
-The memo must be persisted as an immutable evidence product once finalized for a proposal version.
+Persistence must support:
 
-Required fields:
-
-1. `memo_id`,
-2. `proposal_id`,
-3. `proposal_version_id`,
-4. `artifact_id` when available,
-5. `memo_status`,
-6. `audience_policy_version`,
-7. `section_hashes`,
-8. `input_evidence_hash`,
-9. `source_refs`,
-10. `created_by`,
-11. `created_at`,
-12. `review_events`,
-13. `redaction_policy`,
-14. `replay_state`.
+1. memo drafts,
+2. finalized immutable memo versions,
+3. section hashes,
+4. projection hashes,
+5. review events,
+6. report-package events,
+7. archive refs,
+8. AI narrative refs,
+9. source refs,
+10. data-product trust metadata,
+11. idempotency records,
+12. replay records.
 
 Replay rules:
 
-1. replay must use the same proposal version, policy version, and memo builder version,
-2. missing upstream services must not change historical finalized memo truth,
-3. regenerated drafts must produce a new memo version or a new draft state, not mutate finalized
-   evidence,
-4. reviewer events are append-only.
+1. finalized memo truth is immutable,
+2. replay uses the same proposal version, memo builder version, policy version, source evidence
+   refs, and projection policy version,
+3. regenerated drafts create a new memo version or draft, not mutation of finalized evidence,
+4. missing upstream services must not change historical finalized memo truth,
+5. replay must expose source refs and hash comparison result,
+6. replay failures must return actionable diagnostics without leaking sensitive payloads.
 
-## 10. Security, Compliance, and Data Handling
+## 12. Security, Compliance, and Privacy
 
-Controls:
+Required controls:
 
-1. no raw sensitive payloads in logs, metrics, or AI run records,
-2. redaction policy for client-facing projections,
-3. role-aware projection eligibility,
-4. audit events for memo creation, review, export package generation, and regeneration,
-5. correlation id propagation across memo, report, AI, gateway, and workbench calls,
-6. idempotency key support for memo creation and report package creation,
-7. no final client communication state unless human review rules allow it.
+1. role-aware access to memo projections,
+2. tenant and legal-entity posture where supported by platform context,
+3. no raw client, holding, product, prompt, or model output payloads in logs or metrics,
+4. no portfolio, client, proposal, security, or memo ids as metric labels,
+5. audit events for create, review, projection access, report package creation, archive handoff,
+   AI narrative run, replay, and export,
+6. redaction policy for client, sales-demo, support, and advisor projections,
+7. legal-hold and retention handoff to archive,
+8. secrets and configuration validation for cross-service dependencies,
+9. dependency-health and security-audit gates,
+10. documented security treatment for any vulnerability that cannot be fixed in-slice.
 
 Forbidden behavior:
 
-1. inventing missing suitability evidence,
-2. hiding `BLOCKED` or `PENDING_REVIEW` sections from compliance/audit projections,
-3. allowing AI output to change memo status,
-4. storing full prompts or raw provider output in local logs,
-5. using portfolio, client, security, or proposal ids as metric labels.
+1. hiding `BLOCKED` or `PENDING_REVIEW` from compliance/audit projections,
+2. defaulting missing source data to suitable, eligible, or client-ready,
+3. allowing AI to change memo status or evidence,
+4. emitting client-ready documents before review and approval posture permits it,
+5. using decorative UI state to imply certified memo support.
 
-## 11. Observability and Supportability
+## 13. Observability, Supportability, Performance, and Resilience
 
-Metrics should be bounded and low-cardinality:
+Metrics must be bounded and low-cardinality:
 
-1. memo creation count by status and audience,
+1. memo create count by status and audience,
 2. section readiness count by section type and status,
 3. memo build duration histogram,
-4. report package creation count by status,
-5. replay success/failure count by reason code,
-6. AI narrative availability count when RFC-0023 integration is enabled.
+4. projection retrieval duration histogram,
+5. report package count by status,
+6. archive handoff count by status,
+7. replay success/failure count by reason family,
+8. AI memo narrative availability by pack family and status,
+9. source readiness gap count by source family.
 
-Structured logs should include:
-
-1. correlation id,
-2. memo id,
-3. proposal id hash or safe internal ref,
-4. proposal version id,
-5. memo status,
-6. reason codes,
-7. upstream readiness states,
-8. no raw client or holding payloads.
-
-Support diagnostics should expose:
+Operational diagnostics must expose:
 
 1. memo builder version,
-2. input evidence hash,
-3. source refs,
-4. blocked sections,
-5. degraded dependency basis,
-6. replay eligibility.
+2. proposal version,
+3. policy versions,
+4. projection policy version,
+5. input evidence hash,
+6. source refs,
+7. blocked sections,
+8. degraded dependency basis,
+9. report/archive readiness,
+10. replay eligibility,
+11. data-product trust posture.
 
-## 12. Test Strategy
+Performance and resilience requirements:
+
+1. define p95 latency targets for memo create, memo read, projection read, and report-package
+   request,
+2. benchmark memo read/projection read under realistic proposal-book volume,
+3. avoid N+1 proposal, section, review, and source-ref reads,
+4. support pagination where lists are added,
+5. define cache and invalidation policy only where needed,
+6. document RTO/RPO and backup/restore posture for memo persistence,
+7. include production-profile startup and guardrail evidence,
+8. include Docker build validation and migration smoke where persistence changes exist.
+
+## 14. Documentation-as-Product Requirements
+
+Final documentation must be detailed, implementation-backed, and grounded in the actual
+`lotus-advise` implementation.
+
+Required documentation:
+
+1. README feature section for advisor proposal memo and evidence pack,
+2. wiki page or supported-features update for business, operations, sales/pre-sales, and developers,
+3. architecture diagram and source-authority flow,
+4. API usage guide with examples,
+5. memo section and projection guide,
+6. report/render/archive handoff guide,
+7. AI memo narrative guide when AI is implemented,
+8. data-product and mesh certification documentation,
+9. operations runbook for degraded source, replay, report-package, archive, and AI-unavailable
+   cases,
+10. sales/pre-sales demo guidance that separates implementation-backed claims from planned
+   adjacent RFCs,
+11. commercial one-pager or RFP-support note for memo-specific capability if RFC-0028 has not yet
+   produced the full package,
+12. explicit no-wiki-change decision if a specific documentation artifact is reviewed and not
+   changed.
+
+Documentation rules:
+
+1. do not duplicate large docs between repo and wiki,
+2. repo docs carry engineering depth,
+3. wiki carries concise operator/product truth and links to deeper docs,
+4. supported-features wording must be implementation-backed,
+5. wiki must be published after merge when wiki source changes.
+
+## 15. Test and Evidence Strategy
 
 Unit tests:
 
-1. section builders map proposal evidence into memo sections correctly,
-2. audience projection redacts and retains fields according to policy,
-3. missing evidence creates `PENDING_REVIEW` or `BLOCKED` state with reason codes,
-4. memo hash changes when material evidence changes,
-5. AI narrative cannot alter deterministic status or evidence.
+1. section builders,
+2. source authority mapping,
+3. audience projection and redaction,
+4. missing/degraded evidence behavior,
+5. memo hash and replay metadata,
+6. idempotency,
+7. policy/cost/conflict/disclosure mapping,
+8. report package construction,
+9. AI output cannot alter deterministic memo truth.
 
 Contract tests:
 
-1. OpenAPI includes descriptions and examples for all memo endpoints,
-2. response schemas expose source refs, section status, and audience projection metadata,
-3. no unsupported status values are introduced,
-4. idempotency headers and correlation headers are documented.
+1. OpenAPI completeness and examples,
+2. request/response model descriptions,
+3. error taxonomy,
+4. idempotency and correlation headers,
+5. vocabulary and no-alias compliance,
+6. data-product contract validation,
+7. trust telemetry validation.
 
 Integration tests:
 
-1. persisted proposal version to memo creation,
-2. memo retrieval and replay,
-3. review event append-only behavior,
-4. report package handoff package generation,
-5. degraded risk or AI dependency behavior.
+1. proposal version to memo creation,
+2. memo retrieval and projection,
+3. review append-only behavior,
+4. replay from immutable evidence,
+5. report/render/archive handoff,
+6. Gateway routing,
+7. Workbench BFF consumption,
+8. degraded `lotus-core`, `lotus-risk`, `lotus-ai`, `lotus-report`, and `lotus-archive` behavior.
 
-Live proof:
+End-to-end and live proof:
 
-1. generate a memo for a canonical proposal,
-2. capture request/response artifacts under `output/`,
-3. verify every section status, evidence ref, reason code, and hash,
-4. verify `/platform/capabilities` advertises memo support only after implementation is real.
+1. canonical proposal memo creation,
+2. canonical client draft projection,
+3. compliance projection with missing/degraded evidence,
+4. report/render/archive materialization,
+5. Workbench memo review flow through Gateway,
+6. `/platform/capabilities` memo support and dependency readiness,
+7. mesh certification for `AdvisoryProposalMemoEvidencePack:v1`,
+8. production-profile guardrail and Docker evidence,
+9. critical review notes for every material returned figure, reason code, source ref, hash,
+   lineage ref, readiness state, and degraded state.
 
-## 13. Implementation Slices
+### 15.1 Delivery Governance and Branch Hygiene
 
-### Slice 0 - Current-State and Source Map
+Execution must follow Lotus banking-grade delivery governance:
+
+1. create or continue a remote RFC-0024 feature branch before implementation work,
+2. use small, meaningful, well-scoped commits,
+3. keep `lotus-advise` as the accountable RFC record while using owner-repo PRs for cross-repo
+   implementation,
+4. keep GitHub Feature Lane, PR Merge Gate, and Main Releasability Gate under active monitoring,
+5. run expensive checks asynchronously when useful, but continue local non-overlapping work while
+   they run,
+6. fix CI failures promptly and record truthful evidence,
+7. run stranded-truth reconciliation before implementation, before final closure, and before
+   marking the RFC complete,
+8. merge all required owner-repo PRs, publish wiki truth where changed, delete completed feature
+   branches, and leave each affected repo clean.
+
+## 16. Implementation Slices
+
+Each slice must produce a small, meaningful commit or coordinated cross-repo PR set. CI must be
+monitored while work continues. Failures must be fixed promptly and not normalized.
+
+### Slice 0 - Critical Review, Source Map, and Product Gap Allocation
 
 Outcome:
 
-1. map current proposal, artifact, decision summary, alternatives, lifecycle, and supportability
-   fields into a memo source-authority matrix.
+1. complete the pre-implementation source map for proposal, artifact, decision summary,
+   alternatives, lifecycle, policy, risk, cost, fee, conflict, report, AI, Gateway, Workbench,
+   archive, mesh, and supportability evidence.
 
 Acceptance gate:
 
-1. document source refs, missing fields, ownership, and downstream dependencies,
-2. record any upstream/downstream gaps in `docs/rfcs/WTBD.md`.
+1. memo-critical source gaps are classified as implement-now, implement in owner repo, explicitly
+   unavailable-with-blocked-state, or out-of-scope,
+2. `docs/rfcs/WTBD.md` records only genuine cross-repo defects or follow-up owner tasks that are
+   not part of the RFC implementation branch set,
+3. no broad "later" dependency remains for the memo supported claim.
 
-### Slice 1 - Platform Automation and Scaffolding Decision
+### Slice 1 - Platform Automation and Scaffolding Improvement
 
 Outcome:
 
-1. determine whether existing OpenAPI, idempotency, correlation, health, and docs gates cover memo
-   endpoints.
+1. identify repeatable gaps that should be solved in `lotus-platform` rather than locally in
+   `lotus-advise`,
+2. improve platform automation and scaffolding when gaps are found.
+
+Required review areas:
+
+1. API certification pattern,
+2. Swagger/OpenAPI quality,
+3. observability and bounded metrics,
+4. health/liveness/readiness endpoints,
+5. structured logging and correlation,
+6. error handling templates,
+7. unit/integration/e2e/test-data scaffolding,
+8. CI lane defaults,
+9. documentation and wiki scaffolding,
+10. governance hooks,
+11. security baseline,
+12. domain-data-product onboarding,
+13. trust telemetry,
+14. live-evidence capture.
 
 Acceptance gate:
 
-1. either implement reusable platform/repo scaffolding improvements or record a deliberate no-change
-   decision with evidence.
+1. reusable platform improvements are implemented in `lotus-platform` or explicitly rejected with
+   rationale,
+2. future Lotus apps benefit from any scaffolding change,
+3. platform changes have platform-native tests and PR evidence.
 
 ### Slice 2 - Cleanup and Structure
 
 Outcome:
 
-1. create a dedicated memo module boundary before adding behavior.
+1. clean the `lotus-advise` proposal/artifact/report-related boundaries before adding memo scope.
 
 Acceptance gate:
 
-1. remove dead or duplicate artifact/memo-like helper paths,
-2. keep controllers thin and move memo assembly into services/domain modules.
+1. dead code, duplicate docs, stale endpoint descriptions, obsolete target-state claims, and
+   artifact/memo-like duplication are removed,
+2. memo code has dedicated domain, API, persistence, projection, report-handoff, AI-handoff, and
+   supportability module boundaries,
+3. wiki and repo docs are layered, not duplicated,
+4. controllers remain thin and business logic stays out of controllers and infrastructure.
 
-### Slice 3 - Domain Model and Pure Memo Builder
+### Slice 3 - Data Product and Platform Hardening
 
 Outcome:
 
-1. implement `AdvisoryProposalMemo`, section, projection, readiness, and evidence manifest models.
+1. promote the memo as a governed data product and strengthen production readiness around it.
 
 Acceptance gate:
 
-1. unit tests prove deterministic memo assembly from stored proposal evidence.
+1. `AdvisoryProposalMemoEvidencePack:v1` producer declaration exists,
+2. trust telemetry exists and validates,
+3. SLO/access/evidence posture is defined or platform-required changes are implemented,
+4. domain-product catalog and dependency graph are updated through automation,
+5. mesh certification passes,
+6. `/platform/capabilities` advertises memo support only after implementation is real,
+7. dependency health, security audit, migration smoke, Docker build, and production guardrails are
+   green.
 
-### Slice 4 - Persistence, Replay, and Idempotency
+### Slice 4 - Upstream Source Evidence Completion
 
 Outcome:
 
-1. persist memo drafts/finalized versions with append-only review events and idempotent create.
+1. ensure source evidence needed for the memo exists in the correct owner repositories.
+
+Owner expectations:
+
+1. `lotus-core` provides memo-critical household, account, mandate, objective, restriction,
+   product-eligibility, product-complexity, price, FX, cash, holding, and source-readiness fields,
+2. `lotus-risk` provides memo-critical risk, concentration, drawdown, stress, issuer/country/sector,
+   liquidity, private-asset, climate/geopolitical, or degraded-risk evidence,
+3. `lotus-advise` consumes these sources without duplicating source methodology.
 
 Acceptance gate:
 
-1. integration tests prove duplicate create requests do not create duplicate finalized memos.
+1. source-owner changes are implemented and validated where needed,
+2. missing evidence results in explicit memo `PENDING_REVIEW` or `BLOCKED` posture,
+3. memo does not claim source facts that source owners do not provide.
 
-### Slice 5 - Certified APIs and OpenAPI
+### Slice 5 - Memo Domain Model and Pure Builder
 
 Outcome:
 
-1. expose memo create/read/projection/review/report-package endpoints under `/advisory/proposals`.
+1. implement memo models, section builders, projection policy, source-authority manifest, reason
+   codes, and evidence-hash logic.
 
 Acceptance gate:
 
-1. OpenAPI gate passes with descriptions, examples, errors, and header documentation.
+1. pure unit tests prove deterministic assembly from stored proposal/source evidence,
+2. rejected-alternative, best-interest, fee/cost/conflict, disclosure, report readiness, and
+   execution-boundary sections exist,
+3. every material claim has source refs or explicit missing evidence.
 
-### Slice 6 - Report, AI, Gateway, and Workbench Handoff Contracts
+### Slice 6 - Persistence, Replay, Idempotency, and Audit
 
 Outcome:
 
-1. emit typed packages for `lotus-report` and RFC-0023 AI narrative; record Gateway/Workbench
-   product realization WTBDs.
+1. persist memo drafts, finalized memo versions, projections, review events, report-package events,
+   archive refs, AI refs, idempotency records, and replay metadata.
 
 Acceptance gate:
 
-1. no UI/report/AI supported claim is made without owning-repo implementation evidence.
+1. finalized memo truth is immutable and hash-backed,
+2. duplicate requests do not create duplicate finalized memos,
+3. append-only review and audit events are tested,
+4. replay proves same input versions and exposes hash comparison.
 
-### Slice 7 - Implementation Proof
+### Slice 7 - Certified APIs and OpenAPI
 
 Outcome:
 
-1. produce canonical and degraded memo evidence captures.
+1. expose canonical memo create/read/projection/review/report-package/lineage/replay endpoints.
 
 Acceptance gate:
 
-1. evidence includes requests, responses, `/platform/capabilities`, readiness, and critical review
-   notes.
+1. OpenAPI gate passes with endpoint-level guidance, examples, error responses, request/response
+   descriptions, and header docs,
+2. endpoint certification covers behavior and every returned material field,
+3. any broken or retired downstream contract is migrated in the same RFC.
 
-### Slice 8 - Second-Last Hardening and Review
+### Slice 8 - Policy, Fees, Costs, Conflicts, and Disclosure Enrichment
 
 Outcome:
 
-1. review API naming, domain vocabulary, privacy, logs, metrics, tests, and failure behavior.
+1. include memo-critical suitability, best-interest, fee, cost, tax/friction, conflict, product
+   eligibility, complex-product review, and disclosure evidence.
 
 Acceptance gate:
 
-1. no high-cardinality metrics, raw sensitive logs, superficial tests, or stale docs remain.
+1. if RFC-0025/RFC-0016 capabilities are available, the memo consumes them,
+2. if not available, RFC-0024 implements the minimum memo-critical subset or explicitly blocks
+   client-ready projection,
+3. missing evidence cannot be converted into positive suitability or best-interest wording.
 
-### Slice 9 - Final Closure
+### Slice 9 - Report, Render, and Archive Realization
 
 Outcome:
 
-1. update README, wiki, supported features, RFC status, context, and branch hygiene.
+1. materialize the memo as a governed report package and archiveable document.
 
 Acceptance gate:
 
-1. implementation and documentation are merged to `main`, required CI is green, and wiki source is
-   publishable.
+1. `lotus-report` consumes the typed memo package,
+2. `lotus-render` renders deterministic memo documents,
+3. `lotus-archive` stores archive records, retention/legal-hold posture, and access audit refs,
+4. returned report/archive refs appear in memo lineage,
+5. client-ready document generation is blocked unless review posture permits it.
 
-## 14. Supported-Features Ledger
+### Slice 10 - AI Narrative and Review-Gated Commentary
 
-| Capability | Initial RFC state | Promotion rule |
+Outcome:
+
+1. integrate RFC-0023 memo narrative through `lotus-ai` workflow packs where AI is enabled.
+
+Acceptance gate:
+
+1. AI receives bounded evidence packets only,
+2. unsupported-claim, forbidden-action, redaction, prompt/output lineage, and human-review
+   controls are tested,
+3. AI unavailability degrades deterministically,
+4. AI output cannot change memo status, evidence, suitability, or approval posture.
+
+### Slice 11 - Gateway and Workbench Product Realization
+
+Outcome:
+
+1. expose memo review, projections, report package, archive refs, and supportability through
+   Gateway and Workbench.
+
+Acceptance gate:
+
+1. `lotus-gateway` routes through canonical `lotus-advise` memo endpoints,
+2. Workbench consumes Gateway/BFF only,
+3. browser validation proves advisor, compliance, operations, client-draft, degraded, and blocked
+   states,
+4. Workbench does not infer memo facts, supportability, or readiness locally.
+
+### Slice 12 - Commercial, Demo, and RFP-Support Material
+
+Outcome:
+
+1. produce memo-specific product material grounded in implementation.
+
+Acceptance gate:
+
+1. wiki, demo notes, API examples, architecture diagram, operator guidance, security posture, and
+   sales/pre-sales wording separate supported from planned claims,
+2. no RFP/security/product claim exceeds the implementation,
+3. RFC-0028 is updated if broader bank-demo or RFP packaging truth changes.
+
+### Slice 13 - Implementation Proof
+
+Outcome:
+
+1. prove the complete memo journey end to end.
+
+Acceptance gate:
+
+1. live evidence includes Advise APIs, source dependencies, Gateway, Workbench, report/render/archive,
+   AI when enabled, `/platform/capabilities`, mesh certification, health/readiness, and degraded
+   scenarios,
+2. evidence is captured under non-git-tracked `output/`,
+3. every material figure, reason code, source ref, lineage ref, status, hash, redaction, and
+   degraded state is critically reviewed,
+4. discovered gaps are fixed before moving on.
+
+### Slice 14 - Second-Last Hardening and Review
+
+Outcome:
+
+1. perform a proper code, contract, security, data-mesh, documentation, and operations review before
+   closure.
+
+Acceptance gate:
+
+1. API certification pattern compliance is verified,
+2. Swagger is complete, grouped correctly, and contains what/when/how guidance,
+3. every request/response attribute has description, type, and example value,
+4. error handling is complete and tested,
+5. security vulnerabilities are fixed or formally tracked with treatment,
+6. logs, metrics, traces, audit events, SLOs, RTO/RPO, and support diagnostics are reviewed,
+7. no dead code, duplicate paths, stale docs, or unsupported product claims remain.
+
+### Slice 15 - Final Closure
+
+Outcome:
+
+1. close implementation truth across repos.
+
+Acceptance gate:
+
+1. README, wiki source, supported-features, RFC status, repo context, API inventory, domain-product
+   declarations, trust telemetry, and proof summaries are updated,
+2. wiki is published after merge,
+3. agent context, skills, guidance, and documentation are consciously reviewed for future
+   effectiveness,
+4. if guidance changes are needed, they are implemented; if not, the RFC closure notes record the
+   deliberate no-change decision,
+5. all repo and cross-repo PRs are merged, CI is green, feature branches are deleted, and
+   `main` is clean.
+
+### Slice 16 - Post-Completion Communication
+
+Outcome:
+
+1. draft a LinkedIn post after the implementation is complete.
+
+Requirements:
+
+1. use the `lotus-linkedin-thought-leadership` workflow,
+2. read the content ledger, themes, voice/style guide, and recent drafts before drafting,
+3. draft under `lotus-platform/thought-leadership/linkedin/drafts/`,
+4. update `content-ledger.md`,
+5. keep the post employer-safe, non-confidential, non-promotional, and grounded only in what was
+   actually implemented,
+6. do not imply any bank or employer uses Lotus,
+7. do not make unsupported product, regulatory, investment, or AI claims.
+
+Acceptance gate:
+
+1. post draft exists and ledger is updated, or the closure notes record a deliberate no-post
+   decision with rationale approved by the user.
+
+## 17. Supported-Features Ledger
+
+| Capability | RFC state before implementation | Promotion rule |
 | --- | --- | --- |
-| Advisor proposal memo aggregate | Proposed | Promote only after persisted memo create/read/replay APIs pass unit, integration, OpenAPI, and live proof gates. |
-| Audience projections | Proposed | Promote only after redaction/review policy tests and OpenAPI examples cover every projection. |
-| Compliance appendix | Proposed | Promote only after blocked/missing evidence remains visible in compliance/audit projections. |
-| Report package handoff | Proposed | Promote only after typed package generation is implemented and downstream report WTBD is recorded or completed. |
-| AI narrative enrichment | Gated by RFC-0023 | Promote only after `lotus-ai` workflow-pack execution and unsupported-claim guardrails are proven. |
-| Workbench memo review | Downstream WTBD | Promote only in Workbench/Gateway after implementation-backed product-surface evidence exists. |
+| Advisor proposal memo aggregate | Proposed | Promote only after persisted memo create/read/projection/replay APIs pass unit, integration, OpenAPI, live proof, and mainline CI. |
+| Advisor preparation projection | Proposed | Promote only after redaction, evidence refs, review state, and Workbench/Gateway consumption are proven. |
+| Client review draft projection | Proposed | Promote only after approval gating, disclosure, redaction, report rendering, and archive posture are proven. |
+| Compliance and audit projections | Proposed | Promote only after blocked/missing/degraded evidence is preserved and tested. |
+| Rejected-alternative explanation | Proposed | Promote only after alternatives evidence, reason codes, and source refs are present and tested. |
+| Best-interest, fee, cost, conflict, and disclosure sections | Proposed | Promote only after source-backed evidence or explicit blocked posture is implemented and tested. |
+| Report/render/archive package | Proposed | Promote only after report job, deterministic render, archive record, retention/access audit, and lineage refs are proven. |
+| AI memo narrative | Gated | Promote only after `lotus-ai` workflow-pack execution, guardrails, lineage, review posture, and unavailable behavior are proven. |
+| Gateway memo API | Proposed | Promote only after Gateway consumes canonical Advise memo endpoints and passes contract/integration tests. |
+| Workbench memo review UX | Proposed | Promote only after browser validation proves backed states through Gateway/BFF only. |
+| Advisory memo data product | Proposed | Promote only after producer declaration, trust telemetry, mesh certification, SLO/access/evidence policy, and catalog publication are complete. |
+| Sales/demo-safe memo projection | Proposed | Promote only after synthetic/approved demo data, supported-claim taxonomy, and wiki/demo material are implementation-backed. |
 
-## 15. Acceptance Criteria
+## 18. Acceptance Criteria
 
-This RFC can be considered implemented only when:
+RFC-0024 is implemented only when:
 
-1. memo domain models and builders exist in a dedicated module boundary,
-2. memo APIs are certified through OpenAPI and vocabulary gates,
-3. memo creation is idempotent and replayable,
-4. finalized memo evidence is immutable and hash-backed,
-5. audience projections enforce redaction and review posture,
-6. compliance and audit projections expose missing/degraded evidence,
-7. report and AI handoff packages preserve source refs,
-8. Gateway/Workbench/report/archive WTBDs are complete or explicitly deferred,
-9. unit, contract, integration, and live proof evidence exist,
-10. README, wiki, supported-features, and RFC status reflect only implemented truth.
+1. all required cross-repository work is merged and validated,
+2. memo domain models, builders, projections, persistence, replay, idempotency, and audit are
+   implemented in clear module boundaries,
+3. canonical memo APIs are certified with complete OpenAPI/Swagger documentation,
+4. report/render/archive flow works end to end,
+5. Gateway and Workbench expose the memo value through canonical Advise endpoints,
+6. source-authority gaps are either implemented by source owners or visible as memo blockers,
+7. AI narrative, if enabled, is guarded, reviewed, source-backed, and non-authoritative,
+8. the memo is promoted as a governed data product with trust telemetry and mesh certification,
+9. unit, contract, integration, e2e, live, security, performance, migration, Docker, production
+   guardrail, and mainline CI evidence are green,
+10. README, wiki, supported-features, RFC status, context, and proof summaries are implementation
+    backed,
+11. the wiki is published,
+12. the LinkedIn post-completion draft and ledger update are complete or deliberately waived,
+13. no required follow-up RFC, second wave, unmerged branch, or stranded durable truth remains.
 
-## 16. Risks and Trade-Offs
+## 19. Risks and Mitigations
 
 | Risk | Mitigation |
 | --- | --- |
-| Memo becomes a second proposal artifact with duplicated logic | Keep memo builder as a projection over proposal evidence and reuse existing decision summary and alternatives contracts. |
-| UI reconstructs memo facts | Expose backend-owned memo contract and prohibit Workbench-side fact generation. |
-| Client projection leaks restricted evidence | Enforce redaction policy tests and role-aware projection eligibility. |
-| AI text looks authoritative without evidence | Require RFC-0023 claim refs and keep deterministic memo status authoritative. |
-| Report/render/archive scope creeps into `lotus-advise` | Emit typed handoff packages only; rendering and archive remain downstream owner work. |
+| Memo duplicates proposal artifact logic | Build memo as a projection over authoritative proposal evidence and remove duplicate artifact paths during cleanup. |
+| Cross-repo scope becomes too broad to finish | Treat only memo-critical source and product-surface work as in scope; reject unrelated expansion during Slice 0. |
+| UI reconstructs memo facts | Gateway and Workbench must consume memo endpoints; browser tests must prove no UI-side inference. |
+| Client projection leaks restricted evidence | Enforce projection policies, redaction tests, and role-aware access. |
+| AI appears to make advisory decisions | AI can draft language only; deterministic memo evidence, policy, suitability, and approvals remain authoritative. |
+| Missing fee/conflict/eligibility evidence is hidden | Missing critical evidence creates `PENDING_REVIEW` or `BLOCKED` and prevents client-ready promotion. |
+| Report/archive integration drifts from memo evidence | Typed package, hash, lineage, render, archive, and replay refs are required acceptance evidence. |
+| Data product claim is decorative | Mesh producer declaration, trust telemetry, SLO/access/evidence policy, catalog, and certification are merge gates. |
+| Documentation overclaims product readiness | Supported-features ledger, wiki publication, demo-safe projection, and proof review gate product claims. |
+| CI passes locally but fails remotely | Use GitHub Feature Lane, PR Merge Gate, and Main Releasability Gate; monitor and fix forward continuously. |
 
-## 17. Open Questions Before Implementation
+## 20. Open Questions to Resolve in Slice 0
 
-1. Which audience projections are required for first-wave implementation: advisor and compliance
-   only, or advisor, client draft, compliance, and audit together?
-2. Should memo finalization be tied to proposal approval state or allowed as a separate reviewable
-   artifact before approval?
-3. Which report package schema should `lotus-report` consume for first-wave document generation?
-4. What retention and legal-hold posture should apply before `lotus-archive` owns durable archive?
-5. Which jurisdiction-specific disclosure policy from RFC-0015/RFC-0025 is required before
-   client-facing memo projection can be promoted?
+These questions must be resolved before implementation work beyond Slice 0:
+
+1. Which fields are mandatory for a client-ready memo versus advisor-only memo?
+2. Which minimum policy/cost/conflict evidence must RFC-0024 implement if RFC-0025 or RFC-0016 is
+   not implemented first?
+3. Which source owner provides product eligibility and complex-product review evidence?
+4. Which legal-entity and tenant context model should memo APIs enforce first?
+5. Which memo projections are required for the first supported Workbench release?
+6. What is the first supported document format and render path?
+7. What archive retention and legal-hold posture is required for first supported claim?
+8. What p95 latency and load benchmark thresholds should block closure?
+9. What synthetic or approved demo dataset should be used for sales/demo-safe projection?
+10. Which platform scaffolding gaps should be fixed before app-specific implementation begins?
