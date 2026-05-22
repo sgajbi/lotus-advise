@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from src.core.advisory.artifact_models import ProposalArtifact
+from src.core.advisory.narrative_models import ProposalNarrativeReviewRecord
 from src.core.models import GateDecision, ProposalResult
 from src.core.proposals.contract_types import (
     ProposalApprovalType,
@@ -989,4 +990,35 @@ class ProposalStateTransitionResponse(BaseModel):
         default=None,
         description="Approval record created by this operation when applicable.",
         examples=[{"approval_type": "CLIENT_CONSENT", "approved": True}],
+    )
+
+
+class ProposalNarrativeReviewResponse(BaseModel):
+    proposal: ProposalSummary = Field(
+        description="Proposal summary captured after narrative review recording.",
+        examples=[{"proposal_id": "pp_001", "current_version_no": 1}],
+    )
+    narrative_review: ProposalNarrativeReviewRecord = Field(
+        description="Persisted narrative review event projection.",
+        examples=[
+            {
+                "review_id": "pwe_narrative_review_001",
+                "proposal_id": "pp_001",
+                "proposal_version_no": 1,
+                "narrative_id": "pn_001",
+                "action": "APPROVE",
+                "review_state": "APPROVED_FOR_ADVISOR_USE",
+                "client_ready_status": "NOT_REQUESTED",
+                "reviewed_by": "compliance_reviewer_001",
+                "reviewed_at": "2026-05-22T08:30:00+00:00",
+                "reason": "Narrative is evidence-grounded and suitable for advisor use.",
+                "source_narrative_hash": "sha256:9c8a2f1d",
+                "replacement_narrative_id": None,
+                "replayed": False,
+            }
+        ],
+    )
+    latest_workflow_event: ProposalWorkflowEvent = Field(
+        description="Append-only workflow event created or replayed for this narrative review.",
+        examples=[{"event_type": "NARRATIVE_REVIEWED", "to_state": "DRAFT"}],
     )

@@ -127,6 +127,26 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(replay_schema, "evidence")
     _assert_property_has_docs(replay_schema, "explanation")
 
+    narrative_review_request_schema = schemas["ProposalNarrativeReviewRequest"]
+    _assert_property_has_docs(narrative_review_request_schema, "action")
+    _assert_property_has_docs(narrative_review_request_schema, "reviewed_by")
+    _assert_property_has_docs(narrative_review_request_schema, "reason")
+    _assert_property_has_docs(narrative_review_request_schema, "client_ready_release_requested")
+    _assert_property_has_docs(narrative_review_request_schema, "replacement_narrative_id")
+
+    narrative_review_schema = schemas["ProposalNarrativeReviewRecord"]
+    _assert_property_has_docs(narrative_review_schema, "review_id")
+    _assert_property_has_docs(narrative_review_schema, "proposal_id")
+    _assert_property_has_docs(narrative_review_schema, "proposal_version_no")
+    _assert_property_has_docs(narrative_review_schema, "narrative_id")
+    _assert_property_has_docs(narrative_review_schema, "source_narrative_hash")
+    _assert_property_has_docs(narrative_review_schema, "replayed")
+
+    narrative_review_response_schema = schemas["ProposalNarrativeReviewResponse"]
+    _assert_property_has_docs(narrative_review_response_schema, "proposal")
+    _assert_property_has_docs(narrative_review_response_schema, "narrative_review")
+    _assert_property_has_docs(narrative_review_response_schema, "latest_workflow_event")
+
 
 def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     with TestClient(app) as client:
@@ -190,6 +210,20 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
         "$ref"
     ]
     assert async_replay_ref.endswith("/AdvisoryReplayEvidenceResponse")
+
+    narrative_review = openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review"
+    ]["post"]
+    narrative_review_body_ref = narrative_review["requestBody"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    narrative_review_response_ref = narrative_review["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    narrative_review_parameter_names = [param["name"] for param in narrative_review["parameters"]]
+    assert narrative_review_body_ref.endswith("/ProposalNarrativeReviewRequest")
+    assert narrative_review_response_ref.endswith("/ProposalNarrativeReviewResponse")
+    assert "Idempotency-Key" in narrative_review_parameter_names
 
     execution_handoff = openapi["paths"]["/advisory/proposals/{proposal_id}/execution-handoffs"][
         "post"

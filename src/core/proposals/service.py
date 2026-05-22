@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
 from src.core.proposals.async_operation_persistence import persist_async_operation_failed
@@ -102,6 +103,7 @@ from src.core.proposals.models import (
     ProposalLifecycleOrigin,
     ProposalLineageResponse,
     ProposalListResponse,
+    ProposalNarrativeReviewResponse,
     ProposalReportResponse,
     ProposalStateTransitionRequest,
     ProposalStateTransitionResponse,
@@ -109,6 +111,10 @@ from src.core.proposals.models import (
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
     ProposalWorkflowTimelineResponse,
+)
+from src.core.proposals.narrative_review import (
+    ProposalNarrativeReviewError,
+    record_narrative_review_event,
 )
 from src.core.proposals.projections import (
     build_approvals_response,
@@ -841,6 +847,39 @@ class ProposalWorkflowService:
             version=referents.version,
             events=referents.events,
         )
+
+    def record_narrative_review(
+        self,
+        *,
+        proposal_id: str,
+        version_no: int,
+        payload: ProposalNarrativeReviewRequest,
+        idempotency_key: Optional[str] = None,
+    ) -> ProposalNarrativeReviewResponse:
+        referents = load_proposal_version_replay_referents(
+            repository=self._repository,
+            proposal_id=proposal_id,
+            version_no=version_no,
+        )
+        if referents.proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        if referents.version is None:
+            raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
+        try:
+            return record_narrative_review_event(
+                repository=self._repository,
+                event_id=new_workflow_event_id(),
+                proposal=referents.proposal,
+                version=referents.version,
+                payload=payload,
+                idempotency_key=idempotency_key,
+                occurred_at=_utc_now(),
+            )
+        except ProposalNarrativeReviewError as exc:
+            message = str(exc)
+            if message.startswith("IDEMPOTENCY_KEY_CONFLICT"):
+                raise ProposalIdempotencyConflictError(message) from exc
+            raise ProposalValidationError(message) from exc
 
     def record_report_request(
         self,

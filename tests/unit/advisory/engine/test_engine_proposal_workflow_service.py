@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.common.canonical import hash_canonical_payload
 from src.core.models import ProposalSimulateRequest
@@ -106,6 +107,22 @@ def _create_payload() -> ProposalCreateRequest:
         created_by="advisor_service",
         simulate_request=_simulate_request(),
         metadata={"title": "Service test"},
+    )
+
+
+def _create_payload_with_narrative(portfolio_id: str) -> ProposalCreateRequest:
+    simulate_request = _simulate_request(portfolio_id)
+    simulate_request["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "jurisdiction": "SG",
+        "client_audience": "ADVISOR_REVIEW",
+        "sections": ["EXECUTIVE_SUMMARY", "RISK_AND_CONCENTRATION"],
+        "requested_by": "advisor_service",
+    }
+    return ProposalCreateRequest(
+        created_by="advisor_service",
+        simulate_request=simulate_request,
+        metadata={"title": "Narrative review service test", "jurisdiction": "SG"},
     )
 
 
@@ -1313,6 +1330,122 @@ def test_approval_idempotency_replay_and_conflict():
         assert "IDEMPOTENCY_KEY_CONFLICT" in str(exc)
     else:
         raise AssertionError("Expected ProposalIdempotencyConflictError")
+
+
+def test_narrative_review_records_version_scoped_replayable_event() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    created = service.create_proposal(
+        payload=_create_payload_with_narrative("pf_service_narrative_review_001"),
+        idempotency_key="idem-narrative-review-create",
+        correlation_id="corr-narrative-review-create",
+    )
+
+    first = service.record_narrative_review(
+        proposal_id=created.proposal.proposal_id,
+        version_no=1,
+        payload=ProposalNarrativeReviewRequest(
+            action="APPROVE",
+            reviewed_by="compliance_001",
+            reason="Evidence-grounded advisor-review narrative.",
+        ),
+        idempotency_key="idem-narrative-review-approve",
+    )
+    replayed = service.record_narrative_review(
+        proposal_id=created.proposal.proposal_id,
+        version_no=1,
+        payload=ProposalNarrativeReviewRequest(
+            action="APPROVE",
+            reviewed_by="compliance_001",
+            reason="Evidence-grounded advisor-review narrative.",
+        ),
+        idempotency_key="idem-narrative-review-approve",
+    )
+    replay = service.get_version_replay(
+        proposal_id=created.proposal.proposal_id,
+        version_no=1,
+    )
+
+    assert first.latest_workflow_event.event_type == "NARRATIVE_REVIEWED"
+    assert first.narrative_review.review_state == "APPROVED_FOR_ADVISOR_USE"
+    assert first.narrative_review.client_ready_status == "NOT_REQUESTED"
+    assert replayed.narrative_review.replayed is True
+    assert replayed.narrative_review.review_id == first.narrative_review.review_id
+    assert replay.evidence["proposal_narrative"]["narrative_id"] == (
+        first.narrative_review.narrative_id
+    )
+    assert replay.evidence["proposal_narrative_review"]["review_id"] == (
+        first.narrative_review.review_id
+    )
+    assert replay.evidence["proposal_narrative_review"]["source_narrative_hash"] == (
+        first.narrative_review.source_narrative_hash
+    )
+
+
+def test_narrative_review_idempotency_conflict_rejects_payload_drift() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    created = service.create_proposal(
+        payload=_create_payload_with_narrative("pf_service_narrative_review_conflict"),
+        idempotency_key="idem-narrative-review-conflict-create",
+        correlation_id="corr-narrative-review-conflict-create",
+    )
+
+    service.record_narrative_review(
+        proposal_id=created.proposal.proposal_id,
+        version_no=1,
+        payload=ProposalNarrativeReviewRequest(
+            action="APPROVE",
+            reviewed_by="compliance_001",
+            reason="Evidence-grounded advisor-review narrative.",
+        ),
+        idempotency_key="idem-narrative-review-conflict",
+    )
+
+    with pytest.raises(ProposalIdempotencyConflictError):
+        service.record_narrative_review(
+            proposal_id=created.proposal.proposal_id,
+            version_no=1,
+            payload=ProposalNarrativeReviewRequest(
+                action="REJECT",
+                reviewed_by="compliance_001",
+                reason="Rejecting with same idempotency key must not mutate review truth.",
+            ),
+            idempotency_key="idem-narrative-review-conflict",
+        )
+
+
+def test_narrative_client_ready_release_requires_positive_review_and_clear_policy() -> None:
+    service = ProposalWorkflowService(repository=InMemoryProposalRepository())
+    created = service.create_proposal(
+        payload=_create_payload_with_narrative("pf_service_narrative_client_ready_blocked"),
+        idempotency_key="idem-narrative-client-ready-create",
+        correlation_id="corr-narrative-client-ready-create",
+    )
+
+    rejected = service.record_narrative_review(
+        proposal_id=created.proposal.proposal_id,
+        version_no=1,
+        payload=ProposalNarrativeReviewRequest(
+            action="REJECT",
+            reviewed_by="compliance_001",
+            reason="Client-ready release cannot proceed after rejection.",
+            client_ready_release_requested=True,
+        ),
+        idempotency_key="idem-narrative-client-ready-reject",
+    )
+    approved = service.record_narrative_review(
+        proposal_id=created.proposal.proposal_id,
+        version_no=1,
+        payload=ProposalNarrativeReviewRequest(
+            action="APPROVE",
+            reviewed_by="compliance_001",
+            reason="Approval still cannot make a blocked artifact client-ready.",
+            client_ready_release_requested=True,
+        ),
+        idempotency_key="idem-narrative-client-ready-approve",
+    )
+
+    assert rejected.narrative_review.client_ready_status == "BLOCKED_REVIEW_REQUIRED"
+    assert approved.narrative_review.client_ready_status == "BLOCKED_POLICY_OR_GUARDRAIL"
 
 
 def test_approval_replay_requires_matching_event_referent():

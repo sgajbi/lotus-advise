@@ -91,9 +91,19 @@ endpoints, persistence, replay, review approval, client-ready commentary, report
 integration, data-product promotion, and `/platform/capabilities` narrative rows remain gated by
 later slices.
 
-RFC-0023 is now implemented only for artifact-path advisor-review narrative. The broader
-proposal-narrative roadmap remains planned future work until the remaining RFC-0023 slices are
-merged to `main`, validated, and published with implementation-backed feature truth.
+RFC-0023 Slice 8 is implemented as a proposal-version review, persistence, idempotency, and replay
+baseline. It persists narrative JSON with immutable proposal versions when lifecycle create/version
+requests include `narrative_request`, records append-only `NARRATIVE_REVIEWED` review events for
+approve, reject, and regeneration-request decisions, supports idempotent review replay and payload
+drift conflicts, and returns exact persisted narrative plus latest review evidence from replay
+endpoints. Client-ready commentary, report/render/archive integration, Gateway and Workbench
+surfaces, data-product promotion, trust telemetry, and `/platform/capabilities` narrative rows
+remain gated by later slices.
+
+RFC-0023 is now implemented for artifact-path advisor-review narrative and proposal-version
+review/replay evidence. The broader proposal-narrative roadmap remains planned future work until the
+remaining RFC-0023 slices are merged to `main`, validated, and published with
+implementation-backed feature truth.
 
 ## Source Index
 
@@ -108,3 +118,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-5-grounding-packet-and-deterministic-template-baseline.md`
 - `docs/rfcs/RFC-0023-slice-6-narrative-policy-disclosure-and-guardrail-framework.md`
 - `docs/rfcs/RFC-0023-slice-7-lotus-ai-adapter-and-ai-assisted-draft-baseline.md`
+- `docs/rfcs/RFC-0023-slice-8-review-workflow-persistence-idempotency-artifact-and-replay.md`

@@ -47,7 +47,8 @@ def test_rfc0023_slice5_supported_features_promote_only_artifact_path_narrative(
     assert "`POST /advisory/proposals/artifact` with `narrative_request`" in supported_features
     assert "deterministic policy, disclosure, and guardrail metadata" in supported_features
     assert "optional `AI_ASSISTED_DRAFT`" in supported_features
-    assert "client-ready commentary remain gated" in supported_features
+    assert "proposal-version narrative review/replay baseline" in supported_features
+    assert "client-ready commentary" in supported_features
     assert "Proposal narrative | Supported" not in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features
 
