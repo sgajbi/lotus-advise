@@ -40,9 +40,10 @@ def test_rfc0023_slice1_records_platform_scaffolding_decision() -> None:
 def test_rfc0023_slice1_keeps_supported_features_non_claiming() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "source authority, platform-scaffolding review, and cleanup/structure" in (
+    assert "source authority, platform-scaffolding review, cleanup/structure" in (
         supported_features
     )
+    assert "contract baseline" in supported_features
     assert "generated proposal narrative remains planned" in supported_features
     assert "Proposal narrative | Supported" not in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features
