@@ -86,10 +86,15 @@ the global portfolio universe, create rebalance waves, approve trades, or integr
 - Tactical house-view cohorts preserve source refs and supportability posture rather than
   recalculating source-owned portfolio facts locally.
 - Readiness should fail closed when required upstream execution authority is not correctly configured.
-- `GET /platform/capabilities` includes `advise.observability.advisory_supportability`
-  and a bounded `supportability` summary for advisory readiness, degraded dependency posture,
-  and lifecycle-disabled posture. The `supportability.metric_labels` field documents the exact
-  bounded label tuple for `lotus_advise_advisory_supportability_total`.
+- `GET /platform/capabilities` includes `advise.observability.advisory_supportability`,
+  `advisory.proposals.reviewed_narrative_evidence`, and the
+  `advisory_proposal_reviewed_narrative_evidence` workflow for advisor-review narrative evidence.
+  The capability wording remains bounded: compliance-review, client-draft, client-ready
+  publication, and canonical demo screenshot proof are not promoted.
+- `GET /platform/capabilities` also includes a bounded `supportability` summary for advisory
+  readiness, degraded dependency posture, and lifecycle-disabled posture. The
+  `supportability.metric_labels` field documents the exact bounded label tuple for
+  `lotus_advise_advisory_supportability_total`.
 - Dependency readiness entries include `runtime_probe_enabled`, `readiness_basis`, and
   `degraded_reason` so operators can distinguish missing configuration, configuration-only
   non-production posture, successful runtime probes, and failed runtime probes without exposing

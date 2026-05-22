@@ -180,6 +180,20 @@ def build_feature_capabilities(
             ),
         ),
         FeatureCapability(
+            key="advisory.proposals.reviewed_narrative_evidence",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            owner_service="ADVISORY",
+            description=(
+                "RFC-0023 advisor-review proposal narrative evidence product with persisted "
+                "narrative, source hashes, review posture, replay evidence, and reviewed "
+                "report-request package support. Compliance-review, client-draft, client-ready "
+                "publication, and canonical demo proof remain gated."
+            ),
+            fallback_mode="NONE",
+            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+        ),
+        FeatureCapability(
             key="advisory.proposals.execution_handoff",
             enabled=lifecycle_enabled,
             operational_ready=lifecycle_enabled,
@@ -269,6 +283,17 @@ def build_workflow_capabilities(
                 if not lifecycle_enabled or lotus_report_ready
                 else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
             ),
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_proposal_reviewed_narrative_evidence",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            required_features=[
+                "advisory.proposals.lifecycle",
+                "advisory.proposals.reviewed_narrative_evidence",
+            ],
+            dependency_keys=[],
+            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_execution_handoff",

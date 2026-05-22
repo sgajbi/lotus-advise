@@ -37,7 +37,7 @@ def test_rfc0023_slice4_data_product_baseline_is_indexed() -> None:
     assert "decorative mesh claim" in slice4_text
 
 
-def test_rfc0023_slice4_keeps_supported_features_non_claiming() -> None:
+def test_rfc0023_slice4_historical_baseline_is_superseded_only_by_slice11f() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
     slice4_text = SLICE4_PATH.read_text(encoding="utf-8")
 
@@ -49,7 +49,8 @@ def test_rfc0023_slice4_keeps_supported_features_non_claiming() -> None:
     assert "compliance-review, client-draft, client-ready" in supported_features
     assert "Proposal narrative | Supported" not in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features
-    assert "`/platform/capabilities` feature" in supported_features
+    assert "Slice 11F is complete" in supported_features
+    assert "advisory.proposals.reviewed_narrative_evidence" in supported_features
     assert "no `/platform/capabilities` response change" in slice4_text
 
 

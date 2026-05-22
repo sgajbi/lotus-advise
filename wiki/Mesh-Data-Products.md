@@ -16,6 +16,15 @@
 - Source declaration: `contracts/domain-data-products/`
 - Approved downstream consumer: `lotus-manage`
 
+- Product ID: `lotus-advise:ProposalNarrativeEvidence:v1`
+- Product role: advisor-review proposal narrative evidence for immutable proposal-version reads,
+  regeneration candidates, narrative review/replay, reviewed report-request package propagation,
+  and delivery-summary posture
+- Source declaration: `contracts/domain-data-products/`
+- Trust telemetry: `contracts/trust-telemetry/proposal-narrative-evidence.telemetry.v1.json`
+- Approved downstream consumers: `lotus-gateway`, `lotus-report`, `lotus-render`,
+  `lotus-archive`
+
 ## Platform relationship
 
 `lotus-platform` aggregates the repo-native declaration, validates trust telemetry, applies mesh SLO/access/evidence policies, and includes this product in generated catalog, dependency graph, live certification, maturity matrix, evidence packs, and RFC-0092 operating reports.
@@ -26,3 +35,5 @@ Advisory lifecycle truth remains in `lotus-advise`. Tactical house-view cohort t
 source-backed candidates and must not be replaced by decorative gateway or Workbench status.
 `lotus-manage` owns DPM workflows, policies, campaigns, and evidence after consuming the cohort
 product.
+Proposal narrative evidence truth remains advisor-review only until compliance-review,
+client-draft, and client-ready publication slices are implemented and proven.

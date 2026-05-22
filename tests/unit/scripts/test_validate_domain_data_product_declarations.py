@@ -52,17 +52,23 @@ def test_wave_one_advise_declaration_is_conservative_and_transitional() -> None:
     )
 
 
-def test_rfc0023_slice4_does_not_promote_proposal_narrative_data_product() -> None:
+def test_rfc0023_narrative_product_promotion_remains_bounded_to_evidence() -> None:
     contract_dir = _local_contract_dir(Path(__file__).resolve().parents[3])
     declaration = json.loads(
         (contract_dir / "lotus-advise-products.v1.json").read_text(encoding="utf-8")
     )
-    product_names = {product["product_name"] for product in declaration["products"]}
-    routes = {
-        route for product in declaration["products"] for route in product.get("current_routes", [])
-    }
+    products = {product["product_name"]: product for product in declaration["products"]}
 
-    assert "ProposalNarrative" not in product_names
-    assert "ProposalNarrativeEvidence" not in product_names
-    assert "proposal_narrative" not in product_names
-    assert not any("narrative" in route for route in routes)
+    assert "ProposalNarrative" not in products
+    assert "proposal_narrative" not in products
+    narrative_evidence = products["ProposalNarrativeEvidence"]
+    assert narrative_evidence["product_family"] == "workflow_and_decision_state"
+    assert narrative_evidence["authoritative_domain"] == "advisory_workflow"
+    assert "generated_at" in narrative_evidence["required_trust_metadata"]
+    assert (
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative"
+        in (narrative_evidence["current_routes"])
+    )
+    assert not any(
+        "client-ready" in route.lower() for route in narrative_evidence["current_routes"]
+    )

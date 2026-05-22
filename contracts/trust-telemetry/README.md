@@ -7,6 +7,10 @@ The current first-wave snapshot is:
 
 1. `advisory-proposal-lifecycle-record.telemetry.v1.json`
    Runtime trust proof for `lotus-advise:AdvisoryProposalLifecycleRecord:v1`.
+2. `proposal-narrative-evidence.telemetry.v1.json`
+   Runtime trust proof for `lotus-advise:ProposalNarrativeEvidence:v1`, the RFC-0023
+   advisor-review narrative evidence product. This snapshot does not promote compliance-review,
+   client-draft, client-ready publication, or demo screenshot proof.
 
 Validate locally with:
 

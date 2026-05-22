@@ -20,6 +20,9 @@ It is responsible for:
 - persisted proposal lifecycle state and immutable versioning
 - approvals, consent, and execution-readiness posture
 - backend-owned `proposal_decision_summary` and `proposal_alternatives`
+- advisor-review proposal narrative evidence with governed review/replay, downstream
+  report/render/archive posture, Gateway/Workbench exposure, data-product declaration, trust
+  telemetry, and capability discovery
 - source-owned tactical house-view affected cohorts from bank-authored house-view instructions and
   caller-supplied source-backed candidate portfolios
 

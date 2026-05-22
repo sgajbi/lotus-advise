@@ -141,16 +141,23 @@ exposes product-facing reviewed-narrative posture through canonical `lotus-advis
 report-request, delivery-summary, and delivery-event APIs, while `lotus-workbench` renders the
 Gateway-backed advisor-use proposal narrative posture without inferring narrative facts locally.
 
+RFC-0023 Slice 11F is implemented as narrative data-product, trust-telemetry, and capability
+promotion work. `lotus-advise` now declares `ProposalNarrativeEvidence:v1`, validates
+advisor-review narrative trust telemetry against that declaration, and advertises
+`advisory.proposals.reviewed_narrative_evidence` plus
+`advisory_proposal_reviewed_narrative_evidence` in `/platform/capabilities`. `lotus-platform`
+catalog and certification artifacts include the new product.
+
 RFC-0023 is now implemented for artifact-path advisor-review narrative and proposal-version
 review/replay evidence with decision-summary and alternatives-aware section rendering, and the
 canonical API/OpenAPI surface is certified for standalone read, non-persistent regeneration,
 review, and replay. Report requests can include a reviewed narrative package only when review
 posture and hash continuity are sufficient, and the package can now flow through
 `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, and `lotus-workbench` as
-advisor-use product content and posture. Compliance-review, client-draft, client-ready artifact
-publication, data-product promotion, trust telemetry, canonical demo screenshot proof, and
-`/platform/capabilities` narrative rows remain planned future work until the remaining RFC-0023
-slices are merged to `main`, validated, and published with
+advisor-use product content and posture. Advisor-review narrative evidence now has data-product,
+trust telemetry, platform catalog/certification, and capability-discovery posture. Compliance-review,
+client-draft, client-ready artifact publication, and canonical demo screenshot proof remain planned
+future work until the remaining RFC-0023 slices are merged to `main`, validated, and published with
 implementation-backed feature truth.
 
 ## Source Index
@@ -174,3 +181,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-11B-11C-report-render-reviewed-narrative-realization.md`
 - `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md`
 - `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md`
+- `docs/rfcs/RFC-0023-slice-11F-narrative-data-product-trust-capability-promotion.md`

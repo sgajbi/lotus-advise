@@ -12,6 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PLATFORM_ROOT = REPO_ROOT.parent / "lotus-platform"
 TELEMETRY_DIR = REPO_ROOT / "contracts" / "trust-telemetry"
 SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-proposal-lifecycle-record.telemetry.v1.json"
+NARRATIVE_SNAPSHOT_PATH = TELEMETRY_DIR / "proposal-narrative-evidence.telemetry.v1.json"
 DECLARATION_PATH = (
     REPO_ROOT / "contracts" / "domain-data-products" / "lotus-advise-products.v1.json"
 )
@@ -70,12 +71,41 @@ def test_advisory_proposal_lifecycle_trust_telemetry_is_tied_to_repo_declaration
     assert snapshot["blocking"]["blocked"] is False
 
 
-def test_rfc0023_slice4_does_not_emit_proposal_narrative_trust_telemetry() -> None:
-    telemetry_files = {path.name for path in TELEMETRY_DIR.glob("*.json")}
-    telemetry_payloads = [_load_json(path) for path in TELEMETRY_DIR.glob("*.json")]
-
-    assert "proposal-narrative.telemetry.v1.json" not in telemetry_files
-    assert all(payload["product_name"] != "ProposalNarrative" for payload in telemetry_payloads)
-    assert all(
-        payload["product_name"] != "ProposalNarrativeEvidence" for payload in telemetry_payloads
+def test_rfc0023_proposal_narrative_trust_telemetry_is_tied_to_repo_declaration() -> None:
+    snapshot = _load_json(NARRATIVE_SNAPSHOT_PATH)
+    declaration = _load_json(DECLARATION_PATH)
+    declared_product = next(
+        product
+        for product in declaration["products"]
+        if product["product_name"] == "ProposalNarrativeEvidence"
     )
+
+    assert snapshot["product_id"] == "lotus-advise:ProposalNarrativeEvidence:v1"
+    assert snapshot["producer_repository"] == declaration["producer_repository"]
+    assert snapshot["product_name"] == declared_product["product_name"]
+    assert snapshot["product_version"] == declared_product["product_version"]
+    assert (
+        snapshot["freshness"]["freshness_class"]
+        == (declared_product["freshness_policy"]["freshness_class"])
+    )
+    assert set(snapshot["observed_trust_metadata"]) == set(
+        declared_product["required_trust_metadata"]
+    )
+    assert snapshot["lineage"]["lineage_materialized"] is True
+    assert (
+        snapshot["lineage"]["evidence_access_class"]
+        == (declared_product["lineage_policy"]["evidence_access_class_ref"])
+    )
+    assert snapshot["blocking"]["blocked"] is False
+
+
+def test_rfc0023_proposal_narrative_trust_telemetry_does_not_promote_client_ready() -> None:
+    telemetry_files = {path.name for path in TELEMETRY_DIR.glob("*.json")}
+    snapshot = _load_json(NARRATIVE_SNAPSHOT_PATH)
+    snapshot_text = json.dumps(snapshot, sort_keys=True).lower()
+
+    assert "proposal-narrative-evidence.telemetry.v1.json" in telemetry_files
+    assert snapshot["product_name"] == "ProposalNarrativeEvidence"
+    assert "client-ready publication" not in snapshot_text
+    assert "client_ready" not in snapshot_text
+    assert "compliance-review" not in snapshot_text
