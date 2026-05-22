@@ -9,6 +9,7 @@
 | **Slice 1 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-1-platform-automation-and-scaffolding-review.md`; existing platform automation is sufficient and no platform change is required before Slice 2 |
 | **Slice 2 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-2-cleanup-and-structure.md`; workspace-rationale evidence construction is now core-owned, one premature client-ready OpenAPI claim is removed, and no proposal narrative capability is promoted |
 | **Slice 3 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-3-current-state-assessment-and-narrative-contract-baseline.md`; current evidence ownership and additive proposal-narrative contract baseline are defined without public API or capability promotion |
+| **Slice 4 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-4-data-product-and-supportability-baseline.md`; proposal narrative data-product, trust-telemetry, and `/platform/capabilities` promotion remain blocked until deterministic readiness exists |
 | **Owner** | `lotus-advise` for proposal narrative authority, grounding packets, review lifecycle, persistence, replay, and advisory API truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, compliance reviewer, investment desk reviewer, operations support, audit, client-reporting owner, sales/pre-sales |
 | **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |

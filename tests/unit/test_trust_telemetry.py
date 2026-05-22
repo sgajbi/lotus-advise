@@ -68,3 +68,14 @@ def test_advisory_proposal_lifecycle_trust_telemetry_is_tied_to_repo_declaration
         == (declared_product["lineage_policy"]["evidence_access_class_ref"])
     )
     assert snapshot["blocking"]["blocked"] is False
+
+
+def test_rfc0023_slice4_does_not_emit_proposal_narrative_trust_telemetry() -> None:
+    telemetry_files = {path.name for path in TELEMETRY_DIR.glob("*.json")}
+    telemetry_payloads = [_load_json(path) for path in TELEMETRY_DIR.glob("*.json")]
+
+    assert "proposal-narrative.telemetry.v1.json" not in telemetry_files
+    assert all(payload["product_name"] != "ProposalNarrative" for payload in telemetry_payloads)
+    assert all(
+        payload["product_name"] != "ProposalNarrativeEvidence" for payload in telemetry_payloads
+    )
