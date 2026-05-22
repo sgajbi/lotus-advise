@@ -93,6 +93,23 @@ def _base_simulation_payload(portfolio_id: str = "pf_prop_api_1") -> dict:
     }
 
 
+def _risk_enriched_result(result):  # noqa: ANN001
+    result.explanation["risk_lens"] = {
+        "source_service": "lotus-risk",
+        "input_mode": "simulation",
+        "risk_proxy": {"hhi_current": 5200.0, "hhi_proposed": 6800.0, "hhi_delta": 1600.0},
+        "single_position_concentration": {
+            "top_position_weight_current": 0.5,
+            "top_position_weight_proposed": 0.6,
+        },
+        "issuer_concentration": {
+            "hhi_current": 5200.0,
+            "hhi_proposed": 5800.0,
+        },
+    }
+    return result
+
+
 def _resolved_stateful_context(portfolio_id: str, as_of: str) -> dict:
     return build_resolved_stateful_context(
         portfolio_id,
@@ -1095,8 +1112,15 @@ def test_advisory_proposal_artifact_can_include_deterministic_advisor_narrative(
         "decision_status",
         "primary_reason_code",
         "recommended_next_action",
+        "primary_summary",
+        "decision_confidence",
+        "approval_requirement_count",
+        "blocking_approval_count",
+        "approval_requirement_summaries",
         "material_change_count",
+        "material_change_summaries",
         "missing_decision_evidence_count",
+        "missing_decision_evidence_summaries",
         "risk_status",
         "risk_summary",
         "risk_highlights",
@@ -1107,8 +1131,15 @@ def test_advisory_proposal_artifact_can_include_deterministic_advisor_narrative(
         "highest_severity_new",
         "alternatives_status",
         "selected_alternative_id",
+        "selected_alternative_label",
+        "selected_alternative_objective",
+        "selected_alternative_status",
+        "alternative_tradeoff_summaries",
+        "alternative_improvement_summaries",
+        "alternative_deterioration_summaries",
         "alternative_count",
         "rejected_alternative_count",
+        "rejected_alternative_summaries",
         "trade_count",
         "fx_count",
         "cash_takeaway",
@@ -1132,6 +1163,120 @@ def test_advisory_proposal_artifact_can_include_deterministic_advisor_narrative(
         "review_workflow",
         "report_archive_lineage",
     }
+
+
+def test_advisory_proposal_narrative_leads_blocked_proposal_with_remediation(client):
+    payload = _base_simulation_payload("pf_narrative_blocked")
+    payload["market_data_snapshot"]["prices"] = []
+    payload["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "sections": ["EXECUTIVE_SUMMARY", "APPROVALS_AND_NEXT_STEPS"],
+    }
+
+    response = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-blocked"},
+    )
+
+    assert response.status_code == 200
+    narrative = response.json()["proposal_narrative"]
+    executive_summary = narrative["sections"][0]["text"]
+    approvals = narrative["sections"][1]["text"]
+    assert executive_summary.startswith("Blockers require attention before benefits")
+    assert "Required price data is missing" in executive_summary
+    assert "Recommended action is FIX_INPUT" in executive_summary
+    assert "DATA_REMEDIATION" in approvals
+    assert "blocking requirement" in approvals
+
+
+def test_advisory_proposal_narrative_does_not_imply_suitability_pass_with_insufficient_evidence(
+    client,
+):
+    payload = _base_simulation_payload("pf_narrative_insufficient_evidence")
+    payload["shelf_entries"][0]["status"] = "RESTRICTED"
+    payload["options"]["allow_restricted"] = True
+    payload["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "sections": ["EXECUTIVE_SUMMARY", "SUITABILITY_AND_MANDATE"],
+    }
+
+    response = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-insufficient"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["proposal_decision_summary"]["decision_status"] == "INSUFFICIENT_EVIDENCE"
+    narrative = body["proposal_narrative"]
+    executive_summary = narrative["sections"][0]["text"]
+    suitability = narrative["sections"][1]["text"]
+    assert executive_summary.startswith(
+        "Evidence is insufficient for a suitability pass or client-ready recommendation"
+    )
+    assert "REQUEST_MANDATE_CONTEXT" in executive_summary
+    assert "not client-ready approval" in suitability
+
+
+def test_advisory_proposal_narrative_uses_selected_alternative_tradeoff_evidence(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.enrich_with_lotus_risk",
+        lambda **kwargs: _risk_enriched_result(kwargs["proposal_result"]),
+    )
+    portfolio_id = "pf_narrative_alt_selected"
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": portfolio_id,
+            "base_currency": "USD",
+            "positions": [{"instrument_id": "EQ_OLD", "quantity": "10"}],
+            "cash_balances": [{"currency": "USD", "amount": "1000"}],
+        },
+        "market_data_snapshot": {
+            "prices": [
+                {"instrument_id": "EQ_OLD", "price": "100", "currency": "USD"},
+                {"instrument_id": "EQ_NEW", "price": "50", "currency": "USD"},
+            ],
+            "fx_rates": [],
+        },
+        "shelf_entries": [
+            {"instrument_id": "EQ_OLD", "status": "APPROVED"},
+            {"instrument_id": "EQ_NEW", "status": "APPROVED"},
+        ],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [{"currency": "USD", "amount": "100"}],
+        "proposed_trades": [{"side": "BUY", "instrument_id": "EQ_NEW", "quantity": "2"}],
+        "alternatives_request": {
+            "enabled": True,
+            "objectives": ["LOWER_TURNOVER"],
+            "selected_alternative_id": f"alt_lower_turnover_{portfolio_id}_eq_new",
+            "include_rejected_candidates": True,
+        },
+        "narrative_request": {
+            "audience": "ADVISOR_REVIEW",
+            "sections": ["ALTERNATIVES_CONSIDERED"],
+        },
+    }
+
+    response = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-alt-selected"},
+    )
+
+    assert response.status_code == 200
+    narrative = response.json()["proposal_narrative"]
+    alternatives_text = narrative["sections"][0]["text"]
+    assert "Alternatives evidence includes 1 feasible alternative(s)" in alternatives_text
+    assert "Selected alternative" in alternatives_text
+    assert "LOWER_TURNOVER" in alternatives_text
+    assert "Tradeoff:" in alternatives_text
+    assert "Improvement evidence:" in alternatives_text
+    assert narrative["sections"][0]["source_refs"][0]["ref_type"] == "alternatives"
 
 
 def test_advisory_proposal_artifact_selects_policy_disclosures_for_sg_equity_fx(client):

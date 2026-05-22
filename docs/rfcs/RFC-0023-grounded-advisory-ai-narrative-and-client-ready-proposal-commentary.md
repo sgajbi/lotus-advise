@@ -14,6 +14,7 @@
 | **Slice 6 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-6-narrative-policy-disclosure-and-guardrail-framework.md`; deterministic narrative policy, disclosure selection, unsupported-claim guardrails, and client-ready policy blockers are serialized in the artifact-path narrative response, while persistence, replay, review approval, AI-assisted, and client-ready states remain gated |
 | **Slice 7 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-7-lotus-ai-adapter-and-ai-assisted-draft-baseline.md`; opt-in `AI_ASSISTED_DRAFT` advisor-review narrative is available through a narrow `lotus-ai` workflow-pack adapter with deterministic fallback and guardrail validation, while persistence, replay, review approval, compliance-review, client-draft, and client-ready states remain gated |
 | **Slice 8 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-8-review-workflow-persistence-idempotency-artifact-and-replay.md`; proposal-version narratives are reviewable through append-only `NARRATIVE_REVIEWED` events, idempotent review requests, source narrative hashes, and exact replay evidence, while client-ready, report/render/archive, Gateway, Workbench, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
+| **Slice 9 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-9-alternatives-decision-summary-and-policy-evidence-integration.md`; advisor-review narrative sections now integrate RFC-0021 decision summary, RFC-0022 alternatives tradeoffs, approval/remediation requirements, material changes, and risk/suitability limitations, while client-ready, report/render/archive, Gateway, Workbench, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
 | **Owner** | `lotus-advise` for proposal narrative authority, grounding packets, review lifecycle, persistence, replay, and advisory API truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, compliance reviewer, investment desk reviewer, operations support, audit, client-reporting owner, sales/pre-sales |
 | **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |
@@ -860,6 +861,13 @@ Acceptance gate:
 5. duplicate generation or review requests are idempotent where the API contract requires it.
 
 ### Slice 9: Alternatives, Decision Summary, and Policy Evidence Integration
+
+Implementation status: implemented on 2026-05-22 in
+`docs/rfcs/RFC-0023-slice-9-alternatives-decision-summary-and-policy-evidence-integration.md`.
+The implemented baseline enriches deterministic advisor-review narrative sections with persisted
+decision-summary, alternatives, approval/remediation, material-change, and limitation evidence
+without adding a new source of business truth. Client-ready publication and downstream artifact
+inclusion remain gated.
 
 Outcome:
 

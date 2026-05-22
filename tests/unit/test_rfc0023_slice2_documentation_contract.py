@@ -39,7 +39,7 @@ def test_rfc0023_slice2_cleanup_and_structure_is_indexed() -> None:
 def test_rfc0023_slice2_supported_features_remains_non_claiming() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "Slices 0-8 complete" in supported_features
+    assert "Slices 0-9 complete" in supported_features
     assert "contract baseline" in supported_features
     assert "data-product/supportability non-promotion baseline" in supported_features
     assert "deterministic advisor-review artifact-path narrative" in supported_features

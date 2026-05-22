@@ -100,9 +100,17 @@ endpoints. Client-ready commentary, report/render/archive integration, Gateway a
 surfaces, data-product promotion, trust telemetry, and `/platform/capabilities` narrative rows
 remain gated by later slices.
 
+RFC-0023 Slice 9 is implemented as alternatives, decision-summary, and policy-evidence integration
+work. It enriches advisor-review narrative sections with RFC-0021 decision-summary posture,
+blockers, approval/remediation requirements, material changes, RFC-0022 selected-alternative
+tradeoffs, rejected-candidate evidence, and risk/suitability limitations. Client-ready commentary,
+report/render/archive integration, Gateway and Workbench surfaces, data-product promotion, trust
+telemetry, and `/platform/capabilities` narrative rows remain gated by later slices.
+
 RFC-0023 is now implemented for artifact-path advisor-review narrative and proposal-version
-review/replay evidence. The broader proposal-narrative roadmap remains planned future work until the
-remaining RFC-0023 slices are merged to `main`, validated, and published with
+review/replay evidence with decision-summary and alternatives-aware section rendering. The broader
+proposal-narrative roadmap remains planned future work until the remaining RFC-0023 slices are
+merged to `main`, validated, and published with
 implementation-backed feature truth.
 
 ## Source Index
@@ -119,3 +127,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-6-narrative-policy-disclosure-and-guardrail-framework.md`
 - `docs/rfcs/RFC-0023-slice-7-lotus-ai-adapter-and-ai-assisted-draft-baseline.md`
 - `docs/rfcs/RFC-0023-slice-8-review-workflow-persistence-idempotency-artifact-and-replay.md`
+- `docs/rfcs/RFC-0023-slice-9-alternatives-decision-summary-and-policy-evidence-integration.md`

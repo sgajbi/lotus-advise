@@ -41,7 +41,7 @@ def test_rfc0023_slice7_ai_draft_baseline_is_indexed() -> None:
 def test_rfc0023_slice7_supported_features_promote_only_draft_ai_path() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "Slices 0-8 complete" in supported_features
+    assert "Slices 0-9 complete" in supported_features
     assert "AI-assisted draft adapter baseline" in supported_features
     assert "optional `AI_ASSISTED_DRAFT`" in supported_features
     assert "deterministic fallback" in supported_features
