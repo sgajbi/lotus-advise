@@ -70,9 +70,14 @@ python -m pytest tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py
 
 ## Remaining Slice 11 Work
 
+Closed after this slice:
+
+- `lotus-report` reviewed advisory narrative package consumption and job snapshot persistence,
+- `lotus-render` optional portfolio-review advisory narrative page rendering.
+
 Still gated:
 
-- concrete `lotus-report`, `lotus-render`, and `lotus-archive` artifact realization,
+- concrete `lotus-archive` artifact realization, retention, lineage, and access-audit references,
 - `lotus-gateway` consumption of canonical narrative posture,
 - Workbench consumption through Gateway/BFF only,
 - browser validation for advisor, compliance, client-draft, blocked, degraded, and guardrail

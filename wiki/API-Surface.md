@@ -29,8 +29,10 @@ These endpoints accept normalized advisory input contracts and require `Idempote
 Report requests support `include_reviewed_narrative=true` for RFC-0023 advisor-review narrative
 package propagation. The request is blocked unless the selected immutable proposal version has a
 persisted narrative, an `APPROVED_FOR_ADVISOR_USE` review, and matching source narrative hash.
-Delivery evidence records the compact narrative package summary; concrete report rendering and
-archive ownership remain downstream.
+Delivery evidence records the compact narrative package summary. `lotus-report` now consumes and
+snapshots the reviewed package, and `lotus-render` renders it as an optional advisor-use
+portfolio-review advisory narrative page. Archive ownership, Gateway composition, Workbench
+rendering, and client-ready publication remain gated.
 
 ## Advisory Operations And Support
 
