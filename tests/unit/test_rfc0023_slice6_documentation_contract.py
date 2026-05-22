@@ -42,7 +42,7 @@ def test_rfc0023_slice6_policy_guardrail_baseline_is_indexed() -> None:
 def test_rfc0023_slice6_supported_features_promote_only_metadata_not_client_ready() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "Slices 0-8 complete" in supported_features
+    assert "Slices 0-9 complete" in supported_features
     assert "policy/disclosure/guardrail baseline" in supported_features
     assert "deterministic policy, disclosure, and guardrail metadata" in supported_features
     assert "AI-assisted draft adapter baseline" in supported_features
