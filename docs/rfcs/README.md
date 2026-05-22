@@ -3,8 +3,13 @@
 Standards for all current and future RFCs:
 - `docs/rfcs/RFC-CONVENTIONS.md`
 
-Open cross-slice work-to-be-done ledger:
+Historical closed work-to-be-done ledger:
 - `docs/rfcs/WTBD.md`
+
+Execution rule:
+- new advisory crown-jewel work must be represented as RFC slices, acceptance criteria, and
+  closure evidence, not as new WTBD entries. The WTBD ledger is retained only as closed historical
+  context for work already folded back into RFC planning.
 
 Governance boundary:
 - Service-specific implementation RFCs belong in this repository.
@@ -48,7 +53,7 @@ The sequence is organized to read in implementation order:
 | RFC-0023 | Grounded Advisory AI Narrative and Client-Ready Proposal Commentary | DRAFT | Active future work | RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0015, RFC-0019, RFC-0020, RFC-0021, RFC-0022 | `docs/rfcs/RFC-0023-grounded-advisory-ai-narrative-and-client-ready-proposal-commentary.md` |
 | RFC-0024 | Advisor Proposal Memo and Evidence Pack | DRAFT | Active crown-jewel feature roadmap | RFC-0006, RFC-0011, RFC-0013, RFC-0019, RFC-0020, RFC-0021, RFC-0022, RFC-0023 | `docs/rfcs/RFC-0024-advisor-proposal-memo-and-evidence-pack.md` |
 | RFC-0025 | Enterprise Suitability and Best-Interest Policy Packs | DRAFT | Active crown-jewel feature roadmap | RFC-0010, RFC-0013, RFC-0015, RFC-0020, RFC-0021, RFC-0022, RFC-0024 | `docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md` |
-| RFC-0026 | Advisor Cockpit Operating Workflow | DRAFT | Active crown-jewel feature roadmap | RFC-0004, RFC-0013, RFC-0017, RFC-0018, RFC-0019, RFC-0021, RFC-0022, RFC-0024, RFC-0025 | `docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md` |
+| RFC-0026 | Advisor Cockpit Operating Workflow | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN | Active crown-jewel feature roadmap; RFC is the execution source and WTBD is closed historical context only | RFC-0004, RFC-0013, RFC-0017, RFC-0018, RFC-0019, RFC-0021, RFC-0022, RFC-0024, RFC-0025 | `docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md` |
 | RFC-0027 | Governed Advisory AI Copilot | DRAFT | Active crown-jewel feature roadmap | RFC-0021, RFC-0022, RFC-0023, RFC-0024, RFC-0025, RFC-0026 | `docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md` |
 | RFC-0028 | Bank Demo Journey and Client-Ready Proof | DRAFT | Active crown-jewel feature roadmap | RFC-0013, RFC-0019, RFC-0020, RFC-0021, RFC-0022, RFC-0023, RFC-0024, RFC-0025, RFC-0026, RFC-0027 | `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` |
 

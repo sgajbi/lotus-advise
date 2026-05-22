@@ -1,8 +1,11 @@
 # Lotus Advise Work To Be Done
 
-This ledger records follow-up work discovered during `lotus-advise` hardening. Other Lotus
-repositories remain read-only for this refactor program; upstream or downstream issues must be
-recorded here with enough detail for later owner-specific slices.
+Status: closed historical ledger.
+
+No new WTBD entries should be added for the advisory crown-jewel program. New work must be captured
+inside the relevant RFC as slices, acceptance criteria, owner-repository changes, and closure
+evidence. This file is retained only as historical context for completed hardening work that has
+already been folded back into RFC planning.
 
 ## Closure Register
 
@@ -453,26 +456,26 @@ recorded here with enough detail for later owner-specific slices.
     downstream consumer starts deriving advisory supportability from local feature flags instead of
     the Advise/Gateway source-backed `supportability` payload.
 
-## Cross-Repository Disposition
+## Historical Cross-Repository Disposition
 
 - Review date: 2026-05-21
-- Source of truth: this `lotus-advise` WTBD ledger plus
+- Historical source context: this closed `lotus-advise` WTBD ledger plus
   `docs/architecture/CODEBASE-REVIEW-LEDGER.md` and
   `docs/architecture/RFC-0082-upstream-contract-family-map.md`.
-- `lotus-core`: no new upstream defect is currently recorded. The active WTBD posture is to keep
-  source facts, simulation execution, classification taxonomy, prices, FX, cash, holdings, and
-  instrument enrichment source-owned in `lotus-core`; WTBD-002 work remains inside
-  `lotus-advise` unless the stateful-context access pattern grows enough to justify a new governed
-  core snapshot or analytics-input contract.
-- `lotus-risk`: no new upstream defect is currently recorded. RFC-0020 convergence is marked
-  implemented, and the active posture is to keep concentration/risk-lens methodology in
-  `lotus-risk` while `lotus-advise` consumes and degrades around that authority.
+- Future source of execution: active RFCs under `docs/rfcs/`, with owner-repository changes,
+  acceptance criteria, and closure evidence recorded in the relevant RFC rather than this ledger.
+- `lotus-core`: no new upstream defect was recorded in this historical ledger. Future source-data,
+  simulation execution, classification taxonomy, prices, FX, cash, holdings, or instrument
+  enrichment changes must be captured in the relevant RFC slice.
+- `lotus-risk`: no new upstream defect was recorded in this historical ledger. Future
+  concentration/risk-lens methodology changes or degraded-risk evidence needs must be captured in
+  the relevant RFC slice.
 - `lotus-ai`, `lotus-report`, `lotus-performance`, and `lotus-render`: no concrete WTBD-owner
-  change is currently recorded from the Advise refactor ledger. Current mentions are integration
-  posture or future-RFC context, not actionable defects.
+  change was recorded from the Advise refactor ledger. Future integration changes must be captured
+  in the relevant RFC slice.
 - `lotus-gateway` and `lotus-workbench`: WTBD-004 is closed. Gateway now forwards the canonical
   Advise capability query context and preserves Advise source supportability; Workbench consumes the
   Gateway contract and does not invent advisory supportability when source reasons are absent.
-- `lotus-manage`: no Advise WTBD assigns work to Manage. Manage remains outside advisory workflow
+- `lotus-manage`: no Advise WTBD assigned work to Manage. Manage remains outside advisory workflow
   ownership except where future product flows explicitly hand off to discretionary management under
-  a governed RFC.
+  a governed RFC slice.
