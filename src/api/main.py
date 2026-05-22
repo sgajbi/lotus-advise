@@ -67,7 +67,7 @@ app = FastAPI(
             "name": "Advisory Simulation",
             "description": (
                 "Core advisory proposal simulation endpoints used to evaluate a proposed set of "
-                "portfolio actions and generate a client-ready artifact."
+                "portfolio actions and generate deterministic proposal evidence."
             ),
         },
         {
