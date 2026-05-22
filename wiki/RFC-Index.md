@@ -64,6 +64,11 @@ It maps current artifact, proposal detail, workspace, lifecycle, replay, decisio
 alternatives evidence, defines an additive `proposal_narrative` contract baseline, and proves no
 public API v2 is needed before implementation-bearing slices.
 
+RFC-0023 Slice 4 is implemented as data-product and supportability baseline work. It records that
+proposal narrative is not yet promoted as a domain data product, trust-telemetry fixture, or
+`/platform/capabilities` feature because deterministic advisor-review narrative readiness has not
+been implemented yet.
+
 RFC-0023 is not the current implemented proposal narrative source of truth. The implemented AI seam
 today is workspace rationale support. Proposal narrative remains planned future work until the
 implementing RFC-0023 slices are merged to `main`, validated, and published with
@@ -78,3 +83,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0023-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0023-slice-3-current-state-assessment-and-narrative-contract-baseline.md`
+- `docs/rfcs/RFC-0023-slice-4-data-product-and-supportability-baseline.md`

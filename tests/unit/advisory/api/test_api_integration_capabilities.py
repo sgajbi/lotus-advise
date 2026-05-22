@@ -52,6 +52,26 @@ def test_integration_capabilities_response_uses_canonical_snake_case_fields():
         assert legacy_key not in payload
 
 
+def test_rfc0023_slice4_capabilities_do_not_advertise_proposal_narrative():
+    with TestClient(app) as client:
+        response = client.get(
+            "/platform/capabilities",
+            params={"consumer_system": "lotus-gateway", "tenant_id": "default"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    feature_keys = {item["key"] for item in payload["features"]}
+    workflow_keys = {item["workflow_key"] for item in payload["workflows"]}
+    payload_text = str(payload).lower()
+
+    assert "advisory.proposals.narrative" not in feature_keys
+    assert "advisory.proposals.client_ready_commentary" not in feature_keys
+    assert "advisory_proposal_narrative" not in workflow_keys
+    assert "proposal_narrative" not in payload_text
+    assert "client_ready_commentary" not in payload_text
+
+
 def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_only():
     openapi = app.openapi()
     operation = openapi["paths"]["/platform/capabilities"]["get"]

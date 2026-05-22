@@ -50,3 +50,19 @@ def test_wave_one_advise_declaration_is_conservative_and_transitional() -> None:
         "does not discover the global portfolio universe"
         in (tactical_cohort["freshness_policy"]["max_allowed_age_description"])
     )
+
+
+def test_rfc0023_slice4_does_not_promote_proposal_narrative_data_product() -> None:
+    contract_dir = _local_contract_dir(Path(__file__).resolve().parents[3])
+    declaration = json.loads(
+        (contract_dir / "lotus-advise-products.v1.json").read_text(encoding="utf-8")
+    )
+    product_names = {product["product_name"] for product in declaration["products"]}
+    routes = {
+        route for product in declaration["products"] for route in product.get("current_routes", [])
+    }
+
+    assert "ProposalNarrative" not in product_names
+    assert "ProposalNarrativeEvidence" not in product_names
+    assert "proposal_narrative" not in product_names
+    assert not any("narrative" in route for route in routes)
