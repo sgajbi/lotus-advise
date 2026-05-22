@@ -55,6 +55,10 @@ RFC-0023 Slice 1 is implemented as a platform automation and scaffolding review.
 existing Lotus platform automation is sufficient for the next RFC-0023 slices and that no
 `lotus-platform` code change is required before cleanup and contract work begins.
 
+RFC-0023 Slice 2 is implemented as cleanup and structure work. It moves workspace-rationale
+evidence construction into core workspace code, keeps the API service thin, removes a premature
+client-ready OpenAPI wording claim, and does not promote proposal narrative support.
+
 RFC-0023 is not the current implemented proposal narrative source of truth. The implemented AI seam
 today is workspace rationale support. Proposal narrative remains planned future work until the
 implementing RFC-0023 slices are merged to `main`, validated, and published with
@@ -67,3 +71,4 @@ Use `docs/rfcs/README.md` as the authoritative repository RFC disposition index.
 Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-0-critical-review-source-map-and-product-gap-allocation.md`
 - `docs/rfcs/RFC-0023-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0023-slice-2-cleanup-and-structure.md`
