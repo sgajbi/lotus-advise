@@ -41,8 +41,9 @@ def test_rfc0023_slice4_keeps_supported_features_non_claiming() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
     slice4_text = SLICE4_PATH.read_text(encoding="utf-8")
 
-    assert "Slices 0-4 complete" in supported_features
-    assert "generated proposal narrative remains planned" in supported_features
+    assert "Slices 0-5 complete" in supported_features
+    assert "deterministic advisor-review artifact-path narrative" in supported_features
+    assert "AI-assisted, persisted/replayable" in supported_features
     assert "Proposal narrative | Supported" not in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features
     assert "`/platform/capabilities` feature" in supported_features

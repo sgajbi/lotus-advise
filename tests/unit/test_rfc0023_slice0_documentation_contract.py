@@ -45,11 +45,8 @@ def test_supported_features_keep_rfc0023_current_state_conservative() -> None:
 
     assert "Workspace AI rationale | Supported through governed seam" in supported_features
     assert "RFC-0023" in supported_features
-    assert "generated proposal narrative remains planned" in supported_features
-    assert "Generated proposal" in supported_features
-    assert "narrative, client-ready commentary, and document artifact inclusion" in (
-        supported_features
-    )
-    assert "document artifact inclusion remain planned" in supported_features
+    assert "Deterministic advisor-review proposal narrative" in supported_features
+    assert "AI-assisted drafts, and client-ready commentary remain gated" in supported_features
+    assert "review-approved workflow" in supported_features
     assert "Proposal narrative | Supported" not in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features

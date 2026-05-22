@@ -29,6 +29,7 @@ from src.core.advisory.artifact_models import (
     ProposalArtifactWeightChange,
 )
 from src.core.advisory.decision_summary import build_proposal_decision_summary
+from src.core.advisory.narrative import build_deterministic_proposal_narrative
 from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.common.canonical import hash_canonical_payload, strip_keys
 from src.core.common.workflow_gates import evaluate_gate_decision
@@ -462,7 +463,23 @@ def build_proposal_artifact(
         ),
     )
     payload = artifact.model_dump(mode="json")
-    canonical_payload = strip_keys(payload, exclude={"created_at", "artifact_hash"})
-    artifact_hash = hash_canonical_payload(canonical_payload)
-    payload["evidence_bundle"]["hashes"]["artifact_hash"] = artifact_hash
+    base_canonical_payload = strip_keys(
+        payload, exclude={"created_at", "artifact_hash", "proposal_narrative"}
+    )
+    base_artifact_hash = hash_canonical_payload(base_canonical_payload)
+    payload["evidence_bundle"]["hashes"]["artifact_hash"] = base_artifact_hash
+    artifact = ProposalArtifact.model_validate(payload)
+
+    if request.narrative_request is not None:
+        narrative = build_deterministic_proposal_narrative(
+            artifact=artifact,
+            request=request.narrative_request,
+        )
+        payload = artifact.model_dump(mode="json")
+        payload["proposal_narrative"] = narrative.model_dump(mode="json")
+        narrative_canonical_payload = strip_keys(payload, exclude={"created_at", "artifact_hash"})
+        payload["evidence_bundle"]["hashes"]["artifact_hash"] = hash_canonical_payload(
+            narrative_canonical_payload
+        )
+
     return cast(ProposalArtifact, ProposalArtifact.model_validate(payload))

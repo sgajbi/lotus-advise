@@ -1040,6 +1040,94 @@ def test_advisory_proposal_artifact_endpoint_success(client):
     assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
 
 
+def test_advisory_proposal_artifact_can_include_deterministic_advisor_narrative(client):
+    payload = _base_simulation_payload("pf_narrative_artifact")
+    payload["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "sections": [
+            "EXECUTIVE_SUMMARY",
+            "RISK_AND_CONCENTRATION",
+            "ALTERNATIVES_CONSIDERED",
+        ],
+        "requested_by": "advisor_123",
+    }
+
+    first = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-001"},
+    )
+    second = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-002"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    narrative = first.json()["proposal_narrative"]
+    second_narrative = second.json()["proposal_narrative"]
+    assert narrative["audience"] == "ADVISOR_REVIEW"
+    assert narrative["generation_mode"] == "DETERMINISTIC_TEMPLATE"
+    assert narrative["review_state"] == "DRAFT"
+    assert [section["section_key"] for section in narrative["sections"]] == [
+        "EXECUTIVE_SUMMARY",
+        "RISK_AND_CONCENTRATION",
+        "ALTERNATIVES_CONSIDERED",
+    ]
+    assert narrative["narrative_id"].startswith("pn_")
+    assert narrative["sections"] == second_narrative["sections"]
+    assert narrative["grounding_packet"]["input_hashes"]["request_hash"].startswith("sha256:")
+    assert narrative["grounding_packet"]["input_hashes"]["artifact_hash"].startswith("sha256:")
+    assert narrative["grounding_packet"]["packet_id"].startswith("pgp_")
+    assert set(narrative["grounding_packet"]["facts"]) == {
+        "proposal_status",
+        "recommended_next_step",
+        "objective_tags",
+        "gate",
+        "gate_recommended_next_step",
+        "decision_status",
+        "primary_reason_code",
+        "recommended_next_action",
+        "material_change_count",
+        "missing_decision_evidence_count",
+        "risk_status",
+        "risk_summary",
+        "risk_highlights",
+        "suitability_status",
+        "suitability_new_issues",
+        "suitability_resolved_issues",
+        "suitability_persistent_issues",
+        "highest_severity_new",
+        "alternatives_status",
+        "selected_alternative_id",
+        "alternative_count",
+        "rejected_alternative_count",
+        "trade_count",
+        "fx_count",
+        "cash_takeaway",
+        "drift_takeaway",
+        "risk_disclaimer",
+        "costs_and_fees_note",
+        "tax_note",
+        "execution_note",
+    }
+    assert {ref["ref_type"] for ref in narrative["grounding_packet"]["source_refs"]} <= {
+        "proposal_artifact",
+        "proposal_result",
+        "decision_summary",
+        "risk_lens",
+        "suitability",
+        "alternatives",
+        "limitations",
+    }
+    assert {item["evidence_key"] for item in narrative["limitations"]} >= {
+        "disclosure_policy",
+        "review_workflow",
+        "report_archive_lineage",
+    }
+
+
 def test_advisory_proposal_artifact_supports_stateful_context_resolution(client, monkeypatch):
     monkeypatch.setattr(
         "src.api.main.resolve_lotus_core_advisory_context",
