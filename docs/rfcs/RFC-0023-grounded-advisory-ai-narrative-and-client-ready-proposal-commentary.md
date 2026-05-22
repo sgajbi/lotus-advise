@@ -6,6 +6,7 @@
 | **Created** | 2026-04-12 |
 | **Last Tightened** | 2026-05-22 |
 | **Slice 0 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-0-critical-review-source-map-and-product-gap-allocation.md`; this is source-map and scope-gate proof only, not proposal narrative capability |
+| **Slice 1 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-1-platform-automation-and-scaffolding-review.md`; existing platform automation is sufficient and no platform change is required before Slice 2 |
 | **Owner** | `lotus-advise` for proposal narrative authority, grounding packets, review lifecycle, persistence, replay, and advisory API truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, compliance reviewer, investment desk reviewer, operations support, audit, client-reporting owner, sales/pre-sales |
 | **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |
@@ -697,6 +698,11 @@ Acceptance gate:
 3. no broad "later", WTBD, or side-branch truth remains for the narrative supported claim.
 
 ### Slice 1: Platform Automation and Scaffolding Improvement
+
+Status: implemented as platform automation and scaffolding review in
+`docs/rfcs/RFC-0023-slice-1-platform-automation-and-scaffolding-review.md`. This status records a
+deliberate no-platform-change decision; it does not promote proposal narrative as a supported
+capability.
 
 Outcome:
 
