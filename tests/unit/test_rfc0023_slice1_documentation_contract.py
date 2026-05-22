@@ -45,6 +45,7 @@ def test_rfc0023_slice1_keeps_supported_features_non_claiming() -> None:
     )
     assert "contract baseline" in supported_features
     assert "deterministic advisor-review artifact-path narrative" in supported_features
-    assert "AI-assisted, persisted/replayable" in supported_features
+    assert "AI-assisted draft adapter baseline" in supported_features
+    assert "persisted/replayable, compliance-review" in supported_features
     assert "Proposal narrative | Supported" not in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features

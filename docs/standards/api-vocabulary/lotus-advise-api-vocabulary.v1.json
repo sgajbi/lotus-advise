@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-22T05:05:44.731326+00:00",
+  "generatedAt": "2026-05-22T05:56:24.460721+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action_type",
@@ -4370,7 +4370,7 @@
       "semanticId": "lotus.proposal_narrative",
       "canonicalTerm": "proposal_narrative",
       "preferredName": "proposal_narrative",
-      "description": "Optional deterministic advisor-review narrative generated from artifact evidence when explicitly requested. AI-assisted and client-ready narrative are not supported by this Slice 5 baseline.",
+      "description": "Optional advisor-review narrative generated from artifact evidence when explicitly requested. Supports deterministic template mode and Slice 7 opt-in `AI_ASSISTED_DRAFT`; client-ready narrative remains gated.",
       "example": "proposal_narrative_example",
       "type": "object",
       "locations": [

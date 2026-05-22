@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 
 ProposalNarrativeAudience = Literal["ADVISOR_REVIEW"]
 ProposalNarrativeClientAudience = Literal["ADVISOR_REVIEW", "CLIENT_READY"]
-ProposalNarrativeGenerationMode = Literal["DETERMINISTIC_TEMPLATE"]
+ProposalNarrativeRequestedGenerationMode = Literal["DETERMINISTIC_TEMPLATE", "AI_ASSISTED_DRAFT"]
+ProposalNarrativeGenerationMode = Literal["DETERMINISTIC_TEMPLATE", "AI_ASSISTED_DRAFT"]
 ProposalNarrativeStatus = Literal[
     "READY_FOR_ADVISOR_REVIEW",
     "BLOCKED_INSUFFICIENT_EVIDENCE",
@@ -72,6 +73,15 @@ class ProposalNarrativeRequest(BaseModel):
             "blocked policy result for `CLIENT_READY`, but does not promote client-ready output."
         ),
         examples=["ADVISOR_REVIEW"],
+    )
+    generation_mode: ProposalNarrativeRequestedGenerationMode = Field(
+        default="DETERMINISTIC_TEMPLATE",
+        description=(
+            "Requested narrative generation mode. `AI_ASSISTED_DRAFT` is Slice 7 opt-in only, "
+            "uses the governed lotus-ai workflow-pack adapter, and remains draft until later "
+            "review slices."
+        ),
+        examples=["DETERMINISTIC_TEMPLATE"],
     )
 
 
@@ -236,6 +246,44 @@ class ProposalNarrativePolicy(BaseModel):
     )
 
 
+class ProposalNarrativeAiLineage(BaseModel):
+    requested_generation_mode: ProposalNarrativeRequestedGenerationMode = Field(
+        description="Generation mode requested by the caller.",
+        examples=["AI_ASSISTED_DRAFT"],
+    )
+    adapter_version: str = Field(
+        description="lotus-advise adapter version used for proposal narrative AI handoff.",
+        examples=["proposal-narrative-lotus-ai-adapter.v1"],
+    )
+    workflow_pack_id: str = Field(
+        description="lotus-ai workflow-pack identifier used for AI-assisted narrative generation.",
+        examples=["proposal_narrative_draft.pack"],
+    )
+    workflow_pack_version: str = Field(
+        description="lotus-ai workflow-pack version requested by the adapter.",
+        examples=["v1"],
+    )
+    prompt_template_version: str = Field(
+        description="Approved prompt/instruction template version used by the adapter.",
+        examples=["proposal-narrative-instructions.v1"],
+    )
+    model_version: Optional[str] = Field(
+        default=None,
+        description="Model version reported by lotus-ai, when available.",
+        examples=["lotus-ai-governed-model.v1"],
+    )
+    workflow_run_id: Optional[str] = Field(
+        default=None,
+        description="lotus-ai workflow run identifier, when AI generation completed.",
+        examples=["packrun_proposal_narrative_001"],
+    )
+    fallback_reason: Optional[str] = Field(
+        default=None,
+        description="Fallback reason when deterministic template output is returned instead.",
+        examples=["LOTUS_AI_NARRATIVE_UNAVAILABLE"],
+    )
+
+
 class ProposalNarrative(BaseModel):
     narrative_id: str = Field(
         description="Deterministic narrative identifier for this transient artifact narrative.",
@@ -245,7 +293,10 @@ class ProposalNarrative(BaseModel):
     audience: ProposalNarrativeAudience = Field(description="Narrative audience.")
     generation_mode: ProposalNarrativeGenerationMode = Field(
         default="DETERMINISTIC_TEMPLATE",
-        description="Generation mode. Slice 5 uses no model or AI workflow call.",
+        description=(
+            "Actual generation mode used for this narrative. AI-assisted output remains draft "
+            "and is never client-ready in RFC-0023 Slice 7."
+        ),
     )
     review_state: ProposalNarrativeReviewState = Field(
         default="DRAFT",
@@ -257,6 +308,12 @@ class ProposalNarrative(BaseModel):
     )
     narrative_policy: ProposalNarrativePolicy = Field(
         description="Resolved narrative policy, disclosure selection, and promotion blockers."
+    )
+    ai_lineage: Optional[ProposalNarrativeAiLineage] = Field(
+        default=None,
+        description=(
+            "AI adapter lineage or deterministic fallback evidence for AI-assisted requests."
+        ),
     )
     grounding_packet: ProposalNarrativeGroundingPacket = Field(
         description="Grounding packet used by deterministic narrative rendering."

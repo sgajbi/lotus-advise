@@ -78,14 +78,22 @@ drafts, client-ready commentary, report/render/archive integration, data-product
 RFC-0023 Slice 6 is implemented as narrative-policy, disclosure, and guardrail baseline work. It
 adds deterministic policy metadata, approved disclosure selection, unsupported-claim guardrails,
 and client-ready policy blockers to the artifact-path narrative response. Standalone narrative
-endpoints, persistence, replay, review approval, AI-assisted drafts, client-ready commentary,
+endpoints, persistence, replay, review approval, client-ready commentary,
 report/render/archive integration, data-product promotion, and `/platform/capabilities` narrative
 rows remain gated by later slices.
 
-RFC-0023 is not the current implemented proposal narrative source of truth. The implemented AI seam
-today is workspace rationale support. Proposal narrative remains planned future work until the
-implementing RFC-0023 slices are merged to `main`, validated, and published with
-implementation-backed feature truth.
+RFC-0023 Slice 7 is implemented as a narrow lotus-ai adapter and AI-assisted advisor-review draft
+baseline. It adds opt-in `AI_ASSISTED_DRAFT` narrative in the proposal artifact path, sends only
+structured grounding packet, resolved policy, requested sections, approved instructions, and source
+refs to the workflow-pack adapter, records AI lineage or deterministic fallback reason, and runs AI
+text through the same unsupported-claim guardrails before returning the draft. Standalone narrative
+endpoints, persistence, replay, review approval, client-ready commentary, report/render/archive
+integration, data-product promotion, and `/platform/capabilities` narrative rows remain gated by
+later slices.
+
+RFC-0023 is now implemented only for artifact-path advisor-review narrative. The broader
+proposal-narrative roadmap remains planned future work until the remaining RFC-0023 slices are
+merged to `main`, validated, and published with implementation-backed feature truth.
 
 ## Source Index
 
@@ -99,3 +107,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-4-data-product-and-supportability-baseline.md`
 - `docs/rfcs/RFC-0023-slice-5-grounding-packet-and-deterministic-template-baseline.md`
 - `docs/rfcs/RFC-0023-slice-6-narrative-policy-disclosure-and-guardrail-framework.md`
+- `docs/rfcs/RFC-0023-slice-7-lotus-ai-adapter-and-ai-assisted-draft-baseline.md`

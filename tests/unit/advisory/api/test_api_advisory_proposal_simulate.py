@@ -6,7 +6,13 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app, get_db_session
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.advisory.narrative_models import ProposalNarrativeAiLineage
 from src.core.advisory_engine import run_proposal_simulation
+from src.integrations.lotus_ai.proposal_narrative import (
+    LotusAIProposalNarrativeUnavailableError,
+    ProposalNarrativeDraftResponse,
+    ProposalNarrativeDraftSection,
+)
 from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
 from src.integrations.lotus_core.stateful_context import (
     get_stateful_context_fetch_stats_for_tests,
@@ -1202,6 +1208,146 @@ def test_advisory_proposal_artifact_blocks_client_ready_when_disclosure_policy_m
         "disclosure_policy",
         "review_workflow",
     }
+
+
+def _ai_lineage() -> ProposalNarrativeAiLineage:
+    return ProposalNarrativeAiLineage(
+        requested_generation_mode="AI_ASSISTED_DRAFT",
+        adapter_version="proposal-narrative-lotus-ai-adapter.v1",
+        workflow_pack_id="proposal_narrative_draft.pack",
+        workflow_pack_version="v1",
+        prompt_template_version="proposal-narrative-instructions.v1",
+        model_version="lotus-ai-governed-model.v1",
+        workflow_run_id="packrun_proposal_narrative_001",
+    )
+
+
+def test_advisory_proposal_artifact_can_include_ai_assisted_draft_narrative(
+    client,
+    monkeypatch,
+):
+    def _generate_ai_draft(**kwargs):
+        return ProposalNarrativeDraftResponse(
+            sections=(
+                ProposalNarrativeDraftSection(
+                    section_key="EXECUTIVE_SUMMARY",
+                    title="Executive Summary",
+                    text=(
+                        "AI-assisted advisor-review draft based on the supplied proposal evidence."
+                    ),
+                ),
+            ),
+            lineage=_ai_lineage(),
+        )
+
+    monkeypatch.setattr(
+        "src.core.advisory.narrative.generate_proposal_narrative_draft_with_lotus_ai",
+        _generate_ai_draft,
+    )
+    payload = _base_simulation_payload("pf_narrative_ai")
+    payload["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "generation_mode": "AI_ASSISTED_DRAFT",
+        "jurisdiction": "SG",
+        "sections": ["EXECUTIVE_SUMMARY"],
+        "requested_by": "advisor_123",
+    }
+
+    response = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-ai"},
+    )
+
+    assert response.status_code == 200
+    narrative = response.json()["proposal_narrative"]
+    assert narrative["generation_mode"] == "AI_ASSISTED_DRAFT"
+    assert narrative["review_state"] == "DRAFT"
+    assert narrative["status"] == "BLOCKED_INSUFFICIENT_EVIDENCE"
+    assert narrative["ai_lineage"]["workflow_run_id"] == "packrun_proposal_narrative_001"
+    assert narrative["ai_lineage"]["fallback_reason"] is None
+    assert narrative["sections"][0]["text"] == (
+        "AI-assisted advisor-review draft based on the supplied proposal evidence."
+    )
+    assert narrative["guardrail_results"] == [
+        {
+            "guardrail_id": "GR_UNSUPPORTED_CLAIMS",
+            "status": "PASS",
+            "message": "No unsupported deterministic narrative claims detected.",
+            "section_key": None,
+        }
+    ]
+
+
+def test_advisory_proposal_artifact_falls_back_when_ai_narrative_unavailable(
+    client,
+    monkeypatch,
+):
+    def _generate_ai_draft(**kwargs):
+        raise LotusAIProposalNarrativeUnavailableError("LOTUS_AI_NARRATIVE_UNAVAILABLE")
+
+    monkeypatch.setattr(
+        "src.core.advisory.narrative.generate_proposal_narrative_draft_with_lotus_ai",
+        _generate_ai_draft,
+    )
+    payload = _base_simulation_payload("pf_narrative_ai_fallback")
+    payload["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "generation_mode": "AI_ASSISTED_DRAFT",
+        "sections": ["EXECUTIVE_SUMMARY"],
+    }
+
+    response = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-ai-fallback"},
+    )
+
+    assert response.status_code == 200
+    narrative = response.json()["proposal_narrative"]
+    assert narrative["generation_mode"] == "DETERMINISTIC_TEMPLATE"
+    assert narrative["review_state"] == "DRAFT"
+    assert narrative["ai_lineage"]["fallback_reason"] == "LOTUS_AI_NARRATIVE_UNAVAILABLE"
+    assert narrative["ai_lineage"]["workflow_run_id"] is None
+    assert narrative["sections"][0]["section_key"] == "EXECUTIVE_SUMMARY"
+
+
+def test_advisory_proposal_artifact_rejects_unsafe_ai_claims(client, monkeypatch):
+    def _generate_ai_draft(**kwargs):
+        return ProposalNarrativeDraftResponse(
+            sections=(
+                ProposalNarrativeDraftSection(
+                    section_key="EXECUTIVE_SUMMARY",
+                    title="Executive Summary",
+                    text="This proposal provides a guaranteed return for the client.",
+                ),
+            ),
+            lineage=_ai_lineage(),
+        )
+
+    monkeypatch.setattr(
+        "src.core.advisory.narrative.generate_proposal_narrative_draft_with_lotus_ai",
+        _generate_ai_draft,
+    )
+    payload = _base_simulation_payload("pf_narrative_ai_guardrail")
+    payload["narrative_request"] = {
+        "audience": "ADVISOR_REVIEW",
+        "generation_mode": "AI_ASSISTED_DRAFT",
+        "sections": ["EXECUTIVE_SUMMARY"],
+    }
+
+    response = client.post(
+        "/advisory/proposals/artifact",
+        json=payload,
+        headers={"Idempotency-Key": "artifact-narrative-ai-guardrail"},
+    )
+
+    assert response.status_code == 200
+    narrative = response.json()["proposal_narrative"]
+    assert narrative["generation_mode"] == "AI_ASSISTED_DRAFT"
+    assert narrative["status"] == "BLOCKED_GUARDRAIL_FAILURE"
+    assert narrative["guardrail_results"][0]["status"] == "FAIL"
+    assert narrative["guardrail_results"][0]["guardrail_id"] == ("GR_UNSUPPORTED_GUARANTEED_RETURN")
 
 
 def test_advisory_proposal_artifact_supports_stateful_context_resolution(client, monkeypatch):

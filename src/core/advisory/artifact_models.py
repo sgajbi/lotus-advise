@@ -403,9 +403,9 @@ class ProposalArtifact(BaseModel):
     proposal_narrative: ProposalNarrative | None = Field(
         default=None,
         description=(
-            "Optional deterministic advisor-review narrative generated from artifact evidence "
-            "when explicitly requested. AI-assisted and client-ready narrative are not supported "
-            "by this Slice 5 baseline."
+            "Optional advisor-review narrative generated from artifact evidence when explicitly "
+            "requested. Supports deterministic template mode and Slice 7 opt-in "
+            "`AI_ASSISTED_DRAFT`; client-ready narrative remains gated."
         ),
     )
     summary: ProposalArtifactSummary = Field(description="Artifact summary section.")
