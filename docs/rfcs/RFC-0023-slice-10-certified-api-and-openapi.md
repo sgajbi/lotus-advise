@@ -7,7 +7,7 @@
 | Status | IMPLEMENTED - CERTIFIED API AND OPENAPI BASELINE |
 | Implemented On | 2026-05-22 |
 | Primary Repository | `lotus-advise` |
-| Capability Posture | Certifies the existing additive advisor-review narrative API shape. It documents and tests the canonical artifact-path request field, proposal-version narrative review route, proposal lineage/replay routes, error responses, idempotency header guidance, stale-route absence, and material returned fields. It does not add standalone narrative read or regeneration endpoints, client-ready publication, report/render/archive inclusion, Gateway, Workbench, data-product telemetry, or `/platform/capabilities` promotion. |
+| Capability Posture | Certifies the existing additive advisor-review narrative API shape. It documents and tests the canonical artifact-path request field, proposal-version narrative review route, proposal lineage/replay routes, error responses, idempotency header guidance, stale-route absence, and material returned fields. Standalone narrative read/regeneration endpoints are tracked separately and closed by Slice 10B; this baseline does not add client-ready publication, report/render/archive inclusion, Gateway, Workbench, data-product telemetry, or `/platform/capabilities` promotion. |
 
 ## Outcome
 
@@ -26,9 +26,8 @@ The certified route family is:
 | Proposal replay | `GET /advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence`. |
 | Async replay | `GET /advisory/proposals/operations/{operation_id}/replay-evidence`. |
 
-Standalone narrative read and regeneration routes remain intentionally absent. Exact narrative JSON
-is read through proposal-version detail and replay evidence until later slices implement broader
-downstream consumption.
+Standalone narrative read and regeneration routes were intentionally absent from this baseline and
+later closed by Slice 10B. This document remains the original API certification baseline.
 
 ## OpenAPI Contract
 
@@ -59,14 +58,12 @@ The certification tests prove:
 
 The following remain explicitly gated:
 
-1. standalone narrative read endpoints,
-2. standalone narrative regeneration endpoints,
-3. compliance-review, client-draft, or client-ready narrative states,
-4. report/render/archive artifact inclusion,
-5. Gateway or Workbench rendering,
-6. narrative data-product or trust-telemetry promotion,
-7. `/platform/capabilities` narrative feature promotion,
-8. sales/demo-safe narrative proof.
+1. compliance-review, client-draft, or client-ready narrative states,
+2. report/render/archive artifact inclusion,
+3. Gateway or Workbench rendering,
+4. narrative data-product or trust-telemetry promotion,
+5. `/platform/capabilities` narrative feature promotion,
+6. sales/demo-safe narrative proof.
 
 ## Acceptance Gate
 

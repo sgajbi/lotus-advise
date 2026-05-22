@@ -42,8 +42,9 @@ Current repository posture:
    `lotus-gateway` now exposes product-facing reviewed-narrative posture through canonical
    `lotus-advise` APIs and `lotus-workbench` renders the Gateway-backed advisor-use proposal
    narrative posture. Client-ready commentary, compliance-review and client-draft narrative,
-   standalone read/regeneration APIs, data-product promotion, trust telemetry, and
-   `/platform/capabilities` narrative promotion remain gated,
+   data-product promotion, trust telemetry, and `/platform/capabilities` narrative promotion
+   remain gated. Standalone proposal-version narrative read and non-persistent regeneration APIs
+   are supported for advisor-review posture,
 6. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 7. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 8. repo-native CI is already aligned to explicit lane expectations,

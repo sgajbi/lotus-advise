@@ -47,7 +47,9 @@ def test_rfc0023_slice2_supported_features_remains_non_claiming() -> None:
     assert "AI-assisted draft adapter baseline" in supported_features
     assert "proposal-version narrative review/replay baseline" in supported_features
     assert "Gateway-backed advisor-use proposal posture" in supported_features
-    assert "client-ready narrative, standalone read/regeneration APIs" in supported_features
+    assert "standalone proposal-version narrative read" in supported_features
+    assert "non-persistent regeneration APIs" in supported_features
+    assert "client-ready narrative, data-product" in supported_features
     assert "support-safe reviewed narrative archive metadata summaries" in supported_features
     assert "Proposal narrative | Supported" not in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features

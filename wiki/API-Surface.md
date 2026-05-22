@@ -20,6 +20,9 @@ These endpoints accept normalized advisory input contracts and require `Idempote
 - `GET /advisory/proposals/{proposal_id}`
 - `GET /advisory/proposals/{proposal_id}/versions/{version_no}`
 - `POST /advisory/proposals/{proposal_id}/versions`
+- `GET /advisory/proposals/{proposal_id}/versions/{version_no}/narrative`
+- `POST /advisory/proposals/{proposal_id}/versions/{version_no}/narrative/regenerate`
+- `POST /advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review`
 - `POST /advisory/proposals/{proposal_id}/transitions`
 - `POST /advisory/proposals/{proposal_id}/approvals`
 - `POST /advisory/proposals/{proposal_id}/report-requests`
@@ -29,6 +32,10 @@ These endpoints accept normalized advisory input contracts and require `Idempote
 Report requests support `include_reviewed_narrative=true` for RFC-0023 advisor-review narrative
 package propagation. The request is blocked unless the selected immutable proposal version has a
 persisted narrative, an `APPROVED_FOR_ADVISOR_USE` review, and matching source narrative hash.
+Standalone narrative read returns exact persisted advisor-review narrative and latest review
+posture. Standalone regeneration returns a non-persisted, review-required advisor-review candidate
+from immutable version evidence and does not mutate proposal truth or publish client-ready
+commentary.
 Delivery evidence records the compact narrative package summary. `lotus-report` now consumes and
 snapshots the reviewed package, and `lotus-render` renders it as an optional advisor-use
 portfolio-review advisory narrative page. `lotus-archive` stores a support-safe archive metadata

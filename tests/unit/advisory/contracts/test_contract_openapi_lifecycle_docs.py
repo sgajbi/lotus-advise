@@ -148,6 +148,27 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(narrative_review_response_schema, "narrative_review")
     _assert_property_has_docs(narrative_review_response_schema, "latest_workflow_event")
 
+    narrative_read_response_schema = schemas["ProposalNarrativeReadResponse"]
+    _assert_property_has_docs(narrative_read_response_schema, "proposal_narrative")
+    _assert_property_has_docs(narrative_read_response_schema, "narrative_review")
+    _assert_property_has_docs(narrative_read_response_schema, "source_narrative_hash")
+    _assert_property_has_docs(narrative_read_response_schema, "replay_evidence_path")
+    _assert_property_has_docs(narrative_read_response_schema, "read_posture")
+
+    narrative_regeneration_request_schema = schemas["ProposalNarrativeRegenerationRequest"]
+    _assert_property_has_docs(narrative_regeneration_request_schema, "requested_by")
+    _assert_property_has_docs(narrative_regeneration_request_schema, "reason")
+    _assert_property_has_docs(narrative_regeneration_request_schema, "sections")
+    _assert_property_has_docs(narrative_regeneration_request_schema, "generation_mode")
+    _assert_property_has_docs(narrative_regeneration_request_schema, "client_audience")
+
+    narrative_regeneration_response_schema = schemas["ProposalNarrativeRegenerationResponse"]
+    _assert_property_has_docs(narrative_regeneration_response_schema, "current_narrative_id")
+    _assert_property_has_docs(narrative_regeneration_response_schema, "regenerated_narrative")
+    _assert_property_has_docs(narrative_regeneration_response_schema, "source_artifact_hash")
+    _assert_property_has_docs(narrative_regeneration_response_schema, "source_request_hash")
+    _assert_property_has_docs(narrative_regeneration_response_schema, "regeneration_posture")
+
 
 def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     with TestClient(app) as client:
@@ -226,6 +247,26 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     assert narrative_review_response_ref.endswith("/ProposalNarrativeReviewResponse")
     assert "Idempotency-Key" in narrative_review_parameter_names
 
+    narrative_read = openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative"
+    ]["get"]
+    narrative_read_ref = narrative_read["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    assert narrative_read_ref.endswith("/ProposalNarrativeReadResponse")
+
+    narrative_regeneration = openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/regenerate"
+    ]["post"]
+    narrative_regeneration_body_ref = narrative_regeneration["requestBody"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    narrative_regeneration_response_ref = narrative_regeneration["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    assert narrative_regeneration_body_ref.endswith("/ProposalNarrativeRegenerationRequest")
+    assert narrative_regeneration_response_ref.endswith("/ProposalNarrativeRegenerationResponse")
+
     execution_handoff = openapi["paths"]["/advisory/proposals/{proposal_id}/execution-handoffs"][
         "post"
     ]
@@ -260,8 +301,30 @@ def test_rfc0023_narrative_route_family_is_canonical_and_error_documented():
     paths = openapi["paths"]
     narrative_paths = sorted(path for path in paths if "narrative" in path.lower())
     assert narrative_paths == [
-        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review"
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/regenerate",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
     ]
+
+    narrative_read = paths["/advisory/proposals/{proposal_id}/versions/{version_no}/narrative"][
+        "get"
+    ]
+    assert narrative_read["summary"] == "Read Persisted Proposal Narrative"
+    assert "never regenerates text" in narrative_read["description"]
+    assert narrative_read["tags"] == ["Advisory Proposal Lifecycle"]
+    read_responses = narrative_read["responses"]
+    assert "proposal version was not found" in read_responses["404"]["description"]
+    assert "no persisted `proposal_narrative`" in read_responses["422"]["description"]
+
+    narrative_regeneration = paths[
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/regenerate"
+    ]["post"]
+    assert narrative_regeneration["summary"] == "Regenerate Proposal Narrative Candidate"
+    assert "does not mutate proposal state" in narrative_regeneration["description"]
+    assert "does not publish client-ready commentary" in narrative_regeneration["description"]
+    regeneration_responses = narrative_regeneration["responses"]
+    assert "proposal version was not found" in regeneration_responses["404"]["description"]
+    assert "no persisted `proposal_narrative`" in regeneration_responses["422"]["description"]
 
     narrative_review = paths[
         "/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review"
@@ -285,7 +348,7 @@ def test_rfc0023_narrative_route_family_is_canonical_and_error_documented():
     assert "no reviewable `proposal_narrative`" in responses["422"]["description"]
     assert "runtime persistence is unavailable" in responses["503"]["description"]
 
-    for stale_fragment in ("/narratives", "/narrative/regenerate", "/narrative/lineage"):
+    for stale_fragment in ("/narratives", "/narrative/lineage"):
         assert not any(stale_fragment in path.lower() for path in paths)
 
 

@@ -71,10 +71,12 @@ material-change, or alternative facts.
 
 ## Non-Promoted Behavior
 
-The following remain explicitly out of scope until later RFC-0023 slices or dependent RFCs implement
-and prove them:
+The following remained explicitly out of scope at Slice 9 closure until later RFC-0023 slices or
+dependent RFCs implemented and proved them:
 
-1. standalone narrative read/regeneration endpoints outside proposal-version lifecycle,
+1. standalone narrative read/regeneration endpoints outside proposal-version lifecycle; later closed
+   by Slice 10B through canonical proposal-version read and non-persistent regeneration
+   routes,
 2. compliance-review, client-draft, or client-ready narrative states,
 3. report/render/archive artifact inclusion,
 4. Gateway or Workbench rendering,

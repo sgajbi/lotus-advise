@@ -103,6 +103,9 @@ from src.core.proposals.models import (
     ProposalLifecycleOrigin,
     ProposalLineageResponse,
     ProposalListResponse,
+    ProposalNarrativeReadResponse,
+    ProposalNarrativeRegenerationRequest,
+    ProposalNarrativeRegenerationResponse,
     ProposalNarrativeReviewResponse,
     ProposalReportResponse,
     ProposalStateTransitionRequest,
@@ -111,6 +114,10 @@ from src.core.proposals.models import (
     ProposalVersionRequest,
     ProposalWorkflowEventRecord,
     ProposalWorkflowTimelineResponse,
+)
+from src.core.proposals.narrative_read_model import (
+    build_narrative_read_response,
+    build_narrative_regeneration_response,
 )
 from src.core.proposals.narrative_review import (
     ProposalNarrativeReviewError,
@@ -847,6 +854,56 @@ class ProposalWorkflowService:
             version=referents.version,
             events=referents.events,
         )
+
+    def get_narrative(
+        self,
+        *,
+        proposal_id: str,
+        version_no: int,
+    ) -> ProposalNarrativeReadResponse:
+        referents = load_proposal_version_replay_referents(
+            repository=self._repository,
+            proposal_id=proposal_id,
+            version_no=version_no,
+        )
+        if referents.proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        if referents.version is None:
+            raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
+        try:
+            return build_narrative_read_response(
+                proposal=referents.proposal,
+                version=referents.version,
+                events=referents.events,
+            )
+        except ProposalNarrativeReviewError as exc:
+            raise ProposalValidationError(str(exc)) from exc
+
+    def regenerate_narrative(
+        self,
+        *,
+        proposal_id: str,
+        version_no: int,
+        payload: ProposalNarrativeRegenerationRequest,
+    ) -> ProposalNarrativeRegenerationResponse:
+        referents = load_proposal_version_replay_referents(
+            repository=self._repository,
+            proposal_id=proposal_id,
+            version_no=version_no,
+        )
+        if referents.proposal is None:
+            raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
+        if referents.version is None:
+            raise ProposalNotFoundError("PROPOSAL_VERSION_NOT_FOUND")
+        try:
+            return build_narrative_regeneration_response(
+                proposal=referents.proposal,
+                version=referents.version,
+                events=referents.events,
+                payload=payload,
+            )
+        except ProposalNarrativeReviewError as exc:
+            raise ProposalValidationError(str(exc)) from exc
 
     def record_narrative_review(
         self,

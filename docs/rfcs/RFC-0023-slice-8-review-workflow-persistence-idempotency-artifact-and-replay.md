@@ -97,9 +97,12 @@ Current artifact-path narratives still carry known limitations such as report/ar
 
 ## Non-Promoted Behavior
 
-The following remain explicitly out of scope until later RFC-0023 slices or dependent RFCs implement and prove them:
+The following remained explicitly out of scope at Slice 8 closure until later RFC-0023 slices or
+dependent RFCs implemented and proved them:
 
-1. standalone narrative read/regeneration endpoints outside proposal-version lifecycle,
+1. standalone narrative read/regeneration endpoints outside proposal-version lifecycle; later closed
+   by Slice 10B through canonical proposal-version read and non-persistent regeneration
+   routes,
 2. mutable narrative text updates,
 3. compliance-review or client-draft narrative surfaces,
 4. client-ready proposal commentary,
