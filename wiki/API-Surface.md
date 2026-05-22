@@ -26,6 +26,12 @@ These endpoints accept normalized advisory input contracts and require `Idempote
 - `POST /advisory/proposals/{proposal_id}/execution-handoffs`
 - `POST /advisory/proposals/{proposal_id}/execution-updates`
 
+Report requests support `include_reviewed_narrative=true` for RFC-0023 advisor-review narrative
+package propagation. The request is blocked unless the selected immutable proposal version has a
+persisted narrative, an `APPROVED_FOR_ADVISOR_USE` review, and matching source narrative hash.
+Delivery evidence records the compact narrative package summary; concrete report rendering and
+archive ownership remain downstream.
+
 ## Advisory Operations And Support
 
 - `GET /advisory/proposals/{proposal_id}/delivery-summary`

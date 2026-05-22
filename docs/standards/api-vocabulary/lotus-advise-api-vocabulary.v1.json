@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-22T06:31:40.501817+00:00",
+  "generatedAt": "2026-05-22T08:00:37.616751+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action",
@@ -2944,6 +2944,20 @@
       "canonicalTerm": "include_execution_summary",
       "preferredName": "include_execution_summary",
       "description": "Whether advisory execution-state summary should be included in report context.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.include_reviewed_narrative",
+      "canonicalTerm": "include_reviewed_narrative",
+      "preferredName": "include_reviewed_narrative",
+      "description": "Whether the request must include the immutable proposal narrative package. When true, lotus-advise blocks report generation unless the selected proposal version has a persisted narrative approved for advisor use and the review hash still matches the source narrative.",
       "example": true,
       "type": "boolean",
       "locations": [
@@ -22224,6 +22238,14 @@
             "type": "boolean",
             "semanticId": "lotus.include_execution_summary",
             "attributeRef": "#/attributeCatalog/lotus.include_execution_summary"
+          },
+          {
+            "name": "include_reviewed_narrative",
+            "location": "body",
+            "required": false,
+            "type": "boolean",
+            "semanticId": "lotus.include_reviewed_narrative",
+            "attributeRef": "#/attributeCatalog/lotus.include_reviewed_narrative"
           }
         ]
       },

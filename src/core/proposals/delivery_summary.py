@@ -97,6 +97,12 @@ def build_delivery_summary_from_events(
             "include_execution_summary": latest_report_request.reason_json.get(
                 "include_execution_summary"
             ),
+            "include_reviewed_narrative": latest_report_request.reason_json.get(
+                "include_reviewed_narrative", False
+            ),
+            "proposal_narrative_package": latest_report_request.reason_json.get(
+                "proposal_narrative_package"
+            ),
             "generated_at": latest_report_request.occurred_at.isoformat(),
         }
 

@@ -252,6 +252,16 @@ class ProposalReportRequest(BaseModel):
         ),
         examples=[True],
     )
+    include_reviewed_narrative: bool = Field(
+        default=False,
+        description=(
+            "Whether the request must include the immutable proposal narrative package. When "
+            "true, lotus-advise blocks report generation unless the selected proposal version "
+            "has a persisted narrative approved for advisor use and the review hash still "
+            "matches the source narrative."
+        ),
+        examples=[True],
+    )
 
 
 class ProposalReportResponse(BaseModel):
@@ -593,6 +603,30 @@ class ProposalDeliveryReportingSummary(BaseModel):
     include_execution_summary: bool = Field(
         description="Whether the report request included advisory execution-state context.",
         examples=[True],
+    )
+    include_reviewed_narrative: bool = Field(
+        default=False,
+        description=(
+            "Whether the report request included an approved, source-backed proposal narrative "
+            "package for downstream report assembly."
+        ),
+        examples=[True],
+    )
+    proposal_narrative_package: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "Compact lineage summary of the reviewed proposal narrative package included in "
+            "the downstream report request, when requested."
+        ),
+        examples=[
+            {
+                "package_status": "INCLUDED_REVIEWED_NARRATIVE",
+                "narrative_id": "pn_001",
+                "review_id": "pwe_narrative_review_001",
+                "review_state": "APPROVED_FOR_ADVISOR_USE",
+                "source_narrative_hash": "sha256:abc123",
+            }
+        ],
     )
     generated_at: str = Field(
         description="UTC ISO8601 timestamp when the report payload was generated.",

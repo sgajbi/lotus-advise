@@ -109,6 +109,8 @@ def test_delivery_summary_preserves_report_request_projection():
         "requested_by": "advisor_delivery",
         "related_version_no": 1,
         "include_execution_summary": True,
+        "include_reviewed_narrative": False,
+        "proposal_narrative_package": None,
         "generated_at": "2026-05-20T11:00:00+00:00",
     }
 

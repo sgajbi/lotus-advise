@@ -1620,7 +1620,7 @@ def test_report_request_uses_requested_immutable_version(monkeypatch):
             },
         )
 
-    assert report_response.status_code == 200
+    assert report_response.status_code == 200, report_response.text
     assert seen["related_version_no"] == 1
     assert seen["proposal_version"]["version_no"] == 1
 
@@ -1685,7 +1685,7 @@ def test_report_request_persists_workflow_event_and_replay_delivery_evidence(mon
         timeline = client.get(f"/advisory/proposals/{proposal_id}/workflow-events")
         replay = client.get(f"/advisory/proposals/{proposal_id}/versions/1/replay-evidence")
 
-    assert report_response.status_code == 200
+    assert report_response.status_code == 200, report_response.text
     assert timeline.status_code == 200
     assert replay.status_code == 200
     timeline_body = timeline.json()
@@ -1711,6 +1711,119 @@ def test_report_request_persists_workflow_event_and_replay_delivery_evidence(mon
     assert replay_body["evidence"]["delivery"]["reporting"]["report_request_id"].startswith("prr_")
     assert replay_body["evidence"]["delivery"]["reporting"]["report_service"] == "lotus-report"
     assert replay_body["evidence"]["delivery"]["reporting"]["requested_by"] == "advisor_1"
+
+
+def test_report_request_includes_only_approved_reviewed_narrative_package(monkeypatch):
+    seen: dict[str, Any] = {}
+
+    def _request_proposal_report_with_lotus_report(*, request):
+        seen.update(request)
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": request["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-03-26T09:00:00+00:00",
+            "report_reference_id": "lotus_report_artifact_reviewed_narrative_001",
+            "artifact_url": None,
+            "explanation": {
+                "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+                "related_version_no": request["related_version_no"],
+                "include_execution_summary": request["include_execution_summary"],
+            },
+        }
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload_with_narrative("pf_report_reviewed_narrative_001"),
+            headers={"Idempotency-Key": "lifecycle-report-reviewed-narrative-create"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+        version_no = created.json()["version"]["version_no"]
+        narrative_id = created.json()["version"]["artifact"]["proposal_narrative"]["narrative_id"]
+
+        review = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
+            json={
+                "action": "APPROVE",
+                "reviewed_by": "compliance_001",
+                "reason": "Evidence-grounded advisor-review narrative.",
+            },
+            headers={"Idempotency-Key": "lifecycle-report-reviewed-narrative-approve"},
+        )
+        assert review.status_code == 200
+
+        report_response = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                "requested_by": "advisor_1",
+                "related_version_no": version_no,
+                "include_execution_summary": True,
+                "include_reviewed_narrative": True,
+            },
+        )
+        delivery_summary = client.get(f"/advisory/proposals/{proposal_id}/delivery-summary")
+
+    assert report_response.status_code == 200, report_response.text
+    assert seen["include_reviewed_narrative"] is True
+    package = seen["proposal_narrative_package"]
+    assert package["package_status"] == "INCLUDED_REVIEWED_NARRATIVE"
+    assert package["narrative_id"] == narrative_id
+    assert package["review"]["review_state"] == "APPROVED_FOR_ADVISOR_USE"
+    assert package["review"]["source_narrative_hash"].startswith("sha256:")
+    assert package["source_lineage"]["request_hash"].startswith("sha256:")
+    assert package["source_lineage"]["artifact_hash"].startswith("sha256:")
+    assert package["execution_boundary"] is None
+    report_body = report_response.json()
+    response_package = report_body["explanation"]["proposal_narrative_package"]
+    assert response_package["narrative_id"] == narrative_id
+    assert response_package["review_state"] == "APPROVED_FOR_ADVISOR_USE"
+    delivery_body = delivery_summary.json()
+    assert delivery_body["reporting"]["include_reviewed_narrative"] is True
+    assert delivery_body["reporting"]["proposal_narrative_package"]["narrative_id"] == narrative_id
+
+
+def test_report_request_blocks_reviewed_narrative_without_approved_review(monkeypatch):
+    def _request_proposal_report_with_lotus_report(*, request):
+        raise AssertionError("lotus-report must not be called for an unreviewed narrative")
+
+    monkeypatch.setattr(
+        "src.api.main.request_proposal_report_with_lotus_report",
+        _request_proposal_report_with_lotus_report,
+        raising=False,
+    )
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals",
+            json=_base_create_payload_with_narrative("pf_report_unreviewed_narrative_001"),
+            headers={"Idempotency-Key": "lifecycle-report-unreviewed-narrative-create"},
+        )
+        assert created.status_code == 200
+        proposal_id = created.json()["proposal"]["proposal_id"]
+
+        blocked = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "CLIENT_PROPOSAL_SUMMARY",
+                "requested_by": "advisor_1",
+                "related_version_no": 1,
+                "include_reviewed_narrative": True,
+            },
+        )
+
+    assert blocked.status_code == 422
+    assert blocked.json()["detail"] == "PROPOSAL_REPORT_NARRATIVE_REVIEW_REQUIRED"
 
 
 def test_delivery_summary_and_history_endpoints_return_persisted_delivery_projection(monkeypatch):

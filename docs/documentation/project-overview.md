@@ -117,6 +117,11 @@ The API remains deterministic for identical inputs and options.
 - `GET /advisory/proposals/{proposal_id}/execution-status`
 - `GET /platform/capabilities`
 
+Report requests can include reviewed RFC-0023 advisor-review narrative context by setting
+`include_reviewed_narrative=true`. `lotus-advise` only forwards the compact narrative package when
+the selected immutable proposal version has an approved narrative review and matching source hash;
+rendering and archive ownership remain downstream.
+
 ## Architecture Summary
 
 - `src/api/`: FastAPI contracts and endpoint orchestration.

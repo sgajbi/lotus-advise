@@ -889,6 +889,8 @@ class ProposalWorkflowService:
         requested_by: str,
         related_version_no: int,
         include_execution_summary: bool,
+        include_reviewed_narrative: bool = False,
+        proposal_narrative_package: dict[str, Any] | None = None,
     ) -> ProposalWorkflowEventRecord:
         return record_proposal_report_request(
             repository=self._repository,
@@ -898,6 +900,8 @@ class ProposalWorkflowService:
             requested_by=requested_by,
             related_version_no=related_version_no,
             include_execution_summary=include_execution_summary,
+            include_reviewed_narrative=include_reviewed_narrative,
+            proposal_narrative_package=proposal_narrative_package,
         )
 
     def _resolve_create_async_payload(

@@ -113,11 +113,20 @@ routes, client-ready commentary, report/render/archive integration, Gateway and 
 data-product promotion, trust telemetry, and `/platform/capabilities` narrative rows remain gated by
 later slices.
 
+RFC-0023 Slice 11A is implemented as reviewed narrative report-request package propagation baseline work. It adds
+explicit `include_reviewed_narrative` support to proposal report requests, requires the selected
+immutable proposal version to have an `APPROVED_FOR_ADVISOR_USE` narrative review with matching
+source hash, propagates a compact source-backed narrative package to the report seam, and persists a
+package summary in report-request delivery evidence. Concrete `lotus-report`, `lotus-render`,
+`lotus-archive`, Gateway, Workbench, client-ready artifact, data-product, trust telemetry, and
+`/platform/capabilities` promotion remain gated by later slices.
+
 RFC-0023 is now implemented for artifact-path advisor-review narrative and proposal-version
 review/replay evidence with decision-summary and alternatives-aware section rendering, and the
-canonical API/OpenAPI surface is certified. The broader proposal-narrative roadmap remains planned
-future work until the remaining RFC-0023 slices are merged to `main`, validated, and published with
-implementation-backed feature truth.
+canonical API/OpenAPI surface is certified. Report requests can include a reviewed narrative package
+only when review posture and hash continuity are sufficient. The broader proposal-narrative roadmap
+remains planned future work until the remaining RFC-0023 slices are merged to `main`, validated, and
+published with implementation-backed feature truth.
 
 ## Source Index
 
@@ -135,3 +144,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-8-review-workflow-persistence-idempotency-artifact-and-replay.md`
 - `docs/rfcs/RFC-0023-slice-9-alternatives-decision-summary-and-policy-evidence-integration.md`
 - `docs/rfcs/RFC-0023-slice-10-certified-api-and-openapi.md`
+- `docs/rfcs/RFC-0023-slice-11A-reviewed-narrative-report-request-package-propagation.md`

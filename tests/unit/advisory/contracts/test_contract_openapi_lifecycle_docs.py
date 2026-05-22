@@ -52,6 +52,7 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(report_request_schema, "requested_by")
     _assert_property_has_docs(report_request_schema, "related_version_no")
     _assert_property_has_docs(report_request_schema, "include_execution_summary")
+    _assert_property_has_docs(report_request_schema, "include_reviewed_narrative")
 
     report_response_schema = schemas["ProposalReportResponse"]
     _assert_property_has_docs(report_response_schema, "proposal")
