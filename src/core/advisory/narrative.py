@@ -12,9 +12,14 @@ from src.core.advisory.narrative_models import (
     ProposalNarrativeSectionKey,
     ProposalNarrativeSourceRef,
 )
+from src.core.advisory.narrative_policy import (
+    evaluate_proposal_narrative_guardrails,
+    is_disclosure_policy_available,
+    resolve_proposal_narrative_policy,
+)
 from src.core.common.canonical import hash_canonical_payload
 
-_POLICY_VERSION = "proposal-narrative-deterministic.v1"
+_TEMPLATE_POLICY_VERSION = "proposal-narrative-deterministic.v1"
 _ALL_SECTIONS: tuple[ProposalNarrativeSectionKey, ...] = (
     "EXECUTIVE_SUMMARY",
     "RECOMMENDATION_RATIONALE",
@@ -153,17 +158,14 @@ def _source_refs(artifact: ProposalArtifact) -> list[ProposalNarrativeSourceRef]
     return refs
 
 
-def _missing_evidence(artifact: ProposalArtifact) -> list[ProposalNarrativeMissingEvidence]:
+def _missing_evidence(
+    artifact: ProposalArtifact, request: ProposalNarrativeRequest
+) -> list[ProposalNarrativeMissingEvidence]:
     missing: list[ProposalNarrativeMissingEvidence] = [
         _missing(
             "mandate_policy",
             "client-ready narrative",
-            "Mandate policy pack is not implemented for RFC-0023 Slice 5.",
-        ),
-        _missing(
-            "disclosure_policy",
-            "client-ready narrative",
-            "Disclosure policy selection is deferred to RFC-0023 Slice 6.",
+            "Mandate policy pack is not implemented for RFC-0023 Slice 6.",
         ),
         _missing(
             "review_workflow",
@@ -173,9 +175,17 @@ def _missing_evidence(artifact: ProposalArtifact) -> list[ProposalNarrativeMissi
         _missing(
             "report_archive_lineage",
             "client-ready artifact inclusion",
-            "Report/render/archive lineage is not available for Slice 5 narrative.",
+            "Report/render/archive lineage is not available for Slice 6 narrative.",
         ),
     ]
+    if not is_disclosure_policy_available(request.jurisdiction):
+        missing.append(
+            _missing(
+                "disclosure_policy",
+                "client-ready narrative",
+                "Disclosure policy is unavailable for the requested narrative jurisdiction.",
+            )
+        )
     if not _risk_available(artifact):
         missing.append(
             _missing(
@@ -209,24 +219,25 @@ def build_proposal_narrative_grounding_packet(
     request: ProposalNarrativeRequest,
 ) -> ProposalNarrativeGroundingPacket:
     facts = _facts_from_artifact(artifact)
+    missing_evidence = _missing_evidence(artifact, request)
     payload = {
-        "policy_version": _POLICY_VERSION,
+        "policy_version": _TEMPLATE_POLICY_VERSION,
         "audience": request.audience,
         "artifact_id": artifact.artifact_id,
         "proposal_run_id": artifact.proposal_run_id,
         "facts": facts,
         "input_hashes": artifact.evidence_bundle.hashes.model_dump(mode="json"),
-        "missing_evidence": [item.model_dump(mode="json") for item in _missing_evidence(artifact)],
+        "missing_evidence": [item.model_dump(mode="json") for item in missing_evidence],
     }
     packet_id = hash_canonical_payload(payload).replace("sha256:", "pgp_", 1)[:20]
     return ProposalNarrativeGroundingPacket(
         packet_id=packet_id,
-        policy_version=_POLICY_VERSION,
+        policy_version=_TEMPLATE_POLICY_VERSION,
         audience=request.audience,
         source_refs=_source_refs(artifact),
         input_hashes=artifact.evidence_bundle.hashes.model_dump(mode="json"),
         facts=facts,
-        missing_evidence=_missing_evidence(artifact),
+        missing_evidence=missing_evidence,
     )
 
 
@@ -362,27 +373,37 @@ def build_deterministic_proposal_narrative(
     request: ProposalNarrativeRequest,
 ) -> ProposalNarrative:
     packet = build_proposal_narrative_grounding_packet(artifact=artifact, request=request)
+    narrative_policy = resolve_proposal_narrative_policy(artifact=artifact, request=request)
     requested = request.sections or list(_ALL_SECTIONS)
     rendered = [section for section in _render_sections(packet) if section.section_key in requested]
+    guardrail_results = evaluate_proposal_narrative_guardrails(rendered)
     payload = {
         "packet_id": packet.packet_id,
         "audience": request.audience,
+        "policy": narrative_policy.model_dump(mode="json"),
+        "guardrail_results": [item.model_dump(mode="json") for item in guardrail_results],
         "sections": [section.model_dump(mode="json") for section in rendered],
         "input_hashes": packet.input_hashes,
     }
     narrative_id = hash_canonical_payload(payload).replace("sha256:", "pn_", 1)[:19]
     blocking_keys = {"risk_lens", "suitability"}
-    status = (
-        "BLOCKED_INSUFFICIENT_EVIDENCE"
-        if any(item.evidence_key in blocking_keys for item in packet.missing_evidence)
-        else "READY_FOR_ADVISOR_REVIEW"
-    )
+    if any(item.status == "FAIL" for item in guardrail_results):
+        status = "BLOCKED_GUARDRAIL_FAILURE"
+    elif narrative_policy.client_ready_blockers:
+        status = "BLOCKED_POLICY_INCOMPLETE"
+    elif any(item.evidence_key in blocking_keys for item in packet.missing_evidence):
+        status = "BLOCKED_INSUFFICIENT_EVIDENCE"
+    else:
+        status = "READY_FOR_ADVISOR_REVIEW"
     return ProposalNarrative(
         narrative_id=narrative_id,
         status=status,
         audience=request.audience,
-        policy_version=_POLICY_VERSION,
+        policy_version=_TEMPLATE_POLICY_VERSION,
+        narrative_policy=narrative_policy,
         grounding_packet=packet,
         sections=rendered,
+        disclosures=narrative_policy.required_disclosures,
+        guardrail_results=guardrail_results,
         limitations=packet.missing_evidence,
     )

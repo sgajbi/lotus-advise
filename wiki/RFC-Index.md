@@ -75,6 +75,13 @@ dependency. Standalone narrative endpoints, persistence, replay, review approval
 drafts, client-ready commentary, report/render/archive integration, data-product promotion, and
 `/platform/capabilities` narrative rows remain gated by later slices.
 
+RFC-0023 Slice 6 is implemented as narrative-policy, disclosure, and guardrail baseline work. It
+adds deterministic policy metadata, approved disclosure selection, unsupported-claim guardrails,
+and client-ready policy blockers to the artifact-path narrative response. Standalone narrative
+endpoints, persistence, replay, review approval, AI-assisted drafts, client-ready commentary,
+report/render/archive integration, data-product promotion, and `/platform/capabilities` narrative
+rows remain gated by later slices.
+
 RFC-0023 is not the current implemented proposal narrative source of truth. The implemented AI seam
 today is workspace rationale support. Proposal narrative remains planned future work until the
 implementing RFC-0023 slices are merged to `main`, validated, and published with
@@ -91,3 +98,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-3-current-state-assessment-and-narrative-contract-baseline.md`
 - `docs/rfcs/RFC-0023-slice-4-data-product-and-supportability-baseline.md`
 - `docs/rfcs/RFC-0023-slice-5-grounding-packet-and-deterministic-template-baseline.md`
+- `docs/rfcs/RFC-0023-slice-6-narrative-policy-disclosure-and-guardrail-framework.md`
