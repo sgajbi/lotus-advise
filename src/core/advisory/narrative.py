@@ -5,8 +5,11 @@ from typing import Any, Literal
 from src.core.advisory.artifact_models import ProposalArtifact
 from src.core.advisory.narrative_models import (
     ProposalNarrative,
+    ProposalNarrativeAiLineage,
+    ProposalNarrativeGenerationMode,
     ProposalNarrativeGroundingPacket,
     ProposalNarrativeMissingEvidence,
+    ProposalNarrativePolicy,
     ProposalNarrativeRequest,
     ProposalNarrativeSection,
     ProposalNarrativeSectionKey,
@@ -18,6 +21,11 @@ from src.core.advisory.narrative_policy import (
     resolve_proposal_narrative_policy,
 )
 from src.core.common.canonical import hash_canonical_payload
+from src.integrations.lotus_ai.proposal_narrative import (
+    LotusAIProposalNarrativeUnavailableError,
+    build_ai_fallback_lineage,
+    generate_proposal_narrative_draft_with_lotus_ai,
+)
 
 _TEMPLATE_POLICY_VERSION = "proposal-narrative-deterministic.v1"
 _ALL_SECTIONS: tuple[ProposalNarrativeSectionKey, ...] = (
@@ -367,6 +375,56 @@ def _render_sections(packet: ProposalNarrativeGroundingPacket) -> list[ProposalN
     return sections
 
 
+def _apply_ai_draft_sections(
+    *,
+    packet: ProposalNarrativeGroundingPacket,
+    narrative_policy: ProposalNarrativePolicy,
+    request: ProposalNarrativeRequest,
+    deterministic_sections: list[ProposalNarrativeSection],
+    requested_sections: list[ProposalNarrativeSectionKey],
+) -> tuple[
+    list[ProposalNarrativeSection],
+    ProposalNarrativeAiLineage,
+    ProposalNarrativeGenerationMode,
+]:
+    section_by_key = {section.section_key: section for section in deterministic_sections}
+    try:
+        ai_response = generate_proposal_narrative_draft_with_lotus_ai(
+            grounding_packet=packet,
+            narrative_policy=narrative_policy,
+            requested_sections=requested_sections,
+            requested_by=request.requested_by,
+        )
+    except LotusAIProposalNarrativeUnavailableError as exc:
+        return (
+            deterministic_sections,
+            build_ai_fallback_lineage(str(exc) or "LOTUS_AI_NARRATIVE_UNAVAILABLE"),
+            "DETERMINISTIC_TEMPLATE",
+        )
+
+    ai_sections: list[ProposalNarrativeSection] = []
+    for draft_section in ai_response.sections:
+        source_section = section_by_key.get(draft_section.section_key)
+        if source_section is None:
+            continue
+        ai_sections.append(
+            ProposalNarrativeSection(
+                section_key=draft_section.section_key,
+                title=draft_section.title,
+                text=draft_section.text,
+                source_refs=source_section.source_refs,
+                limitation_refs=source_section.limitation_refs,
+            )
+        )
+    if not ai_sections:
+        return (
+            deterministic_sections,
+            build_ai_fallback_lineage("LOTUS_AI_NARRATIVE_UNAVAILABLE"),
+            "DETERMINISTIC_TEMPLATE",
+        )
+    return ai_sections, ai_response.lineage, "AI_ASSISTED_DRAFT"
+
+
 def build_deterministic_proposal_narrative(
     *,
     artifact: ProposalArtifact,
@@ -376,10 +434,22 @@ def build_deterministic_proposal_narrative(
     narrative_policy = resolve_proposal_narrative_policy(artifact=artifact, request=request)
     requested = request.sections or list(_ALL_SECTIONS)
     rendered = [section for section in _render_sections(packet) if section.section_key in requested]
+    ai_lineage: ProposalNarrativeAiLineage | None = None
+    generation_mode: ProposalNarrativeGenerationMode = "DETERMINISTIC_TEMPLATE"
+    if request.generation_mode == "AI_ASSISTED_DRAFT":
+        rendered, ai_lineage, generation_mode = _apply_ai_draft_sections(
+            packet=packet,
+            narrative_policy=narrative_policy,
+            request=request,
+            deterministic_sections=rendered,
+            requested_sections=requested,
+        )
     guardrail_results = evaluate_proposal_narrative_guardrails(rendered)
     payload = {
         "packet_id": packet.packet_id,
         "audience": request.audience,
+        "generation_mode": generation_mode,
+        "ai_lineage": ai_lineage.model_dump(mode="json") if ai_lineage is not None else None,
         "policy": narrative_policy.model_dump(mode="json"),
         "guardrail_results": [item.model_dump(mode="json") for item in guardrail_results],
         "sections": [section.model_dump(mode="json") for section in rendered],
@@ -399,8 +469,10 @@ def build_deterministic_proposal_narrative(
         narrative_id=narrative_id,
         status=status,
         audience=request.audience,
+        generation_mode=generation_mode,
         policy_version=_TEMPLATE_POLICY_VERSION,
         narrative_policy=narrative_policy,
+        ai_lineage=ai_lineage,
         grounding_packet=packet,
         sections=rendered,
         disclosures=narrative_policy.required_disclosures,

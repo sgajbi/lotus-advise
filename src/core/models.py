@@ -1476,9 +1476,8 @@ class ProposalSimulateRequest(BaseModel):
     narrative_request: ProposalNarrativeRequest | None = Field(
         default=None,
         description=(
-            "Optional deterministic advisor-review proposal narrative request. Slice 5 supports "
-            "only backend-generated `ADVISOR_REVIEW` narrative without AI dependency; client-ready "
-            "commentary remains gated."
+            "Optional advisor-review proposal narrative request. Supports deterministic template "
+            "mode and Slice 7 opt-in `AI_ASSISTED_DRAFT`; client-ready commentary remains gated."
         ),
     )
 
