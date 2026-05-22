@@ -47,11 +47,18 @@ RFC-0023 through RFC-0028 are gold-standard implementation plans for the next ad
 roadmap. RFC-0023 is now the recommended first implementation slice because it defines the grounded
 narrative prerequisite consumed by proposal memo, policy, cockpit, copilot, and demo work.
 
+RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
+It records source authorities, cross-repo ownership, and the first bounded implementation direction.
+It does not implement generated proposal narrative.
+
 RFC-0023 is not the current implemented proposal narrative source of truth. The implemented AI seam
-today is workspace rationale support. Proposal narrative remains planned future work until RFC-0023
-is implemented, merged to `main`, validated, and published with implementation-backed feature
-truth.
+today is workspace rationale support. Proposal narrative remains planned future work until the
+implementing RFC-0023 slices are merged to `main`, validated, and published with
+implementation-backed feature truth.
 
 ## Source Index
 
 Use `docs/rfcs/README.md` as the authoritative repository RFC disposition index.
+
+Implementation evidence:
+- `docs/rfcs/RFC-0023-slice-0-critical-review-source-map-and-product-gap-allocation.md`

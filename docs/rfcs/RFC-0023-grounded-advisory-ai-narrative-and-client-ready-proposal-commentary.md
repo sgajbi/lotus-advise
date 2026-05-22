@@ -5,6 +5,7 @@
 | **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
 | **Created** | 2026-04-12 |
 | **Last Tightened** | 2026-05-22 |
+| **Slice 0 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-0-critical-review-source-map-and-product-gap-allocation.md`; this is source-map and scope-gate proof only, not proposal narrative capability |
 | **Owner** | `lotus-advise` for proposal narrative authority, grounding packets, review lifecycle, persistence, replay, and advisory API truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, compliance reviewer, investment desk reviewer, operations support, audit, client-reporting owner, sales/pre-sales |
 | **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |
@@ -674,6 +675,10 @@ upstream, downstream, UI, report, archive, platform, documentation, data-product
 must be added to these slices rather than parked in WTBD or a side ledger.
 
 ### Slice 0: Critical Review, Source Map, and Product Gap Allocation
+
+Status: implemented as source-map and scope-gate proof in
+`docs/rfcs/RFC-0023-slice-0-critical-review-source-map-and-product-gap-allocation.md`. This status
+does not promote proposal narrative as a supported capability.
 
 Outcome:
 
