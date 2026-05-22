@@ -31,7 +31,9 @@ The implemented AI-facing workspace seam is:
 
 This endpoint returns an evidence-grounded workspace rationale and includes the deterministic evidence bundle supplied to the AI workflow.
 
-That is different from the broader proposal narrative capability described in RFC-0023, which remains future work.
+That is different from the RFC-0023 proposal narrative capability, which is implemented for
+advisor-review artifact, review/replay, reviewed report-request package, report/render/archive,
+Gateway posture, and Workbench posture. Client-ready proposal narrative remains gated.
 
 ## Lifecycle Handoff
 

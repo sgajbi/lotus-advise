@@ -162,4 +162,7 @@ Reporting can be requested through `lotus-advise`, but report generation ownersh
 
 ### `lotus-ai`
 
-The current implemented AI seam is workspace rationale generation. Future proposal narrative capability is documented in RFC-0023 and is not yet the active implemented source of truth.
+The implemented AI seams are workspace rationale generation and RFC-0023 advisor-review proposal
+narrative drafting. Proposal narrative is the active source of truth only for advisor-use artifact,
+review/replay, reviewed report-request package, report/render/archive, Gateway posture, and
+Workbench posture; client-ready narrative and capability promotion remain gated.

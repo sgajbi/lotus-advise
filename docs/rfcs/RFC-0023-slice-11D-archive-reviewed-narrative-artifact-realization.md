@@ -11,9 +11,9 @@ Slice 11D closes the archive portion of RFC-0023 Slice 11. `lotus-archive` now s
 already includes the advisor-use reviewed advisory narrative page from the `lotus-report` and
 `lotus-render` path.
 
-This closure does not promote client-ready commentary, Gateway composition, Workbench rendering,
-data-product registration, trust telemetry, or `/platform/capabilities` narrative support. Those
-remain gated by later implementation slices.
+This closure does not promote client-ready commentary, data-product registration, trust telemetry,
+or `/platform/capabilities` narrative support. Gateway composition and Workbench rendering are
+tracked separately and were later closed by Slice 11E.
 
 ## Implemented Behavior
 

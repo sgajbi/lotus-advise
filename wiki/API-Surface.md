@@ -33,7 +33,9 @@ Delivery evidence records the compact narrative package summary. `lotus-report` 
 snapshots the reviewed package, and `lotus-render` renders it as an optional advisor-use
 portfolio-review advisory narrative page. `lotus-archive` stores a support-safe archive metadata
 summary for rendered advisor-use portfolio-review artifacts with approved review posture and source
-hash lineage. Gateway composition, Workbench rendering, and client-ready publication remain gated.
+hash lineage. `lotus-gateway` exposes product-facing reviewed-narrative posture from these
+canonical advisory routes, and `lotus-workbench` renders the Gateway-backed advisor-use proposal
+narrative posture. Client-ready publication remains gated.
 
 ## Advisory Operations And Support
 

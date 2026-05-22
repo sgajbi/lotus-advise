@@ -17,8 +17,9 @@
 | **Slice 9 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-9-alternatives-decision-summary-and-policy-evidence-integration.md`; advisor-review narrative sections now integrate RFC-0021 decision summary, RFC-0022 alternatives tradeoffs, approval/remediation requirements, material changes, and risk/suitability limitations, while client-ready, report/render/archive, Gateway, Workbench, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
 | **Slice 10 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-10-certified-api-and-openapi.md`; canonical advisor-review narrative API/OpenAPI routes, idempotency guidance, response fields, and stale-route absence are certified, while standalone read/regeneration, client-ready, downstream artifact realization, Gateway, Workbench, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
 | **Slice 11A Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11A-reviewed-narrative-report-request-package-propagation.md`; reviewed narrative report-request package propagation is supported in `lotus-advise`, creating the source-backed package consumed by downstream Slice 11B/11C work |
-| **Slice 11B/11C Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11B-11C-report-render-reviewed-narrative-realization.md`; `lotus-report` now consumes and snapshots reviewed advisory narrative packages and `lotus-render` now renders the optional portfolio-review advisory narrative page; archive closure is tracked separately in Slice 11D, while Gateway, Workbench, client-ready, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
-| **Slice 11D Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md`; `lotus-archive` now stores support-safe reviewed advisory narrative archive summaries for rendered advisor-use portfolio-review artifacts, while Gateway, Workbench, client-ready, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
+| **Slice 11B/11C Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11B-11C-report-render-reviewed-narrative-realization.md`; `lotus-report` now consumes and snapshots reviewed advisory narrative packages and `lotus-render` now renders the optional portfolio-review advisory narrative page; archive closure is tracked separately in Slice 11D and Gateway/Workbench posture is tracked separately in Slice 11E, while client-ready, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
+| **Slice 11D Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md`; `lotus-archive` now stores support-safe reviewed advisory narrative archive summaries for rendered advisor-use portfolio-review artifacts, while Gateway/Workbench posture is tracked separately in Slice 11E and client-ready, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
+| **Slice 11E Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md`; `lotus-gateway` now exposes product-facing reviewed-narrative posture through canonical `lotus-advise` APIs and `lotus-workbench` now renders the Gateway-backed advisor-use proposal narrative posture, while compliance-review, client-draft, client-ready, standalone read/regeneration, data-product, trust-telemetry, canonical demo screenshot proof, and `/platform/capabilities` promotion remain gated |
 | **Owner** | `lotus-advise` for proposal narrative authority, grounding packets, review lifecycle, persistence, replay, and advisory API truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, compliance reviewer, investment desk reviewer, operations support, audit, client-reporting owner, sales/pre-sales |
 | **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |
@@ -914,7 +915,7 @@ Acceptance gate:
 ### Slice 11: Report, Render, Archive, Gateway, and Workbench Realization
 
 Implementation status: partially implemented on 2026-05-22 as Slice 11A plus downstream Slices
-11B/11C and 11D. Slice 11A in
+11B/11C, 11D, and 11E. Slice 11A in
 `docs/rfcs/RFC-0023-slice-11A-reviewed-narrative-report-request-package-propagation.md` adds
 explicit `include_reviewed_narrative` support to proposal report requests, validates that the
 selected immutable proposal version has an approved narrative review with matching source hash,
@@ -926,8 +927,12 @@ snapshot reviewed advisory narrative packages, and portfolio-review v1 renders t
 advisor-use advisory narrative page from that package. Slice 11D in
 `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md` closes
 `lotus-archive` artifact realization for support-safe reviewed advisory narrative summaries on
-rendered advisor-use portfolio-review documents. Concrete Gateway, Workbench, client-ready, and
-browser-validation realization remain gated.
+rendered advisor-use portfolio-review documents. Slice 11E in
+`docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md` closes
+`lotus-gateway` product-facing composition and `lotus-workbench` advisor-use proposal posture
+rendering for reviewed narrative packages. Compliance-review, client-draft, client-ready
+publication, standalone read/regeneration APIs, data-product promotion, trust telemetry, canonical
+demo screenshot proof, and `/platform/capabilities` narrative promotion remain gated.
 
 Outcome:
 
@@ -1164,9 +1169,9 @@ Update or add:
 | Client-ready narrative | Gated | Promote only after explicit human approval, disclosure policy, guardrail pass, report/render/archive readiness, and replay evidence are green. |
 | Narrative review workflow | Proposed | Promote only after approve/reject/regenerate transitions are auditable, idempotent where required, and persist exact actor/action/reason/version lineage. |
 | Narrative replay | Proposed | Promote only after replay returns the exact persisted narrative evidence without model calls and verifies source-input hashes. |
-| Report/render/archive narrative package | Proposed | Report request, report, render, and archive support is implemented for advisor-use reviewed narrative packages; promote only after Gateway/Workbench posture, client-ready controls, data-product posture, trust telemetry, and capability publication are proven. |
-| Gateway narrative API | Proposed | Promote only after Gateway consumes canonical Advise endpoints and passes contract/integration tests. |
-| Workbench narrative review UX | Proposed | Promote only after browser validation proves backed advisor, compliance, client-draft, blocked, degraded, and guardrail states through Gateway/BFF only. |
+| Report/render/archive narrative package | Proposed | Report request, report, render, archive, Gateway posture, and Workbench posture support is implemented for advisor-use reviewed narrative packages; promote only after client-ready controls, data-product posture, trust telemetry, and capability publication are proven. |
+| Gateway narrative API | Supported for advisor-use reviewed narrative posture | `lotus-gateway` consumes canonical Advise review, report-request, delivery-summary, and delivery-event APIs with contract and integration proof; compliance-review, client-draft, client-ready publication, and capability promotion remain gated. |
+| Workbench narrative review UX | Supported for advisor-use proposal posture | `lotus-workbench` renders Gateway-backed proposal narrative posture and does not infer narrative facts locally; broader compliance, client-draft, blocked, degraded, and canonical demo screenshot proof remain gated. |
 | Narrative evidence data product | Proposed | Promote only after producer declaration, trust telemetry, SLO/access/evidence policy, mesh certification, and catalog publication are complete. |
 | Sales/demo-safe narrative proof | Proposed | Promote only after synthetic/approved demo data, supported-claim taxonomy, wiki/demo material, and canonical proof are implementation-backed. |
 
