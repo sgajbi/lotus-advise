@@ -1,3 +1,5 @@
+from typing import Any
+
 from src.core.proposals.command_read_model import load_proposal_command_read_model
 from src.core.proposals.exceptions import ProposalNotFoundError
 from src.core.proposals.models import ProposalReportResponse, ProposalWorkflowEventRecord
@@ -14,6 +16,8 @@ def record_proposal_report_request(
     requested_by: str,
     related_version_no: int,
     include_execution_summary: bool,
+    include_reviewed_narrative: bool = False,
+    proposal_narrative_package: dict[str, Any] | None = None,
     event_id: str,
 ) -> ProposalWorkflowEventRecord:
     command_read_model = load_proposal_command_read_model(
@@ -31,6 +35,8 @@ def record_proposal_report_request(
         requested_by=requested_by,
         related_version_no=related_version_no,
         include_execution_summary=include_execution_summary,
+        include_reviewed_narrative=include_reviewed_narrative,
+        proposal_narrative_package=proposal_narrative_package,
     )
     persist_proposal_transition(
         repository=repository,

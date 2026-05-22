@@ -128,6 +128,12 @@ Authority orchestration note:
 - Purpose: request a Lotus-branded advisory report payload through the lotus-report seam.
 - Ownership rule: lotus-advise assembles advisory context, but reporting ownership remains with
   `lotus-report`.
+- Reviewed narrative package propagation: set `include_reviewed_narrative=true` only when the
+  selected immutable proposal version has a persisted advisor-review narrative and an
+  `APPROVED_FOR_ADVISOR_USE` review. The request is blocked before the report seam if review
+  evidence is missing, not approved, or hash continuity no longer matches the source narrative.
+- Evidence rule: delivery summary and replay evidence expose only a compact package summary; raw
+  report rendering and archive ownership remain downstream responsibilities.
 
 ### `POST /advisory/proposals/{proposal_id}/execution-handoffs`
 - Purpose: record an auditable advisory execution handoff request for an execution provider.

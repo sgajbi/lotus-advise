@@ -1,3 +1,7 @@
+from src.api.services.proposal_report_narrative import (
+    build_reviewed_narrative_report_package,
+    summarize_narrative_report_package,
+)
 from src.core.proposals import (
     ProposalReportRequest,
     ProposalReportResponse,
@@ -25,6 +29,19 @@ def request_proposal_report(
     )
 
     execution_status = service.get_execution_status(proposal_id=proposal_id)
+    narrative_package = None
+    if payload.include_reviewed_narrative:
+        replay = service.get_version_replay(
+            proposal_id=proposal_id,
+            version_no=related_version_no,
+        )
+        replay_evidence = dict(replay.evidence)
+        replay_evidence.update(replay.hashes.model_dump(mode="json"))
+        narrative_package = build_reviewed_narrative_report_package(
+            proposal_id=proposal_id,
+            version_no=related_version_no,
+            replay_evidence=replay_evidence,
+        )
     request_id = new_report_request_id()
 
     request = {
@@ -35,6 +52,8 @@ def request_proposal_report(
         "requested_by": payload.requested_by,
         "related_version_no": related_version_no,
         "include_execution_summary": payload.include_execution_summary,
+        "include_reviewed_narrative": payload.include_reviewed_narrative,
+        "proposal_narrative_package": narrative_package,
         "execution_status": (
             execution_status.model_dump(mode="json") if payload.include_execution_summary else None
         ),
@@ -42,11 +61,20 @@ def request_proposal_report(
     response = request_proposal_report_with_lotus_report(request=request)
     if response.report_request_id != request_id:
         response.report_request_id = request_id
+    narrative_package_summary = summarize_narrative_report_package(narrative_package)
+    response.explanation.setdefault(
+        "include_reviewed_narrative",
+        payload.include_reviewed_narrative,
+    )
+    if narrative_package_summary is not None:
+        response.explanation.setdefault("proposal_narrative_package", narrative_package_summary)
     service.record_report_request(
         proposal_id=proposal_id,
         report_response=response,
         requested_by=payload.requested_by,
         related_version_no=related_version_no,
         include_execution_summary=payload.include_execution_summary,
+        include_reviewed_narrative=payload.include_reviewed_narrative,
+        proposal_narrative_package=narrative_package_summary,
     )
     return response

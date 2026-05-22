@@ -909,6 +909,15 @@ Acceptance gate:
 
 ### Slice 11: Report, Render, Archive, Gateway, and Workbench Realization
 
+Implementation status: partially implemented on 2026-05-22 as Slice 11A in
+`docs/rfcs/RFC-0023-slice-11A-reviewed-narrative-report-request-package-propagation.md`. The
+implemented baseline adds explicit `include_reviewed_narrative` support to proposal report
+requests, validates that the selected immutable proposal version has an approved narrative review
+with matching source hash, propagates a compact source-backed narrative package to the report seam,
+and persists a package summary in report-request delivery evidence. Concrete `lotus-report`,
+`lotus-render`, `lotus-archive`, Gateway, Workbench, and browser-validation realization remain
+gated.
+
 Outcome:
 
 1. include review-approved narrative in report/render/archive flows where client artifacts are
