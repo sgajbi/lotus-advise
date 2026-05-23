@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from datetime import datetime, timezone
 
 import pytest
@@ -1446,6 +1447,44 @@ def test_narrative_client_ready_release_requires_positive_review_and_clear_polic
 
     assert rejected.narrative_review.client_ready_status == "BLOCKED_REVIEW_REQUIRED"
     assert approved.narrative_review.client_ready_status == "BLOCKED_POLICY_OR_GUARDRAIL"
+
+
+def test_narrative_client_ready_release_stays_gated_for_clean_advisor_review_narrative() -> None:
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    created = service.create_proposal(
+        payload=_create_payload_with_narrative("pf_service_narrative_client_ready_gated"),
+        idempotency_key="idem-narrative-client-ready-gated-create",
+        correlation_id="corr-narrative-client-ready-gated-create",
+    )
+    version = repo.get_version(proposal_id=created.proposal.proposal_id, version_no=1)
+    assert version is not None
+
+    artifact = deepcopy(version.artifact_json)
+    narrative = artifact["proposal_narrative"]
+    narrative["status"] = "READY_FOR_ADVISOR_REVIEW"
+    narrative["review_state"] = "DRAFT"
+    narrative["limitations"] = []
+    narrative["narrative_policy"]["client_ready_blockers"] = []
+    for result in narrative["guardrail_results"]:
+        result["status"] = "PASS"
+    repo.create_version(version.model_copy(update={"artifact_json": artifact}))
+
+    approved = service.record_narrative_review(
+        proposal_id=created.proposal.proposal_id,
+        version_no=1,
+        payload=ProposalNarrativeReviewRequest(
+            action="APPROVE",
+            reviewed_by="compliance_001",
+            reason="Advisor-review approval must not promote client-ready release.",
+            client_ready_release_requested=True,
+        ),
+        idempotency_key="idem-narrative-client-ready-gated-approve",
+    )
+
+    assert approved.narrative_review.review_state == "APPROVED_FOR_ADVISOR_USE"
+    assert approved.narrative_review.client_ready_status == "BLOCKED_POLICY_OR_GUARDRAIL"
+    assert approved.narrative_review.client_ready_status != "APPROVED_FOR_CLIENT_READY"
 
 
 def test_approval_replay_requires_matching_event_referent():

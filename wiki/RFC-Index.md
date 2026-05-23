@@ -185,6 +185,11 @@ report-package request, replay evidence, guardrail failure reproduction, and opt
 AI-assisted validation when enabled. Workbench canonical validation now proves
 `proposal.narrative_posture` with a governed screenshot and panel-registry classification.
 
+RFC-0023 Slice 13/14 is implemented as closure hardening and gold-standard review. It records that
+RFC-0023 is not a full client-ready publication capability and hardens the review workflow so an
+otherwise clean advisor-review narrative release request still cannot return
+`APPROVED_FOR_CLIENT_READY`.
+
 RFC-0023 is now implemented for artifact-path advisor-review narrative and proposal-version
 review/replay evidence with decision-summary and alternatives-aware section rendering, and the
 canonical API/OpenAPI surface is certified for standalone read, non-persistent regeneration,
@@ -220,6 +225,7 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md`
 - `docs/rfcs/RFC-0023-slice-11F-narrative-data-product-trust-capability-promotion.md`
 - `docs/rfcs/RFC-0023-slice-12-live-validation-canonical-proof-and-operator-evidence.md`
+- `docs/rfcs/RFC-0023-slice-13-14-closure-hardening-and-review.md`
 - `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md`
 - `docs/rfcs/RFC-0024-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0024-slice-2-cleanup-and-structure.md`
