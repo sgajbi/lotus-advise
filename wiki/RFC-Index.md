@@ -59,6 +59,12 @@ one-off local memo scaffolding, and pins the controls later RFC-0024 slices must
 quality, observability, test pyramid, data-product promotion, trust telemetry, live proof, and
 documentation truth.
 
+RFC-0024 Slice 2 is implemented as cleanup and structure work. It moves reviewed narrative
+report-package business rules from the API service layer into the core proposal report-handoff
+boundary and adds engine-level tests for source-backed package construction, review approval,
+hash-continuity, and support-safe summaries. It does not implement or promote advisor proposal memo
+support.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -204,3 +210,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-12-live-validation-canonical-proof-and-operator-evidence.md`
 - `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md`
 - `docs/rfcs/RFC-0024-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0024-slice-2-cleanup-and-structure.md`

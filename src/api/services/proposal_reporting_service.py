@@ -1,7 +1,3 @@
-from src.api.services.proposal_report_narrative import (
-    build_reviewed_narrative_report_package,
-    summarize_narrative_report_package,
-)
 from src.core.proposals import (
     ProposalReportRequest,
     ProposalReportResponse,
@@ -9,6 +5,10 @@ from src.core.proposals import (
 )
 from src.core.proposals.exceptions import ProposalNotFoundError
 from src.core.proposals.identifiers import new_report_request_id
+from src.core.proposals.report_narrative_package import (
+    build_reviewed_narrative_report_package,
+    summarize_narrative_report_package,
+)
 from src.integrations.lotus_report import request_proposal_report_with_lotus_report
 
 

@@ -72,6 +72,7 @@ lineage helpers live outside the orchestration class.
 | `src/core/proposals/execution_status.py` | Execution status projection from workflow events. | Separates downstream execution posture from execution ownership. |
 | `src/core/proposals/delivery_summary.py` | Delivery and reporting summary projection from workflow events. | Keeps operator-facing delivery posture derived from audit history. |
 | `src/core/proposals/reporting.py` | Report-request workflow event construction. | Captures report lineage while preserving `lotus-report` ownership. |
+| `src/core/proposals/report_narrative_package.py` | Reviewed advisor-use narrative package construction and support-safe summary projection for report handoff. | Keeps review-state, hash-continuity, source-lineage, and report-package rules out of API services before RFC-0024 memo report packages are introduced. |
 | `src/core/proposals/lifecycle.py` | Lifecycle entry-point validation. | Makes direct create versus workspace handoff policy explicit. |
 
 ### Proposal Lifecycle Flow
