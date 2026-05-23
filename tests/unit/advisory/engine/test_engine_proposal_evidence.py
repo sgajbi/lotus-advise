@@ -44,15 +44,22 @@ def test_build_proposal_evidence_bundle_preserves_lineage_and_risk_lens():
     context_resolution_override["lineage"]["step"] = "tampered"
     replay_lineage["attempt"]["count"] = 9
 
-    assert bundle == {
-        "hashes": {"artifact_hash": "sha256:artifact"},
-        "context_resolution": {"source": "WORKSPACE_HANDOFF", "lineage": {"step": "handoff"}},
-        "risk_lens": {
-            "source_service": "lotus-risk",
-            "drawdown": {"proposed": "0.08"},
-        },
-        "replay_lineage": {"operation_id": "pop_replay", "attempt": {"count": 1}},
+    assert bundle["hashes"] == {"artifact_hash": "sha256:artifact"}
+    assert bundle["context_resolution"] == {
+        "source": "WORKSPACE_HANDOFF",
+        "lineage": {"step": "handoff"},
     }
+    assert bundle["risk_lens"] == {
+        "source_service": "lotus-risk",
+        "drawdown": {"proposed": "0.08"},
+    }
+    assert bundle["memo_source_readiness"]["contract_version"] == (
+        "rfc0024.memo-source-readiness.v1"
+    )
+    assert bundle["memo_source_readiness"]["capability_posture"] == (
+        "SOURCE_READINESS_ONLY_MEMO_GENERATION_NOT_IMPLEMENTED"
+    )
+    assert bundle["replay_lineage"] == {"operation_id": "pop_replay", "attempt": {"count": 1}}
 
 
 def test_build_proposal_evidence_bundle_uses_context_resolution_without_override():
@@ -69,4 +76,5 @@ def test_build_proposal_evidence_bundle_uses_context_resolution_without_override
 
     assert bundle["context_resolution"] == {"source": "STATEFUL", "policy": {"jurisdiction": "SG"}}
     assert bundle["risk_lens"] is None
+    assert bundle["memo_source_readiness"]["overall_posture"] == "BLOCKED"
     assert "replay_lineage" not in bundle

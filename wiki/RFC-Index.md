@@ -71,6 +71,12 @@ controls can see the planned memo product boundary. It does not add memo routes,
 policy, `/platform/capabilities` support, Gateway/Workbench memo support, or client-ready memo
 publication.
 
+RFC-0024 Slice 4 is implemented as upstream source evidence completion. Proposal evidence bundles
+now include a persisted `rfc0024.memo-source-readiness.v1` manifest that attributes memo-critical
+source families to `lotus-core`, `lotus-risk`, and `lotus-advise`, marks unsupported or incomplete
+facts as `PENDING_REVIEW`, `BLOCKED`, or `NOT_AVAILABLE`, and keeps memo generation and client-ready
+publication unpromoted.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -218,3 +224,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0024-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0024-slice-4-upstream-source-evidence-completion.md`

@@ -25,6 +25,7 @@
 | Slice 1 platform automation and scaffolding review | `docs/rfcs/RFC-0024-slice-1-platform-automation-and-scaffolding-review.md` | Implemented - reviewed; no platform change required before memo domain work |
 | Slice 2 cleanup and structure | `docs/rfcs/RFC-0024-slice-2-cleanup-and-structure.md` | Implemented - report-handoff cleanup only; no memo support promoted |
 | Slice 3 data product and platform hardening | `docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md` | Implemented - proposed/blocked memo data product; no memo support promoted |
+| Slice 4 upstream source evidence completion | `docs/rfcs/RFC-0024-slice-4-upstream-source-evidence-completion.md` | Implemented - persisted source-readiness manifest; no memo support promoted |
 
 ## 0. Executive Summary
 
