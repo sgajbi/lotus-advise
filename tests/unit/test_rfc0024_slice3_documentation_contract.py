@@ -42,7 +42,7 @@ def test_rfc0024_slice3_keeps_memo_capability_unpromoted() -> None:
     assert "product has no `current_routes`" in slice3_text
     assert "No memo row is added in this slice" in slice3_text
     assert "active mesh policy" in slice3_text
-    assert "Slices 0-3 are complete as non-claiming source-map" in supported_features
+    assert "Slices 0-4 are complete as non-claiming source-map" in supported_features
     assert "proposed/blocked governance posture" in supported_features
     assert "Memo generation, memo APIs, memo persistence" in supported_features
     assert "client-ready memo claims remain planned" in supported_features

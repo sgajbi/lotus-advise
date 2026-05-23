@@ -43,7 +43,7 @@ def test_supported_features_keep_rfc0024_current_state_non_claiming() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
     assert "`RFC-0024`" in supported_features
-    assert "Slices 0-3 are complete as non-claiming source-map" in supported_features
+    assert "Slices 0-4 are complete as non-claiming source-map" in supported_features
     assert "product-gap allocation" in supported_features
     assert "Memo generation, memo APIs, memo persistence" in supported_features
     assert "client-ready memo claims remain planned" in supported_features
