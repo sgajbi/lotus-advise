@@ -17,6 +17,12 @@
 
 ---
 
+## Implementation Evidence Index
+
+| Slice | Evidence | Status |
+| --- | --- | --- |
+| Slice 0 critical review, source map, and product-gap allocation | `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md` | Implemented - source-map and scope-gate only |
+
 ## 0. Executive Summary
 
 RFC-0024 creates the `AdvisoryProposalMemoEvidencePack`: the governed advisory evidence product that
