@@ -77,6 +77,12 @@ source families to `lotus-core`, `lotus-risk`, and `lotus-advise`, marks unsuppo
 facts as `PENDING_REVIEW`, `BLOCKED`, or `NOT_AVAILABLE`, and keeps memo generation and client-ready
 publication unpromoted.
 
+RFC-0024 Slice 5 is implemented as memo domain model and pure builder work. It introduces typed
+`AdvisoryProposalMemoEvidencePack` models and a deterministic side-effect-free builder that projects
+stored proposal evidence and the Slice 4 source-readiness manifest into advisor-review memo
+sections. It does not add memo routes, memo persistence, report/render/archive support,
+Gateway/Workbench support, active data-product support, or client-ready memo claims.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -231,3 +237,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0024-slice-4-upstream-source-evidence-completion.md`
+- `docs/rfcs/RFC-0024-slice-5-memo-domain-model-and-pure-builder.md`
