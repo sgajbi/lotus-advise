@@ -53,6 +53,12 @@ bounded implementation direction. It does not implement advisor proposal memo ge
 memo persistence, memo report packages, Gateway/Workbench memo surfaces, or client-ready memo
 publication.
 
+RFC-0024 Slice 1 is implemented as a platform automation and scaffolding review. It records that
+existing Lotus platform and repo-native controls are sufficient before memo domain work, rejects
+one-off local memo scaffolding, and pins the controls later RFC-0024 slices must satisfy for API
+quality, observability, test pyramid, data-product promotion, trust telemetry, live proof, and
+documentation truth.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -197,3 +203,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-11F-narrative-data-product-trust-capability-promotion.md`
 - `docs/rfcs/RFC-0023-slice-12-live-validation-canonical-proof-and-operator-evidence.md`
 - `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md`
+- `docs/rfcs/RFC-0024-slice-1-platform-automation-and-scaffolding-review.md`
