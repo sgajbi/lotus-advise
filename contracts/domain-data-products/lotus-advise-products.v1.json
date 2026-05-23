@@ -123,6 +123,61 @@
       }
     },
     {
+      "product_name": "AdvisoryProposalMemoEvidencePack",
+      "product_version": "v1",
+      "owner_repository": "lotus-advise",
+      "product_family": "reporting_and_evidence",
+      "authoritative_domain": "advisory_workflow",
+      "lifecycle_status": "proposed",
+      "request_scope": {
+        "scope_level": "workflow_run",
+        "supports_bulk": false
+      },
+      "temporal_scope": {
+        "primary_time_field": "generated_at",
+        "freshness_basis": "event_time",
+        "supports_restatement": true
+      },
+      "temporal_semantics_ref": "generated_at",
+      "identifier_refs": [
+        "portfolio_id",
+        "correlation_id"
+      ],
+      "required_trust_metadata": [
+        "product_name",
+        "product_version",
+        "generated_at",
+        "content_hash",
+        "correlation_id"
+      ],
+      "freshness_policy": {
+        "freshness_class": "event_driven",
+        "max_allowed_age_description": "Memo evidence pack freshness will be measured against immutable proposal version evidence, memo section readiness, source-authority manifest, report/archive posture, and finalized memo review events. Until memo APIs and persistence are implemented, telemetry remains blocked and the product must not be advertised as supported."
+      },
+      "completeness_policy": {
+        "default_status": "blocked",
+        "partial_allowed": false
+      },
+      "lineage_policy": {
+        "lineage_required": true,
+        "evidence_bundle_required": true,
+        "lineage_bundle_class_ref": "customer_lineage_summary",
+        "evidence_access_class_ref": "customer_consumable"
+      },
+      "security_profile_ref": "business_consumer_access:client_confidential:retain_for_client_record:audit_read_and_export",
+      "approved_consumers": [
+        "lotus-gateway",
+        "lotus-report",
+        "lotus-render",
+        "lotus-archive",
+        "lotus-workbench"
+      ],
+      "deprecation_policy": {
+        "state": "not_deprecated",
+        "successor_product": null
+      }
+    },
+    {
       "product_name": "TacticalHouseViewAffectedCohort",
       "product_version": "v1",
       "owner_repository": "lotus-advise",

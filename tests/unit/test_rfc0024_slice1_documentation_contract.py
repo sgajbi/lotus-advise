@@ -59,7 +59,7 @@ def test_rfc0024_slice1_rejects_one_off_scaffolding_and_pins_memo_controls() -> 
 def test_rfc0024_slice1_keeps_supported_features_non_claiming() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "Slices 0-2 are complete as non-claiming source-map" in supported_features
+    assert "Slices 0-3 are complete as non-claiming source-map" in supported_features
     assert "Existing platform/repo-native controls are sufficient" in supported_features
     assert "Memo generation, memo APIs, memo persistence" in supported_features
     assert "client-ready memo claims remain planned" in supported_features

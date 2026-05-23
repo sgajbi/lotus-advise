@@ -49,8 +49,8 @@ def test_rfc0024_slice2_pins_core_report_handoff_boundary() -> None:
 def test_rfc0024_slice2_keeps_supported_features_non_claiming() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "Slices 0-2 are complete as non-claiming source-map" in supported_features
-    assert "cleanup/structure gates" in supported_features
+    assert "Slices 0-3 are complete as non-claiming source-map" in supported_features
+    assert "cleanup/structure" in supported_features
     assert "reviewed narrative report-package business rules now live" in supported_features
     assert "Memo generation, memo APIs, memo persistence" in supported_features
     assert "client-ready memo claims remain planned" in supported_features
