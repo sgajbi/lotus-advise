@@ -54,12 +54,11 @@ def test_rfc0023_slice3_contract_baseline_keeps_supported_features_non_claiming(
     assert "Gateway-backed advisor-use proposal posture" in supported_features
     assert "standalone proposal-version narrative read" in supported_features
     assert "non-persistent regeneration APIs" in supported_features
-    assert "client-ready narrative, and canonical demo screenshot proof remain gated" in (
-        supported_features
-    )
+    assert "Client-ready narrative,\nclient-ready publication" in (supported_features)
     assert "support-safe reviewed narrative archive metadata summaries" in supported_features
     assert "Proposal narrative | Supported" not in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features
+    assert "Canonical demo screenshot proof is now supported only for" in supported_features
     assert "`ADVISOR_REVIEW`" in slice3_text
     assert "`CLIENT_READY` | Gated" in slice3_text
 

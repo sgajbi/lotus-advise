@@ -67,4 +67,5 @@ def test_rfc0023_slice11f_api_and_mesh_docs_expose_bounded_capability() -> None:
     assert "lotus-advise:ProposalNarrativeEvidence:v1" in mesh_products
     assert "proposal-narrative-evidence.telemetry.v1.json" in mesh_products
     assert "ProposalNarrativeEvidence:v1" in repo_context
-    assert "canonical demo screenshot proof remain gated" in repo_context
+    assert "client-ready publication, and external client communication" in repo_context
+    assert "supported RFC-0023 closure claims" in repo_context

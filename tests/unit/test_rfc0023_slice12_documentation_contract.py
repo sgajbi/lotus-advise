@@ -39,6 +39,15 @@ def test_rfc0023_slice12_supported_features_do_not_promote_client_ready() -> Non
     assert "stateful `stateful_input.narrative_request`" in supported
     assert "governed canonical Workbench proof" in supported
     assert "external client communication remain gated" in supported
+    assert (
+        "Creates governed advisor-review, compliance-review, and client-ready proposal narrative"
+        not in supported
+    )
+    assert (
+        "Implements governed advisor-review proposal narrative evidence from deterministic "
+        "proposal facts"
+    ) in supported
+    assert "not supported RFC-0023 closure claims" in _read("wiki/RFC-Index.md")
     assert "governed `proposal.narrative_posture` panel proof" in api_surface
     assert "proof now covers `proposal.narrative_posture`" in repo_context
     assert "governed Workbench canonical proof" in readme

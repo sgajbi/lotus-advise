@@ -65,9 +65,8 @@ def test_rfc0023_slice11a_supported_features_keep_downstream_claims_gated() -> N
     assert "standalone proposal-version narrative read" in supported_features
     assert "non-persistent regeneration APIs" in supported_features
     assert "Slice 11F is complete" in supported_features
-    assert "client-ready narrative, and canonical demo screenshot proof remain gated" in (
-        supported_features
-    )
+    assert "Client-ready narrative,\nclient-ready publication" in (supported_features)
+    assert "Canonical demo screenshot proof is now supported only for" in supported_features
     assert "Client-ready proposal commentary | Supported" not in supported_features
 
 
