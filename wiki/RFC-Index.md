@@ -34,7 +34,6 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0016 costs, fees, and transaction frictions
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
-- RFC-0023 grounded advisory AI narrative and client-ready proposal commentary
 - RFC-0024 advisor proposal memo and evidence pack
 - RFC-0025 enterprise suitability and best-interest policy packs
 - RFC-0026 advisor cockpit operating workflow
@@ -44,8 +43,9 @@ The repository RFC index currently keeps these as active future work:
 ## Important Interpretation
 
 RFC-0023 through RFC-0028 are gold-standard implementation plans for the next advisory crown-jewel
-roadmap. RFC-0023 is now the recommended first implementation slice because it defines the grounded
-narrative prerequisite consumed by proposal memo, policy, cockpit, copilot, and demo work.
+roadmap. RFC-0023 is now implemented for governed advisor-review proposal narrative evidence and
+defines the grounded narrative prerequisite consumed by proposal memo, policy, cockpit, copilot, and
+demo work. RFC-0024 is the next recommended implementation slice.
 
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
@@ -164,8 +164,8 @@ posture and hash continuity are sufficient, and the package can now flow through
 advisor-use product content and posture. Advisor-review narrative evidence now has data-product,
 trust telemetry, platform catalog/certification, capability-discovery posture, live validation, and
 governed canonical Workbench proof. Compliance-review, client-draft, client-ready artifact
-publication, and client communication remain planned future work until the remaining RFC-0023
-slices are merged to `main`, validated, and published with implementation-backed feature truth.
+publication, and client communication remain gated future scope for RFC-0024 through RFC-0028 or a
+future explicitly approved implementation RFC; they are not supported RFC-0023 closure claims.
 
 ## Source Index
 

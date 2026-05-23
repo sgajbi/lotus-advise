@@ -41,17 +41,18 @@ are complete.
 
 | RFC | Feature | Product value | Current support |
 | --- | --- | --- | --- |
-| `RFC-0023` | Grounded advisory AI narrative and client-ready proposal commentary | Creates governed advisor-review, compliance-review, and client-ready proposal narrative from deterministic evidence. | Slices 0-10 complete: source authority, platform-scaffolding review, cleanup/structure, contract baseline, data-product/supportability non-promotion baseline, deterministic advisor-review artifact-path narrative, policy/disclosure/guardrail baseline, AI-assisted draft adapter baseline, proposal-version narrative review/replay baseline, decision-summary/alternatives/approval/limitation narrative integration, and certified canonical API/OpenAPI route inventory. Slice 10B is complete for standalone proposal-version narrative read and non-persistent regeneration APIs. Slice 11A is complete for reviewed narrative report-request package propagation; Slices 11B/11C are complete for `lotus-report` package consumption and `lotus-render` portfolio-review advisory narrative rendering; Slice 11D is complete for `lotus-archive` support-safe reviewed narrative archive metadata summaries; Slice 11E is complete for `lotus-gateway` product-facing reviewed-narrative posture and `lotus-workbench` Gateway-backed advisor-use proposal posture. Slice 11F is complete for `ProposalNarrativeEvidence:v1`, trust telemetry, platform catalog/certification, and `/platform/capabilities` reviewed narrative evidence posture. Slice 12 is complete for stateful live validation, deterministic guardrail-failure reproduction, optional AI-assisted validation where enabled, and governed Workbench `proposal.narrative_posture` canonical screenshot proof. Compliance-review, client-draft, client-ready narrative, and external client communication remain gated |
+| `RFC-0023` | Grounded advisory AI narrative and client-ready proposal commentary | Implements governed advisor-review proposal narrative evidence from deterministic proposal facts, with downstream advisor-use proof; compliance-review, client-draft, client-ready publication, and external client communication remain future gated scope. | Slices 0-10 complete: source authority, platform-scaffolding review, cleanup/structure, contract baseline, data-product/supportability non-promotion baseline, deterministic advisor-review artifact-path narrative, policy/disclosure/guardrail baseline, AI-assisted draft adapter baseline, proposal-version narrative review/replay baseline, decision-summary/alternatives/approval/limitation narrative integration, and certified canonical API/OpenAPI route inventory. Slice 10B is complete for standalone proposal-version narrative read and non-persistent regeneration APIs. Slice 11A is complete for reviewed narrative report-request package propagation; Slices 11B/11C are complete for `lotus-report` package consumption and `lotus-render` portfolio-review advisory narrative rendering; Slice 11D is complete for `lotus-archive` support-safe reviewed narrative archive metadata summaries; Slice 11E is complete for `lotus-gateway` product-facing reviewed-narrative posture and `lotus-workbench` Gateway-backed advisor-use proposal posture. Slice 11F is complete for `ProposalNarrativeEvidence:v1`, trust telemetry, platform catalog/certification, and `/platform/capabilities` reviewed narrative evidence posture. Slice 12 is complete for stateful live validation, deterministic guardrail-failure reproduction, optional AI-assisted validation where enabled, and governed Workbench `proposal.narrative_posture` canonical screenshot proof. Compliance-review, client-draft, client-ready narrative, and external client communication remain gated |
 | `RFC-0024` | Advisor proposal memo and evidence pack | Turns proposal evidence into an advisor, compliance, operations, audit, and sales-ready memo package. | Planned RFC only |
 | `RFC-0025` | Enterprise suitability and best-interest policy packs | Adds versioned policy packs for suitability, best-interest, product eligibility, disclosures, approvals, and source-readiness gaps. | Planned RFC only |
 | `RFC-0026` | Advisor cockpit operating workflow | Creates backend-owned advisor worklists, action items, meeting-preparation packets, and workflow readiness summaries. | Planned RFC only |
 | `RFC-0027` | Governed advisory AI copilot | Adds bounded AI workflow-pack actions for proposal explanation, evidence Q&A, preparation, and review support. | Planned RFC only |
 | `RFC-0028` | Bank demo journey and client-ready proof | Creates repeatable, implementation-backed advisory demo proof with supported-claim governance. | Planned RFC only |
 
-Historical Slice 0-11 gate language remains intentionally preserved for auditability:
-client-ready narrative, and canonical demo screenshot proof remain gated until Slice 12 closes only
-the advisor-review Workbench canonical proof path. Client-ready narrative, client-ready publication,
-and external client communication remain gated after Slice 12.
+Historical Slice 0-11 gate language remains intentionally preserved for auditability. Slice 12
+closed only the advisor-review Workbench canonical proof path. Client-ready narrative,
+client-ready publication, compliance-review narrative, client-draft narrative, and external client
+communication remain gated after Slice 12 and must not be promoted as supported RFC-0023 product
+claims.
 
 ## Advisory Flow
 
@@ -107,8 +108,8 @@ trust telemetry, refreshes platform catalog/certification posture, and publishes
 `advisory.proposals.reviewed_narrative_evidence` feature plus
 `advisory_proposal_reviewed_narrative_evidence` workflow in `/platform/capabilities`. Proposal
 narrative is still not compliance-review narrative, client-draft narrative, client-ready
-commentary, canonical demo screenshot proof, or a client-ready artifact until the later
-implementing slices close.
+commentary, or a client-ready artifact. Canonical demo screenshot proof is now supported only for
+the advisor-review Workbench posture, not for client-ready publication.
 
 ## Integration Boundaries
 

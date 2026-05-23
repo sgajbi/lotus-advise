@@ -50,9 +50,10 @@ Current repository posture:
    proof now covers `proposal.narrative_posture`. Client-ready commentary, compliance-review and
    client-draft narrative, and client communication remain gated. Standalone proposal-version
    narrative read and non-persistent regeneration APIs are supported for advisor-review posture.
-   Historical Slice 0-11 audit wording is preserved separately: client-ready narrative, and
-   canonical demo screenshot proof remain gated until Slice 12 closes only the advisor-review
-   Workbench canonical proof path,
+   Historical Slice 0-11 audit wording is preserved only as audit context. Slice 12 closed the
+   advisor-review Workbench canonical proof path; client-ready narrative, compliance-review
+   narrative, client-draft narrative, client-ready publication, and external client communication
+   remain gated future scope rather than supported RFC-0023 closure claims,
 6. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 7. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 8. repo-native CI is already aligned to explicit lane expectations,
