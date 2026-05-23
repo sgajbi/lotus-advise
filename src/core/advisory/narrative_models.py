@@ -364,8 +364,10 @@ class ProposalNarrativeReviewRequest(BaseModel):
     client_ready_release_requested: bool = Field(
         default=False,
         description=(
-            "Whether the reviewer is requesting client-ready release posture. Slice 8 only "
-            "permits this when policy and guardrails are already clear."
+            "Whether the reviewer requested client-ready release posture. Current RFC-0023 "
+            "support records the request for audit but keeps client-ready release blocked until "
+            "future client-ready policy, disclosure, report/render/archive, and publication "
+            "controls are implemented."
         ),
         examples=[False],
     )

@@ -146,7 +146,7 @@ def _build_review_event(
 ) -> ProposalWorkflowEventRecord:
     narrative = _narrative(version)
     review_state = _review_state(payload.action)
-    client_ready_status = _client_ready_status(payload=payload, narrative=narrative)
+    client_ready_status = _client_ready_status(payload=payload)
     reason_json: dict[str, Any] = {
         "review_action": payload.action,
         "review_state": review_state,
@@ -225,25 +225,14 @@ def _review_state(action: ProposalNarrativeReviewAction) -> ProposalNarrativeRev
 def _client_ready_status(
     *,
     payload: ProposalNarrativeReviewRequest,
-    narrative: dict[str, Any],
 ) -> ProposalNarrativeClientReadyStatus:
     if not payload.client_ready_release_requested:
         return "NOT_REQUESTED"
     if payload.action != "APPROVE":
         return "BLOCKED_REVIEW_REQUIRED"
-    if narrative.get("status") != "READY_FOR_ADVISOR_REVIEW":
-        return "BLOCKED_POLICY_OR_GUARDRAIL"
-    if narrative.get("review_state") != "DRAFT":
-        return "BLOCKED_POLICY_OR_GUARDRAIL"
-    policy = narrative.get("narrative_policy")
-    if isinstance(policy, dict) and policy.get("client_ready_blockers"):
-        return "BLOCKED_POLICY_OR_GUARDRAIL"
-    if any(
-        isinstance(item, dict) and item.get("status") == "FAIL"
-        for item in narrative.get("guardrail_results", [])
-    ):
-        return "BLOCKED_POLICY_OR_GUARDRAIL"
-    return "APPROVED_FOR_CLIENT_READY"
+    # RFC-0023 supports advisor-review narrative evidence only. Client-ready release remains
+    # gated until a future slice proves disclosure, policy, report/render/archive, and publication.
+    return "BLOCKED_POLICY_OR_GUARDRAIL"
 
 
 def _require_reviewable_narrative(version: ProposalVersionRecord) -> None:

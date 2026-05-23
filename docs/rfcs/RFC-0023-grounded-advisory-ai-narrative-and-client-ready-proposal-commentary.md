@@ -1011,6 +1011,9 @@ Acceptance gate:
 
 ### Slice 13: Commercial, Demo, and Documentation-As-Product Material
 
+Status: implemented for advisor-review boundary hardening and documentation-as-product review in
+`docs/rfcs/RFC-0023-slice-13-14-closure-hardening-and-review.md`.
+
 Outcome:
 
 1. produce implementation-backed narrative docs, API examples, wiki guidance, demo notes, operator
@@ -1025,6 +1028,9 @@ Acceptance gate:
 3. wiki source is updated in the repo and prepared for publication after merge if changed.
 
 ### Slice 14: Second-Last Hardening and Review
+
+Status: implemented for advisor-review boundary hardening and gold-standard review in
+`docs/rfcs/RFC-0023-slice-13-14-closure-hardening-and-review.md`.
 
 Outcome:
 
