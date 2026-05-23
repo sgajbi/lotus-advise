@@ -65,6 +65,12 @@ boundary and adds engine-level tests for source-backed package construction, rev
 hash-continuity, and support-safe summaries. It does not implement or promote advisor proposal memo
 support.
 
+RFC-0024 Slice 3 is implemented as data-product and platform-hardening work. It declares proposed
+`AdvisoryProposalMemoEvidencePack:v1` product identity and blocked trust telemetry so governance
+controls can see the planned memo product boundary. It does not add memo routes, active mesh
+policy, `/platform/capabilities` support, Gateway/Workbench memo support, or client-ready memo
+publication.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -211,3 +217,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md`
 - `docs/rfcs/RFC-0024-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0024-slice-2-cleanup-and-structure.md`
+- `docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md`

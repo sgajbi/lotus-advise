@@ -1,0 +1,55 @@
+{
+  "contract_id": "lotus-domain-product-trust-telemetry-snapshot",
+  "contract_version": "1.0.0",
+  "governed_by_rfcs": [
+    "RFC-0087",
+    "RFC-0024"
+  ],
+  "emitted_at_utc": "2026-05-23T00:00:00Z",
+  "product_id": "lotus-advise:AdvisoryProposalMemoEvidencePack:v1",
+  "producer_repository": "lotus-advise",
+  "product_name": "AdvisoryProposalMemoEvidencePack",
+  "product_version": "v1",
+  "source_repository": "lotus-advise",
+  "freshness": {
+    "freshness_class": "event_driven",
+    "freshness_state": "unknown",
+    "evaluated_at_utc": "2026-05-23T00:00:00Z",
+    "observed_at_utc": "2026-05-23T00:00:00Z",
+    "age_seconds": 0,
+    "max_allowed_age_seconds": 86400
+  },
+  "completeness_status": "blocked",
+  "reconciliation_status": "not_applicable",
+  "data_quality_status": "quality_unknown",
+  "lineage": {
+    "lineage_materialized": false,
+    "lineage_bundle_id": "lineage:lotus-advise:advisory-proposal-memo-evidence-pack:blocked:2026-05-23",
+    "evidence_access_class": "customer_consumable",
+    "evidence_uris": [
+      "lotus-advise://contracts/domain-data-products/lotus-advise-products.v1.json#AdvisoryProposalMemoEvidencePack",
+      "lotus-advise://docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md"
+    ]
+  },
+  "blocking": {
+    "blocked": true,
+    "blocked_reason": "RFC-0024 memo domain model, persistence, API, report package, Gateway/Workbench consumption, and live proof are not implemented yet. The product is declared for governance only and must not be advertised as supported."
+  },
+  "observed_trust_metadata": {
+    "product_name": "AdvisoryProposalMemoEvidencePack",
+    "product_version": "v1",
+    "generated_at": "2026-05-23T00:00:00Z",
+    "content_hash": "sha256:rfc0024-advisory-proposal-memo-evidence-pack-v1-blocked",
+    "correlation_id": "rfc-0024-advisory-proposal-memo-evidence-pack"
+  },
+  "evidence": {
+    "correlation_id": "rfc-0024-advisory-proposal-memo-evidence-pack",
+    "validation_lanes": [
+      "feature",
+      "pr-merge",
+      "main-releasability"
+    ],
+    "source_event_id": "source-event:lotus-advise:advisory-proposal-memo-evidence-pack:blocked:2026-05-23",
+    "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/advisory-proposal-memo-evidence-pack.telemetry.v1.json"
+  }
+}

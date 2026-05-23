@@ -24,6 +24,7 @@
 | Slice 0 critical review, source map, and product-gap allocation | `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md` | Implemented - source-map and scope-gate only |
 | Slice 1 platform automation and scaffolding review | `docs/rfcs/RFC-0024-slice-1-platform-automation-and-scaffolding-review.md` | Implemented - reviewed; no platform change required before memo domain work |
 | Slice 2 cleanup and structure | `docs/rfcs/RFC-0024-slice-2-cleanup-and-structure.md` | Implemented - report-handoff cleanup only; no memo support promoted |
+| Slice 3 data product and platform hardening | `docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md` | Implemented - proposed/blocked memo data product; no memo support promoted |
 
 ## 0. Executive Summary
 

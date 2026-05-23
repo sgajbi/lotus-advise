@@ -11,6 +11,12 @@ The current first-wave snapshot is:
    Runtime trust proof for `lotus-advise:ProposalNarrativeEvidence:v1`, the RFC-0023
    advisor-review narrative evidence product. This snapshot does not promote compliance-review,
    client-draft, client-ready publication, or demo screenshot proof.
+3. `advisory-proposal-memo-evidence-pack.telemetry.v1.json`
+   Blocked governance telemetry for `lotus-advise:AdvisoryProposalMemoEvidencePack:v1`, the
+   proposed RFC-0024 advisor proposal memo product. This snapshot exists so catalog, trust, SLO,
+   access, and evidence policy controls can see the planned product boundary. It does not promote
+   memo generation, memo APIs, memo persistence, report package support, Gateway/Workbench memo
+   support, or client-ready memo publication.
 
 Validate locally with:
 
