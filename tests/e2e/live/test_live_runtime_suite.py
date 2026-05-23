@@ -38,6 +38,14 @@ def test_live_runtime_suite():
     assert result.parity.workspace_rationale_replacement_run_id
     assert result.parity.workspace_rationale_review_state == "SUPERSEDED"
     assert result.parity.workspace_rationale_supportability_status == "HISTORICAL"
+    assert result.parity.proposal_narrative.generation_mode == "DETERMINISTIC_TEMPLATE"
+    assert result.parity.proposal_narrative.review_state == "APPROVED_FOR_ADVISOR_USE"
+    assert result.parity.proposal_narrative.client_ready_status == "NOT_REQUESTED"
+    assert (
+        result.parity.proposal_narrative.regeneration_persistence_status
+        == "NOT_PERSISTED_REVIEW_REQUIRED"
+    )
+    assert result.parity.proposal_narrative.guardrail_failure_status == "LOCAL_POLICY_REPRODUCED"
     assert result.degraded.risk_degraded_reason == "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
     assert result.degraded.core_degraded_reason == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
     assert result.degraded.fallback_mode == "NONE"

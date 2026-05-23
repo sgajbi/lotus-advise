@@ -2,6 +2,10 @@ import json
 
 from scripts.live_runtime_decision_summary import LiveDecisionSnapshot
 from scripts.live_runtime_proposal_alternatives import LiveProposalAlternativesSnapshot
+from scripts.live_runtime_proposal_narrative import (
+    LiveProposalNarrativeSnapshot,
+    validate_guardrail_failure_path,
+)
 from scripts.live_runtime_suite_artifacts import (
     build_markdown_summary,
     build_pr_summary,
@@ -70,6 +74,30 @@ def _alternatives_snapshot(
     )
 
 
+def _narrative_snapshot() -> LiveProposalNarrativeSnapshot:
+    return LiveProposalNarrativeSnapshot(
+        proposal_id="pp_live_narrative_001",
+        version_no=1,
+        narrative_id="pn_live_narrative_001",
+        generation_mode="DETERMINISTIC_TEMPLATE",
+        policy_status="READY_FOR_ADVISOR_REVIEW",
+        persisted_guardrail_statuses=("GR_UNSUPPORTED_CLAIMS:PASS",),
+        read_posture_source="IMMUTABLE_PROPOSAL_VERSION_ARTIFACT",
+        regeneration_persistence_status="NOT_PERSISTED_REVIEW_REQUIRED",
+        review_state="APPROVED_FOR_ADVISOR_USE",
+        client_ready_status="NOT_REQUESTED",
+        source_narrative_hash="sha256:narrativehash",
+        report_status="READY",
+        report_package_status="INCLUDED_REVIEWED_NARRATIVE",
+        replay_review_state="APPROVED_FOR_ADVISOR_USE",
+        guardrail_failure_status="LOCAL_POLICY_REPRODUCED",
+        guardrail_failure_ids=("GR_UNSUPPORTED_GUARANTEED_RETURN", "GR_MISSING_SOURCE_REF"),
+        ai_assisted_status="NOT_REQUESTED",
+        ai_fallback_reason=None,
+        latency_ms=640.0,
+    )
+
+
 def _parity_result() -> LiveParityResult:
     return LiveParityResult(
         complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
@@ -95,6 +123,7 @@ def _parity_result() -> LiveParityResult:
         execution_handoff_status="REQUESTED",
         execution_terminal_status="EXECUTED",
         report_status="READY",
+        proposal_narrative=_narrative_snapshot(),
         ready_decision=_decision_snapshot(
             path_name="ready_path",
             top_level_status="READY",
@@ -315,6 +344,12 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
     assert payload["parity"]["workspace_rationale_review_state"] == "SUPERSEDED"
     assert payload["parity"]["workspace_rationale_supportability_status"] == "HISTORICAL"
     assert payload["parity"]["async_lifecycle_current_state"] == "EXECUTED"
+    assert payload["parity"]["proposal_narrative"]["generation_mode"] == ("DETERMINISTIC_TEMPLATE")
+    assert payload["parity"]["proposal_narrative"]["review_state"] == ("APPROVED_FOR_ADVISOR_USE")
+    assert payload["parity"]["proposal_narrative"]["client_ready_status"] == "NOT_REQUESTED"
+    assert payload["parity"]["proposal_narrative"]["guardrail_failure_status"] == (
+        "LOCAL_POLICY_REPRODUCED"
+    )
     assert payload["parity"]["review_decision"]["decision_status"] == "REQUIRES_RISK_REVIEW"
     assert payload["parity"]["noop_alternatives"]["feasible_count"] == 2
     assert payload["parity"]["restricted_product_alternatives"]["rejected_reason_codes"] == [
@@ -366,6 +401,7 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert "## Parity" in summary_text
     assert "## Decision Paths" in summary_text
     assert "## Proposal Alternatives Paths" in summary_text
+    assert "## Proposal Narrative Proof" in summary_text
     assert "## Degraded Runtime" in summary_text
     assert "## Insufficient Evidence Path" in summary_text
     assert "## Degraded Alternatives Paths" in summary_text
@@ -378,6 +414,10 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert "decision status: `REQUIRES_RISK_REVIEW`" in summary_text
     assert "requested objectives: `REDUCE_CONCENTRATION`, `RAISE_CASH`" in summary_text
     assert "top ranked objective: `REDUCE_CONCENTRATION`" in summary_text
+    assert "generation mode: `DETERMINISTIC_TEMPLATE`" in summary_text
+    assert "review state: `APPROVED_FOR_ADVISOR_USE`" in summary_text
+    assert "client-ready status: `NOT_REQUESTED`" in summary_text
+    assert "guardrail failure path: `LOCAL_POLICY_REPRODUCED`" in summary_text
     assert "rejected reasons: `LOTUS_RISK_ENRICHMENT_UNAVAILABLE`" in summary_text
 
 
@@ -409,6 +449,10 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
     ) in summary
     assert "- workspace rationale final posture: `SUPERSEDED` / `HISTORICAL`" in summary
     assert "- async lifecycle: `EXECUTED` at version `2`" in summary
+    assert (
+        "- proposal narrative: `DETERMINISTIC_TEMPLATE` / "
+        "`APPROVED_FOR_ADVISOR_USE` / `INCLUDED_REVIEWED_NARRATIVE`"
+    ) in summary
     assert "- review path: `REQUIRES_RISK_REVIEW` / `NEW_MEDIUM_SUITABILITY_ISSUE`" in summary
     assert "- insufficient-evidence path: `INSUFFICIENT_EVIDENCE` / `MISSING_RISK_LENS`" in summary
     assert "- no-op path: `2` feasible, `1` with review, top=`REDUCE_CONCENTRATION`" in summary
@@ -428,6 +472,14 @@ def test_write_pr_summary_for_bundle_defaults_to_bundle_path(tmp_path):
 
     assert output_path == bundle_dir / "pr-summary.md"
     assert output_path.read_text(encoding="utf-8").startswith("## Live Runtime Evidence")
+
+
+def test_live_narrative_guardrail_failure_path_is_reproducible():
+    status, failure_ids = validate_guardrail_failure_path()
+
+    assert status == "LOCAL_POLICY_REPRODUCED"
+    assert "GR_UNSUPPORTED_GUARANTEED_RETURN" in failure_ids
+    assert "GR_MISSING_SOURCE_REF" in failure_ids
 
 
 def test_run_live_runtime_evidence_bundle_writes_bundle_and_pr_summary(

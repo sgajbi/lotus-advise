@@ -63,7 +63,7 @@ def build_reviewed_narrative_report_package(
             "artifact_hash": replay_evidence.get("artifact_hash"),
             "simulation_hash": replay_evidence.get("simulation_hash"),
         },
-        "sections": _list_of_dicts(narrative.get("sections")),
+        "sections": _narrative_sections_for_report(narrative.get("sections")),
         "disclosures": _list_of_dicts(narrative.get("disclosures")),
         "guardrail_results": guardrail_results,
         "limitations": _list_of_dicts(narrative.get("limitations")),
@@ -93,3 +93,21 @@ def _list_of_dicts(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, dict)]
+
+
+def _narrative_sections_for_report(value: Any) -> list[dict[str, Any]]:
+    sections: list[dict[str, Any]] = []
+    for item in _list_of_dicts(value):
+        section_id = str(item.get("section_id") or item.get("section_key") or "").strip()
+        title = str(item.get("title") or "").strip()
+        body = str(item.get("body") or item.get("text") or "").strip()
+        if not section_id or not title or not body:
+            continue
+        section = dict(item)
+        section["section_id"] = section_id
+        section["title"] = title
+        section["body"] = body
+        section.pop("section_key", None)
+        section.pop("text", None)
+        sections.append(section)
+    return sections

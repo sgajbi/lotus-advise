@@ -22,6 +22,7 @@
 | **Slice 11D Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11D-archive-reviewed-narrative-artifact-realization.md`; `lotus-archive` now stores support-safe reviewed advisory narrative archive summaries for rendered advisor-use portfolio-review artifacts, while Gateway/Workbench posture is tracked separately in Slice 11E and client-ready, data-product, trust-telemetry, and `/platform/capabilities` promotion remain gated |
 | **Slice 11E Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md`; `lotus-gateway` now exposes product-facing reviewed-narrative posture through canonical `lotus-advise` APIs and `lotus-workbench` now renders the Gateway-backed advisor-use proposal narrative posture, while compliance-review, client-draft, client-ready, data-product, trust-telemetry, canonical demo screenshot proof, and `/platform/capabilities` promotion remain gated |
 | **Slice 11F Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-11F-narrative-data-product-trust-capability-promotion.md`; advisor-review proposal narrative evidence is now promoted as `ProposalNarrativeEvidence:v1`, backed by repo-native trust telemetry, platform catalog/certification refresh, and `/platform/capabilities` reviewed narrative evidence feature/workflow, while compliance-review, client-draft, client-ready publication, and canonical demo screenshot proof remain gated |
+| **Slice 12 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-12-live-validation-canonical-proof-and-operator-evidence.md`; live runtime proof now covers stateful advisor-review narrative create/version requests, immutable read, non-persistent regeneration, advisor-use review, reviewed report-package request, replay evidence, deterministic guardrail failure reproduction, optional AI-assisted validation when enabled, and governed Workbench `proposal.narrative_posture` screenshot proof, while compliance-review, client-draft, client-ready publication, and client communication remain gated |
 | **Owner** | `lotus-advise` for proposal narrative authority, grounding packets, review lifecycle, persistence, replay, and advisory API truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, compliance reviewer, investment desk reviewer, operations support, audit, client-reporting owner, sales/pre-sales |
 | **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |
@@ -985,6 +986,10 @@ Acceptance gate:
 4. README, RFC index, wiki source, and repository context reflect the new support boundary.
 
 ### Slice 12: Live Validation, Canonical Proof, and Operator Evidence
+
+Status: implemented as live validation, canonical Workbench proof, and operator-evidence
+hardening in
+`docs/rfcs/RFC-0023-slice-12-live-validation-canonical-proof-and-operator-evidence.md`.
 
 Outcome:
 

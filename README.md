@@ -22,7 +22,7 @@ It is responsible for:
 - backend-owned `proposal_decision_summary` and `proposal_alternatives`
 - advisor-review proposal narrative evidence with governed review/replay, downstream
   report/render/archive posture, Gateway/Workbench exposure, data-product declaration, trust
-  telemetry, and capability discovery
+  telemetry, capability discovery, live runtime proof, and governed Workbench canonical proof
 - source-owned tactical house-view affected cohorts from bank-authored house-view instructions and
   caller-supplied source-backed candidate portfolios
 

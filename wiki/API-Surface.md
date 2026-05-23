@@ -90,7 +90,9 @@ the global portfolio universe, create rebalance waves, approve trades, or integr
   `advisory.proposals.reviewed_narrative_evidence`, and the
   `advisory_proposal_reviewed_narrative_evidence` workflow for advisor-review narrative evidence.
   The capability wording remains bounded: compliance-review, client-draft, client-ready
-  publication, and canonical demo screenshot proof are not promoted.
+  publication, and client communication are not promoted. Canonical Workbench proof is now covered
+  by the live runtime suite and the governed `proposal.narrative_posture` panel proof rather than
+  by `/platform/capabilities`.
 - `GET /platform/capabilities` also includes a bounded `supportability` summary for advisory
   readiness, degraded dependency posture, and lifecycle-disabled posture. The
   `supportability.metric_labels` field documents the exact bounded label tuple for

@@ -92,6 +92,22 @@ def _merge_alternatives_request(
     )
 
 
+def _merge_stateful_narrative_request(
+    simulate_request: ProposalSimulateRequest,
+    *,
+    stateful_input: ProposalStatefulInput,
+) -> ProposalSimulateRequest:
+    if stateful_input.narrative_request is None:
+        return simulate_request
+    return cast(
+        ProposalSimulateRequest,
+        simulate_request.model_copy(
+            update={"narrative_request": stateful_input.narrative_request},
+            deep=True,
+        ),
+    )
+
+
 def _resolve_stateful_input(
     stateful_input: ProposalStatefulInput,
 ) -> tuple[ProposalSimulateRequest, ProposalResolvedContext]:
@@ -103,7 +119,10 @@ def _resolve_stateful_input(
         ) from exc
 
     return (
-        resolved.simulate_request,
+        _merge_stateful_narrative_request(
+            resolved.simulate_request,
+            stateful_input=stateful_input,
+        ),
         ProposalResolvedContext.model_validate(resolved.resolved_context.model_dump(mode="json")),
     )
 
