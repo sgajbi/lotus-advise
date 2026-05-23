@@ -83,6 +83,12 @@ stored proposal evidence and the Slice 4 source-readiness manifest into advisor-
 sections. It does not add memo routes, memo persistence, report/render/archive support,
 Gateway/Workbench support, active data-product support, or client-ready memo claims.
 
+RFC-0024 Slice 6 is implemented as persistence, replay, idempotency, and audit foundation work. It
+adds durable memo records, memo idempotency mappings, replay metadata, Postgres migration-backed
+storage, and memo audit events for the Slice 5 evidence pack. It does not add public memo APIs,
+report/render/archive realization, Gateway/Workbench support, active data-product support, or
+client-ready memo claims.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -238,3 +244,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0024-slice-4-upstream-source-evidence-completion.md`
 - `docs/rfcs/RFC-0024-slice-5-memo-domain-model-and-pure-builder.md`
+- `docs/rfcs/RFC-0024-slice-6-persistence-replay-idempotency-and-audit.md`

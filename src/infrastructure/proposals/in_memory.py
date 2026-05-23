@@ -7,6 +7,9 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
+    ProposalMemoEventRecord,
+    ProposalMemoIdempotencyRecord,
+    ProposalMemoRecord,
     ProposalRecord,
     ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,
@@ -25,9 +28,13 @@ class InMemoryProposalRepository(ProposalRepository):
         self._approvals: dict[str, list[ProposalApprovalRecordData]] = {}
         self._idempotency: dict[str, ProposalIdempotencyRecord] = {}
         self._simulation_idempotency: dict[str, ProposalSimulationIdempotencyRecord] = {}
+        self._memo_idempotency: dict[str, ProposalMemoIdempotencyRecord] = {}
         self._operations: dict[str, ProposalAsyncOperationRecord] = {}
         self._operation_by_correlation: dict[str, str] = {}
         self._operation_by_idempotency: dict[str, str] = {}
+        self._memos: dict[str, ProposalMemoRecord] = {}
+        self._memo_by_proposal_version: dict[tuple[str, int], str] = {}
+        self._memo_events: dict[str, list[ProposalMemoEventRecord]] = {}
 
     def get_idempotency(self, *, idempotency_key: str) -> Optional[ProposalIdempotencyRecord]:
         with self._lock:
@@ -48,6 +55,72 @@ class InMemoryProposalRepository(ProposalRepository):
     def save_simulation_idempotency(self, record: ProposalSimulationIdempotencyRecord) -> None:
         with self._lock:
             self._simulation_idempotency[record.idempotency_key] = deepcopy(record)
+
+    def get_memo_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[ProposalMemoIdempotencyRecord]:
+        with self._lock:
+            record = self._memo_idempotency.get(idempotency_key)
+            return deepcopy(record) if record is not None else None
+
+    def save_memo_idempotency(self, record: ProposalMemoIdempotencyRecord) -> None:
+        with self._lock:
+            existing = self._memo_idempotency.get(record.idempotency_key)
+            if existing is not None:
+                request_changed = existing.request_hash != record.request_hash
+                memo_changed = existing.memo_id != record.memo_id
+                if request_changed or memo_changed:
+                    raise ValueError("MEMO_IDEMPOTENCY_KEY_CONFLICT")
+                return
+            self._memo_idempotency[record.idempotency_key] = deepcopy(record)
+
+    def create_memo(self, memo: ProposalMemoRecord) -> None:
+        with self._lock:
+            proposal_version_key = (memo.proposal_id, memo.proposal_version_no)
+            existing_memo_id = self._memo_by_proposal_version.get(proposal_version_key)
+            if existing_memo_id is not None and existing_memo_id != memo.memo_id:
+                raise ValueError("MEMO_PROPOSAL_VERSION_CONFLICT")
+            if memo.memo_id in self._memos:
+                existing = self._memos[memo.memo_id]
+                if existing.memo_hash != memo.memo_hash:
+                    raise ValueError("MEMO_HASH_CONFLICT")
+                return
+            self._memos[memo.memo_id] = deepcopy(memo)
+            self._memo_by_proposal_version[proposal_version_key] = memo.memo_id
+
+    def get_memo(self, *, memo_id: str) -> Optional[ProposalMemoRecord]:
+        with self._lock:
+            memo = self._memos.get(memo_id)
+            return deepcopy(memo) if memo is not None else None
+
+    def get_memo_by_proposal_version(
+        self, *, proposal_id: str, proposal_version_no: int
+    ) -> Optional[ProposalMemoRecord]:
+        with self._lock:
+            memo_id = self._memo_by_proposal_version.get((proposal_id, proposal_version_no))
+            if memo_id is None:
+                return None
+            memo = self._memos.get(memo_id)
+            return deepcopy(memo) if memo is not None else None
+
+    def list_memos(self, *, proposal_id: str) -> list[ProposalMemoRecord]:
+        with self._lock:
+            memos = [memo for memo in self._memos.values() if memo.proposal_id == proposal_id]
+        memos.sort(key=lambda memo: (memo.proposal_version_no, memo.created_at, memo.memo_id))
+        return [deepcopy(memo) for memo in memos]
+
+    def append_memo_event(self, event: ProposalMemoEventRecord) -> None:
+        with self._lock:
+            events = self._memo_events.setdefault(event.memo_id, [])
+            if any(existing.event_id == event.event_id for existing in events):
+                return
+            events.append(deepcopy(event))
+
+    def list_memo_events(self, *, memo_id: str) -> list[ProposalMemoEventRecord]:
+        with self._lock:
+            events = self._memo_events.get(memo_id, [])
+        events = sorted(events, key=lambda event: (event.occurred_at, event.event_id))
+        return [deepcopy(event) for event in events]
 
     def create_operation(self, operation: ProposalAsyncOperationRecord) -> None:
         with self._lock:

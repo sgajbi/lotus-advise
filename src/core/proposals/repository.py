@@ -5,6 +5,9 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
+    ProposalMemoEventRecord,
+    ProposalMemoIdempotencyRecord,
+    ProposalMemoRecord,
     ProposalRecord,
     ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,
@@ -23,6 +26,26 @@ class ProposalRepository(Protocol):
     ) -> Optional[ProposalSimulationIdempotencyRecord]: ...
 
     def save_simulation_idempotency(self, record: ProposalSimulationIdempotencyRecord) -> None: ...
+
+    def get_memo_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[ProposalMemoIdempotencyRecord]: ...
+
+    def save_memo_idempotency(self, record: ProposalMemoIdempotencyRecord) -> None: ...
+
+    def create_memo(self, memo: ProposalMemoRecord) -> None: ...
+
+    def get_memo(self, *, memo_id: str) -> Optional[ProposalMemoRecord]: ...
+
+    def get_memo_by_proposal_version(
+        self, *, proposal_id: str, proposal_version_no: int
+    ) -> Optional[ProposalMemoRecord]: ...
+
+    def list_memos(self, *, proposal_id: str) -> list[ProposalMemoRecord]: ...
+
+    def append_memo_event(self, event: ProposalMemoEventRecord) -> None: ...
+
+    def list_memo_events(self, *, memo_id: str) -> list[ProposalMemoEventRecord]: ...
 
     def create_operation(self, operation: ProposalAsyncOperationRecord) -> None: ...
 
