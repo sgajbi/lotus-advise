@@ -26,6 +26,7 @@
 | Slice 2 cleanup and structure | `docs/rfcs/RFC-0024-slice-2-cleanup-and-structure.md` | Implemented - report-handoff cleanup only; no memo support promoted |
 | Slice 3 data product and platform hardening | `docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md` | Implemented - proposed/blocked memo data product; no memo support promoted |
 | Slice 4 upstream source evidence completion | `docs/rfcs/RFC-0024-slice-4-upstream-source-evidence-completion.md` | Implemented - persisted source-readiness manifest; no memo support promoted |
+| Slice 5 memo domain model and pure builder | `docs/rfcs/RFC-0024-slice-5-memo-domain-model-and-pure-builder.md` | Implemented - deterministic pure memo builder; no memo API, persistence, or product support promoted |
 
 ## 0. Executive Summary
 
@@ -765,6 +766,9 @@ Acceptance gate:
 3. memo does not claim source facts that source owners do not provide.
 
 ### Slice 5 - Memo Domain Model and Pure Builder
+
+Status: implemented as deterministic pure builder work in
+`docs/rfcs/RFC-0024-slice-5-memo-domain-model-and-pure-builder.md`.
 
 Outcome:
 
