@@ -7,6 +7,9 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
+    ProposalMemoEventRecord,
+    ProposalMemoIdempotencyRecord,
+    ProposalMemoRecord,
     ProposalRecord,
     ProposalSimulationIdempotencyRecord,
     ProposalVersionRecord,
@@ -36,6 +39,9 @@ class _FakeConnection:
         self.versions = {}
         self.events = {}
         self.approvals = {}
+        self.memos = {}
+        self.memo_idempotency = {}
+        self.memo_events = {}
         self.schema_migrations = {}
         self.executed_sql = []
         self.executed_args = []
@@ -119,6 +125,89 @@ class _FakeConnection:
             return _FakeCursor()
         if "FROM proposal_simulation_idempotency WHERE idempotency_key = %s" in sql:
             return _FakeCursor(self.simulation_idempotency.get(args[0]))
+        if "INSERT INTO proposal_memo_idempotency" in sql:
+            self.memo_idempotency.setdefault(
+                args[0],
+                {
+                    "idempotency_key": args[0],
+                    "request_hash": args[1],
+                    "memo_id": args[2],
+                    "proposal_id": args[3],
+                    "proposal_version_no": args[4],
+                    "created_at": args[5],
+                },
+            )
+            return _FakeCursor()
+        if "FROM proposal_memo_idempotency WHERE idempotency_key = %s" in sql:
+            return _FakeCursor(self.memo_idempotency.get(args[0]))
+        if "INSERT INTO proposal_memos" in sql:
+            self.memos.setdefault(
+                args[0],
+                {
+                    "memo_id": args[0],
+                    "proposal_id": args[1],
+                    "proposal_version_no": args[2],
+                    "proposal_version_id": args[3],
+                    "artifact_id": args[4],
+                    "memo_version": args[5],
+                    "memo_status": args[6],
+                    "lifecycle_status": args[7],
+                    "created_by": args[8],
+                    "created_at": args[9],
+                    "source_input_hash": args[10],
+                    "memo_hash": args[11],
+                    "memo_json": args[12],
+                    "projection_json": args[13],
+                    "review_events_json": args[14],
+                    "report_package_events_json": args[15],
+                    "archive_refs_json": args[16],
+                    "ai_refs_json": args[17],
+                    "replay_metadata_json": args[18],
+                },
+            )
+            return _FakeCursor()
+        if "FROM proposal_memos WHERE memo_id = %s" in sql:
+            return _FakeCursor(self.memos.get(args[0]))
+        if "FROM proposal_memos WHERE proposal_id = %s AND proposal_version_no = %s" in sql:
+            row = next(
+                (
+                    memo
+                    for memo in self.memos.values()
+                    if memo["proposal_id"] == args[0] and memo["proposal_version_no"] == args[1]
+                ),
+                None,
+            )
+            return _FakeCursor(row)
+        if "FROM proposal_memos WHERE proposal_id = %s" in sql:
+            rows = [memo for memo in self.memos.values() if memo["proposal_id"] == args[0]]
+            rows = sorted(
+                rows,
+                key=lambda row: (
+                    row["proposal_version_no"],
+                    row["created_at"],
+                    row["memo_id"],
+                ),
+            )
+            return _FakeCursor(rows=rows)
+        if "INSERT INTO proposal_memo_events" in sql:
+            self.memo_events.setdefault(
+                args[0],
+                {
+                    "event_id": args[0],
+                    "memo_id": args[1],
+                    "proposal_id": args[2],
+                    "proposal_version_no": args[3],
+                    "event_type": args[4],
+                    "actor_id": args[5],
+                    "occurred_at": args[6],
+                    "reason_json": args[7],
+                },
+            )
+            return _FakeCursor()
+        if "FROM proposal_memo_events" in sql and "ORDER BY occurred_at ASC, event_id ASC" in sql:
+            rows = [row for row in self.memo_events.values() if row["memo_id"] == args[0]]
+            rows = sorted(rows, key=lambda row: (row["occurred_at"], row["event_id"]))
+            return _FakeCursor(rows=rows)
         if "INSERT INTO proposal_async_operations" in sql:
             if "ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING" in sql:
                 inserted_operation_id = args[0]
@@ -941,6 +1030,85 @@ def test_postgres_repository_version_create_get_and_current(monkeypatch):
 
     empty_current = repository.get_current_version(proposal_id="pp_missing")
     assert empty_current is None
+
+
+def test_postgres_repository_memo_idempotency_memo_and_events_roundtrip(monkeypatch):
+    repository, connection = _build_repository(monkeypatch)
+    now = datetime.now(timezone.utc)
+    memo = ProposalMemoRecord(
+        memo_id="memo_pg_001",
+        proposal_id="pp_pg_memo",
+        proposal_version_no=1,
+        proposal_version_id="ppv_pg_memo_001",
+        artifact_id="pa_pg_memo_001",
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="DRAFT",
+        created_by="advisor_pg",
+        created_at=now,
+        source_input_hash="sha256:source",
+        memo_hash="sha256:memo",
+        memo_json={"memo_id": "memo_pg_001", "status": "BLOCKED"},
+        projection_json={"client_ready_publication": "BLOCKED"},
+        review_events_json=[],
+        report_package_events_json=[],
+        archive_refs_json=[],
+        ai_refs_json=[],
+        replay_metadata_json={"proposal_artifact_hash": "sha256:artifact"},
+    )
+    idempotency = ProposalMemoIdempotencyRecord(
+        idempotency_key="memo-pg-idem",
+        request_hash="sha256:request",
+        memo_id=memo.memo_id,
+        proposal_id=memo.proposal_id,
+        proposal_version_no=memo.proposal_version_no,
+        created_at=now,
+    )
+    event = ProposalMemoEventRecord(
+        event_id="pme_pg_001",
+        memo_id=memo.memo_id,
+        proposal_id=memo.proposal_id,
+        proposal_version_no=memo.proposal_version_no,
+        event_type="MEMO_DRAFT_CREATED",
+        actor_id="advisor_pg",
+        occurred_at=now,
+        reason_json={"memo_hash": "sha256:memo"},
+    )
+
+    repository.create_memo(memo)
+    repository.save_memo_idempotency(idempotency)
+    repository.append_memo_event(event)
+
+    loaded = repository.get_memo(memo_id=memo.memo_id)
+    assert loaded is not None
+    assert loaded.memo_hash == "sha256:memo"
+    assert loaded.projection_json["client_ready_publication"] == "BLOCKED"
+    by_version = repository.get_memo_by_proposal_version(
+        proposal_id=memo.proposal_id,
+        proposal_version_no=1,
+    )
+    assert by_version is not None
+    assert by_version.memo_id == memo.memo_id
+    assert [row.memo_id for row in repository.list_memos(proposal_id=memo.proposal_id)] == [
+        memo.memo_id
+    ]
+    loaded_idempotency = repository.get_memo_idempotency(idempotency_key="memo-pg-idem")
+    assert loaded_idempotency is not None
+    assert loaded_idempotency.memo_id == memo.memo_id
+    repository.save_memo_idempotency(
+        idempotency.model_copy(
+            update={
+                "request_hash": "sha256:drifted-request",
+                "memo_id": "memo_pg_drifted",
+            }
+        )
+    )
+    preserved_idempotency = repository.get_memo_idempotency(idempotency_key="memo-pg-idem")
+    assert preserved_idempotency is not None
+    assert preserved_idempotency.request_hash == "sha256:request"
+    assert preserved_idempotency.memo_id == memo.memo_id
+    assert repository.list_memo_events(memo_id=memo.memo_id)[0].event_id == "pme_pg_001"
+    assert any("INSERT INTO proposal_memos" in sql for sql in connection.executed_sql)
 
 
 def test_postgres_repository_workflow_events_and_approvals_roundtrip(monkeypatch):

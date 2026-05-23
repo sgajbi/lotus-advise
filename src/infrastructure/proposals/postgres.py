@@ -9,6 +9,9 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
     ProposalIdempotencyRecord,
+    ProposalMemoEventRecord,
+    ProposalMemoIdempotencyRecord,
+    ProposalMemoRecord,
     ProposalRecord,
     ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,
@@ -125,6 +128,249 @@ class PostgresProposalRepository:
                 ),
             )
             connection.commit()
+
+    def get_memo_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[ProposalMemoIdempotencyRecord]:
+        query = """
+            SELECT
+                idempotency_key,
+                request_hash,
+                memo_id,
+                proposal_id,
+                proposal_version_no,
+                created_at
+            FROM proposal_memo_idempotency
+            WHERE idempotency_key = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (idempotency_key,)).fetchone()
+        if row is None:
+            return None
+        return ProposalMemoIdempotencyRecord(
+            idempotency_key=row["idempotency_key"],
+            request_hash=row["request_hash"],
+            memo_id=row["memo_id"],
+            proposal_id=row["proposal_id"],
+            proposal_version_no=int(row["proposal_version_no"]),
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+    def save_memo_idempotency(self, record: ProposalMemoIdempotencyRecord) -> None:
+        query = """
+            INSERT INTO proposal_memo_idempotency (
+                idempotency_key,
+                request_hash,
+                memo_id,
+                proposal_id,
+                proposal_version_no,
+                created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (idempotency_key) DO NOTHING
+        """
+        with closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    record.idempotency_key,
+                    record.request_hash,
+                    record.memo_id,
+                    record.proposal_id,
+                    record.proposal_version_no,
+                    record.created_at.isoformat(),
+                ),
+            )
+            connection.commit()
+
+    def create_memo(self, memo: ProposalMemoRecord) -> None:
+        query = """
+            INSERT INTO proposal_memos (
+                memo_id,
+                proposal_id,
+                proposal_version_no,
+                proposal_version_id,
+                artifact_id,
+                memo_version,
+                memo_status,
+                lifecycle_status,
+                created_by,
+                created_at,
+                source_input_hash,
+                memo_hash,
+                memo_json,
+                projection_json,
+                review_events_json,
+                report_package_events_json,
+                archive_refs_json,
+                ai_refs_json,
+                replay_metadata_json
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        with closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    memo.memo_id,
+                    memo.proposal_id,
+                    memo.proposal_version_no,
+                    memo.proposal_version_id,
+                    memo.artifact_id,
+                    memo.memo_version,
+                    memo.memo_status,
+                    memo.lifecycle_status,
+                    memo.created_by,
+                    memo.created_at.isoformat(),
+                    memo.source_input_hash,
+                    memo.memo_hash,
+                    _json_dump(memo.memo_json),
+                    _json_dump(memo.projection_json),
+                    _json_dump_list(memo.review_events_json),
+                    _json_dump_list(memo.report_package_events_json),
+                    _json_dump_list(memo.archive_refs_json),
+                    _json_dump_list(memo.ai_refs_json),
+                    _json_dump(memo.replay_metadata_json),
+                ),
+            )
+            connection.commit()
+
+    def get_memo(self, *, memo_id: str) -> Optional[ProposalMemoRecord]:
+        query = """
+            SELECT
+                memo_id,
+                proposal_id,
+                proposal_version_no,
+                proposal_version_id,
+                artifact_id,
+                memo_version,
+                memo_status,
+                lifecycle_status,
+                created_by,
+                created_at,
+                source_input_hash,
+                memo_hash,
+                memo_json,
+                projection_json,
+                review_events_json,
+                report_package_events_json,
+                archive_refs_json,
+                ai_refs_json,
+                replay_metadata_json
+            FROM proposal_memos
+            WHERE memo_id = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (memo_id,)).fetchone()
+        return _to_memo(row)
+
+    def get_memo_by_proposal_version(
+        self, *, proposal_id: str, proposal_version_no: int
+    ) -> Optional[ProposalMemoRecord]:
+        query = """
+            SELECT
+                memo_id,
+                proposal_id,
+                proposal_version_no,
+                proposal_version_id,
+                artifact_id,
+                memo_version,
+                memo_status,
+                lifecycle_status,
+                created_by,
+                created_at,
+                source_input_hash,
+                memo_hash,
+                memo_json,
+                projection_json,
+                review_events_json,
+                report_package_events_json,
+                archive_refs_json,
+                ai_refs_json,
+                replay_metadata_json
+            FROM proposal_memos
+            WHERE proposal_id = %s AND proposal_version_no = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (proposal_id, proposal_version_no)).fetchone()
+        return _to_memo(row)
+
+    def list_memos(self, *, proposal_id: str) -> list[ProposalMemoRecord]:
+        query = """
+            SELECT
+                memo_id,
+                proposal_id,
+                proposal_version_no,
+                proposal_version_id,
+                artifact_id,
+                memo_version,
+                memo_status,
+                lifecycle_status,
+                created_by,
+                created_at,
+                source_input_hash,
+                memo_hash,
+                memo_json,
+                projection_json,
+                review_events_json,
+                report_package_events_json,
+                archive_refs_json,
+                ai_refs_json,
+                replay_metadata_json
+            FROM proposal_memos
+            WHERE proposal_id = %s
+            ORDER BY proposal_version_no ASC, created_at ASC, memo_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (proposal_id,)).fetchall()
+        return [memo for row in rows if (memo := _to_memo(row)) is not None]
+
+    def append_memo_event(self, event: ProposalMemoEventRecord) -> None:
+        query = """
+            INSERT INTO proposal_memo_events (
+                event_id,
+                memo_id,
+                proposal_id,
+                proposal_version_no,
+                event_type,
+                actor_id,
+                occurred_at,
+                reason_json
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (event_id) DO NOTHING
+        """
+        with closing(self._connect()) as connection:
+            connection.execute(
+                query,
+                (
+                    event.event_id,
+                    event.memo_id,
+                    event.proposal_id,
+                    event.proposal_version_no,
+                    event.event_type,
+                    event.actor_id,
+                    event.occurred_at.isoformat(),
+                    _json_dump(event.reason_json),
+                ),
+            )
+            connection.commit()
+
+    def list_memo_events(self, *, memo_id: str) -> list[ProposalMemoEventRecord]:
+        query = """
+            SELECT
+                event_id,
+                memo_id,
+                proposal_id,
+                proposal_version_no,
+                event_type,
+                actor_id,
+                occurred_at,
+                reason_json
+            FROM proposal_memo_events
+            WHERE memo_id = %s
+            ORDER BY occurred_at ASC, event_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (memo_id,)).fetchall()
+        return [_to_memo_event(row) for row in rows]
 
     def create_operation(self, operation: ProposalAsyncOperationRecord) -> None:
         self._upsert_operation(operation)
@@ -875,6 +1121,17 @@ def _json_dump(value: dict[str, Any]) -> str:
     return json.dumps(value, separators=(",", ":"), sort_keys=True)
 
 
+def _json_dump_list(value: list[dict[str, Any]]) -> str:
+    return json.dumps(value, separators=(",", ":"), sort_keys=True)
+
+
+def _json_load_list(value: str) -> list[dict[str, Any]]:
+    loaded = json.loads(value)
+    if not isinstance(loaded, list):
+        return []
+    return [item for item in loaded if isinstance(item, dict)]
+
+
 def _to_operation(row: Any) -> Optional[ProposalAsyncOperationRecord]:
     if row is None:
         return None
@@ -946,6 +1203,45 @@ def _to_version(row: Any) -> Optional[ProposalVersionRecord]:
         artifact_json=json.loads(row["artifact_json"]),
         evidence_bundle_json=json.loads(row["evidence_bundle_json"]),
         gate_decision_json=_optional_load_json(row["gate_decision_json"]),
+    )
+
+
+def _to_memo(row: Any) -> Optional[ProposalMemoRecord]:
+    if row is None:
+        return None
+    return ProposalMemoRecord(
+        memo_id=row["memo_id"],
+        proposal_id=row["proposal_id"],
+        proposal_version_no=int(row["proposal_version_no"]),
+        proposal_version_id=row["proposal_version_id"],
+        artifact_id=row["artifact_id"],
+        memo_version=row["memo_version"],
+        memo_status=row["memo_status"],
+        lifecycle_status=row["lifecycle_status"],
+        created_by=row["created_by"],
+        created_at=datetime.fromisoformat(row["created_at"]),
+        source_input_hash=row["source_input_hash"],
+        memo_hash=row["memo_hash"],
+        memo_json=_optional_load_json(row["memo_json"]) or {},
+        projection_json=_optional_load_json(row["projection_json"]) or {},
+        review_events_json=_json_load_list(row["review_events_json"]),
+        report_package_events_json=_json_load_list(row["report_package_events_json"]),
+        archive_refs_json=_json_load_list(row["archive_refs_json"]),
+        ai_refs_json=_json_load_list(row["ai_refs_json"]),
+        replay_metadata_json=_optional_load_json(row["replay_metadata_json"]) or {},
+    )
+
+
+def _to_memo_event(row: Any) -> ProposalMemoEventRecord:
+    return ProposalMemoEventRecord(
+        event_id=row["event_id"],
+        memo_id=row["memo_id"],
+        proposal_id=row["proposal_id"],
+        proposal_version_no=int(row["proposal_version_no"]),
+        event_type=row["event_type"],
+        actor_id=row["actor_id"],
+        occurred_at=datetime.fromisoformat(row["occurred_at"]),
+        reason_json=_optional_load_json(row["reason_json"]) or {},
     )
 
 

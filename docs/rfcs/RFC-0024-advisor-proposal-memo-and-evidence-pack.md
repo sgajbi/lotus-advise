@@ -27,6 +27,7 @@
 | Slice 3 data product and platform hardening | `docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md` | Implemented - proposed/blocked memo data product; no memo support promoted |
 | Slice 4 upstream source evidence completion | `docs/rfcs/RFC-0024-slice-4-upstream-source-evidence-completion.md` | Implemented - persisted source-readiness manifest; no memo support promoted |
 | Slice 5 memo domain model and pure builder | `docs/rfcs/RFC-0024-slice-5-memo-domain-model-and-pure-builder.md` | Implemented - deterministic pure memo builder; no memo API, persistence, or product support promoted |
+| Slice 6 persistence, replay, idempotency, and audit | `docs/rfcs/RFC-0024-slice-6-persistence-replay-idempotency-and-audit.md` | Implemented - durable memo records, idempotency, replay metadata, and audit events; no memo API or product support promoted |
 
 ## 0. Executive Summary
 
@@ -783,6 +784,9 @@ Acceptance gate:
 3. every material claim has source refs or explicit missing evidence.
 
 ### Slice 6 - Persistence, Replay, Idempotency, and Audit
+
+Status: implemented as backend persistence foundation in
+`docs/rfcs/RFC-0024-slice-6-persistence-replay-idempotency-and-audit.md`.
 
 Outcome:
 
