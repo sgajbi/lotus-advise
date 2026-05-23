@@ -1869,6 +1869,10 @@ def test_report_request_includes_only_approved_reviewed_narrative_package(monkey
     assert package["review"]["source_narrative_hash"].startswith("sha256:")
     assert package["source_lineage"]["request_hash"].startswith("sha256:")
     assert package["source_lineage"]["artifact_hash"].startswith("sha256:")
+    assert package["sections"][0]["section_id"]
+    assert package["sections"][0]["body"]
+    assert "section_key" not in package["sections"][0]
+    assert "text" not in package["sections"][0]
     assert package["execution_boundary"] is None
     report_body = report_response.json()
     response_package = report_body["explanation"]["proposal_narrative_package"]

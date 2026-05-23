@@ -1,8 +1,18 @@
+import os
+import re
 import sys
+from datetime import UTC, datetime
 from typing import Any, cast
 
+import httpx
+
+from src.core.proposals.contract_types import ProposalReportType
 from src.core.proposals.models import ProposalReportResponse
 from src.integrations.base import IntegrationDependencyState, build_dependency_state
+from src.integrations.lotus_core.runtime_config import env_positive_float
+
+_PORTFOLIO_REVIEW_PATH = "/reports/portfolio-reviews"
+_SNAPSHOT_DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 class LotusReportUnavailableError(Exception):
@@ -20,12 +30,192 @@ def build_lotus_report_dependency_state() -> IntegrationDependencyState:
 
 def request_proposal_report_with_lotus_report(*, request: dict[str, Any]) -> ProposalReportResponse:
     main_module = sys.modules.get("src.api.main")
-    if main_module is None:
-        raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE")
-
     override = getattr(main_module, "request_proposal_report_with_lotus_report", None)
-    if override is None:
-        raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE")
+    if override is not None:
+        response = override(request=request)
+        return cast(ProposalReportResponse, ProposalReportResponse.model_validate(response))
 
-    response = override(request=request)
-    return cast(ProposalReportResponse, ProposalReportResponse.model_validate(response))
+    base_url = _resolve_base_url()
+    request_id = _required_string(request, "report_request_id")
+    report_type = cast(ProposalReportType, _required_string(request, "report_type"))
+    payload = _build_portfolio_review_job_request(request)
+    headers = {
+        "Idempotency-Key": request_id,
+        "X-Actor-Id": _optional_string(request.get("requested_by")) or "lotus-advise",
+        "X-Caller-Application": "lotus-advise",
+        "X-Tenant-Id": "default",
+        "X-Region": _proposal_region(request),
+        "X-Booking-Center-Code": _proposal_region(request),
+        "X-Role": "advisor",
+    }
+
+    try:
+        with httpx.Client(timeout=_resolve_timeout()) as client:
+            response = client.post(
+                f"{base_url}{_PORTFOLIO_REVIEW_PATH}",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            response_payload = cast(dict[str, Any], response.json())
+    except (httpx.HTTPError, ValueError) as exc:
+        raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE") from exc
+
+    now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    proposal = cast(dict[str, Any], request.get("proposal") or {})
+    explanation = {
+        "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
+        "related_version_no": request.get("related_version_no"),
+        "include_execution_summary": request.get("include_execution_summary"),
+        "include_reviewed_narrative": request.get("include_reviewed_narrative"),
+        "report_job_status_url": response_payload.get("status_url"),
+        "report_job_idempotency_key": response_payload.get("idempotency_key"),
+        "report_job_request": {
+            "portfolio_scope": payload["portfolio_scope"],
+            "as_of_date": payload["as_of_date"],
+            "requested_output_formats": payload["requested_output_formats"],
+        },
+    }
+    proposal_narrative_package = request.get("proposal_narrative_package")
+    if isinstance(proposal_narrative_package, dict):
+        explanation["proposal_narrative_package"] = {
+            "package_status": proposal_narrative_package.get("package_status"),
+            "narrative_id": proposal_narrative_package.get("narrative_id"),
+            "review_state": (
+                (proposal_narrative_package.get("review") or {}).get("review_state")
+                if isinstance(proposal_narrative_package.get("review"), dict)
+                else None
+            ),
+            "source_narrative_hash": (
+                (proposal_narrative_package.get("source_lineage") or {}).get(
+                    "source_narrative_hash"
+                )
+                if isinstance(proposal_narrative_package.get("source_lineage"), dict)
+                else None
+            ),
+        }
+    return ProposalReportResponse(
+        proposal=proposal,
+        report_request_id=request_id,
+        report_type=report_type,
+        report_service="lotus-report",
+        status=_normalize_report_job_status(response_payload.get("status")),
+        generated_at=now,
+        report_reference_id=_required_string(response_payload, "report_job_id"),
+        artifact_url=response_payload.get("status_url"),
+        explanation=explanation,
+    )
+
+
+def _resolve_base_url() -> str:
+    configured = os.getenv("LOTUS_REPORT_BASE_URL")
+    if configured and configured.strip():
+        return configured.rstrip("/")
+    raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE")
+
+
+def _resolve_timeout() -> httpx.Timeout:
+    timeout_seconds = env_positive_float("LOTUS_REPORT_TIMEOUT_SECONDS", default=30.0)
+    return httpx.Timeout(timeout_seconds)
+
+
+def _build_portfolio_review_job_request(request: dict[str, Any]) -> dict[str, Any]:
+    proposal = cast(dict[str, Any], request.get("proposal") or {})
+    portfolio_id = _required_string(proposal, "portfolio_id")
+    related_version_no = request.get("related_version_no")
+    proposal_narrative_package = request.get("proposal_narrative_package")
+    payload: dict[str, Any] = {
+        "portfolio_scope": {"portfolio_ids": [portfolio_id]},
+        "as_of_date": _extract_report_as_of_date(request),
+        "requested_output_formats": ["json"],
+        "reporting_currency": _extract_reporting_currency(request),
+        "options": {
+            "source_system": "lotus-advise",
+            "source_proposal_id": proposal.get("proposal_id"),
+            "source_report_type": request.get("report_type"),
+            "requested_by": request.get("requested_by"),
+            "related_version_no": related_version_no,
+            "include_execution_summary": request.get("include_execution_summary"),
+            "include_reviewed_narrative": request.get("include_reviewed_narrative"),
+        },
+    }
+    if isinstance(proposal_narrative_package, dict):
+        payload["proposal_narrative_package"] = proposal_narrative_package
+    return payload
+
+
+def _extract_report_as_of_date(request: dict[str, Any]) -> str:
+    proposal_version = cast(dict[str, Any], request.get("proposal_version") or {})
+    proposal_result = cast(dict[str, Any], proposal_version.get("proposal_result") or {})
+    direct_date = _find_first_key_value(
+        proposal_result,
+        keys={"as_of_date", "report_end_date", "valuation_date"},
+    )
+    if direct_date is not None:
+        return direct_date
+    lineage = proposal_result.get("lineage")
+    if isinstance(lineage, dict):
+        for value in lineage.values():
+            if isinstance(value, str):
+                match = _SNAPSHOT_DATE_PATTERN.search(value)
+                if match:
+                    return match.group(0)
+    return datetime.now(UTC).date().isoformat()
+
+
+def _extract_reporting_currency(request: dict[str, Any]) -> str | None:
+    proposal_version = cast(dict[str, Any], request.get("proposal_version") or {})
+    proposal_result = cast(dict[str, Any], proposal_version.get("proposal_result") or {})
+    before = proposal_result.get("before")
+    if isinstance(before, dict):
+        total_value = before.get("total_value")
+        if isinstance(total_value, dict):
+            currency = _optional_string(total_value.get("currency"))
+            if currency:
+                return currency
+    return "USD"
+
+
+def _find_first_key_value(payload: Any, *, keys: set[str]) -> str | None:
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            if key in keys:
+                normalized = _optional_string(value)
+                if normalized and _SNAPSHOT_DATE_PATTERN.fullmatch(normalized):
+                    return normalized
+            nested = _find_first_key_value(value, keys=keys)
+            if nested:
+                return nested
+    if isinstance(payload, list):
+        for value in payload:
+            nested = _find_first_key_value(value, keys=keys)
+            if nested:
+                return nested
+    return None
+
+
+def _proposal_region(request: dict[str, Any]) -> str:
+    proposal = cast(dict[str, Any], request.get("proposal") or {})
+    return _optional_string(proposal.get("jurisdiction")) or "SG"
+
+
+def _normalize_report_job_status(value: Any) -> str:
+    normalized = _optional_string(value)
+    if normalized in {"data_ready", "completed", "archived", "completed_with_warnings"}:
+        return "READY"
+    if normalized:
+        return normalized.upper()
+    return "ACCEPTED"
+
+
+def _required_string(payload: dict[str, Any], key: str) -> str:
+    normalized = _optional_string(payload.get(key))
+    if normalized is None:
+        raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE")
+    return normalized
+
+
+def _optional_string(value: Any) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None

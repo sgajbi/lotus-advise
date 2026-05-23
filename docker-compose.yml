@@ -13,6 +13,8 @@ services:
       - LOTUS_CORE_BASE_URL=${LOTUS_CORE_BASE_URL:-http://core-control.dev.lotus}
       - LOTUS_CORE_QUERY_BASE_URL=${LOTUS_CORE_QUERY_BASE_URL:-http://core-query.dev.lotus}
       - LOTUS_RISK_BASE_URL=${LOTUS_RISK_BASE_URL:-http://risk.dev.lotus}
+      - LOTUS_REPORT_BASE_URL=${LOTUS_REPORT_BASE_URL:-http://report.dev.lotus}
+      - LOTUS_REPORT_TIMEOUT_SECONDS=${LOTUS_REPORT_TIMEOUT_SECONDS:-30}
       - DPM_SUPPORTABILITY_STORE_BACKEND=${DPM_SUPPORTABILITY_STORE_BACKEND:-POSTGRES}
       - DPM_SUPPORTABILITY_POSTGRES_DSN=${DPM_SUPPORTABILITY_POSTGRES_DSN:-postgresql://advise:advise@postgres:5432/advise_supportability}
       - PROPOSAL_STORE_BACKEND=${PROPOSAL_STORE_BACKEND:-POSTGRES}
@@ -23,6 +25,7 @@ services:
       - "core-control.dev.lotus:host-gateway"
       - "core-query.dev.lotus:host-gateway"
       - "risk.dev.lotus:host-gateway"
+      - "report.dev.lotus:host-gateway"
     healthcheck:
       test:
         [
