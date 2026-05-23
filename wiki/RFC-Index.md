@@ -47,6 +47,12 @@ roadmap. RFC-0023 is now implemented for governed advisor-review proposal narrat
 defines the grounded narrative prerequisite consumed by proposal memo, policy, cockpit, copilot, and
 demo work. RFC-0024 is the next recommended implementation slice.
 
+RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
+It records memo source authorities, cross-repo ownership, required blocked states, and the first
+bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,
+memo persistence, memo report packages, Gateway/Workbench memo surfaces, or client-ready memo
+publication.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -190,3 +196,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0023-slice-11E-gateway-workbench-reviewed-narrative-realization.md`
 - `docs/rfcs/RFC-0023-slice-11F-narrative-data-product-trust-capability-promotion.md`
 - `docs/rfcs/RFC-0023-slice-12-live-validation-canonical-proof-and-operator-evidence.md`
+- `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md`
