@@ -16,8 +16,9 @@ The current first-wave snapshot is:
    proposed RFC-0024 advisor proposal memo product. This snapshot exists so catalog, trust, SLO,
    access, and evidence policy controls can see the planned product boundary. It now acknowledges
    implemented advisor-use memo model, persistence, APIs, report/render/archive realization,
-   review-gated AI commentary, Gateway/Workbench consumption, and memo-specific commercial support
-   material while keeping active data-product promotion and client-ready memo publication blocked.
+   review-gated AI commentary, Gateway/Workbench consumption, memo-specific commercial support
+   material, and live-suite implementation proof while keeping active data-product promotion and
+   client-ready memo publication blocked.
 
 Validate locally with:
 

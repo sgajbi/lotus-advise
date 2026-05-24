@@ -58,8 +58,8 @@ Current repository posture:
    client-ready publication, and external client communication remain gated future scope rather
    than supported RFC-0023 closure claims,
 6. RFC-0024 advisor proposal memo support now includes advisor-use report/render/archive
-   realization, review-gated AI commentary, Gateway/Workbench product realization, and
-   memo-specific commercial support material: Advise
+   realization, review-gated AI commentary, Gateway/Workbench product realization,
+   memo-specific commercial support material, and live-suite implementation proof: Advise
    requires memo hash continuity and `APPROVE_FOR_ADVISOR_USE` review before sending a typed memo
    package to `lotus-report` or a bounded memo evidence packet to `lotus-ai`
    `proposal_memo_commentary.pack@v1`; memo lineage records returned report/render/archive refs and
@@ -67,9 +67,12 @@ Current repository posture:
    consumes Gateway/BFF-only memo posture, projection, report-package, archive-ref, AI-commentary,
    lineage, replay, degraded, and blocked states without local memo inference. The memo commercial
    guide gives sales/pre-sales a claim-controlled one-pager, demo notes, API examples, architecture
-   flow, operator guidance, and RFP-safe wording for the implemented advisor-use posture. Active
-   data-product support, full RFC-0028 bank-demo/RFP package claims, and client-ready memo
-   publication remain gated,
+   flow, operator guidance, and RFP-safe wording for the implemented advisor-use posture. The
+   governed live runtime evidence bundle now emits `proposal_memo` proof for Advise memo APIs, the
+   stateful source dependency path, advisor projection, advisor-use report/render/archive request
+   posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and
+   stale-hash/client-ready blocked paths. Active data-product support, full RFC-0028 bank-demo/RFP
+   package claims, and client-ready memo publication remain gated,
 7. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 8. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 9. repo-native CI is already aligned to explicit lane expectations,

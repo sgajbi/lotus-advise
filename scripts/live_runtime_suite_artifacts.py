@@ -105,6 +105,51 @@ def _format_narrative_summary_lines(narrative: dict[str, Any]) -> list[str]:
     ]
 
 
+def _format_memo_summary_lines(memo: dict[str, Any]) -> list[str]:
+    return [
+        "## Proposal Memo Proof",
+        f"- proposal id: `{memo['proposal_id']}`",
+        f"- version: `{memo['version_no']}`",
+        f"- memo id: `{memo['memo_id']}`",
+        f"- memo status: `{memo['memo_status']}`",
+        f"- lifecycle status: `{memo['lifecycle_status']}`",
+        f"- memo hash: `{memo['memo_hash']}`",
+        f"- source input hash: `{memo['source_input_hash']}`",
+        (
+            "- projection: "
+            f"`{memo['projection_audience']}` / "
+            f"`{memo['projection_client_ready_publication']}` / "
+            f"{memo['projected_section_count']} sections"
+        ),
+        (f"- review: `{memo['review_action']}` / `{memo['review_client_ready_publication']}`"),
+        (
+            "- report package: "
+            f"`{memo['report_status']}` / `{memo['report_package_status']}` / "
+            f"render `{memo['render_ref_status']}` / archive `{memo['archive_ref_status']}`"
+        ),
+        (
+            "- AI commentary: "
+            f"`{memo['ai_status']}` / review required `{memo['ai_review_required']}` / "
+            f"authoritative `{memo['ai_authoritative_for_memo_status']}`"
+        ),
+        (
+            "- lineage/replay: "
+            f"lineage complete `{memo['lineage_complete']}` / "
+            f"memo count `{memo['lineage_memo_count']}` / "
+            f"replay client-ready `{memo['replay_client_ready_publication']}`"
+        ),
+        (
+            "- blocked paths: "
+            f"stale hash `{memo['stale_hash_block_status']}` / "
+            f"client-ready review `{memo['client_ready_release_block_status']}` / "
+            f"client-ready document `{memo['client_ready_document_block_status']}`"
+        ),
+        f"- report degraded reason: `{memo.get('report_degraded_reason') or 'NONE'}`",
+        f"- latency ms: `{float(memo['latency_ms']):.2f}`",
+        "",
+    ]
+
+
 def _inline_reason_codes(values: list[str]) -> str:
     return ", ".join(values) or "NONE"
 
@@ -173,6 +218,7 @@ def build_markdown_summary(result: "LiveRuntimeSuiteResult") -> str:
             title="Restricted-Product Path",
         ),
         *_format_narrative_summary_lines(asdict(result.parity.proposal_narrative)),
+        *_format_memo_summary_lines(asdict(result.parity.proposal_memo)),
         "## Degraded Runtime",
         f"- risk drill portfolio: `{result.degraded.risk_drill_portfolio}`",
         f"- risk degraded reason: `{result.degraded.risk_degraded_reason}`",
@@ -301,6 +347,13 @@ def build_pr_summary(
             f"`{parity['proposal_narrative']['generation_mode']}` / "
             f"`{parity['proposal_narrative']['review_state']}` / "
             f"`{parity['proposal_narrative']['report_package_status']}`"
+        ),
+        (
+            "- proposal memo: "
+            f"`{parity['proposal_memo']['memo_status']}` / "
+            f"`{parity['proposal_memo']['review_action']}` / "
+            f"`{parity['proposal_memo']['report_package_status']}` / "
+            f"AI `{parity['proposal_memo']['ai_status']}`"
         ),
         "",
         "### Decision Summary Paths",

@@ -46,6 +46,22 @@ def test_live_runtime_suite():
         == "NOT_PERSISTED_REVIEW_REQUIRED"
     )
     assert result.parity.proposal_narrative.guardrail_failure_status == "LOCAL_POLICY_REPRODUCED"
+    assert result.parity.proposal_memo.review_action == "APPROVE_FOR_ADVISOR_USE"
+    assert result.parity.proposal_memo.projection_client_ready_publication == "BLOCKED"
+    assert result.parity.proposal_memo.review_client_ready_publication == "BLOCKED"
+    assert result.parity.proposal_memo.ai_authoritative_for_memo_status is False
+    assert result.parity.proposal_memo.ai_review_required is True
+    assert result.parity.proposal_memo.lineage_complete is True
+    assert result.parity.proposal_memo.replay_memo_hash == result.parity.proposal_memo.memo_hash
+    assert result.parity.proposal_memo.replay_client_ready_publication == "BLOCKED"
+    assert (
+        result.parity.proposal_memo.client_ready_release_block_status
+        == "MEMO_CLIENT_READY_RELEASE_NOT_SUPPORTED"
+    )
+    assert (
+        result.parity.proposal_memo.client_ready_document_block_status
+        == "MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED"
+    )
     assert result.degraded.risk_degraded_reason == "LOTUS_RISK_DEPENDENCY_UNAVAILABLE"
     assert result.degraded.core_degraded_reason == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
     assert result.degraded.fallback_mode == "NONE"

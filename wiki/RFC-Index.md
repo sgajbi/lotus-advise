@@ -132,6 +132,14 @@ The guide covers implementation-backed one-pager language, demo notes, API examp
 flow, operator guidance, and RFP-safe wording. Active data-product support, full RFC-0028
 bank-demo/RFP package claims, and client-ready memo publication remain planned later slices.
 
+RFC-0024 Slice 13 is implemented as memo implementation proof in the live runtime evidence bundle.
+Evidence lives in `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`. The live-suite
+`proposal_memo` snapshot covers Advise memo APIs, the stateful source dependency path, advisor
+projection, advisor-use report/render/archive request posture, review-gated AI commentary, lineage,
+replay hashes, degraded report posture, and stale-hash/client-ready blocked paths. Active
+data-product support, full RFC-0028 bank-demo/RFP package claims, and client-ready memo publication
+remain planned later slices.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -293,3 +301,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-9-report-render-archive-realization.md`
 - `docs/rfcs/RFC-0024-slice-10-ai-narrative-and-review-gated-commentary.md`
 - `docs/rfcs/RFC-0024-slice-11-gateway-workbench-product-realization.md`
+- `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md`
+- `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`
