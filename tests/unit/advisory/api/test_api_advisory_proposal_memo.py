@@ -85,6 +85,12 @@ def test_proposal_memo_api_create_read_project_lineage_and_replay() -> None:
         assert memo["memo_status"] in {"BLOCKED", "PENDING_REVIEW", "READY"}
         assert memo["lifecycle_status"] == "DRAFT"
         assert memo["projection"]["client_ready_publication"] == "BLOCKED"
+        assert memo["memo"]["supportability"]["persistence"] == "SUPPORTED_BY_RFC0024_SLICE6"
+        assert memo["memo"]["supportability"]["api"] == "SUPPORTED_BY_RFC0024_SLICE7"
+        assert (
+            memo["memo"]["supportability"]["policy_fee_conflict_enrichment"]
+            == "SUPPORTED_BY_RFC0024_SLICE8"
+        )
         assert memo["read_posture"]["gateway_supported"] is False
         assert memo["event_count"] == 1
         assert memo["audit_events"][0]["event_type"] == "MEMO_DRAFT_CREATED"
