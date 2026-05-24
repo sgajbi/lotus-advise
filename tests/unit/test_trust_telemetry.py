@@ -154,7 +154,9 @@ def test_rfc0024_memo_trust_telemetry_does_not_promote_supported_memo() -> None:
     assert "advisory-proposal-memo-evidence-pack.telemetry.v1.json" in telemetry_files
     assert snapshot["product_name"] == "AdvisoryProposalMemoEvidencePack"
     assert snapshot["completeness_status"] == "blocked"
-    assert "Memo generation, memo APIs, memo persistence" in supported_text
+    assert "Slice 7 is complete for canonical `lotus-advise` memo" in supported_text
+    assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_text
+    assert "Gateway, Workbench, report/render/archive realization" in supported_text
     assert "client-ready memo claims remain planned" in supported_text
     assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_text
     assert "advisory.proposals.memo_evidence_pack" not in capability_text

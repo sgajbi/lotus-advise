@@ -78,6 +78,15 @@ app = FastAPI(
             ),
         },
         {
+            "name": "Advisory Proposal Memo",
+            "description": (
+                "RFC-0024 advisor proposal memo endpoints for persisted memo evidence packs, "
+                "projection posture, review events, report-package lineage, memo lineage, and "
+                "replay evidence. Gateway, Workbench, render/archive, and client-ready memo "
+                "publication remain gated until later implementation slices."
+            ),
+        },
+        {
             "name": "Advisory Operations & Support",
             "description": (
                 "Operational lookup and investigation endpoints for async status, workflow "

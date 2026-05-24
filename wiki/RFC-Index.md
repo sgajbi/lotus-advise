@@ -89,6 +89,12 @@ storage, and memo audit events for the Slice 5 evidence pack. It does not add pu
 report/render/archive realization, Gateway/Workbench support, active data-product support, or
 client-ready memo claims.
 
+RFC-0024 Slice 7 is implemented as certified Advise memo APIs and OpenAPI work. It exposes
+canonical memo create/read/projection/review/report-package-event/lineage/replay endpoints under
+the `Advisory Proposal Memo` tag, backed by persisted memo records and append-only audit events.
+Gateway/Workbench product support, report/render/archive realization, active data-product support,
+and client-ready memo publication remain planned later slices.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.

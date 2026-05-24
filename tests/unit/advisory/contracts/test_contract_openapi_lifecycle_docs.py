@@ -169,6 +169,56 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(narrative_regeneration_response_schema, "source_request_hash")
     _assert_property_has_docs(narrative_regeneration_response_schema, "regeneration_posture")
 
+    memo_create_schema = schemas["ProposalMemoCreateRequest"]
+    _assert_property_has_docs(memo_create_schema, "created_by")
+    _assert_property_has_docs(memo_create_schema, "lifecycle_status")
+    _assert_property_has_docs(memo_create_schema, "reason")
+
+    memo_response_schema = schemas["ProposalMemoResponse"]
+    _assert_property_has_docs(memo_response_schema, "memo_id")
+    _assert_property_has_docs(memo_response_schema, "memo_status")
+    _assert_property_has_docs(memo_response_schema, "lifecycle_status")
+    _assert_property_has_docs(memo_response_schema, "source_input_hash")
+    _assert_property_has_docs(memo_response_schema, "memo_hash")
+    _assert_property_has_docs(memo_response_schema, "projection")
+    _assert_property_has_docs(memo_response_schema, "review_posture")
+    _assert_property_has_docs(memo_response_schema, "report_package_posture")
+    _assert_property_has_docs(memo_response_schema, "replay_metadata")
+    _assert_property_has_docs(memo_response_schema, "audit_events")
+    _assert_property_has_docs(memo_response_schema, "replay_evidence_path")
+    _assert_property_has_docs(memo_response_schema, "read_posture")
+
+    memo_projection_schema = schemas["ProposalMemoProjectionResponse"]
+    _assert_property_has_docs(memo_projection_schema, "projection")
+    _assert_property_has_docs(memo_projection_schema, "sections")
+    _assert_property_has_docs(memo_projection_schema, "projection_posture")
+
+    memo_review_schema = schemas["ProposalMemoReviewRequest"]
+    _assert_property_has_docs(memo_review_schema, "action")
+    _assert_property_has_docs(memo_review_schema, "reviewed_by")
+    _assert_property_has_docs(memo_review_schema, "source_memo_hash")
+    _assert_property_has_docs(memo_review_schema, "client_ready_release_requested")
+
+    memo_report_event_schema = schemas["ProposalMemoReportPackageEventRequest"]
+    _assert_property_has_docs(memo_report_event_schema, "recorded_by")
+    _assert_property_has_docs(memo_report_event_schema, "report_package_id")
+    _assert_property_has_docs(memo_report_event_schema, "report_package_status")
+    _assert_property_has_docs(memo_report_event_schema, "source_memo_hash")
+
+    memo_lineage_schema = schemas["ProposalMemoLineageResponse"]
+    _assert_property_has_docs(memo_lineage_schema, "memo_count")
+    _assert_property_has_docs(memo_lineage_schema, "latest_memo_id")
+    _assert_property_has_docs(memo_lineage_schema, "lineage_complete")
+    _assert_property_has_docs(memo_lineage_schema, "lineage_posture")
+
+    memo_replay_schema = schemas["ProposalMemoReplayEvidenceResponse"]
+    _assert_property_has_docs(memo_replay_schema, "subject")
+    _assert_property_has_docs(memo_replay_schema, "hashes")
+    _assert_property_has_docs(memo_replay_schema, "replay_metadata")
+    _assert_property_has_docs(memo_replay_schema, "audit_events")
+    _assert_property_has_docs(memo_replay_schema, "evidence")
+    _assert_property_has_docs(memo_replay_schema, "explanation")
+
 
 def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     with TestClient(app) as client:
@@ -293,6 +343,40 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     assert execution_update_body_ref.endswith("/ProposalExecutionUpdateRequest")
     assert execution_update_response_ref.endswith("/ProposalExecutionStatusResponse")
 
+    memo_create = openapi["paths"]["/advisory/proposals/{proposal_id}/versions/{version_no}/memo"][
+        "post"
+    ]
+    memo_create_body_ref = memo_create["requestBody"]["content"]["application/json"]["schema"][
+        "$ref"
+    ]
+    memo_create_response_ref = memo_create["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    assert memo_create_body_ref.endswith("/ProposalMemoCreateRequest")
+    assert memo_create_response_ref.endswith("/ProposalMemoResponse")
+    assert "Idempotency-Key" in [param["name"] for param in memo_create["parameters"]]
+
+    memo_review = openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/review"
+    ]["post"]
+    assert memo_review["requestBody"]["content"]["application/json"]["schema"]["$ref"].endswith(
+        "/ProposalMemoReviewRequest"
+    )
+    assert memo_review["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalMemoReviewResponse")
+    assert "Idempotency-Key" in [param["name"] for param in memo_review["parameters"]]
+
+    memo_report_event = openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-package-events"
+    ]["post"]
+    assert memo_report_event["requestBody"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalMemoReportPackageEventRequest")
+    assert memo_report_event["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalMemoReportPackageEventResponse")
+
 
 def test_rfc0023_narrative_route_family_is_canonical_and_error_documented():
     with TestClient(app) as client:
@@ -405,6 +489,9 @@ def test_openapi_tag_groups_are_documented_for_self_service_discovery():
     assert (
         "creation, versioning, state transitions, approvals, report requests, and execution handoff"
     ) in tags["Advisory Proposal Lifecycle"]
+    assert "Advisory Proposal Memo" in tags
+    assert "persisted memo evidence packs" in tags["Advisory Proposal Memo"]
+    assert "client-ready memo publication remain gated" in tags["Advisory Proposal Memo"]
     assert "Advisory Operations & Support" in tags
     assert (
         "async status, workflow history, lineage, approval history, idempotency tracing"
@@ -447,3 +534,53 @@ def test_openapi_separates_business_and_support_proposal_tags():
     assert openapi["paths"][
         "/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence"
     ]["get"]["tags"] == ["Advisory Operations & Support"]
+    assert openapi["paths"]["/advisory/proposals/{proposal_id}/versions/{version_no}/memo"]["post"][
+        "tags"
+    ] == ["Advisory Proposal Memo"]
+    assert openapi["paths"][
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence"
+    ]["get"]["tags"] == ["Advisory Proposal Memo"]
+
+
+def test_rfc0024_memo_route_family_is_canonical_and_error_documented():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    paths = openapi["paths"]
+    memo_paths = sorted(path for path in paths if "/memo" in path)
+    assert memo_paths == [
+        "/advisory/proposals/{proposal_id}/memos/lineage",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/projection",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-package-events",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/review",
+    ]
+
+    memo_create = paths["/advisory/proposals/{proposal_id}/versions/{version_no}/memo"]["post"]
+    assert memo_create["summary"] == "Create Or Replay Proposal Memo"
+    assert "does not publish client-ready memo content" in memo_create["description"]
+    assert "different memo-create payload" in memo_create["responses"]["409"]["description"]
+    assert "finalization is blocked" in memo_create["responses"]["422"]["description"]
+
+    memo_read = paths["/advisory/proposals/{proposal_id}/versions/{version_no}/memo"]["get"]
+    assert memo_read["summary"] == "Read Proposal Memo"
+    assert "audit events" in memo_read["description"]
+    assert "persisted memo was not found" in memo_read["responses"]["404"]["description"]
+
+    memo_review = paths["/advisory/proposals/{proposal_id}/versions/{version_no}/memo/review"][
+        "post"
+    ]
+    assert memo_review["summary"] == "Record Proposal Memo Review"
+    assert "rejects stale memo hashes" in memo_review["description"]
+    assert "cannot release client-ready publication" in memo_review["description"]
+    assert "different memo-review payload" in memo_review["responses"]["409"]["description"]
+
+    memo_replay = paths[
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence"
+    ]["get"]
+    assert memo_replay["summary"] == "Get Proposal Memo Replay Evidence"
+    assert "memo replay evidence" in memo_replay["description"]
+
+    for stale_fragment in ("/memos/{memo_id}", "/memo/client-ready", "/memo/render"):
+        assert not any(stale_fragment in path.lower() for path in paths)

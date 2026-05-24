@@ -28,6 +28,7 @@
 | Slice 4 upstream source evidence completion | `docs/rfcs/RFC-0024-slice-4-upstream-source-evidence-completion.md` | Implemented - persisted source-readiness manifest; no memo support promoted |
 | Slice 5 memo domain model and pure builder | `docs/rfcs/RFC-0024-slice-5-memo-domain-model-and-pure-builder.md` | Implemented - deterministic pure memo builder; no memo API, persistence, or product support promoted |
 | Slice 6 persistence, replay, idempotency, and audit | `docs/rfcs/RFC-0024-slice-6-persistence-replay-idempotency-and-audit.md` | Implemented - durable memo records, idempotency, replay metadata, and audit events; no memo API or product support promoted |
+| Slice 7 certified APIs and OpenAPI | `docs/rfcs/RFC-0024-slice-7-certified-apis-and-openapi.md` | Implemented - canonical Advise memo APIs and OpenAPI; Gateway, Workbench, report/render/archive, active data-product support, and client-ready memo claims remain unpromoted |
 
 ## 0. Executive Summary
 
@@ -801,6 +802,9 @@ Acceptance gate:
 4. replay proves same input versions and exposes hash comparison.
 
 ### Slice 7 - Certified APIs and OpenAPI
+
+Status: implemented as canonical Advise memo API foundation in
+`docs/rfcs/RFC-0024-slice-7-certified-apis-and-openapi.md`.
 
 Outcome:
 

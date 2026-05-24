@@ -42,7 +42,9 @@ def test_rfc0024_slice6_keeps_public_memo_support_unpromoted() -> None:
     assert "does not add memo routes" in slice6_text
     assert "Slices 0-6 are complete" in supported_features
     assert "client-ready memo claims remain planned" in supported_features
-    assert "memo APIs" in supported_features
+    assert "Slice 7 is complete for canonical `lotus-advise` memo" in supported_features
+    assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_features
+    assert "Gateway, Workbench, report/render/archive realization" in supported_features
     assert "Advisor proposal memo | Supported" not in supported_features
     assert "Client-ready memo publication | Supported" not in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_features

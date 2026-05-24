@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
@@ -968,12 +968,15 @@ class ProposalWorkflowService:
         fallback_payload: Optional[ProposalCreateRequest],
         fallback_idempotency_key: Optional[str],
     ) -> tuple[ProposalCreateRequest, str] | None:
-        return resolve_create_async_payload_or_fail(
-            repository=self._repository,
-            operation=operation,
-            fallback_payload=fallback_payload,
-            fallback_idempotency_key=fallback_idempotency_key,
-            failed_at=_utc_now(),
+        return cast(
+            tuple[ProposalCreateRequest, str] | None,
+            resolve_create_async_payload_or_fail(
+                repository=self._repository,
+                operation=operation,
+                fallback_payload=fallback_payload,
+                fallback_idempotency_key=fallback_idempotency_key,
+                failed_at=_utc_now(),
+            ),
         )
 
     def get_async_create_submission_stats_for_tests(self) -> AsyncCreateSubmissionStats:
@@ -986,12 +989,15 @@ class ProposalWorkflowService:
         fallback_proposal_id: Optional[str],
         fallback_payload: Optional[ProposalVersionRequest],
     ) -> tuple[str, ProposalVersionRequest] | None:
-        return resolve_version_async_payload_or_fail(
-            repository=self._repository,
-            operation=operation,
-            fallback_proposal_id=fallback_proposal_id,
-            fallback_payload=fallback_payload,
-            failed_at=_utc_now(),
+        return cast(
+            tuple[str, ProposalVersionRequest] | None,
+            resolve_version_async_payload_or_fail(
+                repository=self._repository,
+                operation=operation,
+                fallback_proposal_id=fallback_proposal_id,
+                fallback_payload=fallback_payload,
+                failed_at=_utc_now(),
+            ),
         )
 
     def _run_async_operation(
