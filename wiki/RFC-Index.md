@@ -117,6 +117,14 @@ unavailable posture when AI is not configured. Gateway/Workbench product support
 data-product support, commercial/demo claims, and client-ready memo publication remain planned
 later slices.
 
+RFC-0024 Slice 11 is implemented as Gateway and Workbench product realization. `lotus-gateway`
+routes proposal memo create/read/projection/review/report-package/AI-commentary, lineage, and
+replay-evidence calls through canonical `lotus-advise` memo endpoints without recomputing memo
+truth. `lotus-workbench` consumes Gateway/BFF only for memo posture, projection, report-package,
+archive-ref, AI-commentary, lineage, replay, degraded, and blocked states, and browser proof keeps
+client-ready release and send-to-client controls absent. Active data-product support,
+commercial/demo claims, and client-ready memo publication remain planned later slices.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -277,3 +285,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-8-policy-fees-costs-conflicts-and-disclosures.md`
 - `docs/rfcs/RFC-0024-slice-9-report-render-archive-realization.md`
 - `docs/rfcs/RFC-0024-slice-10-ai-narrative-and-review-gated-commentary.md`
+- `docs/rfcs/RFC-0024-slice-11-gateway-workbench-product-realization.md`
