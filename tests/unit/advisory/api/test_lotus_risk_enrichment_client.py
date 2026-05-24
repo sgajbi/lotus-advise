@@ -66,7 +66,7 @@ def _proposal_result(request: ProposalSimulateRequest) -> ProposalResult:
 def _risk_response_payload() -> dict[str, Any]:
     return {
         "source_service": "lotus-risk",
-        "input_mode": "simulation",
+        "input_mode": "stateless",
         "risk_proxy": {"hhi_current": 5200.0, "hhi_proposed": 6800.0, "hhi_delta": 1600.0},
         "single_position_concentration": {
             "top_position_weight_current": 0.5,
@@ -162,7 +162,7 @@ class _FakeClient:
         return self.responses[index]
 
 
-def test_enrich_with_lotus_risk_maps_proposal_to_simulation_concentration(monkeypatch):
+def test_enrich_with_lotus_risk_maps_proposal_to_stateless_concentration(monkeypatch):
     request = _request()
     result = _proposal_result(request)
     fake_client = _FakeClient(_FakeResponse(status_code=200, payload=_risk_response_payload()))
@@ -180,36 +180,45 @@ def test_enrich_with_lotus_risk_maps_proposal_to_simulation_concentration(monkey
 
     call = fake_client.calls[0]
     payload = call["json"]
-    simulation_input = payload["simulation_input"]
+    stateless_input = payload["stateless_input"]
     assert call["url"] == "http://lotus-risk:8130/analytics/risk/concentration"
     assert call["headers"]["X-Correlation-Id"] == "corr-risk-client"
-    assert payload["input_mode"] == "simulation"
+    assert payload["input_mode"] == "stateless"
     assert payload["issuer_grouping_level"] == "ultimate_parent"
-    assert simulation_input["portfolio_id"] == "DEMO_ADV_USD_001"
-    assert simulation_input["as_of_date"] == "2026-03-25"
-    assert simulation_input["reporting_currency"] == "USD"
-    assert simulation_input["simulation_changes"] == [
+    assert payload["enrichment_policy"] == "use_caller_only"
+    assert stateless_input["current_positions"] == [
         {
-            "security_id": "EQ_1",
-            "transaction_type": "BUY",
-            "quantity": 2.0,
-            "amount": 200.0,
-            "currency": "USD",
-            "metadata": {
-                "proposal_intent_id": "oi_1",
-                "proposal_intent_type": "SECURITY_TRADE",
-            },
+            "security_id": "CASH_USD",
+            "security_name": "USD Cash",
+            "quantity": "1000",
+            "market_value_base": "1000",
+            "weight": "1",
+            "issuer_id": "CASH_USD",
+            "ultimate_parent_issuer_id": "CASH_USD",
         }
     ]
-    assert simulation_input["issuer_mappings"] == [
+    assert stateless_input["projected_positions"] == [
         {
             "security_id": "EQ_1",
+            "security_name": "EQ_1",
+            "proposed_quantity": "2",
+            "projected_market_value_base": "200.0",
+            "projected_weight": "0.2",
             "issuer_id": "ISSUER_1",
             "ultimate_parent_issuer_id": "PARENT_1",
-        }
+        },
+        {
+            "security_id": "CASH_USD",
+            "security_name": "USD Cash",
+            "proposed_quantity": "800",
+            "projected_market_value_base": "800",
+            "projected_weight": "0.8",
+            "issuer_id": "CASH_USD",
+            "ultimate_parent_issuer_id": "CASH_USD",
+        },
     ]
     assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
-    assert enriched.explanation["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert enriched.explanation["risk_lens"]["risk_proxy"]["hhi_delta"] == "1600.0"
     assert (
         enriched.explanation["risk_lens"]["single_position_concentration"]["top_position_current"][
             "security_id"
@@ -221,7 +230,7 @@ def test_enrich_with_lotus_risk_maps_proposal_to_simulation_concentration(monkey
         == "PARENT_1"
     )
     assert (
-        enriched.explanation["risk_lens"]["issuer_concentration"]["coverage_ratio_current"] == 1.0
+        enriched.explanation["risk_lens"]["issuer_concentration"]["coverage_ratio_current"] == "1.0"
     )
 
 
@@ -366,7 +375,7 @@ def test_enrich_with_lotus_risk_rejects_contract_mismatch(monkeypatch):
         )
 
 
-def test_enrich_with_lotus_risk_prefers_resolved_as_of_for_stateful_context(monkeypatch):
+def test_enrich_with_lotus_risk_prefers_simulation_mode_for_resolved_stateful_context(monkeypatch):
     request = _request()
     request.reference_model = None
     fake_client = _FakeClient(_FakeResponse(status_code=200, payload=_risk_response_payload()))
@@ -381,9 +390,13 @@ def test_enrich_with_lotus_risk_prefers_resolved_as_of_for_stateful_context(monk
         proposal_result=_proposal_result(_request()),
         correlation_id="corr-risk-client",
         resolved_as_of="2026-03-27",
+        input_mode="stateful",
     )
 
-    assert fake_client.calls[0]["json"]["simulation_input"]["as_of_date"] == "2026-03-27"
+    payload = fake_client.calls[0]["json"]
+    assert payload["input_mode"] == "simulation"
+    assert payload["simulation_input"]["as_of_date"] == "2026-03-27"
+    assert payload["simulation_input"]["portfolio_id"] == "DEMO_ADV_USD_001"
 
 
 def test_enrich_with_lotus_risk_accepts_unavailable_issuer_descriptors(monkeypatch):
@@ -425,7 +438,7 @@ def test_enrich_with_lotus_risk_accepts_unavailable_issuer_descriptors(monkeypat
     assert enriched.explanation["risk_lens"]["issuer_concentration"]["top_issuer_current"] == {
         "issuer_id": None,
         "issuer_name": None,
-        "weight": 0.0,
+        "weight": "0.0",
     }
 
 
@@ -452,14 +465,14 @@ def test_enrich_with_lotus_risk_tolerates_additive_upstream_fields(monkeypatch):
     )
 
     assert enriched.explanation["risk_lens"]["source_service"] == "lotus-risk"
-    assert enriched.explanation["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert enriched.explanation["risk_lens"]["risk_proxy"]["hhi_delta"] == "1600.0"
     assert enriched.explanation["risk_lens"]["metadata"]["new_metadata_field"] == {
         "component": "upstream-addition"
     }
     assert enriched.explanation["risk_lens"]["valuation_context"]["new_context_field"] is True
 
 
-def test_enrich_with_lotus_risk_only_sends_issuer_mappings_for_changed_instruments(monkeypatch):
+def test_enrich_with_lotus_risk_omits_empty_stateless_positions(monkeypatch):
     request = _request()
     request.proposed_trades = []
     fake_client = _FakeClient(_FakeResponse(status_code=200, payload=_risk_response_payload()))
@@ -475,6 +488,10 @@ def test_enrich_with_lotus_risk_only_sends_issuer_mappings_for_changed_instrumen
         correlation_id="corr-risk-client",
     )
 
-    simulation_input = fake_client.calls[0]["json"]["simulation_input"]
-    assert simulation_input["simulation_changes"] == []
-    assert "issuer_mappings" not in simulation_input
+    stateless_input = fake_client.calls[0]["json"]["stateless_input"]
+    assert [position["security_id"] for position in stateless_input["current_positions"]] == [
+        "CASH_USD"
+    ]
+    assert [position["security_id"] for position in stateless_input["projected_positions"]] == [
+        "CASH_USD"
+    ]

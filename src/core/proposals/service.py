@@ -234,6 +234,7 @@ class ProposalWorkflowService:
         proposal_result = run_advisory_proposal_simulation(
             request=resolved_request.simulate_request,
             resolved_as_of=resolved_request.resolved_context.as_of,
+            input_mode=resolved_request.input_mode,
             request_hash=request_hash,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
@@ -624,6 +625,7 @@ class ProposalWorkflowService:
         proposal_result = run_advisory_proposal_simulation(
             request=resolved_request.simulate_request,
             resolved_as_of=resolved_request.resolved_context.as_of,
+            input_mode=resolved_request.input_mode,
             request_hash=request_hash,
             idempotency_key=None,
             correlation_id=correlation_id,

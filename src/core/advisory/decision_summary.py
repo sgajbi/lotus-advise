@@ -273,7 +273,7 @@ def _build_missing_evidence(result: ProposalResult) -> list[ProposalDecisionMiss
                 evidence_type="RISK_LENS",
                 reason_code="MISSING_RISK_LENS",
                 summary="Canonical risk evidence is unavailable for this proposal run.",
-                blocking=result.status != "READY",
+                blocking=True,
                 evidence_refs=["proposal.explanation.authority_resolution"],
             )
         )

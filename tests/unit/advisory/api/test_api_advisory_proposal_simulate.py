@@ -728,7 +728,7 @@ def test_advisory_proposal_simulate_sets_risk_authority_only_after_valid_risk_re
     assert authority["simulation_authority"] == "lotus_core"
     assert authority["risk_authority"] == "lotus_risk"
     assert body["explanation"]["risk_lens"]["source_service"] == "lotus-risk"
-    assert body["explanation"]["risk_lens"]["risk_proxy"]["hhi_delta"] == 1600.0
+    assert body["explanation"]["risk_lens"]["risk_proxy"]["hhi_delta"] == "1600.0"
     assert (
         body["explanation"]["risk_lens"]["single_position_concentration"]["top_position_current"][
             "security_id"
@@ -739,7 +739,9 @@ def test_advisory_proposal_simulate_sets_risk_authority_only_after_valid_risk_re
         body["explanation"]["risk_lens"]["issuer_concentration"]["top_issuer_current"]["issuer_id"]
         == "PARENT_1"
     )
-    assert body["explanation"]["risk_lens"]["issuer_concentration"]["coverage_ratio_current"] == 1.0
+    assert (
+        body["explanation"]["risk_lens"]["issuer_concentration"]["coverage_ratio_current"] == "1.0"
+    )
 
 
 def test_advisory_proposal_simulate_marks_risk_authority_unavailable_when_risk_enrichment_fails(
@@ -1058,7 +1060,8 @@ def test_advisory_proposal_artifact_endpoint_success(client):
     assert body["summary"]["recommended_next_step"] == "CLIENT_CONSENT"
     assert body["gate_decision"]["gate"] == "CLIENT_CONSENT_REQUIRED"
     assert body["proposal_decision_summary"]["top_level_status"] == "READY"
-    assert body["proposal_decision_summary"]["decision_status"] == "REQUIRES_CLIENT_CONSENT"
+    assert body["proposal_decision_summary"]["decision_status"] == "INSUFFICIENT_EVIDENCE"
+    assert body["proposal_decision_summary"]["primary_reason_code"] == "MISSING_RISK_LENS"
     assert body["trades_and_funding"]["trade_list"][0]["instrument_id"] == "US_EQ"
     assert body["evidence_bundle"]["hashes"]["artifact_hash"].startswith("sha256:")
 

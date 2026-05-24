@@ -12,6 +12,7 @@ from scripts.validate_cross_service_parity_live import (
     _collect_alternative_statuses,
     _json_safe_value,
     _normalize_allocation_views,
+    _normalize_risk_payload,
     _security_trade_changes_from_proposal_body,
     _select_changed_state_security,
     _select_cross_currency_changed_state_security,
@@ -29,6 +30,37 @@ def test_select_changed_state_security_prefers_highest_weight_non_cash_position(
     selected = _select_changed_state_security(positions)
 
     assert selected == "FO_FUND_HIGH"
+
+
+def test_normalize_risk_payload_compares_business_risk_not_transport_mode() -> None:
+    payload = {
+        "source_service": "lotus-risk",
+        "input_mode": "stateless",
+        "risk_proxy": {"hhi_current": "5200.0", "hhi_proposed": 5200.0, "hhi_delta": 0.0},
+        "single_position_concentration": {"top_position_weight_current": 0.2},
+        "issuer_concentration": {
+            "coverage_status": "complete",
+            "coverage_ratio_current": "1.0",
+        },
+        "valuation_context": {"reporting_currency": "USD"},
+        "metadata": {"portfolio_id": "PB_SG_GLOBAL_BAL_001", "as_of_date": "2026-05-22"},
+    }
+
+    normalized = _normalize_risk_payload(payload)
+
+    assert normalized == {
+        "source_service": "lotus-risk",
+        "risk_proxy": {
+            "hhi_current": Decimal("5200.0"),
+            "hhi_proposed": Decimal("5200.0"),
+            "hhi_delta": Decimal("0.0"),
+        },
+        "single_position_concentration": {"top_position_weight_current": Decimal("0.2")},
+        "issuer_concentration": {
+            "coverage_status": "complete",
+            "coverage_ratio_current": Decimal("1.0"),
+        },
+    }
 
 
 def test_security_trade_changes_from_proposal_body_preserves_trade_quantities_and_notional() -> (
