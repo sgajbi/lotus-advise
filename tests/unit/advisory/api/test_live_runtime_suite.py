@@ -2,6 +2,7 @@ import json
 
 from scripts.live_runtime_decision_summary import LiveDecisionSnapshot
 from scripts.live_runtime_proposal_alternatives import LiveProposalAlternativesSnapshot
+from scripts.live_runtime_proposal_memo import LiveProposalMemoSnapshot
 from scripts.live_runtime_proposal_narrative import (
     LiveProposalNarrativeSnapshot,
     validate_guardrail_failure_path,
@@ -98,6 +99,40 @@ def _narrative_snapshot() -> LiveProposalNarrativeSnapshot:
     )
 
 
+def _memo_snapshot() -> LiveProposalMemoSnapshot:
+    return LiveProposalMemoSnapshot(
+        proposal_id="pp_live_memo_001",
+        version_no=1,
+        memo_id="memo_live_001",
+        memo_status="BLOCKED",
+        lifecycle_status="DRAFT",
+        memo_hash="sha256:memo",
+        source_input_hash="sha256:source",
+        projection_client_ready_publication="BLOCKED",
+        projection_audience="ADVISOR",
+        projected_section_count=4,
+        review_action="APPROVE_FOR_ADVISOR_USE",
+        review_client_ready_publication="BLOCKED",
+        report_status="READY",
+        report_package_status="ARCHIVED",
+        render_ref_status="RECORDED",
+        archive_ref_status="RECORDED",
+        ai_status="UNAVAILABLE",
+        ai_authoritative_for_memo_status=False,
+        ai_review_required=True,
+        lineage_complete=True,
+        lineage_memo_count=1,
+        replay_memo_hash="sha256:memo",
+        replay_source_input_hash="sha256:source",
+        replay_client_ready_publication="BLOCKED",
+        stale_hash_block_status="MEMO_HASH_MISMATCH",
+        client_ready_release_block_status="MEMO_CLIENT_READY_RELEASE_NOT_SUPPORTED",
+        client_ready_document_block_status="MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED",
+        report_degraded_reason=None,
+        latency_ms=710.0,
+    )
+
+
 def _parity_result() -> LiveParityResult:
     return LiveParityResult(
         complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
@@ -124,6 +159,7 @@ def _parity_result() -> LiveParityResult:
         execution_terminal_status="EXECUTED",
         report_status="READY",
         proposal_narrative=_narrative_snapshot(),
+        proposal_memo=_memo_snapshot(),
         ready_decision=_decision_snapshot(
             path_name="ready_path",
             top_level_status="READY",
@@ -350,6 +386,15 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
     assert payload["parity"]["proposal_narrative"]["guardrail_failure_status"] == (
         "LOCAL_POLICY_REPRODUCED"
     )
+    assert payload["parity"]["proposal_memo"]["review_action"] == "APPROVE_FOR_ADVISOR_USE"
+    assert payload["parity"]["proposal_memo"]["report_package_status"] == "ARCHIVED"
+    assert payload["parity"]["proposal_memo"]["archive_ref_status"] == "RECORDED"
+    assert payload["parity"]["proposal_memo"]["ai_authoritative_for_memo_status"] is False
+    assert payload["parity"]["proposal_memo"]["replay_client_ready_publication"] == "BLOCKED"
+    assert (
+        payload["parity"]["proposal_memo"]["client_ready_document_block_status"]
+        == "MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED"
+    )
     assert payload["parity"]["review_decision"]["decision_status"] == "REQUIRES_RISK_REVIEW"
     assert payload["parity"]["noop_alternatives"]["feasible_count"] == 2
     assert payload["parity"]["restricted_product_alternatives"]["rejected_reason_codes"] == [
@@ -402,6 +447,7 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert "## Decision Paths" in summary_text
     assert "## Proposal Alternatives Paths" in summary_text
     assert "## Proposal Narrative Proof" in summary_text
+    assert "## Proposal Memo Proof" in summary_text
     assert "## Degraded Runtime" in summary_text
     assert "## Insufficient Evidence Path" in summary_text
     assert "## Degraded Alternatives Paths" in summary_text
@@ -418,6 +464,10 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert "review state: `APPROVED_FOR_ADVISOR_USE`" in summary_text
     assert "client-ready status: `NOT_REQUESTED`" in summary_text
     assert "guardrail failure path: `LOCAL_POLICY_REPRODUCED`" in summary_text
+    assert "review: `APPROVE_FOR_ADVISOR_USE` / `BLOCKED`" in summary_text
+    assert "AI commentary: `UNAVAILABLE` / review required `True` / authoritative `False`" in (
+        summary_text
+    )
     assert "rejected reasons: `LOTUS_RISK_ENRICHMENT_UNAVAILABLE`" in summary_text
 
 
@@ -452,6 +502,10 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
     assert (
         "- proposal narrative: `DETERMINISTIC_TEMPLATE` / "
         "`APPROVED_FOR_ADVISOR_USE` / `INCLUDED_REVIEWED_NARRATIVE`"
+    ) in summary
+    assert (
+        "- proposal memo: `BLOCKED` / `APPROVE_FOR_ADVISOR_USE` / `ARCHIVED` / "
+        "AI `UNAVAILABLE`"
     ) in summary
     assert "- review path: `REQUIRES_RISK_REVIEW` / `NEW_MEDIUM_SUITABILITY_ISSUE`" in summary
     assert "- insufficient-evidence path: `INSUFFICIENT_EVIDENCE` / `MISSING_RISK_LENS`" in summary
