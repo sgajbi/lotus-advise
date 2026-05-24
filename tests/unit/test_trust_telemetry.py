@@ -158,6 +158,7 @@ def test_rfc0024_memo_trust_telemetry_does_not_promote_supported_memo() -> None:
     assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_text
     assert "Gateway, Workbench, report/render/archive realization" in supported_text
     assert "client-ready memo claims remain planned" in supported_text
+    assert "full bank-demo/RFP claims" in supported_text
     assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_text
     assert "advisory.proposals.memo_evidence_pack" not in capability_text
 
@@ -168,4 +169,4 @@ def test_rfc0024_memo_trust_telemetry_does_not_promote_supported_memo() -> None:
     )
     declaration_text = json.dumps(declared_product, sort_keys=True).lower()
     assert "client-ready memo publication" not in declaration_text
-    assert "memo support" not in declaration_text
+    assert "active supported data product" in declaration_text
