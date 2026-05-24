@@ -36,6 +36,7 @@ def build_memo_persistence_request_hash(
     *,
     version: ProposalVersionRecord,
     lifecycle_status: str,
+    reason: dict[str, Any] | None = None,
 ) -> str:
     return cast(
         str,
@@ -49,6 +50,7 @@ def build_memo_persistence_request_hash(
                 "request_hash": version.request_hash,
                 "evidence_bundle_hash": hash_canonical_payload(version.evidence_bundle_json),
                 "lifecycle_status": lifecycle_status,
+                "reason": reason or {},
             }
         ),
     )
@@ -63,6 +65,7 @@ def create_or_replay_proposal_memo(
     created_at: datetime,
     event_id: str,
     lifecycle_status: str = "DRAFT",
+    reason: dict[str, Any] | None = None,
 ) -> ProposalMemoPersistenceResult:
     if lifecycle_status not in {"DRAFT", "FINALIZED"}:
         raise ProposalMemoPersistenceError("MEMO_LIFECYCLE_STATUS_UNSUPPORTED")
@@ -70,6 +73,7 @@ def create_or_replay_proposal_memo(
     request_hash = build_memo_persistence_request_hash(
         version=version,
         lifecycle_status=memo_lifecycle_status,
+        reason=reason,
     )
     if idempotency_key:
         replayed = _find_replayed_memo(
@@ -114,6 +118,7 @@ def create_or_replay_proposal_memo(
         lifecycle_status=memo_lifecycle_status,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        reason=reason,
     )
     event = _created_event(
         event_id=event_id,
@@ -122,6 +127,7 @@ def create_or_replay_proposal_memo(
         occurred_at=created_at,
         idempotency_key=idempotency_key,
         request_hash=request_hash,
+        reason=reason,
     )
     repository.create_memo(memo_record)
     if idempotency_key:
@@ -167,6 +173,7 @@ def _build_memo_record(
     lifecycle_status: ProposalMemoLifecycleStatus,
     idempotency_key: str | None,
     request_hash: str,
+    reason: dict[str, Any] | None,
 ) -> ProposalMemoRecord:
     evidence_bundle = deepcopy(version.evidence_bundle_json)
     pack = build_advisory_proposal_memo_evidence_pack(
@@ -186,6 +193,7 @@ def _build_memo_record(
         "memo_source_input_hash": pack.source_input_hash,
         "memo_request_hash": request_hash,
         "idempotency_key": idempotency_key,
+        "creation_reason": reason or {},
         "replay_policy": "EXACT_SOURCE_HASH_MATCH",
     }
     return ProposalMemoRecord(
@@ -247,6 +255,7 @@ def _created_event(
     occurred_at: datetime,
     idempotency_key: str | None,
     request_hash: str,
+    reason: dict[str, Any] | None,
 ) -> ProposalMemoEventRecord:
     return ProposalMemoEventRecord(
         event_id=event_id,
@@ -263,5 +272,6 @@ def _created_event(
             "lifecycle_status": memo.lifecycle_status,
             "idempotency_key": idempotency_key,
             "idempotency_request_hash": request_hash,
+            "creation_reason": reason or {},
         },
     )

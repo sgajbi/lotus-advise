@@ -29,5 +29,9 @@ def new_report_request_id() -> str:
     return _new_prefixed_id("prr")
 
 
+def new_memo_event_id() -> str:
+    return _new_prefixed_id("pme")
+
+
 def _new_prefixed_id(prefix: str) -> str:
     return f"{prefix}_{uuid4().hex[:12]}"

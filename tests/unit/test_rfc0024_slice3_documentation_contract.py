@@ -44,6 +44,8 @@ def test_rfc0024_slice3_keeps_memo_capability_unpromoted() -> None:
     assert "active mesh policy" in slice3_text
     assert "Slices 0-4 are complete as non-claiming source-map" in supported_features
     assert "proposed/blocked governance posture" in supported_features
-    assert "Memo generation, memo APIs, memo persistence" in supported_features
+    assert "Slice 7 is complete for canonical `lotus-advise` memo" in supported_features
+    assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_features
+    assert "Gateway, Workbench, report/render/archive realization" in supported_features
     assert "client-ready memo claims remain planned" in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_features

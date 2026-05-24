@@ -45,7 +45,9 @@ def test_supported_features_keep_rfc0024_current_state_non_claiming() -> None:
     assert "`RFC-0024`" in supported_features
     assert "Slices 0-4 are complete as non-claiming source-map" in supported_features
     assert "product-gap allocation" in supported_features
-    assert "Memo generation, memo APIs, memo persistence" in supported_features
+    assert "Slice 7 is complete for canonical `lotus-advise` memo" in supported_features
+    assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_features
+    assert "Gateway, Workbench, report/render/archive realization" in supported_features
     assert "client-ready memo claims remain planned" in supported_features
     assert "Advisor proposal memo | Supported" not in supported_features
     assert "Client-ready memo publication | Supported" not in supported_features
