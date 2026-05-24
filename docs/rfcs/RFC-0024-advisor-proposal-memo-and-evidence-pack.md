@@ -30,6 +30,7 @@
 | Slice 6 persistence, replay, idempotency, and audit | `docs/rfcs/RFC-0024-slice-6-persistence-replay-idempotency-and-audit.md` | Implemented - durable memo records, idempotency, replay metadata, and audit events; no memo API or product support promoted |
 | Slice 7 certified APIs and OpenAPI | `docs/rfcs/RFC-0024-slice-7-certified-apis-and-openapi.md` | Implemented - canonical Advise memo APIs and OpenAPI; Gateway, Workbench, report/render/archive, active data-product support, and client-ready memo claims remain unpromoted |
 | Slice 8 policy, fees, costs, conflicts, and disclosures | `docs/rfcs/RFC-0024-slice-8-policy-fees-costs-conflicts-and-disclosures.md` | Implemented - memo-critical suitability, product eligibility, cost/fee/tax/friction limitation, disclosure, and conflict blocker enrichment; full policy packs, report/render/archive, Gateway, Workbench, active data-product support, and client-ready memo claims remain unpromoted |
+| Slice 9 report, render, and archive realization | `docs/rfcs/RFC-0024-slice-9-report-render-archive-realization.md` | Implemented - advisor-reviewed memo package handoff to `lotus-report`, deterministic render-package projection, `lotus-archive` support-safe memo metadata, and Advise memo lineage refs; Gateway, Workbench, active data-product support, AI commentary, and client-ready memo claims remain unpromoted |
 
 ## 0. Executive Summary
 

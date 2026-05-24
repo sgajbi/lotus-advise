@@ -99,9 +99,15 @@ RFC-0024 Slice 8 is implemented as memo-critical policy, fees, costs, conflicts,
 enrichment. It projects suitability issue counts, product eligibility and complexity coverage,
 cost/fee/tax/friction limitation evidence, risk disclosures, product-document references, and
 explicit conflict-policy blockers into persisted memo sections without converting missing evidence
-into positive best-interest or client-ready wording. Full policy packs, Gateway/Workbench product
-support, report/render/archive realization, active data-product support, and client-ready memo
-publication remain planned later slices.
+into positive best-interest or client-ready wording.
+
+RFC-0024 Slice 9 is implemented as advisor-use report/render/archive realization. Advise now
+requires memo hash continuity and an `APPROVE_FOR_ADVISOR_USE` review before requesting a typed
+memo package from `lotus-report`; `lotus-report` preserves the package in the report snapshot and
+render package; `lotus-archive` stores support-safe advisor proposal memo archive metadata; and
+Advise memo lineage records returned report, render, and archive refs. Gateway/Workbench product
+support, active data-product support, AI commentary, and client-ready memo publication remain
+planned later slices.
 
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.

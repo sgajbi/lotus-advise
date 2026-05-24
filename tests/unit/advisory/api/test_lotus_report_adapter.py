@@ -4,6 +4,7 @@ import pytest
 from src.integrations.lotus_report.adapter import (
     LotusReportUnavailableError,
     _resolve_timeout,
+    request_proposal_memo_report_package_with_lotus_report,
     request_proposal_report_with_lotus_report,
 )
 
@@ -40,6 +41,16 @@ class _FakeClient:
     def post(self, url: str, *, json: dict, headers: dict[str, str]) -> _FakeResponse:
         self.posts.append({"url": url, "json": json, "headers": headers})
         return self.response
+
+    def get(self, url: str, *, headers: dict[str, str]) -> _FakeResponse:
+        return _FakeResponse(
+            200,
+            {
+                "status": "archived",
+                "render": {"render_job_id": "rdr_memo_001"},
+                "archive": {"document_id": "doc_memo_001"},
+            },
+        )
 
 
 def _proposal_request() -> dict:
@@ -86,6 +97,31 @@ def _proposal_request() -> dict:
     }
 
 
+def _memo_report_package_request() -> dict:
+    request = _proposal_request()
+    request.update(
+        {
+            "report_request_id": "prr_memo_001",
+            "requested_output_formats": ["pdf"],
+            "proposal_memo_package": {
+                "package_status": "INCLUDED_ADVISOR_PROPOSAL_MEMO",
+                "usage": "REPORT_REQUEST_APPROVED_ADVISOR_MEMO",
+                "memo_id": "memo_001",
+                "memo_version": "advisory-proposal-memo-evidence-pack.v1",
+                "memo_status": "READY",
+                "proposal_id": "pp_live_001",
+                "proposal_version_no": 1,
+                "memo_hash": "sha256:memo",
+                "source_input_hash": "sha256:source",
+                "review": {"review_action": "APPROVE_FOR_ADVISOR_USE"},
+                "sections": [{"section_id": "EXECUTIVE_SUMMARY", "summary": "Advisor memo."}],
+                "client_ready_publication": "BLOCKED",
+            },
+        }
+    )
+    return request
+
+
 def test_lotus_report_adapter_submits_portfolio_review_job_with_reviewed_narrative(
     monkeypatch,
 ) -> None:
@@ -126,6 +162,39 @@ def test_lotus_report_adapter_submits_portfolio_review_job_with_reviewed_narrati
     assert post["json"]["as_of_date"] == "2026-04-10"
     assert post["json"]["requested_output_formats"] == ["json"]
     assert post["json"]["proposal_narrative_package"]["narrative_id"] == "pnar_live_001"
+
+
+def test_lotus_report_adapter_submits_memo_package_for_pdf_render_archive(monkeypatch) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_memo_001",
+                "status": "archived",
+                "status_url": "/reports/jobs/rjob_memo_001",
+                "idempotency_key": "prr_memo_001",
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_memo_report_package_with_lotus_report(
+        request=_memo_report_package_request()
+    )
+
+    assert response.status == "ARCHIVED"
+    assert response.report_reference_id == "rjob_memo_001"
+    assert response.explanation["render"]["render_job_id"] == "rdr_memo_001"
+    assert response.explanation["archive"]["document_id"] == "doc_memo_001"
+    [post] = fake_client.posts
+    assert post["json"]["requested_output_formats"] == ["pdf"]
+    assert post["json"]["proposal_memo_package"]["memo_id"] == "memo_001"
+    assert post["json"]["proposal_memo_package"]["client_ready_publication"] == "BLOCKED"
 
 
 def test_lotus_report_adapter_fails_closed_when_report_base_url_is_missing(monkeypatch) -> None:

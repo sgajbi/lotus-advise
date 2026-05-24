@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 
-from fastapi import Depends, Header, Path, Query, status
+from fastapi import Depends, Header, HTTPException, Path, Query, status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import raise_proposal_http_exception
@@ -12,6 +12,8 @@ from src.core.proposals import (
     ProposalMemoReplayEvidenceResponse,
     ProposalMemoReportPackageEventRequest,
     ProposalMemoReportPackageEventResponse,
+    ProposalMemoReportPackageRequest,
+    ProposalMemoReportPackageResponse,
     ProposalMemoResponse,
     ProposalMemoReviewRequest,
     ProposalMemoReviewResponse,
@@ -21,7 +23,7 @@ from src.core.proposals.exceptions import (
     ProposalNotFoundError,
     ProposalValidationError,
 )
-from src.core.proposals.identifiers import new_memo_event_id
+from src.core.proposals.identifiers import new_memo_event_id, new_report_request_id
 from src.core.proposals.memo_api import (
     create_or_replay_memo_response,
     get_memo_lineage_response,
@@ -30,8 +32,10 @@ from src.core.proposals.memo_api import (
     get_memo_response,
     record_memo_report_package_event_response,
     record_memo_review_response,
+    request_memo_report_package_response,
 )
 from src.core.proposals.repository import ProposalRepository
+from src.integrations.lotus_report import LotusReportUnavailableError
 
 
 @shared.router.post(
@@ -337,6 +341,86 @@ def record_proposal_memo_report_package_event(
         ProposalValidationError,
     ) as exc:
         raise_proposal_http_exception(exc)
+
+
+@shared.router.post(
+    "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-packages",
+    response_model=ProposalMemoReportPackageResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Memo"],
+    summary="Request Proposal Memo Report Package",
+    description=(
+        "Requests lotus-report materialization for an advisor-reviewed proposal memo package, "
+        "submits a typed memo package for deterministic render/archive handling, and records "
+        "returned report, render, and archive references in memo lineage. Client-ready document "
+        "release remains blocked."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Proposal, immutable proposal version, or persisted memo was not found."
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": (
+                "Idempotency key was reused with a different report-package request payload."
+            )
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": (
+                "Report-package request is invalid, references a stale memo hash, lacks "
+                "advisor-use review, or attempts client-ready document release."
+            )
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "lotus-report report/render/archive materialization is unavailable."
+        },
+    },
+)
+def request_proposal_memo_report_package(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    version_no: Annotated[
+        int,
+        Path(description="Immutable proposal version number used as memo source.", ge=1),
+    ],
+    payload: ProposalMemoReportPackageRequest,
+    repository: Annotated[
+        ProposalRepository,
+        Depends(shared.get_proposal_repository),
+    ],
+    idempotency_key: Annotated[
+        Optional[str],
+        Header(
+            alias="Idempotency-Key",
+            description="Optional idempotency key for replay-safe memo report-package requests.",
+            examples=["proposal-memo-report-package-idem-001"],
+        ),
+    ] = None,
+) -> ProposalMemoReportPackageResponse:
+    shared._assert_lifecycle_enabled()
+    try:
+        return request_memo_report_package_response(
+            repository=repository,
+            proposal_id=proposal_id,
+            version_no=version_no,
+            payload=payload,
+            idempotency_key=idempotency_key,
+            report_request_id=new_report_request_id(),
+            event_id=new_memo_event_id(),
+            occurred_at=_utc_now(),
+        )
+    except (
+        ProposalIdempotencyConflictError,
+        ProposalNotFoundError,
+        ProposalValidationError,
+    ) as exc:
+        raise_proposal_http_exception(exc)
+    except LotusReportUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
 
 @shared.router.get(
