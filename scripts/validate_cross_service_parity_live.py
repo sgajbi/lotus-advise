@@ -2311,9 +2311,7 @@ def _assert_live_proposal_memo_flow(
         stale_hash_response.status_code == 422,
         f"{proposal_id}: stale memo hash review was not rejected",
     )
-    stale_hash_block_status = str(
-        cast(dict[str, Any], stale_hash_response.json()).get("detail")
-    )
+    stale_hash_block_status = str(cast(dict[str, Any], stale_hash_response.json()).get("detail"))
 
     client_ready_release_response = client.post(
         f"{advise_base_url}/advisory/proposals/{proposal_id}/versions/{version_no}/memo/review",

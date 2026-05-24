@@ -504,8 +504,7 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
         "`APPROVED_FOR_ADVISOR_USE` / `INCLUDED_REVIEWED_NARRATIVE`"
     ) in summary
     assert (
-        "- proposal memo: `BLOCKED` / `APPROVE_FOR_ADVISOR_USE` / `ARCHIVED` / "
-        "AI `UNAVAILABLE`"
+        "- proposal memo: `BLOCKED` / `APPROVE_FOR_ADVISOR_USE` / `ARCHIVED` / AI `UNAVAILABLE`"
     ) in summary
     assert "- review path: `REQUIRES_RISK_REVIEW` / `NEW_MEDIUM_SUITABILITY_ISSUE`" in summary
     assert "- insufficient-evidence path: `INSUFFICIENT_EVIDENCE` / `MISSING_RISK_LENS`" in summary

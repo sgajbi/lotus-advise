@@ -121,11 +121,7 @@ def _format_memo_summary_lines(memo: dict[str, Any]) -> list[str]:
             f"`{memo['projection_client_ready_publication']}` / "
             f"{memo['projected_section_count']} sections"
         ),
-        (
-            "- review: "
-            f"`{memo['review_action']}` / "
-            f"`{memo['review_client_ready_publication']}`"
-        ),
+        (f"- review: `{memo['review_action']}` / `{memo['review_client_ready_publication']}`"),
         (
             "- report package: "
             f"`{memo['report_status']}` / `{memo['report_package_status']}` / "

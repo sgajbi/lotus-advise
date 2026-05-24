@@ -82,9 +82,7 @@ def extract_live_memo_snapshot(
         lifecycle_status=str(memo["lifecycle_status"]),
         memo_hash=str(memo["memo_hash"]),
         source_input_hash=str(memo["source_input_hash"]),
-        projection_client_ready_publication=str(
-            projection_posture["client_ready_publication"]
-        ),
+        projection_client_ready_publication=str(projection_posture["client_ready_publication"]),
         projection_audience=str(projection_body["audience"]),
         projected_section_count=len(cast(list[Any], projection_body["sections"])),
         review_action=str(review_reason["review_action"]),
@@ -94,17 +92,13 @@ def extract_live_memo_snapshot(
         render_ref_status=render_ref_status,
         archive_ref_status=archive_ref_status,
         ai_status=str(ai_reason["ai_status"]),
-        ai_authoritative_for_memo_status=bool(
-            ai_commentary["authoritative_for_memo_status"]
-        ),
+        ai_authoritative_for_memo_status=bool(ai_commentary["authoritative_for_memo_status"]),
         ai_review_required=bool(ai_commentary["review_required"]),
         lineage_complete=bool(lineage_body["lineage_complete"]),
         lineage_memo_count=int(lineage_body["memo_count"]),
         replay_memo_hash=str(replay_hashes["memo_hash"]),
         replay_source_input_hash=str(replay_hashes["source_input_hash"]),
-        replay_client_ready_publication=str(
-            replay_explanation["client_ready_publication"]
-        ),
+        replay_client_ready_publication=str(replay_explanation["client_ready_publication"]),
         stale_hash_block_status=stale_hash_block_status,
         client_ready_release_block_status=client_ready_release_block_status,
         client_ready_document_block_status=client_ready_document_block_status,
