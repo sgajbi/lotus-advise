@@ -107,6 +107,102 @@ def request_proposal_report_with_lotus_report(*, request: dict[str, Any]) -> Pro
     )
 
 
+def request_proposal_memo_report_package_with_lotus_report(
+    *, request: dict[str, Any]
+) -> ProposalReportResponse:
+    main_module = sys.modules.get("src.api.main")
+    override = getattr(main_module, "request_proposal_memo_report_package_with_lotus_report", None)
+    if override is not None:
+        response = override(request=request)
+        return cast(ProposalReportResponse, ProposalReportResponse.model_validate(response))
+
+    base_url = _resolve_base_url()
+    request_id = _required_string(request, "report_request_id")
+    payload = _build_memo_report_package_job_request(request)
+    headers = {
+        "Idempotency-Key": request_id,
+        "X-Actor-Id": _optional_string(request.get("requested_by")) or "lotus-advise",
+        "X-Caller-Application": "lotus-advise",
+        "X-Tenant-Id": "default",
+        "X-Region": _proposal_region(request),
+        "X-Booking-Center-Code": _proposal_region(request),
+        "X-Role": "advisor",
+    }
+
+    try:
+        with httpx.Client(timeout=_resolve_timeout()) as client:
+            response = client.post(
+                f"{base_url}{_PORTFOLIO_REVIEW_PATH}",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            response_payload = cast(dict[str, Any], response.json())
+            status_payload = _load_report_status(
+                client=client,
+                base_url=base_url,
+                status_url=response_payload.get("status_url"),
+                headers=headers,
+            )
+    except (httpx.HTTPError, ValueError) as exc:
+        raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE") from exc
+
+    now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    proposal = cast(dict[str, Any], request.get("proposal") or {})
+    memo_package = cast(dict[str, Any], request.get("proposal_memo_package") or {})
+    report_job_id = _required_string(response_payload, "report_job_id")
+    status = _normalize_memo_report_job_status(
+        status_payload.get("status") or response_payload.get("status")
+    )
+    explanation = {
+        "ownership": "REPORT_RENDER_ARCHIVE_OWNED_BY_LOTUS_REPORT_RENDER_ARCHIVE",
+        "related_version_no": request.get("related_version_no"),
+        "proposal_memo_package": {
+            "package_status": memo_package.get("package_status"),
+            "memo_id": memo_package.get("memo_id"),
+            "memo_hash": memo_package.get("memo_hash"),
+            "review_action": _as_mapping(memo_package.get("review")).get("review_action"),
+            "client_ready_publication": "BLOCKED",
+        },
+        "report_job_status_url": response_payload.get("status_url"),
+        "report_job_idempotency_key": response_payload.get("idempotency_key"),
+        "render": _as_mapping(status_payload.get("render")),
+        "archive": _as_mapping(status_payload.get("archive")),
+        "report_job_request": {
+            "portfolio_scope": payload["portfolio_scope"],
+            "as_of_date": payload["as_of_date"],
+            "requested_output_formats": payload["requested_output_formats"],
+        },
+    }
+    return ProposalReportResponse(
+        proposal=proposal,
+        report_request_id=request_id,
+        report_type=cast(ProposalReportType, "PORTFOLIO_REVIEW"),
+        report_service="lotus-report",
+        status=status,
+        generated_at=now,
+        report_reference_id=report_job_id,
+        artifact_url=response_payload.get("status_url"),
+        explanation=explanation,
+    )
+
+
+def _load_report_status(
+    *,
+    client: httpx.Client,
+    base_url: str,
+    status_url: Any,
+    headers: dict[str, str],
+) -> dict[str, Any]:
+    normalized_status_url = _optional_string(status_url)
+    if not normalized_status_url:
+        return {}
+    status_response = client.get(f"{base_url}{normalized_status_url}", headers=headers)
+    status_response.raise_for_status()
+    payload = status_response.json()
+    return payload if isinstance(payload, dict) else {}
+
+
 def _resolve_base_url() -> str:
     configured = os.getenv("LOTUS_REPORT_BASE_URL")
     if configured and configured.strip():
@@ -141,6 +237,35 @@ def _build_portfolio_review_job_request(request: dict[str, Any]) -> dict[str, An
     }
     if isinstance(proposal_narrative_package, dict):
         payload["proposal_narrative_package"] = proposal_narrative_package
+    return payload
+
+
+def _build_memo_report_package_job_request(request: dict[str, Any]) -> dict[str, Any]:
+    proposal = cast(dict[str, Any], request.get("proposal") or {})
+    portfolio_id = _required_string(proposal, "portfolio_id")
+    requested_output_formats = request.get("requested_output_formats")
+    if not isinstance(requested_output_formats, list) or not requested_output_formats:
+        requested_output_formats = ["pdf"]
+    payload = {
+        "portfolio_scope": {"portfolio_ids": [portfolio_id]},
+        "as_of_date": _extract_report_as_of_date(request),
+        "requested_output_formats": [
+            str(item).strip().lower()
+            for item in requested_output_formats
+            if str(item).strip().lower() in {"pdf", "json"}
+        ]
+        or ["pdf"],
+        "reporting_currency": _extract_reporting_currency(request),
+        "options": {
+            "source_system": "lotus-advise",
+            "source_proposal_id": proposal.get("proposal_id"),
+            "source_report_type": "ADVISORY_PROPOSAL_MEMO",
+            "requested_by": request.get("requested_by"),
+            "related_version_no": request.get("related_version_no"),
+            "retention_policy_id": _as_mapping(request.get("reason")).get("retention_policy_id"),
+        },
+        "proposal_memo_package": request.get("proposal_memo_package"),
+    }
     return payload
 
 
@@ -199,6 +324,10 @@ def _proposal_region(request: dict[str, Any]) -> str:
     return _optional_string(proposal.get("jurisdiction")) or "SG"
 
 
+def _as_mapping(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
 def _normalize_report_job_status(value: Any) -> str:
     normalized = _optional_string(value)
     if normalized in {"data_ready", "completed", "archived", "completed_with_warnings"}:
@@ -206,6 +335,13 @@ def _normalize_report_job_status(value: Any) -> str:
     if normalized:
         return normalized.upper()
     return "ACCEPTED"
+
+
+def _normalize_memo_report_job_status(value: Any) -> str:
+    normalized = _optional_string(value)
+    if normalized == "archived":
+        return "ARCHIVED"
+    return _normalize_report_job_status(value)
 
 
 def _required_string(payload: dict[str, Any], key: str) -> str:

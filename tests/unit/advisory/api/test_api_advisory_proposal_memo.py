@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+import src.api.main as api_main
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 
@@ -7,6 +8,8 @@ from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 def setup_function() -> None:
     PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
+    if hasattr(api_main, "request_proposal_memo_report_package_with_lotus_report"):
+        delattr(api_main, "request_proposal_memo_report_package_with_lotus_report")
 
 
 def _base_create_payload(portfolio_id: str = "pf_memo_api_1") -> dict:
@@ -233,6 +236,127 @@ def test_proposal_memo_review_and_report_package_events_are_idempotent_and_hash_
             "MEMO_REVIEW_RECORDED",
             "MEMO_REPORT_PACKAGE_RECORDED",
         ]
+
+
+def test_proposal_memo_report_package_materialization_records_report_render_archive_refs() -> None:
+    captured_requests: list[dict] = []
+
+    def _fake_report_package(request: dict) -> dict:
+        captured_requests.append(request)
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": "PORTFOLIO_REVIEW",
+            "report_service": "lotus-report",
+            "status": "ARCHIVED",
+            "generated_at": "2026-05-24T00:00:00Z",
+            "report_reference_id": "rjob_memo_001",
+            "artifact_url": "/reports/jobs/rjob_memo_001",
+            "explanation": {
+                "render": {
+                    "render_job_id": "rdr_memo_001",
+                    "artifact_sha256": "sha256:rendered",
+                },
+                "archive": {
+                    "archive_request_id": "arch_memo_001",
+                    "document_id": "doc_memo_001",
+                    "completed_at": "2026-05-24T00:00:01Z",
+                    "retention_posture": "OWNED_BY_LOTUS_ARCHIVE",
+                    "legal_hold_posture": "OWNED_BY_LOTUS_ARCHIVE",
+                    "access_audit_ref": "/documents/doc_memo_001/access-events",
+                },
+            },
+        }
+
+    api_main.request_proposal_memo_report_package_with_lotus_report = _fake_report_package
+
+    with TestClient(app) as client:
+        created = _create_proposal(client)
+        proposal_id = created["proposal"]["proposal_id"]
+        memo = _create_memo(client, proposal_id)
+        review_payload = {
+            "action": "APPROVE_FOR_ADVISOR_USE",
+            "reviewed_by": "compliance_1",
+            "reason": "Evidence is sufficient for advisor discussion.",
+            "source_memo_hash": memo["memo_hash"],
+        }
+        assert (
+            client.post(
+                f"/advisory/proposals/{proposal_id}/versions/1/memo/review",
+                json=review_payload,
+                headers={"Idempotency-Key": "memo-report-package-review"},
+            ).status_code
+            == 200
+        )
+
+        materialized = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/1/memo/report-packages",
+            json={
+                "requested_by": "advisor_1",
+                "source_memo_hash": memo["memo_hash"],
+                "requested_output_formats": ["pdf"],
+                "reason": {"purpose": "advisor-use memo report package"},
+            },
+            headers={"Idempotency-Key": "memo-report-package-materialize"},
+        )
+
+        assert materialized.status_code == 200
+        body = materialized.json()
+        assert body["report"]["status"] == "ARCHIVED"
+        assert body["report_package_event"]["reason"]["report_package_id"] == "rjob_memo_001"
+        assert body["report_package_event"]["reason"]["render"]["render_job_id"] == "rdr_memo_001"
+        assert body["report_package_event"]["reason"]["archive"]["document_id"] == "doc_memo_001"
+        assert captured_requests[0]["proposal_memo_package"]["memo_id"] == memo["memo_id"]
+        assert (
+            captured_requests[0]["proposal_memo_package"]["review"]["review_action"]
+            == "APPROVE_FOR_ADVISOR_USE"
+        )
+        assert (
+            captured_requests[0]["proposal_memo_package"]["client_ready_publication"] == "BLOCKED"
+        )
+
+        lineage = client.get(f"/advisory/proposals/{proposal_id}/memos/lineage")
+        assert lineage.status_code == 200
+        lineage_memo = lineage.json()["memos"][0]
+        assert lineage_memo["report_package_posture"]["report_status"] == "ARCHIVED"
+        assert lineage_memo["archive_refs"][0]["document_id"] == "doc_memo_001"
+
+
+def test_proposal_memo_report_package_blocks_without_review_and_client_ready_request() -> None:
+    with TestClient(app) as client:
+        created = _create_proposal(client)
+        proposal_id = created["proposal"]["proposal_id"]
+        memo = _create_memo(client, proposal_id)
+
+        unreviewed = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/1/memo/report-packages",
+            json={"requested_by": "advisor_1", "source_memo_hash": memo["memo_hash"]},
+        )
+        assert unreviewed.status_code == 422
+        assert unreviewed.json()["detail"] == "MEMO_REPORT_PACKAGE_REQUIRES_ADVISOR_USE_REVIEW"
+
+        assert (
+            client.post(
+                f"/advisory/proposals/{proposal_id}/versions/1/memo/review",
+                json={
+                    "action": "APPROVE_FOR_ADVISOR_USE",
+                    "reviewed_by": "compliance_1",
+                    "reason": "Evidence is sufficient for advisor discussion.",
+                    "source_memo_hash": memo["memo_hash"],
+                },
+            ).status_code
+            == 200
+        )
+        client_ready = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/1/memo/report-packages",
+            json={
+                "requested_by": "advisor_1",
+                "source_memo_hash": memo["memo_hash"],
+                "client_ready_document_requested": True,
+            },
+        )
+        assert client_ready.status_code == 422
+        assert client_ready.json()["detail"] == "MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED"
 
 
 def test_memo_api_blocks_finalization_until_source_ready_and_reports_missing_memo() -> None:

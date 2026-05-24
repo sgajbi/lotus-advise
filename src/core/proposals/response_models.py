@@ -291,6 +291,7 @@ class ProposalNarrativeRegenerationResponse(BaseModel):
 ProposalMemoLifecycleStatus = Literal["DRAFT", "FINALIZED"]
 ProposalMemoReviewAction = Literal["APPROVE_FOR_ADVISOR_USE", "REQUEST_CHANGES", "REJECT"]
 ProposalMemoReportPackageStatus = Literal["RECORDED", "BLOCKED", "DEGRADED"]
+ProposalMemoReportOutputFormat = Literal["pdf", "json"]
 
 
 class ProposalMemoCreateRequest(BaseModel):
@@ -533,6 +534,53 @@ class ProposalMemoReportPackageEventResponse(BaseModel):
     )
 
 
+class ProposalMemoReportPackageRequest(BaseModel):
+    requested_by: str = Field(
+        description="Actor requesting memo report/render/archive materialization.",
+        examples=["advisor_123"],
+    )
+    source_memo_hash: str = Field(
+        description=(
+            "Memo hash inspected by the report-package requester; stale hashes are rejected."
+        ),
+        examples=["sha256:memo"],
+    )
+    requested_output_formats: list[ProposalMemoReportOutputFormat] = Field(
+        default_factory=lambda: ["pdf"],
+        description="Output formats requested from lotus-report for the memo package.",
+        examples=[["pdf"]],
+    )
+    client_ready_document_requested: bool = Field(
+        default=False,
+        description=(
+            "Whether the caller is requesting client-ready document release. This remains blocked "
+            "until later RFC-0024 client-ready gates are implemented."
+        ),
+        examples=[False],
+    )
+    reason: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured report-package request reason retained in memo lineage.",
+        examples=[{"purpose": "advisor-use memo report package"}],
+    )
+
+
+class ProposalMemoReportPackageResponse(BaseModel):
+    memo: ProposalMemoResponse = Field(
+        description="Memo response after report/render/archive package request recording."
+    )
+    report_package_event: ProposalMemoAuditEvent = Field(
+        description="Created or replayed report-package materialization event."
+    )
+    report: ProposalReportResponse = Field(
+        description="lotus-report job handle and materialization references."
+    )
+    replayed: bool = Field(
+        description="Whether the request replayed an existing idempotent report-package event.",
+        examples=[False],
+    )
+
+
 class ProposalMemoLineageItem(BaseModel):
     memo_id: str = Field(description="Persisted memo identifier.", examples=["memo_001"])
     proposal_version_no: int = Field(description="Owning proposal version number.", examples=[1])
@@ -558,6 +606,14 @@ class ProposalMemoLineageItem(BaseModel):
         examples=["2026-05-23T12:00:00+00:00"],
     )
     event_count: int = Field(description="Number of memo audit events for this memo.", examples=[1])
+    report_package_posture: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Latest report/render/archive posture recorded for this memo.",
+    )
+    archive_refs: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Support-safe archive references derived from memo report-package events.",
+    )
 
 
 class ProposalMemoLineageResponse(BaseModel):

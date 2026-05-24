@@ -22,10 +22,13 @@ from src.core.proposals.models import (
     ProposalMemoReplayEvidenceResponse,
     ProposalMemoReportPackageEventRequest,
     ProposalMemoReportPackageEventResponse,
+    ProposalMemoReportPackageRequest,
+    ProposalMemoReportPackageResponse,
     ProposalMemoResponse,
     ProposalMemoReviewRequest,
     ProposalMemoReviewResponse,
     ProposalRecord,
+    ProposalReportResponse,
     ProposalVersionRecord,
 )
 from src.core.proposals.persistence_models import (
@@ -36,6 +39,7 @@ from src.core.proposals.persistence_models import (
 from src.core.proposals.projections import to_proposal_summary
 from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
 from src.core.proposals.repository import ProposalRepository
+from src.integrations.lotus_report import request_proposal_memo_report_package_with_lotus_report
 
 
 def create_or_replay_memo_response(
@@ -228,6 +232,104 @@ def record_memo_report_package_event_response(
     )
 
 
+def request_memo_report_package_response(
+    *,
+    repository: ProposalRepository,
+    proposal_id: str,
+    version_no: int,
+    payload: ProposalMemoReportPackageRequest,
+    idempotency_key: str | None,
+    report_request_id: str,
+    event_id: str,
+    occurred_at: datetime,
+) -> ProposalMemoReportPackageResponse:
+    proposal, version = _load_proposal_version(
+        repository=repository,
+        proposal_id=proposal_id,
+        version_no=version_no,
+    )
+    memo = _load_memo(repository=repository, proposal_id=proposal_id, version_no=version_no)
+    _validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
+    if payload.client_ready_document_requested:
+        raise ProposalValidationError("MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED")
+    memo_events = repository.list_memo_events(memo_id=memo.memo_id)
+    review_posture = _require_advisor_use_review(memo=memo, events=memo_events)
+
+    request_hash = _request_hash(
+        {
+            "operation": "MEMO_REPORT_PACKAGE_REQUESTED",
+            "memo_id": memo.memo_id,
+            "requested_by": payload.requested_by,
+            "source_memo_hash": payload.source_memo_hash,
+            "requested_output_formats": payload.requested_output_formats,
+            "client_ready_document_requested": payload.client_ready_document_requested,
+            "reason": payload.reason,
+        }
+    )
+    replayed_event = None
+    if idempotency_key:
+        replayed_event = _find_replayed_event(
+            repository=repository,
+            memo=memo,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+        )
+        if replayed_event is not None:
+            return ProposalMemoReportPackageResponse(
+                memo=build_memo_response(repository=repository, proposal=proposal, memo=memo),
+                report_package_event=_to_audit_event(replayed_event),
+                report=_report_response_from_event(proposal=proposal, event=replayed_event),
+                replayed=True,
+            )
+    report = request_proposal_memo_report_package_with_lotus_report(
+        request={
+            "report_request_id": report_request_id,
+            "proposal": to_proposal_summary(proposal).model_dump(mode="json"),
+            "proposal_version": version.model_dump(mode="json"),
+            "report_type": "PORTFOLIO_REVIEW",
+            "requested_by": payload.requested_by,
+            "related_version_no": version_no,
+            "requested_output_formats": payload.requested_output_formats,
+            "proposal_memo_package": _build_report_memo_package(
+                memo=memo,
+                payload=payload,
+                review_posture=review_posture,
+            ),
+            "reason": payload.reason,
+        }
+    )
+    event, replayed = _append_or_replay_memo_event(
+        repository=repository,
+        memo=memo,
+        event_id=event_id,
+        event_type="MEMO_REPORT_PACKAGE_RECORDED",
+        actor_id=payload.requested_by,
+        occurred_at=occurred_at,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+        reason={
+            "report_package_id": report.report_reference_id,
+            "report_package_status": _memo_report_status(report.status),
+            "source_memo_hash": payload.source_memo_hash,
+            "client_ready_publication": "BLOCKED",
+            "requested_output_formats": payload.requested_output_formats,
+            "report_request_id": report.report_request_id,
+            "report_service": report.report_service,
+            "report_status": report.status,
+            "report_status_url": report.artifact_url,
+            "render": report.explanation.get("render", {}),
+            "archive": report.explanation.get("archive", {}),
+            "reason": payload.reason,
+        },
+    )
+    return ProposalMemoReportPackageResponse(
+        memo=build_memo_response(repository=repository, proposal=proposal, memo=memo),
+        report_package_event=_to_audit_event(event),
+        report=report,
+        replayed=replayed,
+    )
+
+
 def get_memo_lineage_response(
     *,
     repository: ProposalRepository,
@@ -237,20 +339,25 @@ def get_memo_lineage_response(
     if proposal is None:
         raise ProposalNotFoundError("PROPOSAL_NOT_FOUND")
     memos = repository.list_memos(proposal_id=proposal_id)
-    items = [
-        ProposalMemoLineageItem(
-            memo_id=memo.memo_id,
-            proposal_version_no=memo.proposal_version_no,
-            proposal_version_id=memo.proposal_version_id,
-            memo_status=memo.memo_status,
-            lifecycle_status=memo.lifecycle_status,
-            memo_hash=memo.memo_hash,
-            source_input_hash=memo.source_input_hash,
-            created_at=memo.created_at.isoformat(),
-            event_count=len(repository.list_memo_events(memo_id=memo.memo_id)),
+    items = []
+    for memo in memos:
+        events = repository.list_memo_events(memo_id=memo.memo_id)
+        report_posture = _latest_event_posture(events, event_type="MEMO_REPORT_PACKAGE_RECORDED")
+        items.append(
+            ProposalMemoLineageItem(
+                memo_id=memo.memo_id,
+                proposal_version_no=memo.proposal_version_no,
+                proposal_version_id=memo.proposal_version_id,
+                memo_status=memo.memo_status,
+                lifecycle_status=memo.lifecycle_status,
+                memo_hash=memo.memo_hash,
+                source_input_hash=memo.source_input_hash,
+                created_at=memo.created_at.isoformat(),
+                event_count=len(events),
+                report_package_posture=report_posture,
+                archive_refs=_archive_refs_from_report_posture(report_posture),
+            )
         )
-        for memo in memos
-    ]
     return ProposalMemoLineageResponse(
         proposal=to_proposal_summary(proposal),
         memo_count=len(items),
@@ -353,12 +460,49 @@ def build_memo_response(
         read_posture={
             "source": "PERSISTED_MEMO_RECORD",
             "memo_api_supported": True,
-            "report_package_generation_supported": False,
+            "report_package_generation_supported": True,
+            "report_render_archive_supported": True,
             "gateway_supported": False,
             "workbench_supported": False,
             "client_ready_publication": projection["client_ready_publication"],
         },
     )
+
+
+def _build_report_memo_package(
+    *,
+    memo: ProposalMemoRecord,
+    payload: ProposalMemoReportPackageRequest,
+    review_posture: dict[str, Any],
+) -> dict[str, Any]:
+    memo_json = dict(memo.memo_json)
+    return {
+        "package_status": "INCLUDED_ADVISOR_PROPOSAL_MEMO",
+        "usage": "REPORT_REQUEST_APPROVED_ADVISOR_MEMO",
+        "memo_id": memo.memo_id,
+        "memo_version": memo.memo_version,
+        "memo_status": memo.memo_status,
+        "proposal_id": memo.proposal_id,
+        "proposal_version_no": memo.proposal_version_no,
+        "proposal_version_id": memo.proposal_version_id,
+        "artifact_id": memo.artifact_id,
+        "memo_hash": memo.memo_hash,
+        "source_input_hash": memo.source_input_hash,
+        "review": {
+            "review_event_id": review_posture.get("event_id"),
+            "review_action": review_posture.get("review_action"),
+            "reviewed_by": review_posture.get("actor_id"),
+            "reviewed_at": review_posture.get("occurred_at"),
+            "review_reason": review_posture.get("review_reason"),
+        },
+        "projection": dict(memo.projection_json),
+        "sections": memo_json.get("sections", []),
+        "source_authority_manifest": memo_json.get("source_authority_manifest", {}),
+        "supportability": memo_json.get("supportability", {}),
+        "requested_output_formats": payload.requested_output_formats,
+        "client_ready_publication": "BLOCKED",
+        "report_request_reason": payload.reason,
+    }
 
 
 def _load_proposal_version(
@@ -477,6 +621,67 @@ def _latest_event_posture(
         "occurred_at": latest.occurred_at.isoformat(),
         **dict(latest.reason_json),
     }
+
+
+def _require_advisor_use_review(
+    *,
+    memo: ProposalMemoRecord,
+    events: list[ProposalMemoEventRecord],
+) -> dict[str, Any]:
+    posture = _latest_event_posture(events, event_type="MEMO_REVIEW_RECORDED")
+    if posture.get("review_action") != "APPROVE_FOR_ADVISOR_USE":
+        raise ProposalValidationError("MEMO_REPORT_PACKAGE_REQUIRES_ADVISOR_USE_REVIEW")
+    if posture.get("memo_hash") != memo.memo_hash:
+        raise ProposalValidationError("MEMO_REVIEW_SOURCE_HASH_MISMATCH")
+    return posture
+
+
+def _memo_report_status(report_status: str) -> str:
+    if report_status in {"READY", "ARCHIVED", "COMPLETED", "COMPLETED_WITH_WARNINGS"}:
+        return "RECORDED"
+    if report_status in {"FAILED", "CANCELLED"}:
+        return "BLOCKED"
+    return "DEGRADED"
+
+
+def _report_response_from_event(
+    *,
+    proposal: ProposalRecord,
+    event: ProposalMemoEventRecord,
+) -> ProposalReportResponse:
+    reason = dict(event.reason_json)
+    return ProposalReportResponse(
+        proposal=to_proposal_summary(proposal),
+        report_request_id=str(reason.get("report_request_id") or event.event_id),
+        report_type="PORTFOLIO_REVIEW",
+        report_service=str(reason.get("report_service") or "lotus-report"),
+        status=str(reason.get("report_status") or "ACCEPTED"),
+        generated_at=event.occurred_at.isoformat(),
+        report_reference_id=str(reason.get("report_package_id") or event.event_id),
+        artifact_url=reason.get("report_status_url"),
+        explanation={
+            "ownership": "REPORT_RENDER_ARCHIVE_OWNED_BY_LOTUS_REPORT_RENDER_ARCHIVE",
+            "render": reason.get("render", {}),
+            "archive": reason.get("archive", {}),
+            "client_ready_publication": reason.get("client_ready_publication", "BLOCKED"),
+            "replayed_from_memo_event": event.event_id,
+        },
+    )
+
+
+def _archive_refs_from_report_posture(report_posture: dict[str, Any]) -> list[dict[str, Any]]:
+    archive = report_posture.get("archive")
+    if not isinstance(archive, dict) or not archive:
+        return []
+    refs: dict[str, Any] = {
+        "archive_request_id": archive.get("archive_request_id"),
+        "document_id": archive.get("document_id"),
+        "completed_at": archive.get("completed_at"),
+        "retention_posture": archive.get("retention_posture", "OWNED_BY_LOTUS_ARCHIVE"),
+        "legal_hold_posture": archive.get("legal_hold_posture", "OWNED_BY_LOTUS_ARCHIVE"),
+        "access_audit_ref": archive.get("access_audit_ref"),
+    }
+    return [{key: value for key, value in refs.items() if value is not None}]
 
 
 def _project_sections(memo_json: dict[str, Any], *, audience: str | None) -> list[dict[str, Any]]:

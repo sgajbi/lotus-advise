@@ -205,6 +205,12 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(memo_report_event_schema, "report_package_status")
     _assert_property_has_docs(memo_report_event_schema, "source_memo_hash")
 
+    memo_report_package_schema = schemas["ProposalMemoReportPackageRequest"]
+    _assert_property_has_docs(memo_report_package_schema, "requested_by")
+    _assert_property_has_docs(memo_report_package_schema, "source_memo_hash")
+    _assert_property_has_docs(memo_report_package_schema, "requested_output_formats")
+    _assert_property_has_docs(memo_report_package_schema, "client_ready_document_requested")
+
     memo_lineage_schema = schemas["ProposalMemoLineageResponse"]
     _assert_property_has_docs(memo_lineage_schema, "memo_count")
     _assert_property_has_docs(memo_lineage_schema, "latest_memo_id")
@@ -554,6 +560,7 @@ def test_rfc0024_memo_route_family_is_canonical_and_error_documented():
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/projection",
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence",
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-package-events",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-packages",
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/review",
     ]
 
@@ -575,6 +582,17 @@ def test_rfc0024_memo_route_family_is_canonical_and_error_documented():
     assert "rejects stale memo hashes" in memo_review["description"]
     assert "cannot release client-ready publication" in memo_review["description"]
     assert "different memo-review payload" in memo_review["responses"]["409"]["description"]
+
+    memo_report_package = paths[
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-packages"
+    ]["post"]
+    assert memo_report_package["summary"] == "Request Proposal Memo Report Package"
+    assert "deterministic render/archive handling" in memo_report_package["description"]
+    assert "Client-ready document release remains blocked" in memo_report_package["description"]
+    assert (
+        "lotus-report report/render/archive materialization"
+        in memo_report_package["responses"]["503"]["description"]
+    )
 
     memo_replay = paths[
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence"
