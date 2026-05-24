@@ -29,12 +29,13 @@
     "evidence_uris": [
       "lotus-advise://contracts/domain-data-products/lotus-advise-products.v1.json#AdvisoryProposalMemoEvidencePack",
       "lotus-advise://docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md",
-      "lotus-advise://docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md"
+      "lotus-advise://docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md",
+      "lotus-advise://docs/rfcs/RFC-0024-slice-13-implementation-proof.md"
     ]
   },
   "blocking": {
     "blocked": true,
-    "blocked_reason": "RFC-0024 advisor-use memo implementation now includes memo model, persistence, APIs, report/render/archive realization, review-gated AI commentary, Gateway/Workbench consumption, and memo-specific commercial support material. The product remains blocked because active data-product promotion, access/SLO/evidence-policy certification, full implementation proof, and client-ready memo publication are not closed."
+    "blocked_reason": "RFC-0024 advisor-use memo implementation now includes memo model, persistence, APIs, report/render/archive realization, review-gated AI commentary, Gateway/Workbench consumption, memo-specific commercial support material, and live-suite implementation proof. The product remains blocked because active data-product promotion, access/SLO/evidence-policy certification, and client-ready memo publication are not closed."
   },
   "observed_trust_metadata": {
     "product_name": "AdvisoryProposalMemoEvidencePack",
