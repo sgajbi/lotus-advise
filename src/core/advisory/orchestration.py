@@ -25,6 +25,7 @@ def evaluate_advisory_proposal(
     idempotency_key: str | None,
     correlation_id: str,
     resolved_as_of: str | None = None,
+    input_mode: str | None = None,
     policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
     degraded_reasons: list[str] = []
@@ -72,6 +73,7 @@ def evaluate_advisory_proposal(
             proposal_result=proposal_result,
             correlation_id=correlation_id,
             resolved_as_of=resolved_as_of,
+            input_mode=input_mode,
         )
         risk_authority = "lotus_risk"
     except LotusRiskEnrichmentUnavailableError:

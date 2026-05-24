@@ -18,7 +18,10 @@ from scripts.live_runtime_suite_artifacts import (
 )
 from scripts.run_live_runtime_evidence_bundle import main as run_live_runtime_evidence_bundle_main
 from scripts.validate_cross_service_parity_live import LiveParityResult
-from scripts.validate_degraded_runtime_live import DegradedRuntimeResult
+from scripts.validate_degraded_runtime_live import (
+    DegradedRuntimeResult,
+    _build_live_alternatives_request,
+)
 from scripts.validate_live_runtime_suite import (
     LiveRuntimeSuiteResult,
     validate_live_runtime_suite,
@@ -97,6 +100,22 @@ def _narrative_snapshot() -> LiveProposalNarrativeSnapshot:
         ai_fallback_reason=None,
         latency_ms=640.0,
     )
+
+
+def test_degraded_live_validator_uses_current_alternatives_request_contract():
+    request = _build_live_alternatives_request(
+        objectives=["REDUCE_CONCENTRATION", "RAISE_CASH"],
+        max_alternatives=3,
+        cash_floor_amount="25000",
+        cash_floor_currency="USD",
+    )
+
+    assert request == {
+        "objectives": ["REDUCE_CONCENTRATION", "RAISE_CASH"],
+        "max_alternatives": 3,
+        "constraints": {"cash_floor": {"amount": "25000", "currency": "USD"}},
+    }
+    assert "requested_objectives" not in request
 
 
 def _memo_snapshot() -> LiveProposalMemoSnapshot:

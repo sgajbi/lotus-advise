@@ -8,6 +8,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from numbers import Real
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -205,20 +206,33 @@ def _normalize_allocation_views(views: list[dict[str, Any]]) -> dict[str, dict[s
 
 
 def _normalize_risk_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    metadata = payload.get("metadata") or {}
-    valuation_context = payload.get("valuation_context") or {}
     return {
         "source_service": payload["source_service"],
-        "input_mode": payload["input_mode"],
-        "risk_proxy": dict(payload["risk_proxy"]),
-        "single_position_concentration": dict(payload["single_position_concentration"]),
-        "issuer_concentration": dict(payload["issuer_concentration"]),
-        "valuation_context": dict(valuation_context),
-        "metadata": {
-            "portfolio_id": metadata.get("portfolio_id"),
-            "as_of_date": metadata.get("as_of_date"),
-        },
+        "risk_proxy": _normalize_risk_numeric_values(dict(payload["risk_proxy"])),
+        "single_position_concentration": _normalize_risk_numeric_values(
+            dict(payload["single_position_concentration"])
+        ),
+        "issuer_concentration": _normalize_risk_numeric_values(
+            dict(payload["issuer_concentration"])
+        ),
     }
+
+
+def _normalize_risk_numeric_values(value: Any) -> Any:
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, Real | Decimal):
+        return _decimal(value)
+    if isinstance(value, str):
+        try:
+            return _decimal(value)
+        except ArithmeticError:
+            return value
+    if isinstance(value, list):
+        return [_normalize_risk_numeric_values(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _normalize_risk_numeric_values(item) for key, item in value.items()}
+    return value
 
 
 def _feature_by_key(capabilities: dict[str, Any], key: str) -> dict[str, Any]:

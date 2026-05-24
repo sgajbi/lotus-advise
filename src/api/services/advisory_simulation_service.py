@@ -72,6 +72,7 @@ def simulate_proposal_response(
             idempotency_key=idempotency_key,
             correlation_id=resolved_correlation_id,
             resolved_as_of=resolved_request.resolved_context.as_of,
+            input_mode=resolved_request.input_mode,
             policy_context=context_resolution["advisory_policy_context"],
         )
     except AlternativesRequestNormalizationError as exc:

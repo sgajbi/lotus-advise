@@ -205,6 +205,25 @@ def _resolve_latest_portfolio_context(
     return str(payload["resolved_as_of_date"]), str(payload["reporting_currency"])
 
 
+def _build_live_alternatives_request(
+    *,
+    objectives: list[str],
+    max_alternatives: int,
+    cash_floor_amount: str,
+    cash_floor_currency: str,
+) -> dict[str, Any]:
+    return {
+        "objectives": objectives,
+        "max_alternatives": max_alternatives,
+        "constraints": {
+            "cash_floor": {
+                "amount": cash_floor_amount,
+                "currency": cash_floor_currency,
+            }
+        },
+    }
+
+
 def _risk_unavailable_drill(
     client: httpx.Client,
     *,
@@ -227,20 +246,16 @@ def _risk_unavailable_drill(
             json={
                 "input_mode": "stateful",
                 "stateful_input": {"portfolio_id": portfolio_id, "as_of": as_of_date},
-                "alternatives_request": {
-                    "requested_objectives": [
+                "alternatives_request": _build_live_alternatives_request(
+                    objectives=[
                         "REDUCE_CONCENTRATION",
                         "RAISE_CASH",
                         "IMPROVE_CURRENCY_ALIGNMENT",
                     ],
-                    "max_alternatives": 3,
-                    "constraints": {
-                        "cash_floor": {
-                            "amount": "25000",
-                            "currency": reporting_currency,
-                        }
-                    },
-                },
+                    max_alternatives=3,
+                    cash_floor_amount="25000",
+                    cash_floor_currency=reporting_currency,
+                ),
             },
             headers={"Idempotency-Key": f"degraded-risk-{uuid.uuid4().hex}"},
         )
@@ -372,17 +387,16 @@ def _core_unavailable_drill(
                 f"{advise_base_url}/advisory/proposals/simulate",
                 json={
                     **stateless_payload,
-                    "alternatives_request": {
-                        "requested_objectives": [
+                    "alternatives_request": _build_live_alternatives_request(
+                        objectives=[
                             "REDUCE_CONCENTRATION",
                             "RAISE_CASH",
                             "IMPROVE_CURRENCY_ALIGNMENT",
                         ],
-                        "max_alternatives": 3,
-                        "constraints": {
-                            "cash_floor": {"amount": "2500", "currency": "USD"},
-                        },
-                    },
+                        max_alternatives=3,
+                        cash_floor_amount="2500",
+                        cash_floor_currency="USD",
+                    ),
                 },
                 headers={"Idempotency-Key": f"degraded-core-{uuid.uuid4().hex}"},
             )

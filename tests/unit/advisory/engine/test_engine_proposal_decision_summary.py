@@ -165,6 +165,43 @@ def test_decision_summary_projects_insufficient_evidence_when_review_state_has_m
     assert summary.missing_evidence[0].reason_code == "MISSING_RISK_LENS"
 
 
+def test_decision_summary_blocks_client_progression_when_ready_proposal_lacks_risk_lens() -> None:
+    result = _base_result()
+    result.status = "READY"
+    result.gate_decision = GateDecision(
+        gate="CLIENT_CONSENT_REQUIRED",
+        recommended_next_step="REQUEST_CLIENT_CONSENT",
+        reasons=[
+            GateReason(
+                reason_code="CLIENT_CONSENT_REQUIRED",
+                severity="MEDIUM",
+                source="RULE_ENGINE",
+                details={"consent_type": "execution_progression"},
+            )
+        ],
+        summary=GateDecisionSummary(
+            hard_fail_count=0,
+            soft_fail_count=0,
+            new_high_suitability_count=0,
+            new_medium_suitability_count=0,
+        ),
+    )
+    result.explanation["authority_resolution"] = {
+        "simulation_authority": "lotus_core",
+        "risk_authority": "unavailable",
+        "degraded": True,
+        "degraded_reasons": ["LOTUS_RISK_ENRICHMENT_UNAVAILABLE"],
+    }
+
+    summary = build_proposal_decision_summary(result)
+
+    assert summary.decision_status == "INSUFFICIENT_EVIDENCE"
+    assert summary.primary_reason_code == "MISSING_RISK_LENS"
+    assert summary.recommended_next_action == "REVISE_PROPOSAL"
+    assert summary.confidence == "LOW"
+    assert summary.missing_evidence[0].blocking is True
+
+
 def test_decision_summary_projects_revision_recommended_without_gate() -> None:
     result = _base_result()
     result.status = "PENDING_REVIEW"

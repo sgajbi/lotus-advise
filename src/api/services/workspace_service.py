@@ -105,6 +105,7 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
         idempotency_key=None,
         correlation_id=correlation_id,
         resolved_as_of=evaluation_context.resolved_request.resolved_context.as_of,
+        input_mode=evaluation_context.resolved_request.input_mode,
         policy_context=evaluation_context.context_resolution["advisory_policy_context"],
     )
     result.explanation["context_resolution"] = evaluation_context.context_resolution
