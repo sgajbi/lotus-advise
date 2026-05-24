@@ -12,3 +12,4 @@ uvicorn.local.err.log
 env/
 .ruff_cache/
 .mypy_cache/
+output/
