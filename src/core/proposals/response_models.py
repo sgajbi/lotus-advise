@@ -292,6 +292,16 @@ ProposalMemoLifecycleStatus = Literal["DRAFT", "FINALIZED"]
 ProposalMemoReviewAction = Literal["APPROVE_FOR_ADVISOR_USE", "REQUEST_CHANGES", "REJECT"]
 ProposalMemoReportPackageStatus = Literal["RECORDED", "BLOCKED", "DEGRADED"]
 ProposalMemoReportOutputFormat = Literal["pdf", "json"]
+ProposalMemoCommentarySection = Literal[
+    "EXECUTIVE_SUMMARY",
+    "RECOMMENDATION_RATIONALE",
+    "RISK_AND_CONCENTRATION",
+    "SUITABILITY_AND_MANDATE",
+    "MATERIAL_CHANGES",
+    "ALTERNATIVES_CONSIDERED",
+    "APPROVALS_AND_NEXT_STEPS",
+    "LIMITATIONS_AND_DISCLOSURES",
+]
 
 
 class ProposalMemoCreateRequest(BaseModel):
@@ -398,6 +408,11 @@ class ProposalMemoResponse(BaseModel):
         default_factory=dict,
         description="Latest report-package posture derived from memo audit events.",
         examples=[{"latest_report_package_status": "RECORDED"}],
+    )
+    ai_commentary_posture: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Latest review-gated AI commentary posture derived from memo audit events.",
+        examples=[{"ai_status": "REVIEW_REQUIRED"}],
     )
     replay_metadata: Dict[str, Any] = Field(
         default_factory=dict,
@@ -581,6 +596,47 @@ class ProposalMemoReportPackageResponse(BaseModel):
     )
 
 
+class ProposalMemoAiCommentaryRequest(BaseModel):
+    requested_by: str = Field(
+        description="Actor requesting review-gated AI memo commentary.",
+        examples=["advisor_123"],
+    )
+    source_memo_hash: str = Field(
+        description="Memo hash inspected by the requester; stale hashes are rejected.",
+        examples=["sha256:memo"],
+    )
+    requested_sections: list[ProposalMemoCommentarySection] = Field(
+        default_factory=lambda: ["EXECUTIVE_SUMMARY", "LIMITATIONS_AND_DISCLOSURES"],
+        description="Bounded advisor-use commentary sections requested from lotus-ai.",
+        examples=[["EXECUTIVE_SUMMARY", "LIMITATIONS_AND_DISCLOSURES"]],
+    )
+    reason: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured request reason retained in memo AI lineage.",
+        examples=[{"purpose": "advisor-use commentary draft"}],
+    )
+
+
+class ProposalMemoAiCommentaryResponse(BaseModel):
+    memo: ProposalMemoResponse = Field(
+        description="Memo response after AI commentary lineage recording."
+    )
+    ai_event: ProposalMemoAuditEvent = Field(
+        description="Created or replayed memo AI reference event."
+    )
+    commentary: Dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Review-gated AI commentary payload or deterministic unavailable posture. This "
+            "payload is non-authoritative and cannot change memo evidence or approval posture."
+        ),
+    )
+    replayed: bool = Field(
+        description="Whether the request replayed an existing idempotent AI commentary event.",
+        examples=[False],
+    )
+
+
 class ProposalMemoLineageItem(BaseModel):
     memo_id: str = Field(description="Persisted memo identifier.", examples=["memo_001"])
     proposal_version_no: int = Field(description="Owning proposal version number.", examples=[1])
@@ -613,6 +669,10 @@ class ProposalMemoLineageItem(BaseModel):
     archive_refs: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="Support-safe archive references derived from memo report-package events.",
+    )
+    ai_commentary_posture: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Latest review-gated AI commentary posture recorded for this memo.",
     )
 
 

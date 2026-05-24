@@ -109,6 +109,14 @@ Advise memo lineage records returned report, render, and archive refs. Gateway/W
 support, active data-product support, AI commentary, and client-ready memo publication remain
 planned later slices.
 
+RFC-0024 Slice 10 is implemented as advisor-use AI narrative and review-gated commentary. Advise now
+requires memo hash continuity and `APPROVE_FOR_ADVISOR_USE` review before requesting bounded
+commentary from `lotus-ai`; `lotus-ai` registers `proposal_memo_commentary.pack@v1` as a
+review-gated workflow pack; and Advise records append-only AI lineage with deterministic
+unavailable posture when AI is not configured. Gateway/Workbench product support, active
+data-product support, commercial/demo claims, and client-ready memo publication remain planned
+later slices.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -267,3 +275,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-6-persistence-replay-idempotency-and-audit.md`
 - `docs/rfcs/RFC-0024-slice-7-certified-apis-and-openapi.md`
 - `docs/rfcs/RFC-0024-slice-8-policy-fees-costs-conflicts-and-disclosures.md`
+- `docs/rfcs/RFC-0024-slice-9-report-render-archive-realization.md`
+- `docs/rfcs/RFC-0024-slice-10-ai-narrative-and-review-gated-commentary.md`

@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 import src.api.main as api_main
 from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.proposals import memo_api
+from src.integrations.lotus_ai.proposal_memo import ProposalMemoAiCommentaryDraft
 
 
 def setup_function() -> None:
@@ -357,6 +359,140 @@ def test_proposal_memo_report_package_blocks_without_review_and_client_ready_req
         )
         assert client_ready.status_code == 422
         assert client_ready.json()["detail"] == "MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED"
+
+
+def test_proposal_memo_ai_commentary_is_review_gated_idempotent_and_non_authoritative(
+    monkeypatch,
+) -> None:
+    captured_requests: list[dict] = []
+
+    def _fake_ai_commentary(**kwargs) -> ProposalMemoAiCommentaryDraft:
+        captured_requests.append(kwargs)
+        return ProposalMemoAiCommentaryDraft(
+            status="REVIEW_REQUIRED",
+            sections=(
+                {
+                    "section_key": "EXECUTIVE_SUMMARY",
+                    "title": "Executive Summary",
+                    "text": "Advisor-use commentary from bounded memo evidence.",
+                    "review_state": "REVIEW_REQUIRED",
+                },
+            ),
+            lineage={
+                "workflow_pack_id": "proposal_memo_commentary.pack",
+                "workflow_pack_version": "v1",
+                "workflow_run_id": "packrun_memo_commentary_001",
+                "fallback_reason": None,
+            },
+            review_guidance=("Review against persisted memo hash before advisor use.",),
+        )
+
+    monkeypatch.setattr(
+        memo_api,
+        "generate_proposal_memo_commentary_with_lotus_ai",
+        _fake_ai_commentary,
+    )
+
+    with TestClient(app) as client:
+        created = _create_proposal(client)
+        proposal_id = created["proposal"]["proposal_id"]
+        memo = _create_memo(client, proposal_id)
+
+        unreviewed = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/1/memo/ai-commentary",
+            json={"requested_by": "advisor_1", "source_memo_hash": memo["memo_hash"]},
+        )
+        assert unreviewed.status_code == 422
+        assert unreviewed.json()["detail"] == "MEMO_REPORT_PACKAGE_REQUIRES_ADVISOR_USE_REVIEW"
+
+        assert (
+            client.post(
+                f"/advisory/proposals/{proposal_id}/versions/1/memo/review",
+                json={
+                    "action": "APPROVE_FOR_ADVISOR_USE",
+                    "reviewed_by": "compliance_1",
+                    "reason": "Evidence is sufficient for advisor discussion.",
+                    "source_memo_hash": memo["memo_hash"],
+                },
+            ).status_code
+            == 200
+        )
+
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/1/memo/ai-commentary",
+            json={
+                "requested_by": "advisor_1",
+                "source_memo_hash": memo["memo_hash"],
+                "requested_sections": ["EXECUTIVE_SUMMARY"],
+                "reason": {"purpose": "advisor-use commentary"},
+            },
+            headers={"Idempotency-Key": "memo-ai-commentary-1"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["replayed"] is False
+        assert body["ai_event"]["event_type"] == "MEMO_AI_REFERENCE_RECORDED"
+        assert body["commentary"]["status"] == "REVIEW_REQUIRED"
+        assert body["commentary"]["authoritative_for_memo_status"] is False
+        assert body["commentary"]["client_ready_publication"] == "BLOCKED"
+        assert body["memo"]["memo_hash"] == memo["memo_hash"]
+        assert body["memo"]["memo_status"] == memo["memo_status"]
+        assert captured_requests[0]["memo_evidence"]["memo_hash"] == memo["memo_hash"]
+        assert captured_requests[0]["memo_evidence"]["client_ready_publication"] == "BLOCKED"
+        assert "memo" not in captured_requests[0]["memo_evidence"]
+
+        replayed = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/1/memo/ai-commentary",
+            json={
+                "requested_by": "advisor_1",
+                "source_memo_hash": memo["memo_hash"],
+                "requested_sections": ["EXECUTIVE_SUMMARY"],
+                "reason": {"purpose": "advisor-use commentary"},
+            },
+            headers={"Idempotency-Key": "memo-ai-commentary-1"},
+        )
+        assert replayed.status_code == 200
+        assert replayed.json()["replayed"] is True
+        assert replayed.json()["ai_event"]["event_id"] == body["ai_event"]["event_id"]
+
+        lineage = client.get(f"/advisory/proposals/{proposal_id}/memos/lineage")
+        assert lineage.status_code == 200
+        ai_posture = lineage.json()["memos"][0]["ai_commentary_posture"]
+        assert ai_posture["ai_status"] == "REVIEW_REQUIRED"
+        assert ai_posture["authoritative_for_memo_status"] is False
+
+
+def test_proposal_memo_ai_commentary_records_deterministic_unavailable_posture() -> None:
+    with TestClient(app) as client:
+        created = _create_proposal(client)
+        proposal_id = created["proposal"]["proposal_id"]
+        memo = _create_memo(client, proposal_id)
+        assert (
+            client.post(
+                f"/advisory/proposals/{proposal_id}/versions/1/memo/review",
+                json={
+                    "action": "APPROVE_FOR_ADVISOR_USE",
+                    "reviewed_by": "compliance_1",
+                    "reason": "Evidence is sufficient for advisor discussion.",
+                    "source_memo_hash": memo["memo_hash"],
+                },
+            ).status_code
+            == 200
+        )
+
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/versions/1/memo/ai-commentary",
+            json={"requested_by": "advisor_1", "source_memo_hash": memo["memo_hash"]},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["commentary"]["status"] == "UNAVAILABLE"
+        assert body["commentary"]["lineage"]["fallback_reason"] == (
+            "LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE"
+        )
+        assert body["commentary"]["sections"] == []
+        assert body["memo"]["memo_hash"] == memo["memo_hash"]
 
 
 def test_memo_api_blocks_finalization_until_source_ready_and_reports_missing_memo() -> None:
