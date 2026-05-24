@@ -125,6 +125,13 @@ archive-ref, AI-commentary, lineage, replay, degraded, and blocked states, and b
 client-ready release and send-to-client controls absent. Active data-product support,
 commercial/demo claims, and client-ready memo publication remain planned later slices.
 
+RFC-0024 Slice 12 is implemented as memo-specific commercial, demo, and RFP-support material.
+Evidence lives in `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md`, with the
+claim-controlled guide at `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`.
+The guide covers implementation-backed one-pager language, demo notes, API examples, architecture
+flow, operator guidance, and RFP-safe wording. Active data-product support, full RFC-0028
+bank-demo/RFP package claims, and client-ready memo publication remain planned later slices.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.

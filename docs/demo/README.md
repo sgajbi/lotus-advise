@@ -34,6 +34,15 @@ curl -X POST "http://advise.dev.lotus/advisory/proposals" \
   --data-binary "@docs/demo/20_advisory_proposal_persist_create.json"
 ```
 
+For RFC-0024 advisor proposal memo walkthroughs, use the claim-controlled commercial support guide
+instead of ad hoc demo wording:
+
+- `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`
+
+That guide includes memo create, advisor-use review, report-package, and AI-commentary examples,
+and explicitly separates advisor-use memo posture from client-ready publication and broader
+RFC-0028 bank-demo/RFP proof.
+
 ## Scenario Index
 
 | File | Scenario | Expected Status | Key Feature |

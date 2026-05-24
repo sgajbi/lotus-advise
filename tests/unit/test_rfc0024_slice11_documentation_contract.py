@@ -44,7 +44,7 @@ def test_rfc0024_slice11_supported_features_truth_does_not_overpromote() -> None
     assert "no client-ready controls" in supported_features
     assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_features
     assert (
-        "Active data-product support, commercial/demo claims, and client-ready memo claims "
+        "Active data-product support, full bank-demo/RFP claims, and client-ready memo claims "
         "remain planned"
     ) in supported_features
     assert "Gateway now routes canonical Advise memo endpoints" in repo_context

@@ -152,7 +152,7 @@
       ],
       "freshness_policy": {
         "freshness_class": "event_driven",
-        "max_allowed_age_description": "Memo evidence pack freshness will be measured against immutable proposal version evidence, memo section readiness, source-authority manifest, report/archive posture, and finalized memo review events. Until memo APIs and persistence are implemented, telemetry remains blocked and the product must not be advertised as supported."
+        "max_allowed_age_description": "Memo evidence pack freshness will be measured against immutable proposal version evidence, memo section readiness, source-authority manifest, report/archive posture, finalized memo review events, AI commentary lineage, Gateway/Workbench visibility, and commercial claim-control evidence. Until active data-product certification, access, SLO, evidence-policy, and final proof gates close, telemetry remains blocked and the product must not be advertised as an active supported data product."
       },
       "completeness_policy": {
         "default_status": "blocked",
