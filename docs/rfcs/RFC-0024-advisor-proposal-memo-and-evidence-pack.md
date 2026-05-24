@@ -32,6 +32,7 @@
 | Slice 8 policy, fees, costs, conflicts, and disclosures | `docs/rfcs/RFC-0024-slice-8-policy-fees-costs-conflicts-and-disclosures.md` | Implemented - memo-critical suitability, product eligibility, cost/fee/tax/friction limitation, disclosure, and conflict blocker enrichment; full policy packs, report/render/archive, Gateway, Workbench, active data-product support, and client-ready memo claims remain unpromoted |
 | Slice 9 report, render, and archive realization | `docs/rfcs/RFC-0024-slice-9-report-render-archive-realization.md` | Implemented - advisor-reviewed memo package handoff to `lotus-report`, deterministic render-package projection, `lotus-archive` support-safe memo metadata, and Advise memo lineage refs; Gateway, Workbench, active data-product support, AI commentary, and client-ready memo claims remain unpromoted |
 | Slice 10 AI narrative and review-gated commentary | `docs/rfcs/RFC-0024-slice-10-ai-narrative-and-review-gated-commentary.md` | Implemented - review-gated advisor-use AI commentary through `proposal_memo_commentary.pack@v1`, bounded memo evidence packets, deterministic unavailable posture, and append-only AI lineage; Gateway, Workbench, active data-product support, commercial/demo claims, and client-ready memo claims remain unpromoted |
+| Slice 11 Gateway and Workbench product realization | `docs/rfcs/RFC-0024-slice-11-gateway-workbench-product-realization.md` | Implemented - Gateway routes through canonical Advise memo endpoints and Workbench consumes Gateway/BFF memo posture, projection, report-package, archive-ref, AI-commentary, lineage, and replay evidence without local memo inference; active data-product support, commercial/demo claims, and client-ready memo claims remain unpromoted |
 
 ## 0. Executive Summary
 
@@ -244,7 +245,8 @@ Known gaps:
    operations, audit, sales/pre-sales, and support users,
 5. no memo-critical fee/cost/conflict/product-eligibility policy evidence,
 6. no typed report/render/archive package,
-7. no Gateway/Workbench memo review experience,
+7. Gateway and Workbench memo review experience is implemented for advisor-use posture; canonical
+   live proof and final hardening remain later-slice gates,
 8. no memo-specific SLO/access/evidence policy or mesh certification,
 9. no implementation-backed wiki/sales/demo material for proposal memos,
 10. no LinkedIn post-completion draft requirement.
@@ -883,6 +885,8 @@ Acceptance gate:
    states,
 4. Workbench does not infer memo facts, supportability, or readiness locally.
 
+Implementation evidence: `docs/rfcs/RFC-0024-slice-11-gateway-workbench-product-realization.md`.
+
 ### Slice 12 - Commercial, Demo, and RFP-Support Material
 
 Outcome:
@@ -974,15 +978,15 @@ Acceptance gate:
 | Capability | RFC state before implementation | Promotion rule |
 | --- | --- | --- |
 | Advisor proposal memo aggregate | Proposed | Promote only after persisted memo create/read/projection/replay APIs pass unit, integration, OpenAPI, live proof, and mainline CI. |
-| Advisor preparation projection | Proposed | Promote only after redaction, evidence refs, review state, and Workbench/Gateway consumption are proven. |
+| Advisor preparation projection | Supported for Gateway/Workbench advisor-use posture | Gateway and Workbench consume source-owned Advise memo projections without local reconstruction; client-ready release remains gated. |
 | Client review draft projection | Proposed | Promote only after approval gating, disclosure, redaction, report rendering, and archive posture are proven. |
 | Compliance and audit projections | Proposed | Promote only after blocked/missing/degraded evidence is preserved and tested. |
 | Rejected-alternative explanation | Proposed | Promote only after alternatives evidence, reason codes, and source refs are present and tested. |
 | Best-interest, fee, cost, conflict, and disclosure sections | Proposed | Promote only after source-backed evidence or explicit blocked posture is implemented and tested. |
 | Report/render/archive package | Proposed | Promote only after report job, deterministic render, archive record, retention/access audit, and lineage refs are proven. |
 | AI memo narrative | Gated | Promote only after `lotus-ai` workflow-pack execution, guardrails, lineage, review posture, and unavailable behavior are proven. |
-| Gateway memo API | Proposed | Promote only after Gateway consumes canonical Advise memo endpoints and passes contract/integration tests. |
-| Workbench memo review UX | Proposed | Promote only after browser validation proves backed states through Gateway/BFF only. |
+| Gateway memo API | Supported for advisor-use memo posture | Gateway routes canonical Advise memo endpoints and preserves source-owned memo truth without recomputation. |
+| Workbench memo review UX | Supported for advisor-use memo posture | Workbench browser proof covers advisor, compliance, operations, client-draft, degraded, and blocked states through Gateway/BFF only. |
 | Advisory memo data product | Proposed | Promote only after producer declaration, trust telemetry, mesh certification, SLO/access/evidence policy, and catalog publication are complete. |
 | Sales/demo-safe memo projection | Proposed | Promote only after synthetic/approved demo data, supported-claim taxonomy, and wiki/demo material are implementation-backed. |
 
