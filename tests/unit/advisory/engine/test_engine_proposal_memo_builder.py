@@ -100,6 +100,20 @@ def _artifact() -> dict:
             "persistent_issues": 0,
             "resolved_issues": 1,
         },
+        "assumptions_and_limits": {
+            "costs_and_fees": {
+                "included": False,
+                "notes": "Transaction costs and advisory fees are not modeled.",
+            },
+            "tax": {"included": False, "notes": "Tax impact is not modeled."},
+            "execution": {"included": False, "notes": "Execution slippage is not modeled."},
+        },
+        "disclosures": {
+            "risk_disclaimer": "This proposal is based on market-data snapshots.",
+            "product_docs": [
+                {"instrument_id": "US_EQ_ETF", "doc_ref": "KID/FactSheet placeholder"}
+            ],
+        },
         "gate_decision": {"gate": "CLIENT_CONSENT_REQUIRED"},
         "trades_and_funding": {"trade_list": [{"instrument_id": "US_EQ_ETF"}]},
     }
@@ -150,7 +164,9 @@ def test_memo_builder_is_deterministic_and_builds_all_required_sections() -> Non
         "OPERATIONS_APPENDIX",
         "SUPPORTABILITY_APPENDIX",
     ]
-    assert first.supportability["persistence"] == "NOT_IMPLEMENTED"
+    assert first.supportability["persistence"] == "SUPPORTED_BY_RFC0024_SLICE6"
+    assert first.supportability["api"] == "SUPPORTED_BY_RFC0024_SLICE7"
+    assert first.supportability["policy_fee_conflict_enrichment"] == "SUPPORTED_BY_RFC0024_SLICE8"
     assert first.projection_policy["client_ready_publication"] == "BLOCKED"
 
 
@@ -195,3 +211,71 @@ def test_memo_builder_blocks_report_archive_and_preserves_missing_source_evidenc
     assert report_readiness.status == "BLOCKED"
     assert "memo_report_package" in report_readiness.missing_evidence
     assert report_readiness.material_claims == []
+
+
+def test_memo_builder_enriches_policy_fee_conflict_sections_without_positive_claims() -> None:
+    pack = build_advisory_proposal_memo_evidence_pack(
+        proposal_id="pp_memo_policy",
+        proposal_version_no=1,
+        artifact_json=_artifact(),
+        evidence_bundle=_evidence_bundle(),
+    )
+
+    suitability = _section(pack, "SUITABILITY_AND_BEST_INTEREST")
+    assert suitability.status == "READY"
+    assert "Product eligibility and complexity evidence is present" in (
+        suitability.material_claims[1].text
+    )
+    assert "lotus-core:product_eligibility_complexity" in suitability.source_authority_refs
+
+    fees = _section(pack, "FEES_COSTS_TAX_AND_FRICTIONS")
+    assert fees.status == "PENDING_REVIEW"
+    assert "fee_evidence" in fees.missing_evidence
+    assert "tax_evidence" in fees.missing_evidence
+    assert "execution_friction_evidence" in fees.missing_evidence
+    assert "Transaction costs and advisory fees are not modeled" in fees.summary
+    assert fees.material_claims
+
+    conflicts = _section(pack, "CONFLICTS_AND_DISCLOSURES")
+    assert conflicts.status == "PENDING_REVIEW"
+    assert "conflict_evidence" in conflicts.missing_evidence
+    assert "MEMO_CONFLICT_POLICY_PACK_NOT_IMPLEMENTED" in conflicts.reason_codes
+    assert any("Risk disclosure captured" in claim.text for claim in conflicts.material_claims)
+    assert any(
+        "Product-document references are available" in claim.text
+        for claim in conflicts.material_claims
+    )
+    assert not any(
+        "client-ready" in claim.text.lower()
+        for section in (suitability, fees, conflicts)
+        for claim in section.material_claims
+    )
+
+
+def test_memo_builder_blocks_missing_product_policy_evidence() -> None:
+    evidence = deepcopy(_evidence_bundle())
+    evidence["inputs"]["shelf_entries"] = []
+    evidence["memo_source_readiness"] = build_memo_source_readiness(evidence)
+    artifact = deepcopy(_artifact())
+    artifact["disclosures"]["product_docs"] = []
+
+    pack = build_advisory_proposal_memo_evidence_pack(
+        proposal_id="pp_memo_missing_product_policy",
+        proposal_version_no=1,
+        artifact_json=artifact,
+        evidence_bundle=evidence,
+    )
+
+    suitability = _section(pack, "SUITABILITY_AND_BEST_INTEREST")
+    assert suitability.status == "BLOCKED"
+    assert "shelf_entry:US_EQ_ETF" in suitability.missing_evidence
+    assert "PRODUCT_SHELF_ENTRY_MISSING_FOR_PROPOSED_TRADE" in suitability.reason_codes
+    assert not any(
+        "Product eligibility and complexity evidence is present" in claim.text
+        for claim in suitability.material_claims
+    )
+
+    conflicts = _section(pack, "CONFLICTS_AND_DISCLOSURES")
+    assert conflicts.status == "BLOCKED"
+    assert "product_document_evidence" in conflicts.missing_evidence
+    assert "PRODUCT_DOCUMENTATION_INCOMPLETE_FOR_PROPOSED_TRADES" in conflicts.reason_codes

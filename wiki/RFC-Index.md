@@ -95,6 +95,14 @@ the `Advisory Proposal Memo` tag, backed by persisted memo records and append-on
 Gateway/Workbench product support, report/render/archive realization, active data-product support,
 and client-ready memo publication remain planned later slices.
 
+RFC-0024 Slice 8 is implemented as memo-critical policy, fees, costs, conflicts, and disclosure
+enrichment. It projects suitability issue counts, product eligibility and complexity coverage,
+cost/fee/tax/friction limitation evidence, risk disclosures, product-document references, and
+explicit conflict-policy blockers into persisted memo sections without converting missing evidence
+into positive best-interest or client-ready wording. Full policy packs, Gateway/Workbench product
+support, report/render/archive realization, active data-product support, and client-ready memo
+publication remain planned later slices.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
@@ -251,3 +259,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-4-upstream-source-evidence-completion.md`
 - `docs/rfcs/RFC-0024-slice-5-memo-domain-model-and-pure-builder.md`
 - `docs/rfcs/RFC-0024-slice-6-persistence-replay-idempotency-and-audit.md`
+- `docs/rfcs/RFC-0024-slice-7-certified-apis-and-openapi.md`
+- `docs/rfcs/RFC-0024-slice-8-policy-fees-costs-conflicts-and-disclosures.md`

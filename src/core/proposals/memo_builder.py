@@ -13,6 +13,11 @@ from src.core.proposals.memo_models import (
     ProposalMemoSectionStatus,
     ProposalMemoSourceAuthorityManifest,
 )
+from src.core.proposals.memo_policy_enrichment import (
+    build_conflict_disclosure_enrichment,
+    build_fee_cost_tax_friction_enrichment,
+    build_suitability_best_interest_enrichment,
+)
 
 _MEMO_VERSION = "advisory-proposal-memo-evidence-pack.v1"
 _ALL_INTERNAL_AUDIENCES: list[ProposalMemoAudience] = [
@@ -120,6 +125,15 @@ def _build_sections(
     evidence_bundle: dict[str, Any],
     source_manifest: ProposalMemoSourceAuthorityManifest,
 ) -> list[ProposalMemoSection]:
+    suitability_best_interest = build_suitability_best_interest_enrichment(
+        artifact=artifact,
+        evidence_bundle=evidence_bundle,
+    )
+    fee_cost_tax_friction = build_fee_cost_tax_friction_enrichment(artifact=artifact)
+    conflict_disclosure = build_conflict_disclosure_enrichment(
+        artifact=artifact,
+        evidence_bundle=evidence_bundle,
+    )
     return [
         _section(
             section_id="EXECUTIVE_SUMMARY",
@@ -265,17 +279,11 @@ def _build_sections(
             artifact=artifact,
             evidence_bundle=evidence_bundle,
             source_manifest=source_manifest,
-            summary=_suitability_summary(artifact),
-            claims=_claims(
-                section_id="SUITABILITY_AND_BEST_INTEREST",
-                evidence_refs=[
-                    "artifact.suitability_summary",
-                    "artifact.proposal_decision_summary.suitability_posture",
-                ],
-                source_refs=["lotus-advise:proposal_decision_summary"],
-                texts=[_suitability_summary(artifact)],
-                reason_codes=["SUITABILITY_POSTURE_CAPTURED"],
-            ),
+            summary=suitability_best_interest.summary,
+            claims=suitability_best_interest.claims,
+            forced_status=suitability_best_interest.forced_status,
+            forced_missing=suitability_best_interest.forced_missing,
+            forced_reasons=suitability_best_interest.forced_reasons,
         ),
         _section(
             section_id="FEES_COSTS_TAX_AND_FRICTIONS",
@@ -286,11 +294,11 @@ def _build_sections(
             artifact=artifact,
             evidence_bundle=evidence_bundle,
             source_manifest=source_manifest,
-            summary="Fees, costs, tax, and friction evidence is not source-complete in this slice.",
-            claims=[],
-            forced_status="PENDING_REVIEW",
-            forced_missing=["fee_evidence", "cost_evidence", "tax_evidence"],
-            forced_reasons=["MEMO_COST_FRICTION_EVIDENCE_NOT_IMPLEMENTED"],
+            summary=fee_cost_tax_friction.summary,
+            claims=fee_cost_tax_friction.claims,
+            forced_status=fee_cost_tax_friction.forced_status,
+            forced_missing=fee_cost_tax_friction.forced_missing,
+            forced_reasons=fee_cost_tax_friction.forced_reasons,
         ),
         _section(
             section_id="CONFLICTS_AND_DISCLOSURES",
@@ -301,13 +309,11 @@ def _build_sections(
             artifact=artifact,
             evidence_bundle=evidence_bundle,
             source_manifest=source_manifest,
-            summary=(
-                "Conflict and disclosure posture remains review-required until policy packs land."
-            ),
-            claims=[],
-            forced_status="PENDING_REVIEW",
-            forced_missing=["conflict_evidence", "disclosure_policy_evidence"],
-            forced_reasons=["MEMO_CONFLICT_DISCLOSURE_EVIDENCE_NOT_IMPLEMENTED"],
+            summary=conflict_disclosure.summary,
+            claims=conflict_disclosure.claims,
+            forced_status=conflict_disclosure.forced_status,
+            forced_missing=conflict_disclosure.forced_missing,
+            forced_reasons=conflict_disclosure.forced_reasons,
         ),
         _section(
             section_id="APPROVALS_CONSENTS_AND_MAKER_CHECKER",
@@ -597,10 +603,12 @@ def _projection_policy() -> dict[str, Any]:
 
 def _supportability() -> dict[str, Any]:
     return {
-        "capability_posture": "PURE_BUILDER_ONLY_NOT_PERSISTED",
-        "persistence": "NOT_IMPLEMENTED",
-        "api": "NOT_IMPLEMENTED",
+        "capability_posture": "ADVISE_MEMO_EVIDENCE_PACK_SUPPORTED_INTERNAL",
+        "persistence": "SUPPORTED_BY_RFC0024_SLICE6",
+        "api": "SUPPORTED_BY_RFC0024_SLICE7",
+        "policy_fee_conflict_enrichment": "SUPPORTED_BY_RFC0024_SLICE8",
         "memo_generation": "DETERMINISTIC_SOURCE_EVIDENCE_PROJECTION",
+        "report_render_archive": "NOT_IMPLEMENTED",
         "client_ready_publication": "BLOCKED",
     }
 
@@ -644,18 +652,6 @@ def _alternatives_summary(artifact: dict[str, Any]) -> str:
 def _risk_summary(artifact: dict[str, Any]) -> str:
     risk = _dict_at(artifact, "risk_lens")
     return str(risk.get("summary") or "Risk lens evidence is pending review.")
-
-
-def _suitability_summary(artifact: dict[str, Any]) -> str:
-    suitability = _dict_at(artifact, "suitability_summary")
-    status = suitability.get("status")
-    if status == "AVAILABLE":
-        return (
-            f"Suitability has {suitability.get('new_issues', 0)} new issue(s), "
-            f"{suitability.get('persistent_issues', 0)} persistent issue(s), and "
-            f"{suitability.get('resolved_issues', 0)} resolved issue(s)."
-        )
-    return "Suitability evidence is not available from persisted proposal evidence."
 
 
 def _approval_summary(artifact: dict[str, Any]) -> str:
