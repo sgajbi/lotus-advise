@@ -14,6 +14,8 @@ from src.core.proposals.memo_persistence import (
     create_or_replay_proposal_memo,
 )
 from src.core.proposals.models import (
+    ProposalMemoAiCommentaryRequest,
+    ProposalMemoAiCommentaryResponse,
     ProposalMemoAuditEvent,
     ProposalMemoCreateRequest,
     ProposalMemoLineageItem,
@@ -39,6 +41,11 @@ from src.core.proposals.persistence_models import (
 from src.core.proposals.projections import to_proposal_summary
 from src.core.proposals.proposal_replay import load_proposal_version_replay_referents
 from src.core.proposals.repository import ProposalRepository
+from src.integrations.lotus_ai import (
+    LotusAIProposalMemoUnavailableError,
+    build_proposal_memo_ai_unavailable_commentary,
+    generate_proposal_memo_commentary_with_lotus_ai,
+)
 from src.integrations.lotus_report import request_proposal_memo_report_package_with_lotus_report
 
 
@@ -330,6 +337,94 @@ def request_memo_report_package_response(
     )
 
 
+def request_memo_ai_commentary_response(
+    *,
+    repository: ProposalRepository,
+    proposal_id: str,
+    version_no: int,
+    payload: ProposalMemoAiCommentaryRequest,
+    idempotency_key: str | None,
+    event_id: str,
+    occurred_at: datetime,
+) -> ProposalMemoAiCommentaryResponse:
+    proposal, _version = _load_proposal_version(
+        repository=repository,
+        proposal_id=proposal_id,
+        version_no=version_no,
+    )
+    memo = _load_memo(repository=repository, proposal_id=proposal_id, version_no=version_no)
+    _validate_source_memo_hash(memo=memo, source_memo_hash=payload.source_memo_hash)
+    memo_events = repository.list_memo_events(memo_id=memo.memo_id)
+    review_posture = _require_advisor_use_review(memo=memo, events=memo_events)
+    requested_sections = [str(section) for section in payload.requested_sections]
+    request_hash = _request_hash(
+        {
+            "operation": "MEMO_AI_REFERENCE_REQUESTED",
+            "memo_id": memo.memo_id,
+            "requested_by": payload.requested_by,
+            "source_memo_hash": payload.source_memo_hash,
+            "requested_sections": requested_sections,
+            "reason": payload.reason,
+        }
+    )
+    if idempotency_key:
+        replayed_event = _find_replayed_event(
+            repository=repository,
+            memo=memo,
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+        )
+        if replayed_event is not None:
+            return ProposalMemoAiCommentaryResponse(
+                memo=build_memo_response(repository=repository, proposal=proposal, memo=memo),
+                ai_event=_to_audit_event(replayed_event),
+                commentary=_commentary_from_ai_event(replayed_event),
+                replayed=True,
+            )
+
+    memo_evidence = _build_memo_ai_evidence(memo=memo, review_posture=review_posture)
+    try:
+        commentary = generate_proposal_memo_commentary_with_lotus_ai(
+            memo_evidence=memo_evidence,
+            requested_sections=requested_sections,
+            requested_by=payload.requested_by,
+            reason=payload.reason,
+        )
+        ai_status = "REVIEW_REQUIRED"
+    except LotusAIProposalMemoUnavailableError as exc:
+        commentary = build_proposal_memo_ai_unavailable_commentary(str(exc))
+        ai_status = "UNAVAILABLE"
+
+    event, replayed = _append_or_replay_memo_event(
+        repository=repository,
+        memo=memo,
+        event_id=event_id,
+        event_type="MEMO_AI_REFERENCE_RECORDED",
+        actor_id=payload.requested_by,
+        occurred_at=occurred_at,
+        idempotency_key=idempotency_key,
+        request_hash=request_hash,
+        reason={
+            "ai_status": ai_status,
+            "source_memo_hash": payload.source_memo_hash,
+            "requested_sections": requested_sections,
+            "client_ready_publication": "BLOCKED",
+            "review_required": True,
+            "authoritative_for_memo_status": False,
+            "lineage": commentary.lineage,
+            "sections": list(commentary.sections),
+            "review_guidance": list(commentary.review_guidance),
+            "reason": payload.reason,
+        },
+    )
+    return ProposalMemoAiCommentaryResponse(
+        memo=build_memo_response(repository=repository, proposal=proposal, memo=memo),
+        ai_event=_to_audit_event(event),
+        commentary=_commentary_from_ai_event(event),
+        replayed=replayed,
+    )
+
+
 def get_memo_lineage_response(
     *,
     repository: ProposalRepository,
@@ -343,6 +438,7 @@ def get_memo_lineage_response(
     for memo in memos:
         events = repository.list_memo_events(memo_id=memo.memo_id)
         report_posture = _latest_event_posture(events, event_type="MEMO_REPORT_PACKAGE_RECORDED")
+        ai_posture = _latest_event_posture(events, event_type="MEMO_AI_REFERENCE_RECORDED")
         items.append(
             ProposalMemoLineageItem(
                 memo_id=memo.memo_id,
@@ -356,6 +452,7 @@ def get_memo_lineage_response(
                 event_count=len(events),
                 report_package_posture=report_posture,
                 archive_refs=_archive_refs_from_report_posture(report_posture),
+                ai_commentary_posture=ai_posture,
             )
         )
     return ProposalMemoLineageResponse(
@@ -409,6 +506,7 @@ def get_memo_replay_evidence_response(
             "projection": memo_response.projection,
             "review_posture": memo_response.review_posture,
             "report_package_posture": memo_response.report_package_posture,
+            "ai_commentary_posture": memo_response.ai_commentary_posture,
         },
         explanation={
             "source": "PERSISTED_MEMO_RECORD",
@@ -449,6 +547,9 @@ def build_memo_response(
         report_package_posture=_latest_event_posture(
             events, event_type="MEMO_REPORT_PACKAGE_RECORDED"
         ),
+        ai_commentary_posture=_latest_event_posture(
+            events, event_type="MEMO_AI_REFERENCE_RECORDED"
+        ),
         replay_metadata=dict(memo.replay_metadata_json),
         audit_events=[_to_audit_event(event) for event in events],
         event_count=len(events),
@@ -462,6 +563,7 @@ def build_memo_response(
             "memo_api_supported": True,
             "report_package_generation_supported": True,
             "report_render_archive_supported": True,
+            "ai_commentary_supported": True,
             "gateway_supported": False,
             "workbench_supported": False,
             "client_ready_publication": projection["client_ready_publication"],
@@ -503,6 +605,46 @@ def _build_report_memo_package(
         "client_ready_publication": "BLOCKED",
         "report_request_reason": payload.reason,
     }
+
+
+def _build_memo_ai_evidence(
+    *,
+    memo: ProposalMemoRecord,
+    review_posture: dict[str, Any],
+) -> dict[str, Any]:
+    memo_json = dict(memo.memo_json)
+    return {
+        "memo_id": memo.memo_id,
+        "memo_version": memo.memo_version,
+        "memo_status": memo.memo_status,
+        "memo_hash": memo.memo_hash,
+        "source_input_hash": memo.source_input_hash,
+        "proposal_id": memo.proposal_id,
+        "proposal_version_no": memo.proposal_version_no,
+        "proposal_version_id": memo.proposal_version_id,
+        "artifact_id": memo.artifact_id,
+        "review": {
+            "review_event_id": review_posture.get("event_id"),
+            "review_action": review_posture.get("review_action"),
+            "reviewed_by": review_posture.get("actor_id"),
+            "reviewed_at": review_posture.get("occurred_at"),
+        },
+        "projection": dict(memo.projection_json),
+        "sections": memo_json.get("sections", []),
+        "source_refs": _memo_source_refs(memo_json),
+        "supportability": memo_json.get("supportability", {}),
+        "client_ready_publication": "BLOCKED",
+    }
+
+
+def _memo_source_refs(memo_json: dict[str, Any]) -> list[str]:
+    manifest = memo_json.get("source_authority_manifest")
+    if not isinstance(manifest, dict):
+        return []
+    refs = manifest.get("source_refs")
+    if not isinstance(refs, list):
+        return []
+    return [item for item in refs if isinstance(item, str)]
 
 
 def _load_proposal_version(
@@ -667,6 +809,19 @@ def _report_response_from_event(
             "replayed_from_memo_event": event.event_id,
         },
     )
+
+
+def _commentary_from_ai_event(event: ProposalMemoEventRecord) -> dict[str, Any]:
+    reason = dict(event.reason_json)
+    return {
+        "status": reason.get("ai_status", "UNAVAILABLE"),
+        "sections": reason.get("sections", []),
+        "lineage": reason.get("lineage", {}),
+        "review_guidance": reason.get("review_guidance", []),
+        "client_ready_publication": reason.get("client_ready_publication", "BLOCKED"),
+        "review_required": reason.get("review_required", True),
+        "authoritative_for_memo_status": reason.get("authoritative_for_memo_status", False),
+    }
 
 
 def _archive_refs_from_report_posture(report_posture: dict[str, Any]) -> list[dict[str, Any]]:

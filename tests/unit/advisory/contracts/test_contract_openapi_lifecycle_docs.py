@@ -557,6 +557,7 @@ def test_rfc0024_memo_route_family_is_canonical_and_error_documented():
     assert memo_paths == [
         "/advisory/proposals/{proposal_id}/memos/lineage",
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/ai-commentary",
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/projection",
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence",
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-package-events",
@@ -593,6 +594,14 @@ def test_rfc0024_memo_route_family_is_canonical_and_error_documented():
         "lotus-report report/render/archive materialization"
         in memo_report_package["responses"]["503"]["description"]
     )
+
+    memo_ai = paths["/advisory/proposals/{proposal_id}/versions/{version_no}/memo/ai-commentary"][
+        "post"
+    ]
+    assert memo_ai["summary"] == "Request Proposal Memo AI Commentary"
+    assert "requires memo hash continuity and advisor-use review" in memo_ai["description"]
+    assert "cannot alter memo evidence" in memo_ai["description"]
+    assert "different AI commentary payload" in memo_ai["responses"]["409"]["description"]
 
     memo_replay = paths[
         "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence"

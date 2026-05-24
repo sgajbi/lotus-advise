@@ -6,6 +6,8 @@ from fastapi import Depends, Header, HTTPException, Path, Query, status
 import src.api.proposals.router as shared
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.proposals import (
+    ProposalMemoAiCommentaryRequest,
+    ProposalMemoAiCommentaryResponse,
     ProposalMemoCreateRequest,
     ProposalMemoLineageResponse,
     ProposalMemoProjectionResponse,
@@ -32,6 +34,7 @@ from src.core.proposals.memo_api import (
     get_memo_response,
     record_memo_report_package_event_response,
     record_memo_review_response,
+    request_memo_ai_commentary_response,
     request_memo_report_package_response,
 )
 from src.core.proposals.repository import ProposalRepository
@@ -421,6 +424,78 @@ def request_proposal_memo_report_package(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
+
+
+@shared.router.post(
+    "/advisory/proposals/{proposal_id}/versions/{version_no}/memo/ai-commentary",
+    response_model=ProposalMemoAiCommentaryResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Proposal Memo"],
+    summary="Request Proposal Memo AI Commentary",
+    description=(
+        "Requests review-gated advisor-use AI commentary for a persisted proposal memo. The "
+        "operation requires memo hash continuity and advisor-use review, records only append-only "
+        "AI lineage, and cannot alter memo evidence, suitability, approval, or client-ready "
+        "publication posture."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "description": "Proposal, immutable proposal version, or persisted memo was not found."
+        },
+        status.HTTP_409_CONFLICT: {
+            "description": "Idempotency key was reused with a different AI commentary payload."
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": (
+                "AI commentary request is invalid, references a stale memo hash, or lacks "
+                "advisor-use review."
+            )
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Proposal runtime persistence is unavailable or misconfigured."
+        },
+    },
+)
+def request_proposal_memo_ai_commentary(
+    proposal_id: Annotated[
+        str,
+        Path(description="Persisted proposal identifier.", examples=["pp_001"]),
+    ],
+    version_no: Annotated[
+        int,
+        Path(description="Immutable proposal version number used as memo source.", ge=1),
+    ],
+    payload: ProposalMemoAiCommentaryRequest,
+    repository: Annotated[
+        ProposalRepository,
+        Depends(shared.get_proposal_repository),
+    ],
+    idempotency_key: Annotated[
+        Optional[str],
+        Header(
+            alias="Idempotency-Key",
+            description="Optional idempotency key for replay-safe memo AI commentary requests.",
+            examples=["proposal-memo-ai-commentary-idem-001"],
+        ),
+    ] = None,
+) -> ProposalMemoAiCommentaryResponse:
+    shared._assert_lifecycle_enabled()
+    try:
+        return request_memo_ai_commentary_response(
+            repository=repository,
+            proposal_id=proposal_id,
+            version_no=version_no,
+            payload=payload,
+            idempotency_key=idempotency_key,
+            event_id=new_memo_event_id(),
+            occurred_at=_utc_now(),
+        )
+    except (
+        ProposalIdempotencyConflictError,
+        ProposalNotFoundError,
+        ProposalValidationError,
+    ) as exc:
+        raise_proposal_http_exception(exc)
 
 
 @shared.router.get(

@@ -58,10 +58,12 @@ Current repository posture:
    client-ready publication, and external client communication remain gated future scope rather
    than supported RFC-0023 closure claims,
 6. RFC-0024 advisor proposal memo support now includes advisor-use report/render/archive
-   realization: Advise requires memo hash continuity and `APPROVE_FOR_ADVISOR_USE` review before
-   sending a typed memo package to `lotus-report`, and memo lineage records returned report,
-   render, and archive refs. Gateway, Workbench, AI commentary, active data-product support, and
-   client-ready memo publication remain gated,
+   realization and review-gated AI commentary: Advise requires memo hash continuity and
+   `APPROVE_FOR_ADVISOR_USE` review before sending a typed memo package to `lotus-report` or a
+   bounded memo evidence packet to `lotus-ai` `proposal_memo_commentary.pack@v1`; memo lineage
+   records returned report/render/archive refs and append-only AI lineage. Gateway, Workbench,
+   active data-product support, commercial/demo claims, and client-ready memo publication remain
+   gated,
 7. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 8. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 9. repo-native CI is already aligned to explicit lane expectations,

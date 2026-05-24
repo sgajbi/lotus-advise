@@ -263,3 +263,25 @@ Current note:
   conflict blocker sections while keeping full policy packs, report/render/archive realization,
   Gateway/Workbench product support, active data-product support, and client-ready memo claims
   planned.
+- RFC-0024 Slice 9 report, render, and archive realization evidence lives in
+  `docs/rfcs/RFC-0024-slice-9-report-render-archive-realization.md`; it sends advisor-reviewed
+  memo packages through `lotus-report`, `lotus-render`, and `lotus-archive` while keeping Gateway,
+  Workbench, active data-product support, AI commentary, and client-ready memo claims planned.
+- RFC-0024 Slice 10 AI narrative and review-gated commentary evidence lives in
+  `docs/rfcs/RFC-0024-slice-10-ai-narrative-and-review-gated-commentary.md`; it adds the bounded
+  `proposal_memo_commentary.pack@v1` workflow-pack path, append-only AI lineage, review-required
+  commentary posture, and deterministic AI-unavailable behavior while keeping Gateway, Workbench,
+  active data-product support, commercial/demo claims, and client-ready memo claims planned.
+
+Implementation evidence:
+- `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md`
+- `docs/rfcs/RFC-0024-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0024-slice-2-cleanup-and-structure.md`
+- `docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0024-slice-4-upstream-source-evidence-completion.md`
+- `docs/rfcs/RFC-0024-slice-5-memo-domain-model-and-pure-builder.md`
+- `docs/rfcs/RFC-0024-slice-6-persistence-replay-idempotency-and-audit.md`
+- `docs/rfcs/RFC-0024-slice-7-certified-apis-and-openapi.md`
+- `docs/rfcs/RFC-0024-slice-8-policy-fees-costs-conflicts-and-disclosures.md`
+- `docs/rfcs/RFC-0024-slice-9-report-render-archive-realization.md`
+- `docs/rfcs/RFC-0024-slice-10-ai-narrative-and-review-gated-commentary.md`
