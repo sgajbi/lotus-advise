@@ -42,7 +42,7 @@ def test_rfc0024_slice14_promotes_only_advisor_use_data_product() -> None:
         supported_features
     )
     assert "active governed advisor-use data product" in commercial_text
-    assert "client-ready memo publication remain gated" in repo_context
+    assert "client-ready memo publication remains gated" in repo_context
 
 
 def test_rfc0024_slice14_contracts_are_unblocked_without_client_ready_claims() -> None:

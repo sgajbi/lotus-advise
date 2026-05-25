@@ -54,3 +54,14 @@ def test_rfc0024_slice16_updates_trust_and_product_closure_truth() -> None:
     assert "client-ready memo publication and external client communication remain blocked" in (
         declaration_text
     )
+
+
+def test_rfc0024_closure_resolves_slice0_questions_with_answers() -> None:
+    rfc_text = _read("docs/rfcs/RFC-0024-advisor-proposal-memo-and-evidence-pack.md")
+
+    assert "Remaining unsupported boundaries after Slice 17" in rfc_text
+    assert "LinkedIn post-completion drafting remains a later communication slice" not in rfc_text
+    assert "| Question | Closure answer |" in rfc_text
+    assert "RFC-0024 supports advisor-use memo evidence only" in rfc_text
+    assert "Slice 8 implemented the memo-critical subset" in rfc_text
+    assert "Canonical proof uses `PB_SG_GLOBAL_BAL_001`" in rfc_text

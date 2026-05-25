@@ -242,14 +242,13 @@ Implementation-backed foundations already available:
 14. OpenAPI, vocabulary, no-alias, domain-product, runtime-smoke, security-audit, Docker, and
    production-profile guardrail checks.
 
-Remaining unsupported boundaries after Slice 16:
+Remaining unsupported boundaries after Slice 17:
 
 1. client-ready memo publication remains blocked until the RFC-0028 bank-demo/client-ready package
    owns and proves that claim,
 2. external client communication, send-to-client workflow, and client delivery controls remain out
    of scope for the advisor-use RFC-0024 release,
-3. full RFC-0028 bank-demo/RFP package claims remain gated,
-4. LinkedIn post-completion drafting remains a later communication slice, not product capability.
+3. full RFC-0028 bank-demo/RFP package claims remain gated.
 
 ## 7. Target Product Capability
 
@@ -1079,14 +1078,15 @@ RFC-0024 is implemented only when:
 These questions were resolved by the implementation slices and are retained as closure audit
 context:
 
-1. Which fields are mandatory for a client-ready memo versus advisor-only memo?
-2. Which minimum policy/cost/conflict evidence must RFC-0024 implement if RFC-0025 or RFC-0016 is
-   not implemented first?
-3. Which source owner provides product eligibility and complex-product review evidence?
-4. Which legal-entity and tenant context model should memo APIs enforce first?
-5. Which memo projections are required for the first supported Workbench release?
-6. What is the first supported document format and render path?
-7. What archive retention and legal-hold posture is required for first supported claim?
-8. What p95 latency and load benchmark thresholds should block closure?
-9. What synthetic or approved demo dataset should be used for sales/demo-safe projection?
-10. Which platform scaffolding gaps should be fixed before app-specific implementation begins?
+| Question | Closure answer |
+| --- | --- |
+| Which fields are mandatory for a client-ready memo versus advisor-only memo? | RFC-0024 supports advisor-use memo evidence only. Client-ready memo publication remains gated to RFC-0028; advisor-use memo evidence requires proposal identity, immutable version identity, memo identity/hash, recommendation rationale, suitability and eligibility posture, cost/tax/friction limitations, disclosure/conflict evidence, approval/review posture, lineage, replay evidence, and report/render/archive references when requested. |
+| Which minimum policy/cost/conflict evidence must RFC-0024 implement if RFC-0025 or RFC-0016 is not implemented first? | Slice 8 implemented the memo-critical subset: suitability, product eligibility, cost/fee/tax/friction limitation evidence, risk disclosure, product-document evidence, and conflict blocker enrichment. Broader enterprise policy packs remain RFC-0025 scope. |
+| Which source owner provides product eligibility and complex-product review evidence? | RFC-0024 carries memo-critical eligibility and blocker evidence in `lotus-advise` from source-backed proposal evidence; broader product-governance source ownership remains future RFC-0025/platform policy-pack scope and cannot be claimed as client-ready publication support. |
+| Which legal-entity and tenant context model should memo APIs enforce first? | First-wave support remains portfolio/proposal scoped through existing Advise authorization and evidence boundaries; no expanded legal-entity or tenant publication model is promoted for client-ready delivery. |
+| Which memo projections are required for the first supported Workbench release? | Workbench supports Gateway/BFF-only advisor-use memo posture, projection, report-package, archive-reference, AI-commentary, lineage, replay, degraded, and blocked states with no UI-side memo reconstruction and no client-ready controls. |
+| What is the first supported document format and render path? | The first supported path is advisor-use memo report-package handoff to `lotus-report`, deterministic render-package projection through `lotus-render`, and support-safe archive metadata through `lotus-archive`. |
+| What archive retention and legal-hold posture is required for first supported claim? | RFC-0024 records support-safe memo archive metadata and lineage references for advisor-use evidence. Full retention/legal-hold client-publication posture remains outside the RFC-0024 advisor-use claim. |
+| What p95 latency and load benchmark thresholds should block closure? | RFC-0024 closure relies on repo-native PR Merge Gate, production-profile smoke, Docker build, runtime validation, and canonical Workbench proof; no separate RFC-0024-specific p95/load threshold was required beyond the governed platform lanes for this advisor-use release. |
+| What synthetic or approved demo dataset should be used for sales/demo-safe projection? | Canonical proof uses `PB_SG_GLOBAL_BAL_001` through the governed front-office runtime. The LinkedIn/commercial materials remain claim-controlled and do not imply bank adoption or client-ready publication. |
+| Which platform scaffolding gaps should be fixed before app-specific implementation begins? | Slice 1 found no platform-scaffolding blocker before memo domain work. Later slices used existing OpenAPI, vocabulary, domain-product, trust telemetry, wiki, PR Merge Gate, and front-office runtime governance rather than adding new platform guidance. |
