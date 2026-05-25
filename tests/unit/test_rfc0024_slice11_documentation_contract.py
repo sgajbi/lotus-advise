@@ -42,11 +42,13 @@ def test_rfc0024_slice11_supported_features_truth_does_not_overpromote() -> None
     assert "Slice 11 is complete" in supported_features
     assert "Gateway and Workbench product realization" in supported_features
     assert "no client-ready controls" in supported_features
-    assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_features
-    assert (
-        "Active data-product support, full bank-demo/RFP claims, and client-ready memo claims "
-        "remain planned"
-    ) in supported_features
+    assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_features
+    assert "Slice 14 is complete for active advisor-use memo data-product support" in (
+        supported_features
+    )
+    assert "full bank-demo/RFP claims and client-ready memo claims remain planned" in (
+        supported_features
+    )
     assert "Gateway now routes canonical Advise memo endpoints" in repo_context
     assert "without local memo inference" in repo_context
-    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_features
+    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_features

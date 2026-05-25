@@ -25,13 +25,14 @@ Supported today:
 4. advisor-use report/render/archive realization through downstream service refs,
 5. review-gated advisor-use AI commentary through `proposal_memo_commentary.pack@v1`,
 6. Gateway-routed memo APIs and Workbench Gateway/BFF-only memo posture,
-7. replay and lineage evidence for audit and operations.
+7. replay and lineage evidence for audit and operations,
+8. active `AdvisoryProposalMemoEvidencePack:v1` data-product posture for advisor-use memo evidence.
 
 Not supported today:
 
 1. client-ready memo publication,
 2. send-to-client controls,
-3. active `AdvisoryProposalMemoEvidencePack:v1` data-product promotion,
+3. client-ready data-product publication or external client communication,
 4. broad bank-demo proof packs,
 5. enterprise RFP/security packs beyond the memo-specific answers in this guide.
 
@@ -45,7 +46,7 @@ Not supported today:
 | AI commentary | Lotus can request bounded advisor-use AI commentary only after advisor-use memo approval, and AI cannot change memo evidence or approval posture. | Supported when `lotus-ai` is configured; deterministic unavailable posture otherwise | `POST /advisory/proposals/{proposal_id}/versions/{version_no}/memo/ai-commentary`; Slice 10 evidence. |
 | Workbench visibility | Advisors and support users can inspect memo posture, projection, report package, archive refs, AI commentary, lineage, and replay through Gateway-backed Workbench surfaces. | Supported | Slice 11 Gateway/Workbench evidence. |
 | Client-ready memo | Lotus can publish or send a client-ready memo. | Not supported | Gated for later RFC-0024 slices. |
-| Active memo data product | `AdvisoryProposalMemoEvidencePack:v1` is an active governed data product. | Not supported | Declaration and telemetry remain proposed/blocked. |
+| Active memo data product | `AdvisoryProposalMemoEvidencePack:v1` is an active governed advisor-use data product. | Supported for advisor-use memo evidence | Slice 14 declaration, trust telemetry, capability, and platform supportability evidence. |
 | Full bank demo and enterprise RFP pack | Lotus has a complete client-demo journey, architecture deck, security pack, ROI story, and RFP response set. | Not supported in RFC-0024 | RFC-0028 owns broader demo and RFP proof. |
 
 ## Demo Notes
@@ -121,7 +122,7 @@ flowchart LR
 ```
 
 The flow is implementation-backed for advisor-use memo posture. It does not represent client-ready
-publication, external client communication, or active data-product certification.
+publication, external client communication, or full bank-demo/RFP proof.
 
 ## Operator Guidance
 
@@ -145,14 +146,14 @@ Safe RFP wording:
 3. "Report, render, and archive references are recorded as support-safe lineage rather than raw
    storage paths."
 4. "Client-ready memo publication and external client communication are not currently supported."
-5. "`AdvisoryProposalMemoEvidencePack:v1` remains proposed/blocked until active data-product
-   certification, access, SLO, evidence-policy, and final proof gates close."
+5. "`AdvisoryProposalMemoEvidencePack:v1` is active for advisor-use memo evidence, with
+   client-ready memo publication and external client communication still gated."
 
 Unsafe wording:
 
 1. "The memo is client-ready."
 2. "AI approves or changes recommendations."
-3. "The memo product is certified as an active data product."
+3. "The memo product is certified for client-ready publication."
 4. "The bank-demo journey or full RFP pack is complete."
 5. "Missing product or policy evidence implies suitability."
 

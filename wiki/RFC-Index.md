@@ -136,9 +136,13 @@ RFC-0024 Slice 13 is implemented as memo implementation proof in the live runtim
 Evidence lives in `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`. The live-suite
 `proposal_memo` snapshot covers Advise memo APIs, the stateful source dependency path, advisor
 projection, advisor-use report/render/archive request posture, review-gated AI commentary, lineage,
-replay hashes, degraded report posture, and stale-hash/client-ready blocked paths. Active
-data-product support, full RFC-0028 bank-demo/RFP package claims, and client-ready memo publication
-remain planned later slices.
+replay hashes, degraded report posture, and stale-hash/client-ready blocked paths.
+
+RFC-0024 Slice 14 is implemented as data-product promotion and supportability hardening. Evidence
+lives in `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md`.
+`AdvisoryProposalMemoEvidencePack:v1` is now an active advisor-use data product with current trust
+telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture. Full
+RFC-0028 bank-demo/RFP package claims and client-ready memo publication remain planned later slices.
 
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.

@@ -35,6 +35,7 @@
 | Slice 11 Gateway and Workbench product realization | `docs/rfcs/RFC-0024-slice-11-gateway-workbench-product-realization.md` | Implemented - Gateway routes through canonical Advise memo endpoints and Workbench consumes Gateway/BFF memo posture, projection, report-package, archive-ref, AI-commentary, lineage, and replay evidence without local memo inference; active data-product support, commercial/demo claims, and client-ready memo claims remain unpromoted |
 | Slice 12 commercial, demo, and RFP-support material | `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md` | Implemented - memo-specific product one-pager, demo notes, API examples, architecture flow, operator guidance, and RFP-safe wording in `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`; active data-product support, full RFC-0028 bank-demo/RFP package, and client-ready memo claims remain unpromoted |
 | Slice 13 implementation proof | `docs/rfcs/RFC-0024-slice-13-implementation-proof.md` | Implemented - live-suite memo proof snapshot covers Advise memo APIs, stateful source dependency path, advisor projection, review-gated report/render/archive request posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and blocked stale-hash/client-ready paths; active data-product support, full RFC-0028 bank-demo/RFP package, and client-ready memo claims remain unpromoted |
+| Slice 14 data-product promotion and supportability hardening | `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md` | Implemented - `AdvisoryProposalMemoEvidencePack:v1` active advisor-use data product, current trust telemetry, `/platform/capabilities` feature/workflow, platform SLO/access/evidence policies, and refreshed platform catalog/certification artifacts; full RFC-0028 bank-demo/RFP package and client-ready memo claims remain unpromoted |
 
 ## 0. Executive Summary
 
@@ -918,7 +919,24 @@ Acceptance gate:
    degraded state is critically reviewed,
 4. discovered gaps are fixed before moving on.
 
-### Slice 14 - Second-Last Hardening and Review
+### Slice 14 - Data-Product Promotion And Supportability Hardening
+
+Status: implemented as active advisor-use memo data-product support in
+`docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md`.
+
+Outcome:
+
+1. promote `AdvisoryProposalMemoEvidencePack:v1` only for implemented advisor-use memo evidence.
+
+Acceptance gate:
+
+1. producer declaration, current trust telemetry, route family, SLO/access/evidence policies,
+   platform catalog/certification artifacts, and `/platform/capabilities` are aligned,
+2. capability discovery degrades when report-package support is unavailable,
+3. client-ready memo publication, external client communication, and full RFC-0028 bank-demo/RFP
+   package claims remain blocked.
+
+### Slice 15 - Final Hardening and Review
 
 Outcome:
 
@@ -935,7 +953,7 @@ Acceptance gate:
 6. logs, metrics, traces, audit events, SLOs, RTO/RPO, and support diagnostics are reviewed,
 7. no dead code, duplicate paths, stale docs, or unsupported product claims remain.
 
-### Slice 15 - Final Closure
+### Slice 16 - Final Closure
 
 Outcome:
 
@@ -953,7 +971,7 @@ Acceptance gate:
 5. all repo and cross-repo PRs are merged, CI is green, feature branches are deleted, and
    `main` is clean.
 
-### Slice 16 - Post-Completion Communication
+### Slice 17 - Post-Completion Communication
 
 Outcome:
 

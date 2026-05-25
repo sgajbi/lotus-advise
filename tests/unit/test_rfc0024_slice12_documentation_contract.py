@@ -51,8 +51,10 @@ def test_rfc0024_slice12_supported_features_do_not_overclaim() -> None:
     assert "Slice 12 is complete for memo-specific commercial" in supported_features
     assert "full bank-demo/RFP claims" in supported_features
     assert "client-ready memo claims remain planned" in supported_features
-    assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_features
-    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_features
+    assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_features
+    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_features
     assert "client-ready memo publication" in commercial_text
-    assert '"completeness_status": "blocked"' in telemetry_text
-    assert "active data-product promotion" in telemetry_text
+    assert '"completeness_status": "complete"' in telemetry_text
+    assert "RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md" in (
+        telemetry_text
+    )

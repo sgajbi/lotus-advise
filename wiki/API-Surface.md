@@ -93,6 +93,11 @@ the global portfolio universe, create rebalance waves, approve trades, or integr
   publication, and client communication are not promoted. Canonical Workbench proof is now covered
   by the live runtime suite and the governed `proposal.narrative_posture` panel proof rather than
   by `/platform/capabilities`.
+- `GET /platform/capabilities` includes `advisory.proposals.memo_evidence_pack` and
+  `advisory_proposal_memo_evidence_pack` for RFC-0024 advisor-use memo evidence. The workflow
+  depends on lifecycle, reporting, and `lotus-report` readiness, and it does not promote
+  client-ready memo publication, external client communication, or full bank-demo/RFP package
+  claims.
 - `GET /platform/capabilities` also includes a bounded `supportability` summary for advisory
   readiness, degraded dependency posture, and lifecycle-disabled posture. The
   `supportability.metric_labels` field documents the exact bounded label tuple for

@@ -25,6 +25,14 @@
 - Approved downstream consumers: `lotus-gateway`, `lotus-report`, `lotus-render`,
   `lotus-archive`
 
+- Product ID: `lotus-advise:AdvisoryProposalMemoEvidencePack:v1`
+- Product role: advisor-use proposal memo evidence for persisted memo records, advisor projection,
+  review posture, report-package handoff, archive refs, AI commentary lineage, and replay hashes
+- Source declaration: `contracts/domain-data-products/`
+- Trust telemetry: `contracts/trust-telemetry/advisory-proposal-memo-evidence-pack.telemetry.v1.json`
+- Approved downstream consumers: `lotus-gateway`, `lotus-report`, `lotus-render`,
+  `lotus-archive`, `lotus-workbench`
+
 ## Platform relationship
 
 `lotus-platform` aggregates the repo-native declaration, validates trust telemetry, applies mesh SLO/access/evidence policies, and includes this product in generated catalog, dependency graph, live certification, maturity matrix, evidence packs, and RFC-0092 operating reports.
@@ -37,3 +45,5 @@ source-backed candidates and must not be replaced by decorative gateway or Workb
 product.
 Proposal narrative evidence truth remains advisor-review only until compliance-review,
 client-draft, and client-ready publication slices are implemented and proven.
+Proposal memo evidence truth is active for advisor-use support only; client-ready memo publication,
+external client communication, and full bank-demo/RFP package claims remain gated.

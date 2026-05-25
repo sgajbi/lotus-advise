@@ -44,6 +44,6 @@ def test_rfc0024_slice8_supported_features_truth_does_not_overpromote() -> None:
     assert "memo-critical suitability" in supported_features
     assert "cost/fee/tax/friction limitation" in supported_features
     assert "conflict blocker enrichment" in supported_features
-    assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_features
+    assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_features
     assert "client-ready memo claims remain planned" in supported_features
-    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_features
+    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_features

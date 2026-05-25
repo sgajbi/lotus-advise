@@ -41,7 +41,7 @@ def test_rfc0024_slice13_pins_live_suite_memo_proof_without_client_ready_promoti
     assert "Slice 13 is complete for memo implementation proof" in supported_features
     assert "live-suite implementation proof" in repo_context
     assert "client-ready memo claims remain planned" in supported_features
-    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_features
+    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_features
 
 
 def test_rfc0024_slice13_trust_telemetry_blocks_only_remaining_product_promotion() -> None:
@@ -51,9 +51,11 @@ def test_rfc0024_slice13_trust_telemetry_blocks_only_remaining_product_promotion
     declaration_text = _read("contracts/domain-data-products/lotus-advise-products.v1.json")
 
     assert "RFC-0024-slice-13-implementation-proof.md" in telemetry_text
-    assert "live-suite implementation proof" in telemetry_text
+    assert "live-suite-implementation-proof" in telemetry_text
     assert "full implementation proof" not in telemetry_text
-    assert "active data-product promotion" in telemetry_text
+    assert "RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md" in (
+        telemetry_text
+    )
     assert "client-ready memo publication" in telemetry_text
     assert "live-suite implementation proof" in declaration_text
-    assert "active supported data product" in declaration_text
+    assert "active product is bounded to advisor-use memo evidence" in declaration_text
