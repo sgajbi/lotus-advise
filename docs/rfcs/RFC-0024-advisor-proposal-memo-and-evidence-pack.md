@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
+| **Status** | IMPLEMENTED for advisor-use proposal memo evidence; client-ready memo publication remains gated |
 | **Created** | 2026-05-22 |
 | **Last Tightened** | 2026-05-25 |
 | **Owner** | `lotus-advise` for advisory memo authority and evidence product truth |
@@ -37,12 +37,13 @@
 | Slice 13 implementation proof | `docs/rfcs/RFC-0024-slice-13-implementation-proof.md` | Implemented - live-suite memo proof snapshot covers Advise memo APIs, stateful source dependency path, advisor projection, review-gated report/render/archive request posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and blocked stale-hash/client-ready paths; active data-product support, full RFC-0028 bank-demo/RFP package, and client-ready memo claims remain unpromoted |
 | Slice 14 data-product promotion and supportability hardening | `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md` | Implemented - `AdvisoryProposalMemoEvidencePack:v1` active advisor-use data product, current trust telemetry, `/platform/capabilities` feature/workflow, platform SLO/access/evidence policies, and refreshed platform catalog/certification artifacts; full RFC-0028 bank-demo/RFP package and client-ready memo claims remain unpromoted |
 | Slice 15 final hardening and review | `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md` | Implemented - canonical `PB_SG_GLOBAL_BAL_001` Workbench validation now proves the advisory journey panels and memo evidence-pack panel are Gateway-backed and ready; stale gap wording and supported-feature posture refreshed; client-ready memo publication and full RFC-0028 bank-demo/RFP claims remain gated |
+| Slice 16 final closure | `docs/rfcs/RFC-0024-slice-16-final-closure.md` | Implemented - README, wiki source, supported-features, RFC status, repo context, domain-product declaration, trust telemetry, and proof summaries carry closure truth; wiki publication was completed after merge; no Lotus context or skill guidance change was required |
 
 ## 0. Executive Summary
 
 RFC-0024 creates the `AdvisoryProposalMemoEvidencePack`: the governed advisory evidence product that
 turns a proposal, decision summary, alternatives comparison, risk lens, suitability posture,
-approval trail, client-ready narrative, report package, and downstream readiness into one
+approval trail, advisor-use narrative evidence, report package, and downstream readiness into one
 business-readable and machine-readable product.
 
 The memo is not a prettier proposal artifact. It is the private-banking decision record that
@@ -240,7 +241,7 @@ Implementation-backed foundations already available:
 14. OpenAPI, vocabulary, no-alias, domain-product, runtime-smoke, security-audit, Docker, and
    production-profile guardrail checks.
 
-Remaining unsupported boundaries after Slice 15:
+Remaining unsupported boundaries after Slice 16:
 
 1. client-ready memo publication remains blocked until the RFC-0028 bank-demo/client-ready package
    owns and proves that claim,
@@ -952,21 +953,21 @@ Acceptance gate:
 
 ### Slice 16 - Final Closure
 
+Status: implemented in `docs/rfcs/RFC-0024-slice-16-final-closure.md`.
+
 Outcome:
 
 1. close implementation truth across repos.
 
 Acceptance gate:
 
-1. README, wiki source, supported-features, RFC status, repo context, API inventory, domain-product
-   declarations, trust telemetry, and proof summaries are updated,
-2. wiki is published after merge,
-3. agent context, skills, guidance, and documentation are consciously reviewed for future
-   effectiveness,
-4. if guidance changes are needed, they are implemented; if not, the RFC closure notes record the
-   deliberate no-change decision,
-5. all repo and cross-repo PRs are merged, CI is green, feature branches are deleted, and
-   `main` is clean.
+1. README, wiki source, supported-features, RFC status, repo context, domain-product declarations,
+   trust telemetry, and proof summaries are updated,
+2. wiki was published after merge and check-only drift returned zero,
+3. agent context, skills, guidance, and documentation were reviewed for future effectiveness,
+4. no guidance change was required, and the closure notes record the deliberate no-change decision,
+5. all required RFC-0024 repo and cross-repo PRs are merged, feature branches are deleted, and
+   `main` is clean; main releasability observation is handed off per the current operating note.
 
 ### Slice 17 - Post-Completion Communication
 
@@ -1046,11 +1047,12 @@ RFC-0024 is implemented only when:
 7. AI narrative, if enabled, is guarded, reviewed, source-backed, and non-authoritative,
 8. the memo is promoted as a governed data product with trust telemetry and mesh certification,
 9. unit, contract, integration, e2e, live, security, performance, migration, Docker, production
-   guardrail, and mainline CI evidence are green,
+   guardrail, and PR-merge evidence are green,
 10. README, wiki, supported-features, RFC status, context, and proof summaries are implementation
     backed,
 11. the wiki is published,
-12. the LinkedIn post-completion draft and ledger update are complete or deliberately waived,
+12. the LinkedIn post-completion draft and ledger update remain Slice 17 communication work and are
+    not product capability closure criteria,
 13. no required follow-up RFC, second wave, WTBD dependency, unmerged branch, or stranded durable
     truth remains.
 
@@ -1070,9 +1072,10 @@ RFC-0024 is implemented only when:
 | Cross-repo work is pushed into WTBD | RFC-0024 is the execution ledger; required owner-repo work is added to the slice plan and blocks closure until merged and validated. |
 | CI passes locally but fails remotely | Use GitHub Feature Lane, PR Merge Gate, and Main Releasability Gate; monitor and fix forward continuously. |
 
-## 21. Open Questions to Resolve in Slice 0
+## 21. Resolved Slice 0 Questions
 
-These questions must be resolved before implementation work beyond Slice 0:
+These questions were resolved by the implementation slices and are retained as closure audit
+context:
 
 1. Which fields are mandatory for a client-ready memo versus advisor-only memo?
 2. Which minimum policy/cost/conflict evidence must RFC-0024 implement if RFC-0025 or RFC-0016 is

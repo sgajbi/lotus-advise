@@ -32,7 +32,9 @@
       "lotus-advise://docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md",
       "lotus-advise://docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md",
       "lotus-advise://docs/rfcs/RFC-0024-slice-13-implementation-proof.md#live-suite-implementation-proof",
-      "lotus-advise://docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md"
+      "lotus-advise://docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md",
+      "lotus-advise://docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md",
+      "lotus-advise://docs/rfcs/RFC-0024-slice-16-final-closure.md"
     ]
   },
   "blocking": {
@@ -47,7 +49,7 @@
   },
   "evidence": {
     "correlation_id": "rfc-0024-advisory-proposal-memo-evidence-pack",
-    "claim_boundary": "client-ready memo publication remains gated",
+    "claim_boundary": "RFC-0024 final closure supports advisor-use memo evidence only; client-ready memo publication remains gated",
     "validation_lanes": [
       "feature",
       "pr-merge",

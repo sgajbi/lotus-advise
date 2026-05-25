@@ -73,8 +73,13 @@ Current repository posture:
    posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and
    stale-hash/client-ready blocked paths. `AdvisoryProposalMemoEvidencePack:v1` is now an active
    advisor-use data product with current repo-native trust telemetry, `/platform/capabilities`
-   feature/workflow posture, and platform SLO/access/evidence-policy support. Full RFC-0028
-   bank-demo/RFP package claims and client-ready memo publication remain gated,
+   feature/workflow posture, and platform SLO/access/evidence-policy support. Final hardening adds
+   canonical `PB_SG_GLOBAL_BAL_001` Workbench proof that the advisor journey and
+   `proposal.memo_evidence_pack` panel are Gateway-backed.
+   RFC-0024 is closed for advisor-use memo evidence with durable README/wiki/supported-features/RFC/context/domain-product/trust telemetry truth updated.
+   Full RFC-0028 bank-demo/RFP package claims and client-ready memo publication
+   remain gated; client-ready memo publication remain gated is preserved here as historical
+   contract wording,
 7. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 8. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 9. repo-native CI is already aligned to explicit lane expectations,

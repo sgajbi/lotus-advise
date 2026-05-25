@@ -51,7 +51,7 @@ The sequence is organized to read in implementation order:
 | RFC-0021 | Proposal Decision Summary and Enterprise Suitability Policy | IMPLEMENTED | Active backend-owned decision summary and enterprise suitability source of truth | RFC-0006, RFC-0010, RFC-0012, RFC-0013, RFC-0015, RFC-0019, RFC-0020 | `docs/rfcs/RFC-0021-proposal-decision-summary-and-enterprise-suitability-policy.md` |
 | RFC-0022 | Proposal Alternatives and Portfolio Construction Workbench | IMPLEMENTED | Active backend-owned proposal alternatives and portfolio-construction source of truth | RFC-0006, RFC-0007, RFC-0008, RFC-0009, RFC-0010, RFC-0013, RFC-0016, RFC-0019, RFC-0020, RFC-0021 | `docs/rfcs/RFC-0022-proposal-alternatives-and-portfolio-construction-workbench.md` |
 | RFC-0023 | Grounded Advisory AI Narrative and Client-Ready Proposal Commentary | IMPLEMENTED for advisor-review narrative evidence; client-ready scope remains gated | Active advisor-review narrative evidence source of truth; Slices 0-10 complete source mapping, platform-scaffolding review, cleanup/structure, narrative contract baseline, data-product/supportability baseline, deterministic advisor-review artifact-path narrative, policy/disclosure/guardrail baseline, AI-assisted draft adapter baseline, proposal-version narrative review/replay baseline, decision-summary/alternatives/approval/limitation narrative integration, and certified API/OpenAPI baseline; Slice 10B closes standalone proposal-version narrative read and non-persistent regeneration APIs; Slice 11A adds reviewed narrative package propagation into report-request evidence; Slices 11B/11C close `lotus-report` package consumption and `lotus-render` portfolio-review advisory narrative rendering; Slice 11D closes `lotus-archive` support-safe reviewed narrative artifact summary storage; Slice 11E closes `lotus-gateway` product-facing reviewed-narrative posture and `lotus-workbench` Gateway-backed advisor-use proposal posture; Slice 11F promotes advisor-review narrative evidence as `ProposalNarrativeEvidence:v1` with trust telemetry, platform catalog/certification, and `/platform/capabilities` reviewed narrative evidence posture; Slice 12 adds stateful live narrative proof, deterministic guardrail-failure reproduction, optional AI-assisted validation where enabled, and governed Workbench `proposal.narrative_posture` screenshot proof; Slice 13/14 hardens the closure boundary so even clean advisor-review narratives cannot return `APPROVED_FOR_CLIENT_READY`; compliance-review, client-draft, client-ready publication, and client communication remain gated future scope | RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0015, RFC-0019, RFC-0020, RFC-0021, RFC-0022 | `docs/rfcs/RFC-0023-grounded-advisory-ai-narrative-and-client-ready-proposal-commentary.md` |
-| RFC-0024 | Advisor Proposal Memo and Evidence Pack | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN; Slices 0-14 implemented | Active crown-jewel feature roadmap; Slices 0-8 close source mapping, platform-scaffolding review, cleanup/structure, proposed/blocked data-product posture, memo source-readiness evidence, deterministic memo building, persistence/replay/idempotency/audit, certified Advise memo APIs, and memo-critical suitability/product/cost/disclosure/conflict enrichment. Slice 9 implements advisor-use report/render/archive realization. Slice 10 implements review-gated advisor-use AI commentary through `proposal_memo_commentary.pack@v1`. Slice 11 implements Gateway routing through canonical Advise memo endpoints and Workbench Gateway/BFF-only memo posture, projection, report-package, archive-ref, AI-commentary, lineage, replay, degraded, and blocked states. Slice 12 implements memo-specific commercial support material in `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`, including claim-controlled one-pager language, demo notes, API examples, architecture flow, operator guidance, and RFP-safe wording. Slice 13 adds memo proof to the live runtime evidence bundle: Advise memo APIs, stateful source dependency path, advisor projection, report/render/archive request posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and blocked stale-hash/client-ready paths. Slice 14 promotes `AdvisoryProposalMemoEvidencePack:v1` as an active advisor-use data product with current trust telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture. Full RFC-0028 bank-demo/RFP package claims and client-ready memo claims remain unpromoted. RFC-0024 remains the execution source and WTBD is closed historical context only. | RFC-0006, RFC-0011, RFC-0013, RFC-0019, RFC-0020, RFC-0021, RFC-0022, RFC-0023 | `docs/rfcs/RFC-0024-advisor-proposal-memo-and-evidence-pack.md` |
+| RFC-0024 | Advisor Proposal Memo and Evidence Pack | IMPLEMENTED for advisor-use proposal memo evidence; client-ready memo publication remains gated | Active advisor-use memo evidence source of truth; Slices 0-8 close source mapping, platform-scaffolding review, cleanup/structure, proposed/blocked data-product posture, memo source-readiness evidence, deterministic memo building, persistence/replay/idempotency/audit, certified Advise memo APIs, and memo-critical suitability/product/cost/disclosure/conflict enrichment. Slice 9 implements advisor-use report/render/archive realization. Slice 10 implements review-gated advisor-use AI commentary through `proposal_memo_commentary.pack@v1`. Slice 11 implements Gateway routing through canonical Advise memo endpoints and Workbench Gateway/BFF-only memo posture, projection, report-package, archive-ref, AI-commentary, lineage, replay, degraded, and blocked states. Slice 12 implements memo-specific commercial support material in `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`, including claim-controlled one-pager language, demo notes, API examples, architecture flow, operator guidance, and RFP-safe wording. Slice 13 adds memo proof to the live runtime evidence bundle. Slice 14 promotes `AdvisoryProposalMemoEvidencePack:v1` as an active advisor-use data product with current trust telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture. Slice 15 adds canonical `PB_SG_GLOBAL_BAL_001` Workbench proof for the advisor journey and `proposal.memo_evidence_pack` panel. Slice 16 closes durable truth across README, wiki source, supported-features, RFC status, repo context, domain-product declaration, trust telemetry, and proof summaries. Full RFC-0028 bank-demo/RFP package claims and client-ready memo claims remain gated. WTBD is closed historical context only. | RFC-0006, RFC-0011, RFC-0013, RFC-0019, RFC-0020, RFC-0021, RFC-0022, RFC-0023 | `docs/rfcs/RFC-0024-advisor-proposal-memo-and-evidence-pack.md` |
 | RFC-0025 | Enterprise Suitability and Best-Interest Policy Packs | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN | Active crown-jewel feature roadmap; RFC is the execution source and WTBD is closed historical context only | RFC-0010, RFC-0013, RFC-0015, RFC-0020, RFC-0021, RFC-0022, RFC-0024 | `docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md` |
 | RFC-0026 | Advisor Cockpit Operating Workflow | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN | Active crown-jewel feature roadmap; RFC is the execution source and WTBD is closed historical context only | RFC-0004, RFC-0013, RFC-0017, RFC-0018, RFC-0019, RFC-0021, RFC-0022, RFC-0024, RFC-0025 | `docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md` |
 | RFC-0027 | Governed Advisory AI Copilot | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN | Active crown-jewel feature roadmap; RFC is the execution source and WTBD is closed historical context only | RFC-0021, RFC-0022, RFC-0023, RFC-0024, RFC-0025, RFC-0026 | `docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md` |
@@ -76,6 +76,7 @@ Implemented RFCs:
 - `RFC-0021`
 - `RFC-0022`
 - `RFC-0023` advisor-review narrative evidence
+- `RFC-0024` advisor-use proposal memo evidence
 
 ## Not Yet Implemented
 
@@ -85,21 +86,19 @@ Open RFCs still relevant to the advisory roadmap:
 - `RFC-0016`
 - `RFC-0017`
 - `RFC-0018`
-- `RFC-0024`
 - `RFC-0025`
 - `RFC-0026`
 - `RFC-0027`
 - `RFC-0028`
 
 Recommended near-term implementation order:
-1. `RFC-0024` remaining implementation slices after Slice 0 source-map closure
-2. `RFC-0025` enterprise suitability and best-interest policy packs
-3. `RFC-0026` advisor cockpit operating workflow
-4. `RFC-0027` governed advisory AI copilot
-5. `RFC-0028` bank demo journey and client-ready proof
-6. `RFC-0014` remaining replay and data-quality backbone deltas not already covered by current implementation
-7. `RFC-0016` costs, fees, and transaction frictions
-8. `RFC-0017` remaining execution-boundary stabilization deltas not already covered by current implementation
+1. `RFC-0025` enterprise suitability and best-interest policy packs
+2. `RFC-0026` advisor cockpit operating workflow
+3. `RFC-0027` governed advisory AI copilot
+4. `RFC-0028` bank demo journey and client-ready proof
+5. `RFC-0014` remaining replay and data-quality backbone deltas not already covered by current implementation
+6. `RFC-0016` costs, fees, and transaction frictions
+7. `RFC-0017` remaining execution-boundary stabilization deltas not already covered by current implementation
 
 Deferred but retained:
 - `RFC-0002`
@@ -294,6 +293,15 @@ Current note:
   `AdvisoryProposalMemoEvidencePack:v1` as an active advisor-use data product with current trust
   telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture while keeping
   full RFC-0028 bank-demo/RFP package claims and client-ready memo claims unpromoted.
+- RFC-0024 Slice 15 final hardening and review evidence lives in
+  `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md`; canonical `PB_SG_GLOBAL_BAL_001`
+  Workbench validation proves the advisor journey and `proposal.memo_evidence_pack` panel are ready
+  and Gateway-backed while client-ready memo publication remains gated.
+- RFC-0024 Slice 16 final closure evidence lives in
+  `docs/rfcs/RFC-0024-slice-16-final-closure.md`; README, wiki source, supported-features, RFC
+  status, repo context, domain-product declaration, trust telemetry, and proof summaries carry
+  closure truth, wiki publication was completed after merge, and no Lotus context or skill guidance
+  change was required.
 
 Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md`
@@ -311,4 +319,6 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md`
 - `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`
 - `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md`
+- `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md`
+- `docs/rfcs/RFC-0024-slice-16-final-closure.md`
 - `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`
