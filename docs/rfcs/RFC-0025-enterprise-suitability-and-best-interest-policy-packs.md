@@ -4,14 +4,14 @@
 | --- | --- |
 | **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
 | **Created** | 2026-05-22 |
-| **Last Tightened** | 2026-05-22 |
+| **Last Tightened** | 2026-05-26 |
 | **Owner** | `lotus-advise` for advisory policy evaluation authority and evidence-product truth |
 | **Business Sponsor Persona** | advisory desk head, compliance officer, product governance, relationship manager, risk control, investment desk reviewer, operations, audit, sales/pre-sales |
 | **Primary Business Outcome** | make every advisory recommendation policy-evaluable, explainable, reviewable, replayable, and approval-ready under bank-configured suitability, best-interest, disclosure, conflict, and product-governance controls |
 | **Depends On** | RFC-0010, RFC-0013, RFC-0015, RFC-0016, RFC-0020, RFC-0021, RFC-0022, RFC-0024 |
 | **Cross-Repository Scope** | `lotus-advise`, `lotus-core`, `lotus-risk`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-ai`, `lotus-gateway`, `lotus-workbench`, `lotus-platform` |
 | **Compatibility Posture** | backward compatibility is not a constraint; breaking API/contract changes are allowed when they are the cleanest design, but every affected downstream consumer must be updated in this RFC before closure |
-| **Tightening Branch** | `docs/rfc0025-gold-standard-tightening` |
+| **Tightening Branch** | `rfc25-gold-standard-tightening` |
 | **Implementation Branching Rule** | implementation may continue on this branch or a follow-on RFC-0025 feature branch, but all branch names, PRs, commits, checks, and cross-repo closures must be recorded in RFC closure evidence |
 | **Doc Location** | `docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md` |
 
@@ -873,7 +873,12 @@ Acceptance gate:
    explicitly unavailable-with-blocked-state, or out-of-scope,
 2. every required upstream, downstream, platform, documentation, or product-surface item is
    represented in an RFC-0025 slice or owner-repo PR plan,
-3. no broad "later", WTBD, or side-ledger dependency remains for the policy-pack supported claim.
+3. the open questions in Section 25 are converted into explicit implementation decisions,
+4. wiki and RFC-index source truth reflects that RFC-0024 is implemented and RFC-0025 is the next
+   planned policy-pack roadmap,
+5. documentation contract tests pin the pre-implementation decisions and prevent unsupported
+   policy-pack support claims,
+6. no broad "later", WTBD, or side-ledger dependency remains for the policy-pack supported claim.
 
 ### Slice 1 - Platform Automation and Scaffolding Improvement
 
@@ -1262,22 +1267,37 @@ RFC-0025 is implemented only when:
 | CI passes locally but fails remotely | Use GitHub Feature Lane, PR Merge Gate, and Main Releasability Gate; monitor and fix forward continuously. |
 | Cross-repo work is pushed into WTBD instead of completed | RFC-0025 is the execution ledger; required owner-repo work is added to the slice plan and blocks closure until merged and validated. |
 
-## 25. Open Questions to Resolve in Slice 0
+## 25. Slice 0 Pre-Implementation Decisions
 
-These questions must be resolved before implementation work beyond Slice 0:
+The questions below are resolved before product implementation begins. Later slices may tighten
+details with evidence, but they must not reopen the supported-claim boundary without updating this
+RFC, tests, wiki truth, and affected owner-repo plans.
 
-1. Which reference policy packs are required for first supported proof: global baseline only, or
-   SG/HK/MAS/MiFID/Reg BI-style reference packs?
-2. Which fields are mandatory for a client-ready policy outcome versus advisor-only policy outcome?
-3. Which source owner provides product eligibility, target market, product complexity, private-asset,
-   and structured-product evidence?
-4. Which minimum fee/cost/tax/friction evidence must RFC-0025 implement if RFC-0016 is not
-   implemented first?
-5. Which legal-entity and tenant context model should policy APIs enforce first?
-6. Which review queues and maker-checker actions are required for the first supported Workbench
-   release?
-7. What is the first supported compliance sign-off/disclosure document format and render path?
-8. What archive retention and legal-hold posture is required for first supported claim?
-9. What p95 latency and load benchmark thresholds should block closure?
-10. What synthetic or approved demo dataset should be used for sales/demo-safe policy proof?
-11. Which platform scaffolding gaps should be fixed before app-specific implementation begins?
+| Decision area | Slice 0 decision | Implementation consequence |
+| --- | --- | --- |
+| First supported reference packs | First supported proof targets `GLOBAL_PRIVATE_BANKING_BASELINE` and `SG_PRIVATE_BANKING_REFERENCE` because the governed front-office portfolio is `PB_SG_GLOBAL_BAL_001`. MAS/HK/MiFID/Reg BI-style packs may appear only as schema examples or planned families until source-backed and reviewed. | Slice 5 must implement and validate the two first-wave packs. Wider reference packs remain non-claiming examples unless separately implemented and proved. |
+| Advisor-use versus client-ready posture | RFC-0025 may support advisor/compliance policy evaluation, review queues, sign-off evidence, and policy appendices. It does not by itself authorize external client communication or client-ready publication. | Client-ready publication stays blocked until policy evidence, memo/report/render/archive review, disclosure, consent, and RFC-0028 demo-claim governance are all implemented and proved. |
+| Mandatory advisor-use source fields | Advisor-use evaluation requires proposal version, policy version, applicability basis, source refs, rule results, status, source gaps, approval dependencies, disclosures, consent requirements, hashes, and replay metadata. | Missing mandatory advisor-use fields produce `PENDING_REVIEW` or `BLOCKED`; they cannot be defaulted to suitable, eligible, or best-interest. |
+| Mandatory client-ready source fields | Client-ready posture additionally requires complete product eligibility, target market, product complexity, fee/cost/tax/friction evidence where claimed, conflict and inducement posture, disclosure package refs, consent status, approval/sign-off events, report/render/archive refs, and final review posture. | If any client-ready field is missing, the implementation must return blocked posture and avoid client-ready wording in APIs, memo, report, Workbench, wiki, and sales material. |
+| Product-governance source owner | `lotus-core` is the first-wave source authority for product eligibility, target market, product complexity, private-asset classification, structured-product features, price, FX, holdings, cash, and source-readiness fields unless a later governed product-authority service is explicitly introduced. | Slice 4 must implement needed `lotus-core` changes or keep product-governance rules blocked with source gaps. `lotus-advise` must not invent these facts. |
+| Risk source owner | `lotus-risk` is the source authority for stress, drawdown, VaR, concentration, issuer/country/sector, liquidity-risk, private-asset risk, climate/geopolitical risk, risk-budget, and degraded-risk evidence. | Slice 4 must implement needed `lotus-risk` changes or expose degraded/missing-risk policy outcomes. |
+| Fee, cost, tax, and friction evidence | RFC-0025 consumes only implementation-backed RFC-0016 or owner-repo evidence. If RFC-0016 depth is not implemented first, the policy record must mark cost reasonableness as unavailable, pending review, or blocked rather than positive. | Slice 6 and Slice 9 may include blocker logic before a full cost engine exists, but supported best-interest claims cannot rely on missing cost evidence. |
+| Tenant and legal-entity context | First-wave APIs must carry correlation, caller role/entitlement posture, and explicit legal-entity/booking-center applicability basis. Tenant isolation is enforced to the extent supported by current platform contracts and must be represented as explicit posture when not fully implemented. | API and Gateway contracts must expose this posture rather than hiding tenancy/legal-entity gaps. |
+| First Workbench review queues | First supported Workbench surface covers advisor next action, compliance review, investment desk/product-governance review, supervisory maker-checker review, operations sign-off readiness, and blocked/degraded states. | Broader cockpit workload management remains RFC-0026, but policy-driven review queues required to understand and action a policy result are RFC-0025 scope. |
+| First sign-off/disclosure document | First supported document is an advisor/compliance-use policy evaluation appendix and sign-off package, rendered deterministically through `lotus-report` and `lotus-render` and archived through `lotus-archive` when supported. | Client-facing disclosure packs are gated unless the document package, review posture, disclosure text, consent, archive refs, and RFC-0028 claim controls are implemented and proved. |
+| Archive retention and legal hold | RFC-0025 consumes `lotus-archive` retention, legal-hold, retrieval, and access-audit posture as source-owned archive evidence. If archive support is incomplete, the policy package returns an explicit archive readiness gap. | Advise lineage may record archive refs only when returned by Archive; it must not fabricate retention or legal-hold claims. |
+| Performance thresholds | Initial blocking targets are p95 `<=250ms` for catalog/detail reads, `<=1500ms` for evaluation create, `<=500ms` for evaluation read/replay reads, and `<=750ms` for first-page review queue reads under representative seeded data. | Slice 14 must benchmark or revise these thresholds with evidence before closure; unsupported performance claims stay out of README/wiki/sales material. |
+| Demo dataset | Canonical live proof uses `PB_SG_GLOBAL_BAL_001` and the governed front-office runtime. Additional synthetic policy fixtures may be used for edge cases but must be clearly labeled as fixtures. | Demo-ready screenshots or policy-pack claims require canonical validation first; pre-validation captures are diagnostic only. |
+| Platform scaffolding | No local-only policy scaffold may be introduced before Slice 1 reviews platform reuse. Slice 1 either implements platform improvements or records a deliberate no-platform-change decision. | App-specific implementation starts only after the platform/scaffolding decision is merged and indexed. |
+
+Documentation commitment:
+
+1. README remains command-accurate and concise.
+2. Wiki source must become the multi-audience current-state product surface for developers,
+   business users, compliance, operations, sales/pre-sales, and demo preparation.
+3. RFC documents carry architecture, sequencing, acceptance criteria, owner-repo dependencies,
+   evidence standards, and no-claim boundaries.
+4. Supported-features wording changes only after implementation-backed support exists.
+5. Every wiki/source-document change must be checked with
+   `lotus-platform/automation/Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise` before merge
+   and published after merge.

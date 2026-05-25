@@ -34,7 +34,6 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0016 costs, fees, and transaction frictions
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
-- RFC-0024 advisor proposal memo and evidence pack
 - RFC-0025 enterprise suitability and best-interest policy packs
 - RFC-0026 advisor cockpit operating workflow
 - RFC-0027 governed advisory AI copilot
@@ -42,10 +41,14 @@ The repository RFC index currently keeps these as active future work:
 
 ## Important Interpretation
 
-RFC-0023 through RFC-0028 are gold-standard implementation plans for the next advisory crown-jewel
-roadmap. RFC-0023 is now implemented for governed advisor-review proposal narrative evidence and
-defines the grounded narrative prerequisite consumed by proposal memo, policy, cockpit, copilot, and
-demo work. RFC-0024 is the next recommended implementation slice.
+RFC-0023 through RFC-0028 are the crown-jewel advisory roadmap. RFC-0023 is implemented for
+governed advisor-review proposal narrative evidence and defines the grounded narrative prerequisite
+consumed by proposal memo, policy, cockpit, copilot, and demo work. RFC-0024 is implemented for
+advisor-use proposal memo evidence and remains the bounded memo source of truth; client-ready memo
+publication, external client communication, and full bank-demo/RFP claims remain gated. RFC-0025 is
+the next recommended implementation program and must start with the Slice 0 policy-pack
+pre-implementation decisions in
+`docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md`.
 
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
