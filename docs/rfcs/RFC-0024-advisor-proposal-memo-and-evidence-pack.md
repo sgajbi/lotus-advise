@@ -38,6 +38,7 @@
 | Slice 14 data-product promotion and supportability hardening | `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md` | Implemented - `AdvisoryProposalMemoEvidencePack:v1` active advisor-use data product, current trust telemetry, `/platform/capabilities` feature/workflow, platform SLO/access/evidence policies, and refreshed platform catalog/certification artifacts; full RFC-0028 bank-demo/RFP package and client-ready memo claims remain unpromoted |
 | Slice 15 final hardening and review | `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md` | Implemented - canonical `PB_SG_GLOBAL_BAL_001` Workbench validation now proves the advisory journey panels and memo evidence-pack panel are Gateway-backed and ready; stale gap wording and supported-feature posture refreshed; client-ready memo publication and full RFC-0028 bank-demo/RFP claims remain gated |
 | Slice 16 final closure | `docs/rfcs/RFC-0024-slice-16-final-closure.md` | Implemented - README, wiki source, supported-features, RFC status, repo context, domain-product declaration, trust telemetry, and proof summaries carry closure truth; wiki publication was completed after merge; no Lotus context or skill guidance change was required |
+| Slice 17 post-completion communication | `docs/rfcs/RFC-0024-slice-17-post-completion-communication.md` | Implemented - `lotus-platform` PR #357 added `LI-2026-05-25-036-a-proposal-memo-is-an-evidence-product.md` and updated the LinkedIn content ledger; the draft is employer-safe, non-confidential, non-promotional, and does not claim client-ready memo publication |
 
 ## 0. Executive Summary
 
@@ -971,6 +972,8 @@ Acceptance gate:
 
 ### Slice 17 - Post-Completion Communication
 
+Status: implemented in `docs/rfcs/RFC-0024-slice-17-post-completion-communication.md`.
+
 Outcome:
 
 1. draft a LinkedIn post after the implementation is complete.
@@ -988,8 +991,7 @@ Requirements:
 
 Acceptance gate:
 
-1. post draft exists and ledger is updated, or the closure notes record a deliberate no-post
-   decision with rationale approved by the user.
+1. post draft exists and ledger is updated in `lotus-platform` PR #357.
 
 ## 17. Supported-Features Ledger
 
