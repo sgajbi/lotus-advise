@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
+| **Status** | IMPLEMENTED for advisor-review narrative evidence; client-ready publication remains gated |
 | **Created** | 2026-04-12 |
 | **Last Tightened** | 2026-05-22 |
 | **Slice 0 Closure** | Implemented on 2026-05-22 in `docs/rfcs/RFC-0023-slice-0-critical-review-source-map-and-product-gap-allocation.md`; this is source-map and scope-gate proof only, not proposal narrative capability |
@@ -1207,16 +1207,16 @@ Update or add:
 | Grounding packet builder | Proposed | Promote only after deterministic builder tests prove all material facts come from allowed evidence refs and missing evidence is explicit. |
 | Deterministic advisor-review narrative | Proposed | Promote only after template output is stable, source-backed, review-marked, and available without AI dependency. |
 | AI-assisted narrative draft | Gated | Promote only after bounded `lotus-ai` or provider adapter execution, prompt/workflow lineage, timeout behavior, unsupported-claim validation, and safe degraded behavior are proven. |
-| Client-draft narrative | Proposed | Promote only after disclosure, suitability, risk, approval, and evidence-limitations posture is enforced and review state is visible. |
-| Client-ready narrative | Gated | Promote only after explicit human approval, disclosure policy, guardrail pass, report/render/archive readiness, and replay evidence are green. |
-| Narrative review workflow | Proposed | Promote only after approve/reject/regenerate transitions are auditable, idempotent where required, and persist exact actor/action/reason/version lineage. |
-| Narrative replay | Proposed | Promote only after replay returns the exact persisted narrative evidence without model calls and verifies source-input hashes. |
+| Client-draft narrative | Gated | Remains gated until disclosure, suitability, risk, approval, evidence-limitations, redaction, and client-draft controls are implemented and proven. |
+| Client-ready narrative | Gated | Remains gated until RFC-0028 or another approved client-ready implementation RFC proves explicit human approval, disclosure policy, guardrail pass, report/render/archive publication controls, client communication controls, and replay evidence. |
+| Narrative review workflow | Supported for advisor-review posture | Review events are append-only, idempotent where required, and preserve actor/action/reason/version lineage for advisor-review evidence. |
+| Narrative replay | Supported for advisor-review posture | Replay returns exact persisted narrative evidence without model calls and verifies source-input hashes for immutable proposal-version evidence. |
 | Report/render/archive narrative package | Proposed | Report request, report, render, archive, Gateway posture, and Workbench posture support is implemented for advisor-use reviewed narrative packages; promote only after client-ready controls, data-product posture, trust telemetry, and capability publication are proven. |
 | Standalone narrative read/regeneration API | Supported for advisor-review posture | `GET /advisory/proposals/{proposal_id}/versions/{version_no}/narrative` returns exact persisted narrative and latest review posture; `POST /advisory/proposals/{proposal_id}/versions/{version_no}/narrative/regenerate` returns a non-persisted review-required candidate from immutable version evidence. |
 | Gateway narrative API | Supported for advisor-use reviewed narrative posture | `lotus-gateway` consumes canonical Advise review, report-request, delivery-summary, and delivery-event APIs with contract and integration proof; compliance-review, client-draft, client-ready publication, and capability promotion remain gated. |
 | Workbench narrative review UX | Supported for advisor-use proposal posture | `lotus-workbench` renders Gateway-backed proposal narrative posture and does not infer narrative facts locally; broader compliance, client-draft, blocked, degraded, and canonical demo screenshot proof remain gated. |
-| Narrative evidence data product | Proposed | Promote only after producer declaration, trust telemetry, SLO/access/evidence policy, mesh certification, and catalog publication are complete. |
-| Sales/demo-safe narrative proof | Proposed | Promote only after synthetic/approved demo data, supported-claim taxonomy, wiki/demo material, and canonical proof are implementation-backed. |
+| Narrative evidence data product | Supported for advisor-review evidence | `ProposalNarrativeEvidence:v1` is active with producer declaration, trust telemetry, SLO/access/evidence policy, mesh certification, catalog publication, and `/platform/capabilities` posture. |
+| Sales/demo-safe narrative proof | Supported for advisor-review walkthrough material | Canonical `PB_SG_GLOBAL_BAL_001` Workbench proof supports advisor-review narrative posture only; client-ready publication, external client communication, and bank-demo/RFP package claims remain gated. |
 
 ## Existing WTBD Import and No-WTBD Execution Rule
 
@@ -1268,17 +1268,20 @@ Narrative language must reflect private banking, portfolio analytics, suitabilit
 6. UI adoption must follow backend contract availability.
 7. Post-live breaking changes require a dedicated versioning RFC.
 
-## Open Questions Before Implementation
+## Resolved Slice 3 Questions
 
-These must be resolved in Slice 3:
+These questions were resolved by the implementation slices and are retained as closure audit
+context:
 
-1. Should the first implementation support advisor-review only, or advisor-review plus client-draft?
-2. Which `lotus-ai` adapter contract is canonical for proposal narrative?
-3. Which jurisdictions and disclosure packs are supported initially?
-4. Which narrative sections are required by the first UI/artifact flow?
-5. What human approval model is required before client-ready artifact export?
-6. What model/provider telemetry is required for audit?
-7. Which prompt/template/version artifacts belong in `lotus-advise` versus `lotus-ai`?
+| Question | Closure answer |
+| --- | --- |
+| Should the first implementation support advisor-review only, or advisor-review plus client-draft? | The first supported posture is advisor-review narrative evidence only. Compliance-review, client-draft, client-ready publication, and external client communication remain gated future scope. |
+| Which `lotus-ai` adapter contract is canonical for proposal narrative? | RFC-0023 uses the bounded `lotus-ai` workflow-pack adapter for `AI_ASSISTED_DRAFT` advisor-review narrative where enabled, with deterministic fallback and guardrail validation. Deterministic advisor-review narrative remains available without AI dependency. |
+| Which jurisdictions and disclosure packs are supported initially? | RFC-0023 implements deterministic disclosure selection and unsupported-claim guardrails for advisor-review evidence. Jurisdiction-specific client-ready disclosure packs remain gated with client-ready publication scope. |
+| Which narrative sections are required by the first UI/artifact flow? | The supported advisor-review flow includes source-backed recommendation context, rationale, decision-summary and alternatives tradeoffs, risk/suitability limitations, approvals/remediation, material-change context, disclosures, guardrails, and evidence refs where available. |
+| What human approval model is required before client-ready artifact export? | Advisor-use review is implemented through append-only review events and exact replay evidence. Client-ready export remains gated; a future client-ready RFC must prove explicit human approval, disclosure policy, report/render/archive publication controls, client communication controls, and release audit posture. |
+| What model/provider telemetry is required for audit? | AI-assisted advisor-review narrative records bounded workflow-pack lineage, deterministic unavailable posture, timeout/fallback behavior, and guardrail outcomes. Raw prompt/model output must not become investment truth or leak through logs, metrics, public docs, wiki, or evidence packs. |
+| Which prompt/template/version artifacts belong in `lotus-advise` versus `lotus-ai`? | `lotus-advise` owns deterministic grounding packets, template policy, disclosure/guardrail metadata, narrative persistence, review, replay, and proposal evidence authority. `lotus-ai` owns bounded AI workflow-pack execution where enabled and returns non-authoritative draft support only. |
 
 ## Risks and Mitigations
 
