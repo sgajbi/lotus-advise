@@ -914,6 +914,10 @@ Acceptance gate:
 2. future Lotus apps benefit from any scaffolding change,
 3. platform changes have platform-native tests and PR evidence.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`
+
 ### Slice 2 - Cleanup and Structure
 
 Outcome:
