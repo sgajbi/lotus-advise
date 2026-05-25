@@ -62,9 +62,9 @@ def test_rfc0024_slice1_keeps_supported_features_non_claiming() -> None:
     assert "Slices 0-4 are complete as non-claiming source-map" in supported_features
     assert "Existing platform/repo-native controls are sufficient" in supported_features
     assert "Slice 7 is complete for canonical `lotus-advise` memo" in supported_features
-    assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_features
+    assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_features
     assert "Gateway, Workbench, report/render/archive realization" in supported_features
     assert "client-ready memo claims remain planned" in supported_features
     assert "Advisor proposal memo | Supported" not in supported_features
     assert "Client-ready memo publication | Supported" not in supported_features
-    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_features
+    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_features

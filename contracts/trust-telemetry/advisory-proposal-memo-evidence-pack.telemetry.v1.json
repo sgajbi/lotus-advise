@@ -5,7 +5,7 @@
     "RFC-0087",
     "RFC-0024"
   ],
-  "emitted_at_utc": "2026-05-23T00:00:00Z",
+  "emitted_at_utc": "2026-05-25T00:00:00Z",
   "product_id": "lotus-advise:AdvisoryProposalMemoEvidencePack:v1",
   "producer_repository": "lotus-advise",
   "product_name": "AdvisoryProposalMemoEvidencePack",
@@ -13,45 +13,47 @@
   "source_repository": "lotus-advise",
   "freshness": {
     "freshness_class": "event_driven",
-    "freshness_state": "unknown",
-    "evaluated_at_utc": "2026-05-23T00:00:00Z",
-    "observed_at_utc": "2026-05-23T00:00:00Z",
+    "freshness_state": "current",
+    "evaluated_at_utc": "2026-05-25T00:00:00Z",
+    "observed_at_utc": "2026-05-25T00:00:00Z",
     "age_seconds": 0,
     "max_allowed_age_seconds": 86400
   },
-  "completeness_status": "blocked",
+  "completeness_status": "complete",
   "reconciliation_status": "not_applicable",
-  "data_quality_status": "quality_unknown",
+  "data_quality_status": "quality_passed",
   "lineage": {
-    "lineage_materialized": false,
-    "lineage_bundle_id": "lineage:lotus-advise:advisory-proposal-memo-evidence-pack:blocked:2026-05-23",
+    "lineage_materialized": true,
+    "lineage_bundle_id": "lineage:lotus-advise:advisory-proposal-memo-evidence-pack:2026-05-25",
     "evidence_access_class": "customer_consumable",
     "evidence_uris": [
+      "lotus-advise://evidence/proposal-memo/PB_SG_GLOBAL_BAL_001/2026-05-25",
       "lotus-advise://contracts/domain-data-products/lotus-advise-products.v1.json#AdvisoryProposalMemoEvidencePack",
       "lotus-advise://docs/rfcs/RFC-0024-slice-3-data-product-and-platform-hardening.md",
       "lotus-advise://docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md",
-      "lotus-advise://docs/rfcs/RFC-0024-slice-13-implementation-proof.md"
+      "lotus-advise://docs/rfcs/RFC-0024-slice-13-implementation-proof.md#live-suite-implementation-proof",
+      "lotus-advise://docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md"
     ]
   },
   "blocking": {
-    "blocked": true,
-    "blocked_reason": "RFC-0024 advisor-use memo implementation now includes memo model, persistence, APIs, report/render/archive realization, review-gated AI commentary, Gateway/Workbench consumption, memo-specific commercial support material, and live-suite implementation proof. The product remains blocked because active data-product promotion, access/SLO/evidence-policy certification, and client-ready memo publication are not closed."
+    "blocked": false
   },
   "observed_trust_metadata": {
     "product_name": "AdvisoryProposalMemoEvidencePack",
     "product_version": "v1",
-    "generated_at": "2026-05-23T00:00:00Z",
-    "content_hash": "sha256:rfc0024-advisory-proposal-memo-evidence-pack-v1-blocked",
+    "generated_at": "2026-05-25T00:00:00Z",
+    "content_hash": "sha256:rfc0024-advisory-proposal-memo-evidence-pack-v1",
     "correlation_id": "rfc-0024-advisory-proposal-memo-evidence-pack"
   },
   "evidence": {
     "correlation_id": "rfc-0024-advisory-proposal-memo-evidence-pack",
+    "claim_boundary": "client-ready memo publication remains gated",
     "validation_lanes": [
       "feature",
       "pr-merge",
       "main-releasability"
     ],
-    "source_event_id": "source-event:lotus-advise:advisory-proposal-memo-evidence-pack:blocked:2026-05-23",
+    "source_event_id": "source-event:lotus-advise:advisory-proposal-memo-evidence-pack:2026-05-25",
     "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/advisory-proposal-memo-evidence-pack.telemetry.v1.json"
   }
 }

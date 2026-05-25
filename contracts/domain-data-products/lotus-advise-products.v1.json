@@ -128,7 +128,7 @@
       "owner_repository": "lotus-advise",
       "product_family": "reporting_and_evidence",
       "authoritative_domain": "advisory_workflow",
-      "lifecycle_status": "proposed",
+      "lifecycle_status": "active",
       "request_scope": {
         "scope_level": "workflow_run",
         "supports_bulk": false
@@ -150,12 +150,23 @@
         "content_hash",
         "correlation_id"
       ],
+      "current_routes": [
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memos",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memos/{memo_id}",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memos/{memo_id}/projection",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memos/{memo_id}/review",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memos/{memo_id}/report-package-events",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memos/{memo_id}/report-packages",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memos/{memo_id}/ai-commentary",
+        "/advisory/proposals/{proposal_id}/memos/lineage",
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memos/{memo_id}/replay-evidence"
+      ],
       "freshness_policy": {
         "freshness_class": "event_driven",
-        "max_allowed_age_description": "Memo evidence pack freshness will be measured against immutable proposal version evidence, memo section readiness, source-authority manifest, report/archive posture, finalized memo review events, AI commentary lineage, Gateway/Workbench visibility, commercial claim-control evidence, and live-suite implementation proof. Until active data-product certification, access, SLO, and evidence-policy gates close, telemetry remains blocked and the product must not be advertised as an active supported data product."
+        "max_allowed_age_description": "Memo evidence pack freshness is measured against immutable proposal version evidence, memo section readiness, source-authority manifest, report/archive posture, finalized memo review events, AI commentary lineage, Gateway/Workbench visibility, commercial claim-control evidence, live-suite implementation proof, and platform SLO/access/evidence-policy certification. This active product is bounded to advisor-use memo evidence; client-ready memo publication and external client communication remain blocked."
       },
       "completeness_policy": {
-        "default_status": "blocked",
+        "default_status": "complete",
         "partial_allowed": false
       },
       "lineage_policy": {

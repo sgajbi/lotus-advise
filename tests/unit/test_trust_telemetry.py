@@ -112,7 +112,7 @@ def test_rfc0023_proposal_narrative_trust_telemetry_does_not_promote_client_read
     assert "compliance-review" not in snapshot_text
 
 
-def test_rfc0024_memo_trust_telemetry_is_tied_to_proposed_declaration() -> None:
+def test_rfc0024_memo_trust_telemetry_is_tied_to_active_declaration() -> None:
     snapshot = _load_json(MEMO_SNAPSHOT_PATH)
     declaration = _load_json(DECLARATION_PATH)
     declared_product = next(
@@ -125,8 +125,11 @@ def test_rfc0024_memo_trust_telemetry_is_tied_to_proposed_declaration() -> None:
     assert snapshot["producer_repository"] == declaration["producer_repository"]
     assert snapshot["product_name"] == declared_product["product_name"]
     assert snapshot["product_version"] == declared_product["product_version"]
-    assert declared_product["lifecycle_status"] == "proposed"
-    assert "current_routes" not in declared_product
+    assert declared_product["lifecycle_status"] == "active"
+    assert (
+        "/advisory/proposals/{proposal_id}/versions/{version_no}/memos"
+        in (declared_product["current_routes"])
+    )
     assert (
         snapshot["freshness"]["freshness_class"]
         == declared_product["freshness_policy"]["freshness_class"]
@@ -134,15 +137,15 @@ def test_rfc0024_memo_trust_telemetry_is_tied_to_proposed_declaration() -> None:
     assert set(snapshot["observed_trust_metadata"]) == set(
         declared_product["required_trust_metadata"]
     )
-    assert snapshot["lineage"]["lineage_materialized"] is False
+    assert snapshot["lineage"]["lineage_materialized"] is True
     assert (
         snapshot["lineage"]["evidence_access_class"]
         == declared_product["lineage_policy"]["evidence_access_class_ref"]
     )
-    assert snapshot["blocking"]["blocked"] is True
+    assert snapshot["blocking"]["blocked"] is False
 
 
-def test_rfc0024_memo_trust_telemetry_does_not_promote_supported_memo() -> None:
+def test_rfc0024_memo_trust_telemetry_promotes_only_advisor_use_memo() -> None:
     telemetry_files = {path.name for path in TELEMETRY_DIR.glob("*.json")}
     snapshot = _load_json(MEMO_SNAPSHOT_PATH)
     declaration = _load_json(DECLARATION_PATH)
@@ -153,14 +156,14 @@ def test_rfc0024_memo_trust_telemetry_does_not_promote_supported_memo() -> None:
 
     assert "advisory-proposal-memo-evidence-pack.telemetry.v1.json" in telemetry_files
     assert snapshot["product_name"] == "AdvisoryProposalMemoEvidencePack"
-    assert snapshot["completeness_status"] == "blocked"
+    assert snapshot["completeness_status"] == "complete"
     assert "Slice 7 is complete for canonical `lotus-advise` memo" in supported_text
-    assert "`AdvisoryProposalMemoEvidencePack:v1` remains unpromoted" in supported_text
+    assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_text
     assert "Gateway, Workbench, report/render/archive realization" in supported_text
     assert "client-ready memo claims remain planned" in supported_text
     assert "full bank-demo/RFP claims" in supported_text
-    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" not in supported_text
-    assert "advisory.proposals.memo_evidence_pack" not in capability_text
+    assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_text
+    assert "advisory.proposals.memo_evidence_pack" in capability_text
 
     declared_product = next(
         product
@@ -168,5 +171,5 @@ def test_rfc0024_memo_trust_telemetry_does_not_promote_supported_memo() -> None:
         if product["product_name"] == "AdvisoryProposalMemoEvidencePack"
     )
     declaration_text = json.dumps(declared_product, sort_keys=True).lower()
-    assert "client-ready memo publication" not in declaration_text
-    assert "active supported data product" in declaration_text
+    assert "client-ready memo publication" in declaration_text
+    assert "external client communication remain blocked" in declaration_text

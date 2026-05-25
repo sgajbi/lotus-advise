@@ -71,8 +71,10 @@ Current repository posture:
    governed live runtime evidence bundle now emits `proposal_memo` proof for Advise memo APIs, the
    stateful source dependency path, advisor projection, advisor-use report/render/archive request
    posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and
-   stale-hash/client-ready blocked paths. Active data-product support, full RFC-0028 bank-demo/RFP
-   package claims, and client-ready memo publication remain gated,
+   stale-hash/client-ready blocked paths. `AdvisoryProposalMemoEvidencePack:v1` is now an active
+   advisor-use data product with current repo-native trust telemetry, `/platform/capabilities`
+   feature/workflow posture, and platform SLO/access/evidence-policy support. Full RFC-0028
+   bank-demo/RFP package claims and client-ready memo publication remain gated,
 7. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 8. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 9. repo-native CI is already aligned to explicit lane expectations,

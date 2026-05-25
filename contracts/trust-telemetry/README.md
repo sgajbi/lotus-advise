@@ -12,13 +12,13 @@ The current first-wave snapshot is:
    advisor-review narrative evidence product. This snapshot does not promote compliance-review,
    client-draft, client-ready publication, or demo screenshot proof.
 3. `advisory-proposal-memo-evidence-pack.telemetry.v1.json`
-   Blocked governance telemetry for `lotus-advise:AdvisoryProposalMemoEvidencePack:v1`, the
-   proposed RFC-0024 advisor proposal memo product. This snapshot exists so catalog, trust, SLO,
-   access, and evidence policy controls can see the planned product boundary. It now acknowledges
-   implemented advisor-use memo model, persistence, APIs, report/render/archive realization,
-   review-gated AI commentary, Gateway/Workbench consumption, memo-specific commercial support
-   material, and live-suite implementation proof while keeping active data-product promotion and
-   client-ready memo publication blocked.
+   Runtime trust proof for `lotus-advise:AdvisoryProposalMemoEvidencePack:v1`, the active RFC-0024
+   advisor-use proposal memo product. This snapshot is bounded to implemented memo model,
+   persistence, APIs, report/render/archive realization, review-gated AI commentary,
+   Gateway/Workbench consumption, memo-specific commercial support material, live-suite
+   implementation proof, and platform SLO/access/evidence policy posture. It does not promote
+   client-ready memo publication, external client communication, or full RFC-0028 bank-demo/RFP
+   package claims.
 
 Validate locally with:
 

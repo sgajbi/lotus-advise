@@ -194,6 +194,24 @@ def build_feature_capabilities(
             degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
         ),
         FeatureCapability(
+            key="advisory.proposals.memo_evidence_pack",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled and lotus_report_ready,
+            owner_service="ADVISORY",
+            description=(
+                "RFC-0024 advisor-use proposal memo evidence product with persisted memo evidence, "
+                "projection, review posture, report-package handoff, archive refs, AI commentary "
+                "lineage, and replay hashes. client-ready memo publication, external client "
+                "communication, and full bank-demo/RFP package claims remain gated."
+            ),
+            fallback_mode="NONE",
+            degraded_reason=(
+                None
+                if not lifecycle_enabled or lotus_report_ready
+                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            ),
+        ),
+        FeatureCapability(
             key="advisory.proposals.execution_handoff",
             enabled=lifecycle_enabled,
             operational_ready=lifecycle_enabled,
@@ -294,6 +312,22 @@ def build_workflow_capabilities(
             ],
             dependency_keys=[],
             degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_proposal_memo_evidence_pack",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled and lotus_report_ready,
+            required_features=[
+                "advisory.proposals.lifecycle",
+                "advisory.proposals.memo_evidence_pack",
+                "advisory.proposals.reporting",
+            ],
+            dependency_keys=["lotus_report"],
+            degraded_reason=(
+                None
+                if not lifecycle_enabled or lotus_report_ready
+                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_execution_handoff",
