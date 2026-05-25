@@ -11,6 +11,7 @@ from src.core.advisory.decision_summary_models import (
     ProposalDecisionSuitabilityPosture,
     ProposalDecisionSummary,
 )
+from src.core.advisory.policy_context import client_context_available, mandate_context_available
 from src.core.models import ProposalResult, SuitabilityResult
 
 _DECISION_POLICY_VERSION = "advisory-decision-policy.2026-04"
@@ -230,8 +231,8 @@ def _build_client_and_mandate_posture(
             summary="Client and mandate posture was not attached to this proposal result.",
         )
 
-    client_available = policy_context.get("client_context_status") == "AVAILABLE"
-    mandate_available = policy_context.get("mandate_context_status") == "AVAILABLE"
+    client_available = client_context_available(policy_context)
+    mandate_available = mandate_context_available(policy_context)
     if client_available and mandate_available:
         return ProposalDecisionClientMandatePosture(
             status="AVAILABLE",

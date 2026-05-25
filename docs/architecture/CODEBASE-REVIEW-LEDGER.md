@@ -4180,3 +4180,35 @@
 - Follow-Up:
   - Include focused Lotus Risk client tests, repo-native `make check`, and repo wiki sync check in
     the PR evidence before merge.
+
+## LA-REV-163
+
+- Scope: RFC-0025 pre-policy suitability/context boundary
+- Pattern: modularity hardening / duplicate logic cleanup
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: Before adding RFC-0025 enterprise policy-pack behavior, the existing suitability scanner
+  and proposal decision summary still interpreted advisory-policy context availability through raw
+  string checks, and the suitability scanner carried a duplicate empty baseline-pack definition.
+- Evidence:
+  - `src/core/advisory/policy_context.py` now owns policy-context status vocabulary and accessors
+    for client, mandate, and jurisdiction availability.
+  - `src/core/common/suitability.py` and `src/core/advisory/decision_summary.py` now consume those
+    accessors instead of reinterpreting raw status strings locally.
+  - The duplicate empty `_GLOBAL_PRIVATE_BANKING_BASELINE_PACK` scanner wiring was removed so the
+    suitability scanner has a single baseline-pack definition.
+  - `tests/unit/advisory/engine/test_engine_policy_context.py` proves source-context projection and
+    conservative unavailable behavior for missing or unknown context.
+  - `tests/unit/test_rfc0025_slice2_cleanup_contract.py` pins the non-claiming RFC/wiki evidence
+    and prevents scanner/decision-summary policy-context string re-interpretation from returning.
+- Consequence:
+  - Future RFC-0025 policy-pack implementation can build dedicated catalog/evaluation/persistence
+    modules without stretching the existing suitability scanner or duplicating context-readiness
+    interpretation.
+- Documentation:
+  - RFC-0025 Slice 2 evidence and repo-local wiki source were updated as non-claiming cleanup;
+    no runtime policy-pack support, client-ready policy claim, or `/platform/capabilities`
+    promotion was introduced.
+- Follow-Up:
+  - Include focused policy-context/suitability/decision-summary tests, docs contract tests,
+    repo-native `make check`, and repo wiki sync check in the PR evidence before merge.

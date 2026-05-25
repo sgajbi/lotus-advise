@@ -2,6 +2,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Callable, Dict, Iterable, Optional
 
+from src.core.advisory.policy_context import (
+    client_context_available,
+    mandate_context_available,
+)
 from src.core.models import (
     EngineOptions,
     ShelfEntry,
@@ -40,14 +44,6 @@ class _SuitabilityPolicyPack:
     version: str
     state_evaluators: tuple[Callable[..., None], ...]
     post_evaluators: tuple[Callable[..., None], ...]
-
-
-_GLOBAL_PRIVATE_BANKING_BASELINE_PACK = _SuitabilityPolicyPack(
-    pack_id="global-private-banking-baseline",
-    version="enterprise-suitability-policy.2026-04",
-    state_evaluators=(),
-    post_evaluators=(),
-)
 
 
 def _to_instrument_weight_map(state: SimulatedState) -> Dict[str, Decimal]:
@@ -490,10 +486,7 @@ def _append_product_complexity_issues(
         complexity = str(shelf_entry.attributes.get("product_complexity", "")).upper()
         if complexity not in {"HIGH", "COMPLEX"}:
             continue
-        if (
-            isinstance(policy_context, dict)
-            and policy_context.get("client_context_status") == "AVAILABLE"
-        ):
+        if client_context_available(policy_context):
             continue
         before_weight = before_weights.get(instrument_id, Decimal("0"))
         after_weight = after_weights.get(instrument_id, Decimal("0"))
@@ -529,10 +522,7 @@ def _append_restricted_product_mandate_context_issues(
     policy_context: dict[str, Any] | None = None,
     **_: Any,
 ) -> None:
-    if (
-        not isinstance(policy_context, dict)
-        or policy_context.get("mandate_context_status") == "AVAILABLE"
-    ):
+    if policy_context is None or mandate_context_available(policy_context):
         return
 
     for trade in proposed_trades:
