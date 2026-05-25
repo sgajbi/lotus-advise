@@ -562,6 +562,7 @@ class ProposalMemoReportPackageRequest(BaseModel):
     )
     requested_output_formats: list[ProposalMemoReportOutputFormat] = Field(
         default_factory=lambda: ["pdf"],
+        min_length=1,
         description="Output formats requested from lotus-report for the memo package.",
         examples=[["pdf"]],
     )
@@ -607,6 +608,7 @@ class ProposalMemoAiCommentaryRequest(BaseModel):
     )
     requested_sections: list[ProposalMemoCommentarySection] = Field(
         default_factory=lambda: ["EXECUTIVE_SUMMARY", "LIMITATIONS_AND_DISCLOSURES"],
+        min_length=1,
         description="Bounded advisor-use commentary sections requested from lotus-ai.",
         examples=[["EXECUTIVE_SUMMARY", "LIMITATIONS_AND_DISCLOSURES"]],
     )
