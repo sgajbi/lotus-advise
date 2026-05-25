@@ -150,6 +150,14 @@ RFC-0024 Slice 15 is implemented as final hardening and review. Evidence lives i
 ready and Gateway-backed. Client-ready memo publication, external client communication, and full
 RFC-0028 bank-demo/RFP package claims remain gated.
 
+RFC-0024 Slice 16 is implemented as final closure. Evidence lives in
+`docs/rfcs/RFC-0024-slice-16-final-closure.md`. RFC-0024 is implemented for advisor-use proposal
+memo evidence with durable truth updated across README, wiki source, supported-features, RFC status,
+repo context, domain-product declaration, trust telemetry, and proof summaries. Wiki publication was
+completed after merge, and no Lotus context or skill guidance change was required. Client-ready memo
+publication, external client communication, and full RFC-0028 bank-demo/RFP package claims remain
+gated.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.

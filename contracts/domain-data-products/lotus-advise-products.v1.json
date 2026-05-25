@@ -163,7 +163,7 @@
       ],
       "freshness_policy": {
         "freshness_class": "event_driven",
-        "max_allowed_age_description": "Memo evidence pack freshness is measured against immutable proposal version evidence, memo section readiness, source-authority manifest, report/archive posture, finalized memo review events, AI commentary lineage, Gateway/Workbench visibility, commercial claim-control evidence, live-suite implementation proof, and platform SLO/access/evidence-policy certification. This active product is bounded to advisor-use memo evidence; client-ready memo publication and external client communication remain blocked."
+        "max_allowed_age_description": "Memo evidence pack freshness is measured against immutable proposal version evidence, memo section readiness, source-authority manifest, report/archive posture, finalized memo review events, AI commentary lineage, Gateway/Workbench visibility, commercial claim-control evidence, live-suite implementation proof, canonical Workbench proof, final closure evidence, and platform SLO/access/evidence-policy certification. This active product is bounded to advisor-use memo evidence; client-ready memo publication and external client communication remain blocked."
       },
       "completeness_policy": {
         "default_status": "complete",
