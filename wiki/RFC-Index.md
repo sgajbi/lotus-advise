@@ -158,6 +158,12 @@ completed after merge, and no Lotus context or skill guidance change was require
 publication, external client communication, and full RFC-0028 bank-demo/RFP package claims remain
 gated.
 
+RFC-0024 Slice 17 is implemented as post-completion communication. Evidence lives in
+`docs/rfcs/RFC-0024-slice-17-post-completion-communication.md`. `lotus-platform` PR #357 added
+`LI-2026-05-25-036-a-proposal-memo-is-an-evidence-product.md` and updated the content ledger. The
+draft remains in draft status and does not claim client-ready memo publication, external client
+communication, bank adoption, or full RFC-0028 bank-demo/RFP support.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
