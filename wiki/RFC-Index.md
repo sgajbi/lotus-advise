@@ -144,6 +144,12 @@ lives in `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-
 telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture. Full
 RFC-0028 bank-demo/RFP package claims and client-ready memo publication remain planned later slices.
 
+RFC-0024 Slice 15 is implemented as final hardening and review. Evidence lives in
+`docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md`. Canonical Workbench validation for
+`PB_SG_GLOBAL_BAL_001` now proves the advisor journey and `proposal.memo_evidence_pack` panel are
+ready and Gateway-backed. Client-ready memo publication, external client communication, and full
+RFC-0028 bank-demo/RFP package claims remain gated.
+
 RFC-0023 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records source authorities, cross-repo ownership, and the first bounded implementation direction.
 It does not implement generated proposal narrative.
