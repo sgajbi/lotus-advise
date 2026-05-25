@@ -50,6 +50,13 @@ the next recommended implementation program and must start with the Slice 0 poli
 pre-implementation decisions in
 `docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md`.
 
+RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
+`docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
+repo-native controls are sufficient before policy domain work, so no `lotus-platform` code change
+is required for this slice. Policy-pack catalog APIs, activation, evaluation, persistence, review
+queues, report/render/archive sign-off packs, Gateway/Workbench policy surfaces, data-product
+promotion, and client-ready publication remain unimplemented and unpromoted.
+
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
 bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,
@@ -330,3 +337,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-11-gateway-workbench-product-realization.md`
 - `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md`
 - `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`
+- `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`
