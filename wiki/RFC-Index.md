@@ -57,6 +57,13 @@ is required for this slice. Policy-pack catalog APIs, activation, evaluation, pe
 queues, report/render/archive sign-off packs, Gateway/Workbench policy surfaces, data-product
 promotion, and client-ready publication remain unimplemented and unpromoted.
 
+RFC-0025 Slice 2 is implemented as current-boundary cleanup and structure review. Evidence lives in
+`docs/rfcs/RFC-0025-slice-2-cleanup-and-structure-review.md`. The slice centralizes advisory
+policy-context status vocabulary/accessors, removes duplicate suitability scanner baseline-pack
+wiring, and records that dedicated policy-pack modules must be introduced only when later slices
+add real catalog, validation, evaluation, persistence, replay, review, sign-off, report, AI,
+Gateway, Workbench, or supportability behavior. No runtime policy-pack capability is promoted.
+
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
 bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,

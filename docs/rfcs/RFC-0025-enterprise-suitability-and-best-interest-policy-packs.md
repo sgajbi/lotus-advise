@@ -935,6 +935,10 @@ Acceptance gate:
 3. wiki and repo docs are layered, not duplicated,
 4. controllers remain thin and business logic stays out of controllers and infrastructure.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-2-cleanup-and-structure-review.md`
+
 ### Slice 3 - Data Product and Platform Hardening
 
 Outcome:
