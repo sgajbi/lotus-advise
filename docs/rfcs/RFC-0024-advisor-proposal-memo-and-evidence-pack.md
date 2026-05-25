@@ -4,7 +4,7 @@
 | --- | --- |
 | **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
 | **Created** | 2026-05-22 |
-| **Last Tightened** | 2026-05-22 |
+| **Last Tightened** | 2026-05-25 |
 | **Owner** | `lotus-advise` for advisory memo authority and evidence product truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, advisory desk head, compliance reviewer, investment desk reviewer, operations support, audit, sales/pre-sales |
 | **Primary Business Outcome** | make every advisory proposal explainable, reviewable, replayable, documentable, and client-conversation-ready through one governed evidence product |
@@ -36,6 +36,7 @@
 | Slice 12 commercial, demo, and RFP-support material | `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md` | Implemented - memo-specific product one-pager, demo notes, API examples, architecture flow, operator guidance, and RFP-safe wording in `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`; active data-product support, full RFC-0028 bank-demo/RFP package, and client-ready memo claims remain unpromoted |
 | Slice 13 implementation proof | `docs/rfcs/RFC-0024-slice-13-implementation-proof.md` | Implemented - live-suite memo proof snapshot covers Advise memo APIs, stateful source dependency path, advisor projection, review-gated report/render/archive request posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and blocked stale-hash/client-ready paths; active data-product support, full RFC-0028 bank-demo/RFP package, and client-ready memo claims remain unpromoted |
 | Slice 14 data-product promotion and supportability hardening | `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md` | Implemented - `AdvisoryProposalMemoEvidencePack:v1` active advisor-use data product, current trust telemetry, `/platform/capabilities` feature/workflow, platform SLO/access/evidence policies, and refreshed platform catalog/certification artifacts; full RFC-0028 bank-demo/RFP package and client-ready memo claims remain unpromoted |
+| Slice 15 final hardening and review | `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md` | Implemented - canonical `PB_SG_GLOBAL_BAL_001` Workbench validation now proves the advisory journey panels and memo evidence-pack panel are Gateway-backed and ready; stale gap wording and supported-feature posture refreshed; client-ready memo publication and full RFC-0028 bank-demo/RFP claims remain gated |
 
 ## 0. Executive Summary
 
@@ -239,20 +240,14 @@ Implementation-backed foundations already available:
 14. OpenAPI, vocabulary, no-alias, domain-product, runtime-smoke, security-audit, Docker, and
    production-profile guardrail checks.
 
-Known gaps:
+Remaining unsupported boundaries after Slice 15:
 
-1. no first-class memo evidence-product aggregate,
-2. no memo section model or section readiness taxonomy,
-3. no memo-level hash, replay, immutable evidence manifest, or trust telemetry,
-4. no audience-aware memo projection for advisor, client draft, compliance, investment desk,
-   operations, audit, sales/pre-sales, and support users,
-5. no memo-critical fee/cost/conflict/product-eligibility policy evidence,
-6. no typed report/render/archive package,
-7. Gateway and Workbench memo review experience is implemented for advisor-use posture; canonical
-   live proof and final hardening remain later-slice gates,
-8. no memo-specific SLO/access/evidence policy or mesh certification,
-9. no implementation-backed wiki/sales/demo material for proposal memos,
-10. no LinkedIn post-completion draft requirement.
+1. client-ready memo publication remains blocked until the RFC-0028 bank-demo/client-ready package
+   owns and proves that claim,
+2. external client communication, send-to-client workflow, and client delivery controls remain out
+   of scope for the advisor-use RFC-0024 release,
+3. full RFC-0028 bank-demo/RFP package claims remain gated,
+4. LinkedIn post-completion drafting remains a later communication slice, not product capability.
 
 ## 7. Target Product Capability
 
@@ -938,6 +933,8 @@ Acceptance gate:
 
 ### Slice 15 - Final Hardening and Review
 
+Status: implemented in `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md`.
+
 Outcome:
 
 1. perform a proper code, contract, security, data-mesh, documentation, and operations review before
@@ -1007,8 +1004,8 @@ Acceptance gate:
 | AI memo narrative | Gated | Promote only after `lotus-ai` workflow-pack execution, guardrails, lineage, review posture, and unavailable behavior are proven. |
 | Gateway memo API | Supported for advisor-use memo posture | Gateway routes canonical Advise memo endpoints and preserves source-owned memo truth without recomputation. |
 | Workbench memo review UX | Supported for advisor-use memo posture | Workbench browser proof covers advisor, compliance, operations, client-draft, degraded, and blocked states through Gateway/BFF only. |
-| Advisory memo data product | Proposed | Promote only after producer declaration, trust telemetry, mesh certification, SLO/access/evidence policy, and catalog publication are complete. |
-| Sales/demo-safe memo projection | Proposed | Promote only after synthetic/approved demo data, supported-claim taxonomy, and wiki/demo material are implementation-backed. |
+| Advisory memo data product | Supported for advisor-use memo evidence | `AdvisoryProposalMemoEvidencePack:v1` is active only for advisor-use memo evidence after producer declaration, current trust telemetry, platform catalog/certification, SLO/access/evidence policies, and capability discovery proof. |
+| Sales/demo-safe memo projection | Supported for memo-specific advisor-use walkthrough material | Claim-controlled commercial support material and canonical Workbench evidence are implementation-backed for advisor-use memo posture only; full RFC-0028 bank-demo/RFP package and client-ready claims remain gated. |
 
 ## 18. Existing WTBD Import and No-WTBD Execution Rule
 
