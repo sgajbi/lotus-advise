@@ -53,6 +53,9 @@ def test_rfc0025_slice8_exposes_advise_routes_without_capability_promotion() -> 
     assert "/advisory/policy-evaluations/{evaluation_id}/lineage" in declaration_source
     assert "RFC-0025-slice-8-certified-apis-and-openapi.md" in telemetry_source
     assert "certified Advise evaluation APIs" in supported_features
-    assert "Gateway/Workbench policy support" in supported_features
+    assert (
+        "Slice 12 is complete for Gateway and Workbench product realization" in supported_features
+    )
+    assert "active data-product promotion" in supported_features
     assert "advisory.proposals.policy_evaluation" not in capabilities_source
     assert "advisory_policy_evaluation" not in capabilities_source

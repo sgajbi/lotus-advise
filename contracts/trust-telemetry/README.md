@@ -22,12 +22,15 @@ The current first-wave snapshot is:
 4. `advisory-policy-evaluation-record.telemetry.v1.json`
    Blocked trust posture for `lotus-advise:AdvisoryPolicyEvaluationRecord:v1`, the proposed
    RFC-0025 policy-evaluation product. This snapshot makes the product visible to mesh governance
-   without promoting Gateway/Workbench policy surfaces, active data-product support, live proof, or
+   without promoting active data-product support, live proof, completed sign-off authority, or
    client-ready publication. The internal Slice 6 evaluator, Slice 7 finalized-record
    persistence/replay path, Slice 8 certified Advise evaluation API surface, Slice 9 Advise source
    workflow/sign-off decision boundary, Slice 10 Advise report-package realization path, and Slice
-   11 Advise AI policy-evidence boundary are implementation-backed but remain below the
-   data-product publication boundary until later product-surface slices are complete.
+   11 Advise AI policy-evidence boundary are implementation-backed. Slice 12 adds Gateway and
+   Workbench product realization for review queues, selected evaluation evidence, sign-off package
+   posture, workflow posture, and bounded request-more-evidence actions through Gateway only. The
+   product remains below the active data-product publication boundary until canonical live proof,
+   supportability promotion, commercial material, hardening, and final closure are complete.
 
 Validate locally with:
 

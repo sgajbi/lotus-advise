@@ -60,9 +60,11 @@ def test_rfc0025_slice9_exposes_workflow_without_product_surface_promotion() -> 
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" in declaration_source
     assert "RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md" in telemetry_source
     assert "Advise source workflow projection and sign-off decision recording" in supported_features
-    assert "Gateway/Workbench policy support" in supported_features
-    assert "report/render/archive realization" in supported_features
+    assert (
+        "Slice 12 is complete for Gateway and Workbench product realization" in supported_features
+    )
+    assert "policy report-package realization" in supported_features
     assert "active data-product promotion" in supported_features
-    assert "client-ready publication remain gated" in supported_features
+    assert "client-ready publication" in supported_features
     assert "advisory.proposals.policy_evaluation" not in capabilities_source
     assert "advisory_policy_evaluation" not in capabilities_source

@@ -231,7 +231,7 @@
       ],
       "freshness_policy": {
         "freshness_class": "event_driven",
-        "max_allowed_age_description": "Policy evaluation freshness remains blocked for data-product publication until RFC-0025 implements Gateway/Workbench consumption, live proof, and supportability promotion. Slice 11 provides Advise-owned AI policy-evidence consumption for finalized evaluations: lotus-ai receives redacted bounded policy evidence, returned prompt/output lineage is recorded in policy lineage, AI unavailable posture is deterministic, and client-ready document release remains blocked. This proposed product must not be treated as a Gateway-supported product surface, active data product, live canonical proof, or client-ready publication evidence."
+        "max_allowed_age_description": "Policy evaluation freshness remains blocked for active data-product publication until RFC-0025 implements canonical live proof, supportability promotion, commercial material, hardening, and final closure. Slice 12 adds Gateway and Workbench product realization for review-queue, evaluation detail, sign-off source package, workflow posture, and bounded request-more-evidence actions through Gateway only. This proposed product must not be treated as an active data product, fully promoted platform capability, live canonical proof, approval/waiver authority, completed sign-off authority, or client-ready publication evidence."
       },
       "completeness_policy": {
         "default_status": "blocked",

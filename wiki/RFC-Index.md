@@ -129,8 +129,17 @@ RFC-0025 Slice 11 is implemented as Advise-owned AI policy-evidence consumption.
 AI evidence route, sends redacted policy status/rule/workflow/source-ref evidence to
 `policy_evidence_summary.pack@v1`, records prompt/output lineage in policy lineage, rejects
 forbidden actions, preserves deterministic unavailable posture, requires human review, and blocks
-client-ready publication. Gateway/Workbench policy consumption, live canonical proof, active
-data-product promotion, and client-ready publication remain gated.
+client-ready publication. Active data-product promotion and client-ready publication remain gated.
+
+RFC-0025 Slice 12 is implemented as Gateway and Workbench product realization. Evidence lives in
+`docs/rfcs/RFC-0025-slice-12-gateway-workbench-product-realization.md`. Gateway now routes the
+canonical Advise policy-pack and policy-evaluation BFF surface, including review queue, selected
+evaluation, sign-off source package, workflow, sign-off decision, report-package, and AI-evidence
+routes. Workbench now consumes Gateway/BFF-only policy review posture, selected evaluation
+evidence, sign-off package posture, workflow posture, and a bounded request-more-evidence action
+without local suitability calculation, approval/waiver authority, completed sign-off authority, or
+client-ready publication. Canonical live proof, active data-product promotion, commercial material,
+final hardening, final closure, and post-completion communication remain gated.
 
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first

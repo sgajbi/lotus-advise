@@ -253,6 +253,10 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
         in snapshot["lineage"]["evidence_uris"]
     )
     assert (
+        "lotus-advise://docs/rfcs/RFC-0025-slice-12-gateway-workbench-product-realization.md"
+        in snapshot["lineage"]["evidence_uris"]
+    )
+    assert (
         "lotus-advise://src/core/policy_packs/workflow.py" in snapshot["lineage"]["evidence_uris"]
     )
     assert (
@@ -270,9 +274,11 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
     assert snapshot["blocking"] == {
         "blocked": True,
         "blocked_reason": (
-            "RFC0025_POLICY_EVALUATION_GATEWAY_WORKBENCH_LIVE_PROOF_AND_PRODUCT_PROMOTION_NOT_IMPLEMENTED"
+            "RFC0025_POLICY_EVALUATION_LIVE_PROOF_PRODUCT_PROMOTION_AND_CLOSURE_NOT_IMPLEMENTED"
         ),
     }
+    assert "Gateway and Workbench product realization" in snapshot["evidence"]["claim_boundary"]
+    assert "approval/waiver authority" in snapshot["evidence"]["claim_boundary"]
 
 
 def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted(
@@ -304,5 +310,13 @@ def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted
         "/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
     ]
     assert policy_product["completeness_policy"]["default_status"] == "blocked"
+    assert (
+        "Gateway and Workbench product realization"
+        in policy_product["freshness_policy"]["max_allowed_age_description"]
+    )
+    assert (
+        "approval/waiver authority"
+        in policy_product["freshness_policy"]["max_allowed_age_description"]
+    )
     assert "advisory.proposals.policy_evaluation" not in capability_text
     assert "advisory_policy_evaluation" not in capability_text

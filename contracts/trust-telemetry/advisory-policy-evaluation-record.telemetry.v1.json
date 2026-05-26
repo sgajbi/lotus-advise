@@ -34,6 +34,7 @@
       "lotus-advise://docs/rfcs/RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md",
       "lotus-advise://docs/rfcs/RFC-0025-slice-10-report-render-archive-realization.md",
       "lotus-advise://docs/rfcs/RFC-0025-slice-11-ai-policy-evidence-boundary.md",
+      "lotus-advise://docs/rfcs/RFC-0025-slice-12-gateway-workbench-product-realization.md",
       "lotus-advise://src/core/policy_packs/persistence.py",
       "lotus-advise://src/core/policy_packs/workflow.py",
       "lotus-advise://src/core/policy_packs/reporting.py",
@@ -45,18 +46,18 @@
   },
   "blocking": {
     "blocked": true,
-    "blocked_reason": "RFC0025_POLICY_EVALUATION_GATEWAY_WORKBENCH_LIVE_PROOF_AND_PRODUCT_PROMOTION_NOT_IMPLEMENTED"
+    "blocked_reason": "RFC0025_POLICY_EVALUATION_LIVE_PROOF_PRODUCT_PROMOTION_AND_CLOSURE_NOT_IMPLEMENTED"
   },
   "observed_trust_metadata": {
     "product_name": "AdvisoryPolicyEvaluationRecord",
     "product_version": "v1",
     "generated_at": "2026-05-26T00:00:00Z",
-    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-policy-ai-evidence-boundary-product-blocked",
+    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-gateway-workbench-product-realization-product-blocked",
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record"
   },
   "evidence": {
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record",
-    "claim_boundary": "RFC-0025 Slice 11 adds Advise-owned AI policy-evidence consumption for finalized policy evaluations: lotus-ai receives redacted bounded policy evidence, returned prompt/output lineage is recorded in policy lineage, forbidden actions fail closed, deterministic unavailable posture is preserved, and AI output cannot alter policy status, rule results, approvals, waivers, disclosures, consent, or client-ready publication; Gateway/Workbench policy support, live canonical proof, active data-product promotion, and client-ready publication remain blocked",
+    "claim_boundary": "RFC-0025 Slice 12 adds Gateway and Workbench product realization for finalized policy evaluations: Gateway routes the canonical Advise policy-pack and policy-evaluation BFF surface, and Workbench consumes Gateway-only review-queue, evaluation detail, sign-off source package, workflow posture, and bounded request-more-evidence actions; active data-product promotion, canonical live proof, commercial material, final closure, approval/waiver authority, completed policy sign-off authority, and client-ready publication remain blocked",
     "validation_lanes": [
       "feature",
       "pr-merge",

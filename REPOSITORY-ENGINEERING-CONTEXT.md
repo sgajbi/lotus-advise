@@ -103,9 +103,12 @@ Current repository posture:
    document handling. Slice 11 adds Advise-owned AI policy-evidence consumption: redacted bounded
    policy evidence packets to `policy_evidence_summary.pack@v1`, forbidden-action rejection,
    deterministic unavailable posture, prompt/output lineage, human review, non-authoritative AI
-   posture, and client-ready blocked lineage. Gateway/Workbench policy support, live canonical
-   proof, active data-product promotion, and client-ready publication remain unimplemented and
-   unpromoted,
+   posture, and client-ready blocked lineage. Slice 12 adds Gateway and Workbench product
+   realization: Gateway routes canonical Advise policy-pack/evaluation BFF APIs, and Workbench
+   consumes Gateway-only policy review queue, selected evaluation detail, sign-off source package,
+   workflow posture, and bounded request-more-evidence actions without local policy inference.
+   Canonical live proof, active data-product promotion, commercial material, final closure, and
+   client-ready publication remain unimplemented and unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 10. repo-native CI is already aligned to explicit lane expectations,
