@@ -1,0 +1,301 @@
+from __future__ import annotations
+
+from copy import deepcopy
+
+import pytest
+
+from src.core.policy_packs import (
+    activate_policy_pack_version,
+    append_policy_evaluation_event,
+    finalize_policy_evaluation_record,
+    get_policy_evaluation_record,
+    get_policy_pack_version,
+    replay_policy_evaluation_record,
+    reset_policy_evaluation_store_for_tests,
+    reset_policy_pack_catalog_for_tests,
+    validate_policy_pack_version,
+)
+from src.core.proposals.exceptions import ProposalIdempotencyConflictError
+
+
+def setup_function() -> None:
+    reset_policy_pack_catalog_for_tests()
+    reset_policy_evaluation_store_for_tests()
+
+
+def _base_evidence_bundle() -> dict:
+    return {
+        "context_resolution": {
+            "advisory_policy_context": {
+                "household_id": "HH-PB-001",
+                "jurisdiction": "SG",
+                "client_classification": "ACCREDITED_INVESTOR",
+                "booking_center_code": "SG",
+                "account_id": "ACCT-PB-001",
+                "time_horizon": "5Y",
+                "liquidity_need": "MEDIUM",
+                "mandate_id": "MANDATE-BALANCED-001",
+                "objectives": ["capital_preservation", "balanced_growth"],
+                "restrictions": ["no_single_name_above_10pct"],
+            }
+        },
+        "inputs": {
+            "portfolio_snapshot": {
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "positions": [{"instrument_id": "US_EQ_ETF", "quantity": "100"}],
+                "cash_balances": [{"currency": "USD", "amount": "50000"}],
+            },
+            "market_data_snapshot": {
+                "prices": [{"instrument_id": "US_EQ_ETF", "price": "100", "currency": "USD"}],
+                "fx_rates": [{"pair": "USD/SGD", "rate": "1.35"}],
+            },
+            "shelf_entries": [
+                {
+                    "instrument_id": "US_EQ_ETF",
+                    "eligibility": {"jurisdictions": ["SG"]},
+                    "target_market": {"client_segments": ["ACCREDITED_INVESTOR"]},
+                    "complexity": "NON_COMPLEX",
+                    "private_asset": False,
+                    "structured_product": False,
+                }
+            ],
+            "proposed_trades": [{"instrument_id": "US_EQ_ETF", "side": "BUY"}],
+        },
+        "risk_lens": {
+            "source_service": "lotus-risk",
+            "single_position_concentration": {"top_position_weight_current": "0.10"},
+            "issuer_concentration": {"hhi_current": "1200"},
+            "drawdown": {"max_drawdown_1y": "0.08"},
+            "var": {"var_95_1m": "0.04"},
+            "stress": {"equity_down_20": "-0.09"},
+            "liquidity_risk": {"days_to_liquidate": "3"},
+            "private_asset_risk": {"private_asset_weight": "0.00"},
+            "climate_geopolitical_risk": {"status": "not_material"},
+        },
+        "artifact": {
+            "assumptions_and_limits": {
+                "costs_and_fees": {"included": True},
+                "tax": {"included": True},
+                "execution": {"included": True},
+            },
+            "disclosures": {
+                "product_docs": [{"instrument_id": "US_EQ_ETF", "doc_ref": "Factsheet"}],
+            },
+        },
+        "conflict_evidence": {"material_conflict": False, "review_ref": "conflict-review-001"},
+    }
+
+
+def _activate_sg_policy_pack() -> None:
+    detail = get_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+    validate_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        requested_by="policy_steward_1",
+        idempotency_key="validate-sg-for-persistence",
+        reason={"purpose": "slice 7 persistence test"},
+    )
+    activate_policy_pack_version(
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        activated_by="policy_checker_1",
+        source_content_hash=detail.policy_pack.content_hash,
+        idempotency_key="activate-sg-for-persistence",
+        reason={"purpose": "slice 7 persistence test"},
+    )
+
+
+def test_policy_evaluation_record_is_immutable_hash_backed_and_idempotent() -> None:
+    created = finalize_policy_evaluation_record(
+        evidence_bundle=_base_evidence_bundle(),
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_persist_001",
+        proposal_version_id="ppv_policy_persist_001",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-finalize-001",
+        reason={"purpose": "advisor policy review"},
+    )
+    replayed = finalize_policy_evaluation_record(
+        evidence_bundle=_base_evidence_bundle(),
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_persist_001",
+        proposal_version_id="ppv_policy_persist_001",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-finalize-001",
+        reason={"purpose": "advisor policy review"},
+    )
+    duplicate_identity = finalize_policy_evaluation_record(
+        evidence_bundle=_base_evidence_bundle(),
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_persist_001",
+        proposal_version_id="ppv_policy_persist_001",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-finalize-duplicate-identity",
+        reason={"purpose": "advisor policy review"},
+    )
+
+    assert created.created is True
+    assert created.replayed is False
+    assert created.audit_event is not None
+    assert created.audit_event.event_type == "POLICY_EVALUATION_FINALIZED"
+    assert created.record.evaluation_hash.startswith("sha256:")
+    assert (
+        created.record.policy_content_hash
+        == created.record.evaluation_json["policy_pack"]["content_hash"]
+    )
+    assert created.record.rule_result_hashes
+    assert created.record.replay_metadata_json["replay_policy"] == (
+        "PIN_POLICY_VERSION_AND_COMPARE_SOURCE_HASHES"
+    )
+    assert created.record.evaluation_json["supportability"]["policy_evaluation_persistence"] == (
+        "SUPPORTED_BY_RFC0025_SLICE7_INTERNAL"
+    )
+    assert replayed.replayed is True
+    assert replayed.record.evaluation_id == created.record.evaluation_id
+    assert duplicate_identity.created is False
+    assert duplicate_identity.record.evaluation_id == created.record.evaluation_id
+
+
+def test_policy_evaluation_idempotency_rejects_payload_drift() -> None:
+    finalize_policy_evaluation_record(
+        evidence_bundle=_base_evidence_bundle(),
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_conflict",
+        proposal_version_id="ppv_policy_conflict",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-conflict",
+        reason={"purpose": "first request"},
+    )
+
+    with pytest.raises(ProposalIdempotencyConflictError):
+        finalize_policy_evaluation_record(
+            evidence_bundle=_base_evidence_bundle(),
+            policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+            policy_version="2026.05",
+            proposal_id="pp_policy_conflict",
+            proposal_version_id="ppv_policy_conflict",
+            created_by="advisor_1",
+            idempotency_key="policy-eval-conflict",
+            reason={"purpose": "changed request"},
+        )
+
+
+def test_policy_evaluation_events_are_append_only_without_mutating_final_hash() -> None:
+    persisted = finalize_policy_evaluation_record(
+        evidence_bundle=_base_evidence_bundle(),
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_events",
+        proposal_version_id="ppv_policy_events",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-events",
+        reason={"purpose": "event audit test"},
+    )
+    immutable_hash = persisted.record.evaluation_hash
+
+    review = append_policy_evaluation_event(
+        evaluation_id=persisted.record.evaluation_id,
+        event_type="POLICY_EVALUATION_REVIEW_RECORDED",
+        actor_id="compliance_1",
+        idempotency_key="policy-eval-review-event",
+        reason={"review_action": "REQUEST_MORE_EVIDENCE"},
+    )
+    review_replay = append_policy_evaluation_event(
+        evaluation_id=persisted.record.evaluation_id,
+        event_type="POLICY_EVALUATION_REVIEW_RECORDED",
+        actor_id="compliance_1",
+        idempotency_key="policy-eval-review-event",
+        reason={"review_action": "REQUEST_MORE_EVIDENCE"},
+    )
+    sign_off = append_policy_evaluation_event(
+        evaluation_id=persisted.record.evaluation_id,
+        event_type="POLICY_EVALUATION_SIGN_OFF_RECORDED",
+        actor_id="supervisor_1",
+        reason={"sign_off_status": "PENDING"},
+    )
+    report_ref = append_policy_evaluation_event(
+        evaluation_id=persisted.record.evaluation_id,
+        event_type="POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED",
+        actor_id="operations_1",
+        reason={"report_ref": "report-policy-appendix-001", "archive_ref": "arch-policy-001"},
+    )
+    stored = get_policy_evaluation_record(evaluation_id=persisted.record.evaluation_id)
+
+    assert review.event_id == "peev_000002"
+    assert review_replay.event_id == review.event_id
+    assert sign_off.event_id == "peev_000003"
+    assert report_ref.event_id == "peev_000004"
+    assert stored.evaluation_hash == immutable_hash
+    assert len(stored.review_events_json) == 1
+    assert len(stored.sign_off_events_json) == 1
+    assert len(stored.report_archive_refs_json) == 1
+
+
+def test_policy_evaluation_replay_compares_policy_source_and_evaluation_hashes() -> None:
+    evidence = _base_evidence_bundle()
+    persisted = finalize_policy_evaluation_record(
+        evidence_bundle=evidence,
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_replay",
+        proposal_version_id="ppv_policy_replay",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-replay",
+        reason={"purpose": "replay proof"},
+    )
+    matching = replay_policy_evaluation_record(
+        evaluation_id=persisted.record.evaluation_id,
+        evidence_bundle=deepcopy(evidence),
+    )
+    changed_evidence = deepcopy(evidence)
+    changed_evidence["inputs"]["market_data_snapshot"]["fx_rates"][0]["rate"] = "1.36"
+    changed = replay_policy_evaluation_record(
+        evaluation_id=persisted.record.evaluation_id,
+        evidence_bundle=changed_evidence,
+    )
+
+    assert matching.hash_comparison["policy_version_matches"] is True
+    assert matching.hash_comparison["policy_content_hash_matches"] is True
+    assert matching.hash_comparison["source_evidence_hash_matches"] is True
+    assert matching.hash_comparison["evaluation_hash_matches"] is True
+    assert changed.hash_comparison["source_evidence_hash_matches"] is False
+    assert changed.hash_comparison["evaluation_hash_matches"] is False
+    assert changed.hash_comparison["stored_evaluation_hash"].startswith("sha256:")
+    assert changed.hash_comparison["replayed_evaluation_hash"].startswith("sha256:")
+
+
+def test_policy_evaluation_persists_disclosure_consent_and_approval_dependencies() -> None:
+    _activate_sg_policy_pack()
+    evidence = _base_evidence_bundle()
+    evidence["inputs"]["shelf_entries"][0]["instrument_id"] = "SG_STRUCTURED_NOTE"
+    evidence["inputs"]["shelf_entries"][0]["complexity"] = "COMPLEX"
+    evidence["inputs"]["shelf_entries"][0]["structured_product"] = True
+    evidence["inputs"]["proposed_trades"][0]["instrument_id"] = "SG_STRUCTURED_NOTE"
+    evidence["artifact"]["disclosures"]["product_docs"] = [
+        {"instrument_id": "SG_STRUCTURED_NOTE", "doc_ref": "Term sheet"}
+    ]
+
+    persisted = finalize_policy_evaluation_record(
+        evidence_bundle=evidence,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        proposal_id="pp_policy_requirements",
+        proposal_version_id="ppv_policy_requirements",
+        created_by="advisor_1",
+        idempotency_key="policy-eval-requirements",
+        reason={"purpose": "requirement mapping proof"},
+    )
+
+    assert persisted.record.evaluation_status == "PENDING_REVIEW"
+    assert "REVIEW_DISCLOSURE:SG_STRUCTURED_NOTE" in persisted.record.approval_dependencies
+    assert "advisor_reviewed_disclosure:SG_STRUCTURED_NOTE" in (
+        persisted.record.disclosure_requirements
+    )
+    assert "client_consent:SG_STRUCTURED_NOTE" in persisted.record.consent_requirements
