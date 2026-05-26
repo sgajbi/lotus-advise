@@ -225,6 +225,45 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(memo_replay_schema, "evidence")
     _assert_property_has_docs(memo_replay_schema, "explanation")
 
+    policy_evaluation_create_schema = schemas["PolicyEvaluationCreateRequest"]
+    _assert_property_has_docs(policy_evaluation_create_schema, "policy_pack_id")
+    _assert_property_has_docs(policy_evaluation_create_schema, "policy_version")
+    _assert_property_has_docs(policy_evaluation_create_schema, "created_by")
+    _assert_property_has_docs(policy_evaluation_create_schema, "evidence_bundle")
+    _assert_property_has_docs(policy_evaluation_create_schema, "reason")
+
+    policy_evaluation_event_schema = schemas["PolicyEvaluationEventRequest"]
+    _assert_property_has_docs(policy_evaluation_event_schema, "event_type")
+    _assert_property_has_docs(policy_evaluation_event_schema, "actor_id")
+    _assert_property_has_docs(policy_evaluation_event_schema, "reason")
+
+    policy_evaluation_replay_request_schema = schemas["PolicyEvaluationReplayRequest"]
+    _assert_property_has_docs(policy_evaluation_replay_request_schema, "evidence_bundle")
+
+    policy_evaluation_lineage_schema = schemas["PolicyEvaluationLineageResponse"]
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "evaluation_id")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "proposal_id")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "proposal_version_id")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "policy_pack_id")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "policy_version")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "policy_content_hash")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "source_evidence_hash")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "evaluation_hash")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "rule_result_hashes")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "source_refs")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "source_gaps")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "audit_events")
+    _assert_property_has_docs(policy_evaluation_lineage_schema, "lineage_posture")
+
+    policy_evaluation_queue_schema = schemas["PolicyEvaluationReviewQueueResponse"]
+    _assert_property_has_docs(policy_evaluation_queue_schema, "items")
+    _assert_property_has_docs(policy_evaluation_queue_schema, "queue_posture")
+
+    policy_evaluation_sign_off_schema = schemas["PolicyEvaluationSignOffPackageResponse"]
+    _assert_property_has_docs(policy_evaluation_sign_off_schema, "evaluation")
+    _assert_property_has_docs(policy_evaluation_sign_off_schema, "lineage")
+    _assert_property_has_docs(policy_evaluation_sign_off_schema, "package_posture")
+
 
 def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     with TestClient(app) as client:

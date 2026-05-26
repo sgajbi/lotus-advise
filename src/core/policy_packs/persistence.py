@@ -10,9 +10,12 @@ from src.core.policy_packs.evaluation import evaluate_policy_pack_version
 from src.core.policy_packs.models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationEventType,
+    PolicyEvaluationLineageResponse,
     PolicyEvaluationPersistenceResult,
     PolicyEvaluationRecord,
     PolicyEvaluationReplayResponse,
+    PolicyEvaluationReviewQueueResponse,
+    PolicyEvaluationSignOffPackageResponse,
     PolicyPackEvaluationResponse,
 )
 from src.core.proposals.exceptions import (
@@ -48,6 +51,32 @@ def finalize_policy_evaluation_record(
 
 def get_policy_evaluation_record(*, evaluation_id: str) -> PolicyEvaluationRecord:
     return _STORE.get_policy_evaluation_record(evaluation_id=evaluation_id)
+
+
+def list_policy_evaluation_records(
+    *, evaluation_status: str | None = None
+) -> list[PolicyEvaluationRecord]:
+    return _STORE.list_policy_evaluation_records(evaluation_status=evaluation_status)
+
+
+def list_policy_evaluation_events(*, evaluation_id: str) -> list[PolicyEvaluationAuditEvent]:
+    return _STORE.list_policy_evaluation_events(evaluation_id=evaluation_id)
+
+
+def get_policy_evaluation_lineage(*, evaluation_id: str) -> PolicyEvaluationLineageResponse:
+    return _STORE.get_policy_evaluation_lineage(evaluation_id=evaluation_id)
+
+
+def get_policy_evaluation_review_queue(
+    *, evaluation_status: str | None = "PENDING_REVIEW"
+) -> PolicyEvaluationReviewQueueResponse:
+    return _STORE.get_policy_evaluation_review_queue(evaluation_status=evaluation_status)
+
+
+def get_policy_evaluation_sign_off_package(
+    *, evaluation_id: str
+) -> PolicyEvaluationSignOffPackageResponse:
+    return _STORE.get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
 
 
 def append_policy_evaluation_event(
@@ -196,6 +225,57 @@ class PolicyEvaluationRecordStore:
 
     def get_policy_evaluation_record(self, *, evaluation_id: str) -> PolicyEvaluationRecord:
         return deepcopy(self._load_record(evaluation_id))
+
+    def list_policy_evaluation_records(
+        self, *, evaluation_status: str | None
+    ) -> list[PolicyEvaluationRecord]:
+        records = list(self._records.values())
+        if evaluation_status:
+            records = [
+                record for record in records if record.evaluation_status == evaluation_status
+            ]
+        return [deepcopy(record) for record in sorted(records, key=lambda item: item.generated_at)]
+
+    def list_policy_evaluation_events(
+        self, *, evaluation_id: str
+    ) -> list[PolicyEvaluationAuditEvent]:
+        self._load_record(evaluation_id)
+        return [deepcopy(event) for event in self._events[evaluation_id]]
+
+    def get_policy_evaluation_lineage(
+        self, *, evaluation_id: str
+    ) -> PolicyEvaluationLineageResponse:
+        record = self._load_record(evaluation_id)
+        return _lineage_response(
+            record=record,
+            audit_events=self._events[evaluation_id],
+        )
+
+    def get_policy_evaluation_review_queue(
+        self, *, evaluation_status: str | None
+    ) -> PolicyEvaluationReviewQueueResponse:
+        return PolicyEvaluationReviewQueueResponse(
+            items=self.list_policy_evaluation_records(evaluation_status=evaluation_status),
+            queue_posture=_policy_api_posture(),
+        )
+
+    def get_policy_evaluation_sign_off_package(
+        self, *, evaluation_id: str
+    ) -> PolicyEvaluationSignOffPackageResponse:
+        record = self._load_record(evaluation_id)
+        lineage = _lineage_response(
+            record=record,
+            audit_events=self._events[evaluation_id],
+        )
+        return PolicyEvaluationSignOffPackageResponse(
+            evaluation=deepcopy(record),
+            lineage=lineage,
+            package_posture={
+                **_policy_api_posture(),
+                "sign_off_source_package": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
+                "report_render_archive_realization": "NOT_IMPLEMENTED",
+            },
+        )
 
     def append_policy_evaluation_event(
         self,
@@ -490,6 +570,39 @@ def _attach_event(*, record: PolicyEvaluationRecord, event: PolicyEvaluationAudi
         record.sign_off_events_json.append(payload)
     elif event.event_type == "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED":
         record.report_archive_refs_json.append(payload)
+
+
+def _lineage_response(
+    *,
+    record: PolicyEvaluationRecord,
+    audit_events: list[PolicyEvaluationAuditEvent],
+) -> PolicyEvaluationLineageResponse:
+    return PolicyEvaluationLineageResponse(
+        evaluation_id=record.evaluation_id,
+        proposal_id=record.proposal_id,
+        proposal_version_id=record.proposal_version_id,
+        policy_pack_id=record.policy_pack_id,
+        policy_version=record.policy_version,
+        policy_content_hash=record.policy_content_hash,
+        source_evidence_hash=record.source_evidence_hash,
+        evaluation_hash=record.evaluation_hash,
+        rule_result_hashes=dict(record.rule_result_hashes),
+        source_refs=list(record.source_refs),
+        source_gaps=list(record.source_gaps),
+        audit_events=[deepcopy(event) for event in audit_events],
+        lineage_posture=_policy_api_posture(),
+    )
+
+
+def _policy_api_posture() -> dict[str, Any]:
+    return {
+        "policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
+        "review_queue_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
+        "sign_off_package_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
+        "gateway_supported": False,
+        "workbench_supported": False,
+        "client_ready_publication": "BLOCKED",
+    }
 
 
 def _unique(values: list[str]) -> list[str]:

@@ -30,8 +30,9 @@ def evaluate_policy_pack_version(
     """Evaluate an active policy pack against source-backed proposal evidence.
 
     This is an internal, non-persistent RFC-0025 Slice 6 engine. It does not create durable
-    policy evaluation records and does not promote Gateway, Workbench, review-queue, sign-off,
-    or client-ready publication support.
+    policy evaluation records directly. Certified Advise APIs own persistence, review-queue,
+    lineage, replay, and sign-off source-package access; Gateway, Workbench, report realization,
+    and client-ready publication remain blocked.
     """
 
     detail = get_policy_pack_version(
@@ -586,7 +587,9 @@ def _supportability() -> dict[str, Any]:
     return {
         "policy_evaluation_engine": "SUPPORTED_BY_RFC0025_SLICE6",
         "policy_evaluation_persistence": "SUPPORTED_BY_RFC0025_SLICE7_INTERNAL",
-        "policy_evaluation_api": "NOT_IMPLEMENTED",
+        "policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
+        "review_queue_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
+        "sign_off_package_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
         "gateway_supported": False,
         "workbench_supported": False,
         "client_ready_publication": "BLOCKED",

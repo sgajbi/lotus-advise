@@ -127,7 +127,7 @@ class PolicyPackDetailResponse(BaseModel):
     )
     supportability: dict[str, Any] = Field(
         description="Current RFC-0025 support boundary for this policy pack.",
-        examples=[{"policy_evaluation": "NOT_IMPLEMENTED"}],
+        examples=[{"policy_evaluation": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"}],
     )
     audit_events: list[PolicyPackAuditEvent] = Field(
         default_factory=list,
@@ -142,7 +142,7 @@ class PolicyPackListResponse(BaseModel):
     )
     catalog_posture: dict[str, Any] = Field(
         description="Catalog support posture and RFC-0025 boundary.",
-        examples=[{"policy_evaluation": "NOT_IMPLEMENTED"}],
+        examples=[{"policy_evaluation": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"}],
     )
 
 
@@ -282,7 +282,7 @@ class PolicyPackEvaluationResponse(BaseModel):
     )
     supportability: dict[str, Any] = Field(
         description="Current support boundary for the internal policy evaluation engine.",
-        examples=[{"policy_evaluation_api": "NOT_IMPLEMENTED"}],
+        examples=[{"policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"}],
     )
 
 
@@ -443,3 +443,147 @@ class PolicyEvaluationReplayResponse(BaseModel):
         description="Stored versus replayed hash comparison for policy, source, and result truth.",
     )
     replay_metadata: dict[str, Any] = Field(description="Persisted replay metadata.")
+
+
+class PolicyEvaluationCreateRequest(BaseModel):
+    policy_pack_id: str = Field(
+        description="Policy pack identifier to evaluate against the supplied proposal evidence.",
+        examples=["GLOBAL_PRIVATE_BANKING_BASELINE"],
+    )
+    policy_version: str = Field(
+        description="Immutable policy-pack version to evaluate.",
+        examples=["2026.05"],
+    )
+    created_by: str = Field(
+        description="Advisor or operator creating the finalized policy evaluation record.",
+        examples=["advisor_1"],
+    )
+    evidence_bundle: dict[str, Any] = Field(
+        description=(
+            "Source-backed proposal evidence bundle containing advisory context, proposed trades, "
+            "source-readiness posture, risk evidence, disclosures, and conflict evidence."
+        ),
+        examples=[
+            {
+                "context_resolution": {
+                    "advisory_policy_context": {
+                        "jurisdiction": "SG",
+                        "client_classification": "ACCREDITED_INVESTOR",
+                    }
+                },
+                "inputs": {"proposed_trades": [{"instrument_id": "US_EQ_ETF", "side": "BUY"}]},
+            }
+        ],
+    )
+    reason: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured business reason retained in the finalized audit event.",
+        examples=[{"purpose": "advisor suitability review"}],
+    )
+
+
+class PolicyEvaluationEventRequest(BaseModel):
+    event_type: PolicyEvaluationEventType = Field(
+        description="Append-only policy evaluation event type to record.",
+        examples=["POLICY_EVALUATION_REVIEW_RECORDED"],
+    )
+    actor_id: str = Field(
+        description="Actor recording the review, sign-off, or report/archive event.",
+        examples=["compliance_1"],
+    )
+    reason: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured event reason, decision posture, and downstream reference details.",
+        examples=[{"review_action": "REQUEST_MORE_EVIDENCE"}],
+    )
+
+
+class PolicyEvaluationReplayRequest(BaseModel):
+    evidence_bundle: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Optional current evidence bundle for hash comparison against the finalized record. "
+            "Omit to compare only pinned policy-version and stored source/evaluation hashes."
+        ),
+        examples=[{"inputs": {"proposed_trades": [{"instrument_id": "US_EQ_ETF"}]}}],
+    )
+
+
+class PolicyEvaluationLineageResponse(BaseModel):
+    evaluation_id: str = Field(
+        description="Policy evaluation record identifier.",
+        examples=["pev_123abc"],
+    )
+    proposal_id: str = Field(description="Proposal identifier.", examples=["pp_001"])
+    proposal_version_id: str = Field(
+        description="Immutable proposal version identifier.",
+        examples=["ppv_001"],
+    )
+    policy_pack_id: str = Field(
+        description="Policy pack identifier.",
+        examples=["SG_PRIVATE_BANKING_REFERENCE"],
+    )
+    policy_version: str = Field(description="Pinned policy-pack version.", examples=["2026.05"])
+    policy_content_hash: str = Field(
+        description="Pinned policy-pack content hash.",
+        examples=["sha256:policy-pack-content"],
+    )
+    source_evidence_hash: str = Field(
+        description="Source evidence hash evaluated.",
+        examples=["sha256:source-evidence"],
+    )
+    evaluation_hash: str = Field(
+        description="Immutable policy evaluation hash.",
+        examples=["sha256:policy-evaluation"],
+    )
+    rule_result_hashes: dict[str, str] = Field(
+        description="Per-rule result hashes retained for material field certification.",
+        examples=[{"SG_COMPLEX_PRODUCT_DISCLOSURE_REVIEW": "sha256:rule-result"}],
+    )
+    source_refs: list[str] = Field(
+        description="Source authority and evidence refs used.",
+        examples=[["lotus-core:core_product_eligibility_target_market_complexity"]],
+    )
+    source_gaps: list[str] = Field(
+        description="Missing source evidence retained in the record.",
+        examples=[["client_consent:SG_STRUCTURED_NOTE"]],
+    )
+    audit_events: list[PolicyEvaluationAuditEvent] = Field(
+        description="Append-only finalization, review, sign-off, and report/archive events.",
+        examples=[[{"event_type": "POLICY_EVALUATION_FINALIZED"}]],
+    )
+    lineage_posture: dict[str, Any] = Field(
+        description="Support boundary and publication posture for this policy lineage.",
+        examples=[{"client_ready_publication": "BLOCKED"}],
+    )
+
+
+class PolicyEvaluationReviewQueueResponse(BaseModel):
+    items: list[PolicyEvaluationRecord] = Field(
+        description=(
+            "Policy evaluation records requiring advisor, compliance, or supervisory review."
+        ),
+        examples=[[{"evaluation_id": "pev_123abc", "evaluation_status": "PENDING_REVIEW"}]],
+    )
+    queue_posture: dict[str, Any] = Field(
+        description="Review queue support boundary and unsupported downstream surfaces.",
+        examples=[{"gateway_supported": False, "workbench_supported": False}],
+    )
+
+
+class PolicyEvaluationSignOffPackageResponse(BaseModel):
+    evaluation: PolicyEvaluationRecord = Field(
+        description="Finalized policy evaluation record used as the sign-off source.",
+        examples=[{"evaluation_id": "pev_123abc"}],
+    )
+    lineage: PolicyEvaluationLineageResponse = Field(
+        description="Hash-backed lineage and append-only event trail for sign-off review.",
+        examples=[{"evaluation_id": "pev_123abc"}],
+    )
+    package_posture: dict[str, Any] = Field(
+        description=(
+            "Current sign-off package realization boundary. Slice 8 exposes the certified source "
+            "package but does not produce client-ready report/render/archive artifacts."
+        ),
+        examples=[{"report_render_archive_realization": "NOT_IMPLEMENTED"}],
+    )
