@@ -10,6 +10,10 @@ def _read(path: str | Path) -> str:
     return Path(path).read_text(encoding="utf-8")
 
 
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
 def test_rfc0025_slice13_commercial_material_is_indexed_and_claim_controlled() -> None:
     slice13_text = _read(SLICE13_PATH)
     commercial_text = _read(COMMERCIAL_GUIDE_PATH)
@@ -46,7 +50,7 @@ def test_rfc0025_slice13_commercial_material_is_indexed_and_claim_controlled() -
 
 
 def test_rfc0025_slice13_supported_features_do_not_overclaim() -> None:
-    supported_features = _read("wiki/Supported-Features.md")
+    supported_features = _flat(_read("wiki/Supported-Features.md"))
     commercial_text = _read(COMMERCIAL_GUIDE_PATH)
     telemetry_text = _read(
         "contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"

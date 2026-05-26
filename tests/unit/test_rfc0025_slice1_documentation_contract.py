@@ -62,7 +62,7 @@ def test_rfc0025_slice1_reuses_platform_controls_without_local_scaffolding() -> 
 
 def test_rfc0025_slice1_pins_later_policy_controls_and_source_boundaries() -> None:
     slice1 = _read(SLICE1_PATH)
-    supported = _read(WIKI_SUPPORTED_FEATURES_PATH)
+    supported = _flat(_read(WIKI_SUPPORTED_FEATURES_PATH))
     flat_slice1 = _flat(slice1)
 
     later_controls = (

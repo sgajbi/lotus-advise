@@ -59,37 +59,20 @@ product claims.
 
 Historical RFC-0025 baseline wording included "Planned RFC only"; that phrase remains historical
 audit context, not current support posture. Historical RFC-0025 Slice 1-14 gate language remains
-intentionally preserved for auditability.
-Slice 1 is complete as platform-scaffolding review only, and no `lotus-platform` code change is
-required yet; no policy-pack runtime capability is promoted by that slice. Slice 2 is complete as
-current-boundary cleanup only. Earlier evidence intentionally recorded that policy evaluation
-support is Planned until certified Advise evaluation APIs arrived, and those APIs are now present
-without platform capability promotion. Slice 9 is complete for Advise source workflow projection
-and sign-off decision recording. Slice 10 is complete for policy report-package realization,
-report/render/archive refs are recorded in policy lineage, and client-ready document requests fail
-closed. Slice 11 is complete for AI policy-evidence consumption using redacted bounded evidence,
-forbidden actions are rejected, and AI output is non-authoritative for policy status. Slice 12 is
-complete for Gateway and Workbench product realization. Slice 13 is complete for
-policy-pack-specific commercial support material. active data-product promotion, final closure,
-post-completion communication, completed approval/waiver authority, completed sign-off authority,
-client-ready publication and external communication remain gated after Slice 15. For claim-control
-searchability, client-ready publication and external communication remain gated.
-
-RFC-0025 audit markers:
-- Slice 1 is complete as platform-scaffolding review only; no `lotus-platform` code change is required yet.
-- no policy-pack runtime capability is promoted.
-- Slice 2 is complete as current-boundary cleanup only.
-- policy evaluation support is Planned.
-- proposed, blocked data-product posture.
-- rfc0025.policy-source-readiness.v1.
-- certified Advise evaluation APIs.
-- Advise source workflow projection and sign-off decision recording.
-- policy report-package realization; report/render/archive refs are recorded in policy lineage; client-ready document requests fail closed.
-- AI policy-evidence consumption; redacted bounded evidence; forbidden actions are rejected; AI output is non-authoritative for policy status.
-- Slice 12 is complete for Gateway and Workbench product realization.
-- Slice 13 is complete for policy-pack-specific commercial support material.
-- active data-product promotion remains gated.
-- client-ready publication and external communication remain gated.
+intentionally preserved for auditability. Slice 1 is complete as platform-scaffolding review only,
+and no `lotus-platform` code change is required yet; no policy-pack runtime capability is promoted
+by that slice. Slice 2 is complete as current-boundary cleanup only. Earlier evidence intentionally
+recorded that policy evaluation support is Planned, with proposed, blocked data-product posture
+and `rfc0025.policy-source-readiness.v1`, until certified Advise evaluation APIs arrived. Those
+APIs are now present without platform capability promotion. Slice 9 is complete for Advise source
+workflow projection and sign-off decision recording. Slice 10 is complete for policy
+report-package realization, report/render/archive refs are recorded in policy lineage, and
+client-ready document requests fail closed. Slice 11 is complete for AI policy-evidence consumption
+using redacted bounded evidence; forbidden actions are rejected, and AI output is non-authoritative
+for policy status. Slice 12 is complete for Gateway and Workbench product realization. Slice 13 is
+complete for policy-pack-specific commercial support material. After Slice 15, active data-product
+promotion, final closure, post-completion communication, completed approval/waiver authority,
+completed sign-off authority, client-ready publication and external communication remain gated.
 
 ## Advisory Flow
 

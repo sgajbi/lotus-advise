@@ -15,6 +15,10 @@ TELEMETRY_PATH = Path(
 CAPABILITIES_SOURCE_PATH = Path("src/api/capabilities/service.py")
 
 
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
 def test_rfc0025_slice8_certified_api_evidence_is_indexed() -> None:
     rfc_text = RFC_PATH.read_text(encoding="utf-8")
     slice8_text = SLICE8_PATH.read_text(encoding="utf-8")
@@ -40,7 +44,7 @@ def test_rfc0025_slice8_certified_api_evidence_is_indexed() -> None:
 
 
 def test_rfc0025_slice8_exposes_advise_routes_without_capability_promotion() -> None:
-    supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     routes_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
     declaration_source = DECLARATION_PATH.read_text(encoding="utf-8")

@@ -16,6 +16,10 @@ TELEMETRY_PATH = Path(
 CAPABILITIES_SOURCE_PATH = Path("src/api/capabilities/service.py")
 
 
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
 def test_rfc0025_slice9_policy_workflow_evidence_is_indexed() -> None:
     rfc_text = RFC_PATH.read_text(encoding="utf-8")
     slice9_text = SLICE9_PATH.read_text(encoding="utf-8")
@@ -42,7 +46,7 @@ def test_rfc0025_slice9_policy_workflow_evidence_is_indexed() -> None:
 
 
 def test_rfc0025_slice9_exposes_workflow_without_product_surface_promotion() -> None:
-    supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     routes_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     workflow_source = WORKFLOW_SOURCE_PATH.read_text(encoding="utf-8")
     supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")

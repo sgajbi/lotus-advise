@@ -11,6 +11,10 @@ EVIDENCE_PATH = Path("src/core/proposals/evidence.py")
 POLICY_READINESS_PATH = Path("src/core/proposals/policy_source_readiness.py")
 
 
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
 def test_rfc0025_slice4_source_readiness_evidence_is_indexed() -> None:
     rfc_text = RFC_PATH.read_text(encoding="utf-8")
     slice4_text = SLICE4_PATH.read_text(encoding="utf-8")
@@ -38,7 +42,7 @@ def test_rfc0025_slice4_source_readiness_evidence_is_indexed() -> None:
 
 def test_rfc0025_slice4_keeps_policy_support_unpromoted() -> None:
     slice4_text = SLICE4_PATH.read_text(encoding="utf-8")
-    supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     evidence_source = EVIDENCE_PATH.read_text(encoding="utf-8")
     readiness_source = POLICY_READINESS_PATH.read_text(encoding="utf-8")
 

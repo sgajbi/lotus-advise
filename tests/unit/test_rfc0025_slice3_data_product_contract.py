@@ -10,6 +10,10 @@ def _load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
 def test_rfc0025_slice3_documentation_records_non_promotional_data_product_posture() -> None:
     slice_doc = (
         REPO_ROOT / "docs" / "rfcs" / "RFC-0025-slice-3-data-product-and-platform-hardening.md"
@@ -20,7 +24,7 @@ def test_rfc0025_slice3_documentation_records_non_promotional_data_product_postu
         / "rfcs"
         / "RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md"
     ).read_text(encoding="utf-8")
-    supported = (REPO_ROOT / "wiki" / "Supported-Features.md").read_text(encoding="utf-8")
+    supported = _flat((REPO_ROOT / "wiki" / "Supported-Features.md").read_text(encoding="utf-8"))
     rfc_index = (REPO_ROOT / "wiki" / "RFC-Index.md").read_text(encoding="utf-8")
 
     assert "IMPLEMENTED - PROPOSED/BLOCKED DATA PRODUCT; NO POLICY SUPPORT PROMOTED" in slice_doc
