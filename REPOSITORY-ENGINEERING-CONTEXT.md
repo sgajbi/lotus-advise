@@ -82,8 +82,11 @@ Current repository posture:
    platform catalog posture. Slice 4 adds `rfc0025.policy-source-readiness.v1` to proposal evidence
    bundles so future policy evaluation consumes explicit `lotus-core`, `lotus-risk`, and
    `lotus-advise` source-readiness sections rather than inferring or defaulting missing source
-   facts. Policy evaluation, policy APIs, Gateway/Workbench policy support, and client-ready
-   publication remain unimplemented and unpromoted,
+   facts. Slice 5 adds `rfc0025.policy-pack-catalog.v1`, reference-pack list/detail/validate/
+   activate APIs, schema/content validation, content hashes, maker-checker activation, and audit
+   events for `GLOBAL_PRIVATE_BANKING_BASELINE` and `SG_PRIVATE_BANKING_REFERENCE`. Proposal
+   policy evaluation, policy review queues, sign-off packages, Gateway/Workbench policy support,
+   and client-ready publication remain unimplemented and unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 10. repo-native CI is already aligned to explicit lane expectations,

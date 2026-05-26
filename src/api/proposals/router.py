@@ -87,7 +87,7 @@ def ensure_proposal_runtime_ready() -> None:
 
 
 def recover_proposal_async_runtime() -> int:
-    return get_proposal_workflow_service().recover_async_operations()
+    return cast(int, get_proposal_workflow_service().recover_async_operations())
 
 
 def reset_proposal_workflow_service_for_tests() -> None:
@@ -126,3 +126,4 @@ importlib.import_module("src.api.proposals.routes_async")
 importlib.import_module("src.api.proposals.routes_support")
 importlib.import_module("src.api.proposals.routes_delivery")
 importlib.import_module("src.api.proposals.routes_memo")
+importlib.import_module("src.api.proposals.routes_policy_packs")

@@ -109,8 +109,11 @@ def test_rfc0025_capabilities_do_not_advertise_policy_evaluation_before_runtime_
 
     assert "advisory.proposals.policy_evaluation" not in feature_keys
     assert "advisory_policy_evaluation" not in workflow_keys
+    assert "advisory.policy_pack_catalog" in feature_keys
+    assert "advisory_policy_pack_catalog" in workflow_keys
     assert "advisorypolicyevaluationrecord" not in payload_text
     assert "policy evaluation support" not in payload_text
+    assert "client-ready publication remain gated" in payload_text
 
 
 def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_only():
@@ -214,8 +217,8 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "dependency_count": 5,
         "ready_dependency_count": 2,
         "degraded_dependency_count": 3,
-        "enabled_feature_count": 11,
-        "ready_feature_count": 8,
+        "enabled_feature_count": 12,
+        "ready_feature_count": 9,
     }
 
 
@@ -411,8 +414,8 @@ def test_integration_capabilities_reports_ready_advisory_supportability(monkeypa
         "dependency_count": 5,
         "ready_dependency_count": 5,
         "degraded_dependency_count": 0,
-        "enabled_feature_count": 11,
-        "ready_feature_count": 11,
+        "enabled_feature_count": 12,
+        "ready_feature_count": 12,
     }
 
 
