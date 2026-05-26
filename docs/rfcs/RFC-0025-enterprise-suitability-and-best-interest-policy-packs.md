@@ -1157,8 +1157,9 @@ Current boundary:
 5. append-only `POLICY_EVALUATION_AI_EVIDENCE_RECORDED` events retain prompt/output lineage,
    redaction posture, human-review requirement, non-authoritative posture, and client-ready blocked
    posture,
-6. Gateway and Workbench product realization is complete in Slice 12, but canonical live proof,
-   active data-product promotion, commercial material, final hardening, final closure, and
+6. Gateway and Workbench product realization is complete in Slice 12, and policy-pack-specific
+   commercial material is complete in Slice 13, but canonical live proof,
+   active data-product promotion, final hardening, final closure, and
    client-ready publication remain gated later slices.
 
 ### Slice 12 - Gateway and Workbench Product Realization
@@ -1188,8 +1189,8 @@ Current boundary:
    sign-off source-package posture, workflow posture, and bounded request-more-evidence action,
 3. Workbench does not calculate suitability, approve or waive findings, record completed policy
    sign-off approval, or publish client-ready material,
-4. canonical live proof, active data-product promotion, commercial material, final hardening, final
-   closure, and client-ready publication remain gated later slices.
+4. canonical live proof, active data-product promotion, final hardening, final closure, and
+   client-ready publication remain gated later slices.
 
 ### Slice 13 - Commercial, Demo, and RFP-Support Material
 
@@ -1203,6 +1204,23 @@ Acceptance gate:
    sales/pre-sales wording separate supported from planned claims,
 2. no RFP/security/product/regulatory claim exceeds the implementation,
 3. RFC-0028 is updated if broader bank-demo or RFP packaging truth changes.
+
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-13-commercial-demo-rfp-support.md`
+2. `docs/commercial/RFC-0025-enterprise-policy-pack-commercial-support.md`
+
+Current boundary:
+
+1. policy-pack-specific one-pager wording, demo notes, API examples, architecture flow, operator
+   guidance, security posture, and RFP-safe wording are implemented,
+2. the guide is grounded in Slices 0-12 and separates supported advisor/compliance/supervisory
+   review posture from planned live proof and active data-product promotion,
+3. no RFC-0028 source update is required because complete bank-demo journeys, enterprise
+   RFP/security packs, architecture decks, ROI material, and supported-claim proof packs remain
+   RFC-0028 scope,
+4. canonical live proof, active data-product promotion, final hardening, final closure, and
+   client-ready publication remain gated later slices.
 
 ### Slice 14 - Implementation Proof
 

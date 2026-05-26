@@ -28,9 +28,11 @@ The current first-wave snapshot is:
    workflow/sign-off decision boundary, Slice 10 Advise report-package realization path, and Slice
    11 Advise AI policy-evidence boundary are implementation-backed. Slice 12 adds Gateway and
    Workbench product realization for review queues, selected evaluation evidence, sign-off package
-   posture, workflow posture, and bounded request-more-evidence actions through Gateway only. The
-   product remains below the active data-product publication boundary until canonical live proof,
-   supportability promotion, commercial material, hardening, and final closure are complete.
+   posture, workflow posture, and bounded request-more-evidence actions through Gateway only. Slice
+   13 adds policy-pack-specific commercial material with claim-controlled one-pager language, demo
+   notes, API examples, architecture flow, operator guidance, security posture, and RFP-safe
+   wording. The product remains below the active data-product publication boundary until canonical
+   live proof, supportability promotion, hardening, and final closure are complete.
 
 Validate locally with:
 

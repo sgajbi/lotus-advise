@@ -35,6 +35,7 @@
       "lotus-advise://docs/rfcs/RFC-0025-slice-10-report-render-archive-realization.md",
       "lotus-advise://docs/rfcs/RFC-0025-slice-11-ai-policy-evidence-boundary.md",
       "lotus-advise://docs/rfcs/RFC-0025-slice-12-gateway-workbench-product-realization.md",
+      "lotus-advise://docs/rfcs/RFC-0025-slice-13-commercial-demo-rfp-support.md",
       "lotus-advise://src/core/policy_packs/persistence.py",
       "lotus-advise://src/core/policy_packs/workflow.py",
       "lotus-advise://src/core/policy_packs/reporting.py",
@@ -52,12 +53,12 @@
     "product_name": "AdvisoryPolicyEvaluationRecord",
     "product_version": "v1",
     "generated_at": "2026-05-26T00:00:00Z",
-    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-gateway-workbench-product-realization-product-blocked",
+    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-commercial-support-product-blocked",
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record"
   },
   "evidence": {
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record",
-    "claim_boundary": "RFC-0025 Slice 12 adds Gateway and Workbench product realization for finalized policy evaluations: Gateway routes the canonical Advise policy-pack and policy-evaluation BFF surface, and Workbench consumes Gateway-only review-queue, evaluation detail, sign-off source package, workflow posture, and bounded request-more-evidence actions; active data-product promotion, canonical live proof, commercial material, final closure, approval/waiver authority, completed policy sign-off authority, and client-ready publication remain blocked",
+    "claim_boundary": "RFC-0025 Slice 13 adds policy-pack-specific commercial material for finalized policy evaluations: one-pager wording, demo notes, API examples, architecture flow, operator guidance, security posture, and RFP-safe wording are grounded in implemented Advise behavior, Slice 12 Gateway and Workbench product realization, report-package lineage, archive-lineage, and AI-evidence behavior; active data-product promotion, canonical live proof, final closure, approval/waiver authority, completed policy sign-off authority, and client-ready publication remain blocked",
     "validation_lanes": [
       "feature",
       "pr-merge",

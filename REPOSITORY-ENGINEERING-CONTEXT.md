@@ -107,7 +107,9 @@ Current repository posture:
    realization: Gateway routes canonical Advise policy-pack/evaluation BFF APIs, and Workbench
    consumes Gateway-only policy review queue, selected evaluation detail, sign-off source package,
    workflow posture, and bounded request-more-evidence actions without local policy inference.
-   Canonical live proof, active data-product promotion, commercial material, final closure, and
+   Slice 13 adds policy-pack-specific commercial support material with claim-controlled one-pager
+   language, demo notes, API examples, architecture flow, operator guidance, security posture, and
+   RFP-safe wording. Canonical live proof, active data-product promotion, final closure, and
    client-ready publication remain unimplemented and unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
