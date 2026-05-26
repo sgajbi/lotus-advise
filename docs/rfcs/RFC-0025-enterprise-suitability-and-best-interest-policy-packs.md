@@ -1276,6 +1276,20 @@ Acceptance gate:
 7. policy semantics are reviewed for legal-content overclaiming,
 8. no dead code, duplicate paths, stale docs, or unsupported product claims remain.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`
+
+Current boundary:
+
+1. policy-pack supportability truth is centralized in `src/core/policy_packs/supportability.py`,
+2. catalog, evaluation, persistence, workflow, OpenAPI descriptions, schema examples, and tests now
+   agree that Gateway/Workbench product support and signed-off report-package handoff are supported
+   by completed slices,
+3. `AdvisoryPolicyEvaluationRecord:v1` active data-product promotion, completed approval/waiver
+   authority, completed sign-off authority, client-ready policy document publication, and external
+   client communication remain blocked until final closure or a later implementation RFC.
+
 ### Slice 16 - Final Closure
 
 Outcome:

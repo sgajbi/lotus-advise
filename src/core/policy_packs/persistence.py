@@ -18,12 +18,17 @@ from src.core.policy_packs.models import (
     PolicyEvaluationSignOffPackageResponse,
     PolicyPackEvaluationResponse,
 )
+from src.core.policy_packs.supportability import (
+    POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION,
+    policy_runtime_supportability,
+    policy_sign_off_package_posture,
+)
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
 )
 
-_PERSISTENCE_CONTRACT_VERSION = "rfc0025.policy-evaluation-persistence.v1"
+_PERSISTENCE_CONTRACT_VERSION = POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION
 
 
 def finalize_policy_evaluation_record(
@@ -270,11 +275,7 @@ class PolicyEvaluationRecordStore:
         return PolicyEvaluationSignOffPackageResponse(
             evaluation=deepcopy(record),
             lineage=lineage,
-            package_posture={
-                **_policy_api_posture(),
-                "sign_off_source_package": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-                "report_render_archive_realization": "NOT_IMPLEMENTED",
-            },
+            package_posture=policy_sign_off_package_posture(),
         )
 
     def append_policy_evaluation_event(
@@ -595,14 +596,7 @@ def _lineage_response(
 
 
 def _policy_api_posture() -> dict[str, Any]:
-    return {
-        "policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-        "review_queue_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-        "sign_off_package_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-        "gateway_supported": False,
-        "workbench_supported": False,
-        "client_ready_publication": "BLOCKED",
-    }
+    return policy_runtime_supportability()
 
 
 def _unique(values: list[str]) -> list[str]:

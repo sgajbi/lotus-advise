@@ -30,9 +30,9 @@ from src.core.proposals.exceptions import (
     tags=["Advisory Policy Packs"],
     summary="List Policy Packs",
     description=(
-        "Lists RFC-0025 policy-pack versions and activation posture. Slice 5 supports catalog, "
-        "schema validation, hash-backed activation, and audit events only; policy evaluation, "
-        "Gateway consumption, Workbench consumption, and client-ready publication remain gated."
+        "Lists RFC-0025 policy-pack versions and activation posture. Policy evaluation, "
+        "Gateway-routed Workbench consumption, signed-off report-package handoff, and bounded AI "
+        "evidence are supported by later RFC-0025 slices; client-ready publication remains gated."
     ),
     responses={200: {"description": "Policy-pack catalog metadata returned."}},
 )

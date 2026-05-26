@@ -17,10 +17,15 @@ from src.core.policy_packs.persistence import (
     get_policy_evaluation_record,
     list_policy_evaluation_events,
 )
+from src.core.policy_packs.supportability import (
+    CLIENT_READY_PUBLICATION_POSTURE,
+    POLICY_WORKFLOW_CONTRACT_VERSION,
+    policy_sign_off_package_posture,
+)
 from src.core.proposals.exceptions import ProposalValidationError
 
-_WORKFLOW_CONTRACT_VERSION = "rfc0025.policy-sign-off-workflow.v1"
-_CLIENT_READY_PUBLICATION = "BLOCKED"
+_WORKFLOW_CONTRACT_VERSION = POLICY_WORKFLOW_CONTRACT_VERSION
+_CLIENT_READY_PUBLICATION = CLIENT_READY_PUBLICATION_POSTURE
 
 
 def get_policy_evaluation_workflow(
@@ -83,7 +88,9 @@ def record_policy_evaluation_sign_off_decision(
             "policy_pack_id": record.policy_pack_id,
             "policy_version": record.policy_version,
             "client_ready_publication": _CLIENT_READY_PUBLICATION,
-            "report_render_archive_realization": "NOT_IMPLEMENTED",
+            "report_render_archive_realization": policy_sign_off_package_posture()[
+                "report_render_archive_realization"
+            ],
         },
     )
 
