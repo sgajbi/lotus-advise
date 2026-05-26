@@ -4274,3 +4274,35 @@
 - Follow-Up:
   - Slice 5 should introduce policy-pack catalog/schema/activation without bypassing
     `rfc0025.policy-source-readiness.v1` for missing-source posture.
+
+## LA-REV-166
+
+- Scope: RFC-0025 policy-pack catalog and activation lifecycle
+- Pattern: capability-boundary hardening / source-controlled reference-pack foundation
+- Status: Hardened
+- Finding Class: product-truth risk
+- Summary: Policy-pack support needed a real catalog and activation boundary before any proposal
+  evaluation work, otherwise later slices could blur reference-pack metadata, policy activation,
+  and unsupported evaluation into one broad claim.
+- Evidence:
+  - `src/core/policy_packs/catalog.py` now owns the `rfc0025.policy-pack-catalog.v1` reference-pack
+    catalog for `GLOBAL_PRIVATE_BANKING_BASELINE` and `SG_PRIVATE_BANKING_REFERENCE`.
+  - `src/api/proposals/routes_policy_packs.py` exposes list, detail, validate, and activate routes
+    with hash-backed activation, maker-checker enforcement where configured, idempotency conflict
+    protection, and audit-event projection.
+  - `src/api/capabilities/service.py` advertises `advisory.policy_pack_catalog` while preserving
+    the absence of proposal policy-evaluation support.
+  - `tests/unit/advisory/engine/test_engine_policy_pack_catalog.py` proves validation, invalid-pack
+    diagnostics, idempotency, content-hash enforcement, maker-checker control, and activation
+    immutability.
+  - `tests/unit/advisory/api/test_api_advisory_policy_packs.py` proves the canonical catalog API
+    routes and absence of proposal policy-evaluation routes.
+- Consequence:
+  - Slice 6 can implement applicability and rule evaluation against a stable catalog contract
+    without inventing pack metadata or activation posture inside the evaluator.
+- Documentation:
+  - RFC-0025 Slice 5 evidence, repo context, RFC index, supported-feature wiki source, and RFC
+    README were updated as catalog-and-activation-only support.
+- Follow-Up:
+  - Slice 6 should consume only activated policy-pack versions and keep every rule result tied to
+    `rfc0025.policy-source-readiness.v1` source posture.

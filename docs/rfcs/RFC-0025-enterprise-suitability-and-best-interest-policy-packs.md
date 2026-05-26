@@ -1002,6 +1002,10 @@ Acceptance gate:
 3. reference packs are clearly marked as examples, not legal advice,
 4. policy activation audit events and tests exist.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-5-policy-pack-catalog-schema-activation.md`
+
 ### Slice 6 - Policy Applicability and Evaluation Engine
 
 Outcome:
