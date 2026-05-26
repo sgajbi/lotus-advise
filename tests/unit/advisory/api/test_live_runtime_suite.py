@@ -1,6 +1,7 @@
 import json
 
 from scripts.live_runtime_decision_summary import LiveDecisionSnapshot
+from scripts.live_runtime_policy_evaluation import LivePolicyEvaluationSnapshot
 from scripts.live_runtime_proposal_alternatives import LiveProposalAlternativesSnapshot
 from scripts.live_runtime_proposal_memo import LiveProposalMemoSnapshot
 from scripts.live_runtime_proposal_narrative import (
@@ -152,6 +153,49 @@ def _memo_snapshot() -> LiveProposalMemoSnapshot:
     )
 
 
+def _policy_snapshot() -> LivePolicyEvaluationSnapshot:
+    return LivePolicyEvaluationSnapshot(
+        proposal_id="pp_live_policy_001",
+        proposal_version_id="ppv_live_policy_001",
+        evaluation_id="pev_live_policy_001",
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        evaluation_status="PENDING_REVIEW",
+        evaluation_hash="sha256:policy",
+        source_evidence_hash="sha256:source",
+        policy_content_hash="sha256:pack",
+        material_rule_count=6,
+        pending_rule_count=3,
+        approval_dependency_count=1,
+        disclosure_requirement_count=1,
+        consent_requirement_count=1,
+        source_ref_count=8,
+        source_gap_count=0,
+        review_queue_status="PENDING_REVIEW",
+        workflow_sign_off_status="PENDING_REVIEW",
+        workflow_client_ready_publication="BLOCKED",
+        workflow_open_requirement_count=3,
+        sign_off_decision_status="SIGNED_OFF",
+        report_status="READY",
+        report_package_status="ARCHIVED",
+        render_ref_status="RECORDED",
+        archive_ref_status="RECORDED",
+        ai_status="UNAVAILABLE",
+        ai_authoritative_for_policy_status=False,
+        ai_human_review_required=True,
+        ai_raw_source_evidence_included=False,
+        lineage_complete=True,
+        lineage_event_count=4,
+        replay_evaluation_hash_matches=True,
+        replay_source_evidence_hash_matches=True,
+        stale_hash_block_status="POLICY_EVALUATION_HASH_MISMATCH",
+        client_ready_document_block_status="POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED",
+        forbidden_ai_action_block_status="POLICY_AI_EVIDENCE_FORBIDDEN_ACTION",
+        report_degraded_reason=None,
+        latency_ms=840.0,
+    )
+
+
 def _parity_result() -> LiveParityResult:
     return LiveParityResult(
         complete_issuer_portfolio="PB_SG_GLOBAL_BAL_001",
@@ -179,6 +223,7 @@ def _parity_result() -> LiveParityResult:
         report_status="READY",
         proposal_narrative=_narrative_snapshot(),
         proposal_memo=_memo_snapshot(),
+        proposal_policy=_policy_snapshot(),
         ready_decision=_decision_snapshot(
             path_name="ready_path",
             top_level_status="READY",
@@ -410,6 +455,11 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
     assert payload["parity"]["proposal_memo"]["archive_ref_status"] == "RECORDED"
     assert payload["parity"]["proposal_memo"]["ai_authoritative_for_memo_status"] is False
     assert payload["parity"]["proposal_memo"]["replay_client_ready_publication"] == "BLOCKED"
+    assert payload["parity"]["proposal_policy"]["evaluation_status"] == "PENDING_REVIEW"
+    assert payload["parity"]["proposal_policy"]["sign_off_decision_status"] == "SIGNED_OFF"
+    assert payload["parity"]["proposal_policy"]["report_package_status"] == "ARCHIVED"
+    assert payload["parity"]["proposal_policy"]["ai_authoritative_for_policy_status"] is False
+    assert payload["parity"]["proposal_policy"]["ai_raw_source_evidence_included"] is False
     assert (
         payload["parity"]["proposal_memo"]["client_ready_document_block_status"]
         == "MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED"
@@ -467,6 +517,7 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert "## Proposal Alternatives Paths" in summary_text
     assert "## Proposal Narrative Proof" in summary_text
     assert "## Proposal Memo Proof" in summary_text
+    assert "## Policy Evaluation Proof" in summary_text
     assert "## Degraded Runtime" in summary_text
     assert "## Insufficient Evidence Path" in summary_text
     assert "## Degraded Alternatives Paths" in summary_text
@@ -487,6 +538,9 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert "AI commentary: `UNAVAILABLE` / review required `True` / authoritative `False`" in (
         summary_text
     )
+    assert "policy pack: `SG_PRIVATE_BANKING_REFERENCE` / `2026.05`" in summary_text
+    assert "client-ready `BLOCKED`" in summary_text
+    assert "forbidden AI `POLICY_AI_EVIDENCE_FORBIDDEN_ACTION`" in summary_text
     assert "rejected reasons: `LOTUS_RISK_ENRICHMENT_UNAVAILABLE`" in summary_text
 
 
@@ -524,6 +578,9 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
     ) in summary
     assert (
         "- proposal memo: `BLOCKED` / `APPROVE_FOR_ADVISOR_USE` / `ARCHIVED` / AI `UNAVAILABLE`"
+    ) in summary
+    assert (
+        "- policy evaluation: `PENDING_REVIEW` / `SIGNED_OFF` / `ARCHIVED` / AI `UNAVAILABLE`"
     ) in summary
     assert "- review path: `REQUIRES_RISK_REVIEW` / `NEW_MEDIUM_SUITABILITY_ISSUE`" in summary
     assert "- insufficient-evidence path: `INSUFFICIENT_EVIDENCE` / `MISSING_RISK_LENS`" in summary

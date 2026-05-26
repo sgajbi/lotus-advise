@@ -21,6 +21,10 @@ from scripts.live_runtime_decision_summary import (  # noqa: E402
     LiveDecisionSnapshot,
     extract_live_decision_snapshot,
 )
+from scripts.live_runtime_policy_evaluation import (  # noqa: E402
+    LivePolicyEvaluationSnapshot,
+    extract_live_policy_evaluation_snapshot,
+)
 from scripts.live_runtime_proposal_alternatives import (  # noqa: E402
     LiveProposalAlternativesSnapshot,
     extract_live_proposal_alternatives_snapshot,
@@ -104,6 +108,7 @@ class LiveParityResult:
     report_status: str
     proposal_narrative: LiveProposalNarrativeSnapshot
     proposal_memo: LiveProposalMemoSnapshot
+    proposal_policy: LivePolicyEvaluationSnapshot
     ready_decision: LiveDecisionSnapshot
     review_decision: LiveDecisionSnapshot
     blocked_decision: LiveDecisionSnapshot
@@ -2483,6 +2488,365 @@ def _assert_live_proposal_memo_flow(
     )
 
 
+def _assert_live_policy_evaluation_flow(
+    client: httpx.Client,
+    *,
+    advise_base_url: str,
+    scenario: PortfolioParityScenario,
+) -> LivePolicyEvaluationSnapshot:
+    started = time.perf_counter()
+    _ensure_sg_policy_pack_active(client, advise_base_url=advise_base_url)
+    proposal_id = f"pp_live_policy_{uuid.uuid4().hex[:10]}"
+    proposal_version_id = f"ppv_live_policy_{uuid.uuid4().hex[:10]}"
+    created_body = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/proposals/{proposal_id}/versions/"
+        f"{proposal_version_id}/policy-evaluations",
+        expected_status=200,
+        json_body={
+            "policy_pack_id": "SG_PRIVATE_BANKING_REFERENCE",
+            "policy_version": "2026.05",
+            "created_by": "live-parity-validator-policy",
+            "evidence_bundle": _live_policy_evidence_bundle(scenario=scenario),
+            "reason": {"purpose": "RFC-0025 Slice 14 live policy implementation proof"},
+        },
+        headers={"Idempotency-Key": f"live-policy-eval-{uuid.uuid4().hex}"},
+    )
+    record = cast(dict[str, Any], created_body["record"])
+    evaluation_id = str(record["evaluation_id"])
+    evaluation_hash = str(record["evaluation_hash"])
+    _assert(
+        evaluation_hash.startswith("sha256:"),
+        f"{evaluation_id}: policy evaluation hash was not canonical sha256",
+    )
+    _assert(
+        bool(record["approval_dependencies"])
+        and bool(record["disclosure_requirements"])
+        and bool(record["consent_requirements"]),
+        f"{evaluation_id}: policy evaluation did not expose review requirements",
+    )
+
+    read_body = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}",
+        expected_status=200,
+    )
+    _assert(
+        read_body["evaluation_hash"] == evaluation_hash,
+        f"{evaluation_id}: policy read lost hash continuity",
+    )
+    queue_body = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-evaluations/review-queue",
+        expected_status=200,
+    )
+    _assert(
+        any(item.get("evaluation_id") == evaluation_id for item in queue_body["items"]),
+        f"{evaluation_id}: policy review queue omitted finalized evaluation",
+    )
+    workflow_body = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/workflow",
+        expected_status=200,
+    )
+    _assert(
+        workflow_body["client_ready_publication"] == "BLOCKED",
+        f"{evaluation_id}: policy workflow promoted client-ready publication",
+    )
+    sign_off_package = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
+        expected_status=200,
+    )
+    _assert(
+        sign_off_package["evaluation"]["evaluation_id"] == evaluation_id,
+        f"{evaluation_id}: sign-off package lost evaluation identity",
+    )
+
+    stale_hash_response = client.post(
+        f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
+        json={
+            "actor_id": "policy_checker_live",
+            "decision": "APPROVE_FOR_POLICY_SIGN_OFF",
+            "source_evaluation_hash": "sha256:stale",
+        },
+        headers={"Idempotency-Key": f"live-policy-stale-signoff-{uuid.uuid4().hex}"},
+    )
+    _assert(
+        stale_hash_response.status_code == 422,
+        f"{evaluation_id}: stale policy hash sign-off was not rejected",
+    )
+    stale_hash_block_status = str(cast(dict[str, Any], stale_hash_response.json()).get("detail"))
+
+    client_ready_document_response = client.post(
+        f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/report-packages",
+        json={
+            "requested_by": "policy_checker_live",
+            "portfolio_id": scenario.portfolio_id,
+            "source_evaluation_hash": evaluation_hash,
+            "requested_output_formats": ["pdf"],
+            "client_ready_document_requested": True,
+        },
+        headers={"Idempotency-Key": f"live-policy-client-ready-report-{uuid.uuid4().hex}"},
+    )
+    _assert(
+        client_ready_document_response.status_code == 422,
+        f"{evaluation_id}: client-ready policy document request was not blocked",
+    )
+    client_ready_document_block_status = str(
+        cast(dict[str, Any], client_ready_document_response.json()).get("detail")
+    )
+
+    sign_off_body = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
+        expected_status=200,
+        json_body={
+            "actor_id": "policy_checker_live",
+            "decision": "APPROVE_FOR_POLICY_SIGN_OFF",
+            "source_evaluation_hash": evaluation_hash,
+            "resolved_approval_dependencies": record["approval_dependencies"],
+            "satisfied_disclosure_requirements": record["disclosure_requirements"],
+            "satisfied_consent_requirements": record["consent_requirements"],
+            "reason": {"purpose": "live policy sign-off proof"},
+        },
+        headers={"Idempotency-Key": f"live-policy-signoff-{uuid.uuid4().hex}"},
+    )
+    _assert(
+        cast(dict[str, Any], sign_off_body["workflow"])["sign_off_status"] == "SIGNED_OFF",
+        f"{evaluation_id}: policy sign-off did not close requirements",
+    )
+
+    report_response = client.post(
+        f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/report-packages",
+        json={
+            "requested_by": "policy_checker_live",
+            "portfolio_id": scenario.portfolio_id,
+            "source_evaluation_hash": evaluation_hash,
+            "requested_output_formats": ["pdf"],
+            "client_ready_document_requested": False,
+            "reason": {"purpose": "policy sign-off package live proof"},
+        },
+        headers={"Idempotency-Key": f"live-policy-report-{uuid.uuid4().hex}"},
+    )
+    report_body: dict[str, Any] | None
+    report_status: str
+    report_degraded_reason: str | None
+    if report_response.status_code == 200:
+        report_body = cast(dict[str, Any], report_response.json())
+        report_status = str(cast(dict[str, Any], report_body["report"])["status"])
+        report_degraded_reason = None
+    else:
+        _assert(
+            report_response.status_code == 503,
+            (
+                f"{evaluation_id}: expected policy report package success or degraded 503, got "
+                f"{report_response.status_code} body={report_response.text}"
+            ),
+        )
+        report_body = None
+        report_status = "UNAVAILABLE"
+        report_degraded_reason = str(cast(dict[str, Any], report_response.json()).get("detail"))
+
+    forbidden_ai_response = client.post(
+        f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
+        json={
+            "requested_by": "policy_checker_live",
+            "source_evaluation_hash": evaluation_hash,
+            "requested_actions": ["APPROVE_POLICY"],
+        },
+        headers={"Idempotency-Key": f"live-policy-forbidden-ai-{uuid.uuid4().hex}"},
+    )
+    _assert(
+        forbidden_ai_response.status_code == 422,
+        f"{evaluation_id}: forbidden policy AI action was not rejected",
+    )
+    forbidden_ai_action_block_status = str(
+        cast(dict[str, Any], forbidden_ai_response.json()).get("detail")
+    )
+
+    ai_body = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
+        expected_status=200,
+        json_body={
+            "requested_by": "policy_checker_live",
+            "source_evaluation_hash": evaluation_hash,
+            "requested_actions": [
+                "SUMMARIZE_POLICY_POSTURE",
+                "EXPLAIN_OPEN_REQUIREMENTS",
+            ],
+            "reason": {"purpose": "bounded policy AI evidence live proof"},
+        },
+        headers={"Idempotency-Key": f"live-policy-ai-{uuid.uuid4().hex}"},
+    )
+    policy_evidence = cast(dict[str, Any], ai_body["policy_evidence"])
+    _assert(
+        policy_evidence["authoritative_for_policy_status"] is False,
+        f"{evaluation_id}: AI evidence became authoritative for policy status",
+    )
+    _assert(
+        policy_evidence["human_review_required"] is True,
+        f"{evaluation_id}: AI evidence did not preserve human review posture",
+    )
+    _assert(
+        cast(dict[str, Any], policy_evidence["redaction_profile"])["raw_source_evidence_included"]
+        is False,
+        f"{evaluation_id}: AI evidence included raw source evidence",
+    )
+
+    lineage_body = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/lineage",
+        expected_status=200,
+    )
+    _assert(
+        lineage_body["evaluation_hash"] == evaluation_hash
+        and lineage_body["source_evidence_hash"] == record["source_evidence_hash"]
+        and lineage_body["policy_content_hash"] == record["policy_content_hash"]
+        and bool(lineage_body["rule_result_hashes"])
+        and bool(lineage_body["source_refs"])
+        and bool(lineage_body["audit_events"])
+        and cast(dict[str, Any], lineage_body["lineage_posture"])["client_ready_publication"]
+        == "BLOCKED",
+        f"{evaluation_id}: policy lineage did not retain complete hash-backed evidence",
+    )
+    replay_body = _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-evaluations/{evaluation_id}/replay",
+        expected_status=200,
+        json_body={"evidence_bundle": _live_policy_evidence_bundle(scenario=scenario)},
+    )
+    hash_comparison = cast(dict[str, Any], replay_body["hash_comparison"])
+    _assert(
+        hash_comparison["evaluation_hash_matches"] is True,
+        f"{evaluation_id}: replay lost evaluation hash continuity",
+    )
+    latency_ms = (time.perf_counter() - started) * 1000.0
+    return extract_live_policy_evaluation_snapshot(
+        created_body=created_body,
+        read_body=read_body,
+        queue_body=queue_body,
+        workflow_body=workflow_body,
+        sign_off_body=sign_off_body,
+        report_status=report_status,
+        report_body=report_body,
+        ai_body=ai_body,
+        lineage_body=lineage_body,
+        replay_body=replay_body,
+        stale_hash_block_status=stale_hash_block_status,
+        client_ready_document_block_status=client_ready_document_block_status,
+        forbidden_ai_action_block_status=forbidden_ai_action_block_status,
+        report_degraded_reason=report_degraded_reason,
+        latency_ms=latency_ms,
+    )
+
+
+def _ensure_sg_policy_pack_active(client: httpx.Client, *, advise_base_url: str) -> None:
+    detail = _get_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05",
+        expected_status=200,
+    )
+    policy_pack = cast(dict[str, Any], detail["policy_pack"])
+    if policy_pack["activation_state"] == "ACTIVE":
+        return
+    content_hash = str(policy_pack["content_hash"])
+    _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05/validate",
+        expected_status=200,
+        json_body={
+            "requested_by": "policy_steward_live",
+            "reason": {"purpose": "live policy pack validation"},
+        },
+        headers={"Idempotency-Key": f"live-policy-pack-validate-{uuid.uuid4().hex}"},
+    )
+    _post_json(
+        client,
+        url=f"{advise_base_url}/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05/activate",
+        expected_status=200,
+        json_body={
+            "activated_by": "policy_checker_live",
+            "source_content_hash": content_hash,
+            "reason": {"purpose": "live policy pack activation"},
+        },
+        headers={"Idempotency-Key": f"live-policy-pack-activate-{uuid.uuid4().hex}"},
+    )
+
+
+def _live_policy_evidence_bundle(*, scenario: PortfolioParityScenario) -> dict[str, Any]:
+    return {
+        "context_resolution": {
+            "advisory_policy_context": {
+                "household_id": "HH-PB-001",
+                "jurisdiction": "SG",
+                "client_classification": "ACCREDITED_INVESTOR",
+                "booking_center_code": "SG",
+                "account_id": "ACCT-PB-001",
+                "time_horizon": "5Y",
+                "liquidity_need": "MEDIUM",
+                "mandate_id": "MANDATE-BALANCED-001",
+                "objectives": ["capital_preservation", "balanced_growth"],
+                "restrictions": ["no_single_name_above_10pct"],
+            }
+        },
+        "inputs": {
+            "portfolio_snapshot": {
+                "portfolio_id": scenario.portfolio_id,
+                "positions": [{"instrument_id": "SG_STRUCTURED_NOTE", "quantity": "100"}],
+                "cash_balances": [{"currency": scenario.reporting_currency, "amount": "50000"}],
+            },
+            "market_data_snapshot": {
+                "prices": [
+                    {
+                        "instrument_id": "SG_STRUCTURED_NOTE",
+                        "price": "100",
+                        "currency": scenario.reporting_currency,
+                    }
+                ],
+                "fx_rates": [{"pair": "USD/SGD", "rate": "1.35"}],
+            },
+            "shelf_entries": [
+                {
+                    "instrument_id": "SG_STRUCTURED_NOTE",
+                    "eligibility": {"jurisdictions": ["SG"]},
+                    "target_market": {"client_segments": ["ACCREDITED_INVESTOR"]},
+                    "complexity": "COMPLEX",
+                    "private_asset": False,
+                    "structured_product": True,
+                }
+            ],
+            "proposed_trades": [{"instrument_id": "SG_STRUCTURED_NOTE", "side": "BUY"}],
+        },
+        "risk_lens": {
+            "source_service": "lotus-risk",
+            "single_position_concentration": {"top_position_weight_current": "0.10"},
+            "issuer_concentration": {"hhi_current": "1200"},
+            "drawdown": {"max_drawdown_1y": "0.08"},
+            "var": {"var_95_1m": "0.04"},
+            "stress": {"equity_down_20": "-0.09"},
+            "liquidity_risk": {"days_to_liquidate": "3"},
+            "private_asset_risk": {"private_asset_weight": "0.00"},
+            "climate_geopolitical_risk": {"status": "not_material"},
+        },
+        "artifact": {
+            "assumptions_and_limits": {
+                "costs_and_fees": {"included": True},
+                "tax": {"included": True},
+                "execution": {"included": True},
+            },
+            "disclosures": {
+                "product_docs": [{"instrument_id": "SG_STRUCTURED_NOTE", "doc_ref": "Term sheet"}],
+            },
+        },
+        "conflict_evidence": {
+            "material_conflict": False,
+            "review_ref": "conflict-review-live-001",
+        },
+    }
+
+
 def _assert_async_lifecycle_read_surfaces(
     client: httpx.Client,
     *,
@@ -3467,6 +3831,11 @@ def validate_live_cross_service_parity(
             advise_base_url=advise_base_url,
             scenario=complete,
         )
+        proposal_policy = _assert_live_policy_evaluation_flow(
+            client,
+            advise_base_url=advise_base_url,
+            scenario=complete,
+        )
         (
             async_lifecycle_portfolio,
             async_lifecycle_latest_version_no,
@@ -3587,6 +3956,7 @@ def validate_live_cross_service_parity(
         report_status=report_status,
         proposal_narrative=proposal_narrative,
         proposal_memo=proposal_memo,
+        proposal_policy=proposal_policy,
         ready_decision=ready_decision,
         review_decision=review_decision,
         blocked_decision=blocked_decision,
