@@ -13,15 +13,15 @@
   "source_repository": "lotus-advise",
   "freshness": {
     "freshness_class": "event_driven",
-    "freshness_state": "unknown",
+    "freshness_state": "current",
     "evaluated_at_utc": "2026-05-26T00:00:00Z",
     "observed_at_utc": "2026-05-26T00:00:00Z",
     "age_seconds": 0,
     "max_allowed_age_seconds": 86400
   },
-  "completeness_status": "blocked",
+  "completeness_status": "complete",
   "reconciliation_status": "not_applicable",
-  "data_quality_status": "quality_unknown",
+  "data_quality_status": "quality_passed",
   "lineage": {
     "lineage_materialized": true,
     "lineage_bundle_id": "lineage:lotus-advise:advisory-policy-evaluation-record:implementation-proof:2026-05-26",
@@ -37,6 +37,8 @@
       "lotus-advise://docs/rfcs/RFC-0025-slice-12-gateway-workbench-product-realization.md",
       "lotus-advise://docs/rfcs/RFC-0025-slice-13-commercial-demo-rfp-support.md",
       "lotus-advise://docs/rfcs/RFC-0025-slice-14-implementation-proof.md",
+      "lotus-advise://docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md",
+      "lotus-advise://docs/rfcs/RFC-0025-slice-16-final-closure.md",
       "lotus-advise://src/core/policy_packs/persistence.py",
       "lotus-advise://src/core/policy_packs/workflow.py",
       "lotus-advise://src/core/policy_packs/reporting.py",
@@ -47,25 +49,24 @@
     ]
   },
   "blocking": {
-    "blocked": true,
-    "blocked_reason": "RFC0025_POLICY_EVALUATION_LIVE_PROOF_PRODUCT_PROMOTION_AND_CLOSURE_NOT_IMPLEMENTED"
+    "blocked": false
   },
   "observed_trust_metadata": {
     "product_name": "AdvisoryPolicyEvaluationRecord",
     "product_version": "v1",
     "generated_at": "2026-05-26T00:00:00Z",
-    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-implementation-proof-product-blocked",
+    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-final-closure-active",
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record"
   },
   "evidence": {
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record",
-    "claim_boundary": "RFC-0025 Slice 14 adds live-suite policy implementation proof for finalized policy evaluations: Advise APIs, SG reference-pack hashes, source refs and gaps, workflow and sign-off posture, report/render/archive refs or degraded reason, bounded AI evidence, lineage, replay hashes, and blocked stale-hash/client-ready/forbidden-AI paths are grounded in implemented behavior, including Slice 12 Gateway and Workbench product realization; active data-product promotion, final closure, approval/waiver authority, completed policy sign-off authority, and client-ready publication remain blocked",
+    "claim_boundary": "RFC-0025 final closure promotes AdvisoryPolicyEvaluationRecord:v1 as an active advisor/compliance policy evidence data product with finalized records, source/policy/evaluation/replay hashes, review queue, sign-off source packages, signed-off report-package lineage, bounded AI evidence lineage, Gateway routing, Workbench visibility, and live-suite proof; completed approval/waiver authority, completed policy sign-off authority, client-ready publication, and external client communication remain blocked",
     "validation_lanes": [
       "feature",
       "pr-merge",
       "main-releasability"
     ],
-    "source_event_id": "source-event:lotus-advise:advisory-policy-evaluation-record:blocked:2026-05-26",
+    "source_event_id": "source-event:lotus-advise:advisory-policy-evaluation-record:active:2026-05-26",
     "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
   }
 }

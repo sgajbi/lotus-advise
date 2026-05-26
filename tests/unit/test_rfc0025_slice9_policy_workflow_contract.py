@@ -7,12 +7,17 @@ WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_evaluations.py")
 WORKFLOW_SOURCE_PATH = Path("src/core/policy_packs/workflow.py")
+SUPPORTABILITY_SOURCE_PATH = Path("src/core/policy_packs/supportability.py")
 MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
 DECLARATION_PATH = Path("contracts/domain-data-products/lotus-advise-products.v1.json")
 TELEMETRY_PATH = Path(
     "contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
 )
 CAPABILITIES_SOURCE_PATH = Path("src/api/capabilities/service.py")
+
+
+def _flat(text: str) -> str:
+    return " ".join(text.split())
 
 
 def test_rfc0025_slice9_policy_workflow_evidence_is_indexed() -> None:
@@ -41,9 +46,10 @@ def test_rfc0025_slice9_policy_workflow_evidence_is_indexed() -> None:
 
 
 def test_rfc0025_slice9_exposes_workflow_without_product_surface_promotion() -> None:
-    supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     routes_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     workflow_source = WORKFLOW_SOURCE_PATH.read_text(encoding="utf-8")
+    supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
     models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
     declaration_source = DECLARATION_PATH.read_text(encoding="utf-8")
     telemetry_source = TELEMETRY_PATH.read_text(encoding="utf-8")
@@ -51,7 +57,7 @@ def test_rfc0025_slice9_exposes_workflow_without_product_surface_promotion() -> 
 
     assert "/advisory/policy-evaluations/{evaluation_id}/workflow" in routes_source
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" in routes_source
-    assert "rfc0025.policy-sign-off-workflow.v1" in workflow_source
+    assert "rfc0025.policy-sign-off-workflow.v1" in supportability_source
     assert "POLICY_EVALUATION_SIGN_OFF_REQUIRES_MAKER_CHECKER" in workflow_source
     assert "CONFLICT_REVIEW_OUTCOME_REQUIRED" in workflow_source
     assert "PolicyEvaluationWorkflowResponse" in models_source
@@ -66,5 +72,5 @@ def test_rfc0025_slice9_exposes_workflow_without_product_surface_promotion() -> 
     assert "policy report-package realization" in supported_features
     assert "active data-product promotion" in supported_features
     assert "client-ready publication" in supported_features
-    assert "advisory.proposals.policy_evaluation" not in capabilities_source
-    assert "advisory_policy_evaluation" not in capabilities_source
+    assert "advisory.proposals.policy_evaluation" in capabilities_source
+    assert "advisory_policy_evaluation" in capabilities_source

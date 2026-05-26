@@ -77,8 +77,8 @@ Current repository posture:
    canonical `PB_SG_GLOBAL_BAL_001` Workbench proof that the advisor journey and
    `proposal.memo_evidence_pack` panel are Gateway-backed. RFC-0024 is closed for advisor-use memo evidence with durable README/wiki/supported-features/RFC/context/domain-product/trust telemetry truth updated.
    Full RFC-0028 bank-demo/RFP package claims remain gated, and client-ready memo publication remains gated,
-7. RFC-0025 enterprise policy-pack implementation is in progress. Slice 3 declared
-   `AdvisoryPolicyEvaluationRecord:v1` as a proposed, blocked data product with trust telemetry and
+7. RFC-0025 enterprise policy-pack implementation is closed for advisor/compliance policy evidence.
+   Slice 3 declared `AdvisoryPolicyEvaluationRecord:v1` as a proposed, blocked data product with trust telemetry and
    platform catalog posture. Slice 4 adds `rfc0025.policy-source-readiness.v1` to proposal evidence
    bundles so future policy evaluation consumes explicit `lotus-core`, `lotus-risk`, and
    `lotus-advise` source-readiness sections rather than inferring or defaulting missing source
@@ -113,8 +113,16 @@ Current repository posture:
    Advise policy evaluation APIs, SG reference-pack hashes, source refs and gaps, requirement
    counts, workflow and sign-off posture, report/render/archive refs or degraded reason, bounded AI
    evidence, lineage, replay hashes, and stale-hash/client-ready/forbidden-AI blocked paths.
-   Active data-product promotion, final closure, and client-ready publication remain unimplemented
-   and unpromoted,
+   Slice 15 hardens the second-last review boundary by centralizing policy-pack supportability
+   posture in `src/core/policy_packs/supportability.py` and removing stale earlier-slice
+   Gateway/Workbench/report-handoff unsupported claims from code, OpenAPI/schema examples, and
+   tests.
+   Slice 16 promotes `AdvisoryPolicyEvaluationRecord:v1` as an active advisor/compliance policy
+   evidence product with current trust telemetry, `/platform/capabilities` feature/workflow
+   posture, platform SLO/access/evidence-policy support, and durable README/wiki/RFC/context/
+   domain-product/trust telemetry closure truth. Completed approval/waiver authority, completed
+   sign-off authority, client-ready policy publication, external client communication, and full
+   RFC-0028 bank-demo/RFP package claims remain gated,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 10. repo-native CI is already aligned to explicit lane expectations,

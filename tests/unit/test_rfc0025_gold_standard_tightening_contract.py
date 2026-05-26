@@ -19,7 +19,7 @@ def _flat(text: str) -> str:
 def test_rfc0025_has_executable_gold_standard_slice_plan() -> None:
     rfc = _read(RFC_PATH)
 
-    assert "DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN" in rfc
+    assert "IMPLEMENTED for advisor/compliance policy evaluation evidence" in rfc
     assert "2026-05-26" in rfc
 
     required_slice_headings = (
@@ -84,9 +84,15 @@ def test_rfc0025_documentation_as_product_and_supported_claim_controls_are_pinne
     assert "no document can imply the sample/reference packs are legal advice" in rfc
 
     assert "`RFC-0025` | Enterprise suitability and best-interest policy packs" in supported
-    assert "Planned RFC only" in supported
+    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 17" in (
+        supported
+    )
+    assert "Slice 17 completes post-completion communication" in supported
     assert "client-ready publication and external communication remain gated" in supported
-    assert "Enterprise suitability and best-interest policy packs | Supported" not in supported
+    policy_feature_row = (
+        "AdvisoryPolicyEvaluationRecord:v1 | Supported for advisor/compliance policy evidence"
+    )
+    assert policy_feature_row in supported
 
 
 def test_rfc_and_wiki_indexes_point_to_rfc0025_without_stale_rfc0024_future_claim() -> None:
@@ -96,7 +102,10 @@ def test_rfc_and_wiki_indexes_point_to_rfc0025_without_stale_rfc0024_future_clai
 
     assert "1. `RFC-0025` enterprise suitability and best-interest policy packs" in rfc_index
     assert "RFC-0024 is implemented for advisor-use proposal memo evidence" in flat_wiki_index
-    assert "RFC-0025 is the next recommended implementation program" in flat_wiki_index
+    assert "RFC-0025 is implemented for advisor/compliance policy evaluation evidence" in (
+        flat_wiki_index
+    )
+    assert "RFC-0025 Slice 17 is implemented as post-completion communication" in wiki_index
     assert "RFC-0024 is the next recommended implementation slice" not in wiki_index
 
     active_future_section = wiki_index.split("## Active Future Work", maxsplit=1)[1].split(
@@ -104,4 +113,6 @@ def test_rfc_and_wiki_indexes_point_to_rfc0025_without_stale_rfc0024_future_clai
         maxsplit=1,
     )[0]
     assert "RFC-0024 advisor proposal memo and evidence pack" not in active_future_section
-    assert "RFC-0025 enterprise suitability and best-interest policy packs" in active_future_section
+    assert "RFC-0025 enterprise suitability and best-interest policy packs" not in (
+        active_future_section
+    )

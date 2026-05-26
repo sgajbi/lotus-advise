@@ -20,22 +20,15 @@ The current first-wave snapshot is:
    client-ready memo publication, external client communication, or full RFC-0028 bank-demo/RFP
    package claims.
 4. `advisory-policy-evaluation-record.telemetry.v1.json`
-   Blocked trust posture for `lotus-advise:AdvisoryPolicyEvaluationRecord:v1`, the proposed
-   RFC-0025 policy-evaluation product. This snapshot makes the product visible to mesh governance
-   without promoting active data-product support, completed sign-off authority, or client-ready
-   publication. The internal Slice 6 evaluator, Slice 7 finalized-record
-   persistence/replay path, Slice 8 certified Advise evaluation API surface, Slice 9 Advise source
-   workflow/sign-off decision boundary, Slice 10 Advise report-package realization path, and Slice
-   11 Advise AI policy-evidence boundary are implementation-backed. Slice 12 adds Gateway and
-   Workbench product realization for review queues, selected evaluation evidence, sign-off package
-   posture, workflow posture, and bounded request-more-evidence actions through Gateway only. Slice
-   13 adds policy-pack-specific commercial material with claim-controlled one-pager language, demo
-   notes, API examples, architecture flow, operator guidance, security posture, and RFP-safe
-   wording. Slice 14 adds live-suite policy implementation proof for Advise APIs, SG reference-pack
-   hashes, source refs and gaps, workflow and sign-off posture, report/render/archive refs or
-   degraded reason, bounded AI evidence, lineage, replay hashes, and blocked stale-hash/client-ready/
-   forbidden-AI paths. The product remains below the active data-product publication boundary until
-   supportability promotion, hardening, and final closure are complete.
+   Active trust posture for `lotus-advise:AdvisoryPolicyEvaluationRecord:v1`, the RFC-0025
+   policy-evaluation product. This snapshot promotes advisor/compliance policy evidence after the
+   Slice 6 evaluator, Slice 7 finalized-record persistence/replay path, Slice 8 certified Advise
+   evaluation API surface, Slice 9 workflow/sign-off decision boundary, Slice 10 report-package
+   realization path, Slice 11 AI policy-evidence boundary, Slice 12 Gateway/Workbench product
+   realization, Slice 13 commercial support material, Slice 14 live-suite proof, Slice 15
+   supportability hardening, and Slice 16 final closure. Completed approval/waiver authority,
+   completed sign-off authority, client-ready publication, and external client communication remain
+   blocked.
 
 Validate locally with:
 

@@ -94,7 +94,7 @@ def test_rfc0024_capabilities_advertise_advisor_use_memo_evidence_only():
     assert "client_ready_memo_publication" not in payload_text
 
 
-def test_rfc0025_capabilities_do_not_advertise_policy_evaluation_before_runtime_support():
+def test_rfc0025_capabilities_advertise_policy_evaluation_after_slice16_closure():
     with TestClient(app) as client:
         response = client.get(
             "/platform/capabilities",
@@ -107,13 +107,13 @@ def test_rfc0025_capabilities_do_not_advertise_policy_evaluation_before_runtime_
     workflow_keys = {item["workflow_key"] for item in payload["workflows"]}
     payload_text = str(payload).lower()
 
-    assert "advisory.proposals.policy_evaluation" not in feature_keys
-    assert "advisory_policy_evaluation" not in workflow_keys
+    assert "advisory.proposals.policy_evaluation" in feature_keys
+    assert "advisory_policy_evaluation" in workflow_keys
     assert "advisory.policy_pack_catalog" in feature_keys
     assert "advisory_policy_pack_catalog" in workflow_keys
-    assert "advisorypolicyevaluationrecord" not in payload_text
-    assert "policy evaluation support" not in payload_text
-    assert "client-ready publication remain gated" in payload_text
+    assert "policy evaluation data product" in payload_text
+    assert "completed approval/waiver authority" in payload_text
+    assert "client-ready publication" in payload_text
 
 
 def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_only():
@@ -186,6 +186,13 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         features["advisory.proposals.memo_evidence_pack"]["degraded_reason"]
         == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
     )
+    assert features["advisory.proposals.policy_evaluation"]["enabled"] is True
+    assert features["advisory.proposals.policy_evaluation"]["operational_ready"] is False
+    assert features["advisory.proposals.policy_evaluation"]["owner_service"] == "ADVISORY"
+    assert (
+        features["advisory.proposals.policy_evaluation"]["degraded_reason"]
+        == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+    )
     assert features["advisory.proposals.execution_handoff"]["operational_ready"] is True
     assert features["advise.observability.advisory_supportability"]["enabled"] is True
     assert features["advise.observability.advisory_supportability"]["owner_service"] == "ADVISORY"
@@ -208,6 +215,14 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "advisory.proposals.memo_evidence_pack",
         "advisory.proposals.reporting",
     ]
+    assert workflows["advisory_policy_evaluation"]["enabled"] is True
+    assert workflows["advisory_policy_evaluation"]["operational_ready"] is False
+    assert workflows["advisory_policy_evaluation"]["required_features"] == [
+        "advisory.proposals.lifecycle",
+        "advisory.policy_pack_catalog",
+        "advisory.proposals.policy_evaluation",
+        "advisory.proposals.reporting",
+    ]
     assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True
     assert payload["supportability"] == {
         "state": "degraded",
@@ -217,7 +232,7 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "dependency_count": 5,
         "ready_dependency_count": 2,
         "degraded_dependency_count": 3,
-        "enabled_feature_count": 12,
+        "enabled_feature_count": 13,
         "ready_feature_count": 9,
     }
 
@@ -414,8 +429,8 @@ def test_integration_capabilities_reports_ready_advisory_supportability(monkeypa
         "dependency_count": 5,
         "ready_dependency_count": 5,
         "degraded_dependency_count": 0,
-        "enabled_feature_count": 12,
-        "ready_feature_count": 12,
+        "enabled_feature_count": 13,
+        "ready_feature_count": 13,
     }
 
 

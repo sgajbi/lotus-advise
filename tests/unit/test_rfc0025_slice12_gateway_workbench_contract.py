@@ -13,6 +13,10 @@ TELEMETRY_PATH = Path(
 CAPABILITIES_SOURCE_PATH = Path("src/api/capabilities/service.py")
 
 
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
 def test_rfc0025_slice12_gateway_workbench_evidence_is_indexed() -> None:
     source_ref = "docs/rfcs/RFC-0025-slice-12-gateway-workbench-product-realization.md"
 
@@ -35,7 +39,7 @@ def test_rfc0025_slice12_gateway_workbench_evidence_is_indexed() -> None:
 
 
 def test_rfc0025_slice12_updates_supported_boundary_without_product_promotion() -> None:
-    supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     repo_context = REPO_CONTEXT_PATH.read_text(encoding="utf-8")
     declaration = DECLARATION_PATH.read_text(encoding="utf-8")
     telemetry = TELEMETRY_PATH.read_text(encoding="utf-8")
@@ -45,10 +49,10 @@ def test_rfc0025_slice12_updates_supported_boundary_without_product_promotion() 
         "Slice 12 is complete for Gateway and Workbench product realization" in supported_features
     )
     assert "Gateway and Workbench product" in repo_context
-    assert "Gateway and Workbench product realization" in declaration
-    assert "Gateway and Workbench product realization" in telemetry
-    assert "LIVE_PROOF_PRODUCT_PROMOTION_AND_CLOSURE_NOT_IMPLEMENTED" in telemetry
+    assert "Gateway/Workbench visibility" in declaration
+    assert "Gateway routing, Workbench visibility" in telemetry
+    assert "RFC-0025-slice-16-final-closure.md" in telemetry
     assert "Gateway/Workbench policy support" not in telemetry
     assert "Gateway/Workbench policy support" not in declaration
-    assert "advisory.proposals.policy_evaluation" not in capabilities_source
-    assert "advisory_policy_evaluation" not in capabilities_source
+    assert "advisory.proposals.policy_evaluation" in capabilities_source
+    assert "advisory_policy_evaluation" in capabilities_source

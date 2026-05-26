@@ -7,11 +7,16 @@ WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_evaluations.py")
 PERSISTENCE_SOURCE_PATH = Path("src/core/policy_packs/persistence.py")
+SUPPORTABILITY_SOURCE_PATH = Path("src/core/policy_packs/supportability.py")
 DECLARATION_PATH = Path("contracts/domain-data-products/lotus-advise-products.v1.json")
 TELEMETRY_PATH = Path(
     "contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
 )
 CAPABILITIES_SOURCE_PATH = Path("src/api/capabilities/service.py")
+
+
+def _flat(text: str) -> str:
+    return " ".join(text.split())
 
 
 def test_rfc0025_slice8_certified_api_evidence_is_indexed() -> None:
@@ -39,9 +44,9 @@ def test_rfc0025_slice8_certified_api_evidence_is_indexed() -> None:
 
 
 def test_rfc0025_slice8_exposes_advise_routes_without_capability_promotion() -> None:
-    supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8"))
     routes_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
-    persistence_source = PERSISTENCE_SOURCE_PATH.read_text(encoding="utf-8")
+    supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
     declaration_source = DECLARATION_PATH.read_text(encoding="utf-8")
     telemetry_source = TELEMETRY_PATH.read_text(encoding="utf-8")
     capabilities_source = CAPABILITIES_SOURCE_PATH.read_text(encoding="utf-8")
@@ -49,7 +54,7 @@ def test_rfc0025_slice8_exposes_advise_routes_without_capability_promotion() -> 
     assert "Advisory Policy Evaluation" in routes_source
     assert "/advisory/policy-evaluations/review-queue" in routes_source
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-package" in routes_source
-    assert "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API" in persistence_source
+    assert "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API" in supportability_source
     assert "/advisory/policy-evaluations/{evaluation_id}/lineage" in declaration_source
     assert "RFC-0025-slice-8-certified-apis-and-openapi.md" in telemetry_source
     assert "certified Advise evaluation APIs" in supported_features
@@ -57,5 +62,5 @@ def test_rfc0025_slice8_exposes_advise_routes_without_capability_promotion() -> 
         "Slice 12 is complete for Gateway and Workbench product realization" in supported_features
     )
     assert "active data-product promotion" in supported_features
-    assert "advisory.proposals.policy_evaluation" not in capabilities_source
-    assert "advisory_policy_evaluation" not in capabilities_source
+    assert "advisory.proposals.policy_evaluation" in capabilities_source
+    assert "advisory_policy_evaluation" in capabilities_source
