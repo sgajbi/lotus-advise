@@ -177,6 +177,102 @@ def test_generate_policy_evidence_masks_transport_failure(
     assert str(exc.value) == "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
 
 
+@pytest.mark.parametrize(
+    ("status_code", "payload", "expected_reason"),
+    [
+        (
+            200,
+            {"execution": {"status": "RUNNING"}},
+            "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE",
+        ),
+        (
+            200,
+            {
+                "execution": {
+                    "status": "COMPLETED",
+                    "result": {
+                        "structured_output": {
+                            "sections": [
+                                "not-a-section",
+                                {
+                                    "section_key": "POLICY_POSTURE",
+                                    "title": " ",
+                                    "text": "No usable section title.",
+                                },
+                            ],
+                            "review_guidance": "not-a-list",
+                        }
+                    },
+                }
+            },
+            "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE",
+        ),
+        (
+            503,
+            {"detail": "model unavailable"},
+            "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE",
+        ),
+        (
+            422,
+            {"detail": "policy evidence packet rejected"},
+            "policy evidence packet rejected",
+        ),
+        (
+            400,
+            {},
+            "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE",
+        ),
+    ],
+)
+def test_generate_policy_evidence_fails_closed_for_unusable_ai_responses(
+    monkeypatch: pytest.MonkeyPatch,
+    status_code: int,
+    payload: dict[str, object],
+    expected_reason: str,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.policy_evidence.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    status_code,
+                    payload,
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIPolicyEvidenceUnavailableError) as exc:
+        generate_policy_evidence_summary_with_lotus_ai(
+            policy_evidence=_policy_evidence(),
+            requested_actions=["SUMMARIZE_POLICY_POSTURE"],
+            requested_by="policy_checker_1",
+            reason={"purpose": "compliance explanation"},
+        )
+
+    assert str(exc.value) == expected_reason
+
+
+def test_generate_policy_evidence_fails_closed_when_lotus_ai_is_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LOTUS_AI_BASE_URL", raising=False)
+
+    with pytest.raises(LotusAIPolicyEvidenceUnavailableError) as exc:
+        generate_policy_evidence_summary_with_lotus_ai(
+            policy_evidence=_policy_evidence(),
+            requested_actions=["SUMMARIZE_POLICY_POSTURE"],
+            requested_by="policy_checker_1",
+            reason={"purpose": "compliance explanation"},
+        )
+
+    assert str(exc.value) == "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
+
+
 def test_unavailable_policy_evidence_is_non_authoritative_and_review_guided() -> None:
     fallback = build_policy_ai_unavailable_evidence("LOTUS_AI_NOT_CONFIGURED")
 
