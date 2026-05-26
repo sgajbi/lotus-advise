@@ -84,7 +84,7 @@ def test_rfc0025_documentation_as_product_and_supported_claim_controls_are_pinne
     assert "no document can imply the sample/reference packs are legal advice" in rfc
 
     assert "`RFC-0025` | Enterprise suitability and best-interest policy packs" in supported
-    assert "Planned RFC only" in supported
+    assert "Implementation in progress through Slice 15" in supported
     assert "client-ready publication and external communication remain gated" in supported
     assert "Enterprise suitability and best-interest policy packs | Supported" not in supported
 

@@ -13,14 +13,19 @@ from src.core.policy_packs.models import (
     PolicyPackSummary,
     PolicyPackValidationResponse,
 )
+from src.core.policy_packs.supportability import (
+    POLICY_CATALOG_CONTRACT_VERSION,
+    REFERENCE_POLICY_PACK_POSTURE,
+    policy_runtime_supportability,
+)
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalValidationError,
 )
 
-_CATALOG_CONTRACT_VERSION = "rfc0025.policy-pack-catalog.v1"
-_REFERENCE_POSTURE = "REFERENCE_EXAMPLE_NOT_LEGAL_ADVICE"
+_CATALOG_CONTRACT_VERSION = POLICY_CATALOG_CONTRACT_VERSION
+_REFERENCE_POSTURE = REFERENCE_POLICY_PACK_POSTURE
 
 
 def list_policy_pack_versions() -> PolicyPackListResponse:
@@ -358,18 +363,7 @@ def _summary_from_definition(definition: dict[str, Any]) -> PolicyPackSummary:
 
 
 def _catalog_posture() -> dict[str, Any]:
-    return {
-        "catalog_contract_version": _CATALOG_CONTRACT_VERSION,
-        "reference_posture": _REFERENCE_POSTURE,
-        "policy_catalog": "SUPPORTED_BY_RFC0025_SLICE5",
-        "policy_activation": "SUPPORTED_BY_RFC0025_SLICE5",
-        "policy_evaluation": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-        "review_queue_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-        "sign_off_package_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-        "client_ready_publication": "BLOCKED",
-        "gateway_supported": False,
-        "workbench_supported": False,
-    }
+    return policy_runtime_supportability()
 
 
 def _validate_definition(definition: dict[str, Any]) -> list[str]:

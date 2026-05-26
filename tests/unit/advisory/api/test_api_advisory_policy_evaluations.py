@@ -165,7 +165,13 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         assert read_body["evaluation_json"]["supportability"]["policy_evaluation_api"] == (
             "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"
         )
-        assert read_body["evaluation_json"]["supportability"]["gateway_supported"] is False
+        assert read_body["evaluation_json"]["supportability"]["gateway_supported"] is True
+        assert read_body["evaluation_json"]["supportability"]["gateway_support"] == (
+            "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_BFF"
+        )
+        assert read_body["evaluation_json"]["supportability"]["active_data_product_promotion"] == (
+            "BLOCKED_UNTIL_FINAL_CLOSURE"
+        )
 
         replay = client.post(
             f"/advisory/policy-evaluations/{evaluation_id}/replay",
@@ -209,8 +215,9 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         sign_off_body = sign_off.json()
         assert sign_off_body["evaluation"]["evaluation_id"] == evaluation_id
         assert sign_off_body["package_posture"]["report_render_archive_realization"] == (
-            "NOT_IMPLEMENTED"
+            "SUPPORTED_BY_RFC0025_SLICE10_SIGNED_OFF_PACKAGE_HANDOFF"
         )
+        assert sign_off_body["package_posture"]["client_ready_publication"] == "BLOCKED"
 
 
 def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requirements() -> None:
@@ -268,7 +275,7 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
             "POLICY_EVALUATION_SIGN_OFF_RECORDED"
         )
         assert signed_body["replay_metadata"]["report_render_archive_realization"] == (
-            "NOT_IMPLEMENTED"
+            "SUPPORTED_BY_RFC0025_SLICE10_SIGNED_OFF_PACKAGE_HANDOFF"
         )
 
 
@@ -591,7 +598,11 @@ def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
         queue_body = queue.json()
         assert [item["evaluation_id"] for item in queue_body["items"]] == [evaluation_id]
         assert queue_body["items"][0]["evaluation_status"] == "PENDING_REVIEW"
-        assert queue_body["queue_posture"]["workbench_supported"] is False
+        assert queue_body["queue_posture"]["workbench_supported"] is True
+        assert queue_body["queue_posture"]["workbench_support"] == (
+            "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI"
+        )
+        assert queue_body["queue_posture"]["client_ready_publication"] == "BLOCKED"
 
         ready_queue = client.get(
             "/advisory/policy-evaluations/review-queue",

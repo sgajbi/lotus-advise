@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-26T04:36:52.153188+00:00",
+  "generatedAt": "2026-05-26T10:52:37.013539+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action",
@@ -5078,7 +5078,7 @@
       "semanticId": "lotus.package_posture",
       "canonicalTerm": "package_posture",
       "preferredName": "package_posture",
-      "description": "Current sign-off package realization boundary. Slice 8 exposes the certified source package but does not produce client-ready report/render/archive artifacts.",
+      "description": "Current sign-off package realization boundary. Advise exposes the certified source package and signed-off report-package handoff, but client-ready publication remains blocked.",
       "example": {
         "key": "sample_text"
       },
