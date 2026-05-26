@@ -1,0 +1,56 @@
+{
+  "contract_id": "lotus-domain-product-trust-telemetry-snapshot",
+  "contract_version": "1.0.0",
+  "governed_by_rfcs": [
+    "RFC-0087",
+    "RFC-0025"
+  ],
+  "emitted_at_utc": "2026-05-26T00:00:00Z",
+  "product_id": "lotus-advise:AdvisoryPolicyEvaluationRecord:v1",
+  "producer_repository": "lotus-advise",
+  "product_name": "AdvisoryPolicyEvaluationRecord",
+  "product_version": "v1",
+  "source_repository": "lotus-advise",
+  "freshness": {
+    "freshness_class": "event_driven",
+    "freshness_state": "unknown",
+    "evaluated_at_utc": "2026-05-26T00:00:00Z",
+    "observed_at_utc": "2026-05-26T00:00:00Z",
+    "age_seconds": 0,
+    "max_allowed_age_seconds": 86400
+  },
+  "completeness_status": "blocked",
+  "reconciliation_status": "not_applicable",
+  "data_quality_status": "quality_unknown",
+  "lineage": {
+    "lineage_materialized": false,
+    "lineage_bundle_id": "lineage:lotus-advise:advisory-policy-evaluation-record:blocked:2026-05-26",
+    "evidence_access_class": "customer_consumable",
+    "evidence_uris": [
+      "lotus-advise://contracts/domain-data-products/lotus-advise-products.v1.json#AdvisoryPolicyEvaluationRecord",
+      "lotus-advise://docs/rfcs/RFC-0025-slice-3-data-product-and-platform-hardening.md"
+    ]
+  },
+  "blocking": {
+    "blocked": true,
+    "blocked_reason": "RFC0025_POLICY_EVALUATION_RUNTIME_NOT_IMPLEMENTED"
+  },
+  "observed_trust_metadata": {
+    "product_name": "AdvisoryPolicyEvaluationRecord",
+    "product_version": "v1",
+    "generated_at": "2026-05-26T00:00:00Z",
+    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-blocked",
+    "correlation_id": "rfc-0025-advisory-policy-evaluation-record"
+  },
+  "evidence": {
+    "correlation_id": "rfc-0025-advisory-policy-evaluation-record",
+    "claim_boundary": "RFC-0025 Slice 3 declares proposed policy-evaluation data-product posture only; runtime policy evaluation, Gateway/Workbench policy support, and client-ready publication remain blocked",
+    "validation_lanes": [
+      "feature",
+      "pr-merge",
+      "main-releasability"
+    ],
+    "source_event_id": "source-event:lotus-advise:advisory-policy-evaluation-record:blocked:2026-05-26",
+    "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
+  }
+}

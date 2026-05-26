@@ -4212,3 +4212,35 @@
 - Follow-Up:
   - Include focused policy-context/suitability/decision-summary tests, docs contract tests,
     repo-native `make check`, and repo wiki sync check in the PR evidence before merge.
+
+## LA-REV-164
+
+- Scope: RFC-0025 policy-evaluation data-product boundary
+- Pattern: mesh posture / unsupported capability claim prevention
+- Status: Hardened
+- Finding Class: product-truth risk
+- Summary: RFC-0025 required an `AdvisoryPolicyEvaluationRecord:v1` data-product boundary before
+  policy runtime work, but adding that product without explicit blocked telemetry and
+  non-promotion tests would risk either invisible mesh planning truth or premature support claims.
+- Evidence:
+  - `contracts/domain-data-products/lotus-advise-products.v1.json` now declares
+    `AdvisoryPolicyEvaluationRecord:v1` as `proposed`, blocked, and route-less.
+  - `contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json` records
+    blocked trust telemetry with unknown freshness, blocked completeness, unknown quality, and
+    non-materialized lineage.
+  - `tests/unit/test_trust_telemetry.py` now generates a current platform domain-product catalog
+    from repo-native declarations before validating trust telemetry, and it pins the policy
+    product as proposed, blocked, and not capability-promoted.
+  - `tests/unit/advisory/api/test_api_integration_capabilities.py` asserts
+    `/platform/capabilities` does not advertise policy evaluation support before runtime
+    implementation exists.
+- Consequence:
+  - Mesh governance can see the intended policy-evaluation product boundary while business and
+    front-office consumers remain protected from unsupported policy-pack claims.
+- Documentation:
+  - RFC-0025 Slice 3 evidence, trust-telemetry README, RFC index, supported-feature wiki source,
+    and RFC README were updated as non-claiming data-product posture.
+- Follow-Up:
+  - After this repo-native declaration reaches `main`, refresh `lotus-platform` generated
+    domain-product catalog, dependency graph, certification report, and maturity artifacts so
+    platform publication truth includes the proposed policy-evaluation product.
