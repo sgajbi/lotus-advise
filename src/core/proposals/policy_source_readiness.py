@@ -128,28 +128,24 @@ def build_policy_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, 
         source_readiness_section(
             key="advise_policy_evaluation_runtime",
             owner_service="lotus-advise",
-            status="PENDING_REVIEW",
+            status="READY",
             evidence_refs=[
                 "evidence_bundle.policy_source_readiness",
                 "contracts.domain-data-products.AdvisoryPolicyEvaluationRecord",
             ],
-            missing_evidence=[
-                "policy_pack_catalog",
-                "policy_evaluation_engine",
-                "policy_persistence_replay",
-            ],
-            reason_codes=["RFC0025_POLICY_EVALUATION_RUNTIME_NOT_IMPLEMENTED"],
+            missing_evidence=[],
+            reason_codes=["RFC0025_INTERNAL_POLICY_EVALUATION_ENGINE_AVAILABLE"],
         ),
     ]
 
     return {
         "contract_version": _CONTRACT_VERSION,
-        "capability_posture": "SOURCE_READINESS_ONLY_POLICY_EVALUATION_NOT_IMPLEMENTED",
+        "capability_posture": "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE",
         "overall_posture": overall_posture(sections),
         "source_authority": source_authority(sections),
         "sections": deepcopy(sections),
         "claim_policy": {
-            "policy_evaluation": "NOT_IMPLEMENTED",
+            "policy_evaluation": "INTERNAL_ENGINE_ONLY_NO_PERSISTED_API",
             "client_ready_publication": "BLOCKED",
             "unsupported_fact_handling": (
                 "Do not claim policy suitability, best-interest, eligibility, disclosure, "
@@ -334,6 +330,8 @@ def _all_products_have_policy_evidence(rows: list[Any]) -> bool:
 def _risk_policy_status(risk_lens: dict[str, Any]) -> ReadinessStatus:
     if risk_lens.get("source_service") != "lotus-risk":
         return "BLOCKED"
+    if _risk_policy_degraded(risk_lens):
+        return "PENDING_REVIEW"
     return "READY" if not _risk_policy_missing(risk_lens) else "PENDING_REVIEW"
 
 
@@ -341,6 +339,8 @@ def _risk_policy_missing(risk_lens: dict[str, Any]) -> list[str]:
     missing = []
     if risk_lens.get("source_service") != "lotus-risk":
         missing.append("lotus-risk source_service")
+    if _risk_policy_degraded(risk_lens):
+        missing.append("lotus-risk degraded policy metrics")
     for key in (
         "single_position_concentration",
         "issuer_concentration",
@@ -362,4 +362,18 @@ def _risk_policy_reasons(risk_lens: dict[str, Any]) -> list[str]:
         return []
     if "lotus-risk source_service" in missing:
         return ["RISK_OWNER_POLICY_EVIDENCE_NOT_AVAILABLE"]
+    if "lotus-risk degraded policy metrics" in missing:
+        return ["RISK_OWNER_POLICY_EVIDENCE_DEGRADED"]
     return ["RISK_OWNER_POLICY_EVIDENCE_INCOMPLETE"]
+
+
+def _risk_policy_degraded(risk_lens: dict[str, Any]) -> bool:
+    supportability = dict_at(risk_lens, "supportability")
+    state = str(
+        risk_lens.get("supportability_state")
+        or risk_lens.get("state")
+        or supportability.get("state")
+        or supportability.get("status")
+        or ""
+    ).upper()
+    return state in {"DEGRADED", "STALE", "PARTIAL"}

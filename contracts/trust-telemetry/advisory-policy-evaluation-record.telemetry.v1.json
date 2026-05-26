@@ -33,18 +33,18 @@
   },
   "blocking": {
     "blocked": true,
-    "blocked_reason": "RFC0025_POLICY_EVALUATION_RUNTIME_NOT_IMPLEMENTED"
+    "blocked_reason": "RFC0025_POLICY_EVALUATION_PERSISTENCE_AND_API_NOT_IMPLEMENTED"
   },
   "observed_trust_metadata": {
     "product_name": "AdvisoryPolicyEvaluationRecord",
     "product_version": "v1",
     "generated_at": "2026-05-26T00:00:00Z",
-    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-blocked",
+    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-blocked-persistence-api",
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record"
   },
   "evidence": {
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record",
-    "claim_boundary": "RFC-0025 Slice 3 declares proposed policy-evaluation data-product posture only; runtime policy evaluation, Gateway/Workbench policy support, and client-ready publication remain blocked",
+    "claim_boundary": "RFC-0025 Slice 6 adds an internal policy evaluation engine only; persisted policy evaluation records, certified policy APIs, Gateway/Workbench policy support, and client-ready publication remain blocked",
     "validation_lanes": [
       "feature",
       "pr-merge",

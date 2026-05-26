@@ -63,7 +63,7 @@ def test_build_proposal_evidence_bundle_preserves_lineage_and_risk_lens():
         "rfc0025.policy-source-readiness.v1"
     )
     assert bundle["policy_source_readiness"]["capability_posture"] == (
-        "SOURCE_READINESS_ONLY_POLICY_EVALUATION_NOT_IMPLEMENTED"
+        "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE"
     )
     assert bundle["replay_lineage"] == {"operation_id": "pop_replay", "attempt": {"count": 1}}
 

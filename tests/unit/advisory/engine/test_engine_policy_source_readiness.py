@@ -74,9 +74,11 @@ def test_policy_source_readiness_marks_source_backed_policy_inputs_ready_without
 
     assert readiness["contract_version"] == "rfc0025.policy-source-readiness.v1"
     assert readiness["capability_posture"] == (
-        "SOURCE_READINESS_ONLY_POLICY_EVALUATION_NOT_IMPLEMENTED"
+        "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE"
     )
-    assert readiness["claim_policy"]["policy_evaluation"] == "NOT_IMPLEMENTED"
+    assert readiness["claim_policy"]["policy_evaluation"] == (
+        "INTERNAL_ENGINE_ONLY_NO_PERSISTED_API"
+    )
     assert readiness["claim_policy"]["client_ready_publication"] == "BLOCKED"
     assert _section(readiness, "core_client_profile_classification")["status"] == "READY"
     assert _section(readiness, "core_mandate_objectives_restrictions")["status"] == "READY"
@@ -86,12 +88,12 @@ def test_policy_source_readiness_marks_source_backed_policy_inputs_ready_without
         == "READY"
     )
     assert _section(readiness, "risk_policy_metrics")["status"] == "READY"
-    assert _section(readiness, "advise_policy_evaluation_runtime")["status"] == ("PENDING_REVIEW")
+    assert _section(readiness, "advise_policy_evaluation_runtime")["status"] == "READY"
     assert (
-        "RFC0025_POLICY_EVALUATION_RUNTIME_NOT_IMPLEMENTED"
+        "RFC0025_INTERNAL_POLICY_EVALUATION_ENGINE_AVAILABLE"
         in _section(readiness, "advise_policy_evaluation_runtime")["reason_codes"]
     )
-    assert readiness["overall_posture"] == "PENDING_REVIEW"
+    assert readiness["overall_posture"] == "READY"
     assert set(readiness["source_authority"]) == {"lotus-core", "lotus-risk", "lotus-advise"}
 
 
@@ -152,3 +154,15 @@ def test_policy_source_readiness_keeps_partial_owner_evidence_pending_review():
     )
     assert _section(readiness, "risk_policy_metrics")["status"] == "PENDING_REVIEW"
     assert "stress" in _section(readiness, "risk_policy_metrics")["missing_evidence"]
+
+
+def test_policy_source_readiness_keeps_degraded_risk_owner_evidence_pending_review():
+    evidence = deepcopy(_base_evidence_bundle())
+    evidence["risk_lens"]["supportability_state"] = "DEGRADED"
+
+    readiness = build_policy_source_readiness(evidence)
+
+    risk = _section(readiness, "risk_policy_metrics")
+    assert risk["status"] == "PENDING_REVIEW"
+    assert "lotus-risk degraded policy metrics" in risk["missing_evidence"]
+    assert "RISK_OWNER_POLICY_EVIDENCE_DEGRADED" in risk["reason_codes"]
