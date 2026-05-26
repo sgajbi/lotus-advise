@@ -63,6 +63,7 @@ def test_rfc0025_policy_product_stays_proposed_blocked_without_capability_promot
         "/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
         "/advisory/policy-evaluations/{evaluation_id}/workflow",
         "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
+        "/advisory/policy-evaluations/{evaluation_id}/report-packages",
     ]
     assert product["completeness_policy"]["default_status"] == "blocked"
     assert telemetry["blocking"]["blocked"] is True

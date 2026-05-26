@@ -17,6 +17,8 @@ from src.core.policy_packs.models import (
     PolicyEvaluationRecord,
     PolicyEvaluationReplayRequest,
     PolicyEvaluationReplayResponse,
+    PolicyEvaluationReportPackageRequest,
+    PolicyEvaluationReportPackageResponse,
     PolicyEvaluationRequirementProjection,
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffDecisionRequest,
@@ -47,6 +49,7 @@ from src.core.policy_packs.persistence import (
     replay_policy_evaluation_record,
     reset_policy_evaluation_store_for_tests,
 )
+from src.core.policy_packs.reporting import request_policy_evaluation_report_package
 from src.core.policy_packs.workflow import (
     get_policy_evaluation_workflow,
     record_policy_evaluation_sign_off_decision,
@@ -66,6 +69,8 @@ __all__ = [
     "PolicyEvaluationLineageResponse",
     "PolicyEvaluationPersistenceResult",
     "PolicyEvaluationRecord",
+    "PolicyEvaluationReportPackageRequest",
+    "PolicyEvaluationReportPackageResponse",
     "PolicyEvaluationReplayResponse",
     "PolicyEvaluationReplayRequest",
     "PolicyEvaluationRequirementProjection",
@@ -94,6 +99,7 @@ __all__ = [
     "list_policy_evaluation_events",
     "list_policy_evaluation_records",
     "replay_policy_evaluation_record",
+    "request_policy_evaluation_report_package",
     "record_policy_evaluation_sign_off_decision",
     "reset_policy_evaluation_store_for_tests",
     "reset_policy_pack_catalog_for_tests",

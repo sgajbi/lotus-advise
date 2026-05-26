@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Header, Path, Query, status
+from fastapi import Header, HTTPException, Path, Query, status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import raise_proposal_http_exception
@@ -13,6 +13,8 @@ from src.core.policy_packs import (
     PolicyEvaluationRecord,
     PolicyEvaluationReplayRequest,
     PolicyEvaluationReplayResponse,
+    PolicyEvaluationReportPackageRequest,
+    PolicyEvaluationReportPackageResponse,
     PolicyEvaluationReviewQueueResponse,
     PolicyEvaluationSignOffDecisionRequest,
     PolicyEvaluationSignOffDecisionResponse,
@@ -27,12 +29,15 @@ from src.core.policy_packs import (
     get_policy_evaluation_workflow,
     record_policy_evaluation_sign_off_decision,
     replay_policy_evaluation_record,
+    request_policy_evaluation_report_package,
 )
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalValidationError,
 )
+from src.core.proposals.identifiers import new_report_request_id
+from src.integrations.lotus_report import LotusReportUnavailableError
 
 
 @shared.router.post(
@@ -352,3 +357,66 @@ def record_policy_sign_off_decision(
         ProposalValidationError,
     ) as exc:
         raise_proposal_http_exception(exc)
+
+
+@shared.router.post(
+    "/advisory/policy-evaluations/{evaluation_id}/report-packages",
+    response_model=PolicyEvaluationReportPackageResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Policy Evaluation"],
+    summary="Request Policy Report Package",
+    description=(
+        "Requests lotus-report materialization for a signed-off policy evaluation package, submits "
+        "approval, disclosure, consent, conflict, and sign-off evidence for deterministic "
+        "report/render/archive handling, and records returned report, render, and archive "
+        "references in policy lineage. Client-ready document release remains blocked."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."},
+        status.HTTP_409_CONFLICT: {
+            "description": "Idempotency key was reused with a different report-package request."
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": (
+                "Report package is blocked by stale hash, missing sign-off, unresolved "
+                "requirements, unsupported output formats, or client-ready document request."
+            )
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "lotus-report report/render/archive materialization is unavailable."
+        },
+    },
+)
+def request_policy_report_package(
+    evaluation_id: Annotated[
+        str,
+        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
+    ],
+    payload: PolicyEvaluationReportPackageRequest,
+    idempotency_key: Annotated[
+        str | None,
+        Header(
+            alias="Idempotency-Key",
+            description="Optional idempotency key for replay-safe policy report-package requests.",
+            examples=["policy-evaluation-report-package-001"],
+        ),
+    ] = None,
+) -> PolicyEvaluationReportPackageResponse:
+    try:
+        return request_policy_evaluation_report_package(
+            evaluation_id=evaluation_id,
+            payload=payload,
+            report_request_id=new_report_request_id(),
+            idempotency_key=idempotency_key,
+        )
+    except (
+        ProposalIdempotencyConflictError,
+        ProposalNotFoundError,
+        ProposalValidationError,
+    ) as exc:
+        raise_proposal_http_exception(exc)
+    except LotusReportUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc

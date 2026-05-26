@@ -4,6 +4,7 @@ import pytest
 from src.integrations.lotus_report.adapter import (
     LotusReportUnavailableError,
     _resolve_timeout,
+    request_policy_sign_off_report_package_with_lotus_report,
     request_proposal_memo_report_package_with_lotus_report,
     request_proposal_report_with_lotus_report,
 )
@@ -28,8 +29,13 @@ class _FakeResponse:
 
 
 class _FakeClient:
-    def __init__(self, response: _FakeResponse) -> None:
+    def __init__(self, response: _FakeResponse, status_payload: dict | None = None) -> None:
         self.response = response
+        self.status_payload = status_payload or {
+            "status": "archived",
+            "render": {"render_job_id": "rdr_memo_001"},
+            "archive": {"document_id": "doc_memo_001"},
+        }
         self.posts: list[dict] = []
 
     def __enter__(self) -> "_FakeClient":
@@ -43,14 +49,7 @@ class _FakeClient:
         return self.response
 
     def get(self, url: str, *, headers: dict[str, str]) -> _FakeResponse:
-        return _FakeResponse(
-            200,
-            {
-                "status": "archived",
-                "render": {"render_job_id": "rdr_memo_001"},
-                "archive": {"document_id": "doc_memo_001"},
-            },
-        )
+        return _FakeResponse(200, self.status_payload)
 
 
 def _proposal_request() -> dict:
@@ -115,6 +114,28 @@ def _memo_report_package_request() -> dict:
                 "source_input_hash": "sha256:source",
                 "review": {"review_action": "APPROVE_FOR_ADVISOR_USE"},
                 "sections": [{"section_id": "EXECUTIVE_SUMMARY", "summary": "Advisor memo."}],
+                "client_ready_publication": "BLOCKED",
+            },
+        }
+    )
+    return request
+
+
+def _policy_report_package_request() -> dict:
+    request = _proposal_request()
+    request.update(
+        {
+            "report_request_id": "prr_policy_001",
+            "requested_output_formats": ["pdf"],
+            "related_policy_evaluation_id": "pev_policy_001",
+            "policy_sign_off_package": {
+                "package_type": "ADVISORY_POLICY_SIGN_OFF_PACKAGE",
+                "package_status": "SIGNED_OFF_SOURCE_PACKAGE",
+                "evaluation": {
+                    "evaluation_id": "pev_policy_001",
+                    "evaluation_hash": "sha256:policy-evaluation",
+                },
+                "workflow": {"sign_off_status": "SIGNED_OFF"},
                 "client_ready_publication": "BLOCKED",
             },
         }
@@ -195,6 +216,48 @@ def test_lotus_report_adapter_submits_memo_package_for_pdf_render_archive(monkey
     assert post["json"]["requested_output_formats"] == ["pdf"]
     assert post["json"]["proposal_memo_package"]["memo_id"] == "memo_001"
     assert post["json"]["proposal_memo_package"]["client_ready_publication"] == "BLOCKED"
+
+
+def test_lotus_report_adapter_submits_policy_sign_off_package_for_render_archive(
+    monkeypatch,
+) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_policy_001",
+                "status": "archived",
+                "status_url": "/reports/jobs/rjob_policy_001",
+                "idempotency_key": "prr_policy_001",
+            },
+        ),
+        status_payload={
+            "status": "archived",
+            "render": {"render_job_id": "rdr_policy_001"},
+            "archive": {"document_id": "doc_policy_001"},
+        },
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_policy_sign_off_report_package_with_lotus_report(
+        request=_policy_report_package_request()
+    )
+
+    assert response.status == "ARCHIVED"
+    assert response.report_reference_id == "rjob_policy_001"
+    assert response.explanation["policy_sign_off_package"]["evaluation_id"] == "pev_policy_001"
+    assert response.explanation["policy_sign_off_package"]["client_ready_publication"] == "BLOCKED"
+    assert response.explanation["render"]["render_job_id"] == "rdr_policy_001"
+    assert response.explanation["archive"]["document_id"] == "doc_policy_001"
+    [post] = fake_client.posts
+    assert post["json"]["options"]["source_report_type"] == "ADVISORY_POLICY_SIGN_OFF_PACKAGE"
+    assert post["json"]["options"]["related_policy_evaluation_id"] == "pev_policy_001"
+    assert post["json"]["policy_sign_off_package"]["workflow"]["sign_off_status"] == "SIGNED_OFF"
 
 
 def test_lotus_report_adapter_fails_closed_when_report_base_url_is_missing(monkeypatch) -> None:

@@ -304,6 +304,20 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(policy_signoff_response_schema, "sign_off_event")
     _assert_property_has_docs(policy_signoff_response_schema, "replay_metadata")
 
+    policy_report_request_schema = schemas["PolicyEvaluationReportPackageRequest"]
+    _assert_property_has_docs(policy_report_request_schema, "requested_by")
+    _assert_property_has_docs(policy_report_request_schema, "portfolio_id")
+    _assert_property_has_docs(policy_report_request_schema, "source_evaluation_hash")
+    _assert_property_has_docs(policy_report_request_schema, "requested_output_formats")
+    _assert_property_has_docs(policy_report_request_schema, "client_ready_document_requested")
+    _assert_property_has_docs(policy_report_request_schema, "reason")
+
+    policy_report_response_schema = schemas["PolicyEvaluationReportPackageResponse"]
+    _assert_property_has_docs(policy_report_response_schema, "evaluation")
+    _assert_property_has_docs(policy_report_response_schema, "report_package_event")
+    _assert_property_has_docs(policy_report_response_schema, "report")
+    _assert_property_has_docs(policy_report_response_schema, "replayed")
+
 
 def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     with TestClient(app) as client:
@@ -461,6 +475,17 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     assert memo_report_event["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/ProposalMemoReportPackageEventResponse")
+
+    policy_report_package = openapi["paths"][
+        "/advisory/policy-evaluations/{evaluation_id}/report-packages"
+    ]["post"]
+    assert policy_report_package["requestBody"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/PolicyEvaluationReportPackageRequest")
+    assert policy_report_package["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/PolicyEvaluationReportPackageResponse")
+    assert "Idempotency-Key" in [param["name"] for param in policy_report_package["parameters"]]
 
 
 def test_rfc0023_narrative_route_family_is_canonical_and_error_documented():
@@ -690,3 +715,36 @@ def test_rfc0024_memo_route_family_is_canonical_and_error_documented():
 
     for stale_fragment in ("/memos/{memo_id}", "/memo/client-ready", "/memo/render"):
         assert not any(stale_fragment in path.lower() for path in paths)
+
+
+def test_rfc0025_policy_report_package_route_is_canonical_and_error_documented():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    paths = openapi["paths"]
+    policy_paths = sorted(path for path in paths if "/advisory/policy-evaluations" in path)
+    assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in policy_paths
+
+    policy_report_package = paths["/advisory/policy-evaluations/{evaluation_id}/report-packages"][
+        "post"
+    ]
+    assert policy_report_package["summary"] == "Request Policy Report Package"
+    assert "signed-off policy evaluation package" in policy_report_package["description"]
+    assert "deterministic report/render/archive handling" in policy_report_package["description"]
+    assert "Client-ready document release remains blocked" in policy_report_package["description"]
+    assert policy_report_package["tags"] == ["Advisory Policy Evaluation"]
+    assert (
+        "Policy evaluation was not found"
+        in policy_report_package["responses"]["404"]["description"]
+    )
+    assert (
+        "different report-package request"
+        in policy_report_package["responses"]["409"]["description"]
+    )
+    assert (
+        "client-ready document request" in policy_report_package["responses"]["422"]["description"]
+    )
+    assert (
+        "lotus-report report/render/archive materialization"
+        in policy_report_package["responses"]["503"]["description"]
+    )

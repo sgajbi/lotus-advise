@@ -1092,8 +1092,9 @@ Current boundary:
 2. approval dependencies, disclosure requirements, consent requirements, material-conflict
    posture, SLA aging, maker-checker enforcement, source-hash validation, and append-only sign-off
    events are source-backed,
-3. report/render/archive sign-off package realization, Gateway/Workbench policy support, active
-   data-product promotion, and client-ready publication remain gated later slices.
+3. report/render/archive sign-off package realization remains gated to Slice 10; Gateway/Workbench
+   policy support, active data-product promotion, and client-ready publication remain gated later
+   slices.
 
 ### Slice 10 - Report, Render, and Archive Realization
 
@@ -1109,6 +1110,21 @@ Acceptance gate:
 3. `lotus-archive` stores archive records, retention/legal-hold posture, and access audit refs,
 4. returned report/archive refs appear in policy lineage,
 5. client-ready document generation is blocked unless policy and review posture permits it.
+
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-10-report-render-archive-realization.md`
+
+Current boundary:
+
+1. Advise can request a typed policy sign-off report package for signed-off policy evaluations,
+2. `lotus-report` receives immutable policy evaluation, workflow, approval, disclosure, consent,
+   conflict, audit, and source-lineage evidence,
+3. returned report/render/archive refs are recorded in policy lineage as
+   `POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED`,
+4. client-ready document requests fail closed,
+5. Gateway/Workbench policy support, live canonical proof, active data-product promotion, AI
+   policy-evidence consumption, and client-ready publication remain gated later slices.
 
 ### Slice 11 - AI Policy-Evidence Consumption Boundary
 
