@@ -1020,6 +1020,10 @@ Acceptance gate:
 2. every material rule result has source refs or explicit missing evidence,
 3. no generic pass/fail-only enterprise claim remains.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-6-policy-applicability-and-evaluation-engine.md`
+
 ### Slice 7 - Persistence, Replay, Idempotency, and Audit
 
 Outcome:

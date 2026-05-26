@@ -8,7 +8,7 @@
 | **Implemented Date** | 2026-05-26 |
 | **Owner** | `lotus-advise`; `lotus-platform` generated catalog automation |
 | **Implementation Branch** | `rfc25-slice3-data-product-hardening` |
-| **Capability Posture** | This slice declares `AdvisoryPolicyEvaluationRecord:v1` as a governed proposed product with blocked trust telemetry. It does not implement policy-pack catalog, evaluation, persistence, review queues, report/sign-off packages, Gateway/Workbench policy surfaces, or client-ready policy publication. |
+| **Capability Posture** | This slice declares `AdvisoryPolicyEvaluationRecord:v1` as a governed proposed product with blocked trust telemetry. Current mainline now includes the Slice 6 internal evaluator, but this data product remains blocked until persisted evaluation records, certified APIs, review queues, report/sign-off packages, Gateway/Workbench policy surfaces, and client-ready policy publication are implemented. |
 
 ## Decision
 
@@ -50,7 +50,8 @@ The RFC-0025 telemetry snapshot is intentionally blocked:
 2. `completeness_status` is `blocked`,
 3. `data_quality_status` is `quality_unknown`,
 4. `lineage.lineage_materialized` is `false`,
-5. `blocking.blocked` is `true` with `RFC0025_POLICY_EVALUATION_RUNTIME_NOT_IMPLEMENTED`.
+5. `blocking.blocked` is `true` with
+   `RFC0025_POLICY_EVALUATION_PERSISTENCE_AND_API_NOT_IMPLEMENTED`.
 
 This is the correct enterprise posture. The policy-evaluation product is now a governed planning
 and control object, but it is unavailable to business consumers until policy packs, source evidence,

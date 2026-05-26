@@ -33,7 +33,7 @@ def test_rfc0025_slice4_source_readiness_evidence_is_indexed() -> None:
 
     assert "IMPLEMENTED - SOURCE-READINESS ONLY" in slice4_text
     assert "`rfc0025.policy-source-readiness.v1`" in slice4_text
-    assert "SOURCE_READINESS_ONLY_POLICY_EVALUATION_NOT_IMPLEMENTED" in slice4_text
+    assert "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE" in slice4_text
 
 
 def test_rfc0025_slice4_keeps_policy_support_unpromoted() -> None:
@@ -46,7 +46,8 @@ def test_rfc0025_slice4_keeps_policy_support_unpromoted() -> None:
     assert "policy evaluation support is Planned" in supported_features
     assert "rfc0025.policy-source-readiness.v1" in supported_features
     assert "build_policy_source_readiness" in evidence_source
-    assert '"policy_evaluation": "NOT_IMPLEMENTED"' in readiness_source
+    assert "INTERNAL_ENGINE_ONLY_NO_PERSISTED_API" in readiness_source
+    assert "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE" in readiness_source
     assert '"client_ready_publication": "BLOCKED"' in readiness_source
     assert "advisory.proposals.policy_evaluation" not in readiness_source
     assert "Policy evaluation | Supported" not in supported_features
