@@ -1157,7 +1157,8 @@ Current boundary:
 5. append-only `POLICY_EVALUATION_AI_EVIDENCE_RECORDED` events retain prompt/output lineage,
    redaction posture, human-review requirement, non-authoritative posture, and client-ready blocked
    posture,
-6. Gateway/Workbench policy support, live canonical proof, active data-product promotion, and
+6. Gateway and Workbench product realization is complete in Slice 12, but canonical live proof,
+   active data-product promotion, commercial material, final hardening, final closure, and
    client-ready publication remain gated later slices.
 
 ### Slice 12 - Gateway and Workbench Product Realization
@@ -1175,6 +1176,20 @@ Acceptance gate:
 3. browser validation proves advisor, compliance, investment desk, operations, supervisory,
    client-draft, degraded, and blocked states,
 4. Workbench does not infer policy facts, supportability, or readiness locally.
+
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-12-gateway-workbench-product-realization.md`
+
+Current boundary:
+
+1. Gateway routes canonical Advise policy-pack and policy-evaluation BFF APIs,
+2. Workbench consumes Gateway/BFF-only policy review queue, selected evaluation evidence,
+   sign-off source-package posture, workflow posture, and bounded request-more-evidence action,
+3. Workbench does not calculate suitability, approve or waive findings, record completed policy
+   sign-off approval, or publish client-ready material,
+4. canonical live proof, active data-product promotion, commercial material, final hardening, final
+   closure, and client-ready publication remain gated later slices.
 
 ### Slice 13 - Commercial, Demo, and RFP-Support Material
 

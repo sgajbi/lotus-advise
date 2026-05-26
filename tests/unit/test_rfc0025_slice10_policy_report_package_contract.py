@@ -66,8 +66,10 @@ def test_rfc0025_slice10_records_report_refs_without_product_surface_promotion()
     assert "policy report-package realization" in supported_features
     assert "report/render/archive refs are recorded in policy lineage" in supported_features
     assert "client-ready document requests fail closed" in supported_features
-    assert "Gateway/Workbench policy support" in supported_features
+    assert (
+        "Slice 12 is complete for Gateway and Workbench product realization" in supported_features
+    )
     assert "active data-product promotion" in supported_features
-    assert "client-ready publication remain gated" in supported_features
+    assert "client-ready publication" in supported_features
     assert "advisory.proposals.policy_evaluation" not in capabilities_source
     assert "advisory_policy_evaluation" not in capabilities_source

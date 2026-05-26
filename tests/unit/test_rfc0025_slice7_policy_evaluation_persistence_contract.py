@@ -52,5 +52,6 @@ def test_rfc0025_slice7_keeps_api_product_surface_and_client_ready_gated() -> No
     assert '"gateway_supported": False' in evaluation_source
     assert '"workbench_supported": False' in evaluation_source
     assert "active data-product promotion" in supported_features
-    assert "client-ready publication remain gated" in supported_features
+    assert "client-ready publication" in supported_features
+    assert "Canonical live proof, active data-product promotion" in supported_features
     assert "no api or product surface promoted" in slice7_text.lower()
