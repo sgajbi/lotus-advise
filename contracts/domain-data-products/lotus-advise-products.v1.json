@@ -223,11 +223,13 @@
         "/advisory/policy-evaluations/{evaluation_id}/replay",
         "/advisory/policy-evaluations/{evaluation_id}/events",
         "/advisory/policy-evaluations/{evaluation_id}/lineage",
-        "/advisory/policy-evaluations/{evaluation_id}/sign-off-package"
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
+        "/advisory/policy-evaluations/{evaluation_id}/workflow",
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions"
       ],
       "freshness_policy": {
         "freshness_class": "event_driven",
-        "max_allowed_age_description": "Policy evaluation freshness remains blocked for data-product publication until RFC-0025 implements Gateway/Workbench consumption, report/render/archive sign-off package realization, live proof, and supportability promotion. Slice 8 provides certified Advise evaluation APIs, review queue projection, replay, lineage, append-only review/sign-off/report-reference events, and sign-off source packages, but this proposed product must not be treated as a Gateway-supported product surface or client-ready publication evidence."
+        "max_allowed_age_description": "Policy evaluation freshness remains blocked for data-product publication until RFC-0025 implements Gateway/Workbench consumption, report/render/archive sign-off package realization, live proof, and supportability promotion. Slice 9 provides Advise source workflow projection and sign-off decision recording over certified policy evaluation records, including approval dependencies, disclosure and consent requirements, conflict posture, SLA aging, maker-checker enforcement, and append-only sign-off events, but this proposed product must not be treated as a Gateway-supported product surface, report/archive realization, or client-ready publication evidence."
       },
       "completeness_policy": {
         "default_status": "blocked",

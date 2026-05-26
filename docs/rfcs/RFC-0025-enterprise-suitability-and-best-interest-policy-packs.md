@@ -1081,6 +1081,20 @@ Acceptance gate:
 3. conflicts and missing evidence cannot be converted into positive best-interest wording,
 4. compliance sign-off pack request, render, archive, and lineage refs are proven where supported.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md`
+
+Current boundary:
+
+1. Advise source workflow projection and sign-off decision recording are implemented over finalized
+   policy evaluation records,
+2. approval dependencies, disclosure requirements, consent requirements, material-conflict
+   posture, SLA aging, maker-checker enforcement, source-hash validation, and append-only sign-off
+   events are source-backed,
+3. report/render/archive sign-off package realization, Gateway/Workbench policy support, active
+   data-product promotion, and client-ready publication remain gated later slices.
+
 ### Slice 10 - Report, Render, and Archive Realization
 
 Outcome:

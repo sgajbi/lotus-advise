@@ -109,6 +109,14 @@ append-only review/sign-off/report-reference events, lineage, and sign-off sourc
 Gateway/Workbench policy consumption, report/render/archive realization, active data-product
 promotion, and client-ready publication remain gated.
 
+RFC-0025 Slice 9 is implemented as Advise source policy workflow and sign-off decision support.
+Evidence lives in `docs/rfcs/RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md`. Advise
+now exposes workflow projection and sign-off decision routes over finalized policy records,
+including approval dependencies, disclosure and consent requirements, conflict posture, SLA aging,
+maker-checker enforcement, source-hash validation, and append-only sign-off events.
+Gateway/Workbench policy consumption, report/render/archive realization, active data-product promotion, and
+client-ready publication remain gated.
+
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
 bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,
@@ -396,3 +404,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-6-policy-applicability-and-evaluation-engine.md`
 - `docs/rfcs/RFC-0025-slice-7-policy-evaluation-persistence-replay-audit.md`
 - `docs/rfcs/RFC-0025-slice-8-certified-apis-and-openapi.md`
+- `docs/rfcs/RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md`

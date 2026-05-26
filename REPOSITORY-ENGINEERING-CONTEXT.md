@@ -94,8 +94,12 @@ Current repository posture:
    disclosure and consent requirements, replay metadata, duplicate prevention, idempotent replay,
    and append-only review/sign-off/report-archive events. Slice 8 exposes certified Advise policy
    evaluation create/read/replay/event/lineage/review-queue/sign-off source-package APIs and
-   OpenAPI documentation. Gateway/Workbench policy support, report/render/archive realization,
-   active data-product promotion, and client-ready publication remain unimplemented and unpromoted,
+   OpenAPI documentation. Slice 9 adds Advise-owned policy workflow projection and sign-off
+   decision recording over finalized records, including approval dependencies, disclosure and
+   consent requirements, conflict posture, SLA aging, maker-checker enforcement, source-hash
+   validation, and append-only sign-off events. Gateway/Workbench policy support,
+   report/render/archive realization, active data-product promotion, and client-ready publication
+   remain unimplemented and unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 10. repo-native CI is already aligned to explicit lane expectations,
