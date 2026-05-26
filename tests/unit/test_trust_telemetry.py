@@ -219,6 +219,7 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
         "/advisory/policy-evaluations/{evaluation_id}/workflow",
         "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
         "/advisory/policy-evaluations/{evaluation_id}/report-packages",
+        "/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
     ]
     assert (
         snapshot["freshness"]["freshness_class"]
@@ -248,10 +249,19 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
         in snapshot["lineage"]["evidence_uris"]
     )
     assert (
+        "lotus-advise://docs/rfcs/RFC-0025-slice-11-ai-policy-evidence-boundary.md"
+        in snapshot["lineage"]["evidence_uris"]
+    )
+    assert (
         "lotus-advise://src/core/policy_packs/workflow.py" in snapshot["lineage"]["evidence_uris"]
     )
     assert (
         "lotus-advise://src/core/policy_packs/reporting.py" in snapshot["lineage"]["evidence_uris"]
+    )
+    assert "lotus-advise://src/core/policy_packs/ai.py" in snapshot["lineage"]["evidence_uris"]
+    assert (
+        "lotus-advise://src/integrations/lotus_ai/policy_evidence.py"
+        in snapshot["lineage"]["evidence_uris"]
     )
     assert (
         snapshot["lineage"]["evidence_access_class"]
@@ -291,6 +301,7 @@ def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted
         "/advisory/policy-evaluations/{evaluation_id}/workflow",
         "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
         "/advisory/policy-evaluations/{evaluation_id}/report-packages",
+        "/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
     ]
     assert policy_product["completeness_policy"]["default_status"] == "blocked"
     assert "advisory.proposals.policy_evaluation" not in capability_text

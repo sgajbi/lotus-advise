@@ -1123,8 +1123,9 @@ Current boundary:
 3. returned report/render/archive refs are recorded in policy lineage as
    `POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED`,
 4. client-ready document requests fail closed,
-5. Gateway/Workbench policy support, live canonical proof, active data-product promotion, AI
-   policy-evidence consumption, and client-ready publication remain gated later slices.
+5. AI policy-evidence consumption remains gated to Slice 11; Gateway/Workbench policy support,
+   live canonical proof, active data-product promotion, and client-ready publication remain gated
+   later slices.
 
 ### Slice 11 - AI Policy-Evidence Consumption Boundary
 
@@ -1141,6 +1142,23 @@ Acceptance gate:
 3. AI unavailability degrades deterministically,
 4. AI output cannot change policy status, rule results, approvals, waivers, disclosures, or consent
    posture.
+
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-11-ai-policy-evidence-boundary.md`
+
+Current boundary:
+
+1. Advise can request bounded AI policy-evidence explanation for finalized policy evaluations,
+2. the `policy_evidence_summary.pack@v1` adapter sends redacted policy status, rule-result,
+   workflow, source-ref, and append-only event evidence only,
+3. unsupported and forbidden actions are rejected,
+4. deterministic unavailable posture is returned when `lotus-ai` is not configured or unavailable,
+5. append-only `POLICY_EVALUATION_AI_EVIDENCE_RECORDED` events retain prompt/output lineage,
+   redaction posture, human-review requirement, non-authoritative posture, and client-ready blocked
+   posture,
+6. Gateway/Workbench policy support, live canonical proof, active data-product promotion, and
+   client-ready publication remain gated later slices.
 
 ### Slice 12 - Gateway and Workbench Product Realization
 

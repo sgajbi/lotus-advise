@@ -100,8 +100,11 @@ Current repository posture:
    validation, and append-only sign-off events. Slice 10 adds Advise-owned policy report-package
    realization for signed-off policy evaluations: typed `lotus-report` handoff, returned
    report/render/archive refs in policy lineage, idempotent replay, and fail-closed client-ready
-   document handling. Gateway/Workbench policy support, live canonical proof, active data-product
-   promotion, AI policy-evidence consumption, and client-ready publication remain unimplemented and
+   document handling. Slice 11 adds Advise-owned AI policy-evidence consumption: redacted bounded
+   policy evidence packets to `policy_evidence_summary.pack@v1`, forbidden-action rejection,
+   deterministic unavailable posture, prompt/output lineage, human review, non-authoritative AI
+   posture, and client-ready blocked lineage. Gateway/Workbench policy support, live canonical
+   proof, active data-product promotion, and client-ready publication remain unimplemented and
    unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
