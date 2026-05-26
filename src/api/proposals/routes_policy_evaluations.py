@@ -14,13 +14,18 @@ from src.core.policy_packs import (
     PolicyEvaluationReplayRequest,
     PolicyEvaluationReplayResponse,
     PolicyEvaluationReviewQueueResponse,
+    PolicyEvaluationSignOffDecisionRequest,
+    PolicyEvaluationSignOffDecisionResponse,
     PolicyEvaluationSignOffPackageResponse,
+    PolicyEvaluationWorkflowResponse,
     append_policy_evaluation_event,
     finalize_policy_evaluation_record,
     get_policy_evaluation_lineage,
     get_policy_evaluation_record,
     get_policy_evaluation_review_queue,
     get_policy_evaluation_sign_off_package,
+    get_policy_evaluation_workflow,
+    record_policy_evaluation_sign_off_decision,
     replay_policy_evaluation_record,
 )
 from src.core.proposals.exceptions import (
@@ -268,4 +273,82 @@ def read_policy_sign_off_package(
     try:
         return get_policy_evaluation_sign_off_package(evaluation_id=evaluation_id)
     except ProposalNotFoundError as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.get(
+    "/advisory/policy-evaluations/{evaluation_id}/workflow",
+    response_model=PolicyEvaluationWorkflowResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Policy Evaluation"],
+    summary="Read Policy Evaluation Workflow",
+    description=(
+        "Returns approval dependencies, disclosure and consent requirements, conflict posture, "
+        "SLA aging, maker-checker posture, and sign-off blockers derived from the finalized policy "
+        "evaluation record. This route does not infer client-ready publication."
+    ),
+    responses={status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."}},
+)
+def read_policy_evaluation_workflow(
+    evaluation_id: Annotated[
+        str,
+        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
+    ],
+) -> PolicyEvaluationWorkflowResponse:
+    try:
+        return get_policy_evaluation_workflow(evaluation_id=evaluation_id)
+    except ProposalNotFoundError as exc:
+        raise_proposal_http_exception(exc)
+
+
+@shared.router.post(
+    "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
+    response_model=PolicyEvaluationSignOffDecisionResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Policy Evaluation"],
+    summary="Record Policy Sign-Off Decision",
+    description=(
+        "Records an RFC-0025 policy sign-off decision against the immutable evaluation hash. "
+        "Approval requires maker-checker separation and explicit resolution of approval, "
+        "disclosure, consent, and conflict requirements; client-ready publication remains blocked."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."},
+        status.HTTP_409_CONFLICT: {
+            "description": "Idempotency key was reused for a different sign-off decision."
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": (
+                "Sign-off is blocked by stale hash, maker-checker, unresolved requirement, "
+                "blocked evaluation, or unresolved conflict posture."
+            )
+        },
+    },
+)
+def record_policy_sign_off_decision(
+    evaluation_id: Annotated[
+        str,
+        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
+    ],
+    payload: PolicyEvaluationSignOffDecisionRequest,
+    idempotency_key: Annotated[
+        str | None,
+        Header(
+            alias="Idempotency-Key",
+            description="Optional idempotency key for replay-safe policy sign-off decisions.",
+            examples=["policy-evaluation-sign-off-001"],
+        ),
+    ] = None,
+) -> PolicyEvaluationSignOffDecisionResponse:
+    try:
+        return record_policy_evaluation_sign_off_decision(
+            evaluation_id=evaluation_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
+    except (
+        ProposalIdempotencyConflictError,
+        ProposalNotFoundError,
+        ProposalValidationError,
+    ) as exc:
         raise_proposal_http_exception(exc)

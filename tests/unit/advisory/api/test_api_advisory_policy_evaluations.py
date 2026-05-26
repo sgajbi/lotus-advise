@@ -208,6 +208,65 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
         )
 
 
+def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requirements() -> None:
+    with TestClient(app) as client:
+        _activate_sg_pack(client)
+        created = client.post(
+            "/advisory/proposals/pp_policy_signoff_001/versions/ppv_policy_signoff_001/policy-evaluations",
+            json=_sg_pending_payload(),
+            headers={"Idempotency-Key": "api-policy-eval-signoff-001"},
+        )
+        assert created.status_code == 200
+        record = created.json()["record"]
+        evaluation_id = record["evaluation_id"]
+
+        workflow = client.get(f"/advisory/policy-evaluations/{evaluation_id}/workflow")
+        assert workflow.status_code == 200
+        workflow_body = workflow.json()
+        assert workflow_body["sign_off_status"] == "PENDING_REVIEW"
+        assert workflow_body["client_ready_publication"] == "BLOCKED"
+        assert workflow_body["sla_posture"]["open_requirement_count"] >= 3
+        assert workflow_body["approval_dependencies"][0]["requirement_id"] == (
+            "REVIEW_DISCLOSURE:SG_STRUCTURED_NOTE"
+        )
+
+        blocked = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
+            json={
+                "actor_id": "policy_checker_1",
+                "decision": "APPROVE_FOR_POLICY_SIGN_OFF",
+                "source_evaluation_hash": record["evaluation_hash"],
+            },
+            headers={"Idempotency-Key": "api-policy-signoff-missing-requirements"},
+        )
+        assert blocked.status_code == 422
+        assert blocked.json()["detail"] == "POLICY_EVALUATION_SIGN_OFF_REQUIREMENTS_OPEN"
+
+        signed = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
+            json={
+                "actor_id": "policy_checker_1",
+                "decision": "APPROVE_FOR_POLICY_SIGN_OFF",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "resolved_approval_dependencies": record["approval_dependencies"],
+                "satisfied_disclosure_requirements": record["disclosure_requirements"],
+                "satisfied_consent_requirements": record["consent_requirements"],
+                "reason": {"purpose": "requirements reviewed"},
+            },
+            headers={"Idempotency-Key": "api-policy-signoff-approved"},
+        )
+        assert signed.status_code == 200
+        signed_body = signed.json()
+        assert signed_body["workflow"]["sign_off_status"] == "SIGNED_OFF"
+        assert signed_body["workflow"]["sign_off_blockers"] == []
+        assert signed_body["sign_off_event"]["event_type"] == (
+            "POLICY_EVALUATION_SIGN_OFF_RECORDED"
+        )
+        assert signed_body["replay_metadata"]["report_render_archive_realization"] == (
+            "NOT_IMPLEMENTED"
+        )
+
+
 def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
     with TestClient(app) as client:
         _activate_sg_pack(client)
@@ -251,3 +310,5 @@ def test_policy_evaluation_openapi_registers_certified_advise_routes() -> None:
     assert "/advisory/policy-evaluations/{evaluation_id}/events" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/lineage" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-package" in paths
+    assert "/advisory/policy-evaluations/{evaluation_id}/workflow" in paths
+    assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" in paths

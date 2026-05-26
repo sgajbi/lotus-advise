@@ -216,6 +216,8 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
         "/advisory/policy-evaluations/{evaluation_id}/events",
         "/advisory/policy-evaluations/{evaluation_id}/lineage",
         "/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
+        "/advisory/policy-evaluations/{evaluation_id}/workflow",
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
     ]
     assert (
         snapshot["freshness"]["freshness_class"]
@@ -235,6 +237,13 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
     assert (
         "lotus-advise://docs/rfcs/RFC-0025-slice-8-certified-apis-and-openapi.md"
         in snapshot["lineage"]["evidence_uris"]
+    )
+    assert (
+        "lotus-advise://docs/rfcs/RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md"
+        in snapshot["lineage"]["evidence_uris"]
+    )
+    assert (
+        "lotus-advise://src/core/policy_packs/workflow.py" in snapshot["lineage"]["evidence_uris"]
     )
     assert (
         snapshot["lineage"]["evidence_access_class"]
@@ -271,6 +280,8 @@ def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted
         "/advisory/policy-evaluations/{evaluation_id}/events",
         "/advisory/policy-evaluations/{evaluation_id}/lineage",
         "/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
+        "/advisory/policy-evaluations/{evaluation_id}/workflow",
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
     ]
     assert policy_product["completeness_policy"]["default_status"] == "blocked"
     assert "advisory.proposals.policy_evaluation" not in capability_text

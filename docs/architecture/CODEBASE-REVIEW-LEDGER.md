@@ -4397,3 +4397,37 @@
 - Follow-Up:
   - Slice 9 should attach approval, consent, disclosure, conflict, SLA, and sign-off workflow
     behavior to this API surface without turning source-package reads into client-ready claims.
+
+## LA-REV-170
+
+- Scope: RFC-0025 policy workflow and sign-off decision boundary
+- Pattern: workflow projection over immutable policy evaluation records
+- Status: Hardened
+- Finding Class: product-truth risk
+- Summary: Slice 9 needed approval, disclosure, consent, conflict, SLA, and maker-checker posture
+  without letting UI, report, or client-ready layers infer positive best-interest language.
+- Evidence:
+  - `src/core/policy_packs/workflow.py` implements
+    `rfc0025.policy-sign-off-workflow.v1` over finalized policy evaluation records and append-only
+    events.
+  - `src/api/proposals/routes_policy_evaluations.py` exposes the workflow projection and sign-off
+    decision command as thin API routes.
+  - `src/core/policy_packs/models.py` carries the workflow, requirement, and sign-off decision
+    contracts with OpenAPI field documentation.
+  - `tests/unit/advisory/engine/test_engine_policy_pack_workflow.py` proves open requirement,
+    maker-checker, conflict, and successful sign-off paths.
+  - `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` proves route-level workflow
+    projection and sign-off requirement enforcement.
+  - `tests/unit/test_rfc0025_slice9_policy_workflow_contract.py` protects RFC/wiki/data-product/
+    trust-telemetry indexing and prevents `/platform/capabilities` promotion.
+- Consequence:
+  - Advise can now expose source-owned policy workflow posture and sign-off decisions, while
+    Gateway/Workbench policy support, report/render/archive realization, active data-product
+    promotion, and client-ready publication remain blocked.
+- Documentation:
+  - RFC-0025 Slice 9 evidence, repo context, RFC index, supported-feature wiki source,
+    data-product declaration, trust telemetry, and RFC README were updated.
+- Follow-Up:
+  - Slice 10 should materialize typed policy/sign-off/disclosure packages through report, render,
+    and archive only where source package, review posture, and lineage refs are implementation
+    backed.

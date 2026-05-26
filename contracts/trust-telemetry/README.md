@@ -24,9 +24,9 @@ The current first-wave snapshot is:
    RFC-0025 policy-evaluation product. This snapshot makes the product visible to mesh governance
    without promoting Gateway/Workbench policy surfaces, report/render/archive realization, active
    data-product support, or client-ready publication. The internal Slice 6 evaluator, Slice 7
-   finalized-record persistence/replay path, and Slice 8 certified Advise evaluation API surface
-   are implementation-backed but remain below the data-product publication boundary until later
-   product-surface slices are complete.
+   finalized-record persistence/replay path, Slice 8 certified Advise evaluation API surface, and
+   Slice 9 Advise source workflow/sign-off decision boundary are implementation-backed but remain
+   below the data-product publication boundary until later product-surface slices are complete.
 
 Validate locally with:
 
