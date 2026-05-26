@@ -88,8 +88,12 @@ Current repository posture:
    the internal `rfc0025.policy-evaluation-engine.v1` applicability and rule-evaluation engine for
    active policy packs, including source-backed material rule posture for source readiness,
    mandate, product eligibility, complex-product disclosure/consent, best-interest cost evidence,
-   and conflict/product-document review. Persisted policy evaluation records, certified evaluation
-   APIs, policy review queues, sign-off packages, Gateway/Workbench policy support, and
+   and conflict/product-document review. Slice 7 adds internal
+   `rfc0025.policy-evaluation-persistence.v1` finalized policy evaluation records with
+   policy/source/evaluation hashes, per-rule hashes, source gaps, approval dependencies,
+   disclosure and consent requirements, replay metadata, duplicate prevention, idempotent replay,
+   and append-only review/sign-off/report-archive events. Certified evaluation APIs, policy review
+   queues, sign-off packages, Gateway/Workbench policy support, active data-product promotion, and
    client-ready publication remain unimplemented and unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,

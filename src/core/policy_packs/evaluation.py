@@ -83,8 +83,8 @@ def evaluate_policy_pack_version(
 def _source_posture(evidence_bundle: dict[str, Any]) -> dict[str, Any]:
     posture = dict_at(evidence_bundle, "policy_source_readiness")
     if posture:
-        return deepcopy(posture)
-    return build_policy_source_readiness(evidence_bundle)
+        return cast(dict[str, Any], deepcopy(posture))
+    return cast(dict[str, Any], build_policy_source_readiness(evidence_bundle))
 
 
 def _evaluate_applicability(
@@ -585,7 +585,7 @@ def _aggregate_status(results: list[PolicyRuleEvaluationResult]) -> str:
 def _supportability() -> dict[str, Any]:
     return {
         "policy_evaluation_engine": "SUPPORTED_BY_RFC0025_SLICE6",
-        "policy_evaluation_persistence": "NOT_IMPLEMENTED",
+        "policy_evaluation_persistence": "SUPPORTED_BY_RFC0025_SLICE7_INTERNAL",
         "policy_evaluation_api": "NOT_IMPLEMENTED",
         "gateway_supported": False,
         "workbench_supported": False,

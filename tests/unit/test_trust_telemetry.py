@@ -219,14 +219,20 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
     assert set(snapshot["observed_trust_metadata"]) == set(
         declared_product["required_trust_metadata"]
     )
-    assert snapshot["lineage"]["lineage_materialized"] is False
+    assert snapshot["lineage"]["lineage_materialized"] is True
+    assert (
+        "lotus-advise://docs/rfcs/RFC-0025-slice-7-policy-evaluation-persistence-replay-audit.md"
+        in snapshot["lineage"]["evidence_uris"]
+    )
     assert (
         snapshot["lineage"]["evidence_access_class"]
         == declared_product["lineage_policy"]["evidence_access_class_ref"]
     )
     assert snapshot["blocking"] == {
         "blocked": True,
-        "blocked_reason": "RFC0025_POLICY_EVALUATION_PERSISTENCE_AND_API_NOT_IMPLEMENTED",
+        "blocked_reason": (
+            "RFC0025_POLICY_EVALUATION_API_REVIEW_QUEUE_AND_PRODUCT_SURFACE_NOT_IMPLEMENTED"
+        ),
     }
 
 

@@ -23,28 +23,30 @@
   "reconciliation_status": "not_applicable",
   "data_quality_status": "quality_unknown",
   "lineage": {
-    "lineage_materialized": false,
-    "lineage_bundle_id": "lineage:lotus-advise:advisory-policy-evaluation-record:blocked:2026-05-26",
+    "lineage_materialized": true,
+    "lineage_bundle_id": "lineage:lotus-advise:advisory-policy-evaluation-record:internal-persistence:2026-05-26",
     "evidence_access_class": "customer_consumable",
     "evidence_uris": [
       "lotus-advise://contracts/domain-data-products/lotus-advise-products.v1.json#AdvisoryPolicyEvaluationRecord",
-      "lotus-advise://docs/rfcs/RFC-0025-slice-3-data-product-and-platform-hardening.md"
+      "lotus-advise://docs/rfcs/RFC-0025-slice-3-data-product-and-platform-hardening.md",
+      "lotus-advise://docs/rfcs/RFC-0025-slice-7-policy-evaluation-persistence-replay-audit.md",
+      "lotus-advise://src/core/policy_packs/persistence.py"
     ]
   },
   "blocking": {
     "blocked": true,
-    "blocked_reason": "RFC0025_POLICY_EVALUATION_PERSISTENCE_AND_API_NOT_IMPLEMENTED"
+    "blocked_reason": "RFC0025_POLICY_EVALUATION_API_REVIEW_QUEUE_AND_PRODUCT_SURFACE_NOT_IMPLEMENTED"
   },
   "observed_trust_metadata": {
     "product_name": "AdvisoryPolicyEvaluationRecord",
     "product_version": "v1",
     "generated_at": "2026-05-26T00:00:00Z",
-    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-blocked-persistence-api",
+    "content_hash": "sha256:rfc0025-advisory-policy-evaluation-record-v1-internal-persistence-api-blocked",
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record"
   },
   "evidence": {
     "correlation_id": "rfc-0025-advisory-policy-evaluation-record",
-    "claim_boundary": "RFC-0025 Slice 6 adds an internal policy evaluation engine only; persisted policy evaluation records, certified policy APIs, Gateway/Workbench policy support, and client-ready publication remain blocked",
+    "claim_boundary": "RFC-0025 Slice 7 adds internal finalized policy evaluation persistence and replay; certified policy APIs, review queues, sign-off packages, Gateway/Workbench policy support, active data-product promotion, and client-ready publication remain blocked",
     "validation_lanes": [
       "feature",
       "pr-merge",

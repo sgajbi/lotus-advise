@@ -8,6 +8,11 @@ from src.core.policy_packs.catalog import (
 )
 from src.core.policy_packs.evaluation import evaluate_policy_pack_version
 from src.core.policy_packs.models import (
+    PolicyEvaluationAuditEvent,
+    PolicyEvaluationEventType,
+    PolicyEvaluationPersistenceResult,
+    PolicyEvaluationRecord,
+    PolicyEvaluationReplayResponse,
     PolicyPackActivationRequest,
     PolicyPackActivationResponse,
     PolicyPackApplicabilityResult,
@@ -20,6 +25,13 @@ from src.core.policy_packs.models import (
     PolicyPackValidationResponse,
     PolicyRuleEvaluationResult,
 )
+from src.core.policy_packs.persistence import (
+    append_policy_evaluation_event,
+    finalize_policy_evaluation_record,
+    get_policy_evaluation_record,
+    replay_policy_evaluation_record,
+    reset_policy_evaluation_store_for_tests,
+)
 
 __all__ = [
     "PolicyPackActivationRequest",
@@ -28,6 +40,11 @@ __all__ = [
     "PolicyPackAuditEvent",
     "PolicyPackCatalogStore",
     "PolicyPackDetailResponse",
+    "PolicyEvaluationAuditEvent",
+    "PolicyEvaluationEventType",
+    "PolicyEvaluationPersistenceResult",
+    "PolicyEvaluationRecord",
+    "PolicyEvaluationReplayResponse",
     "PolicyPackEvaluationResponse",
     "PolicyPackListResponse",
     "PolicyPackSummary",
@@ -35,9 +52,14 @@ __all__ = [
     "PolicyPackValidationRequest",
     "PolicyPackValidationResponse",
     "activate_policy_pack_version",
+    "append_policy_evaluation_event",
     "evaluate_policy_pack_version",
+    "finalize_policy_evaluation_record",
     "get_policy_pack_version",
+    "get_policy_evaluation_record",
     "list_policy_pack_versions",
+    "replay_policy_evaluation_record",
+    "reset_policy_evaluation_store_for_tests",
     "reset_policy_pack_catalog_for_tests",
     "validate_policy_pack_version",
 ]

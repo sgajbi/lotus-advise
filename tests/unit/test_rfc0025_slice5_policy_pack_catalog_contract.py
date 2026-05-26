@@ -50,6 +50,6 @@ def test_rfc0025_slice5_promotes_catalog_without_policy_evaluation_claims() -> N
     assert "/advisory/policy-packs" in route_source
     assert "advisory.policy_pack_catalog" in capabilities_source
     assert "advisory.proposals.policy_evaluation" not in capabilities_source
-    assert "proposal policy evaluation" in supported_features
+    assert "internal policy evaluation persistence" in supported_features
     assert "remain gated" in supported_features
     assert "This slice does not implement proposal policy evaluation" in slice5_text

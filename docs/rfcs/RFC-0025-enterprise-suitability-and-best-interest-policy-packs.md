@@ -1038,6 +1038,10 @@ Acceptance gate:
 3. append-only review and audit events are tested,
 4. replay proves same policy version and source refs and exposes hash comparison.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-7-policy-evaluation-persistence-replay-audit.md`
+
 ### Slice 8 - Certified APIs and OpenAPI
 
 Outcome:

@@ -218,7 +218,7 @@
       ],
       "freshness_policy": {
         "freshness_class": "event_driven",
-        "max_allowed_age_description": "Policy evaluation freshness remains blocked until RFC-0025 implements policy-pack catalog, applicability, evaluation, persistence, replay, review, report/sign-off, Gateway/Workbench, live proof, and supportability promotion. This proposed product must not be treated as runtime policy support or client-ready publication evidence."
+        "max_allowed_age_description": "Policy evaluation freshness remains blocked for data-product publication until RFC-0025 implements certified policy APIs, review queues, sign-off package realization, Gateway/Workbench consumption, live proof, and supportability promotion. Slice 7 now provides internal finalized evaluation persistence and replay, but this proposed product must not be treated as a supported route, product surface, or client-ready publication evidence."
       },
       "completeness_policy": {
         "default_status": "blocked",
