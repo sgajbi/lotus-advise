@@ -149,6 +149,16 @@ flow, operator guidance, security posture, and RFP-safe wording. Active data-pro
 canonical live proof, approval/waiver authority, completed sign-off authority, final closure, and
 client-ready publication remain gated.
 
+RFC-0025 Slice 14 is implemented as policy evaluation implementation proof. Evidence lives in
+`docs/rfcs/RFC-0025-slice-14-implementation-proof.md`. The governed live runtime suite now emits a
+`proposal_policy` snapshot covering Advise policy evaluation create/read/review-queue/workflow/
+sign-off-package/sign-off-decision/report-package/AI-evidence/lineage/replay endpoints, SG
+reference-pack policy hashes, source refs and gaps, requirement counts, workflow and sign-off
+posture, report/render/archive refs or degraded reason, bounded AI posture, replay hash comparison,
+and stale-hash/client-ready/forbidden-AI blocked paths. Active data-product promotion, completed
+approval/waiver authority, completed sign-off authority, final closure, and client-ready
+publication remain gated.
+
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
 bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,
@@ -441,3 +451,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md`
 - `docs/rfcs/RFC-0025-slice-10-report-render-archive-realization.md`
 - `docs/rfcs/RFC-0025-slice-11-ai-policy-evidence-boundary.md`
+- `docs/rfcs/RFC-0025-slice-14-implementation-proof.md`

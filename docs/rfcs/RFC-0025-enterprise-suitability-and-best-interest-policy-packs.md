@@ -1238,6 +1238,26 @@ Acceptance gate:
    approval dependency, disclosure, consent, SLA state, and degraded state is critically reviewed,
 4. discovered gaps are fixed before moving on.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-14-implementation-proof.md`
+
+Current boundary:
+
+1. the Advise live runtime evidence bundle now emits `proposal_policy` proof for policy evaluation
+   create/read/review-queue/workflow/sign-off-package/sign-off-decision/report-package/AI-evidence/
+   lineage/replay,
+2. the proof validates `SG_PRIVATE_BANKING_REFERENCE` policy evaluation hashes, source refs, source
+   gaps, material rule counts, approval dependencies, disclosures, consents, workflow posture,
+   sign-off posture, report/render/archive refs or degraded reason, bounded AI evidence, lineage,
+   replay hash comparison, stale-hash rejection, client-ready document rejection, and forbidden AI
+   action rejection,
+3. Gateway and Workbench product realization remains Slice 12 source truth; this slice records the
+   backend live-suite proof consumed by PR evidence,
+4. active data-product promotion, mesh-certified supportability promotion, final hardening, final
+   closure, completed approval/waiver authority, completed sign-off authority, client-ready policy
+   document generation, and external client communication remain gated later slices.
+
 ### Slice 15 - Second-Last Hardening and Review
 
 Outcome:

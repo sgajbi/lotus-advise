@@ -150,6 +150,68 @@ def _format_memo_summary_lines(memo: dict[str, Any]) -> list[str]:
     ]
 
 
+def _format_policy_summary_lines(policy: dict[str, Any]) -> list[str]:
+    return [
+        "## Policy Evaluation Proof",
+        f"- proposal id: `{policy['proposal_id']}`",
+        f"- proposal version id: `{policy['proposal_version_id']}`",
+        f"- evaluation id: `{policy['evaluation_id']}`",
+        f"- policy pack: `{policy['policy_pack_id']}` / `{policy['policy_version']}`",
+        f"- evaluation status: `{policy['evaluation_status']}`",
+        f"- evaluation hash: `{policy['evaluation_hash']}`",
+        f"- source evidence hash: `{policy['source_evidence_hash']}`",
+        f"- policy content hash: `{policy['policy_content_hash']}`",
+        (
+            "- rules and evidence: "
+            f"{policy['material_rule_count']} rules / "
+            f"{policy['pending_rule_count']} pending / "
+            f"{policy['source_ref_count']} source refs / "
+            f"{policy['source_gap_count']} source gaps"
+        ),
+        (
+            "- requirements: "
+            f"{policy['approval_dependency_count']} approvals / "
+            f"{policy['disclosure_requirement_count']} disclosures / "
+            f"{policy['consent_requirement_count']} consents"
+        ),
+        (
+            "- workflow: "
+            f"`{policy['workflow_sign_off_status']}` -> "
+            f"`{policy['sign_off_decision_status']}` / "
+            f"client-ready `{policy['workflow_client_ready_publication']}` / "
+            f"open requirements `{policy['workflow_open_requirement_count']}`"
+        ),
+        (
+            "- report package: "
+            f"`{policy['report_status']}` / `{policy['report_package_status']}` / "
+            f"render `{policy['render_ref_status']}` / archive `{policy['archive_ref_status']}`"
+        ),
+        (
+            "- AI evidence: "
+            f"`{policy['ai_status']}` / human review "
+            f"`{policy['ai_human_review_required']}` / authoritative "
+            f"`{policy['ai_authoritative_for_policy_status']}` / raw source "
+            f"`{policy['ai_raw_source_evidence_included']}`"
+        ),
+        (
+            "- lineage/replay: "
+            f"lineage complete `{policy['lineage_complete']}` / "
+            f"events `{policy['lineage_event_count']}` / "
+            f"evaluation hash match `{policy['replay_evaluation_hash_matches']}` / "
+            f"source hash match `{policy['replay_source_evidence_hash_matches']}`"
+        ),
+        (
+            "- blocked paths: "
+            f"stale hash `{policy['stale_hash_block_status']}` / "
+            f"client-ready document `{policy['client_ready_document_block_status']}` / "
+            f"forbidden AI `{policy['forbidden_ai_action_block_status']}`"
+        ),
+        f"- report degraded reason: `{policy.get('report_degraded_reason') or 'NONE'}`",
+        f"- latency ms: `{float(policy['latency_ms']):.2f}`",
+        "",
+    ]
+
+
 def _inline_reason_codes(values: list[str]) -> str:
     return ", ".join(values) or "NONE"
 
@@ -219,6 +281,7 @@ def build_markdown_summary(result: "LiveRuntimeSuiteResult") -> str:
         ),
         *_format_narrative_summary_lines(asdict(result.parity.proposal_narrative)),
         *_format_memo_summary_lines(asdict(result.parity.proposal_memo)),
+        *_format_policy_summary_lines(asdict(result.parity.proposal_policy)),
         "## Degraded Runtime",
         f"- risk drill portfolio: `{result.degraded.risk_drill_portfolio}`",
         f"- risk degraded reason: `{result.degraded.risk_degraded_reason}`",
@@ -354,6 +417,13 @@ def build_pr_summary(
             f"`{parity['proposal_memo']['review_action']}` / "
             f"`{parity['proposal_memo']['report_package_status']}` / "
             f"AI `{parity['proposal_memo']['ai_status']}`"
+        ),
+        (
+            "- policy evaluation: "
+            f"`{parity['proposal_policy']['evaluation_status']}` / "
+            f"`{parity['proposal_policy']['sign_off_decision_status']}` / "
+            f"`{parity['proposal_policy']['report_package_status']}` / "
+            f"AI `{parity['proposal_policy']['ai_status']}`"
         ),
         "",
         "### Decision Summary Paths",

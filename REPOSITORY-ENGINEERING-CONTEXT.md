@@ -109,8 +109,12 @@ Current repository posture:
    workflow posture, and bounded request-more-evidence actions without local policy inference.
    Slice 13 adds policy-pack-specific commercial support material with claim-controlled one-pager
    language, demo notes, API examples, architecture flow, operator guidance, security posture, and
-   RFP-safe wording. Canonical live proof, active data-product promotion, final closure, and
-   client-ready publication remain unimplemented and unpromoted,
+   RFP-safe wording. Slice 14 adds live-suite policy implementation proof: `proposal_policy` covers
+   Advise policy evaluation APIs, SG reference-pack hashes, source refs and gaps, requirement
+   counts, workflow and sign-off posture, report/render/archive refs or degraded reason, bounded AI
+   evidence, lineage, replay hashes, and stale-hash/client-ready/forbidden-AI blocked paths.
+   Active data-product promotion, final closure, and client-ready publication remain unimplemented
+   and unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 10. repo-native CI is already aligned to explicit lane expectations,
