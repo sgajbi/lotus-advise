@@ -159,6 +159,14 @@ and stale-hash/client-ready/forbidden-AI blocked paths. Active data-product prom
 approval/waiver authority, completed sign-off authority, final closure, and client-ready
 publication remain gated.
 
+RFC-0025 Slice 15 is implemented as final hardening and review. Evidence lives in
+`docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`. Policy-pack supportability truth is
+now centralized, stale earlier-slice Gateway/Workbench/report-handoff posture has been removed from
+code, OpenAPI/schema examples, and tests, and the implementation now accurately records
+Gateway/Workbench product support and signed-off report-package handoff while active data-product
+promotion, completed approval/waiver authority, completed sign-off authority, final closure, and
+client-ready publication remain gated.
+
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
 bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,
@@ -452,3 +460,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-10-report-render-archive-realization.md`
 - `docs/rfcs/RFC-0025-slice-11-ai-policy-evidence-boundary.md`
 - `docs/rfcs/RFC-0025-slice-14-implementation-proof.md`
+- `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`

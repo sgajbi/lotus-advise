@@ -27,7 +27,8 @@ def test_rfc0025_slice14_implementation_proof_is_indexed() -> None:
     assert "POLICY_AI_EVIDENCE_FORBIDDEN_ACTION" in slice14_text
     assert "raw_source_evidence_included=false" in slice14_text
     assert "replay evidence with exact evaluation hash" in slice14_text
-    assert "Slice 14 is complete for policy evaluation implementation proof" in supported_features
+    assert "live-suite `proposal_policy` proof" in supported_features
+    assert "Implementation in progress through Slice 15" in supported_features
 
 
 def test_rfc0025_slice14_policy_data_product_remains_blocked_not_promoted() -> None:

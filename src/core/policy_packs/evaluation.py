@@ -9,11 +9,15 @@ from src.core.policy_packs.models import (
     PolicyPackEvaluationResponse,
     PolicyRuleEvaluationResult,
 )
+from src.core.policy_packs.supportability import (
+    POLICY_EVALUATION_ENGINE_CONTRACT_VERSION,
+    policy_runtime_supportability,
+)
 from src.core.proposals.exceptions import ProposalValidationError
 from src.core.proposals.policy_source_readiness import build_policy_source_readiness
 from src.core.proposals.source_readiness_common import dict_at, list_at, overall_posture
 
-_EVALUATION_CONTRACT_VERSION = "rfc0025.policy-evaluation-engine.v1"
+_EVALUATION_CONTRACT_VERSION = POLICY_EVALUATION_ENGINE_CONTRACT_VERSION
 _BOOKING_LOCATION_SOURCE_KEY = "booking_" + "center_code"
 _BOOKING_LOCATION_SCOPE_KEY = "booking_" + "center_code_scope"
 _FIELD_TO_SOURCE_SECTION = {
@@ -29,10 +33,10 @@ def evaluate_policy_pack_version(
 ) -> PolicyPackEvaluationResponse:
     """Evaluate an active policy pack against source-backed proposal evidence.
 
-    This is an internal, non-persistent RFC-0025 Slice 6 engine. It does not create durable
-    policy evaluation records directly. Certified Advise APIs own persistence, review-queue,
-    lineage, replay, and sign-off source-package access; Gateway, Workbench, report realization,
-    and client-ready publication remain blocked.
+    This is the RFC-0025 Slice 6 engine behind the certified Advise policy APIs. It does not
+    create durable policy evaluation records directly. Certified Advise APIs own persistence,
+    review queue, lineage, replay, sign-off source-package access, report package handoff, and
+    Gateway/Workbench consumption; client-ready publication remains blocked.
     """
 
     detail = get_policy_pack_version(
@@ -584,16 +588,7 @@ def _aggregate_status(results: list[PolicyRuleEvaluationResult]) -> str:
 
 
 def _supportability() -> dict[str, Any]:
-    return {
-        "policy_evaluation_engine": "SUPPORTED_BY_RFC0025_SLICE6",
-        "policy_evaluation_persistence": "SUPPORTED_BY_RFC0025_SLICE7_INTERNAL",
-        "policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-        "review_queue_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-        "sign_off_package_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
-        "gateway_supported": False,
-        "workbench_supported": False,
-        "client_ready_publication": "BLOCKED",
-    }
+    return policy_runtime_supportability()
 
 
 def _unique(values: list[str]) -> list[str]:
