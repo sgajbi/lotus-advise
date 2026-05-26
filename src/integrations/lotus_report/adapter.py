@@ -187,6 +187,87 @@ def request_proposal_memo_report_package_with_lotus_report(
     )
 
 
+def request_policy_sign_off_report_package_with_lotus_report(
+    *, request: dict[str, Any]
+) -> ProposalReportResponse:
+    main_module = sys.modules.get("src.api.main")
+    override = getattr(
+        main_module, "request_policy_sign_off_report_package_with_lotus_report", None
+    )
+    if override is not None:
+        response = override(request=request)
+        return cast(ProposalReportResponse, ProposalReportResponse.model_validate(response))
+
+    base_url = _resolve_base_url()
+    request_id = _required_string(request, "report_request_id")
+    payload = _build_policy_sign_off_package_job_request(request)
+    headers = {
+        "Idempotency-Key": request_id,
+        "X-Actor-Id": _optional_string(request.get("requested_by")) or "lotus-advise",
+        "X-Caller-Application": "lotus-advise",
+        "X-Tenant-Id": "default",
+        "X-Region": _proposal_region(request),
+        "X-Booking-Center-Code": _proposal_region(request),
+        "X-Role": "advisor",
+    }
+
+    try:
+        with httpx.Client(timeout=_resolve_timeout()) as client:
+            response = client.post(
+                f"{base_url}{_PORTFOLIO_REVIEW_PATH}",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            response_payload = cast(dict[str, Any], response.json())
+            status_payload = _load_report_status(
+                client=client,
+                base_url=base_url,
+                status_url=response_payload.get("status_url"),
+                headers=headers,
+            )
+    except (httpx.HTTPError, ValueError) as exc:
+        raise LotusReportUnavailableError("LOTUS_REPORT_REQUEST_UNAVAILABLE") from exc
+
+    now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    proposal = cast(dict[str, Any], request.get("proposal") or {})
+    package = cast(dict[str, Any], request.get("policy_sign_off_package") or {})
+    report_job_id = _required_string(response_payload, "report_job_id")
+    status = _normalize_memo_report_job_status(
+        status_payload.get("status") or response_payload.get("status")
+    )
+    explanation = {
+        "ownership": "REPORT_RENDER_ARCHIVE_OWNED_BY_LOTUS_REPORT_RENDER_ARCHIVE",
+        "related_policy_evaluation_id": request.get("related_policy_evaluation_id"),
+        "policy_sign_off_package": {
+            "package_status": package.get("package_status"),
+            "evaluation_id": _as_mapping(package.get("evaluation")).get("evaluation_id"),
+            "evaluation_hash": _as_mapping(package.get("evaluation")).get("evaluation_hash"),
+            "client_ready_publication": "BLOCKED",
+        },
+        "report_job_status_url": response_payload.get("status_url"),
+        "report_job_idempotency_key": response_payload.get("idempotency_key"),
+        "render": _as_mapping(status_payload.get("render")),
+        "archive": _as_mapping(status_payload.get("archive")),
+        "report_job_request": {
+            "portfolio_scope": payload["portfolio_scope"],
+            "as_of_date": payload["as_of_date"],
+            "requested_output_formats": payload["requested_output_formats"],
+        },
+    }
+    return ProposalReportResponse(
+        proposal=proposal,
+        report_request_id=request_id,
+        report_type=cast(ProposalReportType, "PORTFOLIO_REVIEW"),
+        report_service="lotus-report",
+        status=status,
+        generated_at=now,
+        report_reference_id=report_job_id,
+        artifact_url=response_payload.get("status_url"),
+        explanation=explanation,
+    )
+
+
 def _load_report_status(
     *,
     client: httpx.Client,
@@ -265,6 +346,35 @@ def _build_memo_report_package_job_request(request: dict[str, Any]) -> dict[str,
             "retention_policy_id": _as_mapping(request.get("reason")).get("retention_policy_id"),
         },
         "proposal_memo_package": request.get("proposal_memo_package"),
+    }
+    return payload
+
+
+def _build_policy_sign_off_package_job_request(request: dict[str, Any]) -> dict[str, Any]:
+    proposal = cast(dict[str, Any], request.get("proposal") or {})
+    portfolio_id = _required_string(proposal, "portfolio_id")
+    requested_output_formats = request.get("requested_output_formats")
+    if not isinstance(requested_output_formats, list) or not requested_output_formats:
+        requested_output_formats = ["pdf"]
+    payload = {
+        "portfolio_scope": {"portfolio_ids": [portfolio_id]},
+        "as_of_date": _extract_report_as_of_date(request),
+        "requested_output_formats": [
+            str(item).strip().lower()
+            for item in requested_output_formats
+            if str(item).strip().lower() in {"pdf", "json"}
+        ]
+        or ["pdf"],
+        "reporting_currency": _extract_reporting_currency(request),
+        "options": {
+            "source_system": "lotus-advise",
+            "source_proposal_id": proposal.get("proposal_id"),
+            "source_report_type": "ADVISORY_POLICY_SIGN_OFF_PACKAGE",
+            "requested_by": request.get("requested_by"),
+            "related_policy_evaluation_id": request.get("related_policy_evaluation_id"),
+            "retention_policy_id": _as_mapping(request.get("reason")).get("retention_policy_id"),
+        },
+        "policy_sign_off_package": request.get("policy_sign_off_package"),
     }
     return payload
 

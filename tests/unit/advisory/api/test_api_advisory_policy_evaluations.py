@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from fastapi.testclient import TestClient
 
+import src.api.main as api_main
 from src.api.main import app
 from src.core.policy_packs import (
     get_policy_pack_version,
@@ -13,6 +14,8 @@ from src.core.policy_packs import (
 
 
 def setup_function() -> None:
+    if hasattr(api_main, "request_policy_sign_off_report_package_with_lotus_report"):
+        delattr(api_main, "request_policy_sign_off_report_package_with_lotus_report")
     reset_policy_pack_catalog_for_tests()
     reset_policy_evaluation_store_for_tests()
 
@@ -267,6 +270,153 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
         )
 
 
+def test_policy_report_package_records_report_render_archive_refs_after_sign_off() -> None:
+    captured_requests: list[dict] = []
+
+    def _fake_report_package(*, request: dict) -> dict:
+        captured_requests.append(request)
+        return {
+            "proposal": request["proposal"],
+            "report_request_id": request["report_request_id"],
+            "report_type": "PORTFOLIO_REVIEW",
+            "report_service": "lotus-report",
+            "status": "ARCHIVED",
+            "generated_at": "2026-05-26T04:00:00Z",
+            "report_reference_id": "rjob_policy_001",
+            "artifact_url": "/reports/jobs/rjob_policy_001",
+            "explanation": {
+                "render": {"render_job_id": "rdr_policy_001"},
+                "archive": {
+                    "archive_request_id": "arch_policy_001",
+                    "document_id": "doc_policy_001",
+                    "retention_posture": "OWNED_BY_LOTUS_ARCHIVE",
+                    "legal_hold_posture": "OWNED_BY_LOTUS_ARCHIVE",
+                    "access_audit_ref": "audit_policy_001",
+                },
+            },
+        }
+
+    api_main.request_policy_sign_off_report_package_with_lotus_report = _fake_report_package
+
+    with TestClient(app) as client:
+        _activate_sg_pack(client)
+        created = client.post(
+            "/advisory/proposals/pp_policy_report_001/versions/ppv_policy_report_001/policy-evaluations",
+            json=_sg_pending_payload(),
+            headers={"Idempotency-Key": "api-policy-eval-report-001"},
+        )
+        assert created.status_code == 200
+        record = created.json()["record"]
+        evaluation_id = record["evaluation_id"]
+
+        unsigned = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/report-packages",
+            json={
+                "requested_by": "policy_checker_1",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "requested_output_formats": ["pdf"],
+            },
+            headers={"Idempotency-Key": "api-policy-report-unsigned"},
+        )
+        assert unsigned.status_code == 422
+        assert unsigned.json()["detail"] == "POLICY_REPORT_PACKAGE_REQUIRES_SIGN_OFF"
+
+        signed = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
+            json={
+                "actor_id": "policy_checker_1",
+                "decision": "APPROVE_FOR_POLICY_SIGN_OFF",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "resolved_approval_dependencies": record["approval_dependencies"],
+                "satisfied_disclosure_requirements": record["disclosure_requirements"],
+                "satisfied_consent_requirements": record["consent_requirements"],
+                "reason": {"purpose": "requirements reviewed"},
+            },
+            headers={"Idempotency-Key": "api-policy-report-signoff"},
+        )
+        assert signed.status_code == 200
+
+        report = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/report-packages",
+            json={
+                "requested_by": "policy_checker_1",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "requested_output_formats": ["pdf"],
+                "reason": {"purpose": "policy sign-off package"},
+            },
+            headers={"Idempotency-Key": "api-policy-report-package"},
+        )
+        assert report.status_code == 200
+        body = report.json()
+        assert body["report_package_event"]["event_type"] == (
+            "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED"
+        )
+        assert body["report_package_event"]["reason_json"]["report_package_id"] == (
+            "rjob_policy_001"
+        )
+        assert body["report_package_event"]["reason_json"]["render"]["render_job_id"] == (
+            "rdr_policy_001"
+        )
+        assert body["report_package_event"]["reason_json"]["archive"]["document_id"] == (
+            "doc_policy_001"
+        )
+        assert body["report"]["explanation"]["archive"]["access_audit_ref"] == ("audit_policy_001")
+        assert captured_requests[0]["policy_sign_off_package"]["client_ready_publication"] == (
+            "BLOCKED"
+        )
+        assert captured_requests[0]["policy_sign_off_package"]["workflow"]["sign_off_status"] == (
+            "SIGNED_OFF"
+        )
+
+        replayed = client.post(
+            f"/advisory/policy-evaluations/{evaluation_id}/report-packages",
+            json={
+                "requested_by": "policy_checker_1",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "requested_output_formats": ["pdf"],
+                "reason": {"purpose": "policy sign-off package"},
+            },
+            headers={"Idempotency-Key": "api-policy-report-package"},
+        )
+        assert replayed.status_code == 200
+        assert replayed.json()["replayed"] is True
+        assert len(captured_requests) == 1
+
+        lineage = client.get(f"/advisory/policy-evaluations/{evaluation_id}/lineage")
+        assert lineage.status_code == 200
+        event_types = [event["event_type"] for event in lineage.json()["audit_events"]]
+        assert event_types[-1] == "POLICY_EVALUATION_REPORT_ARCHIVE_RECORDED"
+
+
+def test_policy_report_package_blocks_client_ready_document_request() -> None:
+    with TestClient(app) as client:
+        _activate_sg_pack(client)
+        created = client.post(
+            "/advisory/proposals/pp_policy_report_blocked/versions/ppv_policy_report_blocked/policy-evaluations",
+            json=_sg_pending_payload(),
+            headers={"Idempotency-Key": "api-policy-eval-report-blocked"},
+        )
+        assert created.status_code == 200
+        record = created.json()["record"]
+
+        blocked = client.post(
+            f"/advisory/policy-evaluations/{record['evaluation_id']}/report-packages",
+            json={
+                "requested_by": "policy_checker_1",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "requested_output_formats": ["pdf"],
+                "client_ready_document_requested": True,
+            },
+            headers={"Idempotency-Key": "api-policy-report-client-ready-blocked"},
+        )
+        assert blocked.status_code == 422
+        assert blocked.json()["detail"] == "POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED"
+
+
 def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
     with TestClient(app) as client:
         _activate_sg_pack(client)
@@ -312,3 +462,4 @@ def test_policy_evaluation_openapi_registers_certified_advise_routes() -> None:
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-package" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/workflow" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" in paths
+    assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in paths
