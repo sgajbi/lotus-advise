@@ -59,6 +59,12 @@ def test_build_proposal_evidence_bundle_preserves_lineage_and_risk_lens():
     assert bundle["memo_source_readiness"]["capability_posture"] == (
         "SOURCE_READINESS_ONLY_MEMO_GENERATION_NOT_IMPLEMENTED"
     )
+    assert bundle["policy_source_readiness"]["contract_version"] == (
+        "rfc0025.policy-source-readiness.v1"
+    )
+    assert bundle["policy_source_readiness"]["capability_posture"] == (
+        "SOURCE_READINESS_ONLY_POLICY_EVALUATION_NOT_IMPLEMENTED"
+    )
     assert bundle["replay_lineage"] == {"operation_id": "pop_replay", "attempt": {"count": 1}}
 
 
@@ -77,4 +83,5 @@ def test_build_proposal_evidence_bundle_uses_context_resolution_without_override
     assert bundle["context_resolution"] == {"source": "STATEFUL", "policy": {"jurisdiction": "SG"}}
     assert bundle["risk_lens"] is None
     assert bundle["memo_source_readiness"]["overall_posture"] == "BLOCKED"
+    assert bundle["policy_source_readiness"]["overall_posture"] == "BLOCKED"
     assert "replay_lineage" not in bundle

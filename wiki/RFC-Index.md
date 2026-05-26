@@ -70,6 +70,12 @@ RFC-0025 Slice 3 is implemented as proposed, blocked data-product posture. Evide
 telemetry, while current routes and `/platform/capabilities` policy support remain absent until
 runtime policy evaluation, persistence, replay, Gateway/Workbench consumption, and proof are real.
 
+RFC-0025 Slice 4 is implemented as source-readiness-only policy evidence. Evidence lives in
+`docs/rfcs/RFC-0025-slice-4-upstream-source-evidence-completion.md`. Proposal evidence bundles now
+carry `rfc0025.policy-source-readiness.v1`, separating `lotus-core`, `lotus-risk`, and
+`lotus-advise` source responsibilities while keeping policy evaluation, policy APIs,
+Gateway/Workbench policy support, and client-ready publication unimplemented and unpromoted.
+
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
 bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,
@@ -352,3 +358,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`
 - `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0025-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0025-slice-4-upstream-source-evidence-completion.md`

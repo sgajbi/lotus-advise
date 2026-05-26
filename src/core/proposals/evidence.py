@@ -4,6 +4,7 @@ from typing import Any, cast
 from src.core.advisory.risk_lens import extract_risk_lens
 from src.core.models import ProposalResult
 from src.core.proposals.memo_source_readiness import build_memo_source_readiness
+from src.core.proposals.policy_source_readiness import build_policy_source_readiness
 
 
 def build_proposal_evidence_bundle(
@@ -22,6 +23,7 @@ def build_proposal_evidence_bundle(
     )
     evidence_bundle["risk_lens"] = extract_risk_lens(proposal_result)
     evidence_bundle["memo_source_readiness"] = build_memo_source_readiness(evidence_bundle)
+    evidence_bundle["policy_source_readiness"] = build_policy_source_readiness(evidence_bundle)
     if replay_lineage:
         evidence_bundle["replay_lineage"] = deepcopy(replay_lineage)
     return evidence_bundle
