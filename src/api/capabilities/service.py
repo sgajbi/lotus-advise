@@ -212,6 +212,20 @@ def build_feature_capabilities(
             ),
         ),
         FeatureCapability(
+            key="advisory.policy_pack_catalog",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            owner_service="ADVISORY",
+            description=(
+                "RFC-0025 policy-pack catalog with reference-pack metadata, schema validation, "
+                "hash-backed activation posture, maker-checker controls where configured, and "
+                "catalog audit events. Proposal policy evaluation, Gateway consumption, Workbench "
+                "consumption, and client-ready publication remain gated."
+            ),
+            fallback_mode="NONE",
+            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+        ),
+        FeatureCapability(
             key="advisory.proposals.execution_handoff",
             enabled=lifecycle_enabled,
             operational_ready=lifecycle_enabled,
@@ -328,6 +342,17 @@ def build_workflow_capabilities(
                 if not lifecycle_enabled or lotus_report_ready
                 else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
             ),
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_policy_pack_catalog",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            required_features=[
+                "advisory.proposals.lifecycle",
+                "advisory.policy_pack_catalog",
+            ],
+            dependency_keys=[],
+            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_execution_handoff",
