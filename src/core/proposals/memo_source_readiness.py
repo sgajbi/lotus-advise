@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any, Literal
+from typing import Any
 
-ReadinessStatus = Literal["READY", "PENDING_REVIEW", "BLOCKED", "NOT_AVAILABLE"]
+from src.core.proposals.source_readiness_common import (
+    ReadinessStatus,
+    dict_at,
+    list_at,
+    overall_posture,
+    source_authority,
+    source_readiness_section,
+)
 
 _CONTRACT_VERSION = "rfc0024.memo-source-readiness.v1"
 _OPEN_END_VALUES = {"3999-12-31", "31-Dec-3999", "31-DEC-3999"}
@@ -17,24 +24,24 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
     source fact that the owning service did not provide.
     """
 
-    context_resolution = _dict_at(evidence_bundle, "context_resolution")
-    inputs = _dict_at(evidence_bundle, "inputs")
-    engine_outputs = _dict_at(evidence_bundle, "engine_outputs")
-    proposal_result = _dict_at(engine_outputs, "proposal_result")
-    risk_lens = _dict_at(evidence_bundle, "risk_lens")
-    advisory_policy_context = _dict_at(context_resolution, "advisory_policy_context")
+    context_resolution = dict_at(evidence_bundle, "context_resolution")
+    inputs = dict_at(evidence_bundle, "inputs")
+    engine_outputs = dict_at(evidence_bundle, "engine_outputs")
+    proposal_result = dict_at(engine_outputs, "proposal_result")
+    risk_lens = dict_at(evidence_bundle, "risk_lens")
+    advisory_policy_context = dict_at(context_resolution, "advisory_policy_context")
     resolution_source = str(context_resolution.get("resolution_source") or "")
 
-    portfolio_snapshot = _dict_at(inputs, "portfolio_snapshot")
-    market_data_snapshot = _dict_at(inputs, "market_data_snapshot")
-    shelf_entries = _list_at(inputs, "shelf_entries")
-    proposed_trades = _list_at(inputs, "proposed_trades")
-    proposed_cash_flows = _list_at(inputs, "proposed_cash_flows")
-    prices = _list_at(market_data_snapshot, "prices")
-    fx_rates = _list_at(market_data_snapshot, "fx_rates")
+    portfolio_snapshot = dict_at(inputs, "portfolio_snapshot")
+    market_data_snapshot = dict_at(inputs, "market_data_snapshot")
+    shelf_entries = list_at(inputs, "shelf_entries")
+    proposed_trades = list_at(inputs, "proposed_trades")
+    proposed_cash_flows = list_at(inputs, "proposed_cash_flows")
+    prices = list_at(market_data_snapshot, "prices")
+    fx_rates = list_at(market_data_snapshot, "fx_rates")
 
     sections = [
-        _section(
+        source_readiness_section(
             key="core_portfolio_holdings_cash",
             owner_service="lotus-core",
             status=_core_holdings_cash_status(
@@ -55,7 +62,7 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
                 portfolio_snapshot=portfolio_snapshot,
             ),
         ),
-        _section(
+        source_readiness_section(
             key="core_household_account_mandate_objective_restrictions",
             owner_service="lotus-core",
             status=_client_context_status(advisory_policy_context),
@@ -67,7 +74,7 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
             missing_evidence=_missing_client_context(advisory_policy_context),
             reason_codes=_client_context_reasons(advisory_policy_context),
         ),
-        _section(
+        source_readiness_section(
             key="core_market_prices",
             owner_service="lotus-core",
             status=_market_data_status(
@@ -86,7 +93,7 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
                 source_name="PRICE",
             ),
         ),
-        _section(
+        source_readiness_section(
             key="core_fx_rates",
             owner_service="lotus-core",
             status=_market_data_status(
@@ -105,7 +112,7 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
                 source_name="FX_RATE",
             ),
         ),
-        _section(
+        source_readiness_section(
             key="core_product_eligibility_complexity",
             owner_service="lotus-core",
             status=_product_source_status(
@@ -125,7 +132,7 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
                 proposed_trades=proposed_trades,
             ),
         ),
-        _section(
+        source_readiness_section(
             key="risk_concentration",
             owner_service="lotus-risk",
             status=_risk_concentration_status(risk_lens),
@@ -136,7 +143,7 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
             missing_evidence=_risk_concentration_missing(risk_lens),
             reason_codes=_risk_concentration_reasons(risk_lens),
         ),
-        _section(
+        source_readiness_section(
             key="risk_drawdown_stress_liquidity_private_assets_climate_geopolitical",
             owner_service="lotus-risk",
             status="PENDING_REVIEW",
@@ -150,7 +157,7 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
             ],
             reason_codes=["RISK_OWNER_EXTENDED_MEMO_EVIDENCE_NOT_PROVIDED"],
         ),
-        _section(
+        source_readiness_section(
             key="advise_decision_summary",
             owner_service="lotus-advise",
             status=(
@@ -170,7 +177,7 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
                 else ["ADVISE_DECISION_SUMMARY_NOT_CAPTURED"]
             ),
         ),
-        _section(
+        source_readiness_section(
             key="advise_alternatives_lifecycle_execution_boundary",
             owner_service="lotus-advise",
             status=_advise_boundary_status(
@@ -192,8 +199,8 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
     return {
         "contract_version": _CONTRACT_VERSION,
         "capability_posture": "SOURCE_READINESS_ONLY_MEMO_GENERATION_NOT_IMPLEMENTED",
-        "overall_posture": _overall_posture(sections),
-        "source_authority": _source_authority(sections),
+        "overall_posture": overall_posture(sections),
+        "source_authority": source_authority(sections),
         "sections": deepcopy(sections),
         "claim_policy": {
             "memo_generation": "NOT_IMPLEMENTED",
@@ -206,39 +213,10 @@ def build_memo_source_readiness(evidence_bundle: dict[str, Any]) -> dict[str, An
     }
 
 
-def _dict_at(payload: dict[str, Any], key: str) -> dict[str, Any]:
-    value = payload.get(key)
-    return value if isinstance(value, dict) else {}
-
-
-def _list_at(payload: dict[str, Any], key: str) -> list[Any]:
-    value = payload.get(key)
-    return value if isinstance(value, list) else []
-
-
-def _section(
-    *,
-    key: str,
-    owner_service: str,
-    status: ReadinessStatus,
-    evidence_refs: list[str],
-    missing_evidence: list[str],
-    reason_codes: list[str],
-) -> dict[str, Any]:
-    return {
-        "key": key,
-        "owner_service": owner_service,
-        "status": status,
-        "evidence_refs": evidence_refs,
-        "missing_evidence": missing_evidence,
-        "reason_codes": reason_codes,
-    }
-
-
 def _core_holdings_cash_status(
     *, resolution_source: str, portfolio_snapshot: dict[str, Any]
 ) -> ReadinessStatus:
-    if not _list_at(portfolio_snapshot, "positions") or not _list_at(
+    if not list_at(portfolio_snapshot, "positions") or not list_at(
         portfolio_snapshot, "cash_balances"
     ):
         return "BLOCKED"
@@ -251,9 +229,9 @@ def _missing_core_holdings_cash(
     missing = []
     if resolution_source != "LOTUS_CORE":
         missing.append("lotus-core authoritative context resolution")
-    if not _list_at(portfolio_snapshot, "positions"):
+    if not list_at(portfolio_snapshot, "positions"):
         missing.append("positions")
-    if not _list_at(portfolio_snapshot, "cash_balances"):
+    if not list_at(portfolio_snapshot, "cash_balances"):
         missing.append("cash_balances")
     return missing
 
@@ -264,9 +242,9 @@ def _core_holdings_cash_reasons(
     reasons = []
     if resolution_source != "LOTUS_CORE":
         reasons.append("DIRECT_REQUEST_NOT_SOURCE_OWNER")
-    if not _list_at(portfolio_snapshot, "positions"):
+    if not list_at(portfolio_snapshot, "positions"):
         reasons.append("CORE_POSITIONS_NOT_PROVIDED")
-    if not _list_at(portfolio_snapshot, "cash_balances"):
+    if not list_at(portfolio_snapshot, "cash_balances"):
         reasons.append("CORE_CASH_NOT_PROVIDED")
     return reasons
 
@@ -461,25 +439,3 @@ def _advise_boundary_reasons(proposal_result: dict[str, Any]) -> list[str]:
     if not missing:
         return []
     return [f"ADVISE_{item.upper()}_NOT_CAPTURED" for item in missing]
-
-
-def _overall_posture(sections: list[dict[str, Any]]) -> ReadinessStatus:
-    statuses = {section["status"] for section in sections}
-    if "BLOCKED" in statuses:
-        return "BLOCKED"
-    if "PENDING_REVIEW" in statuses:
-        return "PENDING_REVIEW"
-    if "READY" in statuses:
-        return "READY"
-    return "NOT_AVAILABLE"
-
-
-def _source_authority(sections: list[dict[str, Any]]) -> dict[str, Any]:
-    authority: dict[str, Any] = {}
-    for section in sections:
-        owner = section["owner_service"]
-        authority.setdefault(owner, {"section_keys": [], "ready_section_keys": []})
-        authority[owner]["section_keys"].append(section["key"])
-        if section["status"] == "READY":
-            authority[owner]["ready_section_keys"].append(section["key"])
-    return authority

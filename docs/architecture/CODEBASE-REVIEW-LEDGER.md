@@ -4244,3 +4244,33 @@
   - After this repo-native declaration reaches `main`, refresh `lotus-platform` generated
     domain-product catalog, dependency graph, certification report, and maturity artifacts so
     platform publication truth includes the proposed policy-evaluation product.
+
+## LA-REV-165
+
+- Scope: RFC-0025 policy source-readiness evidence
+- Pattern: source-owner boundary hardening / duplicate readiness scaffolding cleanup
+- Status: Hardened
+- Finding Class: product-truth risk
+- Summary: Before policy-pack evaluation exists, proposal evidence needed a policy-specific source
+  readiness manifest so later slices cannot default missing `lotus-core` or `lotus-risk` facts into
+  suitable, eligible, best-interest, disclosure-ready, consent-ready, or client-ready outcomes.
+- Evidence:
+  - `src/core/proposals/policy_source_readiness.py` now builds
+    `rfc0025.policy-source-readiness.v1` over captured proposal evidence.
+  - `src/core/proposals/evidence.py` attaches `policy_source_readiness` beside
+    `memo_source_readiness` whenever proposal evidence is materialized.
+  - `src/core/proposals/source_readiness_common.py` centralizes readiness section, overall-posture,
+    and source-authority helpers shared by memo and policy readiness.
+  - `tests/unit/advisory/engine/test_engine_policy_source_readiness.py` proves READY,
+    PENDING_REVIEW, and BLOCKED source-owner paths without policy-evaluation claims.
+  - `tests/unit/advisory/engine/test_engine_proposal_evidence.py` proves proposal evidence carries
+    the policy source-readiness contract.
+- Consequence:
+  - Future policy catalog and evaluation slices can consume a stable source-readiness manifest
+    instead of reinterpreting raw proposal evidence or duplicating source methodology.
+- Documentation:
+  - RFC-0025 Slice 4 evidence, repo context, RFC index, supported-feature wiki source, and RFC
+    README were updated as source-readiness-only posture.
+- Follow-Up:
+  - Slice 5 should introduce policy-pack catalog/schema/activation without bypassing
+    `rfc0025.policy-source-readiness.v1` for missing-source posture.

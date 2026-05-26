@@ -984,6 +984,10 @@ Acceptance gate:
 2. missing evidence results in explicit policy `PENDING_REVIEW` or `BLOCKED` posture,
 3. policy evaluation does not claim source facts that source owners do not provide.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-4-upstream-source-evidence-completion.md`
+
 ### Slice 5 - Policy-Pack Catalog, Schema, and Activation Lifecycle
 
 Outcome:
