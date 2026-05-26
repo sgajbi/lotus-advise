@@ -194,7 +194,7 @@
       "owner_repository": "lotus-advise",
       "product_family": "workflow_and_decision_state",
       "authoritative_domain": "advisory_workflow",
-      "lifecycle_status": "proposed",
+      "lifecycle_status": "active",
       "request_scope": {
         "scope_level": "workflow_run",
         "supports_bulk": false
@@ -231,11 +231,11 @@
       ],
       "freshness_policy": {
         "freshness_class": "event_driven",
-        "max_allowed_age_description": "Policy evaluation freshness remains blocked for active data-product publication until RFC-0025 implements supportability promotion, hardening, and final closure. Slice 12 adds Gateway and Workbench product realization for review-queue, evaluation detail, sign-off source package, workflow posture, and bounded request-more-evidence actions through Gateway only. Slice 13 adds policy-pack-specific commercial material with claim-controlled one-pager language, demo notes, API examples, architecture flow, operator guidance, and RFP-safe wording. Slice 14 adds live-suite policy implementation proof for Advise APIs, SG reference-pack hashes, source refs and gaps, workflow and sign-off posture, report/render/archive refs or degraded reason, bounded AI evidence, lineage, replay hashes, and blocked stale-hash/client-ready/forbidden-AI paths. This proposed product must not be treated as an active data product, fully promoted platform capability, approval/waiver authority, completed sign-off authority, or client-ready publication evidence."
+        "max_allowed_age_description": "Policy evaluation freshness is measured against immutable finalized policy evaluation records, source/policy/evaluation/replay hashes, source-readiness evidence, review and sign-off workflow events, signed-off report-package lineage, bounded AI evidence lineage, Gateway/Workbench visibility, live-suite implementation proof, final closure evidence, and platform SLO/access/evidence-policy certification. This active product is bounded to advisor/compliance policy evidence; completed approval/waiver authority, completed sign-off authority, client-ready publication, and external client communication remain blocked."
       },
       "completeness_policy": {
-        "default_status": "blocked",
-        "partial_allowed": true
+        "default_status": "complete",
+        "partial_allowed": false
       },
       "lineage_policy": {
         "lineage_required": true,

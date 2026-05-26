@@ -51,7 +51,7 @@ def test_rfc0025_slice5_promotes_catalog_without_policy_evaluation_claims() -> N
     assert '"policy_evaluation": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"' in supportability_source
     assert "/advisory/policy-packs" in route_source
     assert "advisory.policy_pack_catalog" in capabilities_source
-    assert "advisory.proposals.policy_evaluation" not in capabilities_source
+    assert "advisory.proposals.policy_evaluation" in capabilities_source
     assert "certified Advise evaluation APIs" in supported_features
     assert "remain gated" in supported_features
     assert "This slice does not implement proposal policy evaluation" in slice5_text

@@ -47,7 +47,7 @@ def test_policy_pack_catalog_routes_list_detail_validate_activate_and_preserve_b
             "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI"
         )
         assert detail_body["supportability"]["active_data_product_promotion"] == (
-            "BLOCKED_UNTIL_FINAL_CLOSURE"
+            "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE"
         )
 
         validation = client.post(

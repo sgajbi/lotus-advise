@@ -57,7 +57,7 @@ def test_rfc0025_slice6_keeps_product_surface_and_persistence_gated() -> None:
     assert '"workbench_support": "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI"' in (
         supportability_source
     )
-    assert '"active_data_product_promotion": "BLOCKED_UNTIL_FINAL_CLOSURE"' in (
+    assert '"active_data_product_promotion": "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE"' in (
         supportability_source
     )
     assert "PolicyRuleEvaluationResult" in models_source
@@ -65,6 +65,8 @@ def test_rfc0025_slice6_keeps_product_surface_and_persistence_gated() -> None:
     assert "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE" in readiness_source
     assert "INTERNAL_ENGINE_ONLY_NO_PERSISTED_API" in readiness_source
     assert "certified APIs" in supported_features
-    assert "Implementation in progress through Slice 15" in supported_features
+    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 16" in (
+        supported_features
+    )
     assert "remain gated" in supported_features
     assert "no persistence/API/product-surface promotion" in slice6_text

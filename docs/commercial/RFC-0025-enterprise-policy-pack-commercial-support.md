@@ -30,16 +30,15 @@ Supported today:
 6. typed policy sign-off report-package requests with report, render, and archive lineage refs,
 7. bounded AI policy-evidence summaries through `policy_evidence_summary.pack@v1`,
 8. Gateway-routed policy APIs and Workbench Gateway/BFF-only review posture, selected evidence,
-   sign-off package posture, workflow posture, and bounded request-more-evidence actions.
+   sign-off package posture, workflow posture, and bounded request-more-evidence actions,
+9. active `AdvisoryPolicyEvaluationRecord:v1` data-product posture with current trust telemetry,
+   `/platform/capabilities`, and platform SLO/access/evidence-policy support.
 
 Not supported today:
 
-1. active `AdvisoryPolicyEvaluationRecord:v1` data-product promotion,
-2. `/platform/capabilities` policy evaluation promotion,
-3. canonical live proof or demo-ready screenshot proof,
-4. approval, waiver, or completed sign-off authority,
-5. client-ready policy publication or send-to-client controls,
-6. broad bank-demo proof packs, enterprise security packs, architecture decks, ROI material, or full
+1. approval, waiver, or completed sign-off authority,
+2. client-ready policy publication or send-to-client controls,
+3. broad bank-demo proof packs, enterprise security packs, architecture decks, ROI material, or full
    RFP response sets.
 
 ## Claim Register
@@ -53,7 +52,7 @@ Not supported today:
 | Report/render/archive lineage | Lotus records support-safe report, render, and archive references for signed-off policy evaluations. | Supported after valid sign-off posture | Slice 10 evidence. |
 | AI policy evidence | Lotus can request bounded AI policy-evidence summaries, record prompt/output lineage, and prevent AI output from changing policy status, approvals, waivers, disclosures, consent, or client-ready posture. | Supported when `lotus-ai` is configured; deterministic unavailable posture otherwise | Slice 11 evidence. |
 | Workbench visibility | Advisors, compliance, supervisory users, and support users can inspect Gateway-backed policy review posture, selected evidence, sign-off package posture, workflow posture, and request-more-evidence actions. | Supported | Slice 12 Gateway/Workbench evidence. |
-| Active policy data product | `AdvisoryPolicyEvaluationRecord:v1` is an active governed data product and advertised platform capability. | Not supported yet | Gated until live proof, supportability promotion, final hardening, and final closure. |
+| Active policy data product | `AdvisoryPolicyEvaluationRecord:v1` is an active governed data product and advertised platform capability. | Supported for advisor/compliance policy evidence | Slice 16 final closure, trust telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy support. |
 | Client-ready policy publication | Lotus can approve, waive, complete, publish, or send policy evidence to a client. | Not supported | Client-ready publication and external communication remain blocked. |
 | Full bank demo and enterprise RFP pack | Lotus has a complete client-demo journey, architecture deck, security pack, ROI story, and RFP response set. | Not supported in RFC-0025 | RFC-0028 owns broader demo and RFP proof. |
 
@@ -139,8 +138,9 @@ flowchart LR
 ```
 
 The flow is implementation-backed for advisor, compliance, supervisory, operations, and support
-review posture. It does not represent active data-product promotion, completed approval authority,
-client-ready publication, external client communication, or full bank-demo/RFP proof.
+review posture, including active policy-evaluation data-product support. It does not represent
+completed approval authority, completed sign-off authority, client-ready publication, external
+client communication, or full bank-demo/RFP proof.
 
 ## Operator Guidance
 
@@ -148,7 +148,7 @@ When supporting demos or RFP walkthroughs:
 
 1. verify `/health/ready` before claiming service readiness,
 2. verify `/platform/capabilities` before claiming supported platform capabilities and state that
-   policy evaluation is not yet promoted there,
+   policy evaluation is promoted for advisor/compliance evidence only,
 3. use policy lineage and replay evidence rather than screenshots as the source of report, render,
    archive, AI, and review-event refs,
 4. treat `AI_UNAVAILABLE` as an expected bounded posture when `lotus-ai` is not configured,
@@ -169,8 +169,8 @@ Safe RFP wording:
    approvals, waivers, disclosures, consent, sign-off status, or client-ready posture."
 4. "Gateway and Workbench expose review posture and request-more-evidence actions without local
    policy calculation or unsupported approval authority."
-5. "`AdvisoryPolicyEvaluationRecord:v1` remains proposed until live proof, supportability
-   promotion, final hardening, and final closure are complete."
+5. "`AdvisoryPolicyEvaluationRecord:v1` is active for advisor/compliance policy evidence; completed
+   authority and client-ready publication remain gated."
 6. "Client-ready publication and external client communication are not currently supported."
 
 Unsafe wording:
@@ -178,7 +178,7 @@ Unsafe wording:
 1. "The policy evaluation is legally approved for client use."
 2. "Lotus grants waivers or completes policy sign-off automatically."
 3. "AI approves suitability, best-interest, disclosures, or consent."
-4. "Policy evaluation is an active platform data product today."
+4. "Policy evaluation grants legal approval, waiver authority, or completed sign-off authority."
 5. "The bank-demo journey or full RFP pack is complete."
 6. "Missing source evidence implies suitability or best-interest compliance."
 

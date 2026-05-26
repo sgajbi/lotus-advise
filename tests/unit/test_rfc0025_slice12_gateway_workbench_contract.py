@@ -49,10 +49,10 @@ def test_rfc0025_slice12_updates_supported_boundary_without_product_promotion() 
         "Slice 12 is complete for Gateway and Workbench product realization" in supported_features
     )
     assert "Gateway and Workbench product" in repo_context
-    assert "Gateway and Workbench product realization" in declaration
-    assert "Gateway and Workbench product realization" in telemetry
-    assert "LIVE_PROOF_PRODUCT_PROMOTION_AND_CLOSURE_NOT_IMPLEMENTED" in telemetry
+    assert "Gateway/Workbench visibility" in declaration
+    assert "Gateway routing, Workbench visibility" in telemetry
+    assert "RFC-0025-slice-16-final-closure.md" in telemetry
     assert "Gateway/Workbench policy support" not in telemetry
     assert "Gateway/Workbench policy support" not in declaration
-    assert "advisory.proposals.policy_evaluation" not in capabilities_source
-    assert "advisory_policy_evaluation" not in capabilities_source
+    assert "advisory.proposals.policy_evaluation" in capabilities_source
+    assert "advisory_policy_evaluation" in capabilities_source

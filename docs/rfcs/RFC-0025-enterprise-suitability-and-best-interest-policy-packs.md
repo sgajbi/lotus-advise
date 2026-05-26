@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
+| **Status** | IMPLEMENTED for advisor/compliance policy evaluation evidence; client-ready authority remains gated |
 | **Created** | 2026-05-22 |
 | **Last Tightened** | 2026-05-26 |
 | **Owner** | `lotus-advise` for advisory policy evaluation authority and evidence-product truth |
@@ -35,6 +35,12 @@ mechanism where:
    evidence packets,
 5. historical outcomes are immutable and replayable against the policy version and source refs used
    at evaluation time.
+
+RFC-0025 is implemented through Slice 16 for advisor/compliance policy evidence.
+`AdvisoryPolicyEvaluationRecord:v1` is active with current trust telemetry, platform capability
+posture, Gateway/Workbench consumption, live-suite proof, and SLO/access/evidence-policy support.
+Completed approval/waiver authority, completed policy sign-off authority, client-ready policy
+publication, external client communication, and full RFC-0028 bank-demo/RFP claims remain gated.
 
 The implementation must deliver the complete policy-pack outcome end to end. This RFC does not allow
 a "policy engine done, product surface later" closure, a "configuration exists but source evidence is
@@ -1308,6 +1314,20 @@ Acceptance gate:
 5. all repo and cross-repo PRs are merged, CI is green, feature branches are deleted, and `main` is
    clean.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-16-final-closure.md`
+
+Current boundary:
+
+1. `AdvisoryPolicyEvaluationRecord:v1` is active for advisor/compliance policy evidence,
+2. trust telemetry is current and unblocked for that bounded evidence product,
+3. `/platform/capabilities` advertises `advisory.proposals.policy_evaluation` and
+   `advisory_policy_evaluation`,
+4. completed approval/waiver authority, completed sign-off authority, client-ready policy
+   publication, external client communication, full RFC-0028 bank-demo/RFP claims, and Slice 17
+   communication remain gated.
+
 ### Slice 17 - Post-Completion Communication
 
 Outcome:
@@ -1346,7 +1366,7 @@ Acceptance gate:
 | Policy review queue and supervisory dashboard | Proposed | Promote only after Gateway/Workbench consume canonical Advise policy endpoints and browser proof exists. |
 | Compliance sign-off and disclosure packs | Proposed | Promote only after report job, deterministic render, archive record, retention/access audit, and lineage refs are proven. |
 | Policy evidence for AI narrative/copilot | Gated | Promote only after `lotus-ai` workflow-pack consumption, guardrails, lineage, review posture, and unavailable behavior are proven. |
-| Advisory policy data product | Proposed and blocked | Slice 3 declares `AdvisoryPolicyEvaluationRecord:v1` and blocked trust telemetry without routes or capability support. Promote only after implementation-backed policy evaluation, persistence, replay, Gateway/Workbench consumption, SLO/access/evidence policy, mesh certification, and catalog publication are complete. |
+| Advisory policy data product | Active for advisor/compliance policy evidence | Slice 16 promotes `AdvisoryPolicyEvaluationRecord:v1` after implementation-backed policy evaluation, persistence, replay, Gateway/Workbench consumption, SLO/access/evidence policy, mesh certification, and catalog publication. Completed approval/waiver authority, completed sign-off authority, client-ready policy publication, and external communication remain gated. |
 | Sales/demo-safe policy-pack material | Proposed | Promote only after synthetic/approved demo data, supported-claim taxonomy, and wiki/demo material are implementation-backed. |
 
 ## 22. Existing WTBD Import and No-WTBD Execution Rule

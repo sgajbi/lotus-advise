@@ -28,10 +28,12 @@ def test_rfc0025_slice14_implementation_proof_is_indexed() -> None:
     assert "raw_source_evidence_included=false" in slice14_text
     assert "replay evidence with exact evaluation hash" in slice14_text
     assert "live-suite `proposal_policy` proof" in supported_features
-    assert "Implementation in progress through Slice 15" in supported_features
+    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 16" in (
+        supported_features
+    )
 
 
-def test_rfc0025_slice14_policy_data_product_remains_blocked_not_promoted() -> None:
+def test_rfc0025_slice14_records_proof_before_slice16_product_promotion() -> None:
     telemetry_text = _read(
         "contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json"
     )
@@ -40,14 +42,14 @@ def test_rfc0025_slice14_policy_data_product_remains_blocked_not_promoted() -> N
     capability_text = _read("src/api/capabilities/service.py")
 
     assert "RFC-0025-slice-14-implementation-proof.md" in telemetry_text
-    assert "live-suite policy implementation proof" in telemetry_text
-    assert "supportability promotion, hardening, and final closure" in declaration_text
+    assert "live-suite proof" in telemetry_text
+    assert "final closure evidence" in declaration_text
     assert "canonical live proof" not in declaration_text
     assert "live-suite policy implementation proof" in context_text
-    assert '"completeness_status": "blocked"' in telemetry_text
-    assert "active data-product promotion" in telemetry_text
+    assert '"completeness_status": "complete"' in telemetry_text
+    assert "active advisor/compliance policy evidence data product" in telemetry_text
     assert "approval/waiver authority" in telemetry_text
     assert "completed policy sign-off authority" in telemetry_text
     assert "client-ready publication" in telemetry_text
-    assert "advisory.proposals.policy_evaluation" not in capability_text
-    assert "advisory_policy_evaluation" not in capability_text
+    assert "advisory.proposals.policy_evaluation" in capability_text
+    assert "advisory_policy_evaluation" in capability_text

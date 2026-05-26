@@ -63,10 +63,10 @@ def test_rfc0025_slice13_supported_features_do_not_overclaim() -> None:
     )
     assert "active data-product promotion" in supported_features
     assert "client-ready publication" in supported_features
-    assert "AdvisoryPolicyEvaluationRecord:v1` remains proposed" in commercial_text
-    assert '"completeness_status": "blocked"' in telemetry_text
+    assert "AdvisoryPolicyEvaluationRecord:v1` is active" in commercial_text
+    assert '"completeness_status": "complete"' in telemetry_text
     assert "RFC-0025-slice-13-commercial-demo-rfp-support.md" in telemetry_text
-    assert "policy-pack-specific commercial material" in declaration_text
-    assert "commercial material, final closure" not in telemetry_text
-    assert "advisory.proposals.policy_evaluation" not in capability_text
-    assert "advisory_policy_evaluation" not in capability_text
+    assert "final closure evidence" in declaration_text
+    assert "RFC-0025-slice-16-final-closure.md" in telemetry_text
+    assert "advisory.proposals.policy_evaluation" in capability_text
+    assert "advisory_policy_evaluation" in capability_text

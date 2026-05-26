@@ -170,7 +170,7 @@ def test_policy_evaluation_api_finalizes_reads_replays_and_records_events() -> N
             "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_BFF"
         )
         assert read_body["evaluation_json"]["supportability"]["active_data_product_promotion"] == (
-            "BLOCKED_UNTIL_FINAL_CLOSURE"
+            "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE"
         )
 
         replay = client.post(

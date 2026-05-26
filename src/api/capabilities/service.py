@@ -219,11 +219,30 @@ def build_feature_capabilities(
             description=(
                 "RFC-0025 policy-pack catalog with reference-pack metadata, schema validation, "
                 "hash-backed activation posture, maker-checker controls where configured, and "
-                "catalog audit events. Proposal policy evaluation, Gateway consumption, Workbench "
-                "consumption, and client-ready publication remain gated."
+                "catalog audit events."
             ),
             fallback_mode="NONE",
             degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+        ),
+        FeatureCapability(
+            key="advisory.proposals.policy_evaluation",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled and lotus_report_ready,
+            owner_service="ADVISORY",
+            description=(
+                "RFC-0025 advisor/compliance policy evaluation data product with finalized "
+                "records, replay, review queue, sign-off source packages, workflow posture, "
+                "signed-off report-package lineage, bounded AI evidence, Gateway routing, and "
+                "Workbench visibility. Completed approval/waiver authority, completed sign-off "
+                "authority, client-ready publication, and external client communication remain "
+                "gated."
+            ),
+            fallback_mode="NONE",
+            degraded_reason=(
+                None
+                if not lifecycle_enabled or lotus_report_ready
+                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         FeatureCapability(
             key="advisory.proposals.execution_handoff",
@@ -353,6 +372,23 @@ def build_workflow_capabilities(
             ],
             dependency_keys=[],
             degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_policy_evaluation",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled and lotus_report_ready,
+            required_features=[
+                "advisory.proposals.lifecycle",
+                "advisory.policy_pack_catalog",
+                "advisory.proposals.policy_evaluation",
+                "advisory.proposals.reporting",
+            ],
+            dependency_keys=["lotus_report"],
+            degraded_reason=(
+                None
+                if not lifecycle_enabled or lotus_report_ready
+                else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_execution_handoff",

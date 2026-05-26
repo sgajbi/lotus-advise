@@ -194,7 +194,7 @@ def test_rfc0024_memo_trust_telemetry_promotes_only_advisor_use_memo() -> None:
     assert "external client communication remain blocked" in declaration_text
 
 
-def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declaration() -> None:
+def test_rfc0025_policy_evaluation_trust_telemetry_is_active_and_tied_to_declaration() -> None:
     snapshot = _load_json(POLICY_SNAPSHOT_PATH)
     declaration = _load_json(DECLARATION_PATH)
     declared_product = next(
@@ -207,7 +207,7 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
     assert snapshot["producer_repository"] == declaration["producer_repository"]
     assert snapshot["product_name"] == declared_product["product_name"]
     assert snapshot["product_version"] == declared_product["product_version"]
-    assert declared_product["lifecycle_status"] == "proposed"
+    assert declared_product["lifecycle_status"] == "active"
     assert declared_product["current_routes"] == [
         "/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
         "/advisory/policy-evaluations/review-queue",
@@ -225,9 +225,9 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
         snapshot["freshness"]["freshness_class"]
         == declared_product["freshness_policy"]["freshness_class"]
     )
-    assert snapshot["freshness"]["freshness_state"] == "unknown"
-    assert snapshot["completeness_status"] == "blocked"
-    assert snapshot["data_quality_status"] == "quality_unknown"
+    assert snapshot["freshness"]["freshness_state"] == "current"
+    assert snapshot["completeness_status"] == "complete"
+    assert snapshot["data_quality_status"] == "quality_passed"
     assert set(snapshot["observed_trust_metadata"]) == set(
         declared_product["required_trust_metadata"]
     )
@@ -265,6 +265,14 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
         in snapshot["lineage"]["evidence_uris"]
     )
     assert (
+        "lotus-advise://docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md"
+        in snapshot["lineage"]["evidence_uris"]
+    )
+    assert (
+        "lotus-advise://docs/rfcs/RFC-0025-slice-16-final-closure.md"
+        in snapshot["lineage"]["evidence_uris"]
+    )
+    assert (
         "lotus-advise://src/core/policy_packs/workflow.py" in snapshot["lineage"]["evidence_uris"]
     )
     assert (
@@ -279,18 +287,16 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
         snapshot["lineage"]["evidence_access_class"]
         == declared_product["lineage_policy"]["evidence_access_class_ref"]
     )
-    assert snapshot["blocking"] == {
-        "blocked": True,
-        "blocked_reason": (
-            "RFC0025_POLICY_EVALUATION_LIVE_PROOF_PRODUCT_PROMOTION_AND_CLOSURE_NOT_IMPLEMENTED"
-        ),
-    }
-    assert "live-suite policy implementation proof" in snapshot["evidence"]["claim_boundary"]
+    assert snapshot["blocking"] == {"blocked": False}
+    assert (
+        "active advisor/compliance policy evidence data product"
+        in (snapshot["evidence"]["claim_boundary"])
+    )
     assert "canonical live proof" not in snapshot["evidence"]["claim_boundary"]
     assert "approval/waiver authority" in snapshot["evidence"]["claim_boundary"]
 
 
-def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted(
+def test_rfc0025_policy_evaluation_catalog_generation_promotes_active_support(
     tmp_path: Path,
 ) -> None:
     catalog_path = _write_current_domain_product_catalog(tmp_path)
@@ -304,7 +310,7 @@ def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted
         encoding="utf-8"
     )
 
-    assert policy_product["lifecycle_status"] == "proposed"
+    assert policy_product["lifecycle_status"] == "active"
     assert policy_product["current_routes"] == [
         "/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
         "/advisory/policy-evaluations/review-queue",
@@ -318,17 +324,17 @@ def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted
         "/advisory/policy-evaluations/{evaluation_id}/report-packages",
         "/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
     ]
-    assert policy_product["completeness_policy"]["default_status"] == "blocked"
+    assert policy_product["completeness_policy"]["default_status"] == "complete"
     assert (
-        "Gateway and Workbench product realization"
+        "Gateway/Workbench visibility"
         in policy_product["freshness_policy"]["max_allowed_age_description"]
     )
     assert (
-        "policy-pack-specific commercial material"
+        "final closure evidence"
         in policy_product["freshness_policy"]["max_allowed_age_description"]
     )
     assert (
-        "live-suite policy implementation proof"
+        "live-suite implementation proof"
         in policy_product["freshness_policy"]["max_allowed_age_description"]
     )
     assert (
@@ -339,5 +345,5 @@ def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted
         "approval/waiver authority"
         in policy_product["freshness_policy"]["max_allowed_age_description"]
     )
-    assert "advisory.proposals.policy_evaluation" not in capability_text
-    assert "advisory_policy_evaluation" not in capability_text
+    assert "advisory.proposals.policy_evaluation" in capability_text
+    assert "advisory_policy_evaluation" in capability_text

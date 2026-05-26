@@ -32,7 +32,8 @@ def policy_runtime_supportability() -> dict[str, Any]:
         "workbench_supported": True,
         "workbench_support": "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI",
         "live_runtime_proof": "SUPPORTED_BY_RFC0025_SLICE14_LIVE_SUITE",
-        "active_data_product_promotion": "BLOCKED_UNTIL_FINAL_CLOSURE",
+        "active_data_product_promotion": "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE",
+        "mesh_certification": "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE",
         "completed_compliance_authority": "BLOCKED",
         "client_ready_publication": CLIENT_READY_PUBLICATION_POSTURE,
     }

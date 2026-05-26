@@ -23,6 +23,10 @@ It is responsible for:
 - advisor-review proposal narrative evidence with governed review/replay, downstream
   report/render/archive posture, Gateway/Workbench exposure, data-product declaration, trust
   telemetry, capability discovery, live runtime proof, and governed Workbench canonical proof
+- enterprise policy-pack catalog and advisor/compliance policy evaluation evidence with governed
+  source readiness, finalized evaluation records, replay, workflow/sign-off posture, report-package
+  lineage, bounded AI evidence, Gateway/Workbench exposure, active data-product declaration, and
+  trust telemetry
 - source-owned tactical house-view affected cohorts from bank-authored house-view instructions and
   caller-supplied source-backed candidate portfolios
 
@@ -67,6 +71,9 @@ Boundary rules that matter:
 4. Live operator evidence covers canonical and degraded decision-summary and alternatives posture.
 5. `TacticalHouseViewAffectedCohort:v1` is a governed source-owned cohort product for downstream
    DPM workflows in `lotus-manage`, bounded to supplied eligible candidates and preserved lineage.
+6. `AdvisoryPolicyEvaluationRecord:v1` is an active advisor/compliance policy evidence product for
+   RFC-0025. Completed approval/waiver authority, completed sign-off authority, client-ready
+   policy publication, and external client communication remain gated.
 
 ## Architecture At A Glance
 
@@ -213,7 +220,8 @@ Important public route groups:
 3. advisory operations and support
 4. advisory workspace
 5. tactical house-view affected-cohort evaluation
-6. integration capabilities
+6. policy-pack catalog and policy-evaluation evidence
+7. integration capabilities
 
 Contract rules that are easy to get wrong:
 
@@ -226,7 +234,10 @@ Contract rules that are easy to get wrong:
    read, and non-persistent regeneration, while client-ready narrative remains gated
 5. tactical house-view cohort responses must preserve upstream source refs and supportability posture
    instead of recomputing portfolio source facts locally
-6. `GET /platform/capabilities` separates feature enablement from operational readiness and returns
+6. policy evaluation endpoints preserve source/policy/evaluation/replay hashes and must not imply
+   legal advice, completed approval/waiver authority, completed sign-off authority, or client-ready
+   publication
+7. `GET /platform/capabilities` separates feature enablement from operational readiness and returns
    bounded dependency evidence through `runtime_probe_enabled`, `readiness_basis`, and
    `degraded_reason` without exposing dependency base URLs
 

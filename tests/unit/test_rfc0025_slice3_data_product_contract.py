@@ -36,7 +36,7 @@ def test_rfc0025_slice3_documentation_records_non_promotional_data_product_postu
     assert "RFC-0025-slice-3-data-product-and-platform-hardening.md" in rfc
 
 
-def test_rfc0025_policy_product_stays_proposed_blocked_without_capability_promotion() -> None:
+def test_rfc0025_slice3_records_historical_proposed_blocked_posture() -> None:
     declaration = _load_json(
         REPO_ROOT / "contracts" / "domain-data-products" / "lotus-advise-products.v1.json"
     )
@@ -46,9 +46,9 @@ def test_rfc0025_policy_product_stays_proposed_blocked_without_capability_promot
         / "trust-telemetry"
         / "advisory-policy-evaluation-record.telemetry.v1.json"
     )
-    capability_text = (REPO_ROOT / "src" / "api" / "capabilities" / "service.py").read_text(
-        encoding="utf-8"
-    )
+    slice_doc = (
+        REPO_ROOT / "docs" / "rfcs" / "RFC-0025-slice-3-data-product-and-platform-hardening.md"
+    ).read_text(encoding="utf-8")
 
     product = next(
         item
@@ -56,7 +56,13 @@ def test_rfc0025_policy_product_stays_proposed_blocked_without_capability_promot
         if item["product_name"] == "AdvisoryPolicyEvaluationRecord"
     )
 
-    assert product["lifecycle_status"] == "proposed"
+    assert "Lifecycle status | `proposed`" in slice_doc
+    assert "Completeness default | `blocked`" in slice_doc
+    assert "`freshness_state` is `unknown`" in slice_doc
+    assert "`completeness_status` is `blocked`" in slice_doc
+    assert "`blocking.blocked` is `true`" in slice_doc
+    assert "No policy row is added" in slice_doc
+    assert product["lifecycle_status"] == "active"
     assert product["current_routes"] == [
         "/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
         "/advisory/policy-evaluations/review-queue",
@@ -70,8 +76,6 @@ def test_rfc0025_policy_product_stays_proposed_blocked_without_capability_promot
         "/advisory/policy-evaluations/{evaluation_id}/report-packages",
         "/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
     ]
-    assert product["completeness_policy"]["default_status"] == "blocked"
-    assert telemetry["blocking"]["blocked"] is True
-    assert telemetry["completeness_status"] == "blocked"
-    assert "advisory.proposals.policy_evaluation" not in capability_text
-    assert "advisory_policy_evaluation" not in capability_text
+    assert product["completeness_policy"]["default_status"] == "complete"
+    assert telemetry["blocking"]["blocked"] is False
+    assert telemetry["completeness_status"] == "complete"

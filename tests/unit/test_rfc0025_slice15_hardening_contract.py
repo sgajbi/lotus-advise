@@ -25,7 +25,9 @@ def test_rfc0025_slice15_hardening_is_indexed() -> None:
     assert "Gateway and Workbench product support" in slice15_text
     assert "signed-off report-package handoff support" in slice15_text
     assert "active data-product promotion blocked until final closure" in slice15_text
-    assert "Implementation in progress through Slice 15" in supported_features
+    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 16" in (
+        supported_features
+    )
     assert "centralizing policy-pack supportability" in repo_context
 
 
@@ -46,7 +48,11 @@ def test_rfc0025_slice15_supportability_truth_is_centralized_and_current() -> No
         '"report_package_realization": "SUPPORTED_BY_RFC0025_SLICE10_SIGNED_OFF_PACKAGE"'
         in supportability
     )
-    assert '"active_data_product_promotion": "BLOCKED_UNTIL_FINAL_CLOSURE"' in supportability
+    assert (
+        '"active_data_product_promotion": "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE"'
+        in supportability
+    )
+    assert '"mesh_certification": "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE"' in supportability
     assert '"client_ready_publication": CLIENT_READY_PUBLICATION_POSTURE' in supportability
 
     assert "policy_runtime_supportability()" in catalog

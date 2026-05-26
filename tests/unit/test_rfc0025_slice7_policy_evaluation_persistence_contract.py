@@ -59,11 +59,13 @@ def test_rfc0025_slice7_keeps_api_product_surface_and_client_ready_gated() -> No
     assert '"workbench_support": "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI"' in (
         supportability_source
     )
-    assert '"active_data_product_promotion": "BLOCKED_UNTIL_FINAL_CLOSURE"' in (
+    assert '"active_data_product_promotion": "SUPPORTED_BY_RFC0025_SLICE16_FINAL_CLOSURE"' in (
         supportability_source
     )
-    assert "Active data-product promotion" in supported_features
+    assert "active governed policy evidence data product" in supported_features
     assert "client-ready publication" in supported_features
-    assert "Implementation in progress through Slice 15" in supported_features
-    assert "Active data-product promotion" in supported_features
+    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 16" in (
+        supported_features
+    )
+    assert "current trust telemetry" in supported_features
     assert "no api or product surface promoted" in slice7_text.lower()

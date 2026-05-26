@@ -62,5 +62,5 @@ def test_rfc0025_slice8_exposes_advise_routes_without_capability_promotion() -> 
         "Slice 12 is complete for Gateway and Workbench product realization" in supported_features
     )
     assert "active data-product promotion" in supported_features
-    assert "advisory.proposals.policy_evaluation" not in capabilities_source
-    assert "advisory_policy_evaluation" not in capabilities_source
+    assert "advisory.proposals.policy_evaluation" in capabilities_source
+    assert "advisory_policy_evaluation" in capabilities_source

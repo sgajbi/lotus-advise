@@ -34,7 +34,6 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0016 costs, fees, and transaction frictions
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
-- RFC-0025 enterprise suitability and best-interest policy packs
 - RFC-0026 advisor cockpit operating workflow
 - RFC-0027 governed advisory AI copilot
 - RFC-0028 bank demo journey and client-ready proof
@@ -46,9 +45,11 @@ governed advisor-review proposal narrative evidence and defines the grounded nar
 consumed by proposal memo, policy, cockpit, copilot, and demo work. RFC-0024 is implemented for
 advisor-use proposal memo evidence and remains the bounded memo source of truth; client-ready memo
 publication, external client communication, and full bank-demo/RFP claims remain gated. RFC-0025 is
-the next recommended implementation program and must start with the Slice 0 policy-pack
-pre-implementation decisions in
-`docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md`.
+implemented for advisor/compliance policy evaluation evidence and remains bounded to policy
+evidence, review posture, report-package lineage, bounded AI evidence, Gateway/Workbench exposure,
+and active `AdvisoryPolicyEvaluationRecord:v1` data-product support. Completed approval/waiver
+authority, completed sign-off authority, client-ready policy publication, external client
+communication, and full RFC-0028 bank-demo/RFP claims remain gated.
 
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
@@ -166,6 +167,14 @@ code, OpenAPI/schema examples, and tests, and the implementation now accurately 
 Gateway/Workbench product support and signed-off report-package handoff while active data-product
 promotion, completed approval/waiver authority, completed sign-off authority, final closure, and
 client-ready publication remain gated.
+
+RFC-0025 Slice 16 is implemented as final closure. Evidence lives in
+`docs/rfcs/RFC-0025-slice-16-final-closure.md`. `AdvisoryPolicyEvaluationRecord:v1` is active for
+advisor/compliance policy evidence with current trust telemetry, `/platform/capabilities`, platform
+SLO/access/evidence-policy posture, Gateway/Workbench visibility, and live-suite proof. Completed
+approval/waiver authority, completed sign-off authority, client-ready policy publication, external
+client communication, post-completion communication, and full RFC-0028 bank-demo/RFP claims remain
+gated.
 
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
@@ -461,3 +470,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-11-ai-policy-evidence-boundary.md`
 - `docs/rfcs/RFC-0025-slice-14-implementation-proof.md`
 - `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`
+- `docs/rfcs/RFC-0025-slice-16-final-closure.md`

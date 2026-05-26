@@ -78,5 +78,5 @@ def test_rfc0025_slice11_records_ai_lineage_without_product_surface_promotion() 
     )
     assert "active data-product promotion" in supported_features
     assert "client-ready publication" in supported_features
-    assert "advisory.proposals.policy_evaluation" not in capabilities_source
-    assert "advisory_policy_evaluation" not in capabilities_source
+    assert "advisory.proposals.policy_evaluation" in capabilities_source
+    assert "advisory_policy_evaluation" in capabilities_source
