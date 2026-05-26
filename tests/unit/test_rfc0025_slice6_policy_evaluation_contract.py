@@ -52,7 +52,7 @@ def test_rfc0025_slice6_keeps_product_surface_and_persistence_gated() -> None:
     assert "source_authority_refs" in models_source
     assert "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE" in readiness_source
     assert "INTERNAL_ENGINE_ONLY_NO_PERSISTED_API" in readiness_source
-    assert "proposal policy evaluation persistence" in supported_features
-    assert "certified evaluation APIs" in supported_features
+    assert "internal policy evaluation persistence" in supported_features
+    assert "Certified evaluation APIs" in supported_features
     assert "remain gated" in supported_features
     assert "no persistence/API/product-surface promotion" in slice6_text

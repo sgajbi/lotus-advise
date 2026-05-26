@@ -4335,3 +4335,34 @@
 - Follow-Up:
   - Slice 7 should persist evaluation records idempotently and preserve policy version, content
     hash, source refs, rule result hashes, replay metadata, and append-only audit posture.
+
+## LA-REV-168
+
+- Scope: RFC-0025 policy evaluation persistence, replay, idempotency, and audit
+- Pattern: immutable evidence record / append-only policy event boundary
+- Status: Hardened
+- Finding Class: product-truth risk
+- Summary: Policy evaluation needed durable finalized records with replayable hash evidence before
+  certified APIs or front-office policy surfaces could truthfully expose the capability.
+- Evidence:
+  - `src/core/policy_packs/persistence.py` implements
+    `rfc0025.policy-evaluation-persistence.v1` for finalized policy evaluation records,
+    duplicate prevention, idempotent replay, append-only review/sign-off/report-archive events,
+    and replay hash comparison.
+  - `src/core/policy_packs/models.py` carries typed policy evaluation record, audit-event,
+    persistence-result, and replay-response models.
+  - `tests/unit/advisory/engine/test_engine_policy_pack_persistence.py` proves immutable
+    hash-backed records, idempotency conflicts, duplicate request handling, append-only event
+    posture, replay hash comparison, and disclosure/consent/approval dependency persistence.
+  - `contracts/trust-telemetry/advisory-policy-evaluation-record.telemetry.v1.json` now narrows
+    the blocked data-product reason to missing certified APIs, review queues, and product surfaces
+    while recording Slice 7 internal persistence evidence.
+- Consequence:
+  - Slice 8 can expose certified policy APIs over an internal persistence boundary rather than
+    combining route design with record immutability, replay, and audit concerns.
+- Documentation:
+  - RFC-0025 Slice 7 evidence, repo context, RFC index, supported-feature wiki source, trust
+    telemetry README, and RFC README were updated as internal-persistence-only support.
+- Follow-Up:
+  - Slice 8 should expose certified policy evaluation APIs without bypassing the finalized-record
+    store or promoting Gateway/Workbench/client-ready claims before their slices are complete.

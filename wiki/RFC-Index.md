@@ -92,6 +92,16 @@ cost evidence, and conflict/product-document review. Policy evaluation persisten
 evaluation APIs, review queues, sign-off packages, Gateway/Workbench policy consumption, and
 client-ready publication remain unimplemented and unpromoted.
 
+RFC-0025 Slice 7 is implemented as internal policy evaluation persistence, replay, idempotency, and
+audit. Evidence lives in
+`docs/rfcs/RFC-0025-slice-7-policy-evaluation-persistence-replay-audit.md`. Advise now persists
+finalized policy evaluation records with policy version, policy content hash, source evidence hash,
+aggregate evaluation hash, per-rule result hashes, source refs, source gaps, approval
+dependencies, disclosure requirements, consent requirements, replay metadata, and append-only
+review/sign-off/report-archive events. Certified policy evaluation APIs, policy review queues,
+sign-off package realization, Gateway/Workbench policy consumption, active data-product promotion,
+and client-ready publication remain unimplemented and unpromoted.
+
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
 bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,
@@ -377,3 +387,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-4-upstream-source-evidence-completion.md`
 - `docs/rfcs/RFC-0025-slice-5-policy-pack-catalog-schema-activation.md`
 - `docs/rfcs/RFC-0025-slice-6-policy-applicability-and-evaluation-engine.md`
+- `docs/rfcs/RFC-0025-slice-7-policy-evaluation-persistence-replay-audit.md`

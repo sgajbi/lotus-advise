@@ -8,7 +8,7 @@
 | **Implemented Date** | 2026-05-26 |
 | **Owner** | `lotus-advise`; `lotus-platform` generated catalog automation |
 | **Implementation Branch** | `rfc25-slice3-data-product-hardening` |
-| **Capability Posture** | This slice declares `AdvisoryPolicyEvaluationRecord:v1` as a governed proposed product with blocked trust telemetry. Current mainline now includes the Slice 6 internal evaluator, but this data product remains blocked until persisted evaluation records, certified APIs, review queues, report/sign-off packages, Gateway/Workbench policy surfaces, and client-ready policy publication are implemented. |
+| **Capability Posture** | This slice declares `AdvisoryPolicyEvaluationRecord:v1` as a governed proposed product with blocked trust telemetry. Current mainline now includes the Slice 6 internal evaluator and Slice 7 internal finalized-record persistence/replay path, but this data product remains blocked until certified APIs, review queues, report/sign-off packages, Gateway/Workbench policy surfaces, active data-product promotion, and client-ready policy publication are implemented. |
 
 ## Decision
 
@@ -36,11 +36,11 @@ Slice 3 therefore creates a proposed, blocked data-product posture:
 | Product family | `workflow_and_decision_state` |
 | Freshness class | `event_driven` |
 | Completeness default | `blocked` |
-| Lineage | Required, but not materialized until policy evaluation evidence exists |
+| Lineage | Required; Slice 7 materializes internal persistence lineage, but publication remains blocked |
 | Evidence bundle | Required for eventual advisor/compliance use |
 | Approved consumers | `lotus-gateway`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-workbench`, `lotus-ai` |
 | Current routes | None in this slice |
-| Capability promotion | Forbidden until policy evaluation APIs, persistence, replay, Gateway/Workbench consumption, and proof are implemented |
+| Capability promotion | Forbidden until certified policy evaluation APIs, Gateway/Workbench consumption, live proof, and final supportability promotion are implemented |
 
 ## Trust Telemetry Posture
 
@@ -49,14 +49,13 @@ The RFC-0025 telemetry snapshot is intentionally blocked:
 1. `freshness_state` is `unknown`,
 2. `completeness_status` is `blocked`,
 3. `data_quality_status` is `quality_unknown`,
-4. `lineage.lineage_materialized` is `false`,
+4. `lineage.lineage_materialized` is now `true` for internal Slice 7 persistence lineage,
 5. `blocking.blocked` is `true` with
-   `RFC0025_POLICY_EVALUATION_PERSISTENCE_AND_API_NOT_IMPLEMENTED`.
+   `RFC0025_POLICY_EVALUATION_API_REVIEW_QUEUE_AND_PRODUCT_SURFACE_NOT_IMPLEMENTED`.
 
 This is the correct enterprise posture. The policy-evaluation product is now a governed planning
-and control object, but it is unavailable to business consumers until policy packs, source evidence,
-evaluation, persistence, replay, review actions, sign-off packages, downstream consumption, and
-front-office proof are implemented.
+and control object, but it is unavailable to business consumers until certified APIs, review
+actions, sign-off packages, downstream consumption, and front-office proof are implemented.
 
 ## Platform Hardening Posture
 
