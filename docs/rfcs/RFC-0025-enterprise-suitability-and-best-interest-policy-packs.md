@@ -1056,6 +1056,17 @@ Acceptance gate:
 2. endpoint certification covers behavior and every returned material field,
 3. any broken or retired downstream contract is migrated in the same RFC.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-8-certified-apis-and-openapi.md`
+
+Current boundary:
+
+1. certified Advise evaluation APIs, review queue projection, lineage, replay, append-only
+   review/sign-off/report-reference events, and sign-off source package are implemented,
+2. Gateway, Workbench, report/render/archive realization, active data-product promotion, and
+   client-ready publication remain gated later slices.
+
 ### Slice 9 - Approval, Consent, Disclosure, Conflict, and Sign-Off Pack Realization
 
 Outcome:

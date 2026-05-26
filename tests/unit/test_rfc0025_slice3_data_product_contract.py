@@ -32,7 +32,7 @@ def test_rfc0025_slice3_documentation_records_non_promotional_data_product_postu
     assert "RFC-0025-slice-3-data-product-and-platform-hardening.md" in rfc
 
 
-def test_rfc0025_slice3_policy_product_is_proposed_blocked_and_routeless() -> None:
+def test_rfc0025_policy_product_stays_proposed_blocked_without_capability_promotion() -> None:
     declaration = _load_json(
         REPO_ROOT / "contracts" / "domain-data-products" / "lotus-advise-products.v1.json"
     )
@@ -53,7 +53,15 @@ def test_rfc0025_slice3_policy_product_is_proposed_blocked_and_routeless() -> No
     )
 
     assert product["lifecycle_status"] == "proposed"
-    assert product.get("current_routes", []) == []
+    assert product["current_routes"] == [
+        "/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
+        "/advisory/policy-evaluations/review-queue",
+        "/advisory/policy-evaluations/{evaluation_id}",
+        "/advisory/policy-evaluations/{evaluation_id}/replay",
+        "/advisory/policy-evaluations/{evaluation_id}/events",
+        "/advisory/policy-evaluations/{evaluation_id}/lineage",
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
+    ]
     assert product["completeness_policy"]["default_status"] == "blocked"
     assert telemetry["blocking"]["blocked"] is True
     assert telemetry["completeness_status"] == "blocked"

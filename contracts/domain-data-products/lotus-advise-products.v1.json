@@ -216,9 +216,18 @@
         "content_hash",
         "correlation_id"
       ],
+      "current_routes": [
+        "/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
+        "/advisory/policy-evaluations/review-queue",
+        "/advisory/policy-evaluations/{evaluation_id}",
+        "/advisory/policy-evaluations/{evaluation_id}/replay",
+        "/advisory/policy-evaluations/{evaluation_id}/events",
+        "/advisory/policy-evaluations/{evaluation_id}/lineage",
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off-package"
+      ],
       "freshness_policy": {
         "freshness_class": "event_driven",
-        "max_allowed_age_description": "Policy evaluation freshness remains blocked for data-product publication until RFC-0025 implements certified policy APIs, review queues, sign-off package realization, Gateway/Workbench consumption, live proof, and supportability promotion. Slice 7 now provides internal finalized evaluation persistence and replay, but this proposed product must not be treated as a supported route, product surface, or client-ready publication evidence."
+        "max_allowed_age_description": "Policy evaluation freshness remains blocked for data-product publication until RFC-0025 implements Gateway/Workbench consumption, report/render/archive sign-off package realization, live proof, and supportability promotion. Slice 8 provides certified Advise evaluation APIs, review queue projection, replay, lineage, append-only review/sign-off/report-reference events, and sign-off source packages, but this proposed product must not be treated as a Gateway-supported product surface or client-ready publication evidence."
       },
       "completeness_policy": {
         "default_status": "blocked",

@@ -48,7 +48,7 @@ def test_rfc0025_slice7_keeps_api_product_surface_and_client_ready_gated() -> No
     assert "PIN_POLICY_VERSION_AND_COMPARE_SOURCE_HASHES" in persistence_source
     assert "PolicyEvaluationRecord" in models_source
     assert "PolicyEvaluationReplayResponse" in models_source
-    assert '"policy_evaluation_api": "NOT_IMPLEMENTED"' in evaluation_source
+    assert '"policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"' in evaluation_source
     assert '"gateway_supported": False' in evaluation_source
     assert '"workbench_supported": False' in evaluation_source
     assert "active data-product promotion" in supported_features

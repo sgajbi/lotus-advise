@@ -45,14 +45,14 @@ def test_rfc0025_slice6_keeps_product_surface_and_persistence_gated() -> None:
     assert "rfc0025.policy-evaluation-engine.v1" in evaluation_source
     assert "POLICY_PACK_VERSION_NOT_ACTIVE_FOR_EVALUATION" in evaluation_source
     assert "policy_evaluation_persistence" in evaluation_source
-    assert '"policy_evaluation_api": "NOT_IMPLEMENTED"' in evaluation_source
+    assert '"policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"' in evaluation_source
     assert '"gateway_supported": False' in evaluation_source
     assert '"workbench_supported": False' in evaluation_source
     assert "PolicyRuleEvaluationResult" in models_source
     assert "source_authority_refs" in models_source
     assert "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE" in readiness_source
     assert "INTERNAL_ENGINE_ONLY_NO_PERSISTED_API" in readiness_source
-    assert "internal policy evaluation persistence" in supported_features
-    assert "Certified evaluation APIs" in supported_features
+    assert "certified Advise evaluation APIs" in supported_features
+    assert "Slice 8 is complete" in supported_features
     assert "remain gated" in supported_features
     assert "no persistence/API/product-surface promotion" in slice6_text
