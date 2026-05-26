@@ -4431,3 +4431,38 @@
   - Slice 10 should materialize typed policy/sign-off/disclosure packages through report, render,
     and archive only where source package, review posture, and lineage refs are implementation
     backed.
+
+## LA-REV-171
+
+- Scope: RFC-0025 policy report-package realization
+- Pattern: signed-off source package handoff with lineage-recorded downstream refs
+- Status: Hardened
+- Finding Class: product-truth risk
+- Summary: Slice 10 needed report/render/archive materialization without treating a report job as
+  Gateway/Workbench support, active data-product promotion, or client-ready publication.
+- Evidence:
+  - `src/core/policy_packs/reporting.py` implements
+    `rfc0025.policy-report-package-realization.v1` over finalized policy evaluation records,
+    workflow sign-off posture, idempotency keys, and append-only lineage events.
+  - `src/integrations/lotus_report/adapter.py` submits `ADVISORY_POLICY_SIGN_OFF_PACKAGE` payloads
+    to the existing portfolio-review report job contract and returns report/render/archive refs.
+  - `src/api/proposals/routes_policy_evaluations.py` exposes
+    `POST /advisory/policy-evaluations/{evaluation_id}/report-packages` as a thin API route.
+  - `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` proves unsigned blocking,
+    signed-off handoff, lineage refs, idempotent replay, and client-ready release rejection.
+  - `tests/unit/advisory/api/test_lotus_report_adapter.py` proves the downstream typed package
+    payload and returned render/archive refs.
+  - `tests/unit/test_rfc0025_slice10_policy_report_package_contract.py` protects RFC/wiki/
+    data-product/trust-telemetry indexing and prevents `/platform/capabilities` promotion.
+- Consequence:
+  - Advise can now materialize signed-off policy evidence through lotus-report and retain returned
+    report/render/archive refs in policy lineage. Gateway/Workbench policy support, live proof,
+    active data-product promotion, AI policy-evidence consumption, and client-ready publication
+    remain blocked.
+- Documentation:
+  - RFC-0025 Slice 10 evidence, repo context, RFC index, supported-feature wiki source,
+    data-product declaration, trust telemetry, and RFC README were updated.
+- Follow-Up:
+  - Slice 11 should consume policy outcomes in AI workflow packs only as bounded evidence, without
+    allowing AI to alter policy status, approvals, disclosures, consent posture, or client-ready
+    claims.

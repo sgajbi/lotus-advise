@@ -225,11 +225,12 @@
         "/advisory/policy-evaluations/{evaluation_id}/lineage",
         "/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
         "/advisory/policy-evaluations/{evaluation_id}/workflow",
-        "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions"
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
+        "/advisory/policy-evaluations/{evaluation_id}/report-packages"
       ],
       "freshness_policy": {
         "freshness_class": "event_driven",
-        "max_allowed_age_description": "Policy evaluation freshness remains blocked for data-product publication until RFC-0025 implements Gateway/Workbench consumption, report/render/archive sign-off package realization, live proof, and supportability promotion. Slice 9 provides Advise source workflow projection and sign-off decision recording over certified policy evaluation records, including approval dependencies, disclosure and consent requirements, conflict posture, SLA aging, maker-checker enforcement, and append-only sign-off events, but this proposed product must not be treated as a Gateway-supported product surface, report/archive realization, or client-ready publication evidence."
+        "max_allowed_age_description": "Policy evaluation freshness remains blocked for data-product publication until RFC-0025 implements Gateway/Workbench consumption, live proof, and supportability promotion. Slice 10 provides Advise-owned policy report-package realization for signed-off policy evaluations: lotus-report receives a typed policy sign-off package, returned report/render/archive refs are recorded in policy lineage, and client-ready document release remains blocked. This proposed product must not be treated as a Gateway-supported product surface, active data product, live canonical proof, or client-ready publication evidence."
       },
       "completeness_policy": {
         "default_status": "blocked",

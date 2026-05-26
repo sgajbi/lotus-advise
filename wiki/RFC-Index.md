@@ -114,8 +114,16 @@ Evidence lives in `docs/rfcs/RFC-0025-slice-9-policy-approval-consent-signoff-wo
 now exposes workflow projection and sign-off decision routes over finalized policy records,
 including approval dependencies, disclosure and consent requirements, conflict posture, SLA aging,
 maker-checker enforcement, source-hash validation, and append-only sign-off events.
-Gateway/Workbench policy consumption, report/render/archive realization, active data-product promotion, and
-client-ready publication remain gated.
+Report/render/archive realization remains gated to Slice 10. Gateway/Workbench policy consumption,
+active data-product promotion, and client-ready publication remain gated.
+
+RFC-0025 Slice 10 is implemented as Advise-owned policy report-package realization. Evidence lives
+in `docs/rfcs/RFC-0025-slice-10-report-render-archive-realization.md`. Advise now exposes a
+signed-off policy evaluation report-package route, submits a typed policy sign-off package to
+`lotus-report`, records report/render/archive refs in policy lineage, supports idempotent replay,
+and blocks client-ready document generation. Gateway/Workbench policy consumption, live canonical
+proof, active data-product promotion, AI policy-evidence consumption, and client-ready publication
+remain gated.
 
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
@@ -405,3 +413,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-7-policy-evaluation-persistence-replay-audit.md`
 - `docs/rfcs/RFC-0025-slice-8-certified-apis-and-openapi.md`
 - `docs/rfcs/RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md`
+- `docs/rfcs/RFC-0025-slice-10-report-render-archive-realization.md`
