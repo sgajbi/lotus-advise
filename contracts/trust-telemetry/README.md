@@ -19,6 +19,11 @@ The current first-wave snapshot is:
    implementation proof, and platform SLO/access/evidence policy posture. It does not promote
    client-ready memo publication, external client communication, or full RFC-0028 bank-demo/RFP
    package claims.
+4. `advisory-policy-evaluation-record.telemetry.v1.json`
+   Blocked trust posture for `lotus-advise:AdvisoryPolicyEvaluationRecord:v1`, the proposed
+   RFC-0025 policy-evaluation product. This snapshot makes the product visible to mesh governance
+   without promoting policy-pack runtime support, policy APIs, Gateway/Workbench policy surfaces,
+   or client-ready publication.
 
 Validate locally with:
 
@@ -26,6 +31,8 @@ Validate locally with:
 python -m pytest tests\unit\test_trust_telemetry.py -q
 ```
 
-When `../lotus-platform` is available, the test validates the snapshot with the platform
-`automation/validate_trust_telemetry.py` contract validator and checks that observed trust metadata
-matches the repo-native declaration in `contracts/domain-data-products/lotus-advise-products.v1.json`.
+When `../lotus-platform` is available, the test generates a current domain-product catalog from
+repo-native declarations, validates the snapshots with the platform
+`automation/validate_trust_telemetry.py` contract validator, and checks that observed trust
+metadata matches the repo-native declaration in
+`contracts/domain-data-products/lotus-advise-products.v1.json`.

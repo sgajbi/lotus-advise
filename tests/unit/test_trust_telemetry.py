@@ -14,6 +14,7 @@ TELEMETRY_DIR = REPO_ROOT / "contracts" / "trust-telemetry"
 SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-proposal-lifecycle-record.telemetry.v1.json"
 NARRATIVE_SNAPSHOT_PATH = TELEMETRY_DIR / "proposal-narrative-evidence.telemetry.v1.json"
 MEMO_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-proposal-memo-evidence-pack.telemetry.v1.json"
+POLICY_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-policy-evaluation-record.telemetry.v1.json"
 DECLARATION_PATH = (
     REPO_ROOT / "contracts" / "domain-data-products" / "lotus-advise-products.v1.json"
 )
@@ -23,22 +24,40 @@ def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _load_platform_validator():
-    validator_path = PLATFORM_ROOT / "automation" / "validate_trust_telemetry.py"
-    if not validator_path.exists():
-        pytest.skip("lotus-platform trust telemetry validator is not available")
+def _load_platform_automation_module(module_name: str):
+    module_path = PLATFORM_ROOT / "automation" / f"{module_name}.py"
+    if not module_path.exists():
+        pytest.skip(f"lotus-platform {module_name} automation is not available")
     automation_path = str(PLATFORM_ROOT / "automation")
     if automation_path not in sys.path:
         sys.path.insert(0, automation_path)
-    return importlib.import_module("validate_trust_telemetry")
+    return importlib.import_module(module_name)
 
 
-def test_advisory_proposal_lifecycle_trust_telemetry_validates_with_platform_contract() -> None:
+def _load_platform_validator():
+    return _load_platform_automation_module("validate_trust_telemetry")
+
+
+def _write_current_domain_product_catalog(output_directory: Path) -> Path:
+    discovery = _load_platform_automation_module("domain_product_discovery")
+    discovery.write_discovery_artifacts(
+        output_directory,
+        discovery.DEFAULT_DECLARATION_DIRECTORY,
+        generated_at_utc="2026-05-26T00:00:00Z",
+        source_manifest_path=discovery.DEFAULT_SOURCE_MANIFEST_PATH,
+    )
+    return output_directory / "domain-product-catalog.json"
+
+
+def test_advisory_proposal_lifecycle_trust_telemetry_validates_with_platform_contract(
+    tmp_path: Path,
+) -> None:
     validator = _load_platform_validator()
+    catalog_path = _write_current_domain_product_catalog(tmp_path)
 
     issues = validator.validate_trust_telemetry_path(
         TELEMETRY_DIR,
-        catalog_path=PLATFORM_ROOT / "generated" / "domain-product-catalog.json",
+        catalog_path=catalog_path,
     )
 
     assert issues == []
@@ -173,3 +192,60 @@ def test_rfc0024_memo_trust_telemetry_promotes_only_advisor_use_memo() -> None:
     declaration_text = json.dumps(declared_product, sort_keys=True).lower()
     assert "client-ready memo publication" in declaration_text
     assert "external client communication remain blocked" in declaration_text
+
+
+def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declaration() -> None:
+    snapshot = _load_json(POLICY_SNAPSHOT_PATH)
+    declaration = _load_json(DECLARATION_PATH)
+    declared_product = next(
+        product
+        for product in declaration["products"]
+        if product["product_name"] == "AdvisoryPolicyEvaluationRecord"
+    )
+
+    assert snapshot["product_id"] == "lotus-advise:AdvisoryPolicyEvaluationRecord:v1"
+    assert snapshot["producer_repository"] == declaration["producer_repository"]
+    assert snapshot["product_name"] == declared_product["product_name"]
+    assert snapshot["product_version"] == declared_product["product_version"]
+    assert declared_product["lifecycle_status"] == "proposed"
+    assert declared_product.get("current_routes", []) == []
+    assert (
+        snapshot["freshness"]["freshness_class"]
+        == declared_product["freshness_policy"]["freshness_class"]
+    )
+    assert snapshot["freshness"]["freshness_state"] == "unknown"
+    assert snapshot["completeness_status"] == "blocked"
+    assert snapshot["data_quality_status"] == "quality_unknown"
+    assert set(snapshot["observed_trust_metadata"]) == set(
+        declared_product["required_trust_metadata"]
+    )
+    assert snapshot["lineage"]["lineage_materialized"] is False
+    assert (
+        snapshot["lineage"]["evidence_access_class"]
+        == declared_product["lineage_policy"]["evidence_access_class_ref"]
+    )
+    assert snapshot["blocking"] == {
+        "blocked": True,
+        "blocked_reason": "RFC0025_POLICY_EVALUATION_RUNTIME_NOT_IMPLEMENTED",
+    }
+
+
+def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted(
+    tmp_path: Path,
+) -> None:
+    catalog_path = _write_current_domain_product_catalog(tmp_path)
+    catalog = _load_json(catalog_path)
+    policy_product = next(
+        product
+        for product in catalog["products"]
+        if product["product_id"] == "lotus-advise:AdvisoryPolicyEvaluationRecord:v1"
+    )
+    capability_text = (REPO_ROOT / "src" / "api" / "capabilities" / "service.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert policy_product["lifecycle_status"] == "proposed"
+    assert policy_product["current_routes"] == []
+    assert policy_product["completeness_policy"]["default_status"] == "blocked"
+    assert "advisory.proposals.policy_evaluation" not in capability_text
+    assert "advisory_policy_evaluation" not in capability_text

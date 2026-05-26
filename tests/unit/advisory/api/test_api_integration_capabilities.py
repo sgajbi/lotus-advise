@@ -94,6 +94,25 @@ def test_rfc0024_capabilities_advertise_advisor_use_memo_evidence_only():
     assert "client_ready_memo_publication" not in payload_text
 
 
+def test_rfc0025_capabilities_do_not_advertise_policy_evaluation_before_runtime_support():
+    with TestClient(app) as client:
+        response = client.get(
+            "/platform/capabilities",
+            params={"consumer_system": "lotus-gateway", "tenant_id": "default"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    feature_keys = {item["key"] for item in payload["features"]}
+    workflow_keys = {item["workflow_key"] for item in payload["workflows"]}
+    payload_text = str(payload).lower()
+
+    assert "advisory.proposals.policy_evaluation" not in feature_keys
+    assert "advisory_policy_evaluation" not in workflow_keys
+    assert "advisorypolicyevaluationrecord" not in payload_text
+    assert "policy evaluation support" not in payload_text
+
+
 def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_only():
     openapi = app.openapi()
     operation = openapi["paths"]["/platform/capabilities"]["get"]

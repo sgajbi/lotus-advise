@@ -957,6 +957,10 @@ Acceptance gate:
 7. dependency health, security audit, migration smoke, Docker build, and production guardrails are
    green.
 
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-3-data-product-and-platform-hardening.md`
+
 ### Slice 4 - Upstream Source Evidence Completion
 
 Outcome:
@@ -1200,7 +1204,7 @@ Acceptance gate:
 | Policy review queue and supervisory dashboard | Proposed | Promote only after Gateway/Workbench consume canonical Advise policy endpoints and browser proof exists. |
 | Compliance sign-off and disclosure packs | Proposed | Promote only after report job, deterministic render, archive record, retention/access audit, and lineage refs are proven. |
 | Policy evidence for AI narrative/copilot | Gated | Promote only after `lotus-ai` workflow-pack consumption, guardrails, lineage, review posture, and unavailable behavior are proven. |
-| Advisory policy data product | Proposed | Promote only after producer declaration, trust telemetry, mesh certification, SLO/access/evidence policy, and catalog publication are complete. |
+| Advisory policy data product | Proposed and blocked | Slice 3 declares `AdvisoryPolicyEvaluationRecord:v1` and blocked trust telemetry without routes or capability support. Promote only after implementation-backed policy evaluation, persistence, replay, Gateway/Workbench consumption, SLO/access/evidence policy, mesh certification, and catalog publication are complete. |
 | Sales/demo-safe policy-pack material | Proposed | Promote only after synthetic/approved demo data, supported-claim taxonomy, and wiki/demo material are implementation-backed. |
 
 ## 22. Existing WTBD Import and No-WTBD Execution Rule

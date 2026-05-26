@@ -64,6 +64,12 @@ wiring, and records that dedicated policy-pack modules must be introduced only w
 add real catalog, validation, evaluation, persistence, replay, review, sign-off, report, AI,
 Gateway, Workbench, or supportability behavior. No runtime policy-pack capability is promoted.
 
+RFC-0025 Slice 3 is implemented as proposed, blocked data-product posture. Evidence lives in
+`docs/rfcs/RFC-0025-slice-3-data-product-and-platform-hardening.md`.
+`AdvisoryPolicyEvaluationRecord:v1` now has a repo-native producer declaration and blocked trust
+telemetry, while current routes and `/platform/capabilities` policy support remain absent until
+runtime policy evaluation, persistence, replay, Gateway/Workbench consumption, and proof are real.
+
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
 bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,
@@ -345,3 +351,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md`
 - `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`
 - `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0025-slice-3-data-product-and-platform-hardening.md`
