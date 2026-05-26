@@ -335,6 +335,13 @@ Current note:
   Gateway BFF policy surface and Workbench Gateway-only Suitability Review surface while keeping
   active data-product promotion, live proof, approval/waiver authority, completed sign-off
   authority, and client-ready publication gated.
+- RFC-0025 Slice 13 commercial, demo, and RFP-support evidence lives in
+  `docs/rfcs/RFC-0025-slice-13-commercial-demo-rfp-support.md`. Policy-pack-specific
+  claim-controlled product material lives in
+  `docs/commercial/RFC-0025-enterprise-policy-pack-commercial-support.md` and covers one-pager
+  wording, demo notes, API examples, architecture flow, operator guidance, security posture, and
+  RFP-safe wording while keeping active data-product promotion, live proof, approval/waiver
+  authority, completed sign-off authority, and client-ready publication gated.
 
 Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md`
@@ -364,4 +371,6 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-10-report-render-archive-realization.md`
 - `docs/rfcs/RFC-0025-slice-11-ai-policy-evidence-boundary.md`
 - `docs/rfcs/RFC-0025-slice-12-gateway-workbench-product-realization.md`
+- `docs/rfcs/RFC-0025-slice-13-commercial-demo-rfp-support.md`
+- `docs/commercial/RFC-0025-enterprise-policy-pack-commercial-support.md`
 

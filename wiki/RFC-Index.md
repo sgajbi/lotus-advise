@@ -138,8 +138,16 @@ evaluation, sign-off source package, workflow, sign-off decision, report-package
 routes. Workbench now consumes Gateway/BFF-only policy review posture, selected evaluation
 evidence, sign-off package posture, workflow posture, and a bounded request-more-evidence action
 without local suitability calculation, approval/waiver authority, completed sign-off authority, or
-client-ready publication. Canonical live proof, active data-product promotion, commercial material,
-final hardening, final closure, and post-completion communication remain gated.
+client-ready publication. Canonical live proof, active data-product promotion, final hardening,
+final closure, and post-completion communication remain gated.
+
+RFC-0025 Slice 13 is implemented as policy-pack-specific commercial, demo, and RFP-support
+material. Evidence lives in `docs/rfcs/RFC-0025-slice-13-commercial-demo-rfp-support.md`, with the
+claim-controlled guide at `docs/commercial/RFC-0025-enterprise-policy-pack-commercial-support.md`.
+The guide covers implementation-backed one-pager language, demo notes, API examples, architecture
+flow, operator guidance, security posture, and RFP-safe wording. Active data-product promotion,
+canonical live proof, approval/waiver authority, completed sign-off authority, final closure, and
+client-ready publication remain gated.
 
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
@@ -426,6 +434,8 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-4-upstream-source-evidence-completion.md`
 - `docs/rfcs/RFC-0025-slice-5-policy-pack-catalog-schema-activation.md`
 - `docs/rfcs/RFC-0025-slice-6-policy-applicability-and-evaluation-engine.md`
+- `docs/rfcs/RFC-0025-slice-13-commercial-demo-rfp-support.md`
+- `docs/commercial/RFC-0025-enterprise-policy-pack-commercial-support.md`
 - `docs/rfcs/RFC-0025-slice-7-policy-evaluation-persistence-replay-audit.md`
 - `docs/rfcs/RFC-0025-slice-8-certified-apis-and-openapi.md`
 - `docs/rfcs/RFC-0025-slice-9-policy-approval-consent-signoff-workflow.md`

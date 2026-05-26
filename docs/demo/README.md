@@ -43,6 +43,16 @@ That guide includes memo create, advisor-use review, report-package, and AI-comm
 and explicitly separates advisor-use memo posture from client-ready publication and broader
 RFC-0028 bank-demo/RFP proof.
 
+For RFC-0025 enterprise policy-pack walkthroughs, use the claim-controlled commercial support guide
+instead of ad hoc demo wording:
+
+- `docs/commercial/RFC-0025-enterprise-policy-pack-commercial-support.md`
+
+That guide includes policy-pack catalog, policy-evaluation, review-queue, sign-off decision, and
+AI policy-evidence examples, and explicitly separates advisor/compliance/supervisory review posture
+from active data-product promotion, client-ready publication, and broader RFC-0028 bank-demo/RFP
+proof.
+
 ## Scenario Index
 
 | File | Scenario | Expected Status | Key Feature |
