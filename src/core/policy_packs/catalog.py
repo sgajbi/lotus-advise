@@ -445,7 +445,16 @@ _REFERENCE_PACKS: list[dict[str, Any]] = [
                 ],
                 "source_gap_handling": "PENDING_REVIEW_OR_BLOCKED",
                 "outcome_mapping": "NO_POSITIVE_POLICY_OUTCOME_WITH_MISSING_SOURCE_EVIDENCE",
-            }
+            },
+            {
+                "rule_id": "GLOBAL_MANDATE_RESTRICTIONS_REVIEW",
+                "severity": "REVIEW_REQUIRED",
+                "required_evidence_fields": [
+                    "core_mandate_objectives_restrictions",
+                ],
+                "source_gap_handling": "PENDING_REVIEW_OR_BLOCKED",
+                "outcome_mapping": "MANDATE_RESTRICTIONS_REQUIRE_ADVISOR_REVIEW",
+            },
         ],
         "disclosure_templates": [],
         "consent_templates": [],
@@ -514,6 +523,25 @@ _REFERENCE_PACKS: list[dict[str, Any]] = [
                 ],
                 "source_gap_handling": "PENDING_REVIEW",
                 "outcome_mapping": "DISCLOSURE_AND_CONSENT_REVIEW_REQUIRED",
+            },
+            {
+                "rule_id": "SG_BEST_INTEREST_COST_REVIEW",
+                "severity": "REVIEW_REQUIRED",
+                "required_evidence_fields": [
+                    "fee_cost_tax_friction_evidence",
+                ],
+                "source_gap_handling": "PENDING_REVIEW",
+                "outcome_mapping": "BEST_INTEREST_COST_REASONABLENESS_REVIEW_REQUIRED",
+            },
+            {
+                "rule_id": "SG_CONFLICT_REVIEW",
+                "severity": "REVIEW_REQUIRED",
+                "required_evidence_fields": [
+                    "conflict_evidence",
+                    "product_document_evidence",
+                ],
+                "source_gap_handling": "PENDING_REVIEW",
+                "outcome_mapping": "CONFLICT_AND_DISCLOSURE_REVIEW_REQUIRED",
             },
         ],
         "disclosure_templates": [

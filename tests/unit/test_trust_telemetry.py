@@ -226,7 +226,7 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
     )
     assert snapshot["blocking"] == {
         "blocked": True,
-        "blocked_reason": "RFC0025_POLICY_EVALUATION_RUNTIME_NOT_IMPLEMENTED",
+        "blocked_reason": "RFC0025_POLICY_EVALUATION_PERSISTENCE_AND_API_NOT_IMPLEMENTED",
     }
 
 

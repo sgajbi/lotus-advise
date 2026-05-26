@@ -52,7 +52,7 @@ overall-posture, and source-authority primitives instead of duplicating that sca
 | --- | --- |
 | Source owner boundary | `policy_source_readiness` separates `lotus-core`, `lotus-risk`, and `lotus-advise` sections and does not duplicate source methodology. |
 | Missing evidence posture | Tests prove missing client/mandate, positions, prices, product shelf, and risk authority become `BLOCKED`; partial owner evidence becomes `PENDING_REVIEW`. |
-| Non-claiming behavior | The manifest reports `SOURCE_READINESS_ONLY_POLICY_EVALUATION_NOT_IMPLEMENTED`, `policy_evaluation = NOT_IMPLEMENTED`, and `client_ready_publication = BLOCKED`. |
+| Non-claiming behavior | Current mainline reports `SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE`, `policy_evaluation = INTERNAL_ENGINE_ONLY_NO_PERSISTED_API`, and `client_ready_publication = BLOCKED`, so source-readiness evidence can support the Slice 6 internal evaluator without promoting persisted policy records, certified APIs, or product surfaces. |
 | Evidence persistence | `build_proposal_evidence_bundle` attaches `rfc0025.policy-source-readiness.v1` to persisted proposal evidence. |
 | Cleanup | Shared readiness primitives remove duplicated section/posture/source-authority logic from RFC-0024 memo readiness. |
 

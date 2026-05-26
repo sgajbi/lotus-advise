@@ -4306,3 +4306,32 @@
 - Follow-Up:
   - Slice 6 should consume only activated policy-pack versions and keep every rule result tied to
     `rfc0025.policy-source-readiness.v1` source posture.
+
+## LA-REV-167
+
+- Scope: RFC-0025 policy applicability and internal rule-evaluation engine
+- Pattern: source-backed evaluator / non-promoted product boundary
+- Status: Hardened
+- Finding Class: product-truth risk
+- Summary: Policy evaluation needed a domain engine that consumes active policy packs and source
+  readiness without jumping directly to persisted records, certified APIs, review queues, or UI
+  claims.
+- Evidence:
+  - `src/core/policy_packs/evaluation.py` implements `rfc0025.policy-evaluation-engine.v1` as an
+    internal evaluator for active policy packs only.
+  - `src/core/policy_packs/models.py` now carries typed applicability, rule result, and evaluation
+    response models with explicit source refs, missing evidence, reason codes, and required actions.
+  - `src/core/proposals/policy_source_readiness.py` now records internal evaluator availability
+    while preserving no-persisted-API and client-ready blocked posture.
+  - `tests/unit/advisory/engine/test_engine_policy_pack_evaluation.py` proves ready, blocked,
+    pending-review, missing-source, degraded-source, jurisdiction, client-segment, mandate,
+    product, complex-product, conflict, disclosure, consent, and best-interest paths.
+- Consequence:
+  - Slice 7 can persist immutable evaluation records from a stable internal evaluator instead of
+    inventing rule posture inside persistence or API code.
+- Documentation:
+  - RFC-0025 Slice 6 evidence, repo context, RFC index, supported-feature wiki source, and RFC
+    README were updated as internal-engine-only support.
+- Follow-Up:
+  - Slice 7 should persist evaluation records idempotently and preserve policy version, content
+    hash, source refs, rule result hashes, replay metadata, and append-only audit posture.

@@ -84,9 +84,13 @@ Current repository posture:
    `lotus-advise` source-readiness sections rather than inferring or defaulting missing source
    facts. Slice 5 adds `rfc0025.policy-pack-catalog.v1`, reference-pack list/detail/validate/
    activate APIs, schema/content validation, content hashes, maker-checker activation, and audit
-   events for `GLOBAL_PRIVATE_BANKING_BASELINE` and `SG_PRIVATE_BANKING_REFERENCE`. Proposal
-   policy evaluation, policy review queues, sign-off packages, Gateway/Workbench policy support,
-   and client-ready publication remain unimplemented and unpromoted,
+   events for `GLOBAL_PRIVATE_BANKING_BASELINE` and `SG_PRIVATE_BANKING_REFERENCE`. Slice 6 adds
+   the internal `rfc0025.policy-evaluation-engine.v1` applicability and rule-evaluation engine for
+   active policy packs, including source-backed material rule posture for source readiness,
+   mandate, product eligibility, complex-product disclosure/consent, best-interest cost evidence,
+   and conflict/product-document review. Persisted policy evaluation records, certified evaluation
+   APIs, policy review queues, sign-off packages, Gateway/Workbench policy support, and
+   client-ready publication remain unimplemented and unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 10. repo-native CI is already aligned to explicit lane expectations,
