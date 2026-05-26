@@ -4466,3 +4466,37 @@
   - Slice 11 should consume policy outcomes in AI workflow packs only as bounded evidence, without
     allowing AI to alter policy status, approvals, disclosures, consent posture, or client-ready
     claims.
+
+## LA-REV-172
+
+- Scope: RFC-0025 AI policy-evidence boundary
+- Pattern: redacted evidence packet with non-authoritative AI lineage
+- Status: Hardened
+- Finding Class: product-truth risk
+- Summary: Slice 11 needed AI-assisted policy explanation without allowing AI to approve, waive,
+  mutate, certify, publish, or infer missing policy evidence.
+- Evidence:
+  - `src/core/policy_packs/ai.py` implements `rfc0025.policy-ai-evidence-boundary.v1` with
+    source-hash validation, action allowlisting, forbidden-action rejection, redaction profile,
+    idempotency, deterministic unavailable posture, and append-only AI lineage events.
+  - `src/integrations/lotus_ai/policy_evidence.py` submits redacted structured context to
+    `policy_evidence_summary.pack@v1` through the governed workflow-pack execution route.
+  - `src/api/proposals/routes_policy_evaluations.py` exposes
+    `POST /advisory/policy-evaluations/{evaluation_id}/ai-evidence`.
+  - `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` proves bounded AI lineage,
+    forbidden-action rejection, stale-hash rejection, deterministic unavailable posture, and no
+    policy-status mutation.
+  - `tests/unit/advisory/api/test_lotus_ai_policy_evidence.py` proves the adapter sends redacted
+    policy evidence without raw prompts or instructions and handles unavailable posture.
+  - `tests/unit/test_rfc0025_slice11_policy_ai_evidence_contract.py` protects RFC/wiki/
+    data-product/trust-telemetry indexing and prevents `/platform/capabilities` promotion.
+- Consequence:
+  - Advise can now send bounded policy evidence to lotus-ai for human-reviewed explanation.
+    Gateway/Workbench policy support, live proof, active data-product promotion, and client-ready
+    publication remain blocked.
+- Documentation:
+  - RFC-0025 Slice 11 evidence, repo context, RFC index, supported-feature wiki source,
+    data-product declaration, trust telemetry, and RFC README were updated.
+- Follow-Up:
+  - Slice 12 should route policy evaluation, review queue, maker-checker, sign-off, report package,
+    and AI evidence posture through Gateway and Workbench without local UI inference.

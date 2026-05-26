@@ -25,9 +25,9 @@ The current first-wave snapshot is:
    without promoting Gateway/Workbench policy surfaces, active data-product support, live proof, or
    client-ready publication. The internal Slice 6 evaluator, Slice 7 finalized-record
    persistence/replay path, Slice 8 certified Advise evaluation API surface, Slice 9 Advise source
-   workflow/sign-off decision boundary, and Slice 10 Advise report-package realization path are
-   implementation-backed but remain below the data-product publication boundary until later
-   product-surface slices are complete.
+   workflow/sign-off decision boundary, Slice 10 Advise report-package realization path, and Slice
+   11 Advise AI policy-evidence boundary are implementation-backed but remain below the
+   data-product publication boundary until later product-surface slices are complete.
 
 Validate locally with:
 
