@@ -173,8 +173,14 @@ RFC-0025 Slice 16 is implemented as final closure. Evidence lives in
 advisor/compliance policy evidence with current trust telemetry, `/platform/capabilities`, platform
 SLO/access/evidence-policy posture, Gateway/Workbench visibility, and live-suite proof. Completed
 approval/waiver authority, completed sign-off authority, client-ready policy publication, external
-client communication, post-completion communication, and full RFC-0028 bank-demo/RFP claims remain
-gated.
+client communication and full RFC-0028 bank-demo/RFP claims remain gated.
+
+RFC-0025 Slice 17 is implemented as post-completion communication. Evidence lives in
+`docs/rfcs/RFC-0025-slice-17-post-completion-communication.md`. The `lotus-platform` LinkedIn draft
+`LI-2026-05-26-042-policy-evidence-should-show-its-limits.md` and content-ledger entry are
+employer-safe, non-promotional, and do not claim completed approval/waiver authority, completed
+sign-off authority, client-ready policy publication, external client communication, bank adoption,
+or full RFC-0028 bank-demo/RFP support. The draft remains in draft status.
 
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first

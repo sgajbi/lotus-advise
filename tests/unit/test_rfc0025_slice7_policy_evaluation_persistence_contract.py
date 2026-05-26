@@ -64,7 +64,7 @@ def test_rfc0025_slice7_keeps_api_product_surface_and_client_ready_gated() -> No
     )
     assert "active governed policy evidence data product" in supported_features
     assert "client-ready publication" in supported_features
-    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 16" in (
+    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 17" in (
         supported_features
     )
     assert "current trust telemetry" in supported_features

@@ -36,7 +36,8 @@ mechanism where:
 5. historical outcomes are immutable and replayable against the policy version and source refs used
    at evaluation time.
 
-RFC-0025 is implemented through Slice 16 for advisor/compliance policy evidence.
+RFC-0025 is implemented through Slice 17 for advisor/compliance policy evidence and
+post-completion communication.
 `AdvisoryPolicyEvaluationRecord:v1` is active with current trust telemetry, platform capability
 posture, Gateway/Workbench consumption, live-suite proof, and SLO/access/evidence-policy support.
 Completed approval/waiver authority, completed policy sign-off authority, client-ready policy
@@ -1324,9 +1325,10 @@ Current boundary:
 2. trust telemetry is current and unblocked for that bounded evidence product,
 3. `/platform/capabilities` advertises `advisory.proposals.policy_evaluation` and
    `advisory_policy_evaluation`,
-4. completed approval/waiver authority, completed sign-off authority, client-ready policy
-   publication, external client communication, full RFC-0028 bank-demo/RFP claims, and Slice 17
-   communication remain gated.
+4. Slice 17 post-completion communication is complete through an employer-safe, non-promotional
+   LinkedIn draft and content-ledger update in `lotus-platform`,
+5. completed approval/waiver authority, completed sign-off authority, client-ready policy
+   publication, external client communication, and full RFC-0028 bank-demo/RFP claims remain gated.
 
 ### Slice 17 - Post-Completion Communication
 
@@ -1349,6 +1351,12 @@ Acceptance gate:
 
 1. post draft exists and ledger is updated, or the closure notes record a deliberate no-post
    decision with rationale approved by the user.
+
+Implementation evidence:
+
+1. `docs/rfcs/RFC-0025-slice-17-post-completion-communication.md`,
+2. `lotus-platform/thought-leadership/linkedin/drafts/LI-2026-05-26-042-policy-evidence-should-show-its-limits.md`,
+3. `lotus-platform/thought-leadership/linkedin/content-ledger.md`.
 
 ## 21. Supported-Features Ledger
 

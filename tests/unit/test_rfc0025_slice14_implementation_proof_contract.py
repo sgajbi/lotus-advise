@@ -28,7 +28,7 @@ def test_rfc0025_slice14_implementation_proof_is_indexed() -> None:
     assert "raw_source_evidence_included=false" in slice14_text
     assert "replay evidence with exact evaluation hash" in slice14_text
     assert "live-suite `proposal_policy` proof" in supported_features
-    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 16" in (
+    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 17" in (
         supported_features
     )
 

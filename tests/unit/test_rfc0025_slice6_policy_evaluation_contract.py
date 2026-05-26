@@ -65,7 +65,7 @@ def test_rfc0025_slice6_keeps_product_surface_and_persistence_gated() -> None:
     assert "SOURCE_READINESS_WITH_INTERNAL_POLICY_EVALUATION_ENGINE" in readiness_source
     assert "INTERNAL_ENGINE_ONLY_NO_PERSISTED_API" in readiness_source
     assert "certified APIs" in supported_features
-    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 16" in (
+    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 17" in (
         supported_features
     )
     assert "remain gated" in supported_features

@@ -25,7 +25,7 @@ def test_rfc0025_slice15_hardening_is_indexed() -> None:
     assert "Gateway and Workbench product support" in slice15_text
     assert "signed-off report-package handoff support" in slice15_text
     assert "active data-product promotion blocked until final closure" in slice15_text
-    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 16" in (
+    assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 17" in (
         supported_features
     )
     assert "centralizing policy-pack supportability" in repo_context
