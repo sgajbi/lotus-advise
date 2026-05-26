@@ -1,3 +1,4 @@
+from src.core.policy_packs.ai import request_policy_evaluation_ai_evidence
 from src.core.policy_packs.catalog import (
     PolicyPackCatalogStore,
     activate_policy_pack_version,
@@ -8,6 +9,8 @@ from src.core.policy_packs.catalog import (
 )
 from src.core.policy_packs.evaluation import evaluate_policy_pack_version
 from src.core.policy_packs.models import (
+    PolicyEvaluationAiEvidenceRequest,
+    PolicyEvaluationAiEvidenceResponse,
     PolicyEvaluationAuditEvent,
     PolicyEvaluationCreateRequest,
     PolicyEvaluationEventRequest,
@@ -62,6 +65,8 @@ __all__ = [
     "PolicyPackAuditEvent",
     "PolicyPackCatalogStore",
     "PolicyPackDetailResponse",
+    "PolicyEvaluationAiEvidenceRequest",
+    "PolicyEvaluationAiEvidenceResponse",
     "PolicyEvaluationAuditEvent",
     "PolicyEvaluationCreateRequest",
     "PolicyEvaluationEventRequest",
@@ -99,6 +104,7 @@ __all__ = [
     "list_policy_evaluation_events",
     "list_policy_evaluation_records",
     "replay_policy_evaluation_record",
+    "request_policy_evaluation_ai_evidence",
     "request_policy_evaluation_report_package",
     "record_policy_evaluation_sign_off_decision",
     "reset_policy_evaluation_store_for_tests",

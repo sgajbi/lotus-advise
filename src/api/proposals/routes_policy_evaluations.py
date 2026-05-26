@@ -5,6 +5,8 @@ from fastapi import Header, HTTPException, Path, Query, status
 import src.api.proposals.router as shared
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.policy_packs import (
+    PolicyEvaluationAiEvidenceRequest,
+    PolicyEvaluationAiEvidenceResponse,
     PolicyEvaluationAuditEvent,
     PolicyEvaluationCreateRequest,
     PolicyEvaluationEventRequest,
@@ -29,6 +31,7 @@ from src.core.policy_packs import (
     get_policy_evaluation_workflow,
     record_policy_evaluation_sign_off_decision,
     replay_policy_evaluation_record,
+    request_policy_evaluation_ai_evidence,
     request_policy_evaluation_report_package,
 )
 from src.core.proposals.exceptions import (
@@ -420,3 +423,58 @@ def request_policy_report_package(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
+
+
+@shared.router.post(
+    "/advisory/policy-evaluations/{evaluation_id}/ai-evidence",
+    response_model=PolicyEvaluationAiEvidenceResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisory Policy Evaluation"],
+    summary="Request Policy AI Evidence",
+    description=(
+        "Requests bounded AI policy-evidence commentary for a finalized policy evaluation. The "
+        "operation sends only redacted policy status, rule-result, workflow, source-ref, and "
+        "append-only event evidence to lotus-ai, records AI lineage, requires human review, and "
+        "cannot alter policy status, rule results, approvals, waivers, disclosures, consent, or "
+        "client-ready publication posture."
+    ),
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Policy evaluation was not found."},
+        status.HTTP_409_CONFLICT: {
+            "description": "Idempotency key was reused with a different AI evidence request."
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "description": (
+                "AI evidence request is blocked by stale hash, missing action, forbidden action, "
+                "or unsupported claim request."
+            )
+        },
+    },
+)
+def request_policy_ai_evidence(
+    evaluation_id: Annotated[
+        str,
+        Path(description="Policy evaluation record identifier.", examples=["pev_123abc"]),
+    ],
+    payload: PolicyEvaluationAiEvidenceRequest,
+    idempotency_key: Annotated[
+        str | None,
+        Header(
+            alias="Idempotency-Key",
+            description="Optional idempotency key for replay-safe policy AI evidence requests.",
+            examples=["policy-evaluation-ai-evidence-001"],
+        ),
+    ] = None,
+) -> PolicyEvaluationAiEvidenceResponse:
+    try:
+        return request_policy_evaluation_ai_evidence(
+            evaluation_id=evaluation_id,
+            payload=payload,
+            idempotency_key=idempotency_key,
+        )
+    except (
+        ProposalIdempotencyConflictError,
+        ProposalNotFoundError,
+        ProposalValidationError,
+    ) as exc:
+        raise_proposal_http_exception(exc)

@@ -5,12 +5,14 @@ from copy import deepcopy
 from fastapi.testclient import TestClient
 
 import src.api.main as api_main
+import src.core.policy_packs.ai as policy_ai
 from src.api.main import app
 from src.core.policy_packs import (
     get_policy_pack_version,
     reset_policy_evaluation_store_for_tests,
     reset_policy_pack_catalog_for_tests,
 )
+from src.integrations.lotus_ai.policy_evidence import PolicyAiEvidenceDraft
 
 
 def setup_function() -> None:
@@ -417,6 +419,162 @@ def test_policy_report_package_blocks_client_ready_document_request() -> None:
         assert blocked.json()["detail"] == "POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED"
 
 
+def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy(
+    monkeypatch,
+) -> None:
+    captured_requests: list[dict] = []
+
+    def _fake_policy_ai_evidence(**kwargs) -> PolicyAiEvidenceDraft:
+        captured_requests.append(kwargs)
+        return PolicyAiEvidenceDraft(
+            status="REVIEW_REQUIRED",
+            sections=(
+                {
+                    "section_key": "POLICY_POSTURE",
+                    "title": "Policy Posture",
+                    "text": "Policy evidence summary for compliance review.",
+                    "review_state": "REVIEW_REQUIRED",
+                },
+            ),
+            lineage={
+                "workflow_pack_id": "policy_evidence_summary.pack",
+                "workflow_pack_version": "v1",
+                "workflow_run_id": "packrun_policy_ai_001",
+                "fallback_reason": None,
+            },
+            review_guidance=("Review against immutable policy evaluation hash.",),
+        )
+
+    monkeypatch.setattr(
+        policy_ai,
+        "generate_policy_evidence_summary_with_lotus_ai",
+        _fake_policy_ai_evidence,
+    )
+
+    with TestClient(app) as client:
+        _activate_sg_pack(client)
+        created = client.post(
+            "/advisory/proposals/pp_policy_ai_001/versions/ppv_policy_ai_001/policy-evaluations",
+            json=_sg_pending_payload(),
+            headers={"Idempotency-Key": "api-policy-eval-ai-001"},
+        )
+        assert created.status_code == 200
+        record = created.json()["record"]
+        original_status = record["evaluation_status"]
+
+        response = client.post(
+            f"/advisory/policy-evaluations/{record['evaluation_id']}/ai-evidence",
+            json={
+                "requested_by": "policy_checker_1",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
+                "reason": {"purpose": "policy evidence explanation"},
+            },
+            headers={"Idempotency-Key": "api-policy-ai-evidence-001"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["replayed"] is False
+        assert body["ai_event"]["event_type"] == "POLICY_EVALUATION_AI_EVIDENCE_RECORDED"
+        assert body["policy_evidence"]["status"] == "REVIEW_REQUIRED"
+        assert body["policy_evidence"]["human_review_required"] is True
+        assert body["policy_evidence"]["authoritative_for_policy_status"] is False
+        assert body["policy_evidence"]["client_ready_publication"] == "BLOCKED"
+        assert body["evaluation"]["evaluation_status"] == original_status
+        assert (
+            captured_requests[0]["policy_evidence"]["evaluation_hash"]
+            == (record["evaluation_hash"])
+        )
+        assert (
+            captured_requests[0]["policy_evidence"]["redaction_profile"][
+                "raw_source_evidence_included"
+            ]
+            is False
+        )
+        assert "evidence_bundle" not in captured_requests[0]["policy_evidence"]
+
+        replayed = client.post(
+            f"/advisory/policy-evaluations/{record['evaluation_id']}/ai-evidence",
+            json={
+                "requested_by": "policy_checker_1",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
+                "reason": {"purpose": "policy evidence explanation"},
+            },
+            headers={"Idempotency-Key": "api-policy-ai-evidence-001"},
+        )
+        assert replayed.status_code == 200
+        assert replayed.json()["replayed"] is True
+        assert len(captured_requests) == 1
+
+        lineage = client.get(f"/advisory/policy-evaluations/{record['evaluation_id']}/lineage")
+        assert lineage.status_code == 200
+        assert lineage.json()["audit_events"][-1]["event_type"] == (
+            "POLICY_EVALUATION_AI_EVIDENCE_RECORDED"
+        )
+
+
+def test_policy_ai_evidence_rejects_forbidden_action_and_stale_hash() -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals/pp_policy_ai_blocked/versions/ppv_policy_ai_blocked/policy-evaluations",
+            json=_create_payload(),
+            headers={"Idempotency-Key": "api-policy-eval-ai-blocked"},
+        )
+        assert created.status_code == 200
+        record = created.json()["record"]
+
+        forbidden = client.post(
+            f"/advisory/policy-evaluations/{record['evaluation_id']}/ai-evidence",
+            json={
+                "requested_by": "policy_checker_1",
+                "source_evaluation_hash": record["evaluation_hash"],
+                "requested_actions": ["APPROVE_POLICY"],
+            },
+        )
+        assert forbidden.status_code == 422
+        assert forbidden.json()["detail"] == "POLICY_AI_EVIDENCE_FORBIDDEN_ACTION"
+
+        stale = client.post(
+            f"/advisory/policy-evaluations/{record['evaluation_id']}/ai-evidence",
+            json={
+                "requested_by": "policy_checker_1",
+                "source_evaluation_hash": "sha256:stale",
+                "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
+            },
+        )
+        assert stale.status_code == 422
+        assert stale.json()["detail"] == "POLICY_AI_EVIDENCE_HASH_MISMATCH"
+
+
+def test_policy_ai_evidence_records_deterministic_unavailable_posture() -> None:
+    with TestClient(app) as client:
+        created = client.post(
+            "/advisory/proposals/pp_policy_ai_unavailable/versions/ppv_policy_ai_unavailable/policy-evaluations",
+            json=_create_payload(),
+            headers={"Idempotency-Key": "api-policy-eval-ai-unavailable"},
+        )
+        assert created.status_code == 200
+        record = created.json()["record"]
+
+        response = client.post(
+            f"/advisory/policy-evaluations/{record['evaluation_id']}/ai-evidence",
+            json={
+                "requested_by": "policy_checker_1",
+                "source_evaluation_hash": record["evaluation_hash"],
+            },
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["policy_evidence"]["status"] == "UNAVAILABLE"
+        assert body["policy_evidence"]["lineage"]["fallback_reason"] == (
+            "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
+        )
+        assert body["policy_evidence"]["sections"] == []
+        assert body["evaluation"]["evaluation_hash"] == record["evaluation_hash"]
+
+
 def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
     with TestClient(app) as client:
         _activate_sg_pack(client)
@@ -463,3 +621,4 @@ def test_policy_evaluation_openapi_registers_certified_advise_routes() -> None:
     assert "/advisory/policy-evaluations/{evaluation_id}/workflow" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions" in paths
     assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in paths
+    assert "/advisory/policy-evaluations/{evaluation_id}/ai-evidence" in paths

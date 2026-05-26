@@ -318,6 +318,18 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(policy_report_response_schema, "report")
     _assert_property_has_docs(policy_report_response_schema, "replayed")
 
+    policy_ai_request_schema = schemas["PolicyEvaluationAiEvidenceRequest"]
+    _assert_property_has_docs(policy_ai_request_schema, "requested_by")
+    _assert_property_has_docs(policy_ai_request_schema, "source_evaluation_hash")
+    _assert_property_has_docs(policy_ai_request_schema, "requested_actions")
+    _assert_property_has_docs(policy_ai_request_schema, "reason")
+
+    policy_ai_response_schema = schemas["PolicyEvaluationAiEvidenceResponse"]
+    _assert_property_has_docs(policy_ai_response_schema, "evaluation")
+    _assert_property_has_docs(policy_ai_response_schema, "ai_event")
+    _assert_property_has_docs(policy_ai_response_schema, "policy_evidence")
+    _assert_property_has_docs(policy_ai_response_schema, "replayed")
+
 
 def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     with TestClient(app) as client:
@@ -486,6 +498,17 @@ def test_lifecycle_endpoints_use_separate_request_and_response_objects():
         "$ref"
     ].endswith("/PolicyEvaluationReportPackageResponse")
     assert "Idempotency-Key" in [param["name"] for param in policy_report_package["parameters"]]
+
+    policy_ai_evidence = openapi["paths"][
+        "/advisory/policy-evaluations/{evaluation_id}/ai-evidence"
+    ]["post"]
+    assert policy_ai_evidence["requestBody"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/PolicyEvaluationAiEvidenceRequest")
+    assert policy_ai_evidence["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/PolicyEvaluationAiEvidenceResponse")
+    assert "Idempotency-Key" in [param["name"] for param in policy_ai_evidence["parameters"]]
 
 
 def test_rfc0023_narrative_route_family_is_canonical_and_error_documented():
@@ -724,6 +747,7 @@ def test_rfc0025_policy_report_package_route_is_canonical_and_error_documented()
     paths = openapi["paths"]
     policy_paths = sorted(path for path in paths if "/advisory/policy-evaluations" in path)
     assert "/advisory/policy-evaluations/{evaluation_id}/report-packages" in policy_paths
+    assert "/advisory/policy-evaluations/{evaluation_id}/ai-evidence" in policy_paths
 
     policy_report_package = paths["/advisory/policy-evaluations/{evaluation_id}/report-packages"][
         "post"
@@ -748,3 +772,13 @@ def test_rfc0025_policy_report_package_route_is_canonical_and_error_documented()
         "lotus-report report/render/archive materialization"
         in policy_report_package["responses"]["503"]["description"]
     )
+
+    policy_ai_evidence = paths["/advisory/policy-evaluations/{evaluation_id}/ai-evidence"]["post"]
+    assert policy_ai_evidence["summary"] == "Request Policy AI Evidence"
+    assert "redacted policy status" in policy_ai_evidence["description"]
+    assert "requires human review" in policy_ai_evidence["description"]
+    assert "cannot alter policy status" in policy_ai_evidence["description"]
+    assert "approvals, waivers, disclosures, consent" in policy_ai_evidence["description"]
+    assert policy_ai_evidence["tags"] == ["Advisory Policy Evaluation"]
+    assert "different AI evidence request" in policy_ai_evidence["responses"]["409"]["description"]
+    assert "forbidden action" in policy_ai_evidence["responses"]["422"]["description"]
