@@ -264,6 +264,46 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(policy_evaluation_sign_off_schema, "lineage")
     _assert_property_has_docs(policy_evaluation_sign_off_schema, "package_posture")
 
+    policy_requirement_schema = schemas["PolicyEvaluationRequirementProjection"]
+    _assert_property_has_docs(policy_requirement_schema, "requirement_id")
+    _assert_property_has_docs(policy_requirement_schema, "requirement_type")
+    _assert_property_has_docs(policy_requirement_schema, "status")
+    _assert_property_has_docs(policy_requirement_schema, "owner_role")
+    _assert_property_has_docs(policy_requirement_schema, "review_sla")
+    _assert_property_has_docs(policy_requirement_schema, "due_at")
+    _assert_property_has_docs(policy_requirement_schema, "reason_codes")
+
+    policy_workflow_schema = schemas["PolicyEvaluationWorkflowResponse"]
+    _assert_property_has_docs(policy_workflow_schema, "evaluation_id")
+    _assert_property_has_docs(policy_workflow_schema, "proposal_id")
+    _assert_property_has_docs(policy_workflow_schema, "proposal_version_id")
+    _assert_property_has_docs(policy_workflow_schema, "evaluation_status")
+    _assert_property_has_docs(policy_workflow_schema, "approval_dependencies")
+    _assert_property_has_docs(policy_workflow_schema, "disclosure_requirements")
+    _assert_property_has_docs(policy_workflow_schema, "consent_requirements")
+    _assert_property_has_docs(policy_workflow_schema, "conflict_posture")
+    _assert_property_has_docs(policy_workflow_schema, "sla_posture")
+    _assert_property_has_docs(policy_workflow_schema, "sign_off_status")
+    _assert_property_has_docs(policy_workflow_schema, "sign_off_blockers")
+    _assert_property_has_docs(policy_workflow_schema, "maker_checker_required")
+    _assert_property_has_docs(policy_workflow_schema, "latest_sign_off_event")
+    _assert_property_has_docs(policy_workflow_schema, "client_ready_publication")
+
+    policy_signoff_request_schema = schemas["PolicyEvaluationSignOffDecisionRequest"]
+    _assert_property_has_docs(policy_signoff_request_schema, "actor_id")
+    _assert_property_has_docs(policy_signoff_request_schema, "decision")
+    _assert_property_has_docs(policy_signoff_request_schema, "source_evaluation_hash")
+    _assert_property_has_docs(policy_signoff_request_schema, "resolved_approval_dependencies")
+    _assert_property_has_docs(policy_signoff_request_schema, "satisfied_disclosure_requirements")
+    _assert_property_has_docs(policy_signoff_request_schema, "satisfied_consent_requirements")
+    _assert_property_has_docs(policy_signoff_request_schema, "conflict_review_outcome")
+    _assert_property_has_docs(policy_signoff_request_schema, "reason")
+
+    policy_signoff_response_schema = schemas["PolicyEvaluationSignOffDecisionResponse"]
+    _assert_property_has_docs(policy_signoff_response_schema, "workflow")
+    _assert_property_has_docs(policy_signoff_response_schema, "sign_off_event")
+    _assert_property_has_docs(policy_signoff_response_schema, "replay_metadata")
+
 
 def test_lifecycle_endpoints_use_separate_request_and_response_objects():
     with TestClient(app) as client:

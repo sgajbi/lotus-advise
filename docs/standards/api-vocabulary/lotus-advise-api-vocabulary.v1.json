@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-26T03:03:20.325187+00:00",
+  "generatedAt": "2026-05-26T03:36:56.006012+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action",
@@ -1262,6 +1262,20 @@
       ]
     },
     {
+      "semanticId": "lotus.client_ready_publication",
+      "canonicalTerm": "client_ready_publication",
+      "preferredName": "client_ready_publication",
+      "description": "Client-ready publication boundary for this policy workflow.",
+      "example": "example_client_ready_publication",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.client_ready_release_requested",
       "canonicalTerm": "client_ready_release_requested",
       "preferredName": "client_ready_release_requested",
@@ -1373,6 +1387,36 @@
       ],
       "observedTypes": [
         "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.conflict_posture",
+      "canonicalTerm": "conflict_posture",
+      "preferredName": "conflict_posture",
+      "description": "Conflict posture and blocker reason codes derived from policy rule outcomes.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.conflict_review_outcome",
+      "canonicalTerm": "conflict_review_outcome",
+      "preferredName": "conflict_review_outcome",
+      "description": "Conflict review outcome where conflict evidence was required.",
+      "example": "conflict_review_outcome_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -1802,6 +1846,20 @@
       ],
       "observedTypes": [
         "integer"
+      ]
+    },
+    {
+      "semanticId": "lotus.decision",
+      "canonicalTerm": "decision",
+      "preferredName": "decision",
+      "description": "Policy sign-off decision to record.",
+      "example": "APPROVE_FOR_POLICY_SIGN_OFF",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -2241,6 +2299,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.due_at",
+      "canonicalTerm": "due_at",
+      "preferredName": "due_at",
+      "description": "UTC ISO8601 due time derived from the evaluation timestamp and review SLA.",
+      "example": "due_at_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -4059,6 +4131,20 @@
       ]
     },
     {
+      "semanticId": "lotus.latest_sign_off_event",
+      "canonicalTerm": "latest_sign_off_event",
+      "preferredName": "latest_sign_off_event",
+      "description": "Latest append-only policy sign-off event where one exists.",
+      "example": "latest_sign_off_event_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.latest_version_created_at",
       "canonicalTerm": "latest_version_created_at",
       "preferredName": "latest_version_created_at",
@@ -4951,6 +5037,20 @@
       "preferredName": "ordering_policy",
       "description": "Execution ordering policy used when rendering the package.",
       "example": "example_ordering_policy",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.owner_role",
+      "canonicalTerm": "owner_role",
+      "preferredName": "owner_role",
+      "description": "Expected owner role for reviewing or satisfying this requirement.",
+      "example": "example_owner_role",
       "type": "string",
       "locations": [
         "body"
@@ -5853,7 +5953,7 @@
       "semanticId": "lotus.reason_codes",
       "canonicalTerm": "reason_codes",
       "preferredName": "reason_codes",
-      "description": "Bounded house-view reason codes.",
+      "description": "Reason codes explaining the requirement posture.",
       "example": [
         "example_reason_codes_item"
       ],
@@ -6561,6 +6661,50 @@
       ]
     },
     {
+      "semanticId": "lotus.requirement_id",
+      "canonicalTerm": "requirement_id",
+      "preferredName": "requirement_id",
+      "description": "Policy approval, disclosure, consent, or conflict requirement identifier.",
+      "example": "REQUIREMENT_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.requirement_type",
+      "canonicalTerm": "requirement_type",
+      "preferredName": "requirement_type",
+      "description": "Requirement family such as approval, disclosure, consent, or conflict.",
+      "example": "example_requirement_type",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.resolved_approval_dependencies",
+      "canonicalTerm": "resolved_approval_dependencies",
+      "preferredName": "resolved_approval_dependencies",
+      "description": "Approval dependencies resolved by this decision evidence.",
+      "example": [
+        "example_resolved_approval_dependencies_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.resolved_context",
       "canonicalTerm": "resolved_context",
       "preferredName": "resolved_context",
@@ -6686,6 +6830,20 @@
       "example": {
         "key": "sample_text"
       },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.review_sla",
+      "canonicalTerm": "review_sla",
+      "preferredName": "review_sla",
+      "description": "Configured review service level where known.",
+      "example": "review_sla_example",
       "type": "object",
       "locations": [
         "body"
@@ -6894,6 +7052,38 @@
       "description": "Synthetic sample fixtures used for dry-run validation.",
       "example": [
         "example_sample_fixture_refs_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.satisfied_consent_requirements",
+      "canonicalTerm": "satisfied_consent_requirements",
+      "preferredName": "satisfied_consent_requirements",
+      "description": "Consent requirements satisfied by this decision evidence.",
+      "example": [
+        "example_satisfied_consent_requirements_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.satisfied_disclosure_requirements",
+      "canonicalTerm": "satisfied_disclosure_requirements",
+      "preferredName": "satisfied_disclosure_requirements",
+      "description": "Disclosure requirements satisfied by this decision evidence.",
+      "example": [
+        "example_satisfied_disclosure_requirements_item"
       ],
       "type": "array",
       "locations": [
@@ -7138,6 +7328,38 @@
       ]
     },
     {
+      "semanticId": "lotus.sign_off_blockers",
+      "canonicalTerm": "sign_off_blockers",
+      "preferredName": "sign_off_blockers",
+      "description": "Blockers preventing policy sign-off or client-ready publication.",
+      "example": [
+        "example_sign_off_blockers_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.sign_off_event",
+      "canonicalTerm": "sign_off_event",
+      "preferredName": "sign_off_event",
+      "description": "Canonical sign off event used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "PolicyEvaluationAuditEvent",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "PolicyEvaluationAuditEvent"
+      ]
+    },
+    {
       "semanticId": "lotus.sign_off_events_json",
       "canonicalTerm": "sign_off_events_json",
       "preferredName": "sign_off_events_json",
@@ -7153,6 +7375,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.sign_off_status",
+      "canonicalTerm": "sign_off_status",
+      "preferredName": "sign_off_status",
+      "description": "Current sign-off readiness after applying requirement and event evidence.",
+      "example": "READY_FOR_SIGN_OFF",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -7211,6 +7447,22 @@
       "observedTypes": [
         "object",
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.sla_posture",
+      "canonicalTerm": "sla_posture",
+      "preferredName": "sla_posture",
+      "description": "Review queue age, open requirement count, and overdue posture.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -7291,6 +7543,20 @@
       "preferredName": "source_content_hash",
       "description": "Expected canonical content hash from the validated policy pack.",
       "example": "example_source_content_hash",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.source_evaluation_hash",
+      "canonicalTerm": "source_evaluation_hash",
+      "preferredName": "source_evaluation_hash",
+      "description": "Expected immutable policy evaluation hash reviewed by the decision actor.",
+      "example": "example_source_evaluation_hash",
       "type": "string",
       "locations": [
         "body"
@@ -8403,6 +8669,22 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.workflow",
+      "canonicalTerm": "workflow",
+      "preferredName": "workflow",
+      "description": "Canonical workflow used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "PolicyEvaluationWorkflowResponse",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "PolicyEvaluationWorkflowResponse"
       ]
     },
     {
@@ -9641,6 +9923,42 @@
       "allowedValues": [],
       "semanticId": "lotus.evaluation_id",
       "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+    },
+    {
+      "name": "evaluation_id",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "string",
+      "description": "Policy evaluation record identifier.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.evaluation_id",
+      "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+    },
+    {
+      "name": "evaluation_id",
+      "kind": "request_option",
+      "location": "path",
+      "required": true,
+      "type": "string",
+      "description": "Policy evaluation record identifier.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.evaluation_id",
+      "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+    },
+    {
+      "name": "idempotency_key",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "object",
+      "description": "Optional idempotency key for replay-safe policy sign-off decisions.",
+      "example": "STANDARD_TEXT",
+      "allowedValues": [],
+      "semanticId": "lotus.idempotency_key",
+      "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
     },
     {
       "name": "idempotency_key",
@@ -33103,6 +33421,788 @@
             "type": "object",
             "semanticId": "lotus.package_posture",
             "attributeRef": "#/attributeCatalog/lotus.package_posture"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "advisory_policy_evaluation",
+      "method": "GET",
+      "path": "/advisory/policy-evaluations/{evaluation_id}/workflow",
+      "operationId": "read_policy_evaluation_workflow_advisory_policy_evaluations__evaluation_id__workflow_get",
+      "summary": "Read Policy Evaluation Workflow",
+      "request": {
+        "fields": [
+          {
+            "name": "evaluation_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_id",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "evaluation_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_id",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+          },
+          {
+            "name": "proposal_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "proposal_version_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "evaluation_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_status",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_status"
+          },
+          {
+            "name": "approval_dependencies",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.approval_dependencies",
+            "attributeRef": "#/attributeCatalog/lotus.approval_dependencies"
+          },
+          {
+            "name": "approval_dependencies[].requirement_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_id",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_id"
+          },
+          {
+            "name": "approval_dependencies[].requirement_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_type",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_type"
+          },
+          {
+            "name": "approval_dependencies[].status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "approval_dependencies[].owner_role",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.owner_role",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role"
+          },
+          {
+            "name": "approval_dependencies[].review_sla",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.review_sla",
+            "attributeRef": "#/attributeCatalog/lotus.review_sla"
+          },
+          {
+            "name": "approval_dependencies[].due_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.due_at",
+            "attributeRef": "#/attributeCatalog/lotus.due_at"
+          },
+          {
+            "name": "approval_dependencies[].reason_codes",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.reason_codes"
+          },
+          {
+            "name": "disclosure_requirements",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.disclosure_requirements",
+            "attributeRef": "#/attributeCatalog/lotus.disclosure_requirements"
+          },
+          {
+            "name": "disclosure_requirements[].requirement_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_id",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_id"
+          },
+          {
+            "name": "disclosure_requirements[].requirement_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_type",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_type"
+          },
+          {
+            "name": "disclosure_requirements[].status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "disclosure_requirements[].owner_role",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.owner_role",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role"
+          },
+          {
+            "name": "disclosure_requirements[].review_sla",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.review_sla",
+            "attributeRef": "#/attributeCatalog/lotus.review_sla"
+          },
+          {
+            "name": "disclosure_requirements[].due_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.due_at",
+            "attributeRef": "#/attributeCatalog/lotus.due_at"
+          },
+          {
+            "name": "disclosure_requirements[].reason_codes",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.reason_codes"
+          },
+          {
+            "name": "consent_requirements",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.consent_requirements",
+            "attributeRef": "#/attributeCatalog/lotus.consent_requirements"
+          },
+          {
+            "name": "consent_requirements[].requirement_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_id",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_id"
+          },
+          {
+            "name": "consent_requirements[].requirement_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_type",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_type"
+          },
+          {
+            "name": "consent_requirements[].status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "consent_requirements[].owner_role",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.owner_role",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role"
+          },
+          {
+            "name": "consent_requirements[].review_sla",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.review_sla",
+            "attributeRef": "#/attributeCatalog/lotus.review_sla"
+          },
+          {
+            "name": "consent_requirements[].due_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.due_at",
+            "attributeRef": "#/attributeCatalog/lotus.due_at"
+          },
+          {
+            "name": "consent_requirements[].reason_codes",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.reason_codes"
+          },
+          {
+            "name": "conflict_posture",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.conflict_posture",
+            "attributeRef": "#/attributeCatalog/lotus.conflict_posture"
+          },
+          {
+            "name": "sla_posture",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.sla_posture",
+            "attributeRef": "#/attributeCatalog/lotus.sla_posture"
+          },
+          {
+            "name": "sign_off_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.sign_off_status",
+            "attributeRef": "#/attributeCatalog/lotus.sign_off_status"
+          },
+          {
+            "name": "sign_off_blockers",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.sign_off_blockers",
+            "attributeRef": "#/attributeCatalog/lotus.sign_off_blockers"
+          },
+          {
+            "name": "maker_checker_required",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.maker_checker_required",
+            "attributeRef": "#/attributeCatalog/lotus.maker_checker_required"
+          },
+          {
+            "name": "latest_sign_off_event",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.latest_sign_off_event",
+            "attributeRef": "#/attributeCatalog/lotus.latest_sign_off_event"
+          },
+          {
+            "name": "client_ready_publication",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.client_ready_publication",
+            "attributeRef": "#/attributeCatalog/lotus.client_ready_publication"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "advisory_policy_evaluation",
+      "method": "POST",
+      "path": "/advisory/policy-evaluations/{evaluation_id}/sign-off-decisions",
+      "operationId": "record_policy_sign_off_decision_advisory_policy_evaluations__evaluation_id__sign_off_decisions_post",
+      "summary": "Record Policy Sign-Off Decision",
+      "request": {
+        "fields": [
+          {
+            "name": "evaluation_id",
+            "location": "path",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_id",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+          },
+          {
+            "name": "Idempotency-Key",
+            "location": "header",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.idempotency_key",
+            "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
+          },
+          {
+            "name": "actor_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.actor_id",
+            "attributeRef": "#/attributeCatalog/lotus.actor_id"
+          },
+          {
+            "name": "decision",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.decision",
+            "attributeRef": "#/attributeCatalog/lotus.decision"
+          },
+          {
+            "name": "source_evaluation_hash",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_evaluation_hash",
+            "attributeRef": "#/attributeCatalog/lotus.source_evaluation_hash"
+          },
+          {
+            "name": "resolved_approval_dependencies",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.resolved_approval_dependencies",
+            "attributeRef": "#/attributeCatalog/lotus.resolved_approval_dependencies"
+          },
+          {
+            "name": "satisfied_disclosure_requirements",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.satisfied_disclosure_requirements",
+            "attributeRef": "#/attributeCatalog/lotus.satisfied_disclosure_requirements"
+          },
+          {
+            "name": "satisfied_consent_requirements",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.satisfied_consent_requirements",
+            "attributeRef": "#/attributeCatalog/lotus.satisfied_consent_requirements"
+          },
+          {
+            "name": "conflict_review_outcome",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.conflict_review_outcome",
+            "attributeRef": "#/attributeCatalog/lotus.conflict_review_outcome"
+          },
+          {
+            "name": "reason",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.reason",
+            "attributeRef": "#/attributeCatalog/lotus.reason"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "workflow",
+            "location": "body",
+            "required": true,
+            "type": "PolicyEvaluationWorkflowResponse",
+            "semanticId": "lotus.workflow",
+            "attributeRef": "#/attributeCatalog/lotus.workflow"
+          },
+          {
+            "name": "workflow.evaluation_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_id",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+          },
+          {
+            "name": "workflow.proposal_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "workflow.proposal_version_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "workflow.evaluation_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_status",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_status"
+          },
+          {
+            "name": "workflow.approval_dependencies",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.approval_dependencies",
+            "attributeRef": "#/attributeCatalog/lotus.approval_dependencies"
+          },
+          {
+            "name": "workflow.approval_dependencies[].requirement_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_id",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_id"
+          },
+          {
+            "name": "workflow.approval_dependencies[].requirement_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_type",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_type"
+          },
+          {
+            "name": "workflow.approval_dependencies[].status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "workflow.approval_dependencies[].owner_role",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.owner_role",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role"
+          },
+          {
+            "name": "workflow.approval_dependencies[].review_sla",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.review_sla",
+            "attributeRef": "#/attributeCatalog/lotus.review_sla"
+          },
+          {
+            "name": "workflow.approval_dependencies[].due_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.due_at",
+            "attributeRef": "#/attributeCatalog/lotus.due_at"
+          },
+          {
+            "name": "workflow.approval_dependencies[].reason_codes",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.reason_codes"
+          },
+          {
+            "name": "workflow.disclosure_requirements",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.disclosure_requirements",
+            "attributeRef": "#/attributeCatalog/lotus.disclosure_requirements"
+          },
+          {
+            "name": "workflow.disclosure_requirements[].requirement_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_id",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_id"
+          },
+          {
+            "name": "workflow.disclosure_requirements[].requirement_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_type",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_type"
+          },
+          {
+            "name": "workflow.disclosure_requirements[].status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "workflow.disclosure_requirements[].owner_role",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.owner_role",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role"
+          },
+          {
+            "name": "workflow.disclosure_requirements[].review_sla",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.review_sla",
+            "attributeRef": "#/attributeCatalog/lotus.review_sla"
+          },
+          {
+            "name": "workflow.disclosure_requirements[].due_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.due_at",
+            "attributeRef": "#/attributeCatalog/lotus.due_at"
+          },
+          {
+            "name": "workflow.disclosure_requirements[].reason_codes",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.reason_codes"
+          },
+          {
+            "name": "workflow.consent_requirements",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.consent_requirements",
+            "attributeRef": "#/attributeCatalog/lotus.consent_requirements"
+          },
+          {
+            "name": "workflow.consent_requirements[].requirement_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_id",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_id"
+          },
+          {
+            "name": "workflow.consent_requirements[].requirement_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_type",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_type"
+          },
+          {
+            "name": "workflow.consent_requirements[].status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.status",
+            "attributeRef": "#/attributeCatalog/lotus.status"
+          },
+          {
+            "name": "workflow.consent_requirements[].owner_role",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.owner_role",
+            "attributeRef": "#/attributeCatalog/lotus.owner_role"
+          },
+          {
+            "name": "workflow.consent_requirements[].review_sla",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.review_sla",
+            "attributeRef": "#/attributeCatalog/lotus.review_sla"
+          },
+          {
+            "name": "workflow.consent_requirements[].due_at",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.due_at",
+            "attributeRef": "#/attributeCatalog/lotus.due_at"
+          },
+          {
+            "name": "workflow.consent_requirements[].reason_codes",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.reason_codes",
+            "attributeRef": "#/attributeCatalog/lotus.reason_codes"
+          },
+          {
+            "name": "workflow.conflict_posture",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.conflict_posture",
+            "attributeRef": "#/attributeCatalog/lotus.conflict_posture"
+          },
+          {
+            "name": "workflow.sla_posture",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.sla_posture",
+            "attributeRef": "#/attributeCatalog/lotus.sla_posture"
+          },
+          {
+            "name": "workflow.sign_off_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.sign_off_status",
+            "attributeRef": "#/attributeCatalog/lotus.sign_off_status"
+          },
+          {
+            "name": "workflow.sign_off_blockers",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.sign_off_blockers",
+            "attributeRef": "#/attributeCatalog/lotus.sign_off_blockers"
+          },
+          {
+            "name": "workflow.maker_checker_required",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.maker_checker_required",
+            "attributeRef": "#/attributeCatalog/lotus.maker_checker_required"
+          },
+          {
+            "name": "workflow.latest_sign_off_event",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.latest_sign_off_event",
+            "attributeRef": "#/attributeCatalog/lotus.latest_sign_off_event"
+          },
+          {
+            "name": "workflow.client_ready_publication",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.client_ready_publication",
+            "attributeRef": "#/attributeCatalog/lotus.client_ready_publication"
+          },
+          {
+            "name": "sign_off_event",
+            "location": "body",
+            "required": true,
+            "type": "PolicyEvaluationAuditEvent",
+            "semanticId": "lotus.sign_off_event",
+            "attributeRef": "#/attributeCatalog/lotus.sign_off_event"
+          },
+          {
+            "name": "sign_off_event.event_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.event_id",
+            "attributeRef": "#/attributeCatalog/lotus.event_id"
+          },
+          {
+            "name": "sign_off_event.evaluation_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evaluation_id",
+            "attributeRef": "#/attributeCatalog/lotus.evaluation_id"
+          },
+          {
+            "name": "sign_off_event.proposal_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_id"
+          },
+          {
+            "name": "sign_off_event.proposal_version_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proposal_version_id",
+            "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "sign_off_event.event_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.event_type",
+            "attributeRef": "#/attributeCatalog/lotus.event_type"
+          },
+          {
+            "name": "sign_off_event.actor_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.actor_id",
+            "attributeRef": "#/attributeCatalog/lotus.actor_id"
+          },
+          {
+            "name": "sign_off_event.occurred_at",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.occurred_at",
+            "attributeRef": "#/attributeCatalog/lotus.occurred_at"
+          },
+          {
+            "name": "sign_off_event.content_hash",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.content_hash",
+            "attributeRef": "#/attributeCatalog/lotus.content_hash"
+          },
+          {
+            "name": "sign_off_event.idempotency_key",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.idempotency_key",
+            "attributeRef": "#/attributeCatalog/lotus.idempotency_key"
+          },
+          {
+            "name": "sign_off_event.reason_json",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.reason_json",
+            "attributeRef": "#/attributeCatalog/lotus.reason_json"
+          },
+          {
+            "name": "replay_metadata",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.replay_metadata",
+            "attributeRef": "#/attributeCatalog/lotus.replay_metadata"
           }
         ]
       }
