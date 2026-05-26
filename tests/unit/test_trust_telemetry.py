@@ -261,6 +261,10 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
         in snapshot["lineage"]["evidence_uris"]
     )
     assert (
+        "lotus-advise://docs/rfcs/RFC-0025-slice-14-implementation-proof.md"
+        in snapshot["lineage"]["evidence_uris"]
+    )
+    assert (
         "lotus-advise://src/core/policy_packs/workflow.py" in snapshot["lineage"]["evidence_uris"]
     )
     assert (
@@ -281,7 +285,8 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
             "RFC0025_POLICY_EVALUATION_LIVE_PROOF_PRODUCT_PROMOTION_AND_CLOSURE_NOT_IMPLEMENTED"
         ),
     }
-    assert "policy-pack-specific commercial material" in snapshot["evidence"]["claim_boundary"]
+    assert "live-suite policy implementation proof" in snapshot["evidence"]["claim_boundary"]
+    assert "canonical live proof" not in snapshot["evidence"]["claim_boundary"]
     assert "approval/waiver authority" in snapshot["evidence"]["claim_boundary"]
 
 
@@ -321,6 +326,14 @@ def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted
     assert (
         "policy-pack-specific commercial material"
         in policy_product["freshness_policy"]["max_allowed_age_description"]
+    )
+    assert (
+        "live-suite policy implementation proof"
+        in policy_product["freshness_policy"]["max_allowed_age_description"]
+    )
+    assert (
+        "canonical live proof"
+        not in policy_product["freshness_policy"]["max_allowed_age_description"]
     )
     assert (
         "approval/waiver authority"
