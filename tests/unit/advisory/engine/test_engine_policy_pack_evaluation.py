@@ -129,7 +129,8 @@ def test_policy_evaluation_ready_path_uses_active_pack_and_source_refs() -> None
     assert result.supportability["policy_evaluation_api"] == (
         "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"
     )
-    assert result.supportability["gateway_supported"] is False
+    assert result.supportability["gateway_supported"] is True
+    assert result.supportability["gateway_support"] == "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_BFF"
     eligibility = _rule(result, "SG_AI_PRODUCT_ELIGIBILITY_REVIEW")
     assert eligibility.status == "READY"
     assert "lotus-core:core_product_eligibility_target_market_complexity" in (

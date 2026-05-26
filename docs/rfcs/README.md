@@ -351,6 +351,12 @@ Current note:
   stale-hash/client-ready/forbidden-AI blocked paths while keeping active data-product promotion,
   completed approval/waiver authority, completed sign-off authority, and client-ready publication
   gated.
+- RFC-0025 Slice 15 final-hardening evidence lives in
+  `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`; it centralizes policy-pack
+  supportability truth, removes duplicated stale supportability maps, updates OpenAPI/schema
+  examples, and proves Gateway/Workbench product support plus signed-off report-package handoff are
+  represented accurately while active data-product promotion, completed approval/waiver authority,
+  completed sign-off authority, and client-ready publication remain gated.
 
 Implementation evidence:
 - `docs/rfcs/RFC-0024-slice-0-critical-review-source-map-and-product-gap-allocation.md`
@@ -383,4 +389,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-13-commercial-demo-rfp-support.md`
 - `docs/commercial/RFC-0025-enterprise-policy-pack-commercial-support.md`
 - `docs/rfcs/RFC-0025-slice-14-implementation-proof.md`
+- `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`
 

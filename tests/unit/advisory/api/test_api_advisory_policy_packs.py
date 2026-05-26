@@ -38,8 +38,17 @@ def test_policy_pack_catalog_routes_list_detail_validate_activate_and_preserve_b
         assert detail_body["supportability"]["policy_evaluation"] == (
             "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"
         )
-        assert detail_body["supportability"]["gateway_supported"] is False
-        assert detail_body["supportability"]["workbench_supported"] is False
+        assert detail_body["supportability"]["gateway_supported"] is True
+        assert detail_body["supportability"]["gateway_support"] == (
+            "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_BFF"
+        )
+        assert detail_body["supportability"]["workbench_supported"] is True
+        assert detail_body["supportability"]["workbench_support"] == (
+            "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI"
+        )
+        assert detail_body["supportability"]["active_data_product_promotion"] == (
+            "BLOCKED_UNTIL_FINAL_CLOSURE"
+        )
 
         validation = client.post(
             "/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05/validate",

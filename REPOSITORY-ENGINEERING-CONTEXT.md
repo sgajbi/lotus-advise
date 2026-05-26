@@ -113,6 +113,10 @@ Current repository posture:
    Advise policy evaluation APIs, SG reference-pack hashes, source refs and gaps, requirement
    counts, workflow and sign-off posture, report/render/archive refs or degraded reason, bounded AI
    evidence, lineage, replay hashes, and stale-hash/client-ready/forbidden-AI blocked paths.
+   Slice 15 hardens the second-last review boundary by centralizing policy-pack supportability
+   posture in `src/core/policy_packs/supportability.py` and removing stale earlier-slice
+   Gateway/Workbench/report-handoff unsupported claims from code, OpenAPI/schema examples, and
+   tests.
    Active data-product promotion, final closure, and client-ready publication remain unimplemented
    and unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,

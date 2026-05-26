@@ -142,7 +142,14 @@ class PolicyPackDetailResponse(BaseModel):
     )
     supportability: dict[str, Any] = Field(
         description="Current RFC-0025 support boundary for this policy pack.",
-        examples=[{"policy_evaluation": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"}],
+        examples=[
+            {
+                "policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API",
+                "gateway_supported": True,
+                "gateway_support": "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_BFF",
+                "client_ready_publication": "BLOCKED",
+            }
+        ],
     )
     audit_events: list[PolicyPackAuditEvent] = Field(
         default_factory=list,
@@ -157,7 +164,14 @@ class PolicyPackListResponse(BaseModel):
     )
     catalog_posture: dict[str, Any] = Field(
         description="Catalog support posture and RFC-0025 boundary.",
-        examples=[{"policy_evaluation": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"}],
+        examples=[
+            {
+                "policy_catalog": "SUPPORTED_BY_RFC0025_SLICE5",
+                "workbench_supported": True,
+                "workbench_support": "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI",
+                "client_ready_publication": "BLOCKED",
+            }
+        ],
     )
 
 
@@ -582,7 +596,15 @@ class PolicyEvaluationReviewQueueResponse(BaseModel):
     )
     queue_posture: dict[str, Any] = Field(
         description="Review queue support boundary and unsupported downstream surfaces.",
-        examples=[{"gateway_supported": False, "workbench_supported": False}],
+        examples=[
+            {
+                "gateway_supported": True,
+                "gateway_support": "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_BFF",
+                "workbench_supported": True,
+                "workbench_support": "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI",
+                "client_ready_publication": "BLOCKED",
+            }
+        ],
     )
 
 
@@ -597,10 +619,18 @@ class PolicyEvaluationSignOffPackageResponse(BaseModel):
     )
     package_posture: dict[str, Any] = Field(
         description=(
-            "Current sign-off package realization boundary. Slice 8 exposes the certified source "
-            "package but does not produce client-ready report/render/archive artifacts."
+            "Current sign-off package realization boundary. Advise exposes the certified source "
+            "package and signed-off report-package handoff, but client-ready publication remains "
+            "blocked."
         ),
-        examples=[{"report_render_archive_realization": "NOT_IMPLEMENTED"}],
+        examples=[
+            {
+                "report_render_archive_realization": (
+                    "SUPPORTED_BY_RFC0025_SLICE10_SIGNED_OFF_PACKAGE_HANDOFF"
+                ),
+                "client_ready_publication": "BLOCKED",
+            }
+        ],
     )
 
 

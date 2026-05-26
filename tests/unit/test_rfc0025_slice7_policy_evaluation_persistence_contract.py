@@ -8,6 +8,7 @@ WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 PERSISTENCE_SOURCE_PATH = Path("src/core/policy_packs/persistence.py")
 EVALUATION_SOURCE_PATH = Path("src/core/policy_packs/evaluation.py")
 MODELS_SOURCE_PATH = Path("src/core/policy_packs/models.py")
+SUPPORTABILITY_SOURCE_PATH = Path("src/core/policy_packs/supportability.py")
 
 
 def test_rfc0025_slice7_policy_evaluation_persistence_evidence_is_indexed() -> None:
@@ -39,19 +40,30 @@ def test_rfc0025_slice7_keeps_api_product_surface_and_client_ready_gated() -> No
     slice7_text = SLICE7_PATH.read_text(encoding="utf-8")
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
     persistence_source = PERSISTENCE_SOURCE_PATH.read_text(encoding="utf-8")
-    evaluation_source = EVALUATION_SOURCE_PATH.read_text(encoding="utf-8")
+    supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
     models_source = MODELS_SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "rfc0025.policy-evaluation-persistence.v1" in persistence_source
+    assert "POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION" in persistence_source
+    assert "rfc0025.policy-evaluation-persistence.v1" in supportability_source
     assert "PolicyEvaluationRecordStore" in persistence_source
     assert "POLICY_EVALUATION_IDEMPOTENCY_KEY_CONFLICT" in persistence_source
     assert "PIN_POLICY_VERSION_AND_COMPARE_SOURCE_HASHES" in persistence_source
     assert "PolicyEvaluationRecord" in models_source
     assert "PolicyEvaluationReplayResponse" in models_source
-    assert '"policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"' in evaluation_source
-    assert '"gateway_supported": False' in evaluation_source
-    assert '"workbench_supported": False' in evaluation_source
-    assert "active data-product promotion" in supported_features
+    assert '"policy_evaluation_api": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"' in (
+        supportability_source
+    )
+    assert '"gateway_supported": True' in supportability_source
+    assert '"gateway_support": "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_BFF"' in supportability_source
+    assert '"workbench_supported": True' in supportability_source
+    assert '"workbench_support": "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI"' in (
+        supportability_source
+    )
+    assert '"active_data_product_promotion": "BLOCKED_UNTIL_FINAL_CLOSURE"' in (
+        supportability_source
+    )
+    assert "Active data-product promotion" in supported_features
     assert "client-ready publication" in supported_features
-    assert "Canonical live proof, active data-product promotion" in supported_features
+    assert "Implementation in progress through Slice 15" in supported_features
+    assert "Active data-product promotion" in supported_features
     assert "no api or product surface promoted" in slice7_text.lower()

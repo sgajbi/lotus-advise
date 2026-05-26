@@ -6,6 +6,7 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 CATALOG_SOURCE_PATH = Path("src/core/policy_packs/catalog.py")
+SUPPORTABILITY_SOURCE_PATH = Path("src/core/policy_packs/supportability.py")
 ROUTE_SOURCE_PATH = Path("src/api/proposals/routes_policy_packs.py")
 CAPABILITIES_SOURCE_PATH = Path("src/api/capabilities/service.py")
 
@@ -40,13 +41,14 @@ def test_rfc0025_slice5_promotes_catalog_without_policy_evaluation_claims() -> N
     slice5_text = SLICE5_PATH.read_text(encoding="utf-8")
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
     catalog_source = CATALOG_SOURCE_PATH.read_text(encoding="utf-8")
+    supportability_source = SUPPORTABILITY_SOURCE_PATH.read_text(encoding="utf-8")
     route_source = ROUTE_SOURCE_PATH.read_text(encoding="utf-8")
     capabilities_source = CAPABILITIES_SOURCE_PATH.read_text(encoding="utf-8")
 
-    assert "rfc0025.policy-pack-catalog.v1" in catalog_source
+    assert "rfc0025.policy-pack-catalog.v1" in supportability_source
     assert "POLICY_PACK_MAKER_CHECKER_REQUIRES_DIFFERENT_ACTOR" in catalog_source
     assert "POLICY_PACK_VERSION_ALREADY_ACTIVE_IMMUTABLE" in catalog_source
-    assert '"policy_evaluation": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"' in catalog_source
+    assert '"policy_evaluation": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"' in supportability_source
     assert "/advisory/policy-packs" in route_source
     assert "advisory.policy_pack_catalog" in capabilities_source
     assert "advisory.proposals.policy_evaluation" not in capabilities_source
