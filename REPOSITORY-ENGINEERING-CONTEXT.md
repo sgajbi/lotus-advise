@@ -92,9 +92,10 @@ Current repository posture:
    `rfc0025.policy-evaluation-persistence.v1` finalized policy evaluation records with
    policy/source/evaluation hashes, per-rule hashes, source gaps, approval dependencies,
    disclosure and consent requirements, replay metadata, duplicate prevention, idempotent replay,
-   and append-only review/sign-off/report-archive events. Certified evaluation APIs, policy review
-   queues, sign-off packages, Gateway/Workbench policy support, active data-product promotion, and
-   client-ready publication remain unimplemented and unpromoted,
+   and append-only review/sign-off/report-archive events. Slice 8 exposes certified Advise policy
+   evaluation create/read/replay/event/lineage/review-queue/sign-off source-package APIs and
+   OpenAPI documentation. Gateway/Workbench policy support, report/render/archive realization,
+   active data-product promotion, and client-ready publication remain unimplemented and unpromoted,
 8. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 9. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 10. repo-native CI is already aligned to explicit lane expectations,

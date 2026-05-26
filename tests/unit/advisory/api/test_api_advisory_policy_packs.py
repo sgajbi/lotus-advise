@@ -1,11 +1,15 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.core.policy_packs import reset_policy_pack_catalog_for_tests
+from src.core.policy_packs import (
+    reset_policy_evaluation_store_for_tests,
+    reset_policy_pack_catalog_for_tests,
+)
 
 
 def setup_function() -> None:
     reset_policy_pack_catalog_for_tests()
+    reset_policy_evaluation_store_for_tests()
 
 
 def test_policy_pack_catalog_routes_list_detail_validate_activate_and_preserve_boundaries() -> None:
@@ -18,7 +22,9 @@ def test_policy_pack_catalog_routes_list_detail_validate_activate_and_preserve_b
             "GLOBAL_PRIVATE_BANKING_BASELINE",
             "SG_PRIVATE_BANKING_REFERENCE",
         }
-        assert listed_body["catalog_posture"]["policy_evaluation"] == "NOT_IMPLEMENTED"
+        assert listed_body["catalog_posture"]["policy_evaluation"] == (
+            "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"
+        )
         assert listed_body["catalog_posture"]["client_ready_publication"] == "BLOCKED"
 
         detail = client.get("/advisory/policy-packs/SG_PRIVATE_BANKING_REFERENCE/versions/2026.05")
@@ -29,7 +35,9 @@ def test_policy_pack_catalog_routes_list_detail_validate_activate_and_preserve_b
         assert detail_body["policy_pack"]["reference_posture"] == (
             "REFERENCE_EXAMPLE_NOT_LEGAL_ADVICE"
         )
-        assert detail_body["supportability"]["policy_evaluation"] == "NOT_IMPLEMENTED"
+        assert detail_body["supportability"]["policy_evaluation"] == (
+            "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"
+        )
         assert detail_body["supportability"]["gateway_supported"] is False
         assert detail_body["supportability"]["workbench_supported"] is False
 
@@ -87,12 +95,17 @@ def test_policy_pack_catalog_routes_list_detail_validate_activate_and_preserve_b
         ]
 
 
-def test_policy_pack_catalog_openapi_documents_canonical_routes_without_evaluation_route() -> None:
+def test_policy_pack_catalog_openapi_documents_canonical_routes_with_evaluation_routes() -> None:
+    app.openapi_schema = None
     openapi = app.openapi()
     paths = openapi["paths"]
 
     assert "/advisory/policy-packs" in paths
     assert "/advisory/policy-packs/{policy_pack_id}/versions/{policy_version}/validate" in paths
     assert "/advisory/policy-packs/{policy_pack_id}/versions/{policy_version}/activate" in paths
-    assert "/advisory/proposals/{proposal_id}/versions/{version_id}/policy-evaluations" not in paths
+    assert (
+        "/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations"
+        in paths
+    )
+    assert "/advisory/policy-evaluations/{evaluation_id}/replay" in paths
     assert paths["/advisory/policy-packs"]["get"]["tags"] == ["Advisory Policy Packs"]

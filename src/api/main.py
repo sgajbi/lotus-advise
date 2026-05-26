@@ -87,6 +87,15 @@ app = FastAPI(
             ),
         },
         {
+            "name": "Advisory Policy Evaluation",
+            "description": (
+                "RFC-0025 certified Advise API endpoints for policy evaluation records, replay, "
+                "review queues, lineage, append-only review/sign-off/report reference events, and "
+                "sign-off source packages. Gateway, Workbench, report realization, and "
+                "client-ready publication remain gated until later implementation slices."
+            ),
+        },
+        {
             "name": "Advisory Operations & Support",
             "description": (
                 "Operational lookup and investigation endpoints for async status, workflow "

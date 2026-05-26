@@ -102,6 +102,13 @@ review/sign-off/report-archive events. Certified policy evaluation APIs, policy 
 sign-off package realization, Gateway/Workbench policy consumption, active data-product promotion,
 and client-ready publication remain unimplemented and unpromoted.
 
+RFC-0025 Slice 8 is implemented as certified Advise policy evaluation APIs and OpenAPI support.
+Evidence lives in `docs/rfcs/RFC-0025-slice-8-certified-apis-and-openapi.md`. Advise now exposes
+policy evaluation create/replay, immutable read, replay hash comparison, review queue projection,
+append-only review/sign-off/report-reference events, lineage, and sign-off source-package routes.
+Gateway/Workbench policy consumption, report/render/archive realization, active data-product
+promotion, and client-ready publication remain gated.
+
 RFC-0024 Slice 0 is implemented as a critical-review, source-map, and product-gap allocation gate.
 It records memo source authorities, cross-repo ownership, required blocked states, and the first
 bounded implementation direction. It does not implement advisor proposal memo generation, memo APIs,
@@ -388,3 +395,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-5-policy-pack-catalog-schema-activation.md`
 - `docs/rfcs/RFC-0025-slice-6-policy-applicability-and-evaluation-engine.md`
 - `docs/rfcs/RFC-0025-slice-7-policy-evaluation-persistence-replay-audit.md`
+- `docs/rfcs/RFC-0025-slice-8-certified-apis-and-openapi.md`

@@ -4366,3 +4366,34 @@
 - Follow-Up:
   - Slice 8 should expose certified policy evaluation APIs without bypassing the finalized-record
     store or promoting Gateway/Workbench/client-ready claims before their slices are complete.
+
+## LA-REV-169
+
+- Scope: RFC-0025 certified policy evaluation APIs and OpenAPI
+- Pattern: thin route boundary over immutable policy evidence records
+- Status: Hardened
+- Finding Class: product-truth risk
+- Summary: Slice 8 needed to expose policy evaluation behavior without duplicating the Slice 6
+  evaluator or mutating the Slice 7 finalized-record model.
+- Evidence:
+  - `src/api/proposals/routes_policy_evaluations.py` exposes create/replay, immutable read, replay,
+    review queue, append-only event, lineage, and sign-off source-package endpoints.
+  - `src/core/policy_packs/persistence.py` adds list, lineage, review-queue, and sign-off package
+    projections over the existing `PolicyEvaluationRecordStore`.
+  - `src/core/policy_packs/models.py` adds request and response contracts with field-level OpenAPI
+    documentation.
+  - `tests/unit/advisory/api/test_api_advisory_policy_evaluations.py` proves idempotent
+    finalization, conflict handling, replay hash comparison, event capture, lineage, review queue,
+    and sign-off source-package behavior.
+  - `tests/unit/test_rfc0025_slice8_policy_evaluation_api_contract.py` protects RFC/wiki/data
+    product/trust telemetry indexing and prevents `/platform/capabilities` promotion.
+- Consequence:
+  - Advise now has a certified API source for policy evaluation records, but Gateway/Workbench
+    policy support, report/render/archive realization, active data-product promotion, and
+    client-ready publication remain blocked.
+- Documentation:
+  - RFC-0025 Slice 8 evidence, repo context, RFC index, supported-feature wiki source, data-product
+    declaration, trust telemetry, and RFC README were updated.
+- Follow-Up:
+  - Slice 9 should attach approval, consent, disclosure, conflict, SLA, and sign-off workflow
+    behavior to this API surface without turning source-package reads into client-ready claims.

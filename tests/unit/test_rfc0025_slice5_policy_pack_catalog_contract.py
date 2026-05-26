@@ -46,10 +46,10 @@ def test_rfc0025_slice5_promotes_catalog_without_policy_evaluation_claims() -> N
     assert "rfc0025.policy-pack-catalog.v1" in catalog_source
     assert "POLICY_PACK_MAKER_CHECKER_REQUIRES_DIFFERENT_ACTOR" in catalog_source
     assert "POLICY_PACK_VERSION_ALREADY_ACTIVE_IMMUTABLE" in catalog_source
-    assert 'policy_evaluation": "NOT_IMPLEMENTED"' in catalog_source
+    assert '"policy_evaluation": "SUPPORTED_BY_RFC0025_SLICE8_ADVISE_API"' in catalog_source
     assert "/advisory/policy-packs" in route_source
     assert "advisory.policy_pack_catalog" in capabilities_source
     assert "advisory.proposals.policy_evaluation" not in capabilities_source
-    assert "internal policy evaluation persistence" in supported_features
+    assert "certified Advise evaluation APIs" in supported_features
     assert "remain gated" in supported_features
     assert "This slice does not implement proposal policy evaluation" in slice5_text

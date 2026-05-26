@@ -208,7 +208,15 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
     assert snapshot["product_name"] == declared_product["product_name"]
     assert snapshot["product_version"] == declared_product["product_version"]
     assert declared_product["lifecycle_status"] == "proposed"
-    assert declared_product.get("current_routes", []) == []
+    assert declared_product["current_routes"] == [
+        "/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
+        "/advisory/policy-evaluations/review-queue",
+        "/advisory/policy-evaluations/{evaluation_id}",
+        "/advisory/policy-evaluations/{evaluation_id}/replay",
+        "/advisory/policy-evaluations/{evaluation_id}/events",
+        "/advisory/policy-evaluations/{evaluation_id}/lineage",
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
+    ]
     assert (
         snapshot["freshness"]["freshness_class"]
         == declared_product["freshness_policy"]["freshness_class"]
@@ -225,13 +233,17 @@ def test_rfc0025_policy_evaluation_trust_telemetry_is_blocked_and_tied_to_declar
         in snapshot["lineage"]["evidence_uris"]
     )
     assert (
+        "lotus-advise://docs/rfcs/RFC-0025-slice-8-certified-apis-and-openapi.md"
+        in snapshot["lineage"]["evidence_uris"]
+    )
+    assert (
         snapshot["lineage"]["evidence_access_class"]
         == declared_product["lineage_policy"]["evidence_access_class_ref"]
     )
     assert snapshot["blocking"] == {
         "blocked": True,
         "blocked_reason": (
-            "RFC0025_POLICY_EVALUATION_API_REVIEW_QUEUE_AND_PRODUCT_SURFACE_NOT_IMPLEMENTED"
+            "RFC0025_POLICY_EVALUATION_GATEWAY_WORKBENCH_REPORT_AND_PRODUCT_PROMOTION_NOT_IMPLEMENTED"
         ),
     }
 
@@ -251,7 +263,15 @@ def test_rfc0025_policy_evaluation_catalog_generation_keeps_support_non_promoted
     )
 
     assert policy_product["lifecycle_status"] == "proposed"
-    assert policy_product["current_routes"] == []
+    assert policy_product["current_routes"] == [
+        "/advisory/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
+        "/advisory/policy-evaluations/review-queue",
+        "/advisory/policy-evaluations/{evaluation_id}",
+        "/advisory/policy-evaluations/{evaluation_id}/replay",
+        "/advisory/policy-evaluations/{evaluation_id}/events",
+        "/advisory/policy-evaluations/{evaluation_id}/lineage",
+        "/advisory/policy-evaluations/{evaluation_id}/sign-off-package",
+    ]
     assert policy_product["completeness_policy"]["default_status"] == "blocked"
     assert "advisory.proposals.policy_evaluation" not in capability_text
     assert "advisory_policy_evaluation" not in capability_text
