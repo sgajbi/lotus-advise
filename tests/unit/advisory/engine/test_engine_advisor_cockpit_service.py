@@ -13,6 +13,13 @@ from src.core.advisor_cockpit import (
 from src.core.policy_packs.models import PolicyEvaluationRecord
 from src.core.proposals.exceptions import ProposalIdempotencyConflictError, ProposalValidationError
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
+from src.core.tactical_house_view import (
+    TacticalHouseViewCandidatePortfolio,
+    TacticalHouseViewCohortRequest,
+    TacticalHouseViewDefinition,
+    TacticalHouseViewSourceRef,
+    build_tactical_house_view_affected_cohort,
+)
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 NOW = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
@@ -114,6 +121,11 @@ def _service(monkeypatch: pytest.MonkeyPatch) -> AdvisorCockpitService:
         "list_policy_evaluation_records",
         lambda **_: [_policy()],
     )
+    monkeypatch.setattr(
+        cockpit_service,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
     return AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
 
 
@@ -203,6 +215,74 @@ def test_cockpit_service_projects_non_advisor_queues_by_owner_role(
         "APPROVAL_DEPENDENCY_AGING",
     }
     assert [action.action_family for action in operations_page.items] == ["MEMO_PACKAGE_BLOCKED"]
+
+
+def test_cockpit_service_projects_source_backed_house_view_cohorts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = _service(monkeypatch)
+    cohort = build_tactical_house_view_affected_cohort(
+        TacticalHouseViewCohortRequest(
+            tactical_view=TacticalHouseViewDefinition(
+                tactical_view_id="thv_2026_05_asia_duration",
+                tactical_view_version="2026.05",
+                theme_id="asia_duration_reduce",
+                as_of_date="2026-05-14",
+                target_action="REDUCE",
+                rationale="Reduce duration exposure in Asia balanced discretionary books.",
+                source_refs=[
+                    TacticalHouseViewSourceRef(
+                        source_system="lotus-advise",
+                        source_type="TACTICAL_HOUSE_VIEW",
+                        source_id="thv_2026_05_asia_duration",
+                        source_version="2026.05",
+                        content_hash="sha256:house-view",
+                    )
+                ],
+            ),
+            candidate_portfolios=[
+                TacticalHouseViewCandidatePortfolio(
+                    portfolio_id="PB_SG_GLOBAL_BAL_001",
+                    mandate_id="MANDATE_PB_SG_GLOBAL_BAL_001",
+                    portfolio_type="DPM",
+                    discretionary_mandate=True,
+                    current_exposure_weight="0.18",
+                    alignment_signal="OVERWEIGHT",
+                    source_refs=[
+                        TacticalHouseViewSourceRef(
+                            source_system="lotus-core",
+                            source_type="HoldingsAsOf",
+                            source_id="holdings:PB_SG_GLOBAL_BAL_001:2026-05-14",
+                            source_version="v1",
+                            content_hash="sha256:holdings",
+                        )
+                    ],
+                )
+            ],
+            eligible_portfolio_types=["DPM"],
+            correlation_id="corr-thv-001",
+        ),
+        generated_at=NOW,
+    )
+    monkeypatch.setattr(
+        cockpit_service,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [cohort],
+    )
+
+    page = service.list_actions(
+        caller_context=_caller(role="DPM_OWNER", advisor_id=None),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id="corr-cockpit-thv",
+    )
+
+    assert [action.action_family for action in page.items] == ["HOUSE_VIEW_IMPACT_REVIEW"]
+    action = page.items[0]
+    assert action.owner_role == "DPM_OWNER"
+    assert action.evidence_refs[0].evidence_type == "TACTICAL_HOUSE_VIEW_COHORT"
+    assert action.correlation_id == "corr-cockpit-thv"
 
 
 def test_cockpit_service_snapshot_preserves_supported_downstream_posture(

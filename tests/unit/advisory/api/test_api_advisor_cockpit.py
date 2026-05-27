@@ -11,6 +11,7 @@ from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.policy_packs.models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
+from src.core.tactical_house_view import clear_tactical_house_view_affected_cohorts_for_tests
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
 NOW = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
@@ -18,6 +19,7 @@ NOW = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
 
 def setup_function() -> None:
     reset_proposal_workflow_service_for_tests()
+    clear_tactical_house_view_affected_cohorts_for_tests()
 
 
 @pytest.fixture()
@@ -133,6 +135,35 @@ def test_advisor_cockpit_api_projects_compliance_queue_by_caller_role(
     assert {item["owner_role"] for item in payload["items"]} == {"COMPLIANCE_REVIEWER"}
 
 
+def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
+    cockpit_repository: InMemoryProposalRepository,
+) -> None:
+    _ = cockpit_repository
+    with TestClient(app) as client:
+        house_view = client.post(
+            "/advisory/tactical-house-view/cohorts/evaluate",
+            json=_house_view_payload(),
+        )
+        response = client.get(
+            "/advisory/cockpit/actions",
+            params={
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "role": "DPM_OWNER",
+            },
+            headers={"X-Correlation-ID": "corr-cockpit-house-view"},
+        )
+
+    assert house_view.status_code == 200
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_count"] == 1
+    action = payload["items"][0]
+    assert action["action_family"] == "HOUSE_VIEW_IMPACT_REVIEW"
+    assert action["owner_role"] == "DPM_OWNER"
+    assert action["evidence_refs"][0]["evidence_type"] == "TACTICAL_HOUSE_VIEW_COHORT"
+    assert action["correlation_id"] == "corr-cockpit-house-view"
+
+
 def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
     cockpit_repository: InMemoryProposalRepository,
 ) -> None:
@@ -216,3 +247,47 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
         and parameter["required"] is True
         for parameter in acknowledgement_operation["parameters"]
     )
+
+
+def _house_view_payload() -> dict:
+    return {
+        "tactical_view": {
+            "tactical_view_id": "thv_2026_05_asia_duration",
+            "tactical_view_version": "2026.05",
+            "theme_id": "asia_duration_reduce",
+            "as_of_date": "2026-05-14",
+            "target_action": "REDUCE",
+            "rationale": "Reduce duration exposure in Asia balanced discretionary books.",
+            "source_refs": [
+                {
+                    "source_system": "lotus-advise",
+                    "source_type": "TACTICAL_HOUSE_VIEW",
+                    "source_id": "thv_2026_05_asia_duration",
+                    "source_version": "2026.05",
+                    "content_hash": "sha256:house-view",
+                }
+            ],
+        },
+        "candidate_portfolios": [
+            {
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+                "portfolio_type": "DPM",
+                "discretionary_mandate": True,
+                "booking_center_code": "Singapore",
+                "current_exposure_weight": "0.18",
+                "alignment_signal": "OVERWEIGHT",
+                "source_refs": [
+                    {
+                        "source_system": "lotus-core",
+                        "source_type": "HoldingsAsOf",
+                        "source_id": "holdings:PB_SG_GLOBAL_BAL_001:2026-05-14",
+                        "source_version": "v1",
+                        "content_hash": "sha256:holdings",
+                    }
+                ],
+            }
+        ],
+        "eligible_portfolio_types": ["DPM"],
+        "correlation_id": "corr-thv-001",
+    }

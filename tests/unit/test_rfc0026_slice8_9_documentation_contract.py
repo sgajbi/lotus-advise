@@ -69,6 +69,8 @@ def test_rfc0026_slice10_records_downstream_readiness_boundaries() -> None:
         "ExecutionHandoffReadyActionSource",
         "ExecutionStatusAttentionActionSource",
         "HouseViewImpactActionSource",
+        "TacticalHouseViewAffectedCohort:v1",
+        "record_tactical_house_view_affected_cohort",
         "OMS_ORDER_LIFECYCLE",
         "does not implement report rendering, archive storage, OMS orders",
     ):

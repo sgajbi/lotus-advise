@@ -5,6 +5,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, cast
 
+from src.core.advisor_cockpit.action_factory import HouseViewImpactActionSource
 from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
@@ -42,6 +43,10 @@ from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalValidationError,
+)
+from src.core.tactical_house_view import (
+    TacticalHouseViewAffectedCohort,
+    list_tactical_house_view_affected_cohorts,
 )
 
 COCKPIT_SOURCE_LIMIT = 100
@@ -324,6 +329,14 @@ class AdvisorCockpitService:
                 memos=memos[:COCKPIT_SOURCE_LIMIT],
                 approvals=approvals[:COCKPIT_SOURCE_LIMIT],
                 workflow_events=workflow_events[:COCKPIT_SOURCE_LIMIT],
+                house_view_impacts=_house_view_impacts(
+                    list_tactical_house_view_affected_cohorts(
+                        portfolio_id=portfolio_id,
+                        limit=COCKPIT_SOURCE_LIMIT,
+                    ),
+                    portfolio_id=portfolio_id,
+                    correlation_id=correlation_id,
+                ),
             )
         )
         action_items = [
@@ -393,6 +406,44 @@ def _visible_owner_roles(role: str) -> set[str] | None:
     if role == "CRM_OWNER":
         return {"CRM_OWNER", "ADVISOR"}
     return {role}
+
+
+def _house_view_impacts(
+    cohorts: list[TacticalHouseViewAffectedCohort],
+    *,
+    portfolio_id: str | None,
+    correlation_id: str | None,
+) -> list[HouseViewImpactActionSource]:
+    impacts: list[HouseViewImpactActionSource] = []
+    for cohort in cohorts:
+        for affected in cohort.affected_portfolios:
+            if portfolio_id is not None and affected.portfolio_id != portfolio_id:
+                continue
+            inclusion_reason_codes = affected.inclusion_reason_codes or [
+                "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"
+            ]
+            impact_code = (
+                "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"
+                if "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED" in inclusion_reason_codes
+                else inclusion_reason_codes[0]
+            )
+            impacts.append(
+                HouseViewImpactActionSource(
+                    cohort_id=cohort.cohort_id,
+                    tactical_view_id=cohort.tactical_view_id,
+                    tactical_view_version=cohort.tactical_view_version,
+                    portfolio_id=affected.portfolio_id,
+                    impact_code=impact_code,
+                    summary=(
+                        "Portfolio is included in a source-backed tactical house-view affected "
+                        "cohort for DPM review."
+                    ),
+                    source_timestamp=cohort.generated_at,
+                    materiality_rank=52,
+                    correlation_id=correlation_id or cohort.correlation_id,
+                )
+            )
+    return impacts
 
 
 def _packet_cursor_start(*, packets: list[MeetingPreparationPacket], cursor: str | None) -> int:
