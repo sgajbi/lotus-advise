@@ -107,6 +107,16 @@ list/detail, snapshot, supportability, and idempotent acknowledgement APIs backe
 `AdvisorCockpitService`, `AdvisorCockpitRepository`, OpenAPI tests, and durable acknowledgement
 persistence.
 
+RFC-0026 Slice 8 is implemented as source-backed preparation and follow-up support. Evidence lives
+in `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`. `lotus-advise` now exposes
+paginated meeting-preparation packets and advisor follow-up actions without claiming CRM,
+calendar, external client communication, or client-ready publication behavior.
+
+RFC-0026 Slice 9 is implemented as source-backed supervisory and approval queue support. Evidence
+lives in `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`. `lotus-advise`
+now projects risk, compliance, and consent queue items through batched approval source reads with
+deterministic owner roles and blocked completed-approval/client-ready authority.
+
 RFC-0026 Slice 13 is implemented as data-product and capability promotion. Evidence lives in
 `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`.
 `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active products with
@@ -551,4 +561,6 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
 - `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`
 - `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`
+- `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`
+- `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`
 - `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`

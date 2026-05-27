@@ -1127,6 +1127,10 @@ Acceptance gate:
 3. acknowledgement is idempotent, audited, and replayable,
 4. external-owner handoffs are explicit and safe.
 
+Slice 8 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`
+
 ### Slice 9 - Supervisory, Approval, and Compliance Work Queues
 
 Outcome:
@@ -1141,6 +1145,10 @@ Acceptance gate:
 2. blocked/pending/completed posture is deterministic,
 3. tests cover supervisor and advisor views,
 4. Workbench can render queues without reinterpreting lifecycle events.
+
+Slice 9 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`
 
 ### Slice 10 - Report, Archive, Execution, and House-View Readiness
 

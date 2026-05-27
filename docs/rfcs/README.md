@@ -407,6 +407,14 @@ Current note:
   snapshot, supportability, and idempotent acknowledgement APIs, with persistent acknowledgement
   storage and OpenAPI boundary tests, while keeping Gateway, Workbench, data products, and
   canonical proof unpromoted until mandatory subsequent RFC-0026 slices.
+- RFC-0026 Slice 8 preparation and follow-up evidence lives in
+  `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`; it adds the paginated
+  Advise preparation-packet API and source-backed client follow-up actions while keeping CRM,
+  calendar scheduling, external client communication, and client-ready publication blocked.
+- RFC-0026 Slice 9 supervisory queue evidence lives in
+  `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`; it adds source-backed
+  risk, compliance, and consent queue projection with batched approval reads, deterministic owner
+  roles, and blocked completed-approval/client-ready authority.
 - RFC-0026 Slice 13 data-product and capability-promotion evidence lives in
   `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`; it promotes
   `AdvisorCockpitOperatingSnapshot:v1`, `AdvisoryActionItemRegister:v1`, trust telemetry,
@@ -459,5 +467,7 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
 - `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`
 - `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`
+- `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`
+- `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`
 - `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
 
