@@ -1070,6 +1070,10 @@ Acceptance gate:
 3. load tests or benchmarks cover realistic advisor-book sizes,
 4. degraded source behavior is explicit and tested.
 
+Slice 5 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
+
 ### Slice 6 - Priority, Next Action, and SLA Aging Engine
 
 Outcome:

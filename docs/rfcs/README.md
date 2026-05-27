@@ -393,6 +393,11 @@ Current note:
   policy-review, memo-blocked, meeting-preparation, supportability, and unsupported-capability
   actions with behavior tests, and keeps APIs, persistence, data products, Gateway, Workbench, and
   canonical proof unpromoted until mandatory subsequent RFC-0026 slices implement them.
+- RFC-0026 Slice 5 source-read-model evidence lives in
+  `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`; it adds
+  `src/core/advisor_cockpit/source_read_model.py` for preloaded source aggregation across
+  proposals, policy evaluations, memos, supportability events, and unsupported capabilities,
+  preserving lineage and avoiding repository-loop behavior before runtime API wiring.
 
 RFC-0025 implementation evidence includes:
 
@@ -437,4 +442,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
+- `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
 

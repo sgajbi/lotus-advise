@@ -86,6 +86,13 @@ owner roles, and client-ready blocked posture explicit. Runtime APIs, persistenc
 promotion, Gateway routes, Workbench surfaces, and canonical proof remain mandatory subsequent
 RFC-0026 slices.
 
+RFC-0026 Slice 5 is implemented as preloaded source-read-model aggregation. Evidence lives in
+`docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`.
+`src/core/advisor_cockpit/source_read_model.py` maps preloaded proposal, policy evaluation, memo,
+supportability, and unsupported-capability source batches into source counts, action sources, and
+sorted cockpit action items without adding API routes, persistence, Gateway routes, Workbench
+surfaces, data-product promotion, or runtime support claims.
+
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before policy domain work, so no `lotus-platform` code change
@@ -516,3 +523,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
+- `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`

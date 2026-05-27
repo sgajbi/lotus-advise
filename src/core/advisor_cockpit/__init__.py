@@ -39,6 +39,13 @@ from src.core.advisor_cockpit.pagination import (
     COCKPIT_ACTION_MAX_PAGE_SIZE,
     normalize_cockpit_page_size,
 )
+from src.core.advisor_cockpit.source_read_model import (
+    ACTIVE_PROPOSAL_STATES,
+    COCKPIT_POLICY_REVIEW_STATUSES,
+    AdvisorCockpitSourceBatch,
+    AdvisorCockpitSourceReadModel,
+    build_advisor_cockpit_source_read_model,
+)
 from src.core.advisor_cockpit.vocabulary import (
     cockpit_action_sort_key,
     sort_cockpit_action_items,
@@ -51,12 +58,16 @@ __all__ = [
     "AdvisorCockpitOperatingSnapshot",
     "AdvisorCockpitOwnerRole",
     "AdvisorCockpitSlaAgeBand",
+    "AdvisorCockpitSourceBatch",
+    "AdvisorCockpitSourceReadModel",
     "AdvisorCockpitUnsupportedCapability",
     "AdvisoryActionItem",
     "AdvisoryActionItemPage",
     "COCKPIT_ACTION_DEFAULT_PAGE_SIZE",
     "COCKPIT_ACTION_MAX_PAGE_SIZE",
+    "COCKPIT_POLICY_REVIEW_STATUSES",
     "LOTUS_ADVISE_SOURCE_SYSTEM",
+    "ACTIVE_PROPOSAL_STATES",
     "CockpitActionConstructionInput",
     "CockpitActionSourceRefs",
     "CockpitAcknowledgementState",
@@ -73,6 +84,7 @@ __all__ = [
     "SupportabilityDegradedActionSource",
     "UnsupportedCapabilityActionSource",
     "build_first_wave_cockpit_actions",
+    "build_advisor_cockpit_source_read_model",
     "build_meeting_preparation_action",
     "build_memo_package_blocked_action",
     "build_policy_review_required_action",
