@@ -4,10 +4,13 @@ from src.core.advisory_copilot import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,
     CopilotEvidencePacket,
+    CopilotEvidencePacketBuildError,
     CopilotEvidencePacketSection,
+    CopilotEvidenceSectionInput,
     CopilotLineageRef,
     CopilotSourceRef,
     CopilotUnsupportedEvidence,
+    build_copilot_evidence_packet,
     business_projection_for_action,
     get_copilot_action_definition,
     guardrail_reason_for_intent,
@@ -105,6 +108,7 @@ def test_business_projection_uses_clean_private_banking_language() -> None:
 def test_copilot_evidence_packet_shape_preserves_review_and_lineage_boundaries() -> None:
     packet = CopilotEvidencePacket(
         evidence_packet_id="copilot_packet_pb_sg_001",
+        evidence_packet_hash="sha256:copilot-packet",
         action_family="COMPLIANCE_REVIEW_SUMMARY",
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         proposal_id="proposal_sg_structured_note_001",
@@ -142,7 +146,118 @@ def test_copilot_evidence_packet_shape_preserves_review_and_lineage_boundaries()
     )
 
     assert packet.client_ready_publication == "BLOCKED"
+    assert packet.evidence_packet_hash == "sha256:copilot-packet"
     assert packet.retention_class == "ADVISORY_REVIEW_RECORD"
     assert packet.sections[0].source_refs[0].content_hash == "sha256:policy-evaluation"
     assert packet.unsupported_evidence[0].reason_code == "CLIENT_READY_PUBLICATION_BLOCKED"
     assert packet.lineage_refs[0].source_system == "lotus-advise"
+
+
+def test_copilot_evidence_packet_builder_projects_allowed_sections_and_hashes() -> None:
+    source_ref = CopilotSourceRef(
+        source_system="lotus-advise",
+        source_type="POLICY_EVALUATION",
+        source_id="policy_eval_sg_001",
+        content_hash="sha256:policy-evaluation",
+        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+    )
+    source_sections = (
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=("Policy evaluation requires compliance review.",),
+            allowed_audiences=("ADVISOR", "COMPLIANCE_REVIEWER"),
+        ),
+    )
+
+    packet = build_copilot_evidence_packet(
+        evidence_packet_id="copilot_packet_pb_sg_001",
+        action_family="MEETING_PREPARATION",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        proposal_id="proposal_sg_structured_note_001",
+        audience="ADVISOR",
+        source_sections=source_sections,
+    )
+    replayed_packet = build_copilot_evidence_packet(
+        evidence_packet_id="copilot_packet_pb_sg_001",
+        action_family="MEETING_PREPARATION",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        proposal_id="proposal_sg_structured_note_001",
+        audience="ADVISOR",
+        source_sections=source_sections,
+    )
+
+    assert packet.evidence_packet_hash == replayed_packet.evidence_packet_hash
+    assert packet.evidence_packet_hash.startswith("sha256:")
+    assert packet.sections[0].section_key == "POLICY_POSTURE"
+    assert packet.sections[0].summary_items == ("Policy evaluation requires compliance review.",)
+    assert {item.reason_code for item in packet.unsupported_evidence} == {"SOURCE_NOT_AVAILABLE"}
+    assert packet.lineage_refs[0].lineage_id == "copilot_packet_pb_sg_001"
+    assert packet.client_ready_publication == "BLOCKED"
+
+
+def test_copilot_evidence_packet_builder_restricts_sections_by_audience() -> None:
+    packet = build_copilot_evidence_packet(
+        evidence_packet_id="copilot_packet_compliance_001",
+        action_family="COMPLIANCE_REVIEW_SUMMARY",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        proposal_id="proposal_sg_structured_note_001",
+        audience="ADVISOR",
+        source_sections=(
+            CopilotEvidenceSectionInput(
+                section_key="POLICY_POSTURE",
+                title="Compliance-only policy detail",
+                evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+                source_refs=(
+                    CopilotSourceRef(
+                        source_system="lotus-advise",
+                        source_type="POLICY_EVALUATION",
+                        source_id="policy_eval_sg_001",
+                        content_hash="sha256:policy-evaluation",
+                        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+                    ),
+                ),
+                summary_items=("Policy detail requires compliance reviewer access.",),
+                allowed_audiences=("COMPLIANCE_REVIEWER",),
+            ),
+        ),
+    )
+
+    assert packet.sections == ()
+    assert "RESTRICTED_BY_ROLE" in {item.reason_code for item in packet.unsupported_evidence}
+    assert "SOURCE_NOT_AVAILABLE" in {item.reason_code for item in packet.unsupported_evidence}
+
+
+def test_copilot_evidence_packet_builder_rejects_technical_copy_leakage() -> None:
+    source_ref = CopilotSourceRef(
+        source_system="lotus-advise",
+        source_type="MEMO_EVIDENCE",
+        source_id="memo_sg_001",
+        content_hash="sha256:memo",
+        access_class="ADVISOR_USE_SUMMARY",
+    )
+
+    try:
+        build_copilot_evidence_packet(
+            evidence_packet_id="copilot_packet_leak_001",
+            action_family="CLIENT_FOLLOW_UP_DRAFT",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            audience="ADVISOR",
+            source_sections=(
+                CopilotEvidenceSectionInput(
+                    section_key="MEMO_EVIDENCE",
+                    title="Memo evidence",
+                    evidence_class="ADVISOR_USE_SUMMARY",
+                    source_refs=(source_ref,),
+                    summary_items=("This raw prompt must not appear in advisor evidence.",),
+                    allowed_audiences=("ADVISOR",),
+                ),
+            ),
+        )
+    except CopilotEvidencePacketBuildError as exc:
+        assert str(exc) == "COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"
+    else:
+        raise AssertionError("expected technical leakage to be rejected")

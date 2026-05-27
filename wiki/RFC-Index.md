@@ -97,6 +97,14 @@ copilot core now defines evidence packets, evidence sections, source refs, linea
 unsupported-evidence posture, retention classes, and review-state mapping while preserving blocked
 client-ready posture and no runtime/API promotion.
 
+RFC-0027 Slice 5 is implemented as pure evidence-packet projection. Evidence lives in
+`docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`. The copilot core now builds
+deterministic projected evidence packets from already source-projected sections, emits explicit
+missing/restricted unsupported posture, preserves source refs and lineage refs, computes stable
+packet hashes, rejects technical-copy leakage, and keeps client-ready publication blocked. No source
+reads, persistence, API, `lotus-ai`, Gateway, Workbench, data-product, canonical seed, or supported
+runtime claim is promoted by this slice.
+
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before cockpit domain work, so no `lotus-platform` code change
@@ -623,3 +631,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`
+- `docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`

@@ -836,6 +836,10 @@ Acceptance gate:
 3. source refs are sufficient for audit,
 4. evidence packet replay or rebuild works without raw prompt reconstruction.
 
+Slice 5 evidence:
+
+1. `docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`
+
 ### Slice 6 - Guardrail and Unsupported-Evidence Engine
 
 Outcome:

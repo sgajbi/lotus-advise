@@ -6,7 +6,9 @@ from src.core.advisory_copilot.catalog import (
 from src.core.advisory_copilot.evidence_packets import (
     ACTION_REQUIRED_EVIDENCE_SECTIONS,
     SOURCE_EVIDENCE_SECTIONS,
+    CopilotEvidencePacketBuildError,
     CopilotEvidenceSectionKey,
+    build_copilot_evidence_packet,
     required_evidence_sections,
 )
 from src.core.advisory_copilot.guardrails import (
@@ -23,6 +25,7 @@ from src.core.advisory_copilot.models import (
     CopilotEvidenceAccessClass,
     CopilotEvidencePacket,
     CopilotEvidencePacketSection,
+    CopilotEvidenceSectionInput,
     CopilotLineageRef,
     CopilotRetentionClass,
     CopilotReviewPosture,
@@ -66,7 +69,9 @@ __all__ = [
     "CopilotClientReadyPosture",
     "CopilotEvidenceAccessClass",
     "CopilotEvidencePacket",
+    "CopilotEvidencePacketBuildError",
     "CopilotEvidencePacketSection",
+    "CopilotEvidenceSectionInput",
     "CopilotEvidenceSectionKey",
     "CopilotGuardrailReasonCode",
     "CopilotLineageRef",
@@ -78,6 +83,7 @@ __all__ = [
     "CopilotUnsupportedEvidence",
     "CopilotUnsupportedEvidenceReason",
     "business_projection_for_action",
+    "build_copilot_evidence_packet",
     "get_copilot_action_definition",
     "guardrail_reason_for_intent",
     "is_terminal_review_posture",

@@ -210,12 +210,47 @@ class CopilotEvidencePacketSection(BaseModel):
     source_refs: tuple[CopilotSourceRef, ...] = Field(
         description="Source refs used to build this evidence section.",
     )
+    summary_items: tuple[str, ...] = Field(
+        default=(),
+        description="Business-safe evidence statements allowed for the requested projection.",
+        examples=[["Policy evaluation requires compliance review."]],
+    )
+
+
+class CopilotEvidenceSectionInput(BaseModel):
+    section_key: str = Field(
+        description="Stable evidence section key offered by the source projection.",
+        examples=["POLICY_POSTURE"],
+    )
+    title: str = Field(
+        description="Business-facing section title.",
+        examples=["Policy posture"],
+    )
+    evidence_class: CopilotEvidenceAccessClass = Field(
+        description="Access class for this source section.",
+        examples=["COMPLIANCE_REVIEW_EVIDENCE"],
+    )
+    source_refs: tuple[CopilotSourceRef, ...] = Field(
+        description="Source refs used to build this evidence section.",
+    )
+    summary_items: tuple[str, ...] = Field(
+        description="Business-safe evidence statements emitted by the source projection.",
+        examples=[["Policy evaluation requires compliance review."]],
+    )
+    allowed_audiences: tuple[CopilotAudience, ...] = Field(
+        description="Audiences allowed to receive this evidence section.",
+        examples=[["ADVISOR", "COMPLIANCE_REVIEWER"]],
+    )
 
 
 class CopilotEvidencePacket(BaseModel):
     evidence_packet_id: str = Field(
         description="Stable evidence-packet identifier for copilot action execution.",
         examples=["copilot_packet_pb_sg_001"],
+    )
+    evidence_packet_hash: str = Field(
+        description="Deterministic hash of projected packet content and source refs.",
+        examples=["sha256:copilot-packet"],
     )
     action_family: CopilotActionFamily = Field(
         description="Copilot action family this packet supports.",

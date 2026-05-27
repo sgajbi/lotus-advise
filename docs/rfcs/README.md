@@ -452,6 +452,12 @@ Current note:
   `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`; it adds typed evidence
   packet, section, source-ref, lineage-ref, unsupported-evidence, retention-class, and review-state
   vocabulary while preserving blocked client-ready posture and no runtime/API promotion.
+- RFC-0027 Slice 5 evidence-packet projection evidence lives in
+  `docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`; it adds a pure deterministic
+  evidence-packet builder with audience projection, explicit missing/restricted unsupported posture,
+  source refs, lineage refs, stable packet hashes, technical-copy leakage rejection, and blocked
+  client-ready posture without source reads, persistence, APIs, `lotus-ai`, Gateway, Workbench, or
+  support promotion.
 
 RFC-0025 implementation evidence includes:
 
@@ -508,4 +514,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`
+- `docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`
 
