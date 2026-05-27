@@ -1165,6 +1165,10 @@ Acceptance gate:
 2. report/render/archive/manage changes, if required, are merged and validated,
 3. no cockpit claim depends on an unimplemented downstream surface.
 
+Slice 10 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`
+
 ### Slice 11 - Gateway Integration
 
 Outcome:

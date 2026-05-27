@@ -415,6 +415,10 @@ Current note:
   `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`; it adds source-backed
   risk, compliance, and consent queue projection with batched approval reads, deterministic owner
   roles, and blocked completed-approval/client-ready authority.
+- RFC-0026 Slice 10 readiness evidence lives in
+  `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`; it adds report/archive
+  readiness, execution handoff/status attention, and explicit source-batched tactical house-view
+  impact actions while preserving report/archive, OMS, and DPM source-of-record boundaries.
 - RFC-0026 Slice 13 data-product and capability-promotion evidence lives in
   `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`; it promotes
   `AdvisorCockpitOperatingSnapshot:v1`, `AdvisoryActionItemRegister:v1`, trust telemetry,
@@ -469,5 +473,6 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`
 - `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`
 - `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`
+- `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`
 - `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
 

@@ -6,6 +6,7 @@ RFC26_PATH = Path("docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md")
 RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 SLICE8_PATH = Path("docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md")
 SLICE9_PATH = Path("docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md")
+SLICE10_PATH = Path("docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 
@@ -18,6 +19,7 @@ def test_rfc0026_slice8_and_slice9_evidence_is_indexed() -> None:
     for source_ref in (
         "docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md",
         "docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md",
+        "docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md",
     ):
         assert source_ref in _read(RFC26_PATH)
         assert source_ref in _read(RFC_INDEX_PATH)
@@ -55,3 +57,20 @@ def test_rfc0026_slice9_records_supervisory_queue_boundaries() -> None:
         assert marker in slice9
 
     assert "Slice 9 adds source-backed risk, compliance, and consent queue projection" in supported
+
+
+def test_rfc0026_slice10_records_downstream_readiness_boundaries() -> None:
+    slice10 = _read(SLICE10_PATH)
+    supported = _read(WIKI_SUPPORTED_FEATURES_PATH)
+
+    for marker in (
+        "ReportRenderArchiveActionSource",
+        "ExecutionHandoffReadyActionSource",
+        "ExecutionStatusAttentionActionSource",
+        "HouseViewImpactActionSource",
+        "OMS_ORDER_LIFECYCLE",
+        "does not implement report rendering, archive storage, OMS orders",
+    ):
+        assert marker in slice10
+
+    assert "Slice 10 adds report/archive readiness, execution handoff/status attention" in supported
