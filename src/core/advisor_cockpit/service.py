@@ -438,6 +438,8 @@ def _house_view_impacts(
                         "Portfolio is included in a source-backed tactical house-view affected "
                         "cohort for DPM review."
                     ),
+                    lineage_id=f"tactical_house_view_cohort:{cohort.cohort_id}",
+                    content_hash=cohort.content_hash,
                     source_timestamp=cohort.generated_at,
                     materiality_rank=52,
                     correlation_id=correlation_id or cohort.correlation_id,

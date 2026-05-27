@@ -234,6 +234,8 @@ class HouseViewImpactActionSource(BaseModel):
     portfolio_id: str = Field(examples=["PB_SG_GLOBAL_BAL_001"])
     impact_code: str = Field(examples=["TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"])
     summary: str = Field(default="Portfolio is affected by a source-backed tactical house view.")
+    lineage_id: str | None = Field(default=None)
+    content_hash: str | None = Field(default=None)
     due_at: str | None = Field(default=None)
     source_timestamp: str | None = Field(default=None)
     materiality_rank: int = Field(default=52, ge=0)
@@ -725,6 +727,10 @@ def build_house_view_impact_action(source: HouseViewImpactActionSource) -> Advis
                     access_class="CUSTOMER_CONSUMABLE_SUMMARY",
                 )
             ],
+            lineage_refs=_lineage_refs(
+                source.lineage_id or f"tactical_house_view_cohort:{source.cohort_id}",
+                source.content_hash,
+            ),
             correlation_id=source.correlation_id,
         )
     )

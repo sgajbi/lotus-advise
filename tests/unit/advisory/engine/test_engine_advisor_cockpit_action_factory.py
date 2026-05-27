@@ -272,6 +272,7 @@ def test_house_view_impact_action_requires_source_backed_cohort() -> None:
             tactical_view_version="2026.05",
             portfolio_id="PB_SG_GLOBAL_BAL_001",
             impact_code="TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED",
+            content_hash="sha256:house-view-cohort",
         )
     )
 
@@ -279,6 +280,8 @@ def test_house_view_impact_action_requires_source_backed_cohort() -> None:
     assert action.status == "PENDING_REVIEW"
     assert action.owner_role == "DPM_OWNER"
     assert action.evidence_refs[0].evidence_type == "TACTICAL_HOUSE_VIEW_COHORT"
+    assert action.lineage_refs[0].lineage_id == "tactical_house_view_cohort:thv_cohort_sg_001"
+    assert action.lineage_refs[0].content_hash == "sha256:house-view-cohort"
 
 
 def test_supportability_action_is_blocking_when_dependency_is_unavailable() -> None:
