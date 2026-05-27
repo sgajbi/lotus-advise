@@ -7,6 +7,8 @@ from typing import Any
 from src.api.proposals.runtime import proposal_postgres_dsn
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
 
+CUTOVER_MIGRATION_NAMESPACES = ("proposals", "advisory_copilot")
+
 
 def validate_production_cutover_contract(*, check_migrations: bool) -> None:
     validate_advisory_runtime_persistence()
@@ -20,14 +22,17 @@ def validate_cutover_migrations_applied() -> None:
     import psycopg
     from psycopg.rows import dict_row
 
-    namespace = "proposals"
     dsn = proposal_postgres_dsn()
-    expected_versions = expected_migration_versions(namespace=namespace)
     with psycopg.connect(dsn, row_factory=dict_row) as connection:
-        applied_versions = applied_migration_versions(connection=connection, namespace=namespace)
-    missing = sorted(set(expected_versions) - set(applied_versions))
-    if missing:
-        raise RuntimeError(f"CUTOVER_MIGRATION_MISSING:{namespace}:{missing[0]}")
+        for namespace in CUTOVER_MIGRATION_NAMESPACES:
+            expected_versions = expected_migration_versions(namespace=namespace)
+            applied_versions = applied_migration_versions(
+                connection=connection,
+                namespace=namespace,
+            )
+            missing = sorted(set(expected_versions) - set(applied_versions))
+            if missing:
+                raise RuntimeError(f"CUTOVER_MIGRATION_MISSING:{namespace}:{missing[0]}")
 
 
 def expected_migration_versions(*, namespace: str) -> list[str]:

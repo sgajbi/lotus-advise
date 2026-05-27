@@ -468,6 +468,11 @@ Current note:
   consumes the six review-gated `lotus-ai` advisory copilot workflow packs, carries model-risk
   lineage, fails closed for unavailable or unsafe AI posture, and still keeps Advise copilot APIs,
   Gateway, Workbench, canonical proof, data products, and supported product claims unpromoted.
+- RFC-0027 Slice 8 persistence evidence lives in
+  `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`; it adds durable run,
+  idempotency, review, audit, retention, legal-hold, and Postgres migration support while rejecting
+  raw prompt/provider/unsafe-output storage and keeping API, Gateway, Workbench, canonical proof,
+  data-product promotion, and supported product claims unpromoted.
 
 RFC-0025 implementation evidence includes:
 
@@ -527,4 +532,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`
 - `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`
 - `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`
+- `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`
 

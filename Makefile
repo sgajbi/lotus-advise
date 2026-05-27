@@ -75,10 +75,10 @@ domain-data-products-gate:
 	python scripts/validate_domain_data_product_declarations.py
 
 migration-smoke:
-	python -m pytest tests/unit/shared/dependencies/test_runtime_persistence.py tests/unit/shared/dependencies/test_production_cutover_contract.py -q
+	python -m pytest tests/unit/shared/dependencies/test_runtime_persistence.py tests/unit/shared/dependencies/test_production_cutover_contract.py tests/unit/shared/dependencies/test_postgres_migrate_targets.py -q
 
 migration-apply:
-	python scripts/postgres_migrate.py --target proposals
+	python scripts/postgres_migrate.py --target all
 
 lint:
 	python -m ruff check .

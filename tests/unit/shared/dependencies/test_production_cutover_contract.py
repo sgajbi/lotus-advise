@@ -36,6 +36,14 @@ def test_cutover_contract_checks_migrations_when_requested(monkeypatch):
     assert called == ["runtime", "migrations"]
 
 
+def test_cutover_contract_includes_copilot_persistence_migrations():
+    assert "proposals" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
+    assert "advisory_copilot" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
+    assert production_cutover_contract.expected_migration_versions(
+        namespace="advisory_copilot"
+    ) == ["0001"]
+
+
 def test_cutover_contract_propagates_runtime_failures(monkeypatch):
     def _raise_runtime_failure():
         raise RuntimeError("PERSISTENCE_PROFILE_REQUIRES_ADVISORY_POSTGRES_DSN")

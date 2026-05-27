@@ -11,18 +11,26 @@ if str(_REPO_ROOT) not in sys.path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Apply forward-only PostgreSQL migrations for lotus-advise proposal stores."
+        description="Apply forward-only PostgreSQL migrations for lotus-advise stores."
     )
     parser.add_argument(
         "--target",
-        choices=["proposals"],
-        default="proposals",
+        choices=["all", "proposals", "advisory_copilot"],
+        default="all",
         help="Migration target namespace.",
     )
     parser.add_argument(
         "--proposals-dsn",
         default=os.getenv("PROPOSAL_POSTGRES_DSN", "").strip(),
         help="PostgreSQL DSN for advisory proposal migrations.",
+    )
+    parser.add_argument(
+        "--advisory-copilot-dsn",
+        default=(
+            os.getenv("ADVISORY_COPILOT_POSTGRES_DSN", "").strip()
+            or os.getenv("PROPOSAL_POSTGRES_DSN", "").strip()
+        ),
+        help="PostgreSQL DSN for advisory copilot migrations.",
     )
     args = parser.parse_args()
 
@@ -33,7 +41,11 @@ def main() -> int:
 
     from src.infrastructure.postgres_migrations import apply_postgres_migrations
 
-    targets = _resolve_targets(args.target, args.proposals_dsn)
+    targets = _resolve_targets(
+        args.target,
+        proposals_dsn=args.proposals_dsn,
+        advisory_copilot_dsn=args.advisory_copilot_dsn,
+    )
     for namespace, dsn in targets:
         if not dsn:
             raise RuntimeError(f"POSTGRES_MIGRATION_DSN_REQUIRED:{namespace}")
@@ -43,9 +55,19 @@ def main() -> int:
     return 0
 
 
-def _resolve_targets(target: str, proposals_dsn: str) -> list[tuple[str, str]]:
-    _ = target
-    return [("proposals", proposals_dsn)]
+def _resolve_targets(
+    target: str,
+    *,
+    proposals_dsn: str,
+    advisory_copilot_dsn: str,
+) -> list[tuple[str, str]]:
+    targets = {
+        "proposals": proposals_dsn,
+        "advisory_copilot": advisory_copilot_dsn,
+    }
+    if target == "all":
+        return list(targets.items())
+    return [(target, targets[target])]
 
 
 if __name__ == "__main__":

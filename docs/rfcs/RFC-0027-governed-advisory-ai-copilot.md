@@ -893,6 +893,10 @@ Acceptance gate:
 3. raw prompt and raw unsafe output are not exposed through logs, metrics, or unauthorized APIs,
 4. retention and legal-hold posture is documented.
 
+Slice 8 evidence:
+
+1. `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`
+
 ### Slice 9 - Certified APIs and OpenAPI
 
 Outcome:
