@@ -26,6 +26,7 @@ from src.core.policy_packs.supportability import (
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
+    ProposalValidationError,
 )
 
 _PERSISTENCE_CONTRACT_VERSION = POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION
@@ -530,7 +531,7 @@ def _portfolio_id(evidence_bundle: dict[str, Any]) -> str:
         value = portfolio.get("portfolio_id")
         if isinstance(value, str) and value.strip():
             return value.strip()
-    return "PORTFOLIO_NOT_REPORTED"
+    raise ProposalValidationError("POLICY_EVALUATION_PORTFOLIO_ID_REQUIRED")
 
 
 def _source_refs(evaluation: PolicyPackEvaluationResponse) -> list[str]:

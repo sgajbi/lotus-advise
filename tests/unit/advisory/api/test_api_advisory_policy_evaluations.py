@@ -640,6 +640,22 @@ def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
         assert ready_queue.json()["items"] == []
 
 
+def test_policy_evaluation_rejects_missing_portfolio_identity() -> None:
+    payload = _create_payload()
+    del payload["evidence_bundle"]["inputs"]["portfolio_snapshot"]["portfolio_id"]
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/proposals/pp_policy_missing_portfolio/versions/"
+            "ppv_policy_missing_portfolio/policy-evaluations",
+            json=payload,
+            headers={"Idempotency-Key": "api-policy-eval-missing-portfolio"},
+        )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "POLICY_EVALUATION_PORTFOLIO_ID_REQUIRED"
+
+
 def test_policy_evaluation_openapi_registers_certified_advise_routes() -> None:
     app.openapi_schema = None
     openapi = app.openapi()
