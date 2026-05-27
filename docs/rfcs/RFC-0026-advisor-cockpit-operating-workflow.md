@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTATION IN PROGRESS - LIVE CANONICAL PROOF HARDENED |
+| **Status** | IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow |
 | **Created** | 2026-05-22 |
 | **Last Tightened** | 2026-05-27 |
 | **Owner** | `lotus-advise` for advisor-cockpit workflow authority, action semantics, and evidence-product truth |

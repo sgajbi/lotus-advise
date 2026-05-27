@@ -2,17 +2,17 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
+| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN - SLICE 0 READY |
 | **Created** | 2026-05-22 |
-| **Last Tightened** | 2026-05-22 |
+| **Last Tightened** | 2026-05-28 |
 | **Owner** | `lotus-advise` for advisory evidence, copilot use-case authority, validation, audit, and product truth; `lotus-ai` for workflow-pack execution, provider orchestration, model telemetry, and AI safety controls |
 | **Business Sponsor Persona** | relationship manager, investment advisor, advisory desk head, compliance reviewer, model-risk reviewer, operations support, sales/pre-sales, client-demo lead |
 | **Primary Business Outcome** | give advisors a governed AI assistant that can explain source-backed advisory evidence, prepare meetings, answer bounded evidence questions, and support review workflows without becoming an investment decision maker |
 | **Depends On** | RFC-0006, RFC-0013, RFC-0019, RFC-0020, RFC-0021, RFC-0022, RFC-0023, RFC-0024, RFC-0025, RFC-0026 |
 | **Cross-Repository Scope** | `lotus-advise`, `lotus-ai`, `lotus-gateway`, `lotus-workbench`, `lotus-core`, `lotus-risk`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-manage`, `lotus-platform` |
 | **Compatibility Posture** | backward compatibility is not a constraint; breaking API or contract changes are allowed when they are the cleanest design, but every affected upstream or downstream consumer must be updated in this RFC before closure |
-| **Tightening Branch** | `docs/rfc0027-gold-standard-tightening` |
-| **Implementation Branching Rule** | implementation may continue on this branch or a follow-on RFC-0027 feature branch, but all branch names, PRs, commits, checks, and cross-repo closures must be recorded in RFC closure evidence |
+| **Tightening Branch** | `rfc0027-governed-advisory-ai-copilot` |
+| **Implementation Branching Rule** | implementation continues slice by slice on the RFC-0027 feature branch or smaller follow-on RFC-0027 branches when a repo split is cleaner; all branch names, PRs, commits, checks, and cross-repo closures must be recorded in RFC closure evidence |
 | **Doc Location** | `docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md` |
 
 ---
@@ -238,7 +238,7 @@ Reason codes must use stable upper snake case and domain-specific names.
 
 ## 7. Current Implementation Baseline
 
-Implementation-backed foundations as of this tightening:
+Implementation-backed foundations as of the 2026-05-28 tightening:
 
 1. proposal simulation is supported through `POST /advisory/proposals/simulate`,
 2. proposal artifacts are deterministic advisory evidence,
@@ -257,7 +257,13 @@ Implementation-backed foundations as of this tightening:
     posture,
 11. OpenAPI, vocabulary, no-alias, dependency, security, data-product, trust-telemetry,
     production-guardrail, Docker, migration, and runtime-smoke gates are part of the repo posture,
-12. WTBD is a closed historical ledger and is not a future execution mechanism.
+12. RFC-0026 advisor cockpit operating workflow is implemented for the source-owned first-wave
+    Advise/Gateway/Workbench scope, with canonical `PB_SG_GLOBAL_BAL_001` proof, active
+    `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` data products, trust
+    telemetry, `/platform/capabilities` promotion, and hardened live proof for action detail,
+    pagination, role projection, preparation packets, house-view impact, acknowledgement
+    idempotency, supportability, and lineage,
+13. WTBD is a closed historical ledger and is not a future execution mechanism.
 
 Current gaps that RFC-0027 must close:
 
@@ -470,9 +476,10 @@ Rules:
 
 ## 13. API and Contract Direction
 
-The final API shape must be selected in Slice 0, but it must satisfy this contract direction.
+The first-wave API shape is selected by Slice 0. It may be refined for naming clarity during Slice 9,
+but the implementation must keep the action-specific, no-free-form-prompt posture.
 
-Candidate endpoints:
+Selected first-wave Advise endpoints:
 
 1. `POST /advisory/copilot/evidence-packets`
 2. `GET /advisory/copilot/evidence-packets/{evidence_packet_id}`
@@ -481,6 +488,9 @@ Candidate endpoints:
 5. `POST /advisory/copilot/actions/{run_id}/reviews`
 6. `GET /advisory/copilot/supportability`
 7. `GET /advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs`
+
+Gateway must publish the same surface under `/api/v1/advisory-copilot/*` after Advise API
+certification. Workbench must consume it only through the Gateway/BFF boundary.
 
 API rules:
 
@@ -684,6 +694,24 @@ Live/canonical proof:
 11. supportability and metrics proof,
 12. data-product and trust telemetry proof where products are promoted.
 
+Canonical front-office automation must be expanded before RFC-0027 product promotion. The platform
+canonical contract must add `RFC27_ADVISORY_COPILOT_CANONICAL` for `PB_SG_GLOBAL_BAL_001`, reusing
+the RFC-0023 through RFC-0026 seeded proposal, memo, policy, and cockpit evidence where possible.
+If this scenario needs richer seeded evidence, seed and automation changes are RFC-0027 scope, not
+day-2 work. The Workbench live validator must prove:
+
+1. all six copilot action families return source-backed or explicitly unsupported posture,
+2. proposal explanation, evidence Q&A, meeting preparation, compliance summary, operations handoff,
+   and client follow-up draft are Gateway-backed and action-specific,
+3. unsupported evidence, guardrail rejection, disabled or unavailable `lotus-ai`, review action,
+   idempotency replay, supportability, and bounded metric/log posture are captured,
+4. output remains `REVIEW_REQUIRED` or equivalent reviewer-controlled posture and
+   `client_ready_publication` remains `BLOCKED`,
+5. no Workbench component reconstructs evidence, guardrails, review state, AI lineage, or advisory
+   semantics locally,
+6. every live defect found during validation is pinned by the lowest useful unit, contract,
+   integration, or browser test before the live validator is rerun.
+
 Proof must be critically reviewed. Every returned statement, source ref, unsupported-evidence
 reason, guardrail result, review state, lineage ref, metric label, degraded state, and error
 response must be checked for truthfulness and safety.
@@ -692,22 +720,25 @@ response must be checked for truthfulness and safety.
 
 ## 19. Implementation Slices
 
-### Slice 0 - Boundary Review, Source-Authority Map, and Use-Case Catalog
+### Slice 0 - Boundary Review, Source-Authority Map, Use-Case Catalog, and Canonical Proof Plan
 
 Outcome:
 
-1. resolve the exact first-wave action families, endpoints, source dependencies, and owner
-   repositories,
+1. resolve the exact first-wave action families, endpoints, source dependencies, audiences,
+   canonical proof scenario, and owner repositories,
 2. map current code, tests, docs, contracts, OpenAPI, `lotus-ai` workflow-pack seams, Gateway,
    Workbench, and platform evidence,
 3. classify any missing upstream/downstream fields as RFC-0027 slices, not WTBD.
 
 Acceptance gate:
 
-1. use-case catalog and source-authority map are committed,
+1. use-case catalog, source-authority map, pre-implementation decisions, and canonical proof plan
+   are committed,
 2. RFC-0023 through RFC-0028 overlap is resolved,
 3. no WTBD or side-ledger dependency remains,
-4. implementation starts from clean current `main` after stranded-truth reconciliation.
+4. implementation starts from clean current `main` after stranded-truth reconciliation,
+5. RFC-0026 closure truth is current in RFC, wiki, and supported-feature navigation before RFC-0027
+   implementation begins.
 
 ### Slice 1 - Platform Automation and Scaffolding Improvement
 
@@ -881,29 +912,60 @@ Acceptance gate:
 3. no direct service reads, UI-local AI calls, or UI-local review-state invention exist,
 4. diagnostic and demo screenshots follow canonical Workbench runtime governance.
 
-### Slice 12 - Documentation, Commercial, and Supported-Feature Material During Build
+### Slice 12 - Canonical Seed, Automation, and Live Validation Expansion
+
+Outcome:
+
+1. add any canonical contract, invariant, seed-data, Workbench live-validator, screenshot, and
+   platform QA changes needed to prove `RFC27_ADVISORY_COPILOT_CANONICAL` repeatably,
+2. seed realistic proposal, memo, policy, cockpit, evidence-question, unsupported-evidence,
+   guardrail, unavailable-AI, review, supportability, metric, and lineage conditions,
+3. make the automation reusable and deterministic rather than tied to one local run.
+
+Acceptance gate:
+
+1. no RFC-0027 product claim depends on manually created data or a non-repeatable local state,
+2. new seed data is implementation-backed and does not invent unsupported client-ready, policy
+   approval, external communication, CRM, OMS, fill, settlement, or demo/RFP claims,
+3. every live validation issue discovered in this slice is fixed at the owning layer and pinned by
+   the lowest useful test before rerunning live proof,
+4. the canonical proof output names scenario id, portfolio id, action families, review posture,
+   supportability posture, guardrail posture, unsupported-evidence posture, lineage refs, and
+   client-ready block posture.
+
+### Slice 13 - Documentation, Commercial, and Supported-Feature Material During Build
 
 Outcome:
 
 1. maintain implementation-backed docs as slices complete,
 2. update supported-features only when behavior is implemented and proved,
 3. prepare copilot-specific business, security, model-risk, RFP-support, and demo material without
-   aspirational claims.
+   aspirational claims,
+4. keep business-user UI, report, wiki, and commercial wording clean, private-banking-oriented, and
+   free of workflow-pack/provider/internal implementation jargon unless the audience is explicitly
+   engineering, operations, or model-risk.
 
 Acceptance gate:
 
 1. docs remain aligned with code,
 2. wiki source is useful and non-duplicative,
 3. unsupported claims remain marked as planned or absent,
-4. commercial material is truthful and implementation-backed.
+4. commercial material is truthful and implementation-backed,
+5. business-facing docs and UI/report copy explain advisor value, evidence posture, review
+   posture, blockers, and next actions without leaking raw prompts, provider details, internal run
+   mechanics, correlation IDs, trace IDs, or sensitive identifiers.
 
-### Slice 13 - Security, Production, Performance, and CI Hardening
+### Slice 14 - Security, Production, Performance, and CI Hardening
 
 Outcome:
 
 1. review entitlement, sensitive-data handling, dependency hygiene, vulnerabilities, metric labels,
    logging, traces, config, load, latency, tenant/legal-entity posture, DR/RTO/RPO, retention, and
-   production readiness.
+   production readiness,
+2. remove dead code and unused paths, break monolithic copilot code into clear domain modules,
+   reduce duplication across services, DTOs, mappers, validators, and tests, keep business logic
+   out of controllers and infrastructure layers, and improve batching, pagination, caching, and
+   database access where needed.
 
 Acceptance gate:
 
@@ -911,9 +973,12 @@ Acceptance gate:
 2. dependency health is green,
 3. production guardrails are green,
 4. load/latency evidence exists for copilot endpoints and workflow-pack calls,
-5. no high-cardinality or sensitive metrics/logging remain.
+5. no high-cardinality or sensitive metrics/logging remain,
+6. API design, versioning, idempotency, correlation IDs, auditability, lineage, error handling,
+   Swagger/OpenAPI examples, logging, metrics, tracing, operational diagnostics, and tests meet
+   Lotus enterprise governance before implementation proof.
 
-### Slice 14 - Implementation Proof
+### Slice 15 - Implementation Proof
 
 Outcome:
 
@@ -930,7 +995,7 @@ Acceptance gate:
    posture, and degraded state is reviewed,
 3. gaps are fixed inside this RFC.
 
-### Slice 15 - Second-Last Hardening and Review
+### Slice 16 - Second-Last Hardening and Review
 
 Outcome:
 
@@ -950,9 +1015,11 @@ Acceptance gate:
    docs, or unsupported feature claims remain,
 2. OpenAPI examples cover request, response, error, degraded, unsupported, guardrail, and review
    cases,
-3. all repo-native and affected cross-repo CI gates are green.
+3. all repo-native and affected cross-repo CI gates are green,
+4. the codebase is cleaner, more modular, more readable, more testable, and easier to extend than
+   it was before RFC-0027.
 
-### Slice 16 - Final Closure
+### Slice 17 - Final Closure
 
 Outcome:
 
@@ -974,7 +1041,7 @@ Acceptance gate:
 6. agent-context, skills, or guidance changes are added if needed, or an explicit no-change
    decision is recorded.
 
-### Slice 17 - Post-Completion Communication
+### Slice 18 - Post-Completion Communication
 
 Outcome:
 
@@ -1107,26 +1174,54 @@ Affected repositories must use their repo-native gates and GitHub lanes.
 
 ---
 
-## 25. Open Questions to Resolve in Slice 0
+## 25. Slice 0 Pre-Implementation Decisions
 
-These questions must be resolved before implementation begins or explicitly answered by Slice 0:
+These decisions replace the earlier open-question list and are closure gates for implementation:
 
-1. Which first-wave action families ship together: proposal explanation, evidence Q&A, meeting
-   preparation, compliance summary, operations handoff, or client follow-up draft?
-2. Which RFC-0023 grounded narrative components already exist at implementation start, and which
-   copilot-critical grounding, claim-validation, or disclosure subset must be implemented inside
-   RFC-0027?
-3. Which `lotus-ai` workflow-pack registry and execution APIs are stable enough for first-wave use?
-4. Which audiences and caller contexts are first-wave supported: advisor, desk head, compliance,
-   operations, sales/pre-sales demo, or platform operator?
-5. Which evidence packet fields are persisted versus deterministically rebuilt?
-6. Which copilot records should become governed data products versus internal audit records?
-7. Which jurisdiction, booking-center, disclosure, fee/conflict, and client-ready review rules are
-   first-wave supported?
-8. What load, latency, timeout, and pack-disablement objectives are sufficient for bank-buyable
-   posture?
-9. Which Gateway and Workbench surfaces are required before copilot can be promoted as supported?
-10. Which copilot-specific material belongs in RFC-0027 documentation versus RFC-0028 commercial
-    packaging?
+1. First-wave action families are all six listed in Section 10: proposal explanation, evidence
+   Q&A, advisor meeting preparation, compliance review summary, operations/report handoff summary,
+   and client follow-up draft. An action family is not supported until its Advise API, Gateway
+   route, Workbench surface, tests, live proof, and documentation are complete.
+2. RFC-0027 consumes implementation-backed RFC-0023 advisor-review narrative, RFC-0024 memo
+   evidence, RFC-0025 policy evidence, and RFC-0026 cockpit evidence. It does not implement or
+   claim client-ready narrative, client-ready memo publication, completed policy approval,
+   external client communication, CRM system-of-record behavior, OMS activity, fill/settlement
+   lifecycle, or full RFC-0028 demo/RFP readiness.
+3. `lotus-ai` integration uses governed workflow-pack execution and run/review posture only. Any
+   missing `lotus-ai` workflow-pack registry, schema, model-risk, disabled-pack, or unavailable
+   behavior required by the copilot is implemented inside RFC-0027 before promotion.
+4. First-wave audiences are advisor, desk head, compliance reviewer, operations support, and model
+   risk/operator. Sales/pre-sales receives implementation-backed explanatory material only after
+   proof; it is not a runtime caller context.
+5. Evidence packet metadata, hashes, source refs, allowed evidence sections, missing evidence,
+   redaction/projection version, guardrail result, `lotus-ai` run refs, review posture, and audit
+   refs are persisted. Raw prompt text, unrestricted source payloads, raw provider responses, and
+   unsafe output are not persisted or exposed.
+6. `AdvisoryCopilotInteractionRecord:v1` is the candidate governed product for completed,
+   reviewed, source-backed copilot runs. Evidence packets and rejected/unsupported runs are
+   auditable internal records until implementation proves they meet data-product promotion
+   criteria.
+7. First-wave jurisdiction and booking-center behavior is bounded to source evidence already
+   present in RFC-0024 and RFC-0025 records, including Singapore private-banking policy evidence
+   for the canonical scenario. Missing jurisdiction, fee/conflict, disclosure, eligibility, or
+   client-ready evidence returns unsupported-evidence posture rather than positive claims.
+8. First-wave performance posture must include bounded request timeouts, deterministic disabled or
+   unavailable pack behavior, idempotent replay, no high-cardinality metric labels, and local plus
+   GitHub gate evidence. Load or latency evidence is required before final support promotion.
+9. Gateway must expose `/api/v1/advisory-copilot/*` without calling `lotus-ai` directly. Workbench
+   must add an advisory copilot surface under the existing advisory route family, consume Gateway
+   only, display review-required and unsupported/guardrail/degraded states, and participate in
+   canonical `PB_SG_GLOBAL_BAL_001` live validation.
+10. If `RFC27_ADVISORY_COPILOT_CANONICAL` needs additional portfolio, proposal, memo, policy,
+    cockpit, report, operations, model-risk, or supportability data, that seed and automation work
+    is an RFC-0027 slice and must merge before product promotion. There is no day-2 or wave-2
+    deferral for data needed to prove the supported copilot.
+11. RFC-0027 documentation owns copilot API, workflow, model-risk, security, operations, support,
+    and implementation-backed business material. RFC-0028 owns broader bank-demo/RFP packaging and
+    cannot promote copilot claims until RFC-0027 proof exists.
+12. Business-facing UI, report, wiki, and commercial material must use clean private-banking
+    language. Internal workflow-pack, provider, prompt, correlation, trace, and run-ledger mechanics
+    belong in engineering, operations, or model-risk documentation, not in advisor-facing product
+    copy.
 
-Open questions cannot remain open at final closure.
+No open question may remain at final closure.

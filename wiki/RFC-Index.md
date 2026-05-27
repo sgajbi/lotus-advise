@@ -34,10 +34,9 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0016 costs, fees, and transaction frictions
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
-- RFC-0026 advisor cockpit operating workflow, implementation in progress with the source-owned
-  Advise/Gateway/Workbench cockpit scope, canonical proof, active data products, trust telemetry,
-  and `/platform/capabilities` promoted after the 2026-05-27 gold-standard tightening
-- RFC-0027 governed advisory AI copilot
+- RFC-0027 governed advisory AI copilot, Slice 0 ready for implementation after 2026-05-28
+  tightening; no day-2 or wave-2 deferral is allowed for seed, automation, Gateway, Workbench,
+  `lotus-ai`, data-mesh, production, documentation, or proof work required by the supported claim
 - RFC-0028 bank demo journey and client-ready proof
 
 ## Important Interpretation
@@ -53,14 +52,21 @@ and active `AdvisoryPolicyEvaluationRecord:v1` data-product support. Completed a
 authority, completed sign-off authority, client-ready policy publication, external client
 communication, and full RFC-0028 bank-demo/RFP claims remain gated.
 
-RFC-0026 is in implementation. The 2026-05-27 tightening records the completed RFC-0023,
-RFC-0024, and RFC-0025 evidence baseline, resolves pre-implementation Slice 0 decisions, and
-requires canonical front-office automation for `PB_SG_GLOBAL_BAL_001` before any advisor-cockpit
-support claim is promoted. That first-wave Advise/Gateway/Workbench proof now exists for the
-source-owned cockpit scope. Slice 16 adds hardened live canonical proof for action detail,
-cursor pagination, invalid-cursor rejection, compliance and DPM role projection, preparation
-packets, house-view impact, acknowledgement idempotency, supportability posture, and action
-evidence/lineage.
+RFC-0026 is implemented for the source-owned first-wave advisor cockpit operating workflow. Advise
+owns action, snapshot, supportability, preparation-packet, supervisory queue, report/readiness,
+execution-status attention, house-view impact, and acknowledgement truth; Gateway and Workbench
+consume the canonical contract; active cockpit data products, trust telemetry, and
+`/platform/capabilities` are promoted. Slice 16 adds hardened live canonical proof for action
+detail, cursor pagination, invalid-cursor rejection, compliance and DPM role projection,
+preparation packets, house-view impact, acknowledgement idempotency, supportability posture, and
+action evidence/lineage.
+
+RFC-0027 is the next implementation RFC. The 2026-05-28 tightening resolves first-wave copilot
+action families, selected API direction, source-authority decisions, canonical
+`RFC27_ADVISORY_COPILOT_CANONICAL` proof expectations, seed/automation scope, and business-facing
+documentation quality requirements before implementation begins. Any data, automation, UI, report,
+Gateway, `lotus-ai`, platform, production, or documentation work needed to prove the supported
+copilot belongs inside RFC-0027.
 
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and

@@ -20,7 +20,7 @@ def test_rfc0026_records_current_prerequisites_and_readiness_boundary() -> None:
     rfc = _flat(RFC26_PATH)
 
     required_markers = (
-        "IMPLEMENTATION IN PROGRESS - LIVE CANONICAL PROOF HARDENED",
+        "IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow",
         "Last Tightened** | 2026-05-27",
         "rfc0026-advisor-cockpit-gold-standard",
         "2026-05-27 Implementation Readiness Decision",
@@ -78,24 +78,27 @@ def test_rfc0026_slice_zero_decisions_are_closed_before_implementation() -> None
         assert marker in rfc
 
 
-def test_rfc_index_and_wiki_reflect_rfc0025_closure_and_rfc0026_readiness() -> None:
+def test_rfc_index_and_wiki_reflect_rfc0026_closure_and_rfc0027_readiness() -> None:
     rfc_index = _read(RFC_INDEX_PATH)
     wiki_index = _flat(WIKI_RFC_INDEX_PATH)
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     assert (
         "RFC-0026 | Advisor Cockpit Operating Workflow | "
-        "IMPLEMENTATION IN PROGRESS - LIVE CANONICAL PROOF HARDENED" in rfc_index
+        "IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow" in rfc_index
     )
     assert "- `RFC-0025` advisor/compliance policy evidence" in rfc_index
+    assert "- `RFC-0026` source-owned first-wave advisor cockpit operating workflow" in rfc_index
 
     not_yet_implemented = rfc_index.split("## Not Yet Implemented", maxsplit=1)[1].split(
         "Recommended near-term implementation order", maxsplit=1
     )[0]
     assert "- `RFC-0025`" not in not_yet_implemented
-    assert "1. `RFC-0026` advisor cockpit operating workflow" in rfc_index
+    assert "- `RFC-0026`" not in not_yet_implemented
+    assert "1. `RFC-0027` governed advisory AI copilot" in rfc_index
 
-    assert "RFC-0026 is in implementation" in wiki_index
+    assert "RFC-0026 is implemented" in wiki_index
+    assert "RFC-0027 is the next implementation RFC" in wiki_index
     assert "RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL" in wiki_index
     assert "Implemented for the source-owned first-wave advisor cockpit" in supported_features
     assert "AdvisorCockpitOperatingSnapshot:v1" in supported_features
