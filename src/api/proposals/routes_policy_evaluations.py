@@ -133,8 +133,21 @@ def read_policy_review_queue(
             examples=["PENDING_REVIEW"],
         ),
     ] = "PENDING_REVIEW",
+    portfolio_id: Annotated[
+        str | None,
+        Query(
+            description=(
+                "Optional portfolio identifier filter sourced from the finalized policy "
+                "evaluation evidence bundle."
+            ),
+            examples=["PB_SG_GLOBAL_BAL_001"],
+        ),
+    ] = None,
 ) -> PolicyEvaluationReviewQueueResponse:
-    return get_policy_evaluation_review_queue(evaluation_status=evaluation_status)
+    return get_policy_evaluation_review_queue(
+        evaluation_status=evaluation_status,
+        portfolio_id=portfolio_id,
+    )
 
 
 @shared.router.get(

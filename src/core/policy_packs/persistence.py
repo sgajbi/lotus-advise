@@ -26,6 +26,7 @@ from src.core.policy_packs.supportability import (
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
+    ProposalValidationError,
 )
 
 _PERSISTENCE_CONTRACT_VERSION = POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION
@@ -59,9 +60,12 @@ def get_policy_evaluation_record(*, evaluation_id: str) -> PolicyEvaluationRecor
 
 
 def list_policy_evaluation_records(
-    *, evaluation_status: str | None = None
+    *, evaluation_status: str | None = None, portfolio_id: str | None = None
 ) -> list[PolicyEvaluationRecord]:
-    return _STORE.list_policy_evaluation_records(evaluation_status=evaluation_status)
+    return _STORE.list_policy_evaluation_records(
+        evaluation_status=evaluation_status,
+        portfolio_id=portfolio_id,
+    )
 
 
 def list_policy_evaluation_events(*, evaluation_id: str) -> list[PolicyEvaluationAuditEvent]:
@@ -73,9 +77,12 @@ def get_policy_evaluation_lineage(*, evaluation_id: str) -> PolicyEvaluationLine
 
 
 def get_policy_evaluation_review_queue(
-    *, evaluation_status: str | None = "PENDING_REVIEW"
+    *, evaluation_status: str | None = "PENDING_REVIEW", portfolio_id: str | None = None
 ) -> PolicyEvaluationReviewQueueResponse:
-    return _STORE.get_policy_evaluation_review_queue(evaluation_status=evaluation_status)
+    return _STORE.get_policy_evaluation_review_queue(
+        evaluation_status=evaluation_status,
+        portfolio_id=portfolio_id,
+    )
 
 
 def get_policy_evaluation_sign_off_package(
@@ -191,6 +198,7 @@ class PolicyEvaluationRecordStore:
         )
         record = _build_record(
             evaluation=evaluation,
+            evidence_bundle=evidence_bundle,
             proposal_id=proposal_id,
             proposal_version_id=proposal_version_id,
             created_by=created_by,
@@ -232,13 +240,15 @@ class PolicyEvaluationRecordStore:
         return deepcopy(self._load_record(evaluation_id))
 
     def list_policy_evaluation_records(
-        self, *, evaluation_status: str | None
+        self, *, evaluation_status: str | None, portfolio_id: str | None
     ) -> list[PolicyEvaluationRecord]:
         records = list(self._records.values())
         if evaluation_status:
             records = [
                 record for record in records if record.evaluation_status == evaluation_status
             ]
+        if portfolio_id:
+            records = [record for record in records if record.portfolio_id == portfolio_id]
         return [deepcopy(record) for record in sorted(records, key=lambda item: item.generated_at)]
 
     def list_policy_evaluation_events(
@@ -257,10 +267,13 @@ class PolicyEvaluationRecordStore:
         )
 
     def get_policy_evaluation_review_queue(
-        self, *, evaluation_status: str | None
+        self, *, evaluation_status: str | None, portfolio_id: str | None
     ) -> PolicyEvaluationReviewQueueResponse:
         return PolicyEvaluationReviewQueueResponse(
-            items=self.list_policy_evaluation_records(evaluation_status=evaluation_status),
+            items=self.list_policy_evaluation_records(
+                evaluation_status=evaluation_status,
+                portfolio_id=portfolio_id,
+            ),
             queue_posture=_policy_api_posture(),
         )
 
@@ -427,6 +440,7 @@ class PolicyEvaluationRecordStore:
 def _build_record(
     *,
     evaluation: PolicyPackEvaluationResponse,
+    evidence_bundle: dict[str, Any],
     proposal_id: str,
     proposal_version_id: str,
     created_by: str,
@@ -456,6 +470,7 @@ def _build_record(
         evaluation_id=evaluation_id,
         proposal_id=proposal_id,
         proposal_version_id=proposal_version_id,
+        portfolio_id=_portfolio_id(evidence_bundle),
         policy_pack_id=evaluation.policy_pack.policy_pack_id,
         policy_version=evaluation.policy_pack.policy_version,
         generated_at=datetime.now(UTC).isoformat(),
@@ -508,6 +523,15 @@ def _evaluation_hash(
             }
         ),
     )
+
+
+def _portfolio_id(evidence_bundle: dict[str, Any]) -> str:
+    portfolio = evidence_bundle.get("inputs", {}).get("portfolio_snapshot", {})
+    if isinstance(portfolio, dict):
+        value = portfolio.get("portfolio_id")
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    raise ProposalValidationError("POLICY_EVALUATION_PORTFOLIO_ID_REQUIRED")
 
 
 def _source_refs(evaluation: PolicyPackEvaluationResponse) -> list[str]:

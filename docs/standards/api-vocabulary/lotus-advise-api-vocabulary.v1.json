@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-26T10:52:37.013539+00:00",
+  "generatedAt": "2026-05-27T05:45:00.663066+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.action",
@@ -9885,6 +9885,18 @@
       "allowedValues": [],
       "semanticId": "lotus.evaluation_status",
       "attributeRef": "#/attributeCatalog/lotus.evaluation_status"
+    },
+    {
+      "name": "portfolio_id",
+      "kind": "request_option",
+      "location": "query",
+      "required": false,
+      "type": "object",
+      "description": "Optional portfolio identifier filter sourced from the finalized policy evaluation evidence bundle.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.portfolio_id",
+      "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
     },
     {
       "name": "evaluation_id",
@@ -32071,6 +32083,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
           },
           {
+            "name": "record.portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
+          },
+          {
             "name": "record.policy_pack_id",
             "location": "body",
             "required": true,
@@ -32264,6 +32284,14 @@
             "type": "object",
             "semanticId": "lotus.evaluation_status",
             "attributeRef": "#/attributeCatalog/lotus.evaluation_status"
+          },
+          {
+            "name": "portfolio_id",
+            "location": "query",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
           }
         ]
       },
@@ -32300,6 +32328,14 @@
             "type": "string",
             "semanticId": "lotus.proposal_version_id",
             "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "items[].portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
           },
           {
             "name": "items[].policy_pack_id",
@@ -32507,6 +32543,14 @@
             "type": "string",
             "semanticId": "lotus.proposal_version_id",
             "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
           },
           {
             "name": "policy_pack_id",
@@ -33151,6 +33195,14 @@
             "type": "string",
             "semanticId": "lotus.proposal_version_id",
             "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "evaluation.portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
           },
           {
             "name": "evaluation.policy_pack_id",
@@ -34398,6 +34450,14 @@
             "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
           },
           {
+            "name": "evaluation.portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
+          },
+          {
             "name": "evaluation.policy_pack_id",
             "location": "body",
             "required": true,
@@ -34915,6 +34975,14 @@
             "type": "string",
             "semanticId": "lotus.proposal_version_id",
             "attributeRef": "#/attributeCatalog/lotus.proposal_version_id"
+          },
+          {
+            "name": "evaluation.portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.portfolio_id"
           },
           {
             "name": "evaluation.policy_pack_id",

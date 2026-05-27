@@ -52,6 +52,22 @@ The following `lotus-advise` durable truth surfaces now carry closure posture:
 This promotion does not grant legal approval, waiver authority, completed sign-off authority,
 client-ready publication, or external communication.
 
+## Post-Closure Validation Hardening
+
+The 2026-05-27 gold-pass rerun tightened RFC-0025 repeatability without expanding the supported
+claim. Policy evaluation records now require portfolio identity from source evidence, and the
+review queue is portfolio-scoped through Advise, Gateway, Workbench, and live validation for
+`PB_SG_GLOBAL_BAL_001`. The canonical proof also enforces maker/checker separation for policy-pack
+activation and rejects out-of-scope `PENDING_REVIEW` queue items.
+
+The same live pass found a repeatable seed defect in the front-office benchmark reference data. The
+Core seed now rewrites only the governed demo benchmark to `BMK_PB_GLOBAL_BALANCED_60_40`, keeping
+benchmark definitions, compositions, and return-series keys unique across repeatable seeded runs.
+
+Validation evidence remains bounded to advisor/compliance policy evidence. Completed approval,
+waiver, sign-off, client-ready publication, external communication, and full RFC-0028 bank-demo/RFP
+claims remain gated.
+
 ## Wiki And Branch Hygiene
 
 Repo-local wiki source is updated in this PR. GitHub wiki publication must occur after this branch

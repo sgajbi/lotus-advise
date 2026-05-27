@@ -369,6 +369,10 @@ class PolicyEvaluationRecord(BaseModel):
         description="Immutable proposal version identifier.",
         examples=["ppv_001"],
     )
+    portfolio_id: str = Field(
+        description="Portfolio identifier from the evaluated source evidence.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    )
     policy_pack_id: str = Field(
         description="Policy pack identifier used for the evaluation.",
         examples=["SG_PRIVATE_BANKING_REFERENCE"],
