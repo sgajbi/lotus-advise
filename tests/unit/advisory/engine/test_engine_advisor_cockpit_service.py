@@ -155,6 +155,17 @@ def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
 
     assert snapshot.action_counts["status.PENDING_REVIEW"] == 1
     assert snapshot.action_counts["status.BLOCKED"] == 1
+    assert [packet.packet_id for packet in snapshot.preparation_packets] == [
+        "prep_proposal_sg_001_v1"
+    ]
+    assert snapshot.preparation_packets[0].context_type == "PROPOSAL"
+    assert snapshot.preparation_packets[0].context_ref == "proposal_sg_001"
+    assert snapshot.preparation_packets[0].evidence_refs[0].evidence_type == (
+        "MEETING_PREPARATION_PACKET"
+    )
+    assert snapshot.preparation_packets[0].sections[0]["summary"] == (
+        "Active advisory proposal is available for meeting preparation."
+    )
     assert snapshot.supportability["gateway_posture"] == "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026"
     assert snapshot.supportability["workbench_posture"] == (
         "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026"

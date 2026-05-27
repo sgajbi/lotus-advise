@@ -17,6 +17,8 @@ from src.core.advisor_cockpit.models import (
     AdvisoryActionItemPage,
     CockpitAcknowledgementState,
     CockpitCallerContext,
+    CockpitEvidenceRef,
+    MeetingPreparationPacket,
 )
 from src.core.advisor_cockpit.pagination import normalize_cockpit_page_size
 from src.core.advisor_cockpit.persistence import (
@@ -30,6 +32,7 @@ from src.core.advisor_cockpit.rules import (
 )
 from src.core.advisor_cockpit.source_read_model import (
     AdvisorCockpitSourceBatch,
+    AdvisorCockpitSourceReadModel,
     build_advisor_cockpit_source_read_model,
 )
 from src.core.common.canonical import hash_canonical_payload
@@ -107,11 +110,12 @@ class AdvisorCockpitService:
         portfolio_id: str | None,
         correlation_id: str | None,
     ) -> AdvisorCockpitSnapshotResponse:
-        actions = self._build_actions(
+        read_model = self._build_read_model(
             caller_context=caller_context,
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
+        actions = read_model.action_items
         counts = _action_counts(actions)
         supportability = _supportability(actions=actions, source_limit=COCKPIT_SOURCE_LIMIT)
         snapshot = AdvisorCockpitOperatingSnapshot(
@@ -120,6 +124,7 @@ class AdvisorCockpitService:
             as_of=self._now_fn().isoformat(),
             action_counts=counts,
             top_priority_actions=actions[:10],
+            preparation_packets=_preparation_packets(read_model),
             unsupported_capabilities=sorted(
                 {capability for action in actions for capability in action.unsupported_capabilities}
             ),
@@ -236,6 +241,20 @@ class AdvisorCockpitService:
         portfolio_id: str | None,
         correlation_id: str | None,
     ) -> list[AdvisoryActionItem]:
+        read_model = self._build_read_model(
+            caller_context=caller_context,
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+        return cast(list[AdvisoryActionItem], read_model.action_items)
+
+    def _build_read_model(
+        self,
+        *,
+        caller_context: CockpitCallerContext,
+        portfolio_id: str | None,
+        correlation_id: str | None,
+    ) -> AdvisorCockpitSourceReadModel:
         proposals, _next_cursor = self._repository.list_proposals(
             portfolio_id=portfolio_id,
             state=None,
@@ -258,10 +277,11 @@ class AdvisorCockpitService:
                 memos=memos[:COCKPIT_SOURCE_LIMIT],
             )
         )
-        return [
+        action_items = [
             self._attach_runtime_state(action=action, correlation_id=correlation_id)
             for action in read_model.action_items
         ]
+        return read_model.model_copy(update={"action_items": action_items})
 
     def _attach_runtime_state(
         self,
@@ -316,6 +336,38 @@ def _supportability(*, actions: list[AdvisoryActionItem], source_limit: int) -> 
         "client_ready_publication": "BLOCKED",
         "external_client_communication": "BLOCKED",
     }
+
+
+def _preparation_packets(
+    read_model: AdvisorCockpitSourceReadModel,
+) -> list[MeetingPreparationPacket]:
+    return [
+        MeetingPreparationPacket(
+            packet_id=source.preparation_id,
+            context_type=source.context_type,
+            context_ref=source.context_ref,
+            status="READY",
+            evidence_refs=source.evidence_refs
+            or [
+                CockpitEvidenceRef(
+                    evidence_id=source.preparation_id,
+                    evidence_type="MEETING_PREPARATION_PACKET",
+                    source_system="lotus-advise",
+                    access_class="CUSTOMER_CONSUMABLE_SUMMARY",
+                    summary=source.summary,
+                )
+            ],
+            sections=[
+                {
+                    "section_id": "advisor_meeting_context",
+                    "title": "Advisor meeting context",
+                    "summary": source.summary,
+                    "source_ref": source.proposal_id or source.portfolio_id or source.context_ref,
+                }
+            ],
+        )
+        for source in read_model.meeting_preparations
+    ]
 
 
 def _acknowledgement_response(
