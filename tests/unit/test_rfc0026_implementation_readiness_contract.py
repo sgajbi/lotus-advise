@@ -20,7 +20,7 @@ def test_rfc0026_records_current_prerequisites_and_readiness_boundary() -> None:
     rfc = _flat(RFC26_PATH)
 
     required_markers = (
-        "IMPLEMENTATION IN PROGRESS - SOURCE/GATEWAY/WORKBENCH PROOFED",
+        "IMPLEMENTATION IN PROGRESS - LIVE CANONICAL PROOF HARDENED",
         "Last Tightened** | 2026-05-27",
         "rfc0026-advisor-cockpit-gold-standard",
         "2026-05-27 Implementation Readiness Decision",
@@ -85,7 +85,7 @@ def test_rfc_index_and_wiki_reflect_rfc0025_closure_and_rfc0026_readiness() -> N
 
     assert (
         "RFC-0026 | Advisor Cockpit Operating Workflow | "
-        "IMPLEMENTATION IN PROGRESS - SOURCE/GATEWAY/WORKBENCH PROOFED" in rfc_index
+        "IMPLEMENTATION IN PROGRESS - LIVE CANONICAL PROOF HARDENED" in rfc_index
     )
     assert "- `RFC-0025` advisor/compliance policy evidence" in rfc_index
 

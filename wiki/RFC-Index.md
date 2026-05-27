@@ -57,7 +57,10 @@ RFC-0026 is in implementation. The 2026-05-27 tightening records the completed R
 RFC-0024, and RFC-0025 evidence baseline, resolves pre-implementation Slice 0 decisions, and
 requires canonical front-office automation for `PB_SG_GLOBAL_BAL_001` before any advisor-cockpit
 support claim is promoted. That first-wave Advise/Gateway/Workbench proof now exists for the
-source-owned cockpit scope.
+source-owned cockpit scope. Slice 16 adds hardened live canonical proof for action detail,
+cursor pagination, invalid-cursor rejection, compliance and DPM role projection, preparation
+packets, house-view impact, acknowledgement idempotency, supportability posture, and action
+evidence/lineage.
 
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
@@ -133,6 +136,15 @@ Workbench canonical proof, active data-product posture, and canonical
 Client-ready publication, external client communication, CRM system-of-record behavior,
 OMS order lifecycle, completed policy approval authority, and full RFC-0028 demo/RFP package claims
 remain gated.
+
+RFC-0026 Slice 16 is implemented as hardened implementation proof. Evidence lives in
+`docs/rfcs/RFC-0026-slice-16-implementation-proof.md`. The governed Workbench live validation now
+records `ADVISOR_COCKPIT_ACTION_ACKNOWLEDGED`, `paginationCursor`, `roleProjectionValidated`,
+`houseViewCohortId`, preparation-packet counts, `clientReadyPublication: BLOCKED`,
+`ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED`, and
+`CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026`. Live defects found in stale image rebuild posture,
+portfolio-scoped preparation, memo/report portfolio scoping, and source-backed cockpit lineage were
+fixed at the owning layer and pinned by lower-level tests before rerun.
 
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
@@ -571,3 +583,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`
 - `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`
 - `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
+- `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`

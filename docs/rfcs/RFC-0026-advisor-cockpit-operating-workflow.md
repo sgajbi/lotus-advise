@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTATION IN PROGRESS - SOURCE/GATEWAY/WORKBENCH PROOFED |
+| **Status** | IMPLEMENTATION IN PROGRESS - LIVE CANONICAL PROOF HARDENED |
 | **Created** | 2026-05-22 |
 | **Last Tightened** | 2026-05-27 |
 | **Owner** | `lotus-advise` for advisor-cockpit workflow authority, action semantics, and evidence-product truth |
@@ -1274,6 +1274,23 @@ Acceptance gate:
 2. every returned figure, count, priority, reason code, owner role, lineage ref, source gap,
    readiness state, and degraded state is reviewed,
 3. gaps are fixed inside this RFC.
+
+Slice 16 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`
+2. `lotus-workbench/output/playwright/live-canonical/live-validation-summary.json`
+3. `ADVISOR_COCKPIT_ACTION_ACKNOWLEDGED`
+4. `paginationCursor`
+5. `roleProjectionValidated`
+6. `houseViewCohortId`
+7. `clientReadyPublication: BLOCKED`
+8. `supportabilityPosture: ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED`
+
+Live validation defects found during Slice 16 were fixed at the owning layer and pinned by lower
+automated tests before rerun: stale Gateway image rebuild coverage in Workbench, portfolio-scoped
+preparation created by automation actor in Advise, memo/report action portfolio scope in Advise,
+and source-backed cockpit lineage refs for house-view, execution-status, and default
+source-backed actions in Advise.
 
 ### Slice 17 - Second-Last Hardening and Review
 
