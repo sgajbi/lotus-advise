@@ -156,6 +156,7 @@ def test_cockpit_service_lists_source_backed_actions_with_counts(
         "MEMO_PACKAGE_BLOCKED",
         "CLIENT_MEETING_PREPARATION",
     ]
+    assert all(action.portfolio_id == "PB_SG_GLOBAL_BAL_001" for action in page.items)
     assert all(action.correlation_id == "corr-cockpit-001" for action in page.items)
 
 

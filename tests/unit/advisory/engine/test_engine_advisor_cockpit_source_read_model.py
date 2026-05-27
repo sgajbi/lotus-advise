@@ -222,6 +222,7 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
         "policy_eval_sg_pending"
     ]
     assert [source.memo_id for source in read_model.memo_blocks] == ["memo_sg_blocked"]
+    assert [source.portfolio_id for source in read_model.memo_blocks] == ["PB_SG_GLOBAL_BAL_001"]
     assert [source.proposal_id for source in read_model.meeting_preparations] == [
         "proposal_sg_001",
         "proposal_sg_consent",
@@ -236,6 +237,9 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
     ]
     assert [source.readiness_code for source in read_model.report_render_archive_items] == [
         "REPORT_PACKAGE_NOT_REQUESTED"
+    ]
+    assert [source.portfolio_id for source in read_model.report_render_archive_items] == [
+        "PB_SG_GLOBAL_BAL_001"
     ]
     assert read_model.execution_handoffs == []
     assert [source.handoff_status for source in read_model.execution_status_items] == ["REJECTED"]
@@ -257,6 +261,7 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
         "CLIENT_MEETING_PREPARATION",
         "UNSUPPORTED_CAPABILITY",
     ]
+    assert all(action.portfolio_id == "PB_SG_GLOBAL_BAL_001" for action in read_model.action_items)
 
 
 def test_source_read_model_keeps_policy_and_memo_lineage_hashes() -> None:

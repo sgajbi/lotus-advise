@@ -125,6 +125,7 @@ class AdvisorCockpitSourceReadModel(BaseModel):
 def build_advisor_cockpit_source_read_model(
     batch: AdvisorCockpitSourceBatch,
 ) -> AdvisorCockpitSourceReadModel:
+    proposals_by_id = _proposal_by_id(batch.proposals)
     approvals_by_proposal = _approvals_by_proposal(batch.approvals)
     events_by_proposal = _events_by_proposal(batch.workflow_events)
     policy_reviews = [
@@ -133,7 +134,15 @@ def build_advisor_cockpit_source_read_model(
         if record.evaluation_status in COCKPIT_POLICY_REVIEW_STATUSES
     ]
     memo_blocks = [
-        source for record in batch.memos if (source := _memo_block_source(record)) is not None
+        source
+        for record in batch.memos
+        if (
+            source := _memo_block_source(
+                record,
+                proposal=proposals_by_id.get(record.proposal_id),
+            )
+        )
+        is not None
     ]
     meeting_preparations = [
         _meeting_preparation_source(record)
@@ -157,7 +166,15 @@ def build_advisor_cockpit_source_read_model(
         is not None
     ]
     report_render_archive_items = [
-        source for record in batch.memos if (source := _report_readiness_source(record)) is not None
+        source
+        for record in batch.memos
+        if (
+            source := _report_readiness_source(
+                record,
+                proposal=proposals_by_id.get(record.proposal_id),
+            )
+        )
+        is not None
     ]
     execution_handoffs = [
         source
@@ -175,7 +192,7 @@ def build_advisor_cockpit_source_read_model(
         for proposal_id, events in events_by_proposal.items()
         if (
             source := _execution_status_source(
-                proposal=_proposal_by_id(batch.proposals).get(proposal_id),
+                proposal=proposals_by_id.get(proposal_id),
                 events=events,
             )
         )
@@ -234,13 +251,18 @@ def _policy_review_source(record: PolicyEvaluationRecord) -> PolicyReviewActionS
     )
 
 
-def _memo_block_source(record: ProposalMemoRecord) -> MemoPackageBlockedActionSource | None:
+def _memo_block_source(
+    record: ProposalMemoRecord,
+    *,
+    proposal: ProposalRecord | None,
+) -> MemoPackageBlockedActionSource | None:
     blockage_code = _memo_blockage_code(record)
     if blockage_code is None:
         return None
     return MemoPackageBlockedActionSource(
         memo_id=record.memo_id,
         proposal_id=record.proposal_id,
+        portfolio_id=proposal.portfolio_id if proposal is not None else None,
         blockage_code=blockage_code,
         summary="Proposal memo package is not ready for advisor-use packaging.",
         owner_role="REPORTING_OWNER",
@@ -350,7 +372,11 @@ def _approval_dependency_summary(
     )
 
 
-def _report_readiness_source(record: ProposalMemoRecord) -> ReportRenderArchiveActionSource | None:
+def _report_readiness_source(
+    record: ProposalMemoRecord,
+    *,
+    proposal: ProposalRecord | None,
+) -> ReportRenderArchiveActionSource | None:
     if record.memo_status != "READY":
         return None
     if not record.report_package_events_json:
@@ -358,6 +384,7 @@ def _report_readiness_source(record: ProposalMemoRecord) -> ReportRenderArchiveA
             readiness_id=f"report_archive_readiness_{record.memo_id}_report_package",
             memo_id=record.memo_id,
             proposal_id=record.proposal_id,
+            portfolio_id=proposal.portfolio_id if proposal is not None else None,
             readiness_code="REPORT_PACKAGE_NOT_REQUESTED",
             summary=(
                 "Advisor-use memo is ready, but report/render/archive package evidence is not "
@@ -374,6 +401,7 @@ def _report_readiness_source(record: ProposalMemoRecord) -> ReportRenderArchiveA
             readiness_id=f"report_archive_readiness_{record.memo_id}_archive_ref",
             memo_id=record.memo_id,
             proposal_id=record.proposal_id,
+            portfolio_id=proposal.portfolio_id if proposal is not None else None,
             readiness_code="ARCHIVE_REF_MISSING",
             summary="Report package event exists, but archive reference evidence is not recorded.",
             owner_role="ARCHIVE_OWNER",
