@@ -4,7 +4,7 @@
 | --- | --- |
 | **Status** | IMPLEMENTED for advisor/compliance policy evaluation evidence; client-ready authority remains gated |
 | **Created** | 2026-05-22 |
-| **Last Tightened** | 2026-05-26 |
+| **Last Tightened** | 2026-05-27 |
 | **Owner** | `lotus-advise` for advisory policy evaluation authority and evidence-product truth |
 | **Business Sponsor Persona** | advisory desk head, compliance officer, product governance, relationship manager, risk control, investment desk reviewer, operations, audit, sales/pre-sales |
 | **Primary Business Outcome** | make every advisory recommendation policy-evaluable, explainable, reviewable, replayable, and approval-ready under bank-configured suitability, best-interest, disclosure, conflict, and product-governance controls |
@@ -1446,8 +1446,9 @@ front-office demo-data contract now owns a repeatable advisory proposal and poli
 `RFC25_SG_STRUCTURED_NOTE_PENDING_REVIEW` structured-note policy evaluation for
 `PB_SG_GLOBAL_BAL_001`. Workbench live validation consumes that governed scenario through Gateway,
 activates `SG_PRIVATE_BANKING_REFERENCE` version `2026.05`, creates the policy evaluation, verifies
-the `PENDING_REVIEW` review queue, confirms client-ready publication remains `BLOCKED`, retrieves
-workflow and sign-off package posture, records a request-more-evidence checker decision, and emits
+the portfolio-scoped `PENDING_REVIEW` review queue using `portfolio_id=PB_SG_GLOBAL_BAL_001`,
+confirms client-ready publication remains `BLOCKED`, retrieves workflow and sign-off package
+posture, records a request-more-evidence checker decision, and emits
 `POLICY_EVALUATION_PENDING_REVIEW_CREATED` evidence.
 
 Debt removed:
@@ -1455,7 +1456,9 @@ Debt removed:
 1. RFC-0025 Workbench proof is no longer limited to route-level Suitability Review navigation.
 2. Advisory proposal, narrative, memo, and policy proof now share a governed canonical scenario
    instead of hidden validator literals.
-3. Client-ready publication remains explicitly blocked in automation, wiki/demo wording, and this
+3. Policy evaluation records now require source-owned portfolio identity, and Workbench/Gateway
+   live validation rejects policy-review queue items outside the active portfolio.
+4. Client-ready publication remains explicitly blocked in automation, wiki/demo wording, and this
    RFC until completed approval, completed sign-off, disclosure/consent, report/render/archive, and
    RFC-0028 demo-claim controls are implemented and proved.
 
@@ -1467,10 +1470,19 @@ Focused proof from this gold pass:
 2. `lotus-workbench`: `npm test -- --run tests/unit/live-canonical-validation-script.test.ts`
    passed, proving the live validator is wired to create and record RFC-0025 policy evidence.
 3. `lotus-advise`: `python -m pytest tests/unit/advisory/api/test_api_advisory_policy_evaluations.py -q`
-   passed, proving the underlying policy evaluation API behavior remains intact.
-4. `lotus-workbench`: `npm run live:validate` passed against the running canonical front-office
-   stack for `PB_SG_GLOBAL_BAL_001` on 2026-05-27 after the validator was hardened for immutable
-   already-active policy-pack replay. The evidence summary records
+   passed, proving the underlying policy evaluation API behavior and required portfolio identity.
+4. `lotus-gateway`: `python -m pytest tests/contract/test_advise_gateway_route_coverage.py tests/integration/test_advisory_policy_router.py tests/unit/test_upstream_clients.py -q`
+   passed, proving portfolio-scope forwarding and supported-boundary API wording.
+5. `lotus-workbench`: `npm test -- --run tests/unit/advisory-policy-proof.test.ts tests/unit/live-canonical-validation-script.test.ts tests/unit/proposals-api.test.ts tests/integration/proposal-lifecycle-workspace.test.tsx`
+   passed, proving maker/checker actor separation, portfolio-scoped queue validation, and
+   Gateway-first Workbench calls.
+6. `lotus-core`: `python -m pytest tests/unit/tools/test_front_office_portfolio_seed.py -q` and
+   `python -m pytest tests/integration/tools/test_demo_data_pack.py -q` passed, proving canonical
+   benchmark seed identity remains unique and repeatable.
+7. `lotus-workbench`: `npm run live:stack:up:validate` passed against rebuilt canonical
+   front-office images for `PB_SG_GLOBAL_BAL_001` on 2026-05-27 after the validator was hardened
+   for immutable already-active policy-pack replay, maker/checker separation, and portfolio-scoped
+   review queue evidence. The evidence summary records
    `POLICY_EVALUATION_PENDING_REVIEW_CREATED`.
 
 Production-readiness assessment: the advisor/compliance policy-evidence slice reaches the expected
