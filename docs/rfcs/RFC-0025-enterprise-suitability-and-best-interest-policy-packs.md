@@ -1468,12 +1468,16 @@ Focused proof from this gold pass:
    passed, proving the live validator is wired to create and record RFC-0025 policy evidence.
 3. `lotus-advise`: `python -m pytest tests/unit/advisory/api/test_api_advisory_policy_evaluations.py -q`
    passed, proving the underlying policy evaluation API behavior remains intact.
+4. `lotus-workbench`: `npm run live:validate` passed against the running canonical front-office
+   stack for `PB_SG_GLOBAL_BAL_001` on 2026-05-27 after the validator was hardened for immutable
+   already-active policy-pack replay. The evidence summary records
+   `POLICY_EVALUATION_PENDING_REVIEW_CREATED`.
 
 Production-readiness assessment: the advisor/compliance policy-evidence slice reaches the expected
-standard for backend and repeatable validation automation. Final gold-standard closure for this
-post-pass requires the changed canonical live validator to pass against the running front-office
-stack and the cross-repository wiki/source changes to be checked and published through the governed
-wiki flow.
+standard for backend and repeatable validation automation. Final repository closure for this
+post-pass still requires the cross-repository wiki/source changes to be merged and published through
+the governed wiki flow. Completed approval/sign-off/client-ready authority remains gated; completed
+approval/sign-off/client-ready authority is not part of the supported RFC-0025 claim.
 
 ## 24. Risks and Mitigations
 
