@@ -1089,6 +1089,10 @@ Acceptance gate:
 3. acknowledgement cannot suppress owner-blocking posture,
 4. unsupported capability behavior is explicit.
 
+Slice 6 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`
+
 ### Slice 7 - Snapshot and Action-Item APIs
 
 Outcome:

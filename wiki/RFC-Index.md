@@ -93,6 +93,13 @@ supportability, and unsupported-capability source batches into source counts, ac
 sorted cockpit action items without adding API routes, persistence, Gateway routes, Workbench
 surfaces, data-product promotion, or runtime support claims.
 
+RFC-0026 Slice 6 is implemented as deterministic SLA and acknowledgement posture. Evidence lives in
+`docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`.
+`src/core/advisor_cockpit/rules.py` now centralizes SLA age-band derivation, owner-blocking status
+checks, and acknowledgement attachment that cannot clear blocking status, priority, or owner role.
+Runtime APIs, persistence, Gateway routes, Workbench surfaces, data-product promotion, and
+canonical proof remain mandatory subsequent RFC-0026 slices.
+
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before policy domain work, so no `lotus-platform` code change
@@ -524,3 +531,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
 - `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
+- `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`

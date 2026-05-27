@@ -398,6 +398,10 @@ Current note:
   `src/core/advisor_cockpit/source_read_model.py` for preloaded source aggregation across
   proposals, policy evaluations, memos, supportability events, and unsupported capabilities,
   preserving lineage and avoiding repository-loop behavior before runtime API wiring.
+- RFC-0026 Slice 6 priority/SLA evidence lives in
+  `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`; it adds
+  `src/core/advisor_cockpit/rules.py` for deterministic SLA age bands, owner-blocking status
+  checks, and acknowledgement posture that cannot clear blocking action ownership.
 
 RFC-0025 implementation evidence includes:
 
@@ -443,4 +447,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
 - `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
+- `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`
 
