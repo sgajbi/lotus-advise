@@ -988,6 +988,10 @@ Acceptance gate:
 2. any platform changes are tested, merged, and referenced in RFC-0026 closure evidence,
 3. future apps benefit from the improvement rather than repeating cockpit-specific local code.
 
+Slice 1 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
+
 ### Slice 2 - Cleanup and Structure
 
 Outcome:

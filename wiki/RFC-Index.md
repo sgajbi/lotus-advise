@@ -58,6 +58,13 @@ Slice 0 decisions, and requires a post-implementation canonical front-office aut
 for `RFC26_ADVISOR_COCKPIT_CANONICAL` on `PB_SG_GLOBAL_BAL_001` before any advisor-cockpit support
 claim is promoted.
 
+RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
+`docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
+repo-native controls are sufficient before cockpit domain work, so no `lotus-platform` code change
+is required for this slice. Cockpit APIs, action-item persistence, acknowledgement writes, data
+products, Gateway routes, Workbench surfaces, canonical RFC-0026 seed data, and client-demo claims
+remain mandatory subsequent RFC-0026 work and are unpromoted in this slice.
+
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before policy domain work, so no `lotus-platform` code change
@@ -484,3 +491,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-14-implementation-proof.md`
 - `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`
 - `docs/rfcs/RFC-0025-slice-16-final-closure.md`
+- `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`

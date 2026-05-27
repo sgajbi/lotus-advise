@@ -369,6 +369,12 @@ Current note:
   employer-safe, non-promotional, and do not claim completed approval/waiver authority, completed
   sign-off authority, client-ready publication, external client communication, bank adoption, or
   full RFC-0028 bank-demo/RFP support.
+- RFC-0026 Slice 1 platform-scaffolding evidence lives in
+  `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`; it records that
+  existing platform and repo-native controls are sufficient before cockpit domain work, rejects
+  premature local/platform cockpit scaffolds, and keeps canonical `RFC26_ADVISOR_COCKPIT_CANONICAL`
+  seed and Workbench automation as mandatory subsequent RFC-0026 work once backend, Gateway, and
+  Workbench behavior exists.
 
 RFC-0025 implementation evidence includes:
 
@@ -409,4 +415,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-14-implementation-proof.md`
 - `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`
 - `docs/rfcs/RFC-0025-slice-16-final-closure.md`
+- `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
 
