@@ -3,6 +3,10 @@ from datetime import datetime, timedelta, timezone
 from types import ModuleType
 
 import src.infrastructure.proposals.postgres as postgres_module
+from src.core.advisor_cockpit.persistence import (
+    CockpitAcknowledgementIdempotencyRecord,
+    CockpitAcknowledgementRecord,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
@@ -42,6 +46,8 @@ class _FakeConnection:
         self.memos = {}
         self.memo_idempotency = {}
         self.memo_events = {}
+        self.cockpit_acknowledgements = {}
+        self.cockpit_acknowledgement_idempotency = {}
         self.schema_migrations = {}
         self.executed_sql = []
         self.executed_args = []
@@ -189,6 +195,20 @@ class _FakeConnection:
                 ),
             )
             return _FakeCursor(rows=rows)
+        if "FROM proposal_memos" in sql and "WHERE proposal_id = ANY(%s)" in sql:
+            proposal_ids = list(args[0])
+            memo_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+            rows = [memo for memo in self.memos.values() if memo["proposal_id"] in memo_order]
+            rows = sorted(
+                rows,
+                key=lambda row: (
+                    memo_order[row["proposal_id"]],
+                    row["proposal_version_no"],
+                    row["created_at"],
+                    row["memo_id"],
+                ),
+            )
+            return _FakeCursor(rows=rows)
         if "INSERT INTO proposal_memo_events" in sql:
             self.memo_events.setdefault(
                 args[0],
@@ -208,6 +228,34 @@ class _FakeConnection:
             rows = [row for row in self.memo_events.values() if row["memo_id"] == args[0]]
             rows = sorted(rows, key=lambda row: (row["occurred_at"], row["event_id"]))
             return _FakeCursor(rows=rows)
+        if "INSERT INTO advisor_cockpit_acknowledgements" in sql:
+            self.cockpit_acknowledgements[args[1]] = {
+                "acknowledgement_id": args[0],
+                "action_item_id": args[1],
+                "action_item_version": args[2],
+                "acknowledged_by": args[3],
+                "acknowledged_at": args[4],
+                "acknowledgement_note": args[5],
+                "correlation_id": args[6],
+                "reason_json": args[7],
+            }
+            return _FakeCursor()
+        if "FROM advisor_cockpit_acknowledgements" in sql:
+            return _FakeCursor(self.cockpit_acknowledgements.get(args[0]))
+        if "INSERT INTO advisor_cockpit_acknowledgement_idempotency" in sql:
+            self.cockpit_acknowledgement_idempotency.setdefault(
+                args[0],
+                {
+                    "idempotency_key": args[0],
+                    "request_hash": args[1],
+                    "acknowledgement_id": args[2],
+                    "action_item_id": args[3],
+                    "created_at": args[4],
+                },
+            )
+            return _FakeCursor()
+        if "FROM advisor_cockpit_acknowledgement_idempotency" in sql:
+            return _FakeCursor(self.cockpit_acknowledgement_idempotency.get(args[0]))
         if "INSERT INTO proposal_async_operations" in sql:
             if "ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING" in sql:
                 inserted_operation_id = args[0]
@@ -439,6 +487,19 @@ class _FakeConnection:
             rows = [row for row in self.events.values() if row["proposal_id"] == args[0]]
             rows = sorted(rows, key=lambda row: (row["occurred_at"], row["event_id"]))
             return _FakeCursor(rows=rows)
+        if "FROM proposal_workflow_events" in sql and "WHERE proposal_id = ANY(%s)" in sql:
+            proposal_ids = list(args[0])
+            event_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+            rows = [row for row in self.events.values() if row["proposal_id"] in event_order]
+            rows = sorted(
+                rows,
+                key=lambda row: (
+                    event_order[row["proposal_id"]],
+                    row["occurred_at"],
+                    row["event_id"],
+                ),
+            )
+            return _FakeCursor(rows=rows)
         if "INSERT INTO proposal_approvals" in sql:
             self.approvals[args[0]] = {
                 "approval_id": args[0],
@@ -454,6 +515,19 @@ class _FakeConnection:
         if "FROM proposal_approvals" in sql and "ORDER BY occurred_at ASC, approval_id ASC" in sql:
             rows = [row for row in self.approvals.values() if row["proposal_id"] == args[0]]
             rows = sorted(rows, key=lambda row: (row["occurred_at"], row["approval_id"]))
+            return _FakeCursor(rows=rows)
+        if "FROM proposal_approvals" in sql and "WHERE proposal_id = ANY(%s)" in sql:
+            proposal_ids = list(args[0])
+            approval_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+            rows = [row for row in self.approvals.values() if row["proposal_id"] in approval_order]
+            rows = sorted(
+                rows,
+                key=lambda row: (
+                    approval_order[row["proposal_id"]],
+                    row["occurred_at"],
+                    row["approval_id"],
+                ),
+            )
             return _FakeCursor(rows=rows)
         raise AssertionError(f"Unhandled SQL in fake connection: {sql}")
 
@@ -1092,6 +1166,23 @@ def test_postgres_repository_memo_idempotency_memo_and_events_roundtrip(monkeypa
     assert [row.memo_id for row in repository.list_memos(proposal_id=memo.proposal_id)] == [
         memo.memo_id
     ]
+    batch_memo = memo.model_copy(
+        update={
+            "memo_id": "memo_pg_002",
+            "proposal_id": "proposal_pg_other",
+            "memo_hash": "sha256:memo-other",
+            "source_input_hash": "sha256:source-other",
+            "memo_json": {"memo_id": "memo_pg_002", "status": "BLOCKED"},
+        }
+    )
+    repository.create_memo(batch_memo)
+    assert [
+        row.memo_id
+        for row in repository.list_memos_for_proposals(
+            proposal_ids=[batch_memo.proposal_id, memo.proposal_id]
+        )
+    ] == [batch_memo.memo_id, memo.memo_id]
+    assert repository.list_memos_for_proposals(proposal_ids=[]) == []
     loaded_idempotency = repository.get_memo_idempotency(idempotency_key="memo-pg-idem")
     assert loaded_idempotency is not None
     assert loaded_idempotency.memo_id == memo.memo_id
@@ -1109,6 +1200,64 @@ def test_postgres_repository_memo_idempotency_memo_and_events_roundtrip(monkeypa
     assert preserved_idempotency.memo_id == memo.memo_id
     assert repository.list_memo_events(memo_id=memo.memo_id)[0].event_id == "pme_pg_001"
     assert any("INSERT INTO proposal_memos" in sql for sql in connection.executed_sql)
+
+
+def test_postgres_repository_cockpit_acknowledgement_roundtrip(monkeypatch):
+    repository, _ = _build_repository(monkeypatch)
+    now = datetime.now(timezone.utc)
+    acknowledgement = CockpitAcknowledgementRecord(
+        acknowledgement_id="ack_pg_001",
+        action_item_id="cockpit_action_pg_001",
+        action_item_version=1,
+        acknowledged_by="advisor_pg",
+        acknowledged_at=now,
+        acknowledgement_note="Reviewed pending cockpit action.",
+        correlation_id="corr-pg-ack",
+        reason_json={"contract_version": "rfc0026.advisor-cockpit-api.v1"},
+    )
+    idempotency = CockpitAcknowledgementIdempotencyRecord(
+        idempotency_key="ack-pg-idem",
+        request_hash="sha256:ack-request",
+        acknowledgement_id=acknowledgement.acknowledgement_id,
+        action_item_id=acknowledgement.action_item_id,
+        created_at=now,
+    )
+
+    repository.save_cockpit_acknowledgement_with_idempotency(
+        acknowledgement=acknowledgement,
+        idempotency=idempotency,
+    )
+
+    loaded = repository.get_cockpit_acknowledgement(action_item_id=acknowledgement.action_item_id)
+    assert loaded is not None
+    assert loaded.acknowledgement_note == "Reviewed pending cockpit action."
+    assert loaded.reason_json["contract_version"] == "rfc0026.advisor-cockpit-api.v1"
+    loaded_idempotency = repository.get_cockpit_acknowledgement_idempotency(
+        idempotency_key=idempotency.idempotency_key
+    )
+    assert loaded_idempotency is not None
+    assert loaded_idempotency.request_hash == "sha256:ack-request"
+    try:
+        repository.save_cockpit_acknowledgement_with_idempotency(
+            acknowledgement=acknowledgement.model_copy(
+                update={
+                    "acknowledgement_id": "ack_pg_002",
+                    "action_item_id": "cockpit_action_pg_002",
+                }
+            ),
+            idempotency=idempotency.model_copy(
+                update={
+                    "request_hash": "sha256:ack-request-drifted",
+                    "acknowledgement_id": "ack_pg_002",
+                    "action_item_id": "cockpit_action_pg_002",
+                }
+            ),
+        )
+    except ValueError as exc:
+        assert str(exc) == "COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_KEY_CONFLICT"
+    else:
+        raise AssertionError("Expected cockpit acknowledgement idempotency conflict")
+    assert repository.get_cockpit_acknowledgement(action_item_id="cockpit_action_pg_002") is None
 
 
 def test_postgres_repository_workflow_events_and_approvals_roundtrip(monkeypatch):
@@ -1145,6 +1294,19 @@ def test_postgres_repository_workflow_events_and_approvals_roundtrip(monkeypatch
     assert [event.event_id for event in events] == ["pwe_001", "pwe_002"]
     assert events[1].to_state == "RISK_REVIEW"
     assert events[1].reason_json == {"comment": "submit"}
+    third_event = second_event.model_copy(
+        update={
+            "event_id": "pwe_003",
+            "proposal_id": "pp_002",
+            "actor_id": "advisor_2",
+        }
+    )
+    repository.append_event(third_event)
+    assert [
+        row.event_id
+        for row in repository.list_events_for_proposals(proposal_ids=["pp_002", "pp_001"])
+    ] == ["pwe_003", "pwe_001", "pwe_002"]
+    assert repository.list_events_for_proposals(proposal_ids=[]) == []
 
     approval_at = datetime.now(timezone.utc)
     approval = ProposalApprovalRecordData(
@@ -1162,6 +1324,20 @@ def test_postgres_repository_workflow_events_and_approvals_roundtrip(monkeypatch
     assert len(approvals) == 1
     assert approvals[0].approval_id == "pap_001"
     assert approvals[0].details_json == {"ticket_id": "risk-42"}
+    second_approval = approval.model_copy(
+        update={
+            "approval_id": "pap_002",
+            "proposal_id": "pp_002",
+            "approval_type": "COMPLIANCE",
+            "actor_id": "compliance_officer_1",
+        }
+    )
+    repository.create_approval(second_approval)
+    assert [
+        row.approval_id
+        for row in repository.list_approvals_for_proposals(proposal_ids=["pp_002", "pp_001"])
+    ] == ["pap_002", "pap_001"]
+    assert repository.list_approvals_for_proposals(proposal_ids=[]) == []
 
 
 def test_postgres_repository_transition_proposal_writes_all_records(monkeypatch):

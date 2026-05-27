@@ -1,6 +1,14 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.core.tactical_house_view import (
+    clear_tactical_house_view_affected_cohorts_for_tests,
+    list_tactical_house_view_affected_cohorts,
+)
+
+
+def setup_function() -> None:
+    clear_tactical_house_view_affected_cohorts_for_tests()
 
 
 def _payload() -> dict:
@@ -63,6 +71,13 @@ def test_tactical_house_view_api_returns_source_owned_cohort() -> None:
     assert payload["excluded_portfolios"] == []
     assert payload["cohort_id"].startswith("sha256:")
     assert payload["content_hash"].startswith("sha256:")
+    assert [
+        cohort.cohort_id
+        for cohort in list_tactical_house_view_affected_cohorts(
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            limit=10,
+        )
+    ] == [payload["cohort_id"]]
 
 
 def test_tactical_house_view_api_validates_candidate_source_refs() -> None:

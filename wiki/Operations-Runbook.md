@@ -32,6 +32,17 @@ summary reports only bounded operational posture:
 metric exactly. Do not add portfolio, account, client, advisor, proposal, workspace, request,
 response, correlation, trace, transaction, security, or payload identifiers to this metric.
 
+## Advisor Cockpit Operations
+
+RFC-0026 cockpit supportability is exposed through `GET /advisory/cockpit/supportability` and
+`GET /platform/capabilities`. The supported first-wave posture is source-owned advisor workflow
+evidence: action items, snapshot posture, acknowledgement replay, active data products, Gateway
+publication, Workbench rendering, and canonical `PB_SG_GLOBAL_BAL_001` proof.
+
+Operationally, cockpit acknowledgements are not remediation authority. Treat them as append-only
+advisor workflow evidence. They must not be used as proof of completed policy approval, client
+communication, CRM system-of-record task creation, or OMS order/fill/settlement activity.
+
 ## Canonical Local Identity
 
 Use:

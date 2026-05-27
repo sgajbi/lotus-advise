@@ -78,6 +78,20 @@ This endpoint returns `TacticalHouseViewAffectedCohort:v1` for a governed bank-a
 house-view instruction and caller-supplied source-backed candidate portfolios. It does not discover
 the global portfolio universe, create rebalance waves, approve trades, or integrate with OMS.
 
+## Advisor Cockpit
+
+- `GET /advisory/cockpit/actions`
+- `GET /advisory/cockpit/actions/{action_item_id}`
+- `POST /advisory/cockpit/actions/{action_item_id}/acknowledgements`
+- `GET /advisory/cockpit/snapshot`
+- `GET /advisory/cockpit/supportability`
+
+These RFC-0026 endpoints expose source-owned advisor operating workflow evidence for action items,
+daily snapshot posture, supportability, and durable acknowledgement replay. Responses preserve
+source refs, action reason codes, SLA posture, acknowledgement lineage, and unsupported-claim
+boundaries. Acknowledgements are advisor workflow evidence only: they do not approve policy, clear
+blockers, contact clients, create CRM tasks, or initiate OMS activity.
+
 ## Contract Notes
 
 - OpenAPI is the governed external contract.
@@ -98,6 +112,12 @@ the global portfolio universe, create rebalance waves, approve trades, or integr
   depends on lifecycle, reporting, and `lotus-report` readiness, and it does not promote
   client-ready memo publication, external client communication, or full bank-demo/RFP package
   claims.
+- `GET /platform/capabilities` includes `advisory.advisor_cockpit` and
+  `advisor_cockpit_operating_workflow` for RFC-0026 first-wave advisor cockpit evidence after
+  Advise, Gateway, Workbench, and canonical `PB_SG_GLOBAL_BAL_001` proof. The wording remains
+  bounded to advisor operating workflow evidence and does not promote client-ready publication,
+  external client communication, CRM system-of-record behavior, OMS lifecycle, completed policy
+  approval authority, or full RFC-0028 demo/RFP package claims.
 - `GET /platform/capabilities` also includes a bounded `supportability` summary for advisory
   readiness, degraded dependency posture, and lifecycle-disabled posture. The
   `supportability.metric_labels` field documents the exact bounded label tuple for

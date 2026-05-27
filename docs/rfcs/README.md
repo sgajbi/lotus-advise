@@ -53,7 +53,7 @@ The sequence is organized to read in implementation order:
 | RFC-0023 | Grounded Advisory AI Narrative and Client-Ready Proposal Commentary | IMPLEMENTED for advisor-review narrative evidence; client-ready scope remains gated | Active advisor-review narrative evidence source of truth; Slices 0-10 complete source mapping, platform-scaffolding review, cleanup/structure, narrative contract baseline, data-product/supportability baseline, deterministic advisor-review artifact-path narrative, policy/disclosure/guardrail baseline, AI-assisted draft adapter baseline, proposal-version narrative review/replay baseline, decision-summary/alternatives/approval/limitation narrative integration, and certified API/OpenAPI baseline; Slice 10B closes standalone proposal-version narrative read and non-persistent regeneration APIs; Slice 11A adds reviewed narrative package propagation into report-request evidence; Slices 11B/11C close `lotus-report` package consumption and `lotus-render` portfolio-review advisory narrative rendering; Slice 11D closes `lotus-archive` support-safe reviewed narrative artifact summary storage; Slice 11E closes `lotus-gateway` product-facing reviewed-narrative posture and `lotus-workbench` Gateway-backed advisor-use proposal posture; Slice 11F promotes advisor-review narrative evidence as `ProposalNarrativeEvidence:v1` with trust telemetry, platform catalog/certification, and `/platform/capabilities` reviewed narrative evidence posture; Slice 12 adds stateful live narrative proof, deterministic guardrail-failure reproduction, optional AI-assisted validation where enabled, and governed Workbench `proposal.narrative_posture` screenshot proof; Slice 13/14 hardens the closure boundary so even clean advisor-review narratives cannot return `APPROVED_FOR_CLIENT_READY`; compliance-review, client-draft, client-ready publication, and client communication remain gated future scope | RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0015, RFC-0019, RFC-0020, RFC-0021, RFC-0022 | `docs/rfcs/RFC-0023-grounded-advisory-ai-narrative-and-client-ready-proposal-commentary.md` |
 | RFC-0024 | Advisor Proposal Memo and Evidence Pack | IMPLEMENTED for advisor-use proposal memo evidence; client-ready memo publication remains gated | Active advisor-use memo evidence source of truth; Slices 0-8 close source mapping, platform-scaffolding review, cleanup/structure, proposed/blocked data-product posture, memo source-readiness evidence, deterministic memo building, persistence/replay/idempotency/audit, certified Advise memo APIs, and memo-critical suitability/product/cost/disclosure/conflict enrichment. Slice 9 implements advisor-use report/render/archive realization. Slice 10 implements review-gated advisor-use AI commentary through `proposal_memo_commentary.pack@v1`. Slice 11 implements Gateway routing through canonical Advise memo endpoints and Workbench Gateway/BFF-only memo posture, projection, report-package, archive-ref, AI-commentary, lineage, replay, degraded, and blocked states. Slice 12 implements memo-specific commercial support material in `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`, including claim-controlled one-pager language, demo notes, API examples, architecture flow, operator guidance, and RFP-safe wording. Slice 13 adds memo proof to the live runtime evidence bundle. Slice 14 promotes `AdvisoryProposalMemoEvidencePack:v1` as an active advisor-use data product with current trust telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture. Slice 15 adds canonical `PB_SG_GLOBAL_BAL_001` Workbench proof for the advisor journey and `proposal.memo_evidence_pack` panel. Slice 16 closes durable truth across README, wiki source, supported-features, RFC status, repo context, domain-product declaration, trust telemetry, and proof summaries. Slice 17 adds an employer-safe post-completion LinkedIn draft and content-ledger update in `lotus-platform`. Full RFC-0028 bank-demo/RFP package claims and client-ready memo claims remain gated. WTBD is closed historical context only. | RFC-0006, RFC-0011, RFC-0013, RFC-0019, RFC-0020, RFC-0021, RFC-0022, RFC-0023 | `docs/rfcs/RFC-0024-advisor-proposal-memo-and-evidence-pack.md` |
 | RFC-0025 | Enterprise Suitability and Best-Interest Policy Packs | IMPLEMENTED for advisor/compliance policy evidence; client-ready authority remains gated | RFC is implemented through Slice 17 for versioned policy packs, source readiness, catalog/activation, source-backed evaluation, persistence/replay, certified APIs, workflow/sign-off posture, report-package handoff, bounded AI evidence, Gateway/Workbench product realization, commercial support material, live-suite `proposal_policy` proof, centralized supportability hardening, active `AdvisoryPolicyEvaluationRecord:v1` data-product posture, current trust telemetry, `/platform/capabilities`, platform SLO/access/evidence-policy support, and post-completion communication. The 2026-05-27 gold-pass hardening requires portfolio identity on policy evaluation records and proves the review queue is portfolio-scoped through Advise, Gateway, Workbench, and canonical live validation for `PB_SG_GLOBAL_BAL_001`. Evidence lives in Slice 0-17 records including `docs/rfcs/RFC-0025-slice-16-final-closure.md` and `docs/rfcs/RFC-0025-slice-17-post-completion-communication.md`. Completed approval/waiver authority, completed sign-off authority, client-ready publication, external client communication, and full RFC-0028 bank-demo/RFP package claims remain gated. | RFC-0010, RFC-0013, RFC-0015, RFC-0020, RFC-0021, RFC-0022, RFC-0024 | `docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md` |
-| RFC-0026 | Advisor Cockpit Operating Workflow | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN | Active crown-jewel feature roadmap; RFC is the execution source and WTBD is closed historical context only | RFC-0004, RFC-0013, RFC-0017, RFC-0018, RFC-0019, RFC-0021, RFC-0022, RFC-0024, RFC-0025 | `docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md` |
+| RFC-0026 | Advisor Cockpit Operating Workflow | IMPLEMENTATION IN PROGRESS - LIVE CANONICAL PROOF HARDENED | Active crown-jewel feature roadmap; RFC is the execution source and WTBD is closed historical context only. Advise action/snapshot/supportability/acknowledgement APIs, Gateway publication, Workbench cockpit surface, canonical `PB_SG_GLOBAL_BAL_001` proof, active cockpit data products, trust telemetry, and `/platform/capabilities` promotion are implemented for the first-wave source-owned cockpit scope. Slice 16 hardens live canonical proof for action detail, pagination, role projection, invalid-cursor rejection, preparation packets, house-view impact, supportability posture, and source lineage. | RFC-0004, RFC-0013, RFC-0017, RFC-0018, RFC-0019, RFC-0021, RFC-0022, RFC-0024, RFC-0025 | `docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md` |
 | RFC-0027 | Governed Advisory AI Copilot | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN | Active crown-jewel feature roadmap; RFC is the execution source and WTBD is closed historical context only | RFC-0021, RFC-0022, RFC-0023, RFC-0024, RFC-0025, RFC-0026 | `docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md` |
 | RFC-0028 | Bank Demo Journey and Client-Ready Proof | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN | Active crown-jewel feature roadmap; RFC is the execution source and WTBD is closed historical context only | RFC-0013, RFC-0019, RFC-0020, RFC-0021, RFC-0022, RFC-0023, RFC-0024, RFC-0025, RFC-0026, RFC-0027 | `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` |
 
@@ -77,6 +77,7 @@ Implemented RFCs:
 - `RFC-0022`
 - `RFC-0023` advisor-review narrative evidence
 - `RFC-0024` advisor-use proposal memo evidence
+- `RFC-0025` advisor/compliance policy evidence
 
 ## Not Yet Implemented
 
@@ -86,19 +87,17 @@ Open RFCs still relevant to the advisory roadmap:
 - `RFC-0016`
 - `RFC-0017`
 - `RFC-0018`
-- `RFC-0025`
 - `RFC-0026`
 - `RFC-0027`
 - `RFC-0028`
 
 Recommended near-term implementation order:
-1. `RFC-0025` enterprise suitability and best-interest policy packs
-2. `RFC-0026` advisor cockpit operating workflow
-3. `RFC-0027` governed advisory AI copilot
-4. `RFC-0028` bank demo journey and client-ready proof
-5. `RFC-0014` remaining replay and data-quality backbone deltas not already covered by current implementation
-6. `RFC-0016` costs, fees, and transaction frictions
-7. `RFC-0017` remaining execution-boundary stabilization deltas not already covered by current implementation
+1. `RFC-0026` advisor cockpit operating workflow
+2. `RFC-0027` governed advisory AI copilot
+3. `RFC-0028` bank demo journey and client-ready proof
+4. `RFC-0014` remaining replay and data-quality backbone deltas not already covered by current implementation
+5. `RFC-0016` costs, fees, and transaction frictions
+6. `RFC-0017` remaining execution-boundary stabilization deltas not already covered by current implementation
 
 Deferred but retained:
 - `RFC-0002`
@@ -370,6 +369,67 @@ Current note:
   employer-safe, non-promotional, and do not claim completed approval/waiver authority, completed
   sign-off authority, client-ready publication, external client communication, bank adoption, or
   full RFC-0028 bank-demo/RFP support.
+- RFC-0026 Slice 1 platform-scaffolding evidence lives in
+  `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`; it records that
+  existing platform and repo-native controls are sufficient before cockpit domain work, rejects
+  premature local/platform cockpit scaffolds, and keeps canonical `RFC26_ADVISOR_COCKPIT_CANONICAL`
+  seed and Workbench automation as mandatory subsequent RFC-0026 work once backend, Gateway, and
+  Workbench behavior exists.
+- RFC-0026 Slice 2 cleanup and structure evidence lives in
+  `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`; it creates the dedicated
+  `src/core/advisor_cockpit/` package with typed cockpit models, vocabulary, stable action sorting,
+  and pagination defaults while keeping APIs, persistence, data products, Gateway, Workbench,
+  canonical seed data, and supported advisor-cockpit claims unpromoted until subsequent RFC-0026
+  slices implement and prove them.
+- RFC-0026 Slice 3 data-product evidence lives in
+  `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`; it records a non-promoting
+  posture for `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1`, adds tests
+  that block premature declarations, trust telemetry, and `/platform/capabilities` promotion, and
+  keeps data-product promotion mandatory inside RFC-0026 once runtime, Gateway, Workbench, mesh,
+  and canonical proof exist.
+- RFC-0026 Slice 4 cockpit domain evidence lives in
+  `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`; it adds the pure core
+  `src/core/advisor_cockpit/action_factory.py` source-backed action construction layer, covers
+  policy-review, memo-blocked, meeting-preparation, supportability, and unsupported-capability
+  actions with behavior tests, and keeps APIs, persistence, data products, Gateway, Workbench, and
+  canonical proof unpromoted until mandatory subsequent RFC-0026 slices implement them.
+- RFC-0026 Slice 5 source-read-model evidence lives in
+  `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`; it adds
+  `src/core/advisor_cockpit/source_read_model.py` for preloaded source aggregation across
+  proposals, policy evaluations, memos, supportability events, and unsupported capabilities,
+  preserving lineage and avoiding repository-loop behavior before runtime API wiring.
+- RFC-0026 Slice 6 priority/SLA evidence lives in
+  `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`; it adds
+  `src/core/advisor_cockpit/rules.py` for deterministic SLA age bands, owner-blocking status
+  checks, and acknowledgement posture that cannot clear blocking action ownership.
+- RFC-0026 Slice 7 Advise API evidence lives in
+  `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`; it adds Advise-owned cockpit action,
+  snapshot, supportability, and idempotent acknowledgement APIs, with persistent acknowledgement
+  storage and OpenAPI boundary tests, while keeping Gateway, Workbench, data products, and
+  canonical proof unpromoted until mandatory subsequent RFC-0026 slices.
+- RFC-0026 Slice 8 preparation and follow-up evidence lives in
+  `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`; it adds the paginated
+  Advise preparation-packet API and source-backed client follow-up actions while keeping CRM,
+  calendar scheduling, external client communication, and client-ready publication blocked.
+- RFC-0026 Slice 9 supervisory queue evidence lives in
+  `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`; it adds source-backed
+  risk, compliance, and consent queue projection with batched approval reads, deterministic owner
+  roles, and blocked completed-approval/client-ready authority.
+- RFC-0026 Slice 10 readiness evidence lives in
+  `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`; it adds report/archive
+  readiness, execution handoff/status attention, and explicit source-batched tactical house-view
+  impact actions while preserving report/archive, OMS, and DPM source-of-record boundaries.
+- RFC-0026 Slice 13 data-product and capability-promotion evidence lives in
+  `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`; it promotes
+  `AdvisorCockpitOperatingSnapshot:v1`, `AdvisoryActionItemRegister:v1`, trust telemetry,
+  `/platform/capabilities`, and Advise supportability after Gateway, Workbench, and canonical
+  `PB_SG_GLOBAL_BAL_001` proof.
+- RFC-0026 Slice 16 implementation-proof evidence lives in
+  `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`; it records hardened live canonical proof
+  for action detail, cursor pagination, invalid-cursor rejection, compliance and DPM role
+  projection, preparation packets, house-view impact, acknowledgement idempotency, supportability
+  posture, and action evidence/lineage. The slice also records live defects fixed at the owning
+  layer and pinned by lower-level tests before rerun.
 
 RFC-0025 implementation evidence includes:
 
@@ -410,4 +470,16 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-14-implementation-proof.md`
 - `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`
 - `docs/rfcs/RFC-0025-slice-16-final-closure.md`
+- `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
+- `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
+- `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
+- `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`
+- `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`
+- `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`
+- `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`
+- `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`
+- `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
+- `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`
 

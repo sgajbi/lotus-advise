@@ -74,6 +74,12 @@ Boundary rules that matter:
 6. `AdvisoryPolicyEvaluationRecord:v1` is an active advisor/compliance policy evidence product for
    RFC-0025. Completed approval/waiver authority, completed sign-off authority, client-ready
    policy publication, and external client communication remain gated.
+7. `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active
+   source-owned RFC-0026 advisor operating workflow products. They cover Advise action items,
+   snapshot, supportability, acknowledgements, Gateway/Workbench consumption, and canonical
+   `PB_SG_GLOBAL_BAL_001` proof while client-ready publication, external client communication,
+   CRM system-of-record behavior, OMS lifecycle, completed policy approval authority, and full
+   RFC-0028 demo/RFP claims remain gated.
 
 ## Architecture At A Glance
 
@@ -90,6 +96,9 @@ Main runtime surfaces come from [src/api/main.py](src/api/main.py):
   `/advisory/workspaces/*`
 - tactical house view
   source-owned affected-cohort evaluation under `/advisory/tactical-house-view/*`
+- advisor cockpit
+  source-owned action, snapshot, supportability, and acknowledgement routes under
+  `/advisory/cockpit/*`
 - integration capabilities
   `GET /platform/capabilities`
 - platform surfaces
@@ -105,6 +114,9 @@ Key code areas:
   persisted proposal lifecycle models and services
 - `src/core/workspace/`
   advisory workspace contracts and state
+- `src/core/advisor_cockpit/`
+  RFC-0026 advisor cockpit action construction, source read model, SLA/acknowledgement policy, and
+  supportability projection
 - `src/integrations/`
   Lotus Core, Risk, AI, Report, and Performance seams
 - `docs/`
@@ -221,7 +233,8 @@ Important public route groups:
 4. advisory workspace
 5. tactical house-view affected-cohort evaluation
 6. policy-pack catalog and policy-evaluation evidence
-7. integration capabilities
+7. advisor cockpit action, snapshot, supportability, and acknowledgement evidence
+8. integration capabilities
 
 Contract rules that are easy to get wrong:
 
@@ -237,7 +250,10 @@ Contract rules that are easy to get wrong:
 6. policy evaluation endpoints preserve source/policy/evaluation/replay hashes and must not imply
    legal advice, completed approval/waiver authority, completed sign-off authority, or client-ready
    publication
-7. `GET /platform/capabilities` separates feature enablement from operational readiness and returns
+7. advisor cockpit endpoints preserve source refs, action lineage, SLA/acknowledgement posture, and
+   unsupported-claim boundaries; acknowledgements do not approve policy, clear blockers, contact
+   clients, create CRM tasks, or initiate orders
+8. `GET /platform/capabilities` separates feature enablement from operational readiness and returns
    bounded dependency evidence through `runtime_probe_enabled`, `readiness_basis`, and
    `degraded_reason` without exposing dependency base URLs
 

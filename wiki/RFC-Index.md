@@ -34,7 +34,9 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0016 costs, fees, and transaction frictions
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
-- RFC-0026 advisor cockpit operating workflow
+- RFC-0026 advisor cockpit operating workflow, implementation in progress with the source-owned
+  Advise/Gateway/Workbench cockpit scope, canonical proof, active data products, trust telemetry,
+  and `/platform/capabilities` promoted after the 2026-05-27 gold-standard tightening
 - RFC-0027 governed advisory AI copilot
 - RFC-0028 bank demo journey and client-ready proof
 
@@ -50,6 +52,99 @@ evidence, review posture, report-package lineage, bounded AI evidence, Gateway/W
 and active `AdvisoryPolicyEvaluationRecord:v1` data-product support. Completed approval/waiver
 authority, completed sign-off authority, client-ready policy publication, external client
 communication, and full RFC-0028 bank-demo/RFP claims remain gated.
+
+RFC-0026 is in implementation. The 2026-05-27 tightening records the completed RFC-0023,
+RFC-0024, and RFC-0025 evidence baseline, resolves pre-implementation Slice 0 decisions, and
+requires canonical front-office automation for `PB_SG_GLOBAL_BAL_001` before any advisor-cockpit
+support claim is promoted. That first-wave Advise/Gateway/Workbench proof now exists for the
+source-owned cockpit scope. Slice 16 adds hardened live canonical proof for action detail,
+cursor pagination, invalid-cursor rejection, compliance and DPM role projection, preparation
+packets, house-view impact, acknowledgement idempotency, supportability posture, and action
+evidence/lineage.
+
+RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
+`docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
+repo-native controls are sufficient before cockpit domain work, so no `lotus-platform` code change
+is required for this slice. Cockpit APIs, action-item persistence, acknowledgement writes, data
+products, Gateway routes, Workbench surfaces, canonical RFC-0026 seed data, and client-demo claims
+remain mandatory subsequent RFC-0026 work and are unpromoted in this slice.
+
+RFC-0026 Slice 2 is implemented as cleanup and structure. Evidence lives in
+`docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`. `lotus-advise` now has a dedicated
+`src/core/advisor_cockpit/` package for typed cockpit models, vocabulary, deterministic action
+ordering, and pagination defaults. No cockpit API, data product, Gateway route, Workbench surface,
+canonical seed, or supported runtime claim is promoted by this slice.
+
+RFC-0026 Slice 3 is implemented as non-promoting data-product posture. Evidence lives in
+`docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`. The slice blocks premature
+`AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` declarations, trust
+telemetry, and `/platform/capabilities` promotion until cockpit runtime APIs, Gateway/Workbench
+consumption, mesh posture, and canonical proof exist.
+
+RFC-0026 Slice 4 is implemented as source-backed cockpit action construction. Evidence lives in
+`docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`.
+`src/core/advisor_cockpit/action_factory.py` now centralizes Advise-owned action construction for
+policy review, memo blockers, meeting preparation, source supportability, and unsupported
+capabilities, with behavior tests that keep source refs, evidence refs, lineage, reason codes,
+owner roles, and client-ready blocked posture explicit. Runtime APIs, persistence, data-product
+promotion, Gateway routes, Workbench surfaces, and canonical proof remain mandatory subsequent
+RFC-0026 slices.
+
+RFC-0026 Slice 5 is implemented as preloaded source-read-model aggregation. Evidence lives in
+`docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`.
+`src/core/advisor_cockpit/source_read_model.py` maps preloaded proposal, policy evaluation, memo,
+supportability, and unsupported-capability source batches into source counts, action sources, and
+sorted cockpit action items without adding API routes, persistence, Gateway routes, Workbench
+surfaces, data-product promotion, or runtime support claims.
+
+RFC-0026 Slice 6 is implemented as deterministic SLA and acknowledgement posture. Evidence lives in
+`docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`.
+`src/core/advisor_cockpit/rules.py` now centralizes SLA age-band derivation, owner-blocking status
+checks, and acknowledgement attachment that cannot clear blocking status, priority, or owner role.
+Runtime APIs, persistence, Gateway routes, Workbench surfaces, data-product promotion, and
+canonical proof remain mandatory subsequent RFC-0026 slices.
+
+RFC-0026 Slice 7 is implemented as Advise-owned cockpit API support. Evidence lives in
+`docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`. `lotus-advise` now exposes cockpit action
+list/detail, snapshot, supportability, and idempotent acknowledgement APIs backed by
+`AdvisorCockpitService`, `AdvisorCockpitRepository`, OpenAPI tests, and durable acknowledgement
+persistence.
+
+RFC-0026 Slice 8 is implemented as source-backed preparation and follow-up support. Evidence lives
+in `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`. `lotus-advise` now exposes
+paginated meeting-preparation packets and advisor follow-up actions without claiming CRM,
+calendar, external client communication, or client-ready publication behavior.
+
+RFC-0026 Slice 9 is implemented as source-backed supervisory and approval queue support. Evidence
+lives in `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`. `lotus-advise`
+now projects risk, compliance, and consent queue items through batched approval source reads with
+deterministic owner roles and blocked completed-approval/client-ready authority.
+
+RFC-0026 Slice 10 is implemented as source-backed readiness, execution, and house-view action
+support. Evidence lives in `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`.
+`lotus-advise` now projects report/archive readiness, execution handoff/status attention, and
+explicit source-batched tactical house-view impact actions without claiming report/archive, OMS, or
+DPM system-of-record ownership.
+
+RFC-0026 Slice 13 is implemented as data-product and capability promotion. Evidence lives in
+`docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`.
+`AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active products with
+trust telemetry, `/platform/capabilities` advertises `advisory.advisor_cockpit` and
+`advisor_cockpit_operating_workflow`, and Advise supportability records Gateway support,
+Workbench canonical proof, active data-product posture, and canonical
+`RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL` validation for `PB_SG_GLOBAL_BAL_001`.
+Client-ready publication, external client communication, CRM system-of-record behavior,
+OMS order lifecycle, completed policy approval authority, and full RFC-0028 demo/RFP package claims
+remain gated.
+
+RFC-0026 Slice 16 is implemented as hardened implementation proof. Evidence lives in
+`docs/rfcs/RFC-0026-slice-16-implementation-proof.md`. The governed Workbench live validation now
+records `ADVISOR_COCKPIT_ACTION_ACKNOWLEDGED`, `paginationCursor`, `roleProjectionValidated`,
+`houseViewCohortId`, preparation-packet counts, `clientReadyPublication: BLOCKED`,
+`ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED`, and
+`CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026`. Live defects found in stale image rebuild posture,
+portfolio-scoped preparation, memo/report portfolio scoping, and source-backed cockpit lineage were
+fixed at the owning layer and pinned by lower-level tests before rerun.
 
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
@@ -477,3 +572,15 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-14-implementation-proof.md`
 - `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`
 - `docs/rfcs/RFC-0025-slice-16-final-closure.md`
+- `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
+- `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
+- `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
+- `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`
+- `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`
+- `docs/rfcs/RFC-0026-slice-8-meeting-preparation-client-follow-up.md`
+- `docs/rfcs/RFC-0026-slice-9-supervisory-approval-compliance-queues.md`
+- `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`
+- `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
+- `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`

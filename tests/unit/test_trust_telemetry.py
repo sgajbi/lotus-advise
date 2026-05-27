@@ -15,6 +15,8 @@ SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-proposal-lifecycle-record.telemetry.v1
 NARRATIVE_SNAPSHOT_PATH = TELEMETRY_DIR / "proposal-narrative-evidence.telemetry.v1.json"
 MEMO_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-proposal-memo-evidence-pack.telemetry.v1.json"
 POLICY_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-policy-evaluation-record.telemetry.v1.json"
+COCKPIT_SNAPSHOT_PATH = TELEMETRY_DIR / "advisor-cockpit-operating-snapshot.telemetry.v1.json"
+ACTION_REGISTER_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-action-item-register.telemetry.v1.json"
 DECLARATION_PATH = (
     REPO_ROOT / "contracts" / "domain-data-products" / "lotus-advise-products.v1.json"
 )
@@ -347,3 +349,40 @@ def test_rfc0025_policy_evaluation_catalog_generation_promotes_active_support(
     )
     assert "advisory.proposals.policy_evaluation" in capability_text
     assert "advisory_policy_evaluation" in capability_text
+
+
+def test_rfc0026_cockpit_trust_telemetry_is_active_and_tied_to_declaration() -> None:
+    declaration = _load_json(DECLARATION_PATH)
+    declared_products = {product["product_name"]: product for product in declaration["products"]}
+
+    for snapshot_path, product_name in (
+        (COCKPIT_SNAPSHOT_PATH, "AdvisorCockpitOperatingSnapshot"),
+        (ACTION_REGISTER_SNAPSHOT_PATH, "AdvisoryActionItemRegister"),
+    ):
+        snapshot = _load_json(snapshot_path)
+        declared_product = declared_products[product_name]
+
+        assert snapshot["product_id"] == f"lotus-advise:{product_name}:v1"
+        assert snapshot["producer_repository"] == declaration["producer_repository"]
+        assert snapshot["product_name"] == declared_product["product_name"]
+        assert snapshot["product_version"] == declared_product["product_version"]
+        assert declared_product["lifecycle_status"] == "active"
+        assert (
+            snapshot["freshness"]["freshness_class"]
+            == declared_product["freshness_policy"]["freshness_class"]
+        )
+        assert snapshot["freshness"]["freshness_state"] == "current"
+        assert snapshot["completeness_status"] == "complete"
+        assert snapshot["data_quality_status"] == "quality_passed"
+        assert set(snapshot["observed_trust_metadata"]) == set(
+            declared_product["required_trust_metadata"]
+        )
+        assert snapshot["lineage"]["lineage_materialized"] is True
+        assert (
+            snapshot["lineage"]["evidence_access_class"]
+            == declared_product["lineage_policy"]["evidence_access_class_ref"]
+        )
+        assert snapshot["blocking"] == {"blocked": False}
+        assert "canonical PB_SG_GLOBAL_BAL_001 live proof" in snapshot["evidence"]["claim_boundary"]
+        assert "client-ready publication" in snapshot["evidence"]["claim_boundary"]
+        assert "OMS order lifecycle" in snapshot["evidence"]["claim_boundary"]

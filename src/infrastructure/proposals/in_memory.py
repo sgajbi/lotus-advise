@@ -3,6 +3,10 @@ from datetime import datetime
 from threading import Lock
 from typing import Optional
 
+from src.core.advisor_cockpit.persistence import (
+    CockpitAcknowledgementIdempotencyRecord,
+    CockpitAcknowledgementRecord,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
@@ -35,6 +39,10 @@ class InMemoryProposalRepository(ProposalRepository):
         self._memos: dict[str, ProposalMemoRecord] = {}
         self._memo_by_proposal_version: dict[tuple[str, int], str] = {}
         self._memo_events: dict[str, list[ProposalMemoEventRecord]] = {}
+        self._cockpit_acknowledgements: dict[str, CockpitAcknowledgementRecord] = {}
+        self._cockpit_acknowledgement_idempotency: dict[
+            str, CockpitAcknowledgementIdempotencyRecord
+        ] = {}
 
     def get_idempotency(self, *, idempotency_key: str) -> Optional[ProposalIdempotencyRecord]:
         with self._lock:
@@ -109,6 +117,23 @@ class InMemoryProposalRepository(ProposalRepository):
         memos.sort(key=lambda memo: (memo.proposal_version_no, memo.created_at, memo.memo_id))
         return [deepcopy(memo) for memo in memos]
 
+    def list_memos_for_proposals(self, *, proposal_ids: list[str]) -> list[ProposalMemoRecord]:
+        if not proposal_ids:
+            return []
+        proposal_id_set = set(proposal_ids)
+        memo_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        with self._lock:
+            memos = [memo for memo in self._memos.values() if memo.proposal_id in proposal_id_set]
+        memos.sort(
+            key=lambda memo: (
+                memo_order[memo.proposal_id],
+                memo.proposal_version_no,
+                memo.created_at,
+                memo.memo_id,
+            )
+        )
+        return [deepcopy(memo) for memo in memos]
+
     def append_memo_event(self, event: ProposalMemoEventRecord) -> None:
         with self._lock:
             events = self._memo_events.setdefault(event.memo_id, [])
@@ -121,6 +146,43 @@ class InMemoryProposalRepository(ProposalRepository):
             events = self._memo_events.get(memo_id, [])
         events = sorted(events, key=lambda event: (event.occurred_at, event.event_id))
         return [deepcopy(event) for event in events]
+
+    def get_cockpit_acknowledgement(
+        self, *, action_item_id: str
+    ) -> Optional[CockpitAcknowledgementRecord]:
+        with self._lock:
+            record = self._cockpit_acknowledgements.get(action_item_id)
+            return deepcopy(record) if record is not None else None
+
+    def save_cockpit_acknowledgement_with_idempotency(
+        self,
+        *,
+        acknowledgement: CockpitAcknowledgementRecord,
+        idempotency: CockpitAcknowledgementIdempotencyRecord,
+    ) -> None:
+        with self._lock:
+            existing = self._cockpit_acknowledgement_idempotency.get(idempotency.idempotency_key)
+            if existing is not None:
+                if (
+                    existing.request_hash != idempotency.request_hash
+                    or existing.acknowledgement_id != idempotency.acknowledgement_id
+                    or existing.action_item_id != idempotency.action_item_id
+                ):
+                    raise ValueError("COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_KEY_CONFLICT")
+                return
+            self._cockpit_acknowledgement_idempotency[idempotency.idempotency_key] = deepcopy(
+                idempotency
+            )
+            self._cockpit_acknowledgements[acknowledgement.action_item_id] = deepcopy(
+                acknowledgement
+            )
+
+    def get_cockpit_acknowledgement_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[CockpitAcknowledgementIdempotencyRecord]:
+        with self._lock:
+            record = self._cockpit_acknowledgement_idempotency.get(idempotency_key)
+            return deepcopy(record) if record is not None else None
 
     def create_operation(self, operation: ProposalAsyncOperationRecord) -> None:
         with self._lock:
@@ -289,6 +351,29 @@ class InMemoryProposalRepository(ProposalRepository):
             events = self._events.get(proposal_id, [])
             return [deepcopy(event) for event in events]
 
+    def list_events_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalWorkflowEventRecord]:
+        if not proposal_ids:
+            return []
+        proposal_id_set = set(proposal_ids)
+        event_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        with self._lock:
+            events = [
+                event
+                for proposal_events in self._events.values()
+                for event in proposal_events
+                if event.proposal_id in proposal_id_set
+            ]
+        events.sort(
+            key=lambda event: (
+                event_order[event.proposal_id],
+                event.occurred_at,
+                event.event_id,
+            )
+        )
+        return [deepcopy(event) for event in events]
+
     def create_approval(self, approval: ProposalApprovalRecordData) -> None:
         with self._lock:
             approvals = self._approvals.setdefault(approval.proposal_id, [])
@@ -298,6 +383,29 @@ class InMemoryProposalRepository(ProposalRepository):
         with self._lock:
             approvals = self._approvals.get(proposal_id, [])
             return [deepcopy(approval) for approval in approvals]
+
+    def list_approvals_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalApprovalRecordData]:
+        if not proposal_ids:
+            return []
+        proposal_id_set = set(proposal_ids)
+        approval_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        with self._lock:
+            approvals = [
+                approval
+                for proposal_approvals in self._approvals.values()
+                for approval in proposal_approvals
+                if approval.proposal_id in proposal_id_set
+            ]
+        approvals.sort(
+            key=lambda approval: (
+                approval_order[approval.proposal_id],
+                approval.occurred_at,
+                approval.approval_id,
+            )
+        )
+        return [deepcopy(approval) for approval in approvals]
 
     def transition_proposal(
         self,

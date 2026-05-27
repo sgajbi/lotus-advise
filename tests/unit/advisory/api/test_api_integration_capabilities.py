@@ -116,6 +116,27 @@ def test_rfc0025_capabilities_advertise_policy_evaluation_after_slice16_closure(
     assert "client-ready publication" in payload_text
 
 
+def test_rfc0026_capabilities_advertise_advisor_cockpit_after_canonical_proof():
+    with TestClient(app) as client:
+        response = client.get(
+            "/platform/capabilities",
+            params={"consumer_system": "lotus-gateway", "tenant_id": "default"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    feature_keys = {item["key"] for item in payload["features"]}
+    workflow_keys = {item["workflow_key"] for item in payload["workflows"]}
+    payload_text = str(payload).lower()
+
+    assert "advisory.advisor_cockpit" in feature_keys
+    assert "advisor_cockpit_operating_workflow" in workflow_keys
+    assert "advisor cockpit operating workflow" in payload_text
+    assert "gateway/workbench canonical proof" in payload_text
+    assert "client-ready publication" in payload_text
+    assert "oms order lifecycle" in payload_text
+
+
 def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_only():
     openapi = app.openapi()
     operation = openapi["paths"]["/platform/capabilities"]["get"]
@@ -193,6 +214,9 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         features["advisory.proposals.policy_evaluation"]["degraded_reason"]
         == "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
     )
+    assert features["advisory.advisor_cockpit"]["enabled"] is True
+    assert features["advisory.advisor_cockpit"]["operational_ready"] is True
+    assert features["advisory.advisor_cockpit"]["owner_service"] == "ADVISORY"
     assert features["advisory.proposals.execution_handoff"]["operational_ready"] is True
     assert features["advise.observability.advisory_supportability"]["enabled"] is True
     assert features["advise.observability.advisory_supportability"]["owner_service"] == "ADVISORY"
@@ -223,6 +247,15 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "advisory.proposals.policy_evaluation",
         "advisory.proposals.reporting",
     ]
+    assert workflows["advisor_cockpit_operating_workflow"]["enabled"] is True
+    assert workflows["advisor_cockpit_operating_workflow"]["operational_ready"] is True
+    assert workflows["advisor_cockpit_operating_workflow"]["required_features"] == [
+        "advisory.proposals.lifecycle",
+        "advisory.policy_pack_catalog",
+        "advisory.proposals.policy_evaluation",
+        "advisory.proposals.memo_evidence_pack",
+        "advisory.advisor_cockpit",
+    ]
     assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True
     assert payload["supportability"] == {
         "state": "degraded",
@@ -232,8 +265,8 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "dependency_count": 5,
         "ready_dependency_count": 2,
         "degraded_dependency_count": 3,
-        "enabled_feature_count": 13,
-        "ready_feature_count": 9,
+        "enabled_feature_count": 14,
+        "ready_feature_count": 10,
     }
 
 
@@ -399,10 +432,13 @@ def test_integration_capabilities_disable_reporting_and_execution_with_lifecycle
         == "ADVISORY_LIFECYCLE_DISABLED"
     )
     assert features["advisory.proposals.memo_evidence_pack"]["enabled"] is False
+    assert features["advisory.advisor_cockpit"]["enabled"] is False
+    assert features["advisory.advisor_cockpit"]["degraded_reason"] == "ADVISORY_LIFECYCLE_DISABLED"
     assert features["advisory.proposals.execution_handoff"]["enabled"] is False
     assert workflows["advisory_proposal_reporting"]["enabled"] is False
     assert workflows["advisory_proposal_reviewed_narrative_evidence"]["enabled"] is False
     assert workflows["advisory_proposal_memo_evidence_pack"]["enabled"] is False
+    assert workflows["advisor_cockpit_operating_workflow"]["enabled"] is False
     assert workflows["advisory_proposal_execution_handoff"]["enabled"] is False
     assert features["advise.observability.advisory_supportability"]["operational_ready"] is False
     assert payload["supportability"]["state"] == "unsupported"
@@ -429,8 +465,8 @@ def test_integration_capabilities_reports_ready_advisory_supportability(monkeypa
         "dependency_count": 5,
         "ready_dependency_count": 5,
         "degraded_dependency_count": 0,
-        "enabled_feature_count": 13,
-        "ready_feature_count": 13,
+        "enabled_feature_count": 14,
+        "ready_feature_count": 14,
     }
 
 

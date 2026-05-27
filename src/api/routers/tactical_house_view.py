@@ -6,6 +6,7 @@ from src.core.tactical_house_view import (
     TacticalHouseViewAffectedCohort,
     TacticalHouseViewCohortRequest,
     build_tactical_house_view_affected_cohort,
+    record_tactical_house_view_affected_cohort,
 )
 
 router = APIRouter(prefix="/advisory/tactical-house-view", tags=["Tactical House View"])
@@ -31,4 +32,6 @@ router = APIRouter(prefix="/advisory/tactical-house-view", tags=["Tactical House
 def evaluate_tactical_house_view_cohort(
     request: TacticalHouseViewCohortRequest,
 ) -> TacticalHouseViewAffectedCohort:
-    return build_tactical_house_view_affected_cohort(request)
+    return record_tactical_house_view_affected_cohort(
+        build_tactical_house_view_affected_cohort(request)
+    )

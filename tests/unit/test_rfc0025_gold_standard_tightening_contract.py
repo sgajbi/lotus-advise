@@ -95,18 +95,26 @@ def test_rfc0025_documentation_as_product_and_supported_claim_controls_are_pinne
     assert policy_feature_row in supported
 
 
-def test_rfc_and_wiki_indexes_point_to_rfc0025_without_stale_rfc0024_future_claim() -> None:
+def test_rfc_and_wiki_indexes_point_past_rfc0025_without_stale_future_claim() -> None:
     rfc_index = _read(RFC_INDEX_PATH)
     wiki_index = _read(WIKI_RFC_INDEX_PATH)
     flat_wiki_index = _flat(wiki_index)
 
-    assert "1. `RFC-0025` enterprise suitability and best-interest policy packs" in rfc_index
+    assert "1. `RFC-0026` advisor cockpit operating workflow" in rfc_index
+    assert "- `RFC-0025` advisor/compliance policy evidence" in rfc_index
     assert "RFC-0024 is implemented for advisor-use proposal memo evidence" in flat_wiki_index
     assert "RFC-0025 is implemented for advisor/compliance policy evaluation evidence" in (
         flat_wiki_index
     )
     assert "RFC-0025 Slice 17 is implemented as post-completion communication" in wiki_index
     assert "RFC-0024 is the next recommended implementation slice" not in wiki_index
+    assert (
+        "RFC-0025 enterprise suitability and best-interest policy packs"
+        not in rfc_index.split(
+            "Recommended near-term implementation order:",
+            maxsplit=1,
+        )[1]
+    )
 
     active_future_section = wiki_index.split("## Active Future Work", maxsplit=1)[1].split(
         "## Important Interpretation",
@@ -116,3 +124,4 @@ def test_rfc_and_wiki_indexes_point_to_rfc0025_without_stale_rfc0024_future_clai
     assert "RFC-0025 enterprise suitability and best-interest policy packs" not in (
         active_future_section
     )
+    assert "RFC-0026 advisor cockpit operating workflow" in active_future_section

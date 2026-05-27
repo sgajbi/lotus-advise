@@ -5,6 +5,10 @@ from datetime import datetime
 from importlib.util import find_spec
 from typing import Any, Optional, cast
 
+from src.core.advisor_cockpit.persistence import (
+    CockpitAcknowledgementIdempotencyRecord,
+    CockpitAcknowledgementRecord,
+)
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalAsyncOperationRecord,
@@ -323,6 +327,48 @@ class PostgresProposalRepository:
             rows = connection.execute(query, (proposal_id,)).fetchall()
         return [memo for row in rows if (memo := _to_memo(row)) is not None]
 
+    def list_memos_for_proposals(self, *, proposal_ids: list[str]) -> list[ProposalMemoRecord]:
+        if not proposal_ids:
+            return []
+        query = """
+            SELECT
+                memo_id,
+                proposal_id,
+                proposal_version_no,
+                proposal_version_id,
+                artifact_id,
+                memo_version,
+                memo_status,
+                lifecycle_status,
+                created_by,
+                created_at,
+                source_input_hash,
+                memo_hash,
+                memo_json,
+                projection_json,
+                review_events_json,
+                report_package_events_json,
+                archive_refs_json,
+                ai_refs_json,
+                replay_metadata_json
+            FROM proposal_memos
+            WHERE proposal_id = ANY(%s)
+            ORDER BY proposal_id ASC, proposal_version_no ASC, created_at ASC, memo_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (proposal_ids,)).fetchall()
+        memo_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        memos = [memo for row in rows if (memo := _to_memo(row)) is not None]
+        return sorted(
+            memos,
+            key=lambda memo: (
+                memo_order.get(memo.proposal_id, len(memo_order)),
+                memo.proposal_version_no,
+                memo.created_at,
+                memo.memo_id,
+            ),
+        )
+
     def append_memo_event(self, event: ProposalMemoEventRecord) -> None:
         query = """
             INSERT INTO proposal_memo_events (
@@ -371,6 +417,146 @@ class PostgresProposalRepository:
         with closing(self._connect()) as connection:
             rows = connection.execute(query, (memo_id,)).fetchall()
         return [_to_memo_event(row) for row in rows]
+
+    def get_cockpit_acknowledgement(
+        self, *, action_item_id: str
+    ) -> Optional[CockpitAcknowledgementRecord]:
+        query = """
+            SELECT
+                acknowledgement_id,
+                action_item_id,
+                action_item_version,
+                acknowledged_by,
+                acknowledged_at,
+                acknowledgement_note,
+                correlation_id,
+                reason_json
+            FROM advisor_cockpit_acknowledgements
+            WHERE action_item_id = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (action_item_id,)).fetchone()
+        if row is None:
+            return None
+        return CockpitAcknowledgementRecord(
+            acknowledgement_id=row["acknowledgement_id"],
+            action_item_id=row["action_item_id"],
+            action_item_version=int(row["action_item_version"]),
+            acknowledged_by=row["acknowledged_by"],
+            acknowledged_at=datetime.fromisoformat(row["acknowledged_at"]),
+            acknowledgement_note=row["acknowledgement_note"],
+            correlation_id=row["correlation_id"],
+            reason_json=json.loads(row["reason_json"]),
+        )
+
+    def save_cockpit_acknowledgement_with_idempotency(
+        self,
+        *,
+        acknowledgement: CockpitAcknowledgementRecord,
+        idempotency: CockpitAcknowledgementIdempotencyRecord,
+    ) -> None:
+        idempotency_query = """
+            INSERT INTO advisor_cockpit_acknowledgement_idempotency (
+                idempotency_key,
+                request_hash,
+                acknowledgement_id,
+                action_item_id,
+                created_at
+            ) VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (idempotency_key) DO NOTHING
+        """
+        idempotency_lookup = """
+            SELECT
+                idempotency_key,
+                request_hash,
+                acknowledgement_id,
+                action_item_id,
+                created_at
+            FROM advisor_cockpit_acknowledgement_idempotency
+            WHERE idempotency_key = %s
+        """
+        acknowledgement_query = """
+            INSERT INTO advisor_cockpit_acknowledgements (
+                acknowledgement_id,
+                action_item_id,
+                action_item_version,
+                acknowledged_by,
+                acknowledged_at,
+                acknowledgement_note,
+                correlation_id,
+                reason_json
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (action_item_id) DO UPDATE SET
+                action_item_version=excluded.action_item_version,
+                acknowledged_by=excluded.acknowledged_by,
+                acknowledged_at=excluded.acknowledged_at,
+                acknowledgement_note=excluded.acknowledgement_note,
+                correlation_id=excluded.correlation_id,
+                reason_json=excluded.reason_json
+        """
+        with closing(self._connect()) as connection:
+            connection.execute(
+                idempotency_query,
+                (
+                    idempotency.idempotency_key,
+                    idempotency.request_hash,
+                    idempotency.acknowledgement_id,
+                    idempotency.action_item_id,
+                    idempotency.created_at.isoformat(),
+                ),
+            )
+            existing = connection.execute(
+                idempotency_lookup, (idempotency.idempotency_key,)
+            ).fetchone()
+            if existing is None:
+                connection.rollback()
+                raise RuntimeError("COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_WRITE_FAILED")
+            if (
+                existing["request_hash"] != idempotency.request_hash
+                or existing["acknowledgement_id"] != idempotency.acknowledgement_id
+                or existing["action_item_id"] != idempotency.action_item_id
+            ):
+                connection.rollback()
+                raise ValueError("COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_KEY_CONFLICT")
+            connection.execute(
+                acknowledgement_query,
+                (
+                    acknowledgement.acknowledgement_id,
+                    acknowledgement.action_item_id,
+                    acknowledgement.action_item_version,
+                    acknowledgement.acknowledged_by,
+                    acknowledgement.acknowledged_at.isoformat(),
+                    acknowledgement.acknowledgement_note,
+                    acknowledgement.correlation_id,
+                    _json_dump(acknowledgement.reason_json),
+                ),
+            )
+            connection.commit()
+
+    def get_cockpit_acknowledgement_idempotency(
+        self, *, idempotency_key: str
+    ) -> Optional[CockpitAcknowledgementIdempotencyRecord]:
+        query = """
+            SELECT
+                idempotency_key,
+                request_hash,
+                acknowledgement_id,
+                action_item_id,
+                created_at
+            FROM advisor_cockpit_acknowledgement_idempotency
+            WHERE idempotency_key = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (idempotency_key,)).fetchone()
+        if row is None:
+            return None
+        return CockpitAcknowledgementIdempotencyRecord(
+            idempotency_key=row["idempotency_key"],
+            request_hash=row["request_hash"],
+            acknowledgement_id=row["acknowledgement_id"],
+            action_item_id=row["action_item_id"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
 
     def create_operation(self, operation: ProposalAsyncOperationRecord) -> None:
         self._upsert_operation(operation)
@@ -861,6 +1047,39 @@ class PostgresProposalRepository:
             rows = connection.execute(query, (proposal_id,)).fetchall()
         return [_to_event(row) for row in rows]
 
+    def list_events_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalWorkflowEventRecord]:
+        if not proposal_ids:
+            return []
+        query = """
+            SELECT
+                event_id,
+                proposal_id,
+                event_type,
+                from_state,
+                to_state,
+                actor_id,
+                occurred_at,
+                reason_json,
+                related_version_no
+            FROM proposal_workflow_events
+            WHERE proposal_id = ANY(%s)
+            ORDER BY proposal_id ASC, occurred_at ASC, event_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (proposal_ids,)).fetchall()
+        event_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        events = [_to_event(row) for row in rows]
+        return sorted(
+            events,
+            key=lambda event: (
+                event_order.get(event.proposal_id, len(event_order)),
+                event.occurred_at,
+                event.event_id,
+            ),
+        )
+
     def create_approval(self, approval: ProposalApprovalRecordData) -> None:
         with closing(self._connect()) as connection:
             self._insert_approval(connection=connection, approval=approval)
@@ -884,6 +1103,38 @@ class PostgresProposalRepository:
         with closing(self._connect()) as connection:
             rows = connection.execute(query, (proposal_id,)).fetchall()
         return [_to_approval(row) for row in rows]
+
+    def list_approvals_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalApprovalRecordData]:
+        if not proposal_ids:
+            return []
+        query = """
+            SELECT
+                approval_id,
+                proposal_id,
+                approval_type,
+                approved,
+                actor_id,
+                occurred_at,
+                details_json,
+                related_version_no
+            FROM proposal_approvals
+            WHERE proposal_id = ANY(%s)
+            ORDER BY proposal_id ASC, occurred_at ASC, approval_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (proposal_ids,)).fetchall()
+        approval_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        approvals = [_to_approval(row) for row in rows]
+        return sorted(
+            approvals,
+            key=lambda approval: (
+                approval_order.get(approval.proposal_id, len(approval_order)),
+                approval.occurred_at,
+                approval.approval_id,
+            ),
+        )
 
     def transition_proposal(
         self,

@@ -192,6 +192,9 @@ class TacticalHouseViewAffectedCohort(BaseModel):
     correlation_id: str = Field(description="Correlation identifier.")
 
 
+_COHORT_STORE: dict[str, TacticalHouseViewAffectedCohort] = {}
+
+
 def build_tactical_house_view_affected_cohort(
     request: TacticalHouseViewCohortRequest,
     *,
@@ -262,6 +265,36 @@ def build_tactical_house_view_affected_cohort(
         TacticalHouseViewAffectedCohort,
         TacticalHouseViewAffectedCohort.model_validate(payload),
     )
+
+
+def record_tactical_house_view_affected_cohort(
+    cohort: TacticalHouseViewAffectedCohort,
+) -> TacticalHouseViewAffectedCohort:
+    _COHORT_STORE[cohort.cohort_id] = cohort.model_copy(deep=True)
+    return cohort
+
+
+def list_tactical_house_view_affected_cohorts(
+    *,
+    portfolio_id: str | None,
+    limit: int,
+) -> list[TacticalHouseViewAffectedCohort]:
+    cohorts = sorted(
+        _COHORT_STORE.values(),
+        key=lambda item: (item.generated_at, item.cohort_id),
+        reverse=True,
+    )
+    if portfolio_id is not None:
+        cohorts = [
+            cohort
+            for cohort in cohorts
+            if any(affected.portfolio_id == portfolio_id for affected in cohort.affected_portfolios)
+        ]
+    return [cohort.model_copy(deep=True) for cohort in cohorts[:limit]]
+
+
+def clear_tactical_house_view_affected_cohorts_for_tests() -> None:
+    _COHORT_STORE.clear()
 
 
 def _candidate_exclusion_reasons(

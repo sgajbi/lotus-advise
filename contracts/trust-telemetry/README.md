@@ -29,6 +29,18 @@ The current first-wave snapshot is:
    supportability hardening, and Slice 16 final closure. Completed approval/waiver authority,
    completed sign-off authority, client-ready publication, and external client communication remain
    blocked.
+5. `advisor-cockpit-operating-snapshot.telemetry.v1.json`
+   Active trust posture for `lotus-advise:AdvisorCockpitOperatingSnapshot:v1`, the RFC-0026
+   advisor cockpit operating snapshot product. This snapshot is bounded to source-owned snapshot,
+   supportability, meeting-preparation, Gateway/Workbench, and canonical proof evidence; it does
+   not promote client-ready publication, external client communication, CRM system-of-record
+   behavior, OMS order lifecycle, completed policy approval authority, or full RFC-0028 demo/RFP
+   package claims.
+6. `advisory-action-item-register.telemetry.v1.json`
+   Active trust posture for `lotus-advise:AdvisoryActionItemRegister:v1`, the RFC-0026 source-owned
+   action-item register. Acknowledgements prove review posture only; they do not clear blockers,
+   approve policy findings, contact clients, create CRM tasks, or initiate OMS order lifecycle
+   activity.
 
 Validate locally with:
 

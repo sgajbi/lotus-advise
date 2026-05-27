@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalIdempotencyRecord,
+    ProposalMemoRecord,
     ProposalRecord,
     ProposalSimulationIdempotencyRecord,
     ProposalTransitionResult,
@@ -122,6 +123,19 @@ def test_repository_list_filters_cursor_events_and_approvals():
     )
     repo.append_event(event)
     assert repo.list_events(proposal_id="pp_repo_a")[0].event_id == "pwe_repo_1"
+    second_event = event.model_copy(
+        update={
+            "event_id": "pwe_repo_2",
+            "proposal_id": "pp_repo_b",
+            "actor_id": "advisor_b",
+        }
+    )
+    repo.append_event(second_event)
+    assert [
+        row.event_id
+        for row in repo.list_events_for_proposals(proposal_ids=["pp_repo_b", "pp_repo_a"])
+    ] == ["pwe_repo_2", "pwe_repo_1"]
+    assert repo.list_events_for_proposals(proposal_ids=[]) == []
 
     approval = ProposalApprovalRecordData(
         approval_id="pap_repo_1",
@@ -135,6 +149,59 @@ def test_repository_list_filters_cursor_events_and_approvals():
     )
     repo.create_approval(approval)
     assert repo.list_approvals(proposal_id="pp_repo_a")[0].approval_id == "pap_repo_1"
+    second_approval = approval.model_copy(
+        update={
+            "approval_id": "pap_repo_2",
+            "proposal_id": "pp_repo_b",
+            "actor_id": "compliance",
+            "approval_type": "COMPLIANCE",
+        }
+    )
+    repo.create_approval(second_approval)
+    assert [
+        row.approval_id
+        for row in repo.list_approvals_for_proposals(proposal_ids=["pp_repo_b", "pp_repo_a"])
+    ] == ["pap_repo_2", "pap_repo_1"]
+    assert repo.list_approvals_for_proposals(proposal_ids=[]) == []
+
+
+def test_repository_lists_memos_for_proposals_in_one_ordered_batch():
+    repo = InMemoryProposalRepository()
+    first = _proposal("pp_repo_a", "advisor_a")
+    second = _proposal("pp_repo_b", "advisor_b")
+    repo.create_proposal(first)
+    repo.create_proposal(second)
+
+    first_memo = ProposalMemoRecord(
+        memo_id="memo_repo_a",
+        proposal_id=first.proposal_id,
+        proposal_version_no=1,
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="FINALIZED",
+        created_by="advisor_a",
+        created_at=_now(),
+        source_input_hash="sha256:source-a",
+        memo_hash="sha256:memo-a",
+        memo_json={"memo_id": "memo_repo_a"},
+    )
+    second_memo = first_memo.model_copy(
+        update={
+            "memo_id": "memo_repo_b",
+            "proposal_id": second.proposal_id,
+            "created_by": "advisor_b",
+            "source_input_hash": "sha256:source-b",
+            "memo_hash": "sha256:memo-b",
+            "memo_json": {"memo_id": "memo_repo_b"},
+        }
+    )
+    repo.create_memo(second_memo)
+    repo.create_memo(first_memo)
+
+    memos = repo.list_memos_for_proposals(proposal_ids=[second.proposal_id, first.proposal_id])
+
+    assert [memo.memo_id for memo in memos] == ["memo_repo_b", "memo_repo_a"]
+    assert repo.list_memos_for_proposals(proposal_ids=[]) == []
 
 
 def test_repository_versions_and_transition_transaction_path():
