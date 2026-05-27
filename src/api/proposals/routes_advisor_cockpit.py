@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import Depends, Header, Path, Query, status
 
@@ -10,6 +10,7 @@ from src.core.advisor_cockpit import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
     AdvisorCockpitOwnerRole,
+    AdvisorCockpitRepository,
     AdvisorCockpitService,
     AdvisorCockpitSnapshotResponse,
     AdvisorCockpitSupportabilityResponse,
@@ -41,7 +42,9 @@ ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES = {
 
 
 def get_advisor_cockpit_service() -> AdvisorCockpitService:
-    return AdvisorCockpitService(repository=shared.get_proposal_repository())
+    return AdvisorCockpitService(
+        repository=cast(AdvisorCockpitRepository, shared.get_proposal_repository())
+    )
 
 
 @shared.router.get(

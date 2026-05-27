@@ -258,6 +258,119 @@
       }
     },
     {
+      "product_name": "AdvisorCockpitOperatingSnapshot",
+      "product_version": "v1",
+      "owner_repository": "lotus-advise",
+      "product_family": "workflow_and_decision_state",
+      "authoritative_domain": "advisory_workflow",
+      "lifecycle_status": "active",
+      "request_scope": {
+        "scope_level": "portfolio",
+        "supports_bulk": false
+      },
+      "temporal_scope": {
+        "primary_time_field": "generated_at",
+        "freshness_basis": "event_time",
+        "supports_restatement": true
+      },
+      "temporal_semantics_ref": "generated_at",
+      "identifier_refs": [
+        "portfolio_id",
+        "correlation_id"
+      ],
+      "required_trust_metadata": [
+        "product_name",
+        "product_version",
+        "generated_at",
+        "content_hash",
+        "correlation_id"
+      ],
+      "current_routes": [
+        "/advisory/cockpit/snapshot",
+        "/advisory/cockpit/supportability"
+      ],
+      "freshness_policy": {
+        "freshness_class": "event_driven",
+        "max_allowed_age_description": "Advisor cockpit snapshot freshness is measured against source-backed proposal, memo, policy-evaluation, acknowledgement, supportability, and canonical Workbench proof evidence for the requested portfolio. The product is bounded to advisor operating workflow evidence; client-ready publication, external client communication, CRM system-of-record behavior, OMS orders, fills, settlement, completed policy approval authority, and full RFC-0028 demo/RFP package claims remain blocked."
+      },
+      "completeness_policy": {
+        "default_status": "complete",
+        "partial_allowed": false
+      },
+      "lineage_policy": {
+        "lineage_required": true,
+        "evidence_bundle_required": true,
+        "lineage_bundle_class_ref": "customer_lineage_summary",
+        "evidence_access_class_ref": "customer_consumable"
+      },
+      "security_profile_ref": "business_consumer_access:client_confidential:retain_for_client_record:audit_read_and_export",
+      "approved_consumers": [
+        "lotus-gateway",
+        "lotus-workbench"
+      ],
+      "deprecation_policy": {
+        "state": "not_deprecated",
+        "successor_product": null
+      }
+    },
+    {
+      "product_name": "AdvisoryActionItemRegister",
+      "product_version": "v1",
+      "owner_repository": "lotus-advise",
+      "product_family": "workflow_and_decision_state",
+      "authoritative_domain": "advisory_workflow",
+      "lifecycle_status": "active",
+      "request_scope": {
+        "scope_level": "portfolio",
+        "supports_bulk": false
+      },
+      "temporal_scope": {
+        "primary_time_field": "generated_at",
+        "freshness_basis": "event_time",
+        "supports_restatement": true
+      },
+      "temporal_semantics_ref": "generated_at",
+      "identifier_refs": [
+        "portfolio_id",
+        "correlation_id"
+      ],
+      "required_trust_metadata": [
+        "product_name",
+        "product_version",
+        "generated_at",
+        "content_hash",
+        "correlation_id"
+      ],
+      "current_routes": [
+        "/advisory/cockpit/actions",
+        "/advisory/cockpit/actions/{action_item_id}",
+        "/advisory/cockpit/actions/{action_item_id}/acknowledgements"
+      ],
+      "freshness_policy": {
+        "freshness_class": "event_driven",
+        "max_allowed_age_description": "Advisor action-item register freshness is measured against source-backed proposal, memo, policy-evaluation, acknowledgement, SLA-ageing, and canonical Workbench proof evidence for the requested portfolio. The product is bounded to advisor operating workflow evidence and acknowledgement posture; acknowledgements do not clear source-owned blockers, approve policy findings, release client-ready publication, contact clients, create CRM tasks, or initiate OMS order lifecycle activity."
+      },
+      "completeness_policy": {
+        "default_status": "complete",
+        "partial_allowed": false
+      },
+      "lineage_policy": {
+        "lineage_required": true,
+        "evidence_bundle_required": true,
+        "lineage_bundle_class_ref": "customer_lineage_summary",
+        "evidence_access_class_ref": "customer_consumable"
+      },
+      "security_profile_ref": "business_consumer_access:client_confidential:retain_for_client_record:audit_read_and_export",
+      "approved_consumers": [
+        "lotus-gateway",
+        "lotus-workbench"
+      ],
+      "deprecation_policy": {
+        "state": "not_deprecated",
+        "successor_product": null
+      }
+    },
+    {
       "product_name": "TacticalHouseViewAffectedCohort",
       "product_version": "v1",
       "owner_repository": "lotus-advise",

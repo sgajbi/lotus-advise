@@ -29,18 +29,25 @@ def _flat(path: Path) -> str:
     return " ".join(_read(path).split())
 
 
-def test_cockpit_data_products_are_not_promoted_before_runtime_evidence() -> None:
+def test_cockpit_data_products_are_promoted_after_canonical_runtime_evidence() -> None:
     declaration = json.loads(DECLARATION_PATH.read_text(encoding="utf-8"))
-    product_names = {product["product_name"] for product in declaration["products"]}
+    products = {product["product_name"]: product for product in declaration["products"]}
     telemetry_files = {path.name for path in TELEMETRY_DIR.glob("*.json")}
 
-    assert "AdvisorCockpitOperatingSnapshot" not in product_names
-    assert "AdvisoryActionItemRegister" not in product_names
-    assert "advisor-cockpit-operating-snapshot.telemetry.v1.json" not in telemetry_files
-    assert "advisory-action-item-register.telemetry.v1.json" not in telemetry_files
+    assert products["AdvisorCockpitOperatingSnapshot"]["lifecycle_status"] == "active"
+    assert products["AdvisoryActionItemRegister"]["lifecycle_status"] == "active"
+    assert "advisor-cockpit-operating-snapshot.telemetry.v1.json" in telemetry_files
+    assert "advisory-action-item-register.telemetry.v1.json" in telemetry_files
+    assert (
+        "/advisory/cockpit/snapshot"
+        in products["AdvisorCockpitOperatingSnapshot"]["current_routes"]
+    )
+    assert "/advisory/cockpit/actions" in products["AdvisoryActionItemRegister"]["current_routes"]
+    assert "lotus-gateway" in products["AdvisorCockpitOperatingSnapshot"]["approved_consumers"]
+    assert "lotus-workbench" in products["AdvisoryActionItemRegister"]["approved_consumers"]
 
 
-def test_platform_capabilities_do_not_advertise_cockpit_before_runtime_support() -> None:
+def test_platform_capabilities_advertise_cockpit_after_runtime_support() -> None:
     with TestClient(app) as client:
         response = client.get("/platform/capabilities")
 
@@ -50,10 +57,10 @@ def test_platform_capabilities_do_not_advertise_cockpit_before_runtime_support()
     feature_keys = {feature["key"] for feature in payload["features"]}
     workflow_keys = {workflow["workflow_key"] for workflow in payload["workflows"]}
 
-    assert "advisory.advisor_cockpit" not in feature_keys
-    assert "advisory_action_item_register" not in feature_keys
-    assert "advisor_cockpit" not in workflow_keys
-    assert "advisor cockpit" not in payload_text
+    assert "advisory.advisor_cockpit" in feature_keys
+    assert "advisor_cockpit_operating_workflow" in workflow_keys
+    assert "advisor cockpit" in payload_text
+    assert "client-ready publication" in payload_text
 
 
 def test_rfc0026_slice3_evidence_is_indexed_and_non_promoting() -> None:
@@ -70,7 +77,9 @@ def test_rfc0026_slice3_evidence_is_indexed_and_non_promoting() -> None:
     assert "This is not deferral outside RFC-0026" in slice3
     assert "`AdvisorCockpitOperatingSnapshot:v1` may be promoted only after" in slice3
     assert "`AdvisoryActionItemRegister:v1` may be promoted only after" in slice3
-    assert "No integrated advisor-cockpit product support claim is promoted" in supported
+    assert "AdvisorCockpitOperatingSnapshot:v1" in supported
+    assert "AdvisoryActionItemRegister:v1" in supported
+    assert "canonical `PB_SG_GLOBAL_BAL_001` proof" in supported
 
 
 def test_rfc0026_slice3_records_mandatory_promotion_requirements() -> None:

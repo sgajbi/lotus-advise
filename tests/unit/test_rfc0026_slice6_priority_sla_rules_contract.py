@@ -43,8 +43,8 @@ def test_rfc0026_slice6_records_non_promoting_rule_posture() -> None:
     for marker in required_markers:
         assert marker in slice6
 
-    assert "Slice 6 adds deterministic SLA age-band and acknowledgement posture rules" in supported
-    assert "No integrated advisor-cockpit product support claim is promoted" in supported
+    assert "deterministic SLA/acknowledgement rules" in supported
+    assert "Implemented for the source-owned first-wave advisor cockpit" in supported
 
 
 def test_rfc0026_slice6_contract_is_backed_by_code_and_behavior_tests() -> None:

@@ -245,6 +245,22 @@ def build_feature_capabilities(
             ),
         ),
         FeatureCapability(
+            key="advisory.advisor_cockpit",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            owner_service="ADVISORY",
+            description=(
+                "RFC-0026 advisor cockpit operating workflow with source-owned action items, "
+                "operating snapshot, supportability posture, meeting-preparation evidence, "
+                "Gateway/Workbench canonical proof, and bounded acknowledgement. Client-ready "
+                "publication, external client communication, CRM system-of-record behavior, "
+                "OMS order lifecycle, completed policy approval authority, and full RFC-0028 "
+                "demo/RFP package claims remain gated."
+            ),
+            fallback_mode="NONE",
+            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+        ),
+        FeatureCapability(
             key="advisory.proposals.execution_handoff",
             enabled=lifecycle_enabled,
             operational_ready=lifecycle_enabled,
@@ -389,6 +405,20 @@ def build_workflow_capabilities(
                 if not lifecycle_enabled or lotus_report_ready
                 else "LOTUS_REPORT_DEPENDENCY_UNAVAILABLE"
             ),
+        ),
+        WorkflowCapability(
+            workflow_key="advisor_cockpit_operating_workflow",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled,
+            required_features=[
+                "advisory.proposals.lifecycle",
+                "advisory.policy_pack_catalog",
+                "advisory.proposals.policy_evaluation",
+                "advisory.proposals.memo_evidence_pack",
+                "advisory.advisor_cockpit",
+            ],
+            dependency_keys=[],
+            degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_execution_handoff",

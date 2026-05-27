@@ -1,0 +1,64 @@
+{
+  "contract_id": "lotus-domain-product-trust-telemetry-snapshot",
+  "contract_version": "1.0.0",
+  "governed_by_rfcs": [
+    "RFC-0087",
+    "RFC-0026"
+  ],
+  "emitted_at_utc": "2026-05-27T00:00:00Z",
+  "product_id": "lotus-advise:AdvisoryActionItemRegister:v1",
+  "producer_repository": "lotus-advise",
+  "product_name": "AdvisoryActionItemRegister",
+  "product_version": "v1",
+  "source_repository": "lotus-advise",
+  "freshness": {
+    "freshness_class": "event_driven",
+    "freshness_state": "current",
+    "evaluated_at_utc": "2026-05-27T00:00:00Z",
+    "observed_at_utc": "2026-05-27T00:00:00Z",
+    "age_seconds": 0,
+    "max_allowed_age_seconds": 86400
+  },
+  "completeness_status": "complete",
+  "reconciliation_status": "not_applicable",
+  "data_quality_status": "quality_passed",
+  "lineage": {
+    "lineage_materialized": true,
+    "lineage_bundle_id": "lineage:lotus-advise:advisory-action-item-register:canonical-proof:2026-05-27",
+    "evidence_access_class": "customer_consumable",
+    "evidence_uris": [
+      "lotus-advise://contracts/domain-data-products/lotus-advise-products.v1.json#AdvisoryActionItemRegister",
+      "lotus-advise://docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md",
+      "lotus-advise://src/core/advisor_cockpit/action_factory.py",
+      "lotus-advise://src/core/advisor_cockpit/source_read_model.py",
+      "lotus-advise://src/core/advisor_cockpit/service.py",
+      "lotus-advise://src/infrastructure/postgres_migrations/proposals/0008_cockpit_acknowledgements.sql",
+      "lotus-gateway://src/app/routers/advisor_cockpit.py",
+      "lotus-workbench://output/playwright/live-canonical/live-validation-summary.json#ADVISOR_COCKPIT_ACTION_ACKNOWLEDGED",
+      "lotus-workbench://output/playwright/live-canonical/advisory-advisor-cockpit-live.png",
+      "lotus-platform://context/contracts/canonical-front-office-demo-data-contract.json#RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL",
+      "lotus-platform://context/contracts/workbench-panel-registry.json#advisory.advisor_cockpit"
+    ]
+  },
+  "blocking": {
+    "blocked": false
+  },
+  "observed_trust_metadata": {
+    "product_name": "AdvisoryActionItemRegister",
+    "product_version": "v1",
+    "generated_at": "2026-05-27T00:00:00Z",
+    "content_hash": "sha256:rfc0026-advisory-action-item-register-v1-canonical-proof",
+    "correlation_id": "rfc-0026-advisory-action-item-register"
+  },
+  "evidence": {
+    "correlation_id": "rfc-0026-advisory-action-item-register",
+    "claim_boundary": "RFC-0026 promotes AdvisoryActionItemRegister:v1 as an active advisor operating workflow evidence product after Advise API certification, durable acknowledgement persistence, Gateway publication, Workbench Gateway-first product surface, and canonical PB_SG_GLOBAL_BAL_001 live proof. The product remains bounded to source-owned action identity, status, priority, owner role, SLA aging, evidence, lineage, and acknowledgement posture; acknowledgements do not clear blockers, approve policy findings, release client-ready publication, contact clients, create CRM tasks, or initiate OMS order lifecycle activity.",
+    "validation_lanes": [
+      "feature",
+      "pr-merge",
+      "platform-end-to-end"
+    ],
+    "source_event_id": "source-event:lotus-advise:advisory-action-item-register:active:2026-05-27",
+    "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/advisory-action-item-register.telemetry.v1.json"
+  }
+}

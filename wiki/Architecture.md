@@ -15,6 +15,7 @@ FastAPI route families are organized into:
 - advisory operations and support
 - advisory workspace
 - tactical house view
+- advisor cockpit
 - integration
 - health and monitoring
 
@@ -29,6 +30,17 @@ The core advisory domain includes:
 - artifact generation
 - proposal alternatives normalization, enrichment, projection, and ranking
 - tactical house-view affected-cohort evaluation for supplied source-backed candidates
+
+### Advisor Cockpit Domain
+
+RFC-0026 cockpit behavior lives in `src/core/advisor_cockpit/` rather than in controllers or
+Workbench. The package owns private-banking action vocabulary, source-read-model aggregation,
+priority and SLA policy, acknowledgement replay, supportability projection, and API DTO mapping for
+`AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1`.
+
+The source boundary is deliberate: Gateway publishes the Advise contract and Workbench renders the
+Gateway/BFF response. Neither layer reconstructs suitability, memo, narrative, policy, priority, or
+acknowledgement semantics locally.
 
 ### Lifecycle Domain
 
@@ -125,6 +137,22 @@ The workspace surface exists for iterative drafting before formal proposal lifec
 - compare to saved version
 - replay evidence lookup
 - lifecycle handoff into persisted proposal ownership
+
+### Advisor Cockpit Flow
+
+```mermaid
+flowchart LR
+    Advise[lotus-advise advisor cockpit APIs] --> Gateway[lotus-gateway RFC-0026 BFF routes]
+    Gateway --> Workbench[lotus-workbench advisor cockpit panel]
+    Advise --> Products[AdvisorCockpitOperatingSnapshot:v1<br/>AdvisoryActionItemRegister:v1]
+    Products --> Telemetry[trust telemetry snapshots]
+    Advise --> Capabilities[GET /platform/capabilities]
+```
+
+The canonical `PB_SG_GLOBAL_BAL_001` validation proves this path through Advise, Gateway, and
+Workbench. It remains bounded to advisor operating workflow evidence and does not assert
+client-ready publication, external client communication, CRM system-of-record behavior, OMS order
+lifecycle, completed policy approval authority, or full RFC-0028 demo/RFP readiness.
 
 ## Boundary Rules
 

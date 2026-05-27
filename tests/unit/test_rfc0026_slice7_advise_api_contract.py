@@ -34,7 +34,7 @@ def test_rfc0026_slice7_evidence_is_indexed() -> None:
     assert source_ref in _read(WIKI_RFC_INDEX_PATH)
 
 
-def test_rfc0026_slice7_records_api_support_without_product_promotion() -> None:
+def test_rfc0026_slice7_records_api_support_before_product_promotion_slice() -> None:
     slice7 = _flat(SLICE7_PATH)
     supported = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
@@ -49,8 +49,9 @@ def test_rfc0026_slice7_records_api_support_without_product_promotion() -> None:
     for marker in required_markers:
         assert marker in slice7 or marker in supported
 
-    assert "Slice 7 adds Advise-owned cockpit action" in supported
-    assert "no integrated advisor-cockpit product support claim is promoted" in supported.lower()
+    assert "certified Advise action/snapshot/supportability/acknowledgement APIs" in supported
+    assert "AdvisorCockpitOperatingSnapshot:v1" in supported
+    assert "AdvisoryActionItemRegister:v1" in supported
 
 
 def test_rfc0026_slice7_code_paths_and_openapi_are_present() -> None:

@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | READY FOR IMPLEMENTATION - GOLD-STANDARD PLAN |
+| **Status** | IMPLEMENTATION IN PROGRESS - SOURCE/GATEWAY/WORKBENCH PROOFED |
 | **Created** | 2026-05-22 |
 | **Last Tightened** | 2026-05-27 |
 | **Owner** | `lotus-advise` for advisor-cockpit workflow authority, action semantics, and evidence-product truth |
@@ -875,7 +875,7 @@ advisor operating workflow behavior.
 
 Canonical scenario:
 
-1. scenario id: `RFC26_ADVISOR_COCKPIT_CANONICAL`,
+1. scenario id: `RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL`,
 2. canonical portfolio: `PB_SG_GLOBAL_BAL_001`,
 3. prerequisite scenario: `RFC23_25_ADVISORY_PROPOSAL_POLICY_CANONICAL`,
 4. prerequisite policy pack: `SG_PRIVATE_BANKING_REFERENCE`,
@@ -1187,7 +1187,31 @@ Acceptance gate:
 3. no direct service reads or UI-local workflow inference,
 4. screenshots are captured only after canonical validation passes.
 
-### Slice 13 - Documentation, Commercial, and Supported-Feature Material During Build
+### Slice 13 - Data Product, Capability, and Supportability Promotion
+
+Outcome:
+
+1. promote `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` only after
+   Advise, Gateway, Workbench, and canonical proof exist,
+2. add trust telemetry and `/platform/capabilities` posture for the supported first-wave cockpit
+   scope,
+3. update Advise supportability to report Gateway support, Workbench canonical proof, active
+   data-product posture, and canonical `PB_SG_GLOBAL_BAL_001` validation.
+
+Acceptance gate:
+
+1. data-product declarations and trust telemetry validate,
+2. `/platform/capabilities` advertises `advisory.advisor_cockpit` and
+   `advisor_cockpit_operating_workflow`,
+3. client-ready publication, external client communication, CRM system-of-record behavior, OMS
+   order lifecycle, completed policy approval authority, and full RFC-0028 demo/RFP claims remain
+   gated.
+
+Slice 13 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
+
+### Slice 14 - Documentation, Commercial, and Supported-Feature Material During Build
 
 Outcome:
 
@@ -1202,7 +1226,7 @@ Acceptance gate:
 2. wiki source is useful and not duplicative,
 3. unsupported claims remain marked as planned or absent.
 
-### Slice 14 - Security, Production, and CI Hardening
+### Slice 15 - Security, Production, and CI Hardening
 
 Outcome:
 
@@ -1218,7 +1242,7 @@ Acceptance gate:
 4. load/performance evidence exists for cockpit endpoints,
 5. no high-cardinality or sensitive metrics/logging remain.
 
-### Slice 15 - Implementation Proof
+### Slice 16 - Implementation Proof
 
 Outcome:
 
@@ -1235,7 +1259,7 @@ Acceptance gate:
    readiness state, and degraded state is reviewed,
 3. gaps are fixed inside this RFC.
 
-### Slice 16 - Second-Last Hardening and Review
+### Slice 17 - Second-Last Hardening and Review
 
 Outcome:
 
@@ -1256,7 +1280,7 @@ Acceptance gate:
 3. every attribute has description, type, and example value,
 4. all repo-native and affected cross-repo CI gates are green.
 
-### Slice 17 - Final Closure
+### Slice 18 - Final Closure
 
 Outcome:
 
@@ -1277,7 +1301,7 @@ Acceptance gate:
 6. agent-context/skills/guidance changes are added if needed, or an explicit no-change decision is
    recorded.
 
-### Slice 18 - Post-Completion Communication
+### Slice 19 - Post-Completion Communication
 
 Outcome:
 

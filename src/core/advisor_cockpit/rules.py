@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 from src.core.advisor_cockpit.models import (
     AdvisorCockpitSlaAgeBand,
@@ -41,8 +42,11 @@ def with_cockpit_sla_age_band(
     *,
     now: datetime,
 ) -> AdvisoryActionItem:
-    return action.model_copy(
-        update={"sla_age_band": derive_cockpit_sla_age_band(due_at=action.due_at, now=now)}
+    return cast(
+        AdvisoryActionItem,
+        action.model_copy(
+            update={"sla_age_band": derive_cockpit_sla_age_band(due_at=action.due_at, now=now)}
+        ),
     )
 
 
@@ -50,7 +54,10 @@ def apply_cockpit_acknowledgement_state(
     action: AdvisoryActionItem,
     acknowledgement_state: CockpitAcknowledgementState,
 ) -> AdvisoryActionItem:
-    return action.model_copy(update={"acknowledgement_state": acknowledgement_state})
+    return cast(
+        AdvisoryActionItem,
+        action.model_copy(update={"acknowledgement_state": acknowledgement_state}),
+    )
 
 
 def is_cockpit_action_owner_blocking(action: AdvisoryActionItem) -> bool:

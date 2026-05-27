@@ -20,7 +20,7 @@ def test_rfc0026_records_current_prerequisites_and_readiness_boundary() -> None:
     rfc = _flat(RFC26_PATH)
 
     required_markers = (
-        "READY FOR IMPLEMENTATION - GOLD-STANDARD PLAN",
+        "IMPLEMENTATION IN PROGRESS - SOURCE/GATEWAY/WORKBENCH PROOFED",
         "Last Tightened** | 2026-05-27",
         "rfc0026-advisor-cockpit-gold-standard",
         "2026-05-27 Implementation Readiness Decision",
@@ -41,7 +41,7 @@ def test_rfc0026_requires_repeatable_front_office_cockpit_automation() -> None:
 
     required_markers = (
         "Canonical Front-Office Automation Expansion",
-        "RFC26_ADVISOR_COCKPIT_CANONICAL",
+        "RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL",
         "PB_SG_GLOBAL_BAL_001",
         "RFC23_25_ADVISORY_PROPOSAL_POLICY_CANONICAL",
         "SG_PRIVATE_BANKING_REFERENCE",
@@ -85,7 +85,7 @@ def test_rfc_index_and_wiki_reflect_rfc0025_closure_and_rfc0026_readiness() -> N
 
     assert (
         "RFC-0026 | Advisor Cockpit Operating Workflow | "
-        "READY FOR IMPLEMENTATION - GOLD-STANDARD PLAN" in rfc_index
+        "IMPLEMENTATION IN PROGRESS - SOURCE/GATEWAY/WORKBENCH PROOFED" in rfc_index
     )
     assert "- `RFC-0025` advisor/compliance policy evidence" in rfc_index
 
@@ -95,8 +95,7 @@ def test_rfc_index_and_wiki_reflect_rfc0025_closure_and_rfc0026_readiness() -> N
     assert "- `RFC-0025`" not in not_yet_implemented
     assert "1. `RFC-0026` advisor cockpit operating workflow" in rfc_index
 
-    assert "RFC-0026 is ready for implementation as the next advisory RFC" in wiki_index
-    assert "RFC26_ADVISOR_COCKPIT_CANONICAL" in wiki_index
-    assert (
-        "Ready for implementation after 2026-05-27 gold-standard tightening" in supported_features
-    )
+    assert "RFC-0026 is in implementation" in wiki_index
+    assert "RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL" in wiki_index
+    assert "Implemented for the source-owned first-wave advisor cockpit" in supported_features
+    assert "AdvisorCockpitOperatingSnapshot:v1" in supported_features

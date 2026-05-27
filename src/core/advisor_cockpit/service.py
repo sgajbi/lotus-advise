@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitAcknowledgeRequest,
@@ -125,7 +125,10 @@ class AdvisorCockpitService:
             ),
             supportability=supportability,
         )
-        return AdvisorCockpitSnapshotResponse.model_validate(snapshot.model_dump(mode="json"))
+        return cast(
+            AdvisorCockpitSnapshotResponse,
+            AdvisorCockpitSnapshotResponse.model_validate(snapshot.model_dump(mode="json")),
+        )
 
     def get_supportability(
         self,
@@ -306,9 +309,10 @@ def _supportability(*, actions: list[AdvisoryActionItem], source_limit: int) -> 
         "source_limit": source_limit,
         "action_count": len(actions),
         "api_posture": "SUPPORTED_BY_LOTUS_ADVISE_RFC0026",
-        "gateway_posture": "MANDATORY_SUBSEQUENT_RFC0026_SLICE",
-        "workbench_posture": "MANDATORY_SUBSEQUENT_RFC0026_SLICE",
-        "data_product_posture": "NOT_PROMOTED_UNTIL_RUNTIME_AND_CANONICAL_PROOF",
+        "gateway_posture": "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026",
+        "workbench_posture": "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026",
+        "data_product_posture": "ACTIVE_ADVISOR_COCKPIT_PRODUCTS_RFC0026",
+        "canonical_proof": "PB_SG_GLOBAL_BAL_001_ADVISOR_COCKPIT_VALIDATED",
         "client_ready_publication": "BLOCKED",
         "external_client_communication": "BLOCKED",
     }

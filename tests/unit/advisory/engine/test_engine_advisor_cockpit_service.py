@@ -155,8 +155,16 @@ def test_cockpit_service_snapshot_preserves_gated_downstream_posture(
 
     assert snapshot.action_counts["status.PENDING_REVIEW"] == 1
     assert snapshot.action_counts["status.BLOCKED"] == 1
-    assert snapshot.supportability["gateway_posture"] == "MANDATORY_SUBSEQUENT_RFC0026_SLICE"
-    assert snapshot.supportability["workbench_posture"] == "MANDATORY_SUBSEQUENT_RFC0026_SLICE"
+    assert snapshot.supportability["gateway_posture"] == "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026"
+    assert snapshot.supportability["workbench_posture"] == (
+        "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026"
+    )
+    assert snapshot.supportability["data_product_posture"] == (
+        "ACTIVE_ADVISOR_COCKPIT_PRODUCTS_RFC0026"
+    )
+    assert snapshot.supportability["canonical_proof"] == (
+        "PB_SG_GLOBAL_BAL_001_ADVISOR_COCKPIT_VALIDATED"
+    )
     assert snapshot.supportability["client_ready_publication"] == "BLOCKED"
 
 

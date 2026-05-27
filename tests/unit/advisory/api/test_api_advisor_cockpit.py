@@ -96,9 +96,10 @@ def test_advisor_cockpit_api_lists_actions_and_snapshot(
     assert action_payload["items"][0]["action_family"] == "POLICY_REVIEW_REQUIRED"
     assert action_payload["items"][0]["correlation_id"] == "corr-cockpit-api"
     assert snapshot.status_code == 200
-    assert snapshot.json()["supportability"]["gateway_posture"] == (
-        "MANDATORY_SUBSEQUENT_RFC0026_SLICE"
-    )
+    supportability = snapshot.json()["supportability"]
+    assert supportability["gateway_posture"] == "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026"
+    assert supportability["workbench_posture"] == "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026"
+    assert supportability["data_product_posture"] == "ACTIVE_ADVISOR_COCKPIT_PRODUCTS_RFC0026"
 
 
 def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
