@@ -76,6 +76,14 @@ workflow-pack integration, review actions, data-product promotion, Gateway route
 surfaces, canonical RFC-0027 seed data, and client-demo claims remain mandatory subsequent RFC-0027
 work and are unpromoted in this slice.
 
+RFC-0027 Slice 2 is implemented as cleanup and structure. Evidence lives in
+`docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`. `lotus-advise` now has a dedicated
+`src/core/advisory_copilot/` package for first-wave copilot action catalog, source/evidence
+vocabulary, guardrail reason-code foundation, review posture mapping, workflow-pack boundary
+metadata, and business-facing projection labels. No copilot API, persistence, `lotus-ai`
+invocation, data product, Gateway route, Workbench surface, canonical seed, or supported runtime
+claim is promoted by this slice.
+
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before cockpit domain work, so no `lotus-platform` code change
@@ -599,3 +607,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
 - `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`
 - `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`

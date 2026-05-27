@@ -778,6 +778,10 @@ Acceptance gate:
 3. business rules are outside controllers and infrastructure layers,
 4. docs layering is clean and wiki source changes are intentional.
 
+Slice 2 evidence:
+
+1. `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`
+
 ### Slice 3 - Data Product and Platform Hardening
 
 Outcome:

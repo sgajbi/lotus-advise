@@ -435,6 +435,13 @@ Current note:
   premature local/platform copilot scaffolds, and keeps `RFC27_ADVISORY_COPILOT_CANONICAL` seed and
   Workbench automation as mandatory RFC-0027 Slice 12 work once backend, Gateway, and Workbench
   behavior exists.
+- RFC-0027 Slice 2 cleanup and structure evidence lives in
+  `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`; it creates
+  `src/core/advisory_copilot/` with the first-wave action catalog, source/evidence vocabulary,
+  guardrail reason-code foundation, review posture mapping, workflow-pack boundary metadata, and
+  business-facing projection labels while keeping APIs, persistence, `lotus-ai` invocation,
+  Gateway, Workbench, data-product promotion, canonical seed, and supported copilot claims
+  unpromoted until subsequent RFC-0027 slices implement and prove them.
 
 RFC-0025 implementation evidence includes:
 
@@ -488,4 +495,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
 - `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`
 - `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`
 
