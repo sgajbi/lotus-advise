@@ -111,6 +111,14 @@ copilot core now returns stable reason codes for forbidden intents, missing sour
 injection, client-ready wording, and sensitive technical leakage. Persistence, API, `lotus-ai`,
 Gateway, Workbench, canonical proof, and supported runtime claims remain unpromoted.
 
+RFC-0027 Slice 7 is implemented as a governed `lotus-ai` workflow-pack and model-risk control seam.
+Evidence lives in `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`.
+`lotus-ai` now registers six review-gated advisory copilot workflow packs, and `lotus-advise`
+consumes them only through `/platform/workflow-packs/execute` with evidence-packet, source-ref,
+approved-instruction-set, output-schema, prompt-template, evaluation-pack, unavailable, and
+guardrail proof. Advise copilot APIs, persistence, Gateway, Workbench, canonical proof,
+data-product promotion, and supported runtime claims remain unpromoted.
+
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before cockpit domain work, so no `lotus-platform` code change
@@ -639,3 +647,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`
 - `docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`
 - `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`
+- `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`

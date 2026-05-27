@@ -874,6 +874,10 @@ Acceptance gate:
 3. unavailable and disabled AI behavior is deterministic,
 4. model-risk docs and evaluation evidence are implementation-backed.
 
+Slice 7 evidence:
+
+1. `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`
+
 ### Slice 8 - Copilot Run Persistence, Review, Audit, and Retention
 
 Outcome:
