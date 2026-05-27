@@ -463,34 +463,38 @@ Implementation must include:
 API design must be clean, version-aware, documented, and consumer-complete. Backward compatibility
 is not required if a breaking design is cleaner, but all consumers must be updated inside this RFC.
 
-### 12.1 Proposed `lotus-advise` Endpoints
+### 12.1 Final `lotus-advise` Endpoints
+
+The implemented endpoint set deliberately uses one action-item contract for advisor, desk-head,
+supervisory, approval, readiness, and downstream-owner queues. That avoids duplicate route-specific
+semantics and keeps Gateway and Workbench dependent on the Advise-owned projection rather than
+reconstructing policy, memo, approval, report, execution, or house-view meaning locally.
 
 1. `GET /advisory/cockpit/snapshot`
-   returns the current advisor, desk, or coverage-team snapshot.
-2. `GET /advisory/cockpit/action-items`
-   returns paginated action items with stable filters and sort keys.
-3. `GET /advisory/cockpit/action-items/{action_item_id}`
-   returns one action item with evidence, owner boundary, lineage, acknowledgement posture, and
-   current freshness.
-4. `POST /advisory/cockpit/action-items/{action_item_id}/acknowledgements`
-   records an idempotent advisory-owned acknowledgement.
-5. `GET /advisory/cockpit/clients/{client_ref}/preparation`
-   returns a meeting-preparation packet for a client or household context.
-6. `GET /advisory/cockpit/proposals/{proposal_id}/readiness`
-   returns proposal readiness and actionability posture without requiring UI to inspect raw
-   lifecycle events.
-7. `GET /advisory/cockpit/supervision/approval-queue`
-   returns maker-checker, compliance, investment desk, and supervisory review items when caller
-   context allows.
-8. `GET /advisory/cockpit/supportability`
+   returns the current advisor, desk, or coverage-team snapshot with projected action counts,
+   top-priority actions, meeting-preparation packets, unsupported capabilities, and
+   supportability posture.
+2. `GET /advisory/cockpit/actions`
+   returns paginated action items with stable filters, owner-role projection, cursor pagination,
+   sort order, reason codes, evidence, lineage, dependency posture, and supportability boundaries.
+3. `GET /advisory/cockpit/actions/{action_item_id}`
+   returns one visible action item with evidence, owner boundary, lineage, acknowledgement posture,
+   and current freshness. Caller-role projection is enforced before lookup.
+4. `GET /advisory/cockpit/preparation-packets`
+   returns paginated source-backed meeting-preparation packets for the bounded cockpit scope.
+5. `GET /advisory/cockpit/supportability`
    returns source-readiness, dependency degradation, unsupported capability, and operational
    diagnostics summary.
-9. `POST /advisory/cockpit/action-items/{action_item_id}/handoffs`
-   records or requests an advisory-owned handoff boundary only when `lotus-advise` owns that
-   handoff. External CRM, DPM, report, archive, or execution owners must remain explicit.
+6. `POST /advisory/cockpit/actions/{action_item_id}/acknowledgements`
+   records an idempotent advisory-owned acknowledgement. The acknowledgement does not clear
+   policy, memo, approval, source-readiness, downstream-owner, or supportability blockers.
 
-Endpoint shape may be adjusted during implementation if the RFC evidence shows a cleaner design.
-Any final endpoint set must be certified, documented, and consumed end to end.
+Proposal readiness, supervisory approval queues, client follow-up, report/archive readiness,
+execution handoff/status attention, tactical house-view review, and unsupported capability posture
+are expressed as `AdvisoryActionItem` families and snapshot/supportability fields rather than
+parallel endpoint-specific semantics. No RFC-0026 endpoint claims CRM system-of-record behavior,
+calendar scheduling, external client communication, OMS order lifecycle, completed policy approval
+authority, completed policy sign-off authority, or full RFC-0028 demo/RFP packaging.
 
 ### 12.2 Contract Requirements
 

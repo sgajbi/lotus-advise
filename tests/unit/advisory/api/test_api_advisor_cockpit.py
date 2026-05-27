@@ -176,9 +176,15 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
         schema = client.get("/openapi.json").json()
 
     assert "/advisory/cockpit/actions" in schema["paths"]
+    assert "/advisory/cockpit/actions/{action_item_id}" in schema["paths"]
+    assert "/advisory/cockpit/actions/{action_item_id}/acknowledgements" in schema["paths"]
+    assert "/advisory/cockpit/preparation-packets" in schema["paths"]
     assert "/advisory/cockpit/snapshot" in schema["paths"]
     assert "/advisory/cockpit/supportability" in schema["paths"]
+    assert "/advisory/cockpit/action-items" not in schema["paths"]
+    assert "/advisory/cockpit/supervision/approval-queue" not in schema["paths"]
     action_operation = schema["paths"]["/advisory/cockpit/actions"]["get"]
+    preparation_operation = schema["paths"]["/advisory/cockpit/preparation-packets"]["get"]
     supportability_operation = schema["paths"]["/advisory/cockpit/supportability"]["get"]
     acknowledgement_operation = schema["paths"][
         "/advisory/cockpit/actions/{action_item_id}/acknowledgements"
@@ -188,6 +194,15 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
     assert "Gateway and Workbench must render" in action_operation["description"]
     assert action_operation["responses"]["422"]["description"] == (
         "Advisor cockpit request failed validation, including invalid cursors."
+    )
+    assert preparation_operation["summary"] == "List Advisor Cockpit Preparation Packets"
+    assert "Gateway and Workbench must render these packets" in preparation_operation["description"]
+    assert "calendar" in preparation_operation["description"]
+    assert any(
+        parameter["name"] == "cursor"
+        and parameter["in"] == "query"
+        and "preparation-packet cursor" in parameter["description"]
+        for parameter in preparation_operation["parameters"]
     )
     assert "Gateway publication" in supportability_operation["description"]
     assert "active data-product posture" in supportability_operation["description"]
