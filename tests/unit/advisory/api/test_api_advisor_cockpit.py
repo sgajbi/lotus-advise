@@ -96,7 +96,7 @@ def test_advisor_cockpit_api_lists_actions_and_snapshot(
 
     assert actions.status_code == 200
     action_payload = actions.json()
-    assert action_payload["total_count"] == 3
+    assert action_payload["total_count"] == 4
     assert action_payload["items"][0]["action_family"] == "POLICY_REVIEW_REQUIRED"
     assert action_payload["items"][0]["correlation_id"] == "corr-cockpit-api"
     assert snapshot.status_code == 200
@@ -108,6 +108,29 @@ def test_advisor_cockpit_api_lists_actions_and_snapshot(
     assert supportability_response.json()["posture"] == (
         "ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"
     )
+
+
+def test_advisor_cockpit_api_projects_compliance_queue_by_caller_role(
+    cockpit_repository: InMemoryProposalRepository,
+) -> None:
+    _ = cockpit_repository
+    with TestClient(app) as client:
+        response = client.get(
+            "/advisory/cockpit/actions",
+            params={
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "role": "COMPLIANCE_REVIEWER",
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_count"] == 2
+    assert {item["action_family"] for item in payload["items"]} == {
+        "POLICY_REVIEW_REQUIRED",
+        "APPROVAL_DEPENDENCY_AGING",
+    }
+    assert {item["owner_role"] for item in payload["items"]} == {"COMPLIANCE_REVIEWER"}
 
 
 def test_advisor_cockpit_api_acknowledgement_is_replay_safe(

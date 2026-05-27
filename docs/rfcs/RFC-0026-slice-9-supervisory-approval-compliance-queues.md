@@ -27,6 +27,15 @@ Implemented queue projection:
 Completed source approvals suppress queue items. Rejected source approvals produce blocked,
 critical-priority queue items with explicit remediation posture.
 
+Caller-role projection is enforced in the Advise service before pagination:
+
+1. `ADVISOR` and `DESK_HEAD` views keep the full portfolio-scoped blocker set visible so advisors
+   can see external-owner blockers without completing them locally.
+2. `COMPLIANCE_REVIEWER`, `INVESTMENT_DESK`, `OPERATIONS`, `DPM_OWNER`, and other non-advisor
+   roles receive owner-role queues plus system posture items.
+3. A caller role cannot use the generic action list to retrieve another owner queue and then
+   acknowledge the item as if it were advisor-owned.
+
 ## Implementation Evidence
 
 | Area | Evidence |
@@ -35,6 +44,7 @@ critical-priority queue items with explicit remediation posture.
 | Source-read model aggregation | `AdvisorCockpitSourceBatch.approvals`, `APPROVAL_DEPENDENCY_STATES`, and approval dependency projection. |
 | Performance-safe source reads | `list_approvals_for_proposals` in the cockpit/proposal repository protocols, in-memory adapter, and Postgres adapter. |
 | Deterministic posture | Tests cover pending, completed, and rejected approval dependencies. |
+| Caller-role projection | Service and API tests prove compliance-reviewer queues contain only compliance-owned actions while advisor views retain visible blockers. |
 | Owner boundaries | Risk uses `INVESTMENT_DESK`, compliance uses `COMPLIANCE_REVIEWER`, consent uses `ADVISOR`. |
 | Unsupported claims blocked | Approval dependencies keep `CLIENT_READY_PUBLICATION` and completed approval authority blocked; consent keeps CRM/external communication blocked. |
 

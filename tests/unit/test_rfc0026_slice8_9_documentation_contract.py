@@ -49,6 +49,7 @@ def test_rfc0026_slice9_records_supervisory_queue_boundaries() -> None:
     for marker in (
         "ApprovalDependencyActionSource",
         "list_approvals_for_proposals",
+        "Caller-role projection",
         "`RISK_REVIEW`",
         "`COMPLIANCE_REVIEW`",
         "`AWAITING_CLIENT_CONSENT`",

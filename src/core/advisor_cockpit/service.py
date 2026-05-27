@@ -72,6 +72,7 @@ class AdvisorCockpitService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
+        actions = _project_actions_for_caller(actions=actions, caller_context=caller_context)
         page_size = normalize_cockpit_page_size(limit)
         start = _cursor_start(actions=actions, cursor=cursor)
         page_items = actions[start : start + page_size]
@@ -95,10 +96,13 @@ class AdvisorCockpitService:
         portfolio_id: str | None,
         correlation_id: str | None,
     ) -> AdvisoryActionItem:
-        for action in self._build_actions(
+        for action in _project_actions_for_caller(
+            actions=self._build_actions(
+                caller_context=caller_context,
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
             caller_context=caller_context,
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
         ):
             if action.action_item_id == action_item_id:
                 return action
@@ -116,7 +120,10 @@ class AdvisorCockpitService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
-        actions = read_model.action_items
+        actions = _project_actions_for_caller(
+            actions=read_model.action_items,
+            caller_context=caller_context,
+        )
         counts = _action_counts(actions)
         supportability = _supportability(actions=actions, source_limit=COCKPIT_SOURCE_LIMIT)
         snapshot = AdvisorCockpitOperatingSnapshot(
@@ -180,6 +187,7 @@ class AdvisorCockpitService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
+        actions = _project_actions_for_caller(actions=actions, caller_context=caller_context)
         return AdvisorCockpitSupportabilityResponse(
             posture="ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
             supportability=_supportability(actions=actions, source_limit=COCKPIT_SOURCE_LIMIT),
@@ -354,6 +362,37 @@ def _cursor_start(*, actions: list[AdvisoryActionItem], cursor: str | None) -> i
         if action.action_item_id == cursor:
             return index + 1
     raise ProposalValidationError("ADVISOR_COCKPIT_CURSOR_INVALID")
+
+
+def _project_actions_for_caller(
+    *,
+    actions: list[AdvisoryActionItem],
+    caller_context: CockpitCallerContext,
+) -> list[AdvisoryActionItem]:
+    visible_owner_roles = _visible_owner_roles(caller_context.role)
+    if visible_owner_roles is None:
+        return actions
+    return [
+        action
+        for action in actions
+        if action.owner_role in visible_owner_roles or action.owner_role == "SYSTEM"
+    ]
+
+
+def _visible_owner_roles(role: str) -> set[str] | None:
+    if role in {"ADVISOR", "DESK_HEAD"}:
+        return None
+    if role == "COMPLIANCE_REVIEWER":
+        return {"COMPLIANCE_REVIEWER"}
+    if role == "INVESTMENT_DESK":
+        return {"INVESTMENT_DESK"}
+    if role == "OPERATIONS":
+        return {"REPORTING_OWNER", "ARCHIVE_OWNER", "EXECUTION_OWNER", "OPERATIONS"}
+    if role == "DPM_OWNER":
+        return {"DPM_OWNER"}
+    if role == "CRM_OWNER":
+        return {"CRM_OWNER", "ADVISOR"}
+    return {role}
 
 
 def _packet_cursor_start(*, packets: list[MeetingPreparationPacket], cursor: str | None) -> int:

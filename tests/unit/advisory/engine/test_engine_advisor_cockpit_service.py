@@ -117,8 +117,10 @@ def _service(monkeypatch: pytest.MonkeyPatch) -> AdvisorCockpitService:
     return AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
 
 
-def _caller() -> CockpitCallerContext:
-    return CockpitCallerContext(advisor_id="advisor_sg_001", role="ADVISOR")
+def _caller(
+    role: str = "ADVISOR", advisor_id: str | None = "advisor_sg_001"
+) -> CockpitCallerContext:
+    return CockpitCallerContext(advisor_id=advisor_id, role=role)
 
 
 def test_cockpit_service_lists_source_backed_actions_with_counts(
@@ -170,6 +172,37 @@ def test_cockpit_service_batches_memo_source_reads(monkeypatch: pytest.MonkeyPat
     assert repository.per_proposal_memo_reads == 0
     assert repository.per_proposal_approval_reads == 0
     assert repository.per_proposal_event_reads == 0
+
+
+def test_cockpit_service_projects_non_advisor_queues_by_owner_role(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service = _service(monkeypatch)
+
+    compliance_page = service.list_actions(
+        caller_context=_caller(role="COMPLIANCE_REVIEWER", advisor_id=None),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id=None,
+    )
+    operations_page = service.list_actions(
+        caller_context=_caller(role="OPERATIONS", advisor_id=None),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id=None,
+    )
+
+    assert [action.owner_role for action in compliance_page.items] == [
+        "COMPLIANCE_REVIEWER",
+        "COMPLIANCE_REVIEWER",
+    ]
+    assert {action.action_family for action in compliance_page.items} == {
+        "POLICY_REVIEW_REQUIRED",
+        "APPROVAL_DEPENDENCY_AGING",
+    }
+    assert [action.action_family for action in operations_page.items] == ["MEMO_PACKAGE_BLOCKED"]
 
 
 def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
