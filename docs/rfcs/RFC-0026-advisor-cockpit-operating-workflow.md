@@ -1107,6 +1107,10 @@ Acceptance gate:
    description/type/example,
 3. `/platform/capabilities` remains truthful.
 
+Slice 7 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`
+
 ### Slice 8 - Meeting Preparation, Client Follow-Up, and Advisor Actioning
 
 Outcome:

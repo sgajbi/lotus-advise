@@ -100,6 +100,13 @@ checks, and acknowledgement attachment that cannot clear blocking status, priori
 Runtime APIs, persistence, Gateway routes, Workbench surfaces, data-product promotion, and
 canonical proof remain mandatory subsequent RFC-0026 slices.
 
+RFC-0026 Slice 7 is implemented as Advise-owned cockpit API support. Evidence lives in
+`docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`. `lotus-advise` now exposes cockpit action
+list/detail, snapshot, supportability, and idempotent acknowledgement APIs backed by
+`AdvisorCockpitService`, `AdvisorCockpitRepository`, OpenAPI tests, and durable acknowledgement
+persistence. Gateway routes, Workbench surfaces, data-product promotion, `/platform/capabilities`,
+canonical proof, and product-support claims remain mandatory subsequent RFC-0026 slices.
+
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before policy domain work, so no `lotus-platform` code change
@@ -532,3 +539,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
 - `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
 - `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`
+- `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`

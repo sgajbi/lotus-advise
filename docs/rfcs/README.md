@@ -402,6 +402,11 @@ Current note:
   `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`; it adds
   `src/core/advisor_cockpit/rules.py` for deterministic SLA age bands, owner-blocking status
   checks, and acknowledgement posture that cannot clear blocking action ownership.
+- RFC-0026 Slice 7 Advise API evidence lives in
+  `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`; it adds Advise-owned cockpit action,
+  snapshot, supportability, and idempotent acknowledgement APIs, with persistent acknowledgement
+  storage and OpenAPI boundary tests, while keeping Gateway, Workbench, data products, and
+  canonical proof unpromoted until mandatory subsequent RFC-0026 slices.
 
 RFC-0025 implementation evidence includes:
 
@@ -448,4 +453,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
 - `docs/rfcs/RFC-0026-slice-5-source-read-model-and-aggregation.md`
 - `docs/rfcs/RFC-0026-slice-6-priority-sla-acknowledgement-rules.md`
+- `docs/rfcs/RFC-0026-slice-7-certified-advise-apis.md`
 

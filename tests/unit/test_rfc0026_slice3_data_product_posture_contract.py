@@ -70,7 +70,7 @@ def test_rfc0026_slice3_evidence_is_indexed_and_non_promoting() -> None:
     assert "This is not deferral outside RFC-0026" in slice3
     assert "`AdvisorCockpitOperatingSnapshot:v1` may be promoted only after" in slice3
     assert "`AdvisoryActionItemRegister:v1` may be promoted only after" in slice3
-    assert "No runtime advisor-cockpit support claim is promoted" in supported
+    assert "No integrated advisor-cockpit product support claim is promoted" in supported
 
 
 def test_rfc0026_slice3_records_mandatory_promotion_requirements() -> None:

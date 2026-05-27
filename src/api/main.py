@@ -96,6 +96,15 @@ app = FastAPI(
             ),
         },
         {
+            "name": "Advisor Cockpit",
+            "description": (
+                "RFC-0026 Advise-owned cockpit APIs for source-backed action lists, snapshots, "
+                "supportability posture, and idempotent acknowledgement. Gateway, Workbench, "
+                "data-product promotion, client-ready publication, and external client "
+                "communication remain gated until their implementation-backed RFC-0026 slices."
+            ),
+        },
+        {
             "name": "Advisory Operations & Support",
             "description": (
                 "Operational lookup and investigation endpoints for async status, workflow "

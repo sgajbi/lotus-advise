@@ -31,7 +31,7 @@ def test_rfc0026_slice2_evidence_is_indexed_and_non_claiming() -> None:
     assert "src/core/advisor_cockpit/" in slice2
     assert "No existing proposal, memo, policy, workspace, Gateway, or Workbench behavior" in slice2
     assert "Slice 2 adds the `src/core/advisor_cockpit/` domain package" in supported
-    assert "No runtime advisor-cockpit support claim is promoted" in supported
+    assert "No integrated advisor-cockpit product support claim is promoted" in supported
 
 
 def test_rfc0026_slice2_pins_domain_structure_and_boundaries() -> None:

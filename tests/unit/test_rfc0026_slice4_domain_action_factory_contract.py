@@ -46,7 +46,7 @@ def test_rfc0026_slice4_records_non_promoting_action_factory_posture() -> None:
         assert marker in slice4
 
     assert "Slice 4 adds pure Advise core source-backed action construction" in supported
-    assert "No runtime advisor-cockpit support claim is promoted" in supported
+    assert "No integrated advisor-cockpit product support claim is promoted" in supported
 
 
 def test_rfc0026_slice4_contract_is_backed_by_code_and_behavior_tests() -> None:

@@ -15,6 +15,12 @@ from src.core.advisor_cockpit.action_factory import (
     build_supportability_degraded_action,
     build_unsupported_capability_action,
 )
+from src.core.advisor_cockpit.api_models import (
+    AdvisorCockpitAcknowledgeRequest,
+    AdvisorCockpitAcknowledgeResponse,
+    AdvisorCockpitSnapshotResponse,
+    AdvisorCockpitSupportabilityResponse,
+)
 from src.core.advisor_cockpit.models import (
     AdvisorCockpitActionFamily,
     AdvisorCockpitActionPriority,
@@ -39,6 +45,11 @@ from src.core.advisor_cockpit.pagination import (
     COCKPIT_ACTION_MAX_PAGE_SIZE,
     normalize_cockpit_page_size,
 )
+from src.core.advisor_cockpit.persistence import (
+    CockpitAcknowledgementIdempotencyRecord,
+    CockpitAcknowledgementRecord,
+)
+from src.core.advisor_cockpit.repository import AdvisorCockpitRepository
 from src.core.advisor_cockpit.rules import (
     CRITICAL_OVERDUE_WINDOW,
     DUE_NOW_GRACE_WINDOW,
@@ -48,6 +59,11 @@ from src.core.advisor_cockpit.rules import (
     derive_cockpit_sla_age_band,
     is_cockpit_action_owner_blocking,
     with_cockpit_sla_age_band,
+)
+from src.core.advisor_cockpit.service import (
+    COCKPIT_CONTRACT_VERSION,
+    COCKPIT_SOURCE_LIMIT,
+    AdvisorCockpitService,
 )
 from src.core.advisor_cockpit.source_read_model import (
     ACTIVE_PROPOSAL_STATES,
@@ -65,17 +81,25 @@ __all__ = [
     "AdvisorCockpitActionFamily",
     "AdvisorCockpitActionPriority",
     "AdvisorCockpitActionStatus",
+    "AdvisorCockpitAcknowledgeRequest",
+    "AdvisorCockpitAcknowledgeResponse",
     "AdvisorCockpitOperatingSnapshot",
     "AdvisorCockpitOwnerRole",
+    "AdvisorCockpitRepository",
+    "AdvisorCockpitService",
     "AdvisorCockpitSlaAgeBand",
+    "AdvisorCockpitSnapshotResponse",
     "AdvisorCockpitSourceBatch",
     "AdvisorCockpitSourceReadModel",
+    "AdvisorCockpitSupportabilityResponse",
     "AdvisorCockpitUnsupportedCapability",
     "AdvisoryActionItem",
     "AdvisoryActionItemPage",
     "COCKPIT_ACTION_DEFAULT_PAGE_SIZE",
     "COCKPIT_ACTION_MAX_PAGE_SIZE",
+    "COCKPIT_CONTRACT_VERSION",
     "COCKPIT_POLICY_REVIEW_STATUSES",
+    "COCKPIT_SOURCE_LIMIT",
     "CRITICAL_OVERDUE_WINDOW",
     "DUE_NOW_GRACE_WINDOW",
     "DUE_SOON_WINDOW",
@@ -85,6 +109,8 @@ __all__ = [
     "CockpitActionConstructionInput",
     "CockpitActionSourceRefs",
     "CockpitAcknowledgementState",
+    "CockpitAcknowledgementIdempotencyRecord",
+    "CockpitAcknowledgementRecord",
     "CockpitCallerContext",
     "CockpitDependencyReadiness",
     "CockpitEvidenceAccessClass",
