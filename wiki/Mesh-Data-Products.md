@@ -33,6 +33,21 @@
 - Approved downstream consumers: `lotus-gateway`, `lotus-report`, `lotus-render`,
   `lotus-archive`, `lotus-workbench`
 
+- Product ID: `lotus-advise:AdvisorCockpitOperatingSnapshot:v1`
+- Product role: source-owned RFC-0026 advisor operating snapshot for action counts, top-priority
+  actions, unsupported-capability posture, supportability, Gateway publication, Workbench rendering,
+  and canonical `PB_SG_GLOBAL_BAL_001` proof
+- Source declaration: `contracts/domain-data-products/`
+- Trust telemetry: `contracts/trust-telemetry/advisor-cockpit-operating-snapshot.telemetry.v1.json`
+- Approved downstream consumers: `lotus-gateway`, `lotus-workbench`
+
+- Product ID: `lotus-advise:AdvisoryActionItemRegister:v1`
+- Product role: source-owned RFC-0026 advisor action-item register for action identity, status,
+  priority, owner role, SLA aging, evidence, lineage, and acknowledgement posture
+- Source declaration: `contracts/domain-data-products/`
+- Trust telemetry: `contracts/trust-telemetry/advisory-action-item-register.telemetry.v1.json`
+- Approved downstream consumers: `lotus-gateway`, `lotus-workbench`
+
 ## Platform relationship
 
 `lotus-platform` aggregates the repo-native declaration, validates trust telemetry, applies mesh SLO/access/evidence policies, and includes this product in generated catalog, dependency graph, live certification, maturity matrix, evidence packs, and RFC-0092 operating reports.
@@ -47,3 +62,7 @@ Proposal narrative evidence truth remains advisor-review only until compliance-r
 client-draft, and client-ready publication slices are implemented and proven.
 Proposal memo evidence truth is active for advisor-use support only; client-ready memo publication,
 external client communication, and full bank-demo/RFP package claims remain gated.
+Advisor cockpit product truth is active for source-owned advisor operating workflow evidence only.
+Cockpit acknowledgements do not clear blockers, approve policy findings, contact clients, create
+CRM system-of-record tasks, initiate OMS order lifecycle activity, or support full RFC-0028
+demo/RFP package claims.

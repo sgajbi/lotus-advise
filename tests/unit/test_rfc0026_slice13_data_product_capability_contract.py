@@ -11,6 +11,7 @@ README_PATH = Path("README.md")
 REPO_CONTEXT_PATH = Path("REPOSITORY-ENGINEERING-CONTEXT.md")
 WIKI_API_PATH = Path("wiki/API-Surface.md")
 WIKI_ARCHITECTURE_PATH = Path("wiki/Architecture.md")
+WIKI_MESH_PRODUCTS_PATH = Path("wiki/Mesh-Data-Products.md")
 WIKI_OPERATIONS_PATH = Path("wiki/Operations-Runbook.md")
 CAPABILITIES_PATH = Path("src/api/capabilities/service.py")
 COCKPIT_SERVICE_PATH = Path("src/core/advisor_cockpit/service.py")
@@ -61,6 +62,7 @@ def test_rfc0026_slice13_updates_operator_and_repository_truth() -> None:
             _flat(REPO_CONTEXT_PATH),
             _flat(WIKI_API_PATH),
             _flat(WIKI_ARCHITECTURE_PATH),
+            _flat(WIKI_MESH_PRODUCTS_PATH),
             _flat(WIKI_OPERATIONS_PATH),
         )
     )
@@ -71,6 +73,8 @@ def test_rfc0026_slice13_updates_operator_and_repository_truth() -> None:
         "PB_SG_GLOBAL_BAL_001",
         "GET /advisory/cockpit/supportability",
         "GET /platform/capabilities",
+        "advisor-cockpit-operating-snapshot.telemetry.v1.json",
+        "advisory-action-item-register.telemetry.v1.json",
         "CRM system-of-record",
         "OMS order",
         "completed policy approval authority",
