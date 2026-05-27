@@ -181,6 +181,65 @@ class ApprovalDependencyActionSource(BaseModel):
     correlation_id: str | None = Field(default=None)
 
 
+class ReportRenderArchiveActionSource(BaseModel):
+    readiness_id: str = Field(examples=["report_archive_readiness_memo_sg_001"])
+    memo_id: str = Field(examples=["memo_sg_001"])
+    proposal_id: str = Field(examples=["proposal_sg_001"])
+    portfolio_id: str | None = Field(default=None, examples=["PB_SG_GLOBAL_BAL_001"])
+    readiness_code: str = Field(examples=["REPORT_PACKAGE_NOT_REQUESTED"])
+    summary: str = Field(default="Report/render/archive readiness requires owner attention.")
+    owner_role: AdvisorCockpitOwnerRole = Field(default="REPORTING_OWNER")
+    due_at: str | None = Field(default=None)
+    source_timestamp: str | None = Field(default=None)
+    materiality_rank: int = Field(default=58, ge=0)
+    lineage_id: str | None = Field(default=None)
+    content_hash: str | None = Field(default=None)
+    correlation_id: str | None = Field(default=None)
+
+
+class ExecutionHandoffReadyActionSource(BaseModel):
+    handoff_id: str = Field(examples=["execution_handoff_ready_proposal_sg_001"])
+    proposal_id: str = Field(examples=["proposal_sg_001"])
+    portfolio_id: str | None = Field(default=None, examples=["PB_SG_GLOBAL_BAL_001"])
+    summary: str = Field(default="Proposal is ready for execution handoff request.")
+    due_at: str | None = Field(default=None)
+    source_timestamp: str | None = Field(default=None)
+    materiality_rank: int = Field(default=62, ge=0)
+    correlation_id: str | None = Field(default=None)
+
+
+class ExecutionStatusAttentionActionSource(BaseModel):
+    execution_ref: str = Field(examples=["execution_request_sg_001"])
+    proposal_id: str = Field(examples=["proposal_sg_001"])
+    portfolio_id: str | None = Field(default=None, examples=["PB_SG_GLOBAL_BAL_001"])
+    handoff_status: Literal[
+        "REQUESTED",
+        "ACCEPTED",
+        "PARTIALLY_EXECUTED",
+        "REJECTED",
+        "CANCELLED",
+        "EXPIRED",
+    ] = Field(description="Source-backed execution handoff/status posture.")
+    summary: str = Field(default="Execution handoff status requires advisor cockpit attention.")
+    due_at: str | None = Field(default=None)
+    source_timestamp: str | None = Field(default=None)
+    materiality_rank: int = Field(default=64, ge=0)
+    correlation_id: str | None = Field(default=None)
+
+
+class HouseViewImpactActionSource(BaseModel):
+    cohort_id: str = Field(examples=["thv_cohort_sg_001"])
+    tactical_view_id: str = Field(examples=["thv_2026_05_asia_duration"])
+    tactical_view_version: str = Field(examples=["2026.05"])
+    portfolio_id: str = Field(examples=["PB_SG_GLOBAL_BAL_001"])
+    impact_code: str = Field(examples=["TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"])
+    summary: str = Field(default="Portfolio is affected by a source-backed tactical house view.")
+    due_at: str | None = Field(default=None)
+    source_timestamp: str | None = Field(default=None)
+    materiality_rank: int = Field(default=52, ge=0)
+    correlation_id: str | None = Field(default=None)
+
+
 class SupportabilityDegradedActionSource(BaseModel):
     dependency: str = Field(examples=["lotus-report"])
     state: Literal["DEGRADED", "UNAVAILABLE", "NOT_CONFIGURED"] = Field(
@@ -512,6 +571,165 @@ def build_approval_dependency_action(
     )
 
 
+def build_report_render_archive_action(
+    source: ReportRenderArchiveActionSource,
+) -> AdvisoryActionItem:
+    return build_source_backed_action(
+        CockpitActionConstructionInput(
+            source_action_id=source.readiness_id,
+            action_family="REPORT_RENDER_ARCHIVE_BLOCKED",
+            status="BLOCKED",
+            priority="HIGH",
+            owner_role=source.owner_role,
+            title="Report and archive readiness blocked",
+            next_required_action=(
+                "Resolve report/render/archive readiness before presenting completed packaging."
+            ),
+            reason_codes=[source.readiness_code, "CLIENT_READY_BLOCKED"],
+            source_refs=CockpitActionSourceRefs(
+                portfolio_id=source.portfolio_id,
+                proposal_id=source.proposal_id,
+                memo_id=source.memo_id,
+                report_ref=source.readiness_id,
+            ),
+            due_at=source.due_at,
+            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            materiality_rank=source.materiality_rank,
+            source_timestamp=source.source_timestamp,
+            evidence_refs=[
+                _evidence_ref(
+                    evidence_id=source.readiness_id,
+                    evidence_type="REPORT_RENDER_ARCHIVE_READINESS",
+                    summary=source.summary,
+                    access_class="CUSTOMER_CONSUMABLE_SUMMARY",
+                )
+            ],
+            source_readiness_gaps=[
+                CockpitSourceReadinessGap(
+                    source_family="report_render_archive",
+                    gap_code=source.readiness_code,
+                    owner_role=source.owner_role,
+                    message=source.summary,
+                )
+            ],
+            lineage_refs=_lineage_refs(source.lineage_id, source.content_hash),
+            unsupported_capabilities=["CLIENT_READY_PUBLICATION"],
+            correlation_id=source.correlation_id,
+        )
+    )
+
+
+def build_execution_handoff_ready_action(
+    source: ExecutionHandoffReadyActionSource,
+) -> AdvisoryActionItem:
+    return build_source_backed_action(
+        CockpitActionConstructionInput(
+            source_action_id=source.handoff_id,
+            action_family="EXECUTION_HANDOFF_READY",
+            status="READY",
+            priority="MEDIUM",
+            owner_role="EXECUTION_OWNER",
+            title="Execution handoff ready",
+            next_required_action=(
+                "Request execution handoff through the governed Advise execution boundary."
+            ),
+            reason_codes=["EXECUTION_HANDOFF_READY", "OMS_ORDER_LIFECYCLE_BLOCKED"],
+            source_refs=CockpitActionSourceRefs(
+                portfolio_id=source.portfolio_id,
+                proposal_id=source.proposal_id,
+                execution_ref=source.handoff_id,
+            ),
+            due_at=source.due_at,
+            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            materiality_rank=source.materiality_rank,
+            source_timestamp=source.source_timestamp,
+            evidence_refs=[
+                _evidence_ref(
+                    evidence_id=source.handoff_id,
+                    evidence_type="PROPOSAL_EXECUTION_HANDOFF_READINESS",
+                    summary=source.summary,
+                    access_class="CUSTOMER_CONSUMABLE_SUMMARY",
+                )
+            ],
+            unsupported_capabilities=["OMS_ORDER_LIFECYCLE"],
+            correlation_id=source.correlation_id,
+        )
+    )
+
+
+def build_execution_status_attention_action(
+    source: ExecutionStatusAttentionActionSource,
+) -> AdvisoryActionItem:
+    is_blocking = source.handoff_status in {"REJECTED", "CANCELLED", "EXPIRED"}
+    return build_source_backed_action(
+        CockpitActionConstructionInput(
+            source_action_id=source.execution_ref,
+            action_family="EXECUTION_STATUS_ATTENTION",
+            status="BLOCKED" if is_blocking else "PENDING_REVIEW",
+            priority="HIGH" if is_blocking else "MEDIUM",
+            owner_role="EXECUTION_OWNER",
+            title="Execution status attention",
+            next_required_action=(
+                "Review downstream execution posture without treating Advise as the OMS."
+            ),
+            reason_codes=[
+                f"EXECUTION_STATUS_{source.handoff_status}",
+                "OMS_ORDER_LIFECYCLE_BLOCKED",
+            ],
+            source_refs=CockpitActionSourceRefs(
+                portfolio_id=source.portfolio_id,
+                proposal_id=source.proposal_id,
+                execution_ref=source.execution_ref,
+            ),
+            due_at=source.due_at,
+            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            materiality_rank=source.materiality_rank,
+            source_timestamp=source.source_timestamp,
+            evidence_refs=[
+                _evidence_ref(
+                    evidence_id=source.execution_ref,
+                    evidence_type="PROPOSAL_EXECUTION_STATUS",
+                    summary=source.summary,
+                    access_class="CUSTOMER_CONSUMABLE_SUMMARY",
+                )
+            ],
+            unsupported_capabilities=["OMS_ORDER_LIFECYCLE"],
+            correlation_id=source.correlation_id,
+        )
+    )
+
+
+def build_house_view_impact_action(source: HouseViewImpactActionSource) -> AdvisoryActionItem:
+    return build_source_backed_action(
+        CockpitActionConstructionInput(
+            source_action_id=source.cohort_id,
+            action_family="HOUSE_VIEW_IMPACT_REVIEW",
+            status="PENDING_REVIEW",
+            priority="MEDIUM",
+            owner_role="DPM_OWNER",
+            title="Tactical house-view impact review",
+            next_required_action=(
+                "Review the source-backed tactical house-view cohort before DPM actioning."
+            ),
+            reason_codes=[source.impact_code, "TACTICAL_HOUSE_VIEW_REVIEW_REQUIRED"],
+            source_refs=CockpitActionSourceRefs(portfolio_id=source.portfolio_id),
+            due_at=source.due_at,
+            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            materiality_rank=source.materiality_rank,
+            source_timestamp=source.source_timestamp,
+            evidence_refs=[
+                _evidence_ref(
+                    evidence_id=source.cohort_id,
+                    evidence_type="TACTICAL_HOUSE_VIEW_COHORT",
+                    summary=source.summary,
+                    access_class="CUSTOMER_CONSUMABLE_SUMMARY",
+                )
+            ],
+            correlation_id=source.correlation_id,
+        )
+    )
+
+
 def build_supportability_degraded_action(
     source: SupportabilityDegradedActionSource,
 ) -> AdvisoryActionItem:
@@ -572,6 +790,10 @@ def build_first_wave_cockpit_actions(
     meeting_preparations: Sequence[MeetingPreparationActionSource] = (),
     client_follow_ups: Sequence[ClientFollowUpActionSource] = (),
     approval_dependencies: Sequence[ApprovalDependencyActionSource] = (),
+    report_render_archive_items: Sequence[ReportRenderArchiveActionSource] = (),
+    execution_handoffs: Sequence[ExecutionHandoffReadyActionSource] = (),
+    execution_status_items: Sequence[ExecutionStatusAttentionActionSource] = (),
+    house_view_impacts: Sequence[HouseViewImpactActionSource] = (),
     supportability_events: Sequence[SupportabilityDegradedActionSource] = (),
     unsupported_capabilities: Sequence[UnsupportedCapabilityActionSource] = (),
 ) -> list[AdvisoryActionItem]:
@@ -581,6 +803,10 @@ def build_first_wave_cockpit_actions(
         *(build_meeting_preparation_action(source) for source in meeting_preparations),
         *(build_client_follow_up_action(source) for source in client_follow_ups),
         *(build_approval_dependency_action(source) for source in approval_dependencies),
+        *(build_report_render_archive_action(source) for source in report_render_archive_items),
+        *(build_execution_handoff_ready_action(source) for source in execution_handoffs),
+        *(build_execution_status_attention_action(source) for source in execution_status_items),
+        *(build_house_view_impact_action(source) for source in house_view_impacts),
         *(build_supportability_degraded_action(source) for source in supportability_events),
         *(build_unsupported_capability_action(source) for source in unsupported_capabilities),
     ]

@@ -487,6 +487,19 @@ class _FakeConnection:
             rows = [row for row in self.events.values() if row["proposal_id"] == args[0]]
             rows = sorted(rows, key=lambda row: (row["occurred_at"], row["event_id"]))
             return _FakeCursor(rows=rows)
+        if "FROM proposal_workflow_events" in sql and "WHERE proposal_id = ANY(%s)" in sql:
+            proposal_ids = list(args[0])
+            event_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+            rows = [row for row in self.events.values() if row["proposal_id"] in event_order]
+            rows = sorted(
+                rows,
+                key=lambda row: (
+                    event_order[row["proposal_id"]],
+                    row["occurred_at"],
+                    row["event_id"],
+                ),
+            )
+            return _FakeCursor(rows=rows)
         if "INSERT INTO proposal_approvals" in sql:
             self.approvals[args[0]] = {
                 "approval_id": args[0],
@@ -1281,6 +1294,19 @@ def test_postgres_repository_workflow_events_and_approvals_roundtrip(monkeypatch
     assert [event.event_id for event in events] == ["pwe_001", "pwe_002"]
     assert events[1].to_state == "RISK_REVIEW"
     assert events[1].reason_json == {"comment": "submit"}
+    third_event = second_event.model_copy(
+        update={
+            "event_id": "pwe_003",
+            "proposal_id": "pp_002",
+            "actor_id": "advisor_2",
+        }
+    )
+    repository.append_event(third_event)
+    assert [
+        row.event_id
+        for row in repository.list_events_for_proposals(proposal_ids=["pp_002", "pp_001"])
+    ] == ["pwe_003", "pwe_001", "pwe_002"]
+    assert repository.list_events_for_proposals(proposal_ids=[]) == []
 
     approval_at = datetime.now(timezone.utc)
     approval = ProposalApprovalRecordData(

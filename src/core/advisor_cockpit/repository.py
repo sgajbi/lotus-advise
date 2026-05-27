@@ -7,7 +7,12 @@ from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
 )
-from src.core.proposals.models import ProposalApprovalRecordData, ProposalMemoRecord, ProposalRecord
+from src.core.proposals.models import (
+    ProposalApprovalRecordData,
+    ProposalMemoRecord,
+    ProposalRecord,
+    ProposalWorkflowEventRecord,
+)
 
 
 class AdvisorCockpitRepository(Protocol):
@@ -28,6 +33,10 @@ class AdvisorCockpitRepository(Protocol):
     def list_approvals_for_proposals(
         self, *, proposal_ids: list[str]
     ) -> list[ProposalApprovalRecordData]: ...
+
+    def list_events_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalWorkflowEventRecord]: ...
 
     def get_cockpit_acknowledgement(
         self, *, action_item_id: str

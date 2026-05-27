@@ -5,9 +5,13 @@ from pydantic import BaseModel, Field
 from src.core.advisor_cockpit.action_factory import (
     ApprovalDependencyActionSource,
     ClientFollowUpActionSource,
+    ExecutionHandoffReadyActionSource,
+    ExecutionStatusAttentionActionSource,
+    HouseViewImpactActionSource,
     MeetingPreparationActionSource,
     MemoPackageBlockedActionSource,
     PolicyReviewActionSource,
+    ReportRenderArchiveActionSource,
     SupportabilityDegradedActionSource,
     UnsupportedCapabilityActionSource,
     build_first_wave_cockpit_actions,
@@ -19,7 +23,9 @@ from src.core.proposals.models import (
     ProposalApprovalType,
     ProposalMemoRecord,
     ProposalRecord,
+    ProposalWorkflowEventRecord,
 )
+from src.core.proposals.workflow_rules import execution_status_for_event
 
 ACTIVE_PROPOSAL_STATES = frozenset(
     {
@@ -56,6 +62,14 @@ class AdvisorCockpitSourceBatch(BaseModel):
         default_factory=list,
         description="Preloaded proposal approval records in the bounded cockpit scope.",
     )
+    workflow_events: list[ProposalWorkflowEventRecord] = Field(
+        default_factory=list,
+        description="Preloaded proposal workflow events in the bounded cockpit scope.",
+    )
+    house_view_impacts: list[HouseViewImpactActionSource] = Field(
+        default_factory=list,
+        description="Source-backed tactical house-view impacts supplied by the source authority.",
+    )
     supportability_events: list[SupportabilityDegradedActionSource] = Field(
         default_factory=list,
         description="Preloaded source dependency readiness events.",
@@ -85,6 +99,18 @@ class AdvisorCockpitSourceReadModel(BaseModel):
     approval_dependencies: list[ApprovalDependencyActionSource] = Field(
         description="Proposal approval and consent dependencies requiring queue attention."
     )
+    report_render_archive_items: list[ReportRenderArchiveActionSource] = Field(
+        description="Report/render/archive readiness sources requiring owner attention."
+    )
+    execution_handoffs: list[ExecutionHandoffReadyActionSource] = Field(
+        description="Execution handoff readiness sources."
+    )
+    execution_status_items: list[ExecutionStatusAttentionActionSource] = Field(
+        description="Execution status attention sources."
+    )
+    house_view_impacts: list[HouseViewImpactActionSource] = Field(
+        description="Source-backed tactical house-view impact sources."
+    )
     supportability_events: list[SupportabilityDegradedActionSource] = Field(
         description="Source dependency readiness events."
     )
@@ -100,6 +126,7 @@ def build_advisor_cockpit_source_read_model(
     batch: AdvisorCockpitSourceBatch,
 ) -> AdvisorCockpitSourceReadModel:
     approvals_by_proposal = _approvals_by_proposal(batch.approvals)
+    events_by_proposal = _events_by_proposal(batch.workflow_events)
     policy_reviews = [
         _policy_review_source(record)
         for record in batch.policy_evaluations
@@ -129,12 +156,41 @@ def build_advisor_cockpit_source_read_model(
         )
         is not None
     ]
+    report_render_archive_items = [
+        source for record in batch.memos if (source := _report_readiness_source(record)) is not None
+    ]
+    execution_handoffs = [
+        source
+        for record in batch.proposals
+        if (
+            source := _execution_handoff_source(
+                proposal=record,
+                events=events_by_proposal.get(record.proposal_id, []),
+            )
+        )
+        is not None
+    ]
+    execution_status_items = [
+        source
+        for proposal_id, events in events_by_proposal.items()
+        if (
+            source := _execution_status_source(
+                proposal=_proposal_by_id(batch.proposals).get(proposal_id),
+                events=events,
+            )
+        )
+        is not None
+    ]
     action_items = build_first_wave_cockpit_actions(
         policy_reviews=policy_reviews,
         memo_blocks=memo_blocks,
         meeting_preparations=meeting_preparations,
         client_follow_ups=client_follow_ups,
         approval_dependencies=approval_dependencies,
+        report_render_archive_items=report_render_archive_items,
+        execution_handoffs=execution_handoffs,
+        execution_status_items=execution_status_items,
+        house_view_impacts=batch.house_view_impacts,
         supportability_events=batch.supportability_events,
         unsupported_capabilities=batch.unsupported_capabilities,
     )
@@ -144,6 +200,8 @@ def build_advisor_cockpit_source_read_model(
             "policy_evaluations": len(batch.policy_evaluations),
             "memos": len(batch.memos),
             "approvals": len(batch.approvals),
+            "workflow_events": len(batch.workflow_events),
+            "house_view_impacts": len(batch.house_view_impacts),
             "supportability_events": len(batch.supportability_events),
             "unsupported_capabilities": len(batch.unsupported_capabilities),
         },
@@ -152,6 +210,10 @@ def build_advisor_cockpit_source_read_model(
         meeting_preparations=meeting_preparations,
         client_follow_ups=client_follow_ups,
         approval_dependencies=approval_dependencies,
+        report_render_archive_items=report_render_archive_items,
+        execution_handoffs=execution_handoffs,
+        execution_status_items=execution_status_items,
+        house_view_impacts=list(batch.house_view_impacts),
         supportability_events=list(batch.supportability_events),
         unsupported_capabilities=list(batch.unsupported_capabilities),
         action_items=action_items,
@@ -286,6 +348,112 @@ def _approval_dependency_summary(
         f"{approval_type} approval is pending for proposal state {proposal_state}; "
         "the cockpit surfaces the queue without granting approval authority."
     )
+
+
+def _report_readiness_source(record: ProposalMemoRecord) -> ReportRenderArchiveActionSource | None:
+    if record.memo_status != "READY":
+        return None
+    if not record.report_package_events_json:
+        return ReportRenderArchiveActionSource(
+            readiness_id=f"report_archive_readiness_{record.memo_id}_report_package",
+            memo_id=record.memo_id,
+            proposal_id=record.proposal_id,
+            readiness_code="REPORT_PACKAGE_NOT_REQUESTED",
+            summary=(
+                "Advisor-use memo is ready, but report/render/archive package evidence is not "
+                "recorded."
+            ),
+            owner_role="REPORTING_OWNER",
+            source_timestamp=record.created_at.isoformat(),
+            materiality_rank=58,
+            lineage_id=f"proposal_memo:{record.memo_id}",
+            content_hash=record.memo_hash,
+        )
+    if not record.archive_refs_json:
+        return ReportRenderArchiveActionSource(
+            readiness_id=f"report_archive_readiness_{record.memo_id}_archive_ref",
+            memo_id=record.memo_id,
+            proposal_id=record.proposal_id,
+            readiness_code="ARCHIVE_REF_MISSING",
+            summary="Report package event exists, but archive reference evidence is not recorded.",
+            owner_role="ARCHIVE_OWNER",
+            source_timestamp=record.created_at.isoformat(),
+            materiality_rank=54,
+            lineage_id=f"proposal_memo:{record.memo_id}",
+            content_hash=record.memo_hash,
+        )
+    return None
+
+
+def _execution_handoff_source(
+    *,
+    proposal: ProposalRecord,
+    events: list[ProposalWorkflowEventRecord],
+) -> ExecutionHandoffReadyActionSource | None:
+    if proposal.current_state != "EXECUTION_READY":
+        return None
+    if any(event.event_type == "EXECUTION_REQUESTED" for event in events):
+        return None
+    return ExecutionHandoffReadyActionSource(
+        handoff_id=f"execution_handoff_ready_{proposal.proposal_id}",
+        proposal_id=proposal.proposal_id,
+        portfolio_id=proposal.portfolio_id,
+        source_timestamp=proposal.last_event_at.isoformat(),
+        materiality_rank=62,
+    )
+
+
+def _execution_status_source(
+    *,
+    proposal: ProposalRecord | None,
+    events: list[ProposalWorkflowEventRecord],
+) -> ExecutionStatusAttentionActionSource | None:
+    if proposal is None:
+        return None
+    latest_event = _latest_execution_event(events)
+    if latest_event is None or latest_event.event_type == "EXECUTED":
+        return None
+    handoff_status = execution_status_for_event(latest_event.event_type)
+    if handoff_status == "NOT_REQUESTED":
+        return None
+    execution_ref = str(
+        latest_event.reason_json.get("execution_request_id")
+        or latest_event.reason_json.get("external_execution_id")
+        or latest_event.event_id
+    )
+    return ExecutionStatusAttentionActionSource(
+        execution_ref=execution_ref,
+        proposal_id=proposal.proposal_id,
+        portfolio_id=proposal.portfolio_id,
+        handoff_status=handoff_status,
+        summary=f"Execution handoff status is {handoff_status}; downstream execution remains SOR.",
+        source_timestamp=latest_event.occurred_at.isoformat(),
+        materiality_rank=72 if handoff_status in {"REJECTED", "CANCELLED", "EXPIRED"} else 50,
+    )
+
+
+def _latest_execution_event(
+    events: list[ProposalWorkflowEventRecord],
+) -> ProposalWorkflowEventRecord | None:
+    execution_events = [
+        event for event in events if execution_status_for_event(event.event_type) != "NOT_REQUESTED"
+    ]
+    if not execution_events:
+        return None
+    return sorted(execution_events, key=lambda item: (item.occurred_at, item.event_id))[-1]
+
+
+def _events_by_proposal(
+    events: list[ProposalWorkflowEventRecord],
+) -> dict[str, list[ProposalWorkflowEventRecord]]:
+    grouped: dict[str, list[ProposalWorkflowEventRecord]] = {}
+    for event in events:
+        grouped.setdefault(event.proposal_id, []).append(event)
+    return grouped
+
+
+def _proposal_by_id(proposals: list[ProposalRecord]) -> dict[str, ProposalRecord]:
+    return {proposal.proposal_id: proposal for proposal in proposals}
 
 
 def _memo_blockage_code(record: ProposalMemoRecord) -> str | None:

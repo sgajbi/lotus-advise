@@ -351,6 +351,29 @@ class InMemoryProposalRepository(ProposalRepository):
             events = self._events.get(proposal_id, [])
             return [deepcopy(event) for event in events]
 
+    def list_events_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalWorkflowEventRecord]:
+        if not proposal_ids:
+            return []
+        proposal_id_set = set(proposal_ids)
+        event_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        with self._lock:
+            events = [
+                event
+                for proposal_events in self._events.values()
+                for event in proposal_events
+                if event.proposal_id in proposal_id_set
+            ]
+        events.sort(
+            key=lambda event: (
+                event_order[event.proposal_id],
+                event.occurred_at,
+                event.event_id,
+            )
+        )
+        return [deepcopy(event) for event in events]
+
     def create_approval(self, approval: ProposalApprovalRecordData) -> None:
         with self._lock:
             approvals = self._approvals.setdefault(approval.proposal_id, [])

@@ -123,6 +123,19 @@ def test_repository_list_filters_cursor_events_and_approvals():
     )
     repo.append_event(event)
     assert repo.list_events(proposal_id="pp_repo_a")[0].event_id == "pwe_repo_1"
+    second_event = event.model_copy(
+        update={
+            "event_id": "pwe_repo_2",
+            "proposal_id": "pp_repo_b",
+            "actor_id": "advisor_b",
+        }
+    )
+    repo.append_event(second_event)
+    assert [
+        row.event_id
+        for row in repo.list_events_for_proposals(proposal_ids=["pp_repo_b", "pp_repo_a"])
+    ] == ["pwe_repo_2", "pwe_repo_1"]
+    assert repo.list_events_for_proposals(proposal_ids=[]) == []
 
     approval = ProposalApprovalRecordData(
         approval_id="pap_repo_1",

@@ -8,17 +8,25 @@ from src.core.advisor_cockpit import (
     CockpitActionConstructionInput,
     CockpitActionSourceRefs,
     CockpitEvidenceRef,
+    ExecutionHandoffReadyActionSource,
+    ExecutionStatusAttentionActionSource,
+    HouseViewImpactActionSource,
     MeetingPreparationActionSource,
     MemoPackageBlockedActionSource,
     PolicyReviewActionSource,
+    ReportRenderArchiveActionSource,
     SupportabilityDegradedActionSource,
     UnsupportedCapabilityActionSource,
     build_approval_dependency_action,
     build_client_follow_up_action,
+    build_execution_handoff_ready_action,
+    build_execution_status_attention_action,
     build_first_wave_cockpit_actions,
+    build_house_view_impact_action,
     build_meeting_preparation_action,
     build_memo_package_blocked_action,
     build_policy_review_required_action,
+    build_report_render_archive_action,
     build_source_backed_action,
     build_supportability_degraded_action,
     build_unsupported_capability_action,
@@ -203,6 +211,74 @@ def test_client_consent_dependency_preserves_external_communication_boundary() -
         "EXTERNAL_CLIENT_COMMUNICATION",
         "CRM_SYSTEM_OF_RECORD",
     ]
+
+
+def test_report_render_archive_action_preserves_downstream_owner_boundary() -> None:
+    action = build_report_render_archive_action(
+        ReportRenderArchiveActionSource(
+            readiness_id="report_archive_readiness_memo_sg_001",
+            memo_id="memo_sg_001",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            readiness_code="REPORT_PACKAGE_NOT_REQUESTED",
+            content_hash="sha256:memo",
+            lineage_id="proposal_memo:memo_sg_001",
+        )
+    )
+
+    assert action.action_family == "REPORT_RENDER_ARCHIVE_BLOCKED"
+    assert action.status == "BLOCKED"
+    assert action.owner_role == "REPORTING_OWNER"
+    assert action.memo_id == "memo_sg_001"
+    assert action.report_ref == "report_archive_readiness_memo_sg_001"
+    assert action.reason_codes == ["REPORT_PACKAGE_NOT_REQUESTED", "CLIENT_READY_BLOCKED"]
+    assert action.source_readiness_gaps[0].source_family == "report_render_archive"
+    assert action.unsupported_capabilities == ["CLIENT_READY_PUBLICATION"]
+
+
+def test_execution_handoff_and_status_actions_preserve_oms_boundary() -> None:
+    handoff = build_execution_handoff_ready_action(
+        ExecutionHandoffReadyActionSource(
+            handoff_id="execution_handoff_ready_proposal_sg_001",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+        )
+    )
+    status = build_execution_status_attention_action(
+        ExecutionStatusAttentionActionSource(
+            execution_ref="execution_request_sg_001",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            handoff_status="REJECTED",
+        )
+    )
+
+    assert handoff.action_family == "EXECUTION_HANDOFF_READY"
+    assert handoff.status == "READY"
+    assert handoff.owner_role == "EXECUTION_OWNER"
+    assert handoff.unsupported_capabilities == ["OMS_ORDER_LIFECYCLE"]
+    assert status.action_family == "EXECUTION_STATUS_ATTENTION"
+    assert status.status == "BLOCKED"
+    assert status.priority == "HIGH"
+    assert status.reason_codes == ["EXECUTION_STATUS_REJECTED", "OMS_ORDER_LIFECYCLE_BLOCKED"]
+    assert status.unsupported_capabilities == ["OMS_ORDER_LIFECYCLE"]
+
+
+def test_house_view_impact_action_requires_source_backed_cohort() -> None:
+    action = build_house_view_impact_action(
+        HouseViewImpactActionSource(
+            cohort_id="thv_cohort_sg_001",
+            tactical_view_id="thv_2026_05_asia_duration",
+            tactical_view_version="2026.05",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            impact_code="TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED",
+        )
+    )
+
+    assert action.action_family == "HOUSE_VIEW_IMPACT_REVIEW"
+    assert action.status == "PENDING_REVIEW"
+    assert action.owner_role == "DPM_OWNER"
+    assert action.evidence_refs[0].evidence_type == "TACTICAL_HOUSE_VIEW_COHORT"
 
 
 def test_supportability_action_is_blocking_when_dependency_is_unavailable() -> None:

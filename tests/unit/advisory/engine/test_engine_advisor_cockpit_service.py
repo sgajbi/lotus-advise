@@ -23,8 +23,10 @@ class CountingCockpitRepository(InMemoryProposalRepository):
         super().__init__()
         self.bulk_memo_reads = 0
         self.bulk_approval_reads = 0
+        self.bulk_event_reads = 0
         self.per_proposal_memo_reads = 0
         self.per_proposal_approval_reads = 0
+        self.per_proposal_event_reads = 0
 
     def list_memos(self, *, proposal_id: str) -> list[ProposalMemoRecord]:
         self.per_proposal_memo_reads += 1
@@ -41,6 +43,14 @@ class CountingCockpitRepository(InMemoryProposalRepository):
     def list_approvals_for_proposals(self, *, proposal_ids: list[str]):
         self.bulk_approval_reads += 1
         return super().list_approvals_for_proposals(proposal_ids=proposal_ids)
+
+    def list_events(self, *, proposal_id: str):
+        self.per_proposal_event_reads += 1
+        return super().list_events(proposal_id=proposal_id)
+
+    def list_events_for_proposals(self, *, proposal_ids: list[str]):
+        self.bulk_event_reads += 1
+        return super().list_events_for_proposals(proposal_ids=proposal_ids)
 
 
 def _proposal(
@@ -156,8 +166,10 @@ def test_cockpit_service_batches_memo_source_reads(monkeypatch: pytest.MonkeyPat
     assert page.total_count == 4
     assert repository.bulk_memo_reads == 1
     assert repository.bulk_approval_reads == 1
+    assert repository.bulk_event_reads == 1
     assert repository.per_proposal_memo_reads == 0
     assert repository.per_proposal_approval_reads == 0
+    assert repository.per_proposal_event_reads == 0
 
 
 def test_cockpit_service_snapshot_preserves_supported_downstream_posture(

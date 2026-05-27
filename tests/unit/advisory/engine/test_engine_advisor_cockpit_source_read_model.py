@@ -9,6 +9,7 @@ from src.core.advisor_cockpit import (
     FOLLOW_UP_PROPOSAL_STATES,
     AdvisorCockpitSourceBatch,
     AdvisorCockpitSourceReadModel,
+    HouseViewImpactActionSource,
     SupportabilityDegradedActionSource,
     UnsupportedCapabilityActionSource,
     build_advisor_cockpit_source_read_model,
@@ -18,6 +19,7 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalMemoRecord,
     ProposalRecord,
+    ProposalWorkflowEventRecord,
 )
 
 AS_OF = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
@@ -75,6 +77,8 @@ def _memo(
     lifecycle_status: str = "FINALIZED",
     review_events: list[dict] | None = None,
     memo_id: str = "memo_sg_001",
+    report_events: list[dict] | None = None,
+    archive_refs: list[dict] | None = None,
 ) -> ProposalMemoRecord:
     return ProposalMemoRecord(
         memo_id=memo_id,
@@ -89,6 +93,8 @@ def _memo(
         memo_hash=f"sha256:{memo_id}",
         memo_json={"memo_id": memo_id, "status": memo_status},
         review_events_json=review_events or [],
+        report_package_events_json=report_events or [],
+        archive_refs_json=archive_refs or [],
     )
 
 
@@ -111,12 +117,33 @@ def _approval(
     )
 
 
+def _event(
+    *,
+    proposal_id: str,
+    event_type: str,
+    event_id: str,
+    reason: dict | None = None,
+) -> ProposalWorkflowEventRecord:
+    return ProposalWorkflowEventRecord(
+        event_id=event_id,
+        proposal_id=proposal_id,
+        event_type=event_type,
+        from_state="EXECUTION_READY",
+        to_state="EXECUTION_READY",
+        actor_id="execution_owner_sg_001",
+        occurred_at=AS_OF,
+        reason_json=reason or {},
+        related_version_no=1,
+    )
+
+
 def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() -> None:
     read_model = build_advisor_cockpit_source_read_model(
         AdvisorCockpitSourceBatch(
             proposals=[
                 _proposal("COMPLIANCE_REVIEW", proposal_id="proposal_sg_001"),
                 _proposal("AWAITING_CLIENT_CONSENT", proposal_id="proposal_sg_consent"),
+                _proposal("EXECUTION_READY", proposal_id="proposal_sg_execution_ready"),
                 _proposal("EXECUTED", proposal_id="proposal_sg_executed"),
             ],
             policy_evaluations=[
@@ -136,6 +163,29 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
                     proposal_id="proposal_sg_executed",
                     approval_type="CLIENT_CONSENT",
                     approved=True,
+                )
+            ],
+            workflow_events=[
+                _event(
+                    proposal_id="proposal_sg_execution_ready",
+                    event_type="EXECUTION_REQUESTED",
+                    event_id="pwe_001_execution_requested",
+                    reason={"execution_request_id": "execution_request_sg_001"},
+                ),
+                _event(
+                    proposal_id="proposal_sg_execution_ready",
+                    event_type="EXECUTION_REJECTED",
+                    event_id="pwe_002_execution_rejected",
+                    reason={"execution_request_id": "execution_request_sg_001"},
+                ),
+            ],
+            house_view_impacts=[
+                HouseViewImpactActionSource(
+                    cohort_id="thv_cohort_sg_001",
+                    tactical_view_id="thv_2026_05_asia_duration",
+                    tactical_view_version="2026.05",
+                    portfolio_id="PB_SG_GLOBAL_BAL_001",
+                    impact_code="TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED",
                 )
             ],
             supportability_events=[
@@ -159,10 +209,12 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
 
     assert isinstance(read_model, AdvisorCockpitSourceReadModel)
     assert read_model.source_counts == {
-        "proposals": 3,
+        "proposals": 4,
         "policy_evaluations": 2,
         "memos": 2,
         "approvals": 1,
+        "workflow_events": 2,
+        "house_view_impacts": 1,
         "supportability_events": 1,
         "unsupported_capabilities": 1,
     }
@@ -173,6 +225,7 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
     assert [source.proposal_id for source in read_model.meeting_preparations] == [
         "proposal_sg_001",
         "proposal_sg_consent",
+        "proposal_sg_execution_ready",
     ]
     assert [source.proposal_id for source in read_model.client_follow_ups] == [
         "proposal_sg_consent"
@@ -181,13 +234,25 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
         "COMPLIANCE",
         "CLIENT_CONSENT",
     ]
+    assert [source.readiness_code for source in read_model.report_render_archive_items] == [
+        "REPORT_PACKAGE_NOT_REQUESTED"
+    ]
+    assert read_model.execution_handoffs == []
+    assert [source.handoff_status for source in read_model.execution_status_items] == ["REJECTED"]
+    assert [source.impact_code for source in read_model.house_view_impacts] == [
+        "TACTICAL_HOUSE_VIEW_PORTFOLIO_AFFECTED"
+    ]
     assert [action.action_family for action in read_model.action_items] == [
         "POLICY_REVIEW_REQUIRED",
         "APPROVAL_DEPENDENCY_AGING",
+        "EXECUTION_STATUS_ATTENTION",
         "MEMO_PACKAGE_BLOCKED",
         "CLIENT_CONSENT_REQUIRED",
         "CLIENT_FOLLOW_UP_REQUIRED",
+        "REPORT_RENDER_ARCHIVE_BLOCKED",
         "SUPPORTABILITY_DEGRADED",
+        "HOUSE_VIEW_IMPACT_REVIEW",
+        "CLIENT_MEETING_PREPARATION",
         "CLIENT_MEETING_PREPARATION",
         "CLIENT_MEETING_PREPARATION",
         "UNSUPPORTED_CAPABILITY",
@@ -288,6 +353,8 @@ def test_source_read_model_does_not_create_actions_for_completed_sources() -> No
                 _memo(
                     memo_status="READY",
                     review_events=[{"event_type": "MEMO_REVIEW_RECORDED"}],
+                    report_events=[{"event_type": "MEMO_REPORT_PACKAGE_REQUESTED"}],
+                    archive_refs=[{"archive_ref": "archive_sg_001"}],
                 )
             ],
         )

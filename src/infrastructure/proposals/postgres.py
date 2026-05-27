@@ -1047,6 +1047,39 @@ class PostgresProposalRepository:
             rows = connection.execute(query, (proposal_id,)).fetchall()
         return [_to_event(row) for row in rows]
 
+    def list_events_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalWorkflowEventRecord]:
+        if not proposal_ids:
+            return []
+        query = """
+            SELECT
+                event_id,
+                proposal_id,
+                event_type,
+                from_state,
+                to_state,
+                actor_id,
+                occurred_at,
+                reason_json,
+                related_version_no
+            FROM proposal_workflow_events
+            WHERE proposal_id = ANY(%s)
+            ORDER BY proposal_id ASC, occurred_at ASC, event_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (proposal_ids,)).fetchall()
+        event_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        events = [_to_event(row) for row in rows]
+        return sorted(
+            events,
+            key=lambda event: (
+                event_order.get(event.proposal_id, len(event_order)),
+                event.occurred_at,
+                event.event_id,
+            ),
+        )
+
     def create_approval(self, approval: ProposalApprovalRecordData) -> None:
         with closing(self._connect()) as connection:
             self._insert_approval(connection=connection, approval=approval)
