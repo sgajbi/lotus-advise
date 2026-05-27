@@ -1032,6 +1032,10 @@ Acceptance gate:
 4. CI, dependency, security, and production guardrails are green,
 5. data-product docs explain source authority, freshness, completeness, lineage, and access.
 
+Slice 3 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
+
 ### Slice 4 - Cockpit Domain Model and Vocabulary
 
 Outcome:

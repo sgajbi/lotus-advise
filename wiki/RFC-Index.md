@@ -71,6 +71,12 @@ RFC-0026 Slice 2 is implemented as cleanup and structure. Evidence lives in
 ordering, and pagination defaults. No cockpit API, data product, Gateway route, Workbench surface,
 canonical seed, or supported runtime claim is promoted by this slice.
 
+RFC-0026 Slice 3 is implemented as non-promoting data-product posture. Evidence lives in
+`docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`. The slice blocks premature
+`AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` declarations, trust
+telemetry, and `/platform/capabilities` promotion until cockpit runtime APIs, Gateway/Workbench
+consumption, mesh posture, and canonical proof exist.
+
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before policy domain work, so no `lotus-platform` code change
@@ -499,3 +505,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-16-final-closure.md`
 - `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
+- `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`

@@ -381,6 +381,12 @@ Current note:
   and pagination defaults while keeping APIs, persistence, data products, Gateway, Workbench,
   canonical seed data, and supported advisor-cockpit claims unpromoted until subsequent RFC-0026
   slices implement and prove them.
+- RFC-0026 Slice 3 data-product evidence lives in
+  `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`; it records a non-promoting
+  posture for `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1`, adds tests
+  that block premature declarations, trust telemetry, and `/platform/capabilities` promotion, and
+  keeps data-product promotion mandatory inside RFC-0026 once runtime, Gateway, Workbench, mesh,
+  and canonical proof exist.
 
 RFC-0025 implementation evidence includes:
 
@@ -423,4 +429,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-16-final-closure.md`
 - `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
+- `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
 
