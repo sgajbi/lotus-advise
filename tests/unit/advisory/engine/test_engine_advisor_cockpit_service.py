@@ -65,11 +65,12 @@ def _proposal(
     proposal_id: str = "proposal_sg_001",
     current_version_no: int = 1,
     current_state: str = "COMPLIANCE_REVIEW",
+    created_by: str = "advisor_sg_001",
 ) -> ProposalRecord:
     return ProposalRecord(
         proposal_id=proposal_id,
         portfolio_id="PB_SG_GLOBAL_BAL_001",
-        created_by="advisor_sg_001",
+        created_by=created_by,
         created_at=NOW,
         last_event_at=NOW,
         current_state=current_state,
@@ -378,6 +379,39 @@ def test_cockpit_service_lists_preparation_packets_with_cursor_and_supportabilit
             cursor="missing-preparation-packet",
             correlation_id=None,
         )
+
+
+def test_portfolio_scoped_cockpit_includes_preparation_created_by_automation_actor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = InMemoryProposalRepository()
+    repository.create_proposal(_proposal(created_by="workbench-canonical-validator"))
+    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    monkeypatch.setattr(
+        cockpit_service,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+
+    snapshot = service.get_snapshot(
+        caller_context=_caller(advisor_id="advisor_sg_001"),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-canonical-prep",
+    )
+    unscoped_snapshot = service.get_snapshot(
+        caller_context=_caller(advisor_id="advisor_sg_001"),
+        portfolio_id=None,
+        correlation_id=None,
+    )
+
+    assert [packet.packet_id for packet in snapshot.preparation_packets] == [
+        "prep_proposal_sg_001_v1"
+    ]
+    assert "CLIENT_MEETING_PREPARATION" in {
+        action.action_family for action in snapshot.top_priority_actions
+    }
+    assert unscoped_snapshot.preparation_packets == []
 
 
 def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_posture(

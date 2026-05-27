@@ -304,7 +304,7 @@ class AdvisorCockpitService:
         proposals, _next_cursor = self._repository.list_proposals(
             portfolio_id=portfolio_id,
             state=None,
-            created_by=caller_context.advisor_id,
+            created_by=None if portfolio_id is not None else caller_context.advisor_id,
             created_from=None,
             created_to=None,
             limit=COCKPIT_SOURCE_LIMIT,
