@@ -375,6 +375,12 @@ Current note:
   premature local/platform cockpit scaffolds, and keeps canonical `RFC26_ADVISOR_COCKPIT_CANONICAL`
   seed and Workbench automation as mandatory subsequent RFC-0026 work once backend, Gateway, and
   Workbench behavior exists.
+- RFC-0026 Slice 2 cleanup and structure evidence lives in
+  `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`; it creates the dedicated
+  `src/core/advisor_cockpit/` package with typed cockpit models, vocabulary, stable action sorting,
+  and pagination defaults while keeping APIs, persistence, data products, Gateway, Workbench,
+  canonical seed data, and supported advisor-cockpit claims unpromoted until subsequent RFC-0026
+  slices implement and prove them.
 
 RFC-0025 implementation evidence includes:
 
@@ -416,4 +422,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`
 - `docs/rfcs/RFC-0025-slice-16-final-closure.md`
 - `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
 

@@ -1010,6 +1010,10 @@ Acceptance gate:
 3. docs layering is clean,
 4. wiki source is updated only where long-lived operator/product truth changed.
 
+Slice 2 evidence:
+
+1. `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
+
 ### Slice 3 - Data Product and Platform Hardening
 
 Outcome:

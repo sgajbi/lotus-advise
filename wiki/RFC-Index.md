@@ -65,6 +65,12 @@ is required for this slice. Cockpit APIs, action-item persistence, acknowledgeme
 products, Gateway routes, Workbench surfaces, canonical RFC-0026 seed data, and client-demo claims
 remain mandatory subsequent RFC-0026 work and are unpromoted in this slice.
 
+RFC-0026 Slice 2 is implemented as cleanup and structure. Evidence lives in
+`docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`. `lotus-advise` now has a dedicated
+`src/core/advisor_cockpit/` package for typed cockpit models, vocabulary, deterministic action
+ordering, and pagination defaults. No cockpit API, data product, Gateway route, Workbench surface,
+canonical seed, or supported runtime claim is promoted by this slice.
+
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before policy domain work, so no `lotus-platform` code change
@@ -492,3 +498,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0025-slice-15-final-hardening-and-review.md`
 - `docs/rfcs/RFC-0025-slice-16-final-closure.md`
 - `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
