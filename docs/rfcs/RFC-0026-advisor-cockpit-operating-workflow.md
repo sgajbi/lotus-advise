@@ -2,16 +2,16 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
+| **Status** | READY FOR IMPLEMENTATION - GOLD-STANDARD PLAN |
 | **Created** | 2026-05-22 |
-| **Last Tightened** | 2026-05-22 |
+| **Last Tightened** | 2026-05-27 |
 | **Owner** | `lotus-advise` for advisor-cockpit workflow authority, action semantics, and evidence-product truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, desk head, advisory support, compliance reviewer, operations, sales/pre-sales, client-demo lead |
 | **Primary Business Outcome** | make advisory work operable from one backend-owned cockpit that tells advisors what needs attention, why it matters, what evidence exists, what is blocked, and what next action is allowed |
 | **Depends On** | RFC-0004, RFC-0013, RFC-0017, RFC-0018, RFC-0019, RFC-0021, RFC-0022, RFC-0024, RFC-0025 |
 | **Cross-Repository Scope** | `lotus-advise`, `lotus-core`, `lotus-risk`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-ai`, `lotus-gateway`, `lotus-workbench`, `lotus-manage`, `lotus-platform` |
 | **Compatibility Posture** | backward compatibility is not a constraint; breaking API/contract changes are allowed when they are the cleanest design, but every affected upstream or downstream consumer must be updated in this RFC before closure |
-| **Tightening Branch** | `docs/rfc0026-gold-standard-tightening` |
+| **Tightening Branch** | `rfc0026-advisor-cockpit-gold-standard` |
 | **Implementation Branching Rule** | implementation may continue on this branch or a follow-on RFC-0026 feature branch, but all branch names, PRs, commits, checks, and cross-repo closures must be recorded in RFC closure evidence |
 | **Doc Location** | `docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md` |
 
@@ -74,6 +74,28 @@ Decision:
    ambiguity.
 3. No WTBD entry may be used as an execution substitute. Any required upstream or downstream work
    must appear as an RFC-0026 slice, acceptance criterion, and closure evidence item.
+
+### 1.1 2026-05-27 Implementation Readiness Decision
+
+RFC-0026 is ready to enter implementation after this tightening. The decision is based on the
+current `lotus-advise` mainline state after RFC-0023, RFC-0024, and RFC-0025 closure:
+
+1. RFC-0023 is implemented for advisor-review proposal narrative evidence. Compliance-review,
+   client-draft, client-ready publication, and external client communication remain gated.
+2. RFC-0024 is implemented for advisor-use proposal memo evidence. Client-ready memo publication,
+   external client communication, and full bank-demo/RFP claims remain gated.
+3. RFC-0025 is implemented for advisor/compliance policy evaluation evidence, active
+   `AdvisoryPolicyEvaluationRecord:v1`, Gateway/Workbench policy posture, and canonical
+   `PB_SG_GLOBAL_BAL_001` live validation. Completed approval/waiver authority, completed
+   sign-off authority, client-ready policy publication, external client communication, and full
+   RFC-0028 bank-demo/RFP claims remain gated.
+4. RFC-0026 may consume those evidence products, but it must not promote them into broader claims.
+   The cockpit can show policy posture, memo readiness, and narrative readiness; it cannot claim
+   client-ready signoff or external client communication.
+5. The first implementation slice must start from clean `main`, with stranded-truth
+   reconciliation completed and recorded in slice evidence.
+6. Each implementation slice must be finished, tested, reviewed, committed, and in a solid CI
+   posture before the next slice starts.
 
 ---
 
@@ -254,7 +276,7 @@ claim, RFC-0026 must implement the cockpit-critical subset or remove the unsuppo
 
 ## 7. Current Implementation Baseline
 
-Implementation-backed foundations as of the tightening date:
+Implementation-backed foundations as of 2026-05-27:
 
 1. proposal simulation and artifact routes exist,
 2. proposal lifecycle, versions, workflow transitions, approvals, report requests, delivery summary,
@@ -269,10 +291,16 @@ Implementation-backed foundations as of the tightening date:
 6. tactical house-view affected-cohort evaluation exists for source-backed candidates,
 7. `/platform/capabilities` exposes advisory supportability and bounded readiness/dependency
    posture,
-8. `contracts/domain-data-products/lotus-advise-products.v1.json` currently declares
-   `AdvisoryProposalLifecycleRecord:v1` and `TacticalHouseViewAffectedCohort:v1`,
-9. `contracts/trust-telemetry/` contains trust telemetry for the advisory proposal lifecycle,
-10. `wiki/Supported-Features.md` correctly lists RFC-0026 as planned only.
+8. `contracts/domain-data-products/lotus-advise-products.v1.json` currently declares active
+   advisory workflow products for `AdvisoryProposalLifecycleRecord:v1`,
+   `ProposalNarrativeEvidence:v1`, `AdvisoryProposalMemoEvidencePack:v1`, and
+   `AdvisoryPolicyEvaluationRecord:v1`,
+9. `contracts/trust-telemetry/` contains trust telemetry for proposal narrative, proposal memo,
+   and policy evaluation evidence products,
+10. RFC-0023, RFC-0024, and RFC-0025 are closed as bounded implementation-backed evidence
+    capabilities and remain prerequisites for RFC-0026 cockpit evidence consumption,
+11. `wiki/Supported-Features.md` correctly lists RFC-0026 as a planned runtime capability with no
+    supported cockpit claim.
 
 Current gaps:
 
@@ -286,7 +314,8 @@ Current gaps:
 8. no cockpit acknowledgement/idempotency/audit behavior,
 9. no Gateway/Workbench cockpit integration,
 10. no load/performance proof for large advisor books,
-11. no supported-feature claim for advisor cockpit.
+11. no RFC-0026 canonical front-office automation module,
+12. no supported-feature claim for advisor cockpit.
 
 ---
 
@@ -837,12 +866,66 @@ Live proof must include:
 Proof artifacts must live under non-git-tracked `output/` during execution. Curated summaries may
 be committed only when they contain no sensitive payloads and are useful long-lived documentation.
 
+### 18.5 Canonical Front-Office Automation Expansion
+
+RFC-0026 requires a canonical front-office automation expansion after backend, Gateway, and
+Workbench slices exist. The existing RFC-0023 through RFC-0025 live validation is necessary but not
+sufficient for cockpit closure because it proves proposal narrative, memo, and policy evidence, not
+advisor operating workflow behavior.
+
+Canonical scenario:
+
+1. scenario id: `RFC26_ADVISOR_COCKPIT_CANONICAL`,
+2. canonical portfolio: `PB_SG_GLOBAL_BAL_001`,
+3. prerequisite scenario: `RFC23_25_ADVISORY_PROPOSAL_POLICY_CANONICAL`,
+4. prerequisite policy pack: `SG_PRIVATE_BANKING_REFERENCE`,
+5. prerequisite policy posture: `PENDING_REVIEW`,
+6. prerequisite client-ready posture: `BLOCKED`,
+7. expected evidence marker: `ADVISOR_COCKPIT_CANONICAL_VALIDATED`.
+
+The implementation must extend canonical seed/contract data only when the relevant runtime
+behavior exists. Required post-implementation seed and validation coverage:
+
+1. one `READY` advisor-owned meeting-preparation or proposal-review action,
+2. one `PENDING_REVIEW` policy or supervisory action sourced from RFC-0025 evidence,
+3. one `BLOCKED` memo, report, archive, source-readiness, or supportability action,
+4. one approval or supervisory queue item with SLA aging,
+5. one client follow-up item with explicit owner boundary,
+6. one degraded dependency/supportability posture,
+7. paginated action-list proof with deterministic ordering,
+8. acknowledgement idempotency proof for an advisory-owned action item,
+9. Gateway proof that source-owned priorities, reason codes, owner roles, pagination, and errors are
+   preserved,
+10. Workbench browser proof that the cockpit is Gateway-first and does not infer workflow state
+    locally.
+
+Required automation changes after the relevant implementation slices:
+
+1. extend `lotus-platform/context/contracts/canonical-front-office-demo-data-contract.json` and
+   `lotus-platform/context/contracts/canonical-front-office-demo-data-invariants.json` with the
+   RFC-0026 cockpit scenario only when implementation-backed,
+2. add a Workbench live validation module, expected as
+   `scripts/live/validation/advisor-cockpit-proof.mjs`, that reuses the existing payload utilities
+   instead of duplicating Gateway/API semantics,
+3. add the RFC-0026 proof to `npm run live:validate` so `npm run live:stack:up:validate` remains
+   the repeatable front-office closure command,
+4. ensure any live validation defect is captured by the lowest useful automated test layer before
+   closure, not only by the live validator,
+5. keep screenshot capture gated behind successful canonical API and panel validation.
+
+This RFC must not claim the advisor cockpit is supported until this canonical automation passes on
+main and the evidence is reviewed for every returned count, status, priority, reason code, owner
+role, source gap, lineage ref, and degraded state.
+
 ---
 
 ## 19. Implementation Slices
 
 The implementation sequence below is mandatory. Slices may be split into smaller PRs, but closure
-cannot skip any acceptance gate.
+cannot skip any acceptance gate. A slice is not complete until implementation, tests,
+documentation truth, diff review, and relevant local or GitHub validation are solid. Do not move to
+the next slice while the current slice has unresolved defects, failing targeted tests, ambiguous
+source authority, or unreviewed live-validation gaps.
 
 | User-required slice | Execution slice |
 | --- | --- |
@@ -861,13 +944,16 @@ Outcome:
 1. verify mainline truth before implementation,
 2. map proposal lifecycle, workspace, approval, memo, policy, execution, report, archive,
    house-view, capability, Gateway, Workbench, and platform evidence into cockpit action families,
-3. classify any missing upstream/downstream fields as RFC-0026 slices, not WTBD.
+3. classify any missing upstream/downstream fields as RFC-0026 slices, not WTBD,
+4. confirm canonical RFC-0026 front-office automation needs before implementation begins.
 
 Acceptance gate:
 
 1. source-authority map is committed,
 2. no WTBD or side-ledger dependency remains,
-3. implementation starts from clean current `main` after stranded-truth reconciliation.
+3. implementation starts from clean current `main` after stranded-truth reconciliation,
+4. RFC-0026 canonical automation expansion is documented,
+5. documentation contract tests protect the implementation-readiness decisions.
 
 ### Slice 1 - Platform Automation and Scaffolding Improvement
 
@@ -1280,6 +1366,16 @@ Implementation must use GitHub effectively:
 10. delete completed feature branches,
 11. verify Main Releasability Gate after merge.
 
+Heartbeat rule:
+
+1. use heartbeat-style progress tracking for long-running live validation, cross-repo CI, or
+   background automation where it improves visibility and control,
+2. record durable identifiers such as repository, branch, PR number, commit SHA, check name,
+   command, evidence path, scenario id, and task status,
+3. do not create heartbeat noise for short local checks that already finish synchronously,
+4. never treat a heartbeat as proof; the relevant tests, live validation, CI checks, and reviewed
+   evidence remain the proof.
+
 Expected local proof for `lotus-advise`:
 
 1. `make check`
@@ -1292,24 +1388,24 @@ Affected repositories must use their repo-native gates and GitHub lanes.
 
 ---
 
-## 25. Open Questions to Resolve in Slice 0
+## 25. Slice 0 Implementation Decisions
 
-These questions must be resolved before implementation begins or explicitly answered by the design
-decision in Slice 0:
+These decisions close the pre-implementation questions for Slice 0. Later slices may refine field
+names or endpoint shape when code evidence shows a simpler design, but they must not reopen these
+boundaries without updating this RFC, tests, docs, and downstream contracts.
 
-1. What first-wave caller context is supported: single advisor, desk, coverage team, supervisory
-   role, operations role, or demo role?
-2. Which client/household/advisor assignment source fields already exist in `lotus-core`, and which
-   source enhancements are required?
-3. Which meeting-preparation packet variants are first-wave: client, household, portfolio,
-   proposal, or meeting id?
-4. Which action families must be supported before Workbench cockpit promotion?
-5. What are the default cursor page size, maximum page size, and sort keys for large advisor books?
-6. Which acknowledgements are advisory-owned versus CRM, compliance, report, archive, execution,
-   DPM, or external workflow owned?
-7. Which cockpit fields are public customer, restricted customer, operator-only, or internal-only
-   under evidence policy?
-8. What first-wave load benchmark is sufficient for a bank-buyable advisor book?
-9. Which cockpit claims belong in RFC-0026 versus RFC-0028 commercial packaging?
+| Question | Decision before implementation |
+| --- | --- |
+| First-wave caller context | Support advisor, desk head, compliance reviewer, operations reviewer, and demo/read-only contexts. Coverage-team scope may be represented as desk scope until `lotus-core` exposes a stronger assignment source. |
+| Client, household, and advisor-assignment source fields | Consume existing portfolio/proposal identity, advisor/context refs, and `PB_SG_GLOBAL_BAL_001` canonical portfolio evidence first. Any missing household, meeting, booking-center, or coverage-team fields must appear as explicit `SOURCE_READINESS_GAP` action items or a source-enhancement slice; do not invent them in `lotus-advise`. |
+| Meeting-preparation packet variants | First wave supports portfolio and proposal contexts, plus client/household refs only when source-backed. Meeting-id scheduling remains out of scope until an implementation-backed calendar/CRM source exists. |
+| Action families required before Workbench promotion | Workbench promotion requires at least `CLIENT_MEETING_PREPARATION`, `PROPOSAL_READY_FOR_REVIEW`, `POLICY_REVIEW_REQUIRED`, `APPROVAL_DEPENDENCY_AGING`, `MEMO_PACKAGE_BLOCKED`, `REPORT_RENDER_ARCHIVE_BLOCKED`, `CLIENT_FOLLOW_UP_REQUIRED`, `SUPPORTABILITY_DEGRADED`, and `UNSUPPORTED_CAPABILITY`, plus any source-backed execution or house-view family claimed in the UI. |
+| Cursor pagination defaults | Default page size is 25, maximum page size is 100, and stable ordering is priority rank, due time, SLA aging rank, materiality rank, status rank, action family, source timestamp, then `action_item_id`. Invalid or stale cursors return safe machine-readable errors. |
+| Acknowledgement ownership | `lotus-advise` owns acknowledgement only for advisory-owned action items. CRM, compliance, report, archive, execution, DPM, and external workflow handoffs must remain explicit ownership boundaries and cannot be completed by advisory acknowledgement. |
+| Evidence access classes | Cockpit fields must be classified as customer-consumable summary, restricted customer evidence, operator-only supportability, or internal-only diagnostics. Customer-facing projections must not include raw memo, policy, AI, report, archive, execution, or storage payloads. |
+| First-wave load benchmark | Minimum benchmark is an advisor book with at least 100 portfolios, 250 proposals or proposal-like work items, 500 action items, mixed statuses, mixed owner roles, and degraded-source cases. The benchmark must verify deterministic pagination and bounded snapshot payloads. |
+| RFC-0026 versus RFC-0028 claims | RFC-0026 owns implementation-backed cockpit capability, APIs, Gateway/Workbench product surface, cockpit-specific docs, and cockpit-specific proof. RFC-0028 owns full bank-demo/RFP packaging, demo journey orchestration, and broader commercial claims. |
 
-Open questions cannot remain open at final closure.
+Open implementation defects found during live validation must be covered by the lowest useful
+automated test layer before closure. Live-only fixes without unit, contract, integration, browser,
+or canonical validation coverage are not acceptable for RFC-0026 completion.

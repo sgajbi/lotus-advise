@@ -34,7 +34,8 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0016 costs, fees, and transaction frictions
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
-- RFC-0026 advisor cockpit operating workflow
+- RFC-0026 advisor cockpit operating workflow, ready for implementation after the 2026-05-27
+  gold-standard tightening
 - RFC-0027 governed advisory AI copilot
 - RFC-0028 bank demo journey and client-ready proof
 
@@ -50,6 +51,12 @@ evidence, review posture, report-package lineage, bounded AI evidence, Gateway/W
 and active `AdvisoryPolicyEvaluationRecord:v1` data-product support. Completed approval/waiver
 authority, completed sign-off authority, client-ready policy publication, external client
 communication, and full RFC-0028 bank-demo/RFP claims remain gated.
+
+RFC-0026 is ready for implementation as the next advisory RFC. The 2026-05-27 tightening records
+the completed RFC-0023, RFC-0024, and RFC-0025 evidence baseline, resolves pre-implementation
+Slice 0 decisions, and requires a post-implementation canonical front-office automation expansion
+for `RFC26_ADVISOR_COCKPIT_CANONICAL` on `PB_SG_GLOBAL_BAL_001` before any advisor-cockpit support
+claim is promoted.
 
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
