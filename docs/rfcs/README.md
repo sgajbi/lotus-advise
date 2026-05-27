@@ -448,6 +448,10 @@ Current note:
   `AdvisoryCopilotReviewRecord:v1`, adds tests that block premature declarations, trust telemetry,
   and `/platform/capabilities` promotion, and keeps data-product promotion mandatory inside
   RFC-0027 once runtime, Gateway, Workbench, mesh, and canonical proof exist.
+- RFC-0027 Slice 4 domain-model evidence lives in
+  `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`; it adds typed evidence
+  packet, section, source-ref, lineage-ref, unsupported-evidence, retention-class, and review-state
+  vocabulary while preserving blocked client-ready posture and no runtime/API promotion.
 
 RFC-0025 implementation evidence includes:
 
@@ -503,4 +507,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`
 

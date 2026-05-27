@@ -91,6 +91,12 @@ RFC-0027 Slice 3 is implemented as non-promoting data-product posture. Evidence 
 promotion until copilot runtime APIs, persistence, Gateway/Workbench consumption, mesh posture, and
 canonical proof exist.
 
+RFC-0027 Slice 4 is implemented as pure domain model, vocabulary, and review-state hardening.
+Evidence lives in `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`. The
+copilot core now defines evidence packets, evidence sections, source refs, lineage refs,
+unsupported-evidence posture, retention classes, and review-state mapping while preserving blocked
+client-ready posture and no runtime/API promotion.
+
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before cockpit domain work, so no `lotus-platform` code change
@@ -616,3 +622,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`

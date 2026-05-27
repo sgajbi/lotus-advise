@@ -3,6 +3,11 @@ from __future__ import annotations
 from src.core.advisory_copilot import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,
+    CopilotEvidencePacket,
+    CopilotEvidencePacketSection,
+    CopilotLineageRef,
+    CopilotSourceRef,
+    CopilotUnsupportedEvidence,
     business_projection_for_action,
     get_copilot_action_definition,
     guardrail_reason_for_intent,
@@ -95,3 +100,49 @@ def test_business_projection_uses_clean_private_banking_language() -> None:
         assert projection.next_action_label.startswith("Review")
         for banned in banned_terms:
             assert banned not in business_copy
+
+
+def test_copilot_evidence_packet_shape_preserves_review_and_lineage_boundaries() -> None:
+    packet = CopilotEvidencePacket(
+        evidence_packet_id="copilot_packet_pb_sg_001",
+        action_family="COMPLIANCE_REVIEW_SUMMARY",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        proposal_id="proposal_sg_structured_note_001",
+        sections=(
+            CopilotEvidencePacketSection(
+                section_key="POLICY_POSTURE",
+                title="Policy posture",
+                evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+                source_refs=(
+                    CopilotSourceRef(
+                        source_system="lotus-advise",
+                        source_type="POLICY_EVALUATION",
+                        source_id="policy_eval_sg_001",
+                        content_hash="sha256:policy-evaluation",
+                        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+                    ),
+                ),
+            ),
+        ),
+        unsupported_evidence=(
+            CopilotUnsupportedEvidence(
+                reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
+                source_dependency="RFC0025_POLICY_EVALUATION",
+                advisor_message="Client-ready publication is blocked for this review.",
+            ),
+        ),
+        lineage_refs=(
+            CopilotLineageRef(
+                lineage_type="EVIDENCE_PACKET",
+                lineage_id="copilot_packet_pb_sg_001",
+                source_system="lotus-advise",
+            ),
+        ),
+        retention_class="ADVISORY_REVIEW_RECORD",
+    )
+
+    assert packet.client_ready_publication == "BLOCKED"
+    assert packet.retention_class == "ADVISORY_REVIEW_RECORD"
+    assert packet.sections[0].source_refs[0].content_hash == "sha256:policy-evaluation"
+    assert packet.unsupported_evidence[0].reason_code == "CLIENT_READY_PUBLICATION_BLOCKED"
+    assert packet.lineage_refs[0].source_system == "lotus-advise"

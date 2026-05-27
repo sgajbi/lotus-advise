@@ -817,6 +817,10 @@ Acceptance gate:
 2. vocabulary inventory and no-alias gates pass,
 3. private-banking terminology is consistent across code, API, tests, docs, and wiki.
 
+Slice 4 evidence:
+
+1. `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`
+
 ### Slice 5 - Evidence Packet, Redaction, and Projection Policies
 
 Outcome:
