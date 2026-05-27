@@ -757,6 +757,10 @@ Acceptance gate:
 2. platform changes are tested, merged, and referenced in RFC-0027 closure evidence,
 3. future apps benefit from the improvement.
 
+Slice 1 evidence:
+
+1. `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`
+
 ### Slice 2 - Cleanup and Structure
 
 Outcome:

@@ -429,6 +429,12 @@ Current note:
   projection, preparation packets, house-view impact, acknowledgement idempotency, supportability
   posture, and action evidence/lineage. The slice also records live defects fixed at the owning
   layer and pinned by lower-level tests before rerun.
+- RFC-0027 Slice 1 platform-scaffolding evidence lives in
+  `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`; it records that
+  existing platform and repo-native controls are sufficient before copilot domain work, rejects
+  premature local/platform copilot scaffolds, and keeps `RFC27_ADVISORY_COPILOT_CANONICAL` seed and
+  Workbench automation as mandatory RFC-0027 Slice 12 work once backend, Gateway, and Workbench
+  behavior exists.
 
 RFC-0025 implementation evidence includes:
 
@@ -481,4 +487,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`
 - `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
 - `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`
+- `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`
 

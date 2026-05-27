@@ -68,6 +68,14 @@ documentation quality requirements before implementation begins. Any data, autom
 Gateway, `lotus-ai`, platform, production, or documentation work needed to prove the supported
 copilot belongs inside RFC-0027.
 
+RFC-0027 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
+`docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
+repo-native controls are sufficient before copilot domain work, so no `lotus-platform` code change
+is required for this slice. Copilot APIs, evidence-packet persistence, guardrails, `lotus-ai`
+workflow-pack integration, review actions, data-product promotion, Gateway routes, Workbench
+surfaces, canonical RFC-0027 seed data, and client-demo claims remain mandatory subsequent RFC-0027
+work and are unpromoted in this slice.
+
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before cockpit domain work, so no `lotus-platform` code change
@@ -590,3 +598,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`
 - `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
 - `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`
+- `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`
