@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal, TypeVar
+from typing import Literal, TypeVar, cast
 
 from pydantic import BaseModel, Field
 
@@ -144,6 +144,23 @@ class MeetingPreparationActionSource(BaseModel):
     due_at: str | None = Field(default=None)
     source_timestamp: str | None = Field(default=None)
     materiality_rank: int = Field(default=30, ge=0)
+    correlation_id: str | None = Field(default=None)
+
+
+class ClientFollowUpActionSource(BaseModel):
+    follow_up_id: str = Field(examples=["follow_up_proposal_sg_001"])
+    proposal_id: str = Field(examples=["proposal_sg_001"])
+    portfolio_id: str | None = Field(default=None, examples=["PB_SG_GLOBAL_BAL_001"])
+    follow_up_code: str = Field(examples=["CLIENT_CONSENT_FOLLOW_UP_REQUIRED"])
+    summary: str = Field(
+        default=(
+            "Advisor follow-up is required before the proposal can progress. External client "
+            "communication remains outside the cockpit boundary."
+        )
+    )
+    due_at: str | None = Field(default=None)
+    source_timestamp: str | None = Field(default=None)
+    materiality_rank: int = Field(default=55, ge=0)
     correlation_id: str | None = Field(default=None)
 
 
@@ -368,6 +385,51 @@ def build_meeting_preparation_action(
     )
 
 
+def build_client_follow_up_action(
+    source: ClientFollowUpActionSource,
+) -> AdvisoryActionItem:
+    return build_source_backed_action(
+        CockpitActionConstructionInput(
+            source_action_id=source.follow_up_id,
+            action_family="CLIENT_FOLLOW_UP_REQUIRED",
+            status="READY",
+            priority="HIGH",
+            owner_role="ADVISOR",
+            title="Client follow-up required",
+            next_required_action=(
+                "Review the source-backed follow-up requirement before taking any client action."
+            ),
+            reason_codes=[source.follow_up_code, "EXTERNAL_CLIENT_COMMUNICATION_BLOCKED"],
+            source_refs=CockpitActionSourceRefs(
+                portfolio_id=source.portfolio_id,
+                proposal_id=source.proposal_id,
+            ),
+            due_at=source.due_at,
+            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            materiality_rank=source.materiality_rank,
+            source_timestamp=source.source_timestamp,
+            evidence_refs=[
+                _evidence_ref(
+                    evidence_id=source.follow_up_id,
+                    evidence_type="CLIENT_FOLLOW_UP_REQUIREMENT",
+                    summary=source.summary,
+                    access_class="CUSTOMER_CONSUMABLE_SUMMARY",
+                )
+            ],
+            source_readiness_gaps=[
+                CockpitSourceReadinessGap(
+                    source_family="proposal_lifecycle",
+                    gap_code=source.follow_up_code,
+                    owner_role="ADVISOR",
+                    message=source.summary,
+                )
+            ],
+            unsupported_capabilities=["EXTERNAL_CLIENT_COMMUNICATION", "CRM_SYSTEM_OF_RECORD"],
+            correlation_id=source.correlation_id,
+        )
+    )
+
+
 def build_supportability_degraded_action(
     source: SupportabilityDegradedActionSource,
 ) -> AdvisoryActionItem:
@@ -426,6 +488,7 @@ def build_first_wave_cockpit_actions(
     policy_reviews: Sequence[PolicyReviewActionSource] = (),
     memo_blocks: Sequence[MemoPackageBlockedActionSource] = (),
     meeting_preparations: Sequence[MeetingPreparationActionSource] = (),
+    client_follow_ups: Sequence[ClientFollowUpActionSource] = (),
     supportability_events: Sequence[SupportabilityDegradedActionSource] = (),
     unsupported_capabilities: Sequence[UnsupportedCapabilityActionSource] = (),
 ) -> list[AdvisoryActionItem]:
@@ -433,10 +496,11 @@ def build_first_wave_cockpit_actions(
         *(build_policy_review_required_action(source) for source in policy_reviews),
         *(build_memo_package_blocked_action(source) for source in memo_blocks),
         *(build_meeting_preparation_action(source) for source in meeting_preparations),
+        *(build_client_follow_up_action(source) for source in client_follow_ups),
         *(build_supportability_degraded_action(source) for source in supportability_events),
         *(build_unsupported_capability_action(source) for source in unsupported_capabilities),
     ]
-    return sort_cockpit_action_items(actions)
+    return cast(list[AdvisoryActionItem], sort_cockpit_action_items(actions))
 
 
 def _build_action_item_id(action_family: str, source_action_id: str) -> str:

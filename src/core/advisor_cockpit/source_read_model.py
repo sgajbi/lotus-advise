@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from src.core.advisor_cockpit.action_factory import (
+    ClientFollowUpActionSource,
     MeetingPreparationActionSource,
     MemoPackageBlockedActionSource,
     PolicyReviewActionSource,
@@ -24,6 +25,7 @@ ACTIVE_PROPOSAL_STATES = frozenset(
     }
 )
 COCKPIT_POLICY_REVIEW_STATUSES = frozenset({"PENDING_REVIEW", "BLOCKED"})
+FOLLOW_UP_PROPOSAL_STATES = frozenset({"AWAITING_CLIENT_CONSENT"})
 
 
 class AdvisorCockpitSourceBatch(BaseModel):
@@ -62,6 +64,9 @@ class AdvisorCockpitSourceReadModel(BaseModel):
     meeting_preparations: list[MeetingPreparationActionSource] = Field(
         description="Meeting-preparation sources for active advisory proposals."
     )
+    client_follow_ups: list[ClientFollowUpActionSource] = Field(
+        description="Advisor-owned follow-up requirements from proposal lifecycle posture."
+    )
     supportability_events: list[SupportabilityDegradedActionSource] = Field(
         description="Source dependency readiness events."
     )
@@ -89,10 +94,16 @@ def build_advisor_cockpit_source_read_model(
         for record in batch.proposals
         if record.current_state in ACTIVE_PROPOSAL_STATES
     ]
+    client_follow_ups = [
+        _client_follow_up_source(record)
+        for record in batch.proposals
+        if record.current_state in FOLLOW_UP_PROPOSAL_STATES
+    ]
     action_items = build_first_wave_cockpit_actions(
         policy_reviews=policy_reviews,
         memo_blocks=memo_blocks,
         meeting_preparations=meeting_preparations,
+        client_follow_ups=client_follow_ups,
         supportability_events=batch.supportability_events,
         unsupported_capabilities=batch.unsupported_capabilities,
     )
@@ -107,6 +118,7 @@ def build_advisor_cockpit_source_read_model(
         policy_reviews=policy_reviews,
         memo_blocks=memo_blocks,
         meeting_preparations=meeting_preparations,
+        client_follow_ups=client_follow_ups,
         supportability_events=list(batch.supportability_events),
         unsupported_capabilities=list(batch.unsupported_capabilities),
         action_items=action_items,
@@ -154,6 +166,21 @@ def _meeting_preparation_source(record: ProposalRecord) -> MeetingPreparationAct
         summary="Active advisory proposal is available for meeting preparation.",
         source_timestamp=record.last_event_at.isoformat(),
         materiality_rank=50 if record.current_state == "EXECUTION_READY" else 30,
+    )
+
+
+def _client_follow_up_source(record: ProposalRecord) -> ClientFollowUpActionSource:
+    return ClientFollowUpActionSource(
+        follow_up_id=f"follow_up_{record.proposal_id}_client_consent",
+        proposal_id=record.proposal_id,
+        portfolio_id=record.portfolio_id,
+        follow_up_code="CLIENT_CONSENT_FOLLOW_UP_REQUIRED",
+        summary=(
+            "Proposal is awaiting client consent; advisor follow-up is required before "
+            "execution readiness can change, while external client communication remains gated."
+        ),
+        source_timestamp=record.last_event_at.isoformat(),
+        materiality_rank=65,
     )
 
 

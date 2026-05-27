@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from src.core.advisor_cockpit import (
+    ClientFollowUpActionSource,
     CockpitActionConstructionInput,
     CockpitActionSourceRefs,
     CockpitEvidenceRef,
@@ -11,6 +12,7 @@ from src.core.advisor_cockpit import (
     PolicyReviewActionSource,
     SupportabilityDegradedActionSource,
     UnsupportedCapabilityActionSource,
+    build_client_follow_up_action,
     build_first_wave_cockpit_actions,
     build_meeting_preparation_action,
     build_memo_package_blocked_action,
@@ -123,6 +125,34 @@ def test_meeting_preparation_action_defaults_portfolio_context_to_portfolio_ref(
     assert action.portfolio_id == "PB_SG_GLOBAL_BAL_001"
     assert action.reason_codes == ["MEETING_PREPARATION_READY"]
     assert action.evidence_refs[0].access_class == "CUSTOMER_CONSUMABLE_SUMMARY"
+
+
+def test_client_follow_up_action_preserves_external_communication_boundary() -> None:
+    action = build_client_follow_up_action(
+        ClientFollowUpActionSource(
+            follow_up_id="follow_up_proposal_sg_001_client_consent",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            follow_up_code="CLIENT_CONSENT_FOLLOW_UP_REQUIRED",
+            source_timestamp="2026-05-27T08:00:00+00:00",
+        )
+    )
+
+    assert action.action_family == "CLIENT_FOLLOW_UP_REQUIRED"
+    assert action.status == "READY"
+    assert action.priority == "HIGH"
+    assert action.owner_role == "ADVISOR"
+    assert action.proposal_id == "proposal_sg_001"
+    assert action.reason_codes == [
+        "CLIENT_CONSENT_FOLLOW_UP_REQUIRED",
+        "EXTERNAL_CLIENT_COMMUNICATION_BLOCKED",
+    ]
+    assert action.evidence_refs[0].evidence_type == "CLIENT_FOLLOW_UP_REQUIREMENT"
+    assert action.source_readiness_gaps[0].source_family == "proposal_lifecycle"
+    assert action.unsupported_capabilities == [
+        "EXTERNAL_CLIENT_COMMUNICATION",
+        "CRM_SYSTEM_OF_RECORD",
+    ]
 
 
 def test_supportability_action_is_blocking_when_dependency_is_unavailable() -> None:
@@ -242,10 +272,18 @@ def test_first_wave_builder_returns_stable_priority_order() -> None:
                 context_ref="PB_SG_GLOBAL_BAL_001",
             )
         ],
+        client_follow_ups=[
+            ClientFollowUpActionSource(
+                follow_up_id="follow_up_sg_001",
+                proposal_id="proposal_sg_001",
+                follow_up_code="CLIENT_CONSENT_FOLLOW_UP_REQUIRED",
+            )
+        ],
     )
 
     assert [action.action_family for action in actions] == [
         "POLICY_REVIEW_REQUIRED",
         "MEMO_PACKAGE_BLOCKED",
+        "CLIENT_FOLLOW_UP_REQUIRED",
         "CLIENT_MEETING_PREPARATION",
     ]

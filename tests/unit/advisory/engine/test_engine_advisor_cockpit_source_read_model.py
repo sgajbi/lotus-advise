@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from src.core.advisor_cockpit import (
     ACTIVE_PROPOSAL_STATES,
     COCKPIT_POLICY_REVIEW_STATUSES,
+    FOLLOW_UP_PROPOSAL_STATES,
     AdvisorCockpitSourceBatch,
     AdvisorCockpitSourceReadModel,
     SupportabilityDegradedActionSource,
@@ -20,6 +21,7 @@ AS_OF = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
 def test_source_read_model_exports_cockpit_source_filters() -> None:
     assert "COMPLIANCE_REVIEW" in ACTIVE_PROPOSAL_STATES
     assert "EXECUTED" not in ACTIVE_PROPOSAL_STATES
+    assert FOLLOW_UP_PROPOSAL_STATES == frozenset({"AWAITING_CLIENT_CONSENT"})
     assert COCKPIT_POLICY_REVIEW_STATUSES == frozenset({"PENDING_REVIEW", "BLOCKED"})
 
 
@@ -85,6 +87,7 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
         AdvisorCockpitSourceBatch(
             proposals=[
                 _proposal("COMPLIANCE_REVIEW", proposal_id="proposal_sg_001"),
+                _proposal("AWAITING_CLIENT_CONSENT", proposal_id="proposal_sg_consent"),
                 _proposal("EXECUTED", proposal_id="proposal_sg_executed"),
             ],
             policy_evaluations=[
@@ -120,7 +123,7 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
 
     assert isinstance(read_model, AdvisorCockpitSourceReadModel)
     assert read_model.source_counts == {
-        "proposals": 2,
+        "proposals": 3,
         "policy_evaluations": 2,
         "memos": 2,
         "supportability_events": 1,
@@ -130,11 +133,19 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
         "policy_eval_sg_pending"
     ]
     assert [source.memo_id for source in read_model.memo_blocks] == ["memo_sg_blocked"]
-    assert [source.proposal_id for source in read_model.meeting_preparations] == ["proposal_sg_001"]
+    assert [source.proposal_id for source in read_model.meeting_preparations] == [
+        "proposal_sg_001",
+        "proposal_sg_consent",
+    ]
+    assert [source.proposal_id for source in read_model.client_follow_ups] == [
+        "proposal_sg_consent"
+    ]
     assert [action.action_family for action in read_model.action_items] == [
         "POLICY_REVIEW_REQUIRED",
         "MEMO_PACKAGE_BLOCKED",
+        "CLIENT_FOLLOW_UP_REQUIRED",
         "SUPPORTABILITY_DEGRADED",
+        "CLIENT_MEETING_PREPARATION",
         "CLIENT_MEETING_PREPARATION",
         "UNSUPPORTED_CAPABILITY",
     ]

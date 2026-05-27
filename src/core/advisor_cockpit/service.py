@@ -281,7 +281,10 @@ class AdvisorCockpitService:
             self._attach_runtime_state(action=action, correlation_id=correlation_id)
             for action in read_model.action_items
         ]
-        return read_model.model_copy(update={"action_items": action_items})
+        return cast(
+            AdvisorCockpitSourceReadModel,
+            read_model.model_copy(update={"action_items": action_items}),
+        )
 
     def _attach_runtime_state(
         self,
