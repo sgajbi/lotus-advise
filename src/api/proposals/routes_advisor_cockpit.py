@@ -195,9 +195,9 @@ def get_advisor_cockpit_snapshot(
     tags=["Advisor Cockpit"],
     summary="Get Advisor Cockpit Supportability",
     description=(
-        "Returns support-safe Advise cockpit runtime posture. This endpoint intentionally keeps "
-        "Gateway, Workbench, data-product promotion, client-ready publication, and external "
-        "client communication boundaries explicit."
+        "Returns support-safe Advise cockpit runtime posture, including Advise API support, "
+        "Gateway publication, Workbench canonical proof, active data-product posture, and the "
+        "client-ready, external communication, CRM, OMS, and completed approval boundaries."
     ),
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )

@@ -143,7 +143,7 @@ class AdvisorCockpitService:
             correlation_id=correlation_id,
         )
         return AdvisorCockpitSupportabilityResponse(
-            posture="ADVISE_API_SUPPORTED_DOWNSTREAM_GATED",
+            posture="ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
             supportability=_supportability(actions=actions, source_limit=COCKPIT_SOURCE_LIMIT),
             unsupported_capabilities=sorted(
                 {capability for action in actions for capability in action.unsupported_capabilities}

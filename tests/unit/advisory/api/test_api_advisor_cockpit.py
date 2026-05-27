@@ -89,6 +89,10 @@ def test_advisor_cockpit_api_lists_actions_and_snapshot(
             "/advisory/cockpit/snapshot",
             params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
         )
+        supportability_response = client.get(
+            "/advisory/cockpit/supportability",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+        )
 
     assert actions.status_code == 200
     action_payload = actions.json()
@@ -100,6 +104,10 @@ def test_advisor_cockpit_api_lists_actions_and_snapshot(
     assert supportability["gateway_posture"] == "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026"
     assert supportability["workbench_posture"] == "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026"
     assert supportability["data_product_posture"] == "ACTIVE_ADVISOR_COCKPIT_PRODUCTS_RFC0026"
+    assert supportability_response.status_code == 200
+    assert supportability_response.json()["posture"] == (
+        "ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"
+    )
 
 
 def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
@@ -146,7 +154,9 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
 
     assert "/advisory/cockpit/actions" in schema["paths"]
     assert "/advisory/cockpit/snapshot" in schema["paths"]
+    assert "/advisory/cockpit/supportability" in schema["paths"]
     action_operation = schema["paths"]["/advisory/cockpit/actions"]["get"]
+    supportability_operation = schema["paths"]["/advisory/cockpit/supportability"]["get"]
     acknowledgement_operation = schema["paths"][
         "/advisory/cockpit/actions/{action_item_id}/acknowledgements"
     ]["post"]
@@ -156,6 +166,8 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
     assert action_operation["responses"]["422"]["description"] == (
         "Advisor cockpit request failed validation, including invalid cursors."
     )
+    assert "Gateway publication" in supportability_operation["description"]
+    assert "active data-product posture" in supportability_operation["description"]
     assert "Acknowledgement does not clear blocking" in acknowledgement_operation["description"]
     assert acknowledgement_operation["responses"]["409"]["description"] == (
         "Idempotency key was reused with a different acknowledgement request."

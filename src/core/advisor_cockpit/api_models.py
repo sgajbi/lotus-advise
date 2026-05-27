@@ -49,7 +49,7 @@ class AdvisorCockpitAcknowledgeResponse(BaseModel):
 class AdvisorCockpitSupportabilityResponse(BaseModel):
     posture: str = Field(
         description="Current Advise-owned cockpit runtime posture.",
-        examples=["ADVISE_API_SUPPORTED_DOWNSTREAM_GATED"],
+        examples=["ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"],
     )
     supportability: dict[str, Any] = Field(
         description="Support-safe source, API, persistence, and downstream readiness context."

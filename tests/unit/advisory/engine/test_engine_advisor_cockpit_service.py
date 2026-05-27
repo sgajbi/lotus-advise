@@ -142,7 +142,7 @@ def test_cockpit_service_batches_memo_source_reads(monkeypatch: pytest.MonkeyPat
     assert repository.per_proposal_memo_reads == 0
 
 
-def test_cockpit_service_snapshot_preserves_gated_downstream_posture(
+def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     service = _service(monkeypatch)
@@ -166,6 +166,12 @@ def test_cockpit_service_snapshot_preserves_gated_downstream_posture(
         "PB_SG_GLOBAL_BAL_001_ADVISOR_COCKPIT_VALIDATED"
     )
     assert snapshot.supportability["client_ready_publication"] == "BLOCKED"
+    supportability = service.get_supportability(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id=None,
+    )
+    assert supportability.posture == "ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"
 
 
 def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_posture(
