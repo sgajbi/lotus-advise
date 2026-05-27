@@ -137,6 +137,26 @@ def test_rfc0026_capabilities_advertise_advisor_cockpit_after_canonical_proof():
     assert "oms order lifecycle" in payload_text
 
 
+def test_rfc0027_capabilities_do_not_promote_copilot_before_runtime_proof():
+    with TestClient(app) as client:
+        response = client.get(
+            "/platform/capabilities",
+            params={"consumer_system": "lotus-gateway", "tenant_id": "default"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    feature_keys = {item["key"] for item in payload["features"]}
+    workflow_keys = {item["workflow_key"] for item in payload["workflows"]}
+    payload_text = str(payload).lower()
+
+    assert "advisory.copilot" not in feature_keys
+    assert "advisory.advisory_copilot" not in feature_keys
+    assert "advisory_copilot" not in workflow_keys
+    assert "advisory copilot" not in payload_text
+    assert "advisorycopilotinteractionrecord" not in payload_text
+
+
 def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_only():
     openapi = app.openapi()
     operation = openapi["paths"]["/platform/capabilities"]["get"]

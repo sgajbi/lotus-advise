@@ -442,6 +442,12 @@ Current note:
   business-facing projection labels while keeping APIs, persistence, `lotus-ai` invocation,
   Gateway, Workbench, data-product promotion, canonical seed, and supported copilot claims
   unpromoted until subsequent RFC-0027 slices implement and prove them.
+- RFC-0027 Slice 3 data-product evidence lives in
+  `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`; it records a non-promoting
+  posture for `AdvisoryCopilotInteractionRecord:v1`, `AdvisoryCopilotEvidencePacket:v1`, and
+  `AdvisoryCopilotReviewRecord:v1`, adds tests that block premature declarations, trust telemetry,
+  and `/platform/capabilities` promotion, and keeps data-product promotion mandatory inside
+  RFC-0027 once runtime, Gateway, Workbench, mesh, and canonical proof exist.
 
 RFC-0025 implementation evidence includes:
 
@@ -496,4 +502,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`
 - `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`
+- `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`
 

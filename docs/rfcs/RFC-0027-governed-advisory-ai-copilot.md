@@ -800,6 +800,10 @@ Acceptance gate:
 5. data-product docs explain source authority, lineage, freshness, completeness, access, retention,
    and evidence classes.
 
+Slice 3 evidence:
+
+1. `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`
+
 ### Slice 4 - Copilot Domain Model, Vocabulary, and Review State
 
 Outcome:
