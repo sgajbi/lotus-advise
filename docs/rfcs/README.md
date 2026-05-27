@@ -387,6 +387,12 @@ Current note:
   that block premature declarations, trust telemetry, and `/platform/capabilities` promotion, and
   keeps data-product promotion mandatory inside RFC-0026 once runtime, Gateway, Workbench, mesh,
   and canonical proof exist.
+- RFC-0026 Slice 4 cockpit domain evidence lives in
+  `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`; it adds the pure core
+  `src/core/advisor_cockpit/action_factory.py` source-backed action construction layer, covers
+  policy-review, memo-blocked, meeting-preparation, supportability, and unsupported-capability
+  actions with behavior tests, and keeps APIs, persistence, data products, Gateway, Workbench, and
+  canonical proof unpromoted until mandatory subsequent RFC-0026 slices implement them.
 
 RFC-0025 implementation evidence includes:
 
@@ -430,4 +436,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
 

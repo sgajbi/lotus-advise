@@ -77,6 +77,15 @@ RFC-0026 Slice 3 is implemented as non-promoting data-product posture. Evidence 
 telemetry, and `/platform/capabilities` promotion until cockpit runtime APIs, Gateway/Workbench
 consumption, mesh posture, and canonical proof exist.
 
+RFC-0026 Slice 4 is implemented as source-backed cockpit action construction. Evidence lives in
+`docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`.
+`src/core/advisor_cockpit/action_factory.py` now centralizes Advise-owned action construction for
+policy review, memo blockers, meeting preparation, source supportability, and unsupported
+capabilities, with behavior tests that keep source refs, evidence refs, lineage, reason codes,
+owner roles, and client-ready blocked posture explicit. Runtime APIs, persistence, data-product
+promotion, Gateway routes, Workbench surfaces, and canonical proof remain mandatory subsequent
+RFC-0026 slices.
+
 RFC-0025 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before policy domain work, so no `lotus-platform` code change
@@ -506,3 +515,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`
 - `docs/rfcs/RFC-0026-slice-2-cleanup-and-structure.md`
 - `docs/rfcs/RFC-0026-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`
