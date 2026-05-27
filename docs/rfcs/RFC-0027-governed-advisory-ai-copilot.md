@@ -854,6 +854,10 @@ Acceptance gate:
 3. blocked or degraded states cannot be hidden or softened,
 4. guardrail reason codes are stable and documented.
 
+Slice 6 evidence:
+
+1. `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`
+
 ### Slice 7 - lotus-ai Workflow-Pack Integration and Model-Risk Controls
 
 Outcome:

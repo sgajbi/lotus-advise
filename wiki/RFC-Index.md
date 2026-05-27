@@ -105,6 +105,12 @@ packet hashes, rejects technical-copy leakage, and keeps client-ready publicatio
 reads, persistence, API, `lotus-ai`, Gateway, Workbench, data-product, canonical seed, or supported
 runtime claim is promoted by this slice.
 
+RFC-0027 Slice 6 is implemented as a pure guardrail and unsupported-evidence engine foundation.
+Evidence lives in `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`. The
+copilot core now returns stable reason codes for forbidden intents, missing source refs, prompt
+injection, client-ready wording, and sensitive technical leakage. Persistence, API, `lotus-ai`,
+Gateway, Workbench, canonical proof, and supported runtime claims remain unpromoted.
+
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before cockpit domain work, so no `lotus-platform` code change
@@ -632,3 +638,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`
 - `docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`
+- `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`

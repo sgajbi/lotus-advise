@@ -14,6 +14,7 @@ from src.core.advisory_copilot.evidence_packets import (
 from src.core.advisory_copilot.guardrails import (
     FORBIDDEN_INTENT_REASON_CODES,
     CopilotGuardrailReasonCode,
+    evaluate_copilot_guardrails,
     guardrail_reason_for_intent,
 )
 from src.core.advisory_copilot.models import (
@@ -84,6 +85,7 @@ __all__ = [
     "CopilotUnsupportedEvidenceReason",
     "business_projection_for_action",
     "build_copilot_evidence_packet",
+    "evaluate_copilot_guardrails",
     "get_copilot_action_definition",
     "guardrail_reason_for_intent",
     "is_terminal_review_posture",

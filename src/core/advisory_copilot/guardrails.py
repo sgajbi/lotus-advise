@@ -29,8 +29,62 @@ _FORBIDDEN_INTENT_REASON_CODES: dict[str, CopilotGuardrailReasonCode] = {
 
 FORBIDDEN_INTENT_REASON_CODES = MappingProxyType(_FORBIDDEN_INTENT_REASON_CODES)
 
+_PROMPT_INJECTION_MARKERS = (
+    "ignore previous instructions",
+    "ignore the above",
+    "system prompt",
+    "developer message",
+    "override instructions",
+    "bypass guardrail",
+)
+
+_CLIENT_READY_MARKERS = (
+    "approved for client",
+    "client-ready publication",
+    "ready to send to client",
+    "send this to the client",
+    "final client advice",
+)
+
+_SENSITIVE_OUTPUT_MARKERS = (
+    "raw prompt",
+    "provider response",
+    "trace id",
+    "correlation id",
+    "raw payload",
+)
+
 
 def guardrail_reason_for_intent(intent_key: str) -> CopilotGuardrailReasonCode | None:
     normalized = intent_key.strip().lower().replace("-", "_").replace(" ", "_")
     return FORBIDDEN_INTENT_REASON_CODES.get(normalized)
 
+
+def evaluate_copilot_guardrails(
+    *,
+    requested_intents: tuple[str, ...],
+    source_refs_present: bool,
+    user_instruction: str,
+    output_text: str,
+) -> tuple[CopilotGuardrailReasonCode, ...]:
+    reasons: list[CopilotGuardrailReasonCode] = []
+
+    for intent in requested_intents:
+        reason = guardrail_reason_for_intent(intent)
+        if reason is not None:
+            reasons.append(reason)
+
+    if not source_refs_present:
+        reasons.append("SOURCE_EVIDENCE_REQUIRED")
+
+    instruction = user_instruction.lower()
+    if any(marker in instruction for marker in _PROMPT_INJECTION_MARKERS):
+        reasons.append("PROMPT_INJECTION_REJECTED")
+
+    output = output_text.lower()
+    if any(marker in output for marker in _CLIENT_READY_MARKERS):
+        reasons.append("CLIENT_READY_PUBLICATION_FORBIDDEN")
+    if any(marker in output for marker in _SENSITIVE_OUTPUT_MARKERS):
+        reasons.append("SENSITIVE_DATA_EXPOSURE_REJECTED")
+
+    return tuple(dict.fromkeys(reasons))

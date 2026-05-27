@@ -458,6 +458,11 @@ Current note:
   source refs, lineage refs, stable packet hashes, technical-copy leakage rejection, and blocked
   client-ready posture without source reads, persistence, APIs, `lotus-ai`, Gateway, Workbench, or
   support promotion.
+- RFC-0027 Slice 6 guardrail evidence lives in
+  `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`; it adds pure guardrail
+  evaluation for forbidden intents, missing source refs, prompt injection, client-ready wording,
+  and sensitive technical leakage while keeping persistence, APIs, `lotus-ai`, Gateway, Workbench,
+  canonical proof, and supported claims unpromoted.
 
 RFC-0025 implementation evidence includes:
 
@@ -515,4 +520,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`
 - `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`
 - `docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`
+- `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`
 
