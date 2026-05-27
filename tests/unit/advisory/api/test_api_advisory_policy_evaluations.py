@@ -592,17 +592,45 @@ def test_policy_review_queue_filters_records_that_need_policy_review() -> None:
         )
         assert created.status_code == 200
         evaluation_id = created.json()["record"]["evaluation_id"]
+        assert created.json()["record"]["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
+
+        other_portfolio_payload = _sg_pending_payload()
+        other_portfolio_payload["evidence_bundle"]["inputs"]["portfolio_snapshot"][
+            "portfolio_id"
+        ] = "PB_SG_OTHER_BAL_001"
+        other_created = client.post(
+            "/advisory/proposals/pp_policy_queue_002/versions/ppv_policy_queue_002/policy-evaluations",
+            json=other_portfolio_payload,
+            headers={"Idempotency-Key": "api-policy-eval-queue-002"},
+        )
+        assert other_created.status_code == 200
+        other_evaluation_id = other_created.json()["record"]["evaluation_id"]
 
         queue = client.get("/advisory/policy-evaluations/review-queue")
         assert queue.status_code == 200
         queue_body = queue.json()
-        assert [item["evaluation_id"] for item in queue_body["items"]] == [evaluation_id]
+        assert [item["evaluation_id"] for item in queue_body["items"]] == [
+            evaluation_id,
+            other_evaluation_id,
+        ]
         assert queue_body["items"][0]["evaluation_status"] == "PENDING_REVIEW"
         assert queue_body["queue_posture"]["workbench_supported"] is True
         assert queue_body["queue_posture"]["workbench_support"] == (
             "SUPPORTED_BY_RFC0025_SLICE12_GATEWAY_ONLY_UI"
         )
         assert queue_body["queue_posture"]["client_ready_publication"] == "BLOCKED"
+
+        portfolio_queue = client.get(
+            "/advisory/policy-evaluations/review-queue",
+            params={
+                "evaluation_status": "PENDING_REVIEW",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            },
+        )
+        assert portfolio_queue.status_code == 200
+        assert [item["evaluation_id"] for item in portfolio_queue.json()["items"]] == [
+            evaluation_id
+        ]
 
         ready_queue = client.get(
             "/advisory/policy-evaluations/review-queue",
