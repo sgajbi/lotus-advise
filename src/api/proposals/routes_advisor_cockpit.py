@@ -10,6 +10,7 @@ from src.core.advisor_cockpit import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
     AdvisorCockpitOwnerRole,
+    AdvisorCockpitPreparationPacketPage,
     AdvisorCockpitRepository,
     AdvisorCockpitService,
     AdvisorCockpitSnapshotResponse,
@@ -186,6 +187,59 @@ def get_advisor_cockpit_snapshot(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
     )
+
+
+@shared.router.get(
+    "/advisory/cockpit/preparation-packets",
+    response_model=AdvisorCockpitPreparationPacketPage,
+    status_code=status.HTTP_200_OK,
+    tags=["Advisor Cockpit"],
+    summary="List Advisor Cockpit Preparation Packets",
+    description=(
+        "Lists source-backed meeting-preparation packets projected by Lotus Advise from "
+        "proposal lifecycle evidence. The endpoint exposes support-safe advisor preparation "
+        "context only; Gateway and Workbench must render these packets without reconstructing "
+        "advisory suitability, memo, narrative, policy, CRM, calendar, or client communication "
+        "semantics locally."
+    ),
+    responses=ADVISOR_COCKPIT_READ_RESPONSES,
+)
+def list_advisor_cockpit_preparation_packets(
+    portfolio_id: Annotated[
+        str | None,
+        Query(description="Optional portfolio scope.", examples=["PB_SG_GLOBAL_BAL_001"]),
+    ] = None,
+    advisor_id: Annotated[
+        str | None,
+        Query(description="Optional advisor actor scope.", examples=["advisor_sg_001"]),
+    ] = None,
+    role: Annotated[
+        AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
+    ] = "ADVISOR",
+    limit: Annotated[
+        int,
+        Query(description="Bounded page size. Default is 25; maximum is 100.", ge=1, le=100),
+    ] = 25,
+    cursor: Annotated[
+        str | None,
+        Query(description="Opaque preparation-packet cursor from a previous page."),
+    ] = None,
+    correlation_id: Annotated[
+        str | None,
+        Header(alias="X-Correlation-ID", description="Optional correlation id."),
+    ] = None,
+    service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
+) -> AdvisorCockpitPreparationPacketPage:
+    try:
+        return service.list_preparation_packets(
+            caller_context=_caller_context(advisor_id=advisor_id, role=role),
+            portfolio_id=portfolio_id,
+            limit=limit,
+            cursor=cursor,
+            correlation_id=correlation_id,
+        )
+    except (ProposalValidationError, ProposalNotFoundError) as exc:
+        raise_proposal_http_exception(exc)
 
 
 @shared.router.get(

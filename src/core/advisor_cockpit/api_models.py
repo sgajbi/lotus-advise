@@ -8,6 +8,7 @@ from src.core.advisor_cockpit.models import (
     AdvisorCockpitOperatingSnapshot,
     AdvisoryActionItem,
     CockpitAcknowledgementState,
+    MeetingPreparationPacket,
 )
 
 
@@ -56,6 +57,27 @@ class AdvisorCockpitSupportabilityResponse(BaseModel):
     )
     unsupported_capabilities: list[str] = Field(
         description="Capabilities that remain explicitly unclaimable."
+    )
+
+
+class AdvisorCockpitPreparationPacketPage(BaseModel):
+    items: list[MeetingPreparationPacket] = Field(
+        default_factory=list,
+        description="Source-backed meeting-preparation packets visible to the caller.",
+    )
+    next_cursor: str | None = Field(
+        default=None,
+        description="Opaque cursor for retrieving the next preparation-packet page.",
+        examples=["prep_proposal_sg_001_v1"],
+    )
+    page_size: int = Field(description="Effective bounded page size.", examples=[25])
+    total_count: int = Field(
+        description="Total count within the bounded cockpit source scope.",
+        examples=[1],
+    )
+    supportability: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Support-safe source, API, and downstream readiness context.",
     )
 
 

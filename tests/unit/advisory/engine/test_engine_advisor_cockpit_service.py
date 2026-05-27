@@ -33,15 +33,20 @@ class CountingCockpitRepository(InMemoryProposalRepository):
         return super().list_memos_for_proposals(proposal_ids=proposal_ids)
 
 
-def _proposal() -> ProposalRecord:
+def _proposal(
+    *,
+    proposal_id: str = "proposal_sg_001",
+    current_version_no: int = 1,
+    current_state: str = "COMPLIANCE_REVIEW",
+) -> ProposalRecord:
     return ProposalRecord(
-        proposal_id="proposal_sg_001",
+        proposal_id=proposal_id,
         portfolio_id="PB_SG_GLOBAL_BAL_001",
         created_by="advisor_sg_001",
         created_at=NOW,
         last_event_at=NOW,
-        current_state="COMPLIANCE_REVIEW",
-        current_version_no=1,
+        current_state=current_state,
+        current_version_no=current_version_no,
         title="Singapore global balanced proposal",
     )
 
@@ -183,6 +188,57 @@ def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
         correlation_id=None,
     )
     assert supportability.posture == "ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"
+
+
+def test_cockpit_service_lists_preparation_packets_with_cursor_and_supportability(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = InMemoryProposalRepository()
+    repository.create_proposal(_proposal())
+    repository.create_proposal(_proposal(proposal_id="proposal_sg_002", current_version_no=2))
+    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+
+    first_page = service.list_preparation_packets(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=1,
+        cursor=None,
+        correlation_id="corr-prep-001",
+    )
+    second_page = service.list_preparation_packets(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=1,
+        cursor=first_page.next_cursor,
+        correlation_id="corr-prep-001",
+    )
+
+    assert first_page.total_count == 2
+    assert first_page.page_size == 1
+    assert first_page.next_cursor == first_page.items[0].packet_id
+    assert {packet.packet_id for packet in first_page.items + second_page.items} == {
+        "prep_proposal_sg_001_v1",
+        "prep_proposal_sg_002_v2",
+    }
+    assert second_page.next_cursor is None
+    assert first_page.supportability["api_posture"] == "SUPPORTED_BY_LOTUS_ADVISE_RFC0026"
+    assert first_page.items[0].sections[0]["source_ref"] in {
+        "proposal_sg_001",
+        "proposal_sg_002",
+    }
+
+    with pytest.raises(
+        ProposalValidationError,
+        match="ADVISOR_COCKPIT_PREPARATION_CURSOR_INVALID",
+    ):
+        service.list_preparation_packets(
+            caller_context=_caller(),
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            limit=1,
+            cursor="missing-preparation-packet",
+            correlation_id=None,
+        )
 
 
 def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_posture(

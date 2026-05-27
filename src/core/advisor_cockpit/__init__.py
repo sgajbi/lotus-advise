@@ -20,6 +20,7 @@ from src.core.advisor_cockpit.action_factory import (
 from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
+    AdvisorCockpitPreparationPacketPage,
     AdvisorCockpitSnapshotResponse,
     AdvisorCockpitSupportabilityResponse,
 )
@@ -88,6 +89,7 @@ __all__ = [
     "AdvisorCockpitAcknowledgeResponse",
     "AdvisorCockpitOperatingSnapshot",
     "AdvisorCockpitOwnerRole",
+    "AdvisorCockpitPreparationPacketPage",
     "AdvisorCockpitRepository",
     "AdvisorCockpitService",
     "AdvisorCockpitSlaAgeBand",

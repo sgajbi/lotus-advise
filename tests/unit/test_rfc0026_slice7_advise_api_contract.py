@@ -74,6 +74,7 @@ def test_rfc0026_slice7_code_paths_and_openapi_are_present() -> None:
         "/advisory/cockpit/actions",
         "/advisory/cockpit/actions/{action_item_id}",
         "/advisory/cockpit/snapshot",
+        "/advisory/cockpit/preparation-packets",
         "/advisory/cockpit/supportability",
         "/advisory/cockpit/actions/{action_item_id}/acknowledgements",
     ):
@@ -85,4 +86,10 @@ def test_rfc0026_slice7_code_paths_and_openapi_are_present() -> None:
     with TestClient(app) as client:
         schema = client.get("/openapi.json").json()
     assert "/advisory/cockpit/actions" in schema["paths"]
+    assert "/advisory/cockpit/preparation-packets" in schema["paths"]
     assert "/advisory/cockpit/supportability" in schema["paths"]
+    preparation_operation = schema["paths"]["/advisory/cockpit/preparation-packets"]["get"]
+    assert "source-backed meeting-preparation packets" in preparation_operation["description"]
+    assert "X-Correlation-ID" in {
+        parameter["name"] for parameter in preparation_operation["parameters"]
+    }

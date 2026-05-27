@@ -8,6 +8,7 @@ from typing import Any, cast
 from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
+    AdvisorCockpitPreparationPacketPage,
     AdvisorCockpitSnapshotResponse,
     AdvisorCockpitSupportabilityResponse,
 )
@@ -133,6 +134,38 @@ class AdvisorCockpitService:
         return cast(
             AdvisorCockpitSnapshotResponse,
             AdvisorCockpitSnapshotResponse.model_validate(snapshot.model_dump(mode="json")),
+        )
+
+    def list_preparation_packets(
+        self,
+        *,
+        caller_context: CockpitCallerContext,
+        portfolio_id: str | None,
+        limit: int | None,
+        cursor: str | None,
+        correlation_id: str | None,
+    ) -> AdvisorCockpitPreparationPacketPage:
+        read_model = self._build_read_model(
+            caller_context=caller_context,
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+        packets = _preparation_packets(read_model)
+        page_size = normalize_cockpit_page_size(limit)
+        start = _packet_cursor_start(packets=packets, cursor=cursor)
+        page_items = packets[start : start + page_size]
+        next_cursor = None
+        if start + page_size < len(packets):
+            next_cursor = page_items[-1].packet_id if page_items else packets[start].packet_id
+        return AdvisorCockpitPreparationPacketPage(
+            items=page_items,
+            next_cursor=next_cursor,
+            page_size=page_size,
+            total_count=len(packets),
+            supportability=_supportability(
+                actions=read_model.action_items,
+                source_limit=COCKPIT_SOURCE_LIMIT,
+            ),
         )
 
     def get_supportability(
@@ -313,6 +346,15 @@ def _cursor_start(*, actions: list[AdvisoryActionItem], cursor: str | None) -> i
         if action.action_item_id == cursor:
             return index + 1
     raise ProposalValidationError("ADVISOR_COCKPIT_CURSOR_INVALID")
+
+
+def _packet_cursor_start(*, packets: list[MeetingPreparationPacket], cursor: str | None) -> int:
+    if cursor is None:
+        return 0
+    for index, packet in enumerate(packets):
+        if packet.packet_id == cursor:
+            return index + 1
+    raise ProposalValidationError("ADVISOR_COCKPIT_PREPARATION_CURSOR_INVALID")
 
 
 def _action_counts(actions: list[AdvisoryActionItem]) -> dict[str, int]:
