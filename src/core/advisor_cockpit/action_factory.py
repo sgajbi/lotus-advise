@@ -312,7 +312,8 @@ def build_source_backed_action(source: CockpitActionConstructionInput) -> Adviso
         evidence_refs=source.evidence_refs,
         source_readiness_gaps=source.source_readiness_gaps,
         dependency_readiness=source.dependency_readiness,
-        lineage_refs=source.lineage_refs,
+        lineage_refs=source.lineage_refs
+        or _lineage_refs(f"{source.action_family.lower()}:{source.source_action_id}", None),
         unsupported_capabilities=_unique_ordered(source.unsupported_capabilities),
         correlation_id=source.correlation_id,
     )

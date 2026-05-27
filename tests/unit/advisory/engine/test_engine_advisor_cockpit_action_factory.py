@@ -343,6 +343,10 @@ def test_source_backed_action_builder_constructs_each_cockpit_family_with_eviden
     assert all(action.owning_system == "lotus-advise" for action in actions)
     assert all(action.portfolio_id == "PB_SG_GLOBAL_BAL_001" for action in actions)
     assert all(action.evidence_refs for action in actions)
+    assert all(action.lineage_refs for action in actions)
+    assert actions[0].lineage_refs[0].lineage_id == (
+        f"{actions[0].action_family.lower()}:source_{actions[0].action_family}"
+    )
 
 
 def test_source_backed_action_builder_rejects_unexplained_actions() -> None:
