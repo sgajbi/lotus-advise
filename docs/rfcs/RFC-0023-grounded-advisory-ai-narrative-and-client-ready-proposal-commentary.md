@@ -1239,6 +1239,47 @@ Closure rule:
 4. branch cleanup must prove narrative truth is on `main`, not stranded in an unmerged branch or
    side ledger.
 
+## Gold-Pass Assessment
+
+Gold-pass review confirms that RFC-0023 is complete for advisor-review proposal narrative evidence:
+deterministic grounding packets, bounded AI-assisted draft posture, unsupported-claim guardrails,
+review workflow, persistence, replay, report-package posture, Gateway exposure, Workbench
+consumption, data-product posture, and supported-feature boundaries are implemented for
+advisor-use narrative review. Client-draft narrative, client-ready publication, external client
+communication, and bank-demo/RFP-ready narrative claims remain gated.
+
+Quality improvements verified during the RFC 23-25 gold pass:
+
+1. the canonical front-office validator creates a governed proposal narrative proof through Gateway,
+2. Workbench proof records `proposal.narrative_posture` as a Gateway-backed Advise-owned panel,
+3. RFC-0023 evidence now travels with the shared
+   `RFC23_25_ADVISORY_PROPOSAL_POLICY_CANONICAL` validation scenario instead of relying only on
+   route presence,
+4. supported-feature wording stays bounded to advisor-review evidence and does not promote
+   client-ready narrative authority.
+
+Debt removed or confirmed absent:
+
+1. no active WTBD dependency remains for narrative work,
+2. Workbench does not infer narrative facts locally,
+3. raw prompts, raw model output, unmanaged prompt surfaces, client-ready release controls, and
+   client communication are not promoted as supported capability.
+
+Proof reviewed:
+
+1. `lotus-workbench` live canonical validation passed for `PB_SG_GLOBAL_BAL_001` on 2026-05-27 and
+   captured `proposal-narrative-posture-live.png`.
+2. The live validation summary records the governed advisory proposal scenario and the narrative
+   creation/review path through Gateway.
+3. Existing RFC-0023 unit and documentation-contract tests continue to cover grounding,
+   guardrails, review, replay, report-package posture, Gateway, Workbench, and data-product
+   boundaries.
+
+Production-readiness assessment: RFC-0023 reaches the expected standard for advisor-review
+narrative evidence. It must not be represented as client-ready narrative publication, external
+communication, or a completed bank-demo/RFP claim until a later client-ready RFC implements and
+proves those controls.
+
 ## Naming and Vocabulary Rules
 
 Use private-banking advisory language and avoid generic AI product wording.

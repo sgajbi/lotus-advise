@@ -1034,6 +1034,48 @@ Closure rule:
 4. branch cleanup must prove memo truth is on `main`, not stranded in an unmerged branch or side
    ledger.
 
+## 18.1 Gold-Pass Assessment
+
+Gold-pass review confirms that RFC-0024 is complete for advisor-use proposal memo and evidence-pack
+support: deterministic memo construction, source-readiness blockers, persistence, replay,
+idempotency, report-package posture, archive-reference posture, non-authoritative AI commentary
+handoff, Gateway exposure, Workbench consumption, data-product posture, and supported-feature
+boundaries are implemented for advisor-use memo evidence. Client-ready memo publication, external
+client communication, and full RFC-0028 bank-demo/RFP claims remain gated.
+
+Quality improvements verified during the RFC 23-25 gold pass:
+
+1. the canonical front-office validator creates and replays advisor-use memo evidence through
+   Gateway,
+2. Workbench proof records `proposal.memo_evidence_pack` as a Gateway-backed Advise-owned panel,
+3. memo proof now travels with the shared
+   `RFC23_25_ADVISORY_PROPOSAL_POLICY_CANONICAL` validation scenario alongside RFC-0023 narrative
+   and RFC-0025 policy evidence,
+4. supported-feature wording stays bounded to advisor-use memo evidence and does not promote
+   client-ready publication.
+
+Debt removed or confirmed absent:
+
+1. no active WTBD dependency remains for memo work,
+2. Workbench does not reconstruct memo facts, supportability, or readiness locally,
+3. the RFC keeps advisor-use memo evidence separate from client-ready release, document publication,
+   archive legal-hold claims, client contact, and authoritative AI commentary.
+
+Proof reviewed:
+
+1. `lotus-workbench` live canonical validation passed for `PB_SG_GLOBAL_BAL_001` on 2026-05-27 and
+   captured `proposal-memo-evidence-pack-live.png`.
+2. The live validation summary records memo create/replay, memo review, report-package posture,
+   memo hash, replay hash, and Gateway-backed Workbench panel evidence.
+3. Existing RFC-0024 unit and documentation-contract tests continue to cover source-readiness,
+   builder behavior, persistence, APIs, report/render/archive posture, Gateway, Workbench,
+   data-product boundaries, and final closure evidence.
+
+Production-readiness assessment: RFC-0024 reaches the expected standard for advisor-use proposal
+memo evidence. It must not be represented as client-ready memo publication, external client
+communication, or a completed bank-demo/RFP package until a later client-ready RFC implements and
+proves those controls.
+
 ## 19. Acceptance Criteria
 
 RFC-0024 is implemented only when:

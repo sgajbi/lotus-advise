@@ -1432,6 +1432,53 @@ RFC-0025 is implemented only when:
 14. no required follow-up RFC, second wave, WTBD dependency, unmerged branch, or stranded durable
     truth remains.
 
+## 23.1 Gold-Pass Assessment
+
+Gold-pass review confirms that RFC-0025 has implemented advisor/compliance policy evaluation
+evidence through `AdvisoryPolicyEvaluationRecord:v1`: versioned policy packs, validation,
+activation, proposal-version evaluation, persistence, replay, review queue posture, sign-off
+package posture, request-more-evidence workflow actioning, Gateway exposure, Workbench consumption,
+data-product posture, and documentation-backed supported-feature boundaries.
+
+The May 2026 gold pass tightened the proof path rather than adding cosmetic coverage. The canonical
+front-office demo-data contract now owns a repeatable advisory proposal and policy scenario:
+`RFC23_25_ADVISORY_PROPOSAL_POLICY_CANONICAL`, including the RFC-0025
+`RFC25_SG_STRUCTURED_NOTE_PENDING_REVIEW` structured-note policy evaluation for
+`PB_SG_GLOBAL_BAL_001`. Workbench live validation consumes that governed scenario through Gateway,
+activates `SG_PRIVATE_BANKING_REFERENCE` version `2026.05`, creates the policy evaluation, verifies
+the `PENDING_REVIEW` review queue, confirms client-ready publication remains `BLOCKED`, retrieves
+workflow and sign-off package posture, records a request-more-evidence checker decision, and emits
+`POLICY_EVALUATION_PENDING_REVIEW_CREATED` evidence.
+
+Debt removed:
+
+1. RFC-0025 Workbench proof is no longer limited to route-level Suitability Review navigation.
+2. Advisory proposal, narrative, memo, and policy proof now share a governed canonical scenario
+   instead of hidden validator literals.
+3. Client-ready publication remains explicitly blocked in automation, wiki/demo wording, and this
+   RFC until completed approval, completed sign-off, disclosure/consent, report/render/archive, and
+   RFC-0028 demo-claim controls are implemented and proved.
+
+Focused proof from this gold pass:
+
+1. `lotus-platform`: `python -m pytest tests/unit/test_rfc_0076_canonical_demo_data_contract.py -q`
+   passed, proving the canonical contract carries the advisory policy scenario and expected
+   structured-product posture.
+2. `lotus-workbench`: `npm test -- --run tests/unit/live-canonical-validation-script.test.ts`
+   passed, proving the live validator is wired to create and record RFC-0025 policy evidence.
+3. `lotus-advise`: `python -m pytest tests/unit/advisory/api/test_api_advisory_policy_evaluations.py -q`
+   passed, proving the underlying policy evaluation API behavior remains intact.
+4. `lotus-workbench`: `npm run live:validate` passed against the running canonical front-office
+   stack for `PB_SG_GLOBAL_BAL_001` on 2026-05-27 after the validator was hardened for immutable
+   already-active policy-pack replay. The evidence summary records
+   `POLICY_EVALUATION_PENDING_REVIEW_CREATED`.
+
+Production-readiness assessment: the advisor/compliance policy-evidence slice reaches the expected
+standard for backend and repeatable validation automation. Final repository closure for this
+post-pass still requires the cross-repository wiki/source changes to be merged and published through
+the governed wiki flow. Completed approval/sign-off/client-ready authority remains gated; completed
+approval/sign-off/client-ready authority is not part of the supported RFC-0025 claim.
+
 ## 24. Risks and Mitigations
 
 | Risk | Mitigation |
