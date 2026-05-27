@@ -22,7 +22,9 @@ class CountingCockpitRepository(InMemoryProposalRepository):
     def __init__(self) -> None:
         super().__init__()
         self.bulk_memo_reads = 0
+        self.bulk_approval_reads = 0
         self.per_proposal_memo_reads = 0
+        self.per_proposal_approval_reads = 0
 
     def list_memos(self, *, proposal_id: str) -> list[ProposalMemoRecord]:
         self.per_proposal_memo_reads += 1
@@ -31,6 +33,14 @@ class CountingCockpitRepository(InMemoryProposalRepository):
     def list_memos_for_proposals(self, *, proposal_ids: list[str]) -> list[ProposalMemoRecord]:
         self.bulk_memo_reads += 1
         return super().list_memos_for_proposals(proposal_ids=proposal_ids)
+
+    def list_approvals(self, *, proposal_id: str):
+        self.per_proposal_approval_reads += 1
+        return super().list_approvals(proposal_id=proposal_id)
+
+    def list_approvals_for_proposals(self, *, proposal_ids: list[str]):
+        self.bulk_approval_reads += 1
+        return super().list_approvals_for_proposals(proposal_ids=proposal_ids)
 
 
 def _proposal(
@@ -114,9 +124,10 @@ def test_cockpit_service_lists_source_backed_actions_with_counts(
         correlation_id="corr-cockpit-001",
     )
 
-    assert page.total_count == 3
+    assert page.total_count == 4
     assert [action.action_family for action in page.items] == [
         "POLICY_REVIEW_REQUIRED",
+        "APPROVAL_DEPENDENCY_AGING",
         "MEMO_PACKAGE_BLOCKED",
         "CLIENT_MEETING_PREPARATION",
     ]
@@ -142,9 +153,11 @@ def test_cockpit_service_batches_memo_source_reads(monkeypatch: pytest.MonkeyPat
         correlation_id=None,
     )
 
-    assert page.total_count == 3
+    assert page.total_count == 4
     assert repository.bulk_memo_reads == 1
+    assert repository.bulk_approval_reads == 1
     assert repository.per_proposal_memo_reads == 0
+    assert repository.per_proposal_approval_reads == 0
 
 
 def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
@@ -158,8 +171,9 @@ def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
         correlation_id=None,
     )
 
-    assert snapshot.action_counts["status.PENDING_REVIEW"] == 1
+    assert snapshot.action_counts["status.PENDING_REVIEW"] == 2
     assert snapshot.action_counts["status.BLOCKED"] == 1
+    assert snapshot.action_counts["family.APPROVAL_DEPENDENCY_AGING"] == 1
     assert [packet.packet_id for packet in snapshot.preparation_packets] == [
         "prep_proposal_sg_001_v1"
     ]

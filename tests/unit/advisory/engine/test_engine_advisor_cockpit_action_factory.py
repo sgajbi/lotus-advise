@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from src.core.advisor_cockpit import (
+    ApprovalDependencyActionSource,
     ClientFollowUpActionSource,
     CockpitActionConstructionInput,
     CockpitActionSourceRefs,
@@ -12,6 +13,7 @@ from src.core.advisor_cockpit import (
     PolicyReviewActionSource,
     SupportabilityDegradedActionSource,
     UnsupportedCapabilityActionSource,
+    build_approval_dependency_action,
     build_client_follow_up_action,
     build_first_wave_cockpit_actions,
     build_meeting_preparation_action,
@@ -149,6 +151,54 @@ def test_client_follow_up_action_preserves_external_communication_boundary() -> 
     ]
     assert action.evidence_refs[0].evidence_type == "CLIENT_FOLLOW_UP_REQUIREMENT"
     assert action.source_readiness_gaps[0].source_family == "proposal_lifecycle"
+    assert action.unsupported_capabilities == [
+        "EXTERNAL_CLIENT_COMMUNICATION",
+        "CRM_SYSTEM_OF_RECORD",
+    ]
+
+
+def test_approval_dependency_action_preserves_supervisory_owner_boundary() -> None:
+    action = build_approval_dependency_action(
+        ApprovalDependencyActionSource(
+            dependency_id="approval_dependency_proposal_sg_001_compliance",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            approval_type="COMPLIANCE",
+            approval_status="PENDING",
+            source_timestamp="2026-05-27T08:00:00+00:00",
+        )
+    )
+
+    assert action.action_family == "APPROVAL_DEPENDENCY_AGING"
+    assert action.status == "PENDING_REVIEW"
+    assert action.priority == "HIGH"
+    assert action.owner_role == "COMPLIANCE_REVIEWER"
+    assert action.reason_codes == ["COMPLIANCE_APPROVAL_PENDING", "CLIENT_READY_BLOCKED"]
+    assert action.evidence_refs[0].evidence_type == "PROPOSAL_APPROVAL_DEPENDENCY"
+    assert action.source_readiness_gaps[0].owner_role == "COMPLIANCE_REVIEWER"
+    assert action.unsupported_capabilities == [
+        "CLIENT_READY_PUBLICATION",
+        "COMPLETED_POLICY_APPROVAL_AUTHORITY",
+    ]
+
+
+def test_client_consent_dependency_preserves_external_communication_boundary() -> None:
+    action = build_approval_dependency_action(
+        ApprovalDependencyActionSource(
+            dependency_id="approval_dependency_proposal_sg_001_client_consent",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            approval_type="CLIENT_CONSENT",
+            approval_status="PENDING",
+        )
+    )
+
+    assert action.action_family == "CLIENT_CONSENT_REQUIRED"
+    assert action.owner_role == "ADVISOR"
+    assert action.next_required_action == (
+        "Record source-backed consent posture before execution readiness can change."
+    )
+    assert action.reason_codes == ["CLIENT_CONSENT_APPROVAL_PENDING", "CLIENT_READY_BLOCKED"]
     assert action.unsupported_capabilities == [
         "EXTERNAL_CLIENT_COMMUNICATION",
         "CRM_SYSTEM_OF_RECORD",

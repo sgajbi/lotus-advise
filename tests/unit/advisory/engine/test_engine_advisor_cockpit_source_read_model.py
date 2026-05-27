@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from src.core.advisor_cockpit import (
     ACTIVE_PROPOSAL_STATES,
+    APPROVAL_DEPENDENCY_STATES,
     COCKPIT_POLICY_REVIEW_STATUSES,
     FOLLOW_UP_PROPOSAL_STATES,
     AdvisorCockpitSourceBatch,
@@ -13,7 +14,11 @@ from src.core.advisor_cockpit import (
     build_advisor_cockpit_source_read_model,
 )
 from src.core.policy_packs.models import PolicyEvaluationRecord
-from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
+from src.core.proposals.models import (
+    ProposalApprovalRecordData,
+    ProposalMemoRecord,
+    ProposalRecord,
+)
 
 AS_OF = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
 
@@ -22,6 +27,11 @@ def test_source_read_model_exports_cockpit_source_filters() -> None:
     assert "COMPLIANCE_REVIEW" in ACTIVE_PROPOSAL_STATES
     assert "EXECUTED" not in ACTIVE_PROPOSAL_STATES
     assert FOLLOW_UP_PROPOSAL_STATES == frozenset({"AWAITING_CLIENT_CONSENT"})
+    assert APPROVAL_DEPENDENCY_STATES == {
+        "RISK_REVIEW": "RISK",
+        "COMPLIANCE_REVIEW": "COMPLIANCE",
+        "AWAITING_CLIENT_CONSENT": "CLIENT_CONSENT",
+    }
     assert COCKPIT_POLICY_REVIEW_STATUSES == frozenset({"PENDING_REVIEW", "BLOCKED"})
 
 
@@ -82,6 +92,25 @@ def _memo(
     )
 
 
+def _approval(
+    *,
+    proposal_id: str,
+    approval_type: str,
+    approved: bool,
+    approval_id: str = "approval_sg_001",
+) -> ProposalApprovalRecordData:
+    return ProposalApprovalRecordData(
+        approval_id=approval_id,
+        proposal_id=proposal_id,
+        approval_type=approval_type,
+        approved=approved,
+        actor_id="reviewer_sg_001",
+        occurred_at=AS_OF,
+        details_json={"source": "unit-test"},
+        related_version_no=1,
+    )
+
+
 def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() -> None:
     read_model = build_advisor_cockpit_source_read_model(
         AdvisorCockpitSourceBatch(
@@ -101,6 +130,13 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
                     memo_id="memo_sg_ready",
                     review_events=[{"event_type": "MEMO_REVIEW_RECORDED"}],
                 ),
+            ],
+            approvals=[
+                _approval(
+                    proposal_id="proposal_sg_executed",
+                    approval_type="CLIENT_CONSENT",
+                    approved=True,
+                )
             ],
             supportability_events=[
                 SupportabilityDegradedActionSource(
@@ -126,6 +162,7 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
         "proposals": 3,
         "policy_evaluations": 2,
         "memos": 2,
+        "approvals": 1,
         "supportability_events": 1,
         "unsupported_capabilities": 1,
     }
@@ -140,9 +177,15 @@ def test_source_read_model_maps_preloaded_sources_to_sorted_cockpit_actions() ->
     assert [source.proposal_id for source in read_model.client_follow_ups] == [
         "proposal_sg_consent"
     ]
+    assert [source.approval_type for source in read_model.approval_dependencies] == [
+        "COMPLIANCE",
+        "CLIENT_CONSENT",
+    ]
     assert [action.action_family for action in read_model.action_items] == [
         "POLICY_REVIEW_REQUIRED",
+        "APPROVAL_DEPENDENCY_AGING",
         "MEMO_PACKAGE_BLOCKED",
+        "CLIENT_CONSENT_REQUIRED",
         "CLIENT_FOLLOW_UP_REQUIRED",
         "SUPPORTABILITY_DEGRADED",
         "CLIENT_MEETING_PREPARATION",
@@ -187,6 +230,53 @@ def test_source_read_model_keeps_policy_and_memo_lineage_hashes() -> None:
         action.reason_codes == ["MEMO_FINALIZATION_REQUIRED", "CLIENT_READY_BLOCKED"]
         for action in read_model.action_items
     )
+
+
+def test_source_read_model_suppresses_completed_approval_dependencies() -> None:
+    read_model = build_advisor_cockpit_source_read_model(
+        AdvisorCockpitSourceBatch(
+            proposals=[_proposal("COMPLIANCE_REVIEW")],
+            approvals=[
+                _approval(
+                    proposal_id="proposal_sg_001",
+                    approval_type="COMPLIANCE",
+                    approved=True,
+                )
+            ],
+        )
+    )
+
+    assert read_model.approval_dependencies == []
+    assert not any(
+        action.action_family == "APPROVAL_DEPENDENCY_AGING" for action in read_model.action_items
+    )
+
+
+def test_source_read_model_marks_rejected_approval_dependency_blocked() -> None:
+    read_model = build_advisor_cockpit_source_read_model(
+        AdvisorCockpitSourceBatch(
+            proposals=[_proposal("RISK_REVIEW")],
+            approvals=[
+                _approval(
+                    proposal_id="proposal_sg_001",
+                    approval_type="RISK",
+                    approved=False,
+                    approval_id="approval_sg_rejected",
+                )
+            ],
+        )
+    )
+
+    action = next(
+        action
+        for action in read_model.action_items
+        if action.action_family == "APPROVAL_DEPENDENCY_AGING"
+    )
+
+    assert action.status == "BLOCKED"
+    assert action.priority == "CRITICAL"
+    assert action.owner_role == "INVESTMENT_DESK"
+    assert action.reason_codes == ["RISK_APPROVAL_REJECTED", "CLIENT_READY_BLOCKED"]
 
 
 def test_source_read_model_does_not_create_actions_for_completed_sources() -> None:

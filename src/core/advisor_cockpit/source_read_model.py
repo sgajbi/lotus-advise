@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from src.core.advisor_cockpit.action_factory import (
+    ApprovalDependencyActionSource,
     ClientFollowUpActionSource,
     MeetingPreparationActionSource,
     MemoPackageBlockedActionSource,
@@ -13,7 +14,12 @@ from src.core.advisor_cockpit.action_factory import (
 )
 from src.core.advisor_cockpit.models import AdvisoryActionItem
 from src.core.policy_packs.models import PolicyEvaluationRecord
-from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
+from src.core.proposals.models import (
+    ProposalApprovalRecordData,
+    ProposalApprovalType,
+    ProposalMemoRecord,
+    ProposalRecord,
+)
 
 ACTIVE_PROPOSAL_STATES = frozenset(
     {
@@ -26,6 +32,11 @@ ACTIVE_PROPOSAL_STATES = frozenset(
 )
 COCKPIT_POLICY_REVIEW_STATUSES = frozenset({"PENDING_REVIEW", "BLOCKED"})
 FOLLOW_UP_PROPOSAL_STATES = frozenset({"AWAITING_CLIENT_CONSENT"})
+APPROVAL_DEPENDENCY_STATES: dict[str, ProposalApprovalType] = {
+    "RISK_REVIEW": "RISK",
+    "COMPLIANCE_REVIEW": "COMPLIANCE",
+    "AWAITING_CLIENT_CONSENT": "CLIENT_CONSENT",
+}
 
 
 class AdvisorCockpitSourceBatch(BaseModel):
@@ -40,6 +51,10 @@ class AdvisorCockpitSourceBatch(BaseModel):
     memos: list[ProposalMemoRecord] = Field(
         default_factory=list,
         description="Preloaded proposal memo records in the bounded cockpit scope.",
+    )
+    approvals: list[ProposalApprovalRecordData] = Field(
+        default_factory=list,
+        description="Preloaded proposal approval records in the bounded cockpit scope.",
     )
     supportability_events: list[SupportabilityDegradedActionSource] = Field(
         default_factory=list,
@@ -67,6 +82,9 @@ class AdvisorCockpitSourceReadModel(BaseModel):
     client_follow_ups: list[ClientFollowUpActionSource] = Field(
         description="Advisor-owned follow-up requirements from proposal lifecycle posture."
     )
+    approval_dependencies: list[ApprovalDependencyActionSource] = Field(
+        description="Proposal approval and consent dependencies requiring queue attention."
+    )
     supportability_events: list[SupportabilityDegradedActionSource] = Field(
         description="Source dependency readiness events."
     )
@@ -81,6 +99,7 @@ class AdvisorCockpitSourceReadModel(BaseModel):
 def build_advisor_cockpit_source_read_model(
     batch: AdvisorCockpitSourceBatch,
 ) -> AdvisorCockpitSourceReadModel:
+    approvals_by_proposal = _approvals_by_proposal(batch.approvals)
     policy_reviews = [
         _policy_review_source(record)
         for record in batch.policy_evaluations
@@ -99,11 +118,23 @@ def build_advisor_cockpit_source_read_model(
         for record in batch.proposals
         if record.current_state in FOLLOW_UP_PROPOSAL_STATES
     ]
+    approval_dependencies = [
+        source
+        for record in batch.proposals
+        if (
+            source := _approval_dependency_source(
+                proposal=record,
+                approvals=approvals_by_proposal.get(record.proposal_id, []),
+            )
+        )
+        is not None
+    ]
     action_items = build_first_wave_cockpit_actions(
         policy_reviews=policy_reviews,
         memo_blocks=memo_blocks,
         meeting_preparations=meeting_preparations,
         client_follow_ups=client_follow_ups,
+        approval_dependencies=approval_dependencies,
         supportability_events=batch.supportability_events,
         unsupported_capabilities=batch.unsupported_capabilities,
     )
@@ -112,6 +143,7 @@ def build_advisor_cockpit_source_read_model(
             "proposals": len(batch.proposals),
             "policy_evaluations": len(batch.policy_evaluations),
             "memos": len(batch.memos),
+            "approvals": len(batch.approvals),
             "supportability_events": len(batch.supportability_events),
             "unsupported_capabilities": len(batch.unsupported_capabilities),
         },
@@ -119,6 +151,7 @@ def build_advisor_cockpit_source_read_model(
         memo_blocks=memo_blocks,
         meeting_preparations=meeting_preparations,
         client_follow_ups=client_follow_ups,
+        approval_dependencies=approval_dependencies,
         supportability_events=list(batch.supportability_events),
         unsupported_capabilities=list(batch.unsupported_capabilities),
         action_items=action_items,
@@ -181,6 +214,77 @@ def _client_follow_up_source(record: ProposalRecord) -> ClientFollowUpActionSour
         ),
         source_timestamp=record.last_event_at.isoformat(),
         materiality_rank=65,
+    )
+
+
+def _approval_dependency_source(
+    *,
+    proposal: ProposalRecord,
+    approvals: list[ProposalApprovalRecordData],
+) -> ApprovalDependencyActionSource | None:
+    approval_type = APPROVAL_DEPENDENCY_STATES.get(proposal.current_state)
+    if approval_type is None:
+        return None
+    matching_approvals = [
+        approval for approval in approvals if approval.approval_type == approval_type
+    ]
+    if any(approval.approved for approval in matching_approvals):
+        return None
+    latest_rejection = _latest_rejected_approval(matching_approvals)
+    approval_status = "REJECTED" if latest_rejection is not None else "PENDING"
+    dependency_id = f"approval_dependency_{proposal.proposal_id}_{approval_type.lower()}"
+    return ApprovalDependencyActionSource(
+        dependency_id=dependency_id,
+        proposal_id=proposal.proposal_id,
+        portfolio_id=proposal.portfolio_id,
+        approval_type=approval_type,
+        approval_status=approval_status,
+        summary=_approval_dependency_summary(
+            proposal_state=proposal.current_state,
+            approval_type=approval_type,
+            approval_status=approval_status,
+        ),
+        source_timestamp=(
+            latest_rejection.occurred_at.isoformat()
+            if latest_rejection is not None
+            else proposal.last_event_at.isoformat()
+        ),
+        materiality_rank=75 if approval_type != "CLIENT_CONSENT" else 68,
+    )
+
+
+def _approvals_by_proposal(
+    approvals: list[ProposalApprovalRecordData],
+) -> dict[str, list[ProposalApprovalRecordData]]:
+    grouped: dict[str, list[ProposalApprovalRecordData]] = {}
+    for approval in approvals:
+        grouped.setdefault(approval.proposal_id, []).append(approval)
+    return grouped
+
+
+def _latest_rejected_approval(
+    approvals: list[ProposalApprovalRecordData],
+) -> ProposalApprovalRecordData | None:
+    rejected = [approval for approval in approvals if not approval.approved]
+    if not rejected:
+        return None
+    return sorted(rejected, key=lambda item: (item.occurred_at, item.approval_id))[-1]
+
+
+def _approval_dependency_summary(
+    *,
+    proposal_state: str,
+    approval_type: ProposalApprovalType,
+    approval_status: str,
+) -> str:
+    if approval_status == "REJECTED":
+        return (
+            f"{approval_type} approval was rejected; proposal state {proposal_state} "
+            "cannot progress until the source lifecycle is remediated."
+        )
+    return (
+        f"{approval_type} approval is pending for proposal state {proposal_state}; "
+        "the cockpit surfaces the queue without granting approval authority."
     )
 
 

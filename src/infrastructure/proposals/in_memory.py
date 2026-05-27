@@ -361,6 +361,29 @@ class InMemoryProposalRepository(ProposalRepository):
             approvals = self._approvals.get(proposal_id, [])
             return [deepcopy(approval) for approval in approvals]
 
+    def list_approvals_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalApprovalRecordData]:
+        if not proposal_ids:
+            return []
+        proposal_id_set = set(proposal_ids)
+        approval_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        with self._lock:
+            approvals = [
+                approval
+                for proposal_approvals in self._approvals.values()
+                for approval in proposal_approvals
+                if approval.proposal_id in proposal_id_set
+            ]
+        approvals.sort(
+            key=lambda approval: (
+                approval_order[approval.proposal_id],
+                approval.occurred_at,
+                approval.approval_id,
+            )
+        )
+        return [deepcopy(approval) for approval in approvals]
+
     def transition_proposal(
         self,
         *,

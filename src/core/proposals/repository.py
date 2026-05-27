@@ -107,6 +107,10 @@ class ProposalRepository(Protocol):
 
     def list_approvals(self, *, proposal_id: str) -> list[ProposalApprovalRecordData]: ...
 
+    def list_approvals_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalApprovalRecordData]: ...
+
     def transition_proposal(
         self,
         *,

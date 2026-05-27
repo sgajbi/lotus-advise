@@ -300,6 +300,9 @@ class AdvisorCockpitService:
         memos = self._repository.list_memos_for_proposals(
             proposal_ids=[proposal.proposal_id for proposal in proposals]
         )
+        approvals = self._repository.list_approvals_for_proposals(
+            proposal_ids=[proposal.proposal_id for proposal in proposals]
+        )
         read_model = build_advisor_cockpit_source_read_model(
             AdvisorCockpitSourceBatch(
                 proposals=proposals,
@@ -308,6 +311,7 @@ class AdvisorCockpitService:
                     portfolio_id=portfolio_id,
                 )[:COCKPIT_SOURCE_LIMIT],
                 memos=memos[:COCKPIT_SOURCE_LIMIT],
+                approvals=approvals[:COCKPIT_SOURCE_LIMIT],
             )
         )
         action_items = [

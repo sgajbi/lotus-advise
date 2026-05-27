@@ -1071,6 +1071,38 @@ class PostgresProposalRepository:
             rows = connection.execute(query, (proposal_id,)).fetchall()
         return [_to_approval(row) for row in rows]
 
+    def list_approvals_for_proposals(
+        self, *, proposal_ids: list[str]
+    ) -> list[ProposalApprovalRecordData]:
+        if not proposal_ids:
+            return []
+        query = """
+            SELECT
+                approval_id,
+                proposal_id,
+                approval_type,
+                approved,
+                actor_id,
+                occurred_at,
+                details_json,
+                related_version_no
+            FROM proposal_approvals
+            WHERE proposal_id = ANY(%s)
+            ORDER BY proposal_id ASC, occurred_at ASC, approval_id ASC
+        """
+        with closing(self._connect()) as connection:
+            rows = connection.execute(query, (proposal_ids,)).fetchall()
+        approval_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+        approvals = [_to_approval(row) for row in rows]
+        return sorted(
+            approvals,
+            key=lambda approval: (
+                approval_order.get(approval.proposal_id, len(approval_order)),
+                approval.occurred_at,
+                approval.approval_id,
+            ),
+        )
+
     def transition_proposal(
         self,
         *,

@@ -1,5 +1,6 @@
 from src.core.advisor_cockpit.action_factory import (
     LOTUS_ADVISE_SOURCE_SYSTEM,
+    ApprovalDependencyActionSource,
     ClientFollowUpActionSource,
     CockpitActionConstructionInput,
     CockpitActionSourceRefs,
@@ -8,6 +9,7 @@ from src.core.advisor_cockpit.action_factory import (
     PolicyReviewActionSource,
     SupportabilityDegradedActionSource,
     UnsupportedCapabilityActionSource,
+    build_approval_dependency_action,
     build_client_follow_up_action,
     build_first_wave_cockpit_actions,
     build_meeting_preparation_action,
@@ -70,6 +72,7 @@ from src.core.advisor_cockpit.service import (
 )
 from src.core.advisor_cockpit.source_read_model import (
     ACTIVE_PROPOSAL_STATES,
+    APPROVAL_DEPENDENCY_STATES,
     COCKPIT_POLICY_REVIEW_STATUSES,
     FOLLOW_UP_PROPOSAL_STATES,
     AdvisorCockpitSourceBatch,
@@ -111,7 +114,9 @@ __all__ = [
     "LOTUS_ADVISE_SOURCE_SYSTEM",
     "OWNER_BLOCKING_STATUSES",
     "ACTIVE_PROPOSAL_STATES",
+    "APPROVAL_DEPENDENCY_STATES",
     "FOLLOW_UP_PROPOSAL_STATES",
+    "ApprovalDependencyActionSource",
     "CockpitActionConstructionInput",
     "CockpitActionSourceRefs",
     "ClientFollowUpActionSource",
@@ -132,6 +137,7 @@ __all__ = [
     "UnsupportedCapabilityActionSource",
     "apply_cockpit_acknowledgement_state",
     "build_first_wave_cockpit_actions",
+    "build_approval_dependency_action",
     "build_client_follow_up_action",
     "build_advisor_cockpit_source_read_model",
     "build_meeting_preparation_action",

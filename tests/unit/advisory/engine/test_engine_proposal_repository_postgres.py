@@ -503,6 +503,19 @@ class _FakeConnection:
             rows = [row for row in self.approvals.values() if row["proposal_id"] == args[0]]
             rows = sorted(rows, key=lambda row: (row["occurred_at"], row["approval_id"]))
             return _FakeCursor(rows=rows)
+        if "FROM proposal_approvals" in sql and "WHERE proposal_id = ANY(%s)" in sql:
+            proposal_ids = list(args[0])
+            approval_order = {proposal_id: index for index, proposal_id in enumerate(proposal_ids)}
+            rows = [row for row in self.approvals.values() if row["proposal_id"] in approval_order]
+            rows = sorted(
+                rows,
+                key=lambda row: (
+                    approval_order[row["proposal_id"]],
+                    row["occurred_at"],
+                    row["approval_id"],
+                ),
+            )
+            return _FakeCursor(rows=rows)
         raise AssertionError(f"Unhandled SQL in fake connection: {sql}")
 
     def commit(self):
@@ -1285,6 +1298,20 @@ def test_postgres_repository_workflow_events_and_approvals_roundtrip(monkeypatch
     assert len(approvals) == 1
     assert approvals[0].approval_id == "pap_001"
     assert approvals[0].details_json == {"ticket_id": "risk-42"}
+    second_approval = approval.model_copy(
+        update={
+            "approval_id": "pap_002",
+            "proposal_id": "pp_002",
+            "approval_type": "COMPLIANCE",
+            "actor_id": "compliance_officer_1",
+        }
+    )
+    repository.create_approval(second_approval)
+    assert [
+        row.approval_id
+        for row in repository.list_approvals_for_proposals(proposal_ids=["pp_002", "pp_001"])
+    ] == ["pap_002", "pap_001"]
+    assert repository.list_approvals_for_proposals(proposal_ids=[]) == []
 
 
 def test_postgres_repository_transition_proposal_writes_all_records(monkeypatch):

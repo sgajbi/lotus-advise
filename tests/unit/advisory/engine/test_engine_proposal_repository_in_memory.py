@@ -136,6 +136,20 @@ def test_repository_list_filters_cursor_events_and_approvals():
     )
     repo.create_approval(approval)
     assert repo.list_approvals(proposal_id="pp_repo_a")[0].approval_id == "pap_repo_1"
+    second_approval = approval.model_copy(
+        update={
+            "approval_id": "pap_repo_2",
+            "proposal_id": "pp_repo_b",
+            "actor_id": "compliance",
+            "approval_type": "COMPLIANCE",
+        }
+    )
+    repo.create_approval(second_approval)
+    assert [
+        row.approval_id
+        for row in repo.list_approvals_for_proposals(proposal_ids=["pp_repo_b", "pp_repo_a"])
+    ] == ["pap_repo_2", "pap_repo_1"]
+    assert repo.list_approvals_for_proposals(proposal_ids=[]) == []
 
 
 def test_repository_lists_memos_for_proposals_in_one_ordered_batch():
