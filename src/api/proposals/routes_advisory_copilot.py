@@ -7,15 +7,6 @@ from fastapi import Depends, Header, HTTPException, Path, Query, status
 from src.api.proposals import router as shared
 from src.api.proposals.router import get_proposal_repository
 from src.api.proposals.runtime import proposal_postgres_dsn
-from src.core.advisory_copilot import (
-    build_copilot_evidence_packet,
-    list_advisory_copilot_reviews,
-    list_copilot_action_definitions,
-    load_advisory_copilot_evidence_packet,
-    persist_advisory_copilot_run,
-    record_advisory_copilot_review,
-    save_advisory_copilot_evidence_packet,
-)
 from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
@@ -27,10 +18,12 @@ from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotRunResponse,
     AdvisoryCopilotSupportabilityResponse,
 )
-from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
-from src.core.advisory_copilot.source_projection import (
-    build_proposal_version_copilot_evidence_packet,
+from src.core.advisory_copilot.application import (
+    AdvisoryCopilotApplicationService,
+    AdvisoryCopilotDraftGenerator,
+    build_advisory_copilot_supportability_response,
 )
+from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.proposals.repository import ProposalRepository
 from src.infrastructure.advisory_copilot import PostgresAdvisoryCopilotRepository
@@ -68,6 +61,19 @@ def reset_advisory_copilot_repository_for_tests() -> None:
     _COPILOT_REPOSITORY = None
 
 
+def get_advisory_copilot_application_service(
+    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
+) -> AdvisoryCopilotApplicationService:
+    return AdvisoryCopilotApplicationService(
+        repository=repository,
+        draft_generator=cast(
+            AdvisoryCopilotDraftGenerator,
+            generate_advisory_copilot_draft_with_lotus_ai,
+        ),
+        policy_evaluation_loader=list_policy_evaluation_records,
+    )
+
+
 @shared.router.post(
     "/advisory/copilot/evidence-packets",
     response_model=AdvisoryCopilotEvidencePacketResponse,
@@ -87,26 +93,13 @@ def create_advisory_copilot_evidence_packet(
         str | None,
         Header(alias="X-Correlation-ID", description="Correlation id for packet creation."),
     ] = None,
-    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
+    service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
     try:
-        packet = build_copilot_evidence_packet(
-            evidence_packet_id=payload.evidence_packet_id,
-            action_family=payload.action_family,
-            portfolio_id=payload.portfolio_id,
-            proposal_id=payload.proposal_id,
-            audience=payload.audience,
-            source_sections=payload.source_sections,
+        return service.create_evidence_packet(
+            payload=payload,
+            correlation_id=correlation_id,
         )
-        record = save_advisory_copilot_evidence_packet(
-            repository=repository,
-            evidence_packet=packet,
-            audience=payload.audience,
-            created_by=payload.created_by,
-            reason=payload.reason,
-            correlation_id=correlation_id or f"corr-{payload.evidence_packet_id}",
-        )
-        return AdvisoryCopilotEvidencePacketResponse(evidence_packet=packet, record=record)
     except ValueError as exc:
         _raise_copilot_http_exception(exc)
 
@@ -132,40 +125,15 @@ def create_advisory_copilot_evidence_packet_from_proposal_version(
         str | None,
         Header(alias="X-Correlation-ID", description="Correlation id for packet creation."),
     ] = None,
-    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
+    service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
     proposal_repository: ProposalRepository = Depends(get_proposal_repository),
 ) -> AdvisoryCopilotEvidencePacketResponse:
     try:
-        proposal = proposal_repository.get_proposal(proposal_id=payload.proposal_id)
-        if proposal is None:
-            raise ValueError("COPILOT_PROPOSAL_VERSION_NOT_FOUND")
-        policy_evaluations = list_policy_evaluation_records(
-            evaluation_status=None,
-            portfolio_id=proposal.portfolio_id,
+        return service.create_proposal_version_evidence_packet(
+            payload=payload,
+            proposal_repository=proposal_repository,
+            correlation_id=correlation_id,
         )
-        packet = build_proposal_version_copilot_evidence_packet(
-            repository=proposal_repository,
-            evidence_packet_id=payload.evidence_packet_id,
-            action_family=payload.action_family,
-            proposal_id=payload.proposal_id,
-            proposal_version_no=payload.proposal_version_no,
-            audience=payload.audience,
-            policy_evaluations=policy_evaluations,
-        )
-        record = save_advisory_copilot_evidence_packet(
-            repository=repository,
-            evidence_packet=packet,
-            audience=payload.audience,
-            created_by=payload.created_by,
-            reason={
-                **payload.reason,
-                "source_projection": "PROPOSAL_VERSION",
-                "proposal_id": payload.proposal_id,
-                "proposal_version_no": payload.proposal_version_no,
-            },
-            correlation_id=correlation_id or f"corr-{packet.evidence_packet_id}",
-        )
-        return AdvisoryCopilotEvidencePacketResponse(evidence_packet=packet, record=record)
     except ValueError as exc:
         _raise_copilot_http_exception(exc)
 
@@ -181,19 +149,12 @@ def create_advisory_copilot_evidence_packet_from_proposal_version(
 )
 def get_advisory_copilot_evidence_packet(
     evidence_packet_id: Annotated[str, Path(description="Copilot evidence-packet identifier.")],
-    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
+    service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotEvidencePacketResponse:
-    record = repository.get_evidence_packet(evidence_packet_id=evidence_packet_id)
-    if record is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="COPILOT_EVIDENCE_PACKET_NOT_FOUND",
-        )
-    packet = load_advisory_copilot_evidence_packet(
-        repository=repository,
-        evidence_packet_id=evidence_packet_id,
-    )
-    return AdvisoryCopilotEvidencePacketResponse(evidence_packet=packet, record=record)
+    try:
+        return service.get_evidence_packet(evidence_packet_id=evidence_packet_id)
+    except ValueError as exc:
+        _raise_copilot_http_exception(exc)
 
 
 @shared.router.post(
@@ -219,40 +180,14 @@ def run_advisory_copilot_action(
         str | None,
         Header(alias="X-Correlation-ID", description="Correlation id for the copilot action."),
     ] = None,
-    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
+    service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
     try:
-        evidence_packet = load_advisory_copilot_evidence_packet(
-            repository=repository,
-            evidence_packet_id=payload.evidence_packet_id,
-        )
-        draft = generate_advisory_copilot_draft_with_lotus_ai(
-            evidence_packet=evidence_packet,
-            audience=payload.audience,
-            requested_outputs=list(payload.requested_outputs),
-            requested_by=payload.requested_by,
-            reason=payload.reason,
-            requested_intents=payload.requested_intents,
-            user_instruction=payload.user_instruction,
-        )
-        result = persist_advisory_copilot_run(
-            repository=repository,
-            evidence_packet=evidence_packet,
-            audience=payload.audience,
-            requested_outputs=payload.requested_outputs,
-            requested_by=payload.requested_by,
-            reason=payload.reason,
-            draft_status=draft.status,
-            output_sections=draft.sections,
-            lineage=draft.lineage,
-            review_guidance=draft.review_guidance,
-            guardrail_reasons=cast(tuple[str, ...], draft.guardrail_reasons),
-            correlation_id=correlation_id or f"corr-{payload.evidence_packet_id}",
+        return service.run_action(
+            payload=payload,
+            correlation_id=correlation_id,
             idempotency_key=idempotency_key,
-            requested_intents=payload.requested_intents,
-            user_instruction=payload.user_instruction,
         )
-        return AdvisoryCopilotRunResponse(run=result.run, replayed=result.replayed)
     except ValueError as exc:
         _raise_copilot_http_exception(exc)
 
@@ -268,13 +203,12 @@ def run_advisory_copilot_action(
 )
 def get_advisory_copilot_run(
     run_id: Annotated[str, Path(description="Advisory copilot run identifier.")],
-    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
+    service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunResponse:
-    run = repository.get_run(run_id=run_id)
-    if run is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="COPILOT_RUN_NOT_FOUND")
-    reviews = list_advisory_copilot_reviews(repository=repository, run_id=run_id)
-    return AdvisoryCopilotRunResponse(run=run, reviews=reviews)
+    try:
+        return service.get_run(run_id=run_id)
+    except ValueError as exc:
+        _raise_copilot_http_exception(exc)
 
 
 @shared.router.post(
@@ -301,22 +235,14 @@ def review_advisory_copilot_run(
         str | None,
         Header(alias="X-Correlation-ID", description="Correlation id for the review action."),
     ] = None,
-    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
+    service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotReviewResponse:
     try:
-        result = record_advisory_copilot_review(
-            repository=repository,
+        return service.review_run(
             run_id=run_id,
-            action=payload.action,
-            actor_id=payload.actor_id,
-            reason=payload.reason,
-            correlation_id=correlation_id or f"corr-{run_id}",
+            payload=payload,
             idempotency_key=idempotency_key,
-        )
-        return AdvisoryCopilotReviewResponse(
-            run=result.run,
-            review=result.review,
-            replayed=result.replayed,
+            correlation_id=correlation_id,
         )
     except ValueError as exc:
         _raise_copilot_http_exception(exc)
@@ -334,19 +260,7 @@ def review_advisory_copilot_run(
     ),
 )
 def get_advisory_copilot_supportability() -> AdvisoryCopilotSupportabilityResponse:
-    return AdvisoryCopilotSupportabilityResponse(
-        support_status="ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
-        client_ready_publication="BLOCKED",
-        supported_action_families=tuple(
-            definition.action_family for definition in list_copilot_action_definitions()
-        ),
-        boundaries=(
-            "CLIENT_READY_PUBLICATION is blocked",
-            "POLICY_APPROVAL_OR_SIGN_OFF is not delegated to copilot",
-            "OMS_ORDER_LIFECYCLE is not delegated to copilot",
-            "CLIENT_COMMUNICATION_DELIVERY is not delegated to copilot",
-        ),
-    )
+    return build_advisory_copilot_supportability_response()
 
 
 @shared.router.get(
@@ -373,17 +287,15 @@ def list_proposal_version_copilot_runs(
         str | None,
         Query(description="Opaque cursor from a previous copilot run page."),
     ] = None,
-    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
+    service: AdvisoryCopilotApplicationService = Depends(get_advisory_copilot_application_service),
 ) -> AdvisoryCopilotRunPage:
     try:
-        runs, next_cursor = repository.list_runs_for_proposal_version(
+        return service.list_proposal_version_runs(
             proposal_id=proposal_id,
-            proposal_version_id=version_id,
-            proposal_version_no=None,
+            version_id=version_id,
             limit=limit,
             cursor=cursor,
         )
-        return AdvisoryCopilotRunPage(items=tuple(runs), next_cursor=next_cursor)
     except ValueError as exc:
         _raise_copilot_http_exception(exc)
 

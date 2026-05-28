@@ -497,6 +497,17 @@ def test_advisory_copilot_review_api_is_idempotent(
     assert first.json()["run"]["review_posture"] == "APPROVED_FOR_INTERNAL_USE"
 
 
+def test_advisory_copilot_supportability_is_static_contract_without_repository() -> None:
+    with TestClient(app) as client:
+        response = client.get("/advisory/copilot/supportability")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["support_status"] == "ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"
+    assert payload["client_ready_publication"] == "BLOCKED"
+    assert "PROPOSAL_EXPLANATION" in payload["supported_action_families"]
+
+
 def test_advisory_copilot_openapi_is_action_specific() -> None:
     app.openapi_schema = None
     schema = app.openapi()
