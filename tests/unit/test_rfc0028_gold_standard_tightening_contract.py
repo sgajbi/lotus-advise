@@ -199,3 +199,33 @@ def test_rfc0028_records_slice_six_document_proof_capture() -> None:
         assert "DRAFT - SLICES 0-6 COMPLETE" in source or "Slices 0-6 complete" in source
         assert "document-proof-summary.json" in source
         assert "client-ready document publication remains blocked" in source
+
+
+def test_rfc0028_records_slice_seven_a_advise_proof_api_without_gateway_overclaim() -> None:
+    flat = _flat(RFC28_PATH)
+    rfc_index = _flat(RFC_INDEX_PATH)
+    wiki_index = _flat(WIKI_RFC_INDEX_PATH)
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
+
+    markers = (
+        "Slice 7A Advise source API implementation decision and evidence",
+        "GET /advisory/bank-demo-proof/scenario-contract",
+        "GET /advisory/bank-demo-proof/supported-claim-register",
+        "POST /advisory/bank-demo-proof/proof-packs",
+        "src/api/routers/bank_demo_proof.py",
+        "BackendProofCaptureBundle",
+        "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED",
+        "HTTP 409",
+        "tests/unit/advisory/api/test_api_bank_demo_proof.py",
+    )
+    for marker in markers:
+        assert marker in flat
+
+    for source in (rfc_index, wiki_index, supported_features):
+        assert "SLICE 7A ADVISE API COMPLETE" in source or "Slice 7A Advise API complete" in source
+        assert "Gateway consumption remains the next Slice 7 owner-repository step" in source
+        assert "screenshot" in source
+        assert "RFP" in source
+        assert "client-ready publication claims unpromoted" in source or (
+            "client-ready publication claim is promoted" in source
+        )
