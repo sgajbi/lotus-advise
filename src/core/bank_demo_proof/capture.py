@@ -5,6 +5,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from src.core.bank_demo_proof.artifact_refs import (
+    normalize_optional_local_artifact_ref,
+    normalize_output_ref_prefix,
+)
 from src.core.bank_demo_proof.commercial_materials import (
     CommercialMaterialPack,
     build_commercial_material_pack,
@@ -76,6 +80,14 @@ class BackendProofCaptureMetadata(BaseModel):
     def _generated_at_must_be_timezone_aware(self) -> BackendProofCaptureMetadata:
         if self.generated_at.tzinfo is None:
             raise ValueError("generated_at must be timezone-aware UTC")
+        self.live_suite_result_ref = normalize_optional_local_artifact_ref(
+            self.live_suite_result_ref,
+            field_name="live_suite_result_ref",
+        )
+        self.live_suite_bundle_ref = normalize_optional_local_artifact_ref(
+            self.live_suite_bundle_ref,
+            field_name="live_suite_bundle_ref",
+        )
         return self
 
 
@@ -769,6 +781,7 @@ def build_backend_proof_capture(
     runtime_posture: BackendRuntimePosture,
     output_ref_prefix: str = RFC28_DEFAULT_OUTPUT_REF_PREFIX,
 ) -> BackendProofCaptureBundle:
+    output_ref_prefix = normalize_output_ref_prefix(output_ref_prefix)
     sanitized_summary = sanitize_live_runtime_summary(live_runtime_payload)
     document_proof_summary = build_document_proof_summary(live_runtime_payload)
     commercial_material_pack = build_commercial_material_pack()

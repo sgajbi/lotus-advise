@@ -1,3 +1,8 @@
+from src.core.bank_demo_proof.artifact_refs import (
+    normalize_local_artifact_ref,
+    normalize_optional_local_artifact_ref,
+    normalize_output_ref_prefix,
+)
 from src.core.bank_demo_proof.capture import (
     BackendProofCaptureBundle,
     BackendProofCaptureMetadata,
@@ -100,6 +105,9 @@ __all__ = [
     "build_document_proof_summary",
     "build_journey_integration_proof_summary",
     "default_capture_metadata",
+    "normalize_local_artifact_ref",
+    "normalize_optional_local_artifact_ref",
+    "normalize_output_ref_prefix",
     "review_material_fields",
     "sanitize_live_runtime_summary",
 ]

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from pydantic import ValidationError
 
 from src.core.bank_demo_proof import (
     RFC28_CANONICAL_PORTFOLIO_ID,
@@ -389,3 +390,33 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
         document.archive_retention_posture == "OWNED_BY_LOTUS_ARCHIVE"
         for document in bundle.document_proof_summary.documents
     )
+
+
+def test_backend_proof_capture_rejects_sensitive_artifact_reference_prefixes() -> None:
+    with pytest.raises(ValueError, match="output_ref_prefix must not include URL"):
+        build_backend_proof_capture(
+            _live_runtime_payload(),
+            metadata=_metadata(),
+            runtime_posture=_runtime_posture(),
+            output_ref_prefix="https://proof.example.local/output?token=should-not-leak",
+        )
+
+    with pytest.raises(ValueError, match="output_ref_prefix cannot contain parent-directory"):
+        build_backend_proof_capture(
+            _live_runtime_payload(),
+            metadata=_metadata(),
+            runtime_posture=_runtime_posture(),
+            output_ref_prefix="../output/rfc0028/backend-proof",
+        )
+
+
+def test_backend_proof_metadata_rejects_sensitive_live_suite_references() -> None:
+    with pytest.raises(ValidationError, match="live_suite_result_ref must not include URL"):
+        default_capture_metadata(
+            repository_sha="abc123",
+            service_version="0.1.0",
+            environment="local",
+            correlation_id="corr-rfc0028-sensitive-ref",
+            generated_at=datetime(2026, 5, 28, 9, 30, tzinfo=UTC),
+            live_suite_result_ref="output/rfc0028/result.json?token=should-not-leak",
+        )

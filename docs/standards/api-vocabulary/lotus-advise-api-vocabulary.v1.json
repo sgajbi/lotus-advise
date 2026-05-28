@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-28T10:05:19.087660+00:00",
+  "generatedAt": "2026-05-28T12:01:31.461497+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -5775,7 +5775,7 @@
       "semanticId": "lotus.live_suite_bundle_ref",
       "canonicalTerm": "live_suite_bundle_ref",
       "preferredName": "live_suite_bundle_ref",
-      "description": "Optional local-only reference to the source live runtime evidence bundle.",
+      "description": "Optional local-only relative reference to the source live runtime evidence bundle. URL schemes, credentials, query strings, fragments, traversal, and sensitive tokens are rejected.",
       "example": "live_suite_bundle_ref_example",
       "type": "object",
       "locations": [
@@ -5789,7 +5789,7 @@
       "semanticId": "lotus.live_suite_result_ref",
       "canonicalTerm": "live_suite_result_ref",
       "preferredName": "live_suite_result_ref",
-      "description": "Optional local-only reference to the source live runtime result.",
+      "description": "Optional local-only relative reference to the source live runtime result. URL schemes, credentials, query strings, fragments, traversal, and sensitive tokens are rejected.",
       "example": "live_suite_result_ref_example",
       "type": "object",
       "locations": [
@@ -6687,7 +6687,7 @@
       "semanticId": "lotus.output_ref_prefix",
       "canonicalTerm": "output_ref_prefix",
       "preferredName": "output_ref_prefix",
-      "description": "Sanitized proof artifact reference prefix used inside the returned proof pack.",
+      "description": "Sanitized relative proof artifact reference prefix used inside the returned proof pack. It must not contain URL schemes, credentials, query strings, fragments, traversal, or sensitive tokens.",
       "example": "example_output_ref_prefix",
       "type": "string",
       "locations": [
