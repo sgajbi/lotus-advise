@@ -67,6 +67,14 @@ audit records inside the interaction product boundary rather than standalone pro
 products. Client-ready publication, external client communication, policy approval/sign-off
 authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
 
+RFC-0028 status is `DRAFT - SLICES 0-1 COMPLETE`. Slice 0 locks the hybrid Advise proof API plus
+platform/front-office automation path for scenario `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`,
+portfolio `PB_SG_GLOBAL_BAL_001`, and proof marker `BANK_DEMO_PROOF_PACK_CREATED`. Slice 1 merged
+the reusable `lotus-platform` supported-claim register schema and validator through PR #366, with
+main releasability run `26554797152` green. The RFC keeps full bank-demo/RFP and client-ready
+publication claims unpromoted until implementation proof, Gateway/Workbench validation,
+supported-claim review, and wiki publication are complete.
+
 RFC-0027 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before copilot domain work, so no `lotus-platform` code change
