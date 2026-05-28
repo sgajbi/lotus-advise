@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 
+import pytest
+
 from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalIdempotencyRecord,
+    ProposalMemoIdempotencyRecord,
     ProposalMemoRecord,
     ProposalRecord,
     ProposalSimulationIdempotencyRecord,
@@ -202,6 +205,48 @@ def test_repository_lists_memos_for_proposals_in_one_ordered_batch():
 
     assert [memo.memo_id for memo in memos] == ["memo_repo_b", "memo_repo_a"]
     assert repo.list_memos_for_proposals(proposal_ids=[]) == []
+
+
+def test_repository_rejects_conflicting_memo_idempotency_and_memo_hashes():
+    repo = InMemoryProposalRepository()
+    created_at = _now()
+    idempotency = ProposalMemoIdempotencyRecord(
+        idempotency_key="memo-idem-repo",
+        request_hash="sha256:memo-request",
+        memo_id="memo_repo_a",
+        proposal_id="pp_repo_a",
+        proposal_version_no=1,
+        created_at=created_at,
+    )
+    repo.save_memo_idempotency(idempotency)
+    repo.save_memo_idempotency(idempotency.model_copy())
+
+    with pytest.raises(ValueError, match="MEMO_IDEMPOTENCY_KEY_CONFLICT"):
+        repo.save_memo_idempotency(
+            idempotency.model_copy(update={"request_hash": "sha256:memo-request-v2"})
+        )
+
+    memo = ProposalMemoRecord(
+        memo_id="memo_repo_a",
+        proposal_id="pp_repo_a",
+        proposal_version_no=1,
+        memo_version="advisory-proposal-memo-evidence-pack.v1",
+        memo_status="BLOCKED",
+        lifecycle_status="FINALIZED",
+        created_by="advisor_a",
+        created_at=created_at,
+        source_input_hash="sha256:source-a",
+        memo_hash="sha256:memo-a",
+        memo_json={"memo_id": "memo_repo_a"},
+    )
+    repo.create_memo(memo)
+    repo.create_memo(memo.model_copy())
+
+    with pytest.raises(ValueError, match="MEMO_HASH_CONFLICT"):
+        repo.create_memo(memo.model_copy(update={"memo_hash": "sha256:memo-a-v2"}))
+
+    with pytest.raises(ValueError, match="MEMO_PROPOSAL_VERSION_CONFLICT"):
+        repo.create_memo(memo.model_copy(update={"memo_id": "memo_repo_b"}))
 
 
 def test_repository_versions_and_transition_transaction_path():

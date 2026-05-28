@@ -23,6 +23,10 @@ _BOOKING_LOCATION_SCOPE_KEY = "booking_" + "center_code_scope"
 _FIELD_TO_SOURCE_SECTION = {
     "private_asset_or_structured_product_flag": "core_product_eligibility_target_market_complexity",
 }
+_PRIVATE_BANKING_CLIENT_CLASSIFICATIONS = {
+    "ACCREDITED_INVESTOR",
+    "PRIVATE_BANKING",
+}
 
 
 def evaluate_policy_pack_version(
@@ -157,8 +161,11 @@ def _client_segment_matches_scope(value: str, scope: list[Any]) -> bool:
     normalized_scope = {str(item) for item in scope}
     return (
         "GLOBAL" in normalized_scope
-        or "PRIVATE_BANKING" in normalized_scope
         or value in normalized_scope
+        or (
+            "PRIVATE_BANKING" in normalized_scope
+            and value in _PRIVATE_BANKING_CLIENT_CLASSIFICATIONS
+        )
     )
 
 

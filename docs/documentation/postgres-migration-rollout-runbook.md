@@ -5,12 +5,15 @@
 Runbook for forward-only schema migration rollout for:
 
 - advisory proposals Postgres namespace (`proposals`)
+- advisory copilot Postgres namespace (`advisory_copilot`)
 
 ## Preconditions
 
 - PostgreSQL is reachable and healthy.
 - Runtime DSNs are configured:
   - `PROPOSAL_POSTGRES_DSN`
+  - `ADVISORY_COPILOT_POSTGRES_DSN` when copilot records use a separate database. If unset, the
+    migration tool uses `PROPOSAL_POSTGRES_DSN`.
 - Application image/version to deploy is already tested in non-production.
 - Production compose override available:
   - `docker-compose.production.yml`
@@ -35,6 +38,7 @@ Optional per-namespace commands:
 
 ```bash
 python scripts/postgres_migrate.py --target proposals
+python scripts/postgres_migrate.py --target advisory_copilot
 ```
 
 Production contract check (profile/env/migration readiness):

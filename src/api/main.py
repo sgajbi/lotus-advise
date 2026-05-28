@@ -106,6 +106,16 @@ app = FastAPI(
             ),
         },
         {
+            "name": "Advisory Copilot",
+            "description": (
+                "RFC-0027 Advise-owned governed advisory copilot APIs for bounded evidence "
+                "packets, workflow-pack-backed actions, run retrieval, review audit, proposal "
+                "version run lookup, and supportability posture. Gateway, Workbench, "
+                "data-product promotion, canonical proof, and client-ready publication remain "
+                "gated until subsequent RFC-0027 slices prove them."
+            ),
+        },
+        {
             "name": "Advisory Operations & Support",
             "description": (
                 "Operational lookup and investigation endpoints for async status, workflow "

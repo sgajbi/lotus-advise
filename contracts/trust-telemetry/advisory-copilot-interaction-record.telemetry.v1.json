@@ -1,0 +1,65 @@
+{
+  "contract_id": "lotus-domain-product-trust-telemetry-snapshot",
+  "contract_version": "1.0.0",
+  "governed_by_rfcs": [
+    "RFC-0087",
+    "RFC-0027"
+  ],
+  "emitted_at_utc": "2026-05-28T00:00:00Z",
+  "product_id": "lotus-advise:AdvisoryCopilotInteractionRecord:v1",
+  "producer_repository": "lotus-advise",
+  "product_name": "AdvisoryCopilotInteractionRecord",
+  "product_version": "v1",
+  "source_repository": "lotus-advise",
+  "freshness": {
+    "freshness_class": "event_driven",
+    "freshness_state": "current",
+    "evaluated_at_utc": "2026-05-28T00:00:00Z",
+    "observed_at_utc": "2026-05-28T00:00:00Z",
+    "age_seconds": 0,
+    "max_allowed_age_seconds": 86400
+  },
+  "completeness_status": "complete",
+  "reconciliation_status": "not_applicable",
+  "data_quality_status": "quality_passed",
+  "lineage": {
+    "lineage_materialized": true,
+    "lineage_bundle_id": "lineage:lotus-advise:advisory-copilot-interaction-record:canonical-proof:2026-05-28",
+    "evidence_access_class": "customer_consumable",
+    "evidence_uris": [
+      "lotus-advise://contracts/domain-data-products/lotus-advise-products.v1.json#AdvisoryCopilotInteractionRecord",
+      "lotus-advise://docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md",
+      "lotus-advise://docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md",
+      "lotus-advise://src/core/advisory_copilot/service.py",
+      "lotus-advise://src/core/advisory_copilot/source_projection.py",
+      "lotus-advise://src/core/advisory_copilot/guardrails.py",
+      "lotus-advise://src/integrations/lotus_ai/advisory_copilot.py",
+      "lotus-gateway://src/app/routers/advisory_copilot.py",
+      "lotus-workbench://output/playwright/live-canonical/live-validation-summary.json#ADVISORY_COPILOT_CANONICAL_PROOF_CREATED",
+      "lotus-workbench://output/playwright/live-canonical/advisory-advisory-copilot-live.png",
+      "lotus-platform://context/contracts/canonical-front-office-demo-data-contract.json#RFC27_ADVISORY_COPILOT_CANONICAL",
+      "lotus-platform://context/contracts/workbench-panel-registry.json#advisory.advisory_copilot"
+    ]
+  },
+  "blocking": {
+    "blocked": false
+  },
+  "observed_trust_metadata": {
+    "product_name": "AdvisoryCopilotInteractionRecord",
+    "product_version": "v1",
+    "generated_at": "2026-05-28T00:00:00Z",
+    "content_hash": "sha256:rfc0027-advisory-copilot-interaction-record-v1-canonical-proof",
+    "correlation_id": "rfc-0027-advisory-copilot-interaction-record"
+  },
+  "evidence": {
+    "correlation_id": "rfc-0027-advisory-copilot-interaction-record",
+    "claim_boundary": "RFC-0027 promotes AdvisoryCopilotInteractionRecord:v1 as an active reviewed internal advisor/reviewer copilot interaction product after Advise API certification, governed lotus-ai workflow-pack execution, durable run/review persistence, Gateway publication, Workbench Gateway-first product surface, and canonical PB_SG_GLOBAL_BAL_001 live proof. Evidence packets and review events remain audit records within this product boundary rather than standalone promoted data products. Client-ready publication, external client communication, policy approval/sign-off authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP package claims remain blocked.",
+    "validation_lanes": [
+      "feature",
+      "pr-merge",
+      "platform-end-to-end"
+    ],
+    "source_event_id": "source-event:lotus-advise:advisory-copilot-interaction-record:active:2026-05-28",
+    "source_artifact_uri": "lotus-advise://contracts/trust-telemetry/advisory-copilot-interaction-record.telemetry.v1.json"
+  }
+}

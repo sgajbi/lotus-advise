@@ -41,6 +41,14 @@ The current first-wave snapshot is:
    action-item register. Acknowledgements prove review posture only; they do not clear blockers,
    approve policy findings, contact clients, create CRM tasks, or initiate OMS order lifecycle
    activity.
+7. `advisory-copilot-interaction-record.telemetry.v1.json`
+   Active trust posture for `lotus-advise:AdvisoryCopilotInteractionRecord:v1`, the RFC-0027
+   reviewed internal advisor/reviewer copilot interaction product. This snapshot is bounded to
+   source-backed evidence-packet projection, governed `lotus-ai` workflow-pack execution,
+   persisted run/review posture, guardrails, Gateway/Workbench consumption, and canonical
+   `PB_SG_GLOBAL_BAL_001` proof. It does not promote client-ready publication, external client
+   communication, policy approval/sign-off authority, OMS order lifecycle, fills, settlement, or
+   full RFC-0028 demo/RFP package claims.
 
 Validate locally with:
 

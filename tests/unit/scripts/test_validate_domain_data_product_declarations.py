@@ -72,3 +72,26 @@ def test_rfc0023_narrative_product_promotion_remains_bounded_to_evidence() -> No
     assert not any(
         "client-ready" in route.lower() for route in narrative_evidence["current_routes"]
     )
+
+
+def test_rfc0027_copilot_interaction_product_promotes_only_after_runtime_proof() -> None:
+    contract_dir = _local_contract_dir(Path(__file__).resolve().parents[3])
+    declaration = json.loads(
+        (contract_dir / "lotus-advise-products.v1.json").read_text(encoding="utf-8")
+    )
+    products = {product["product_name"]: product for product in declaration["products"]}
+
+    interaction_record = products["AdvisoryCopilotInteractionRecord"]
+    assert interaction_record["lifecycle_status"] == "active"
+    assert interaction_record["approved_consumers"] == ["lotus-gateway", "lotus-workbench"]
+    assert "/advisory/copilot/actions" in interaction_record["current_routes"]
+    assert (
+        "/advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs"
+        in interaction_record["current_routes"]
+    )
+    assert "AdvisoryCopilotEvidencePacket" not in products
+    assert "AdvisoryCopilotReviewRecord" not in products
+    product_text = json.dumps(interaction_record, sort_keys=True).lower()
+    assert "canonical pb_sg_global_bal_001 live proof" in product_text
+    assert "client-ready publication" in product_text
+    assert "oms order lifecycle" in product_text

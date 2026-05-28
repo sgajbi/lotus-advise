@@ -34,10 +34,6 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0016 costs, fees, and transaction frictions
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
-- RFC-0026 advisor cockpit operating workflow, implementation in progress with the source-owned
-  Advise/Gateway/Workbench cockpit scope, canonical proof, active data products, trust telemetry,
-  and `/platform/capabilities` promoted after the 2026-05-27 gold-standard tightening
-- RFC-0027 governed advisory AI copilot
 - RFC-0028 bank demo journey and client-ready proof
 
 ## Important Interpretation
@@ -53,14 +49,97 @@ and active `AdvisoryPolicyEvaluationRecord:v1` data-product support. Completed a
 authority, completed sign-off authority, client-ready policy publication, external client
 communication, and full RFC-0028 bank-demo/RFP claims remain gated.
 
-RFC-0026 is in implementation. The 2026-05-27 tightening records the completed RFC-0023,
-RFC-0024, and RFC-0025 evidence baseline, resolves pre-implementation Slice 0 decisions, and
-requires canonical front-office automation for `PB_SG_GLOBAL_BAL_001` before any advisor-cockpit
-support claim is promoted. That first-wave Advise/Gateway/Workbench proof now exists for the
-source-owned cockpit scope. Slice 16 adds hardened live canonical proof for action detail,
-cursor pagination, invalid-cursor rejection, compliance and DPM role projection, preparation
-packets, house-view impact, acknowledgement idempotency, supportability posture, and action
-evidence/lineage.
+RFC-0026 is implemented for the source-owned first-wave advisor cockpit operating workflow. Advise
+owns action, snapshot, supportability, preparation-packet, supervisory queue, report/readiness,
+execution-status attention, house-view impact, and acknowledgement truth; Gateway and Workbench
+consume the canonical contract; active cockpit data products, trust telemetry, and
+`/platform/capabilities` are promoted. Slice 16 adds hardened live canonical proof for action
+detail, cursor pagination, invalid-cursor rejection, compliance and DPM role projection,
+preparation packets, house-view impact, acknowledgement idempotency, supportability posture, and
+action evidence/lineage.
+
+RFC-0027 is implemented for governed internal advisor/reviewer copilot interactions. It supports
+all six first-wave action families through Advise-owned source evidence, governed `lotus-ai`
+workflow-pack execution, Gateway publication, Workbench Gateway-first rendering, canonical
+`RFC27_ADVISORY_COPILOT_CANONICAL` proof, and active
+`AdvisoryCopilotInteractionRecord:v1` data-product posture. Evidence packets and review events are
+audit records inside the interaction product boundary rather than standalone promoted data
+products. Client-ready publication, external client communication, policy approval/sign-off
+authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
+
+RFC-0027 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
+`docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
+repo-native controls are sufficient before copilot domain work, so no `lotus-platform` code change
+is required for this slice. Copilot APIs, evidence-packet persistence, guardrails, `lotus-ai`
+workflow-pack integration, review actions, data-product promotion, Gateway routes, Workbench
+surfaces, canonical RFC-0027 seed data, and client-demo claims remain mandatory subsequent RFC-0027
+work and are unpromoted in this slice.
+
+RFC-0027 Slice 2 is implemented as cleanup and structure. Evidence lives in
+`docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`. `lotus-advise` now has a dedicated
+`src/core/advisory_copilot/` package for first-wave copilot action catalog, source/evidence
+vocabulary, guardrail reason-code foundation, review posture mapping, workflow-pack boundary
+metadata, and business-facing projection labels. No copilot API, persistence, `lotus-ai`
+invocation, data product, Gateway route, Workbench surface, canonical seed, or supported runtime
+claim is promoted by this slice.
+
+RFC-0027 Slice 3 is implemented as non-promoting data-product posture. Evidence lives in
+`docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`. The slice blocks premature
+`AdvisoryCopilotInteractionRecord:v1`, `AdvisoryCopilotEvidencePacket:v1`, and
+`AdvisoryCopilotReviewRecord:v1` declarations, trust telemetry, and `/platform/capabilities`
+promotion until copilot runtime APIs, persistence, Gateway/Workbench consumption, mesh posture, and
+canonical proof exist.
+
+RFC-0027 Slice 4 is implemented as pure domain model, vocabulary, and review-state hardening.
+Evidence lives in `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`. The
+copilot core now defines evidence packets, evidence sections, source refs, lineage refs,
+unsupported-evidence posture, retention classes, and review-state mapping while preserving blocked
+client-ready posture and no runtime/API promotion.
+
+RFC-0027 Slice 5 is implemented as pure evidence-packet projection. Evidence lives in
+`docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`. The copilot core now builds
+deterministic projected evidence packets from already source-projected sections, emits explicit
+missing/restricted unsupported posture, preserves source refs and lineage refs, computes stable
+packet hashes, rejects technical-copy leakage, and keeps client-ready publication blocked. No source
+reads, persistence, API, `lotus-ai`, Gateway, Workbench, data-product, canonical seed, or supported
+runtime claim is promoted by this slice.
+
+RFC-0027 Slice 6 is implemented as a pure guardrail and unsupported-evidence engine foundation.
+Evidence lives in `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`. The
+copilot core now returns stable reason codes for forbidden intents, missing source refs, prompt
+injection, client-ready wording, and sensitive technical leakage. Persistence, API, `lotus-ai`,
+Gateway, Workbench, canonical proof, and supported runtime claims remain unpromoted.
+
+RFC-0027 Slice 7 is implemented as a governed `lotus-ai` workflow-pack and model-risk control seam.
+Evidence lives in `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`.
+`lotus-ai` now registers six review-gated advisory copilot workflow packs, and `lotus-advise`
+consumes them only through `/platform/workflow-packs/execute` with evidence-packet, source-ref,
+approved-instruction-set, output-schema, prompt-template, evaluation-pack, unavailable, and
+guardrail proof. Advise copilot APIs, persistence, Gateway, Workbench, canonical proof,
+data-product promotion, and supported runtime claims remain unpromoted.
+
+RFC-0027 Slice 8 is implemented as copilot run persistence, review audit, and retention
+foundation. Evidence lives in
+`docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`. `lotus-advise` now has durable
+run, idempotency, review, audit, retention, legal-hold, and Postgres migration support for governed
+copilot records. The persistence layer rejects raw prompt, provider, and unsafe-output storage.
+Advise copilot APIs, Gateway, Workbench, canonical proof, data-product promotion, and supported
+runtime claims remain unpromoted.
+
+RFC-0027 Slice 9 is implemented as certified Advise advisory copilot APIs and OpenAPI coverage.
+Evidence lives in `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`. `lotus-advise`
+now exposes evidence-packet create/read, Workbench-safe proposal-version source projection, action
+run/read, review, supportability, and proposal-version run lookup endpoints with no free-form
+prompt endpoint. Its Workbench, canonical proof, data-product promotion, and supported runtime
+claim boundary is historical and closed by the final RFC-0027 slices.
+
+RFC-0027 Slices 10-14 are implemented as Gateway/Workbench product realization, canonical proof,
+data-mesh promotion, repeatability hardening, and closure. Evidence lives in
+`docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md`. Canonical validation records
+`ADVISORY_COPILOT_CANONICAL_PROOF_CREATED`, proves all six first-wave action families, internal
+review, client-ready guardrail rejection, proposal-version run lineage, and the
+`advisory.advisory_copilot` Workbench panel. `AdvisoryCopilotInteractionRecord:v1` is active with
+trust telemetry; standalone evidence-packet and review-record products are not promoted.
 
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
@@ -584,3 +663,12 @@ Implementation evidence:
 - `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`
 - `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`
 - `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`
+- `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`
+- `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`
+- `docs/rfcs/RFC-0027-slice-3-data-product-and-platform-hardening.md`
+- `docs/rfcs/RFC-0027-slice-4-domain-model-vocabulary-review-state.md`
+- `docs/rfcs/RFC-0027-slice-5-evidence-packet-redaction-projection.md`
+- `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`
+- `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`
+- `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`
+- `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`
