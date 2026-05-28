@@ -17,6 +17,7 @@ MEMO_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-proposal-memo-evidence-pack.telem
 POLICY_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-policy-evaluation-record.telemetry.v1.json"
 COCKPIT_SNAPSHOT_PATH = TELEMETRY_DIR / "advisor-cockpit-operating-snapshot.telemetry.v1.json"
 ACTION_REGISTER_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-action-item-register.telemetry.v1.json"
+COPILOT_SNAPSHOT_PATH = TELEMETRY_DIR / "advisory-copilot-interaction-record.telemetry.v1.json"
 DECLARATION_PATH = (
     REPO_ROOT / "contracts" / "domain-data-products" / "lotus-advise-products.v1.json"
 )
@@ -386,3 +387,60 @@ def test_rfc0026_cockpit_trust_telemetry_is_active_and_tied_to_declaration() -> 
         assert "canonical PB_SG_GLOBAL_BAL_001 live proof" in snapshot["evidence"]["claim_boundary"]
         assert "client-ready publication" in snapshot["evidence"]["claim_boundary"]
         assert "OMS order lifecycle" in snapshot["evidence"]["claim_boundary"]
+
+
+def test_rfc0027_copilot_trust_telemetry_is_active_and_tied_to_declaration() -> None:
+    snapshot = _load_json(COPILOT_SNAPSHOT_PATH)
+    declaration = _load_json(DECLARATION_PATH)
+    declared_product = next(
+        product
+        for product in declaration["products"]
+        if product["product_name"] == "AdvisoryCopilotInteractionRecord"
+    )
+
+    assert snapshot["product_id"] == "lotus-advise:AdvisoryCopilotInteractionRecord:v1"
+    assert snapshot["producer_repository"] == declaration["producer_repository"]
+    assert snapshot["product_name"] == declared_product["product_name"]
+    assert snapshot["product_version"] == declared_product["product_version"]
+    assert declared_product["lifecycle_status"] == "active"
+    assert "AdvisoryCopilotEvidencePacket" not in {
+        product["product_name"] for product in declaration["products"]
+    }
+    assert "AdvisoryCopilotReviewRecord" not in {
+        product["product_name"] for product in declaration["products"]
+    }
+    assert "/advisory/copilot/actions" in declared_product["current_routes"]
+    assert (
+        "/advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs"
+        in declared_product["current_routes"]
+    )
+    assert (
+        snapshot["freshness"]["freshness_class"]
+        == declared_product["freshness_policy"]["freshness_class"]
+    )
+    assert snapshot["freshness"]["freshness_state"] == "current"
+    assert snapshot["completeness_status"] == "complete"
+    assert snapshot["data_quality_status"] == "quality_passed"
+    assert set(snapshot["observed_trust_metadata"]) == set(
+        declared_product["required_trust_metadata"]
+    )
+    assert snapshot["lineage"]["lineage_materialized"] is True
+    assert (
+        snapshot["lineage"]["evidence_access_class"]
+        == declared_product["lineage_policy"]["evidence_access_class_ref"]
+    )
+    assert (
+        "lotus-workbench://output/playwright/live-canonical/live-validation-summary.json#ADVISORY_COPILOT_CANONICAL_PROOF_CREATED"
+        in snapshot["lineage"]["evidence_uris"]
+    )
+    assert snapshot["blocking"] == {"blocked": False}
+    assert "reviewed internal advisor/reviewer copilot interaction product" in (
+        snapshot["evidence"]["claim_boundary"]
+    )
+    assert "Evidence packets and review events remain audit records" in (
+        snapshot["evidence"]["claim_boundary"]
+    )
+    claim_boundary = snapshot["evidence"]["claim_boundary"].lower()
+    assert "client-ready publication" in claim_boundary
+    assert "policy approval/sign-off authority" in claim_boundary
+    assert "oms order lifecycle" in claim_boundary

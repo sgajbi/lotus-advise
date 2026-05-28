@@ -137,7 +137,7 @@ def test_rfc0026_capabilities_advertise_advisor_cockpit_after_canonical_proof():
     assert "oms order lifecycle" in payload_text
 
 
-def test_rfc0027_capabilities_do_not_promote_copilot_before_runtime_proof():
+def test_rfc0027_capabilities_advertise_copilot_after_canonical_proof():
     with TestClient(app) as client:
         response = client.get(
             "/platform/capabilities",
@@ -150,11 +150,12 @@ def test_rfc0027_capabilities_do_not_promote_copilot_before_runtime_proof():
     workflow_keys = {item["workflow_key"] for item in payload["workflows"]}
     payload_text = str(payload).lower()
 
-    assert "advisory.copilot" not in feature_keys
-    assert "advisory.advisory_copilot" not in feature_keys
-    assert "advisory_copilot" not in workflow_keys
-    assert "advisory copilot" not in payload_text
-    assert "advisorycopilotinteractionrecord" not in payload_text
+    assert "advisory.advisory_copilot" in feature_keys
+    assert "advisory_copilot_interaction" in workflow_keys
+    assert "advisorycopilotinteractionrecord" in payload_text
+    assert "gateway/workbench canonical proof" in payload_text
+    assert "client-ready publication" in payload_text
+    assert "policy approval/sign-off authority" in payload_text
 
 
 def test_integration_capabilities_openapi_exposes_snake_case_query_parameters_only():
@@ -237,6 +238,13 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
     assert features["advisory.advisor_cockpit"]["enabled"] is True
     assert features["advisory.advisor_cockpit"]["operational_ready"] is True
     assert features["advisory.advisor_cockpit"]["owner_service"] == "ADVISORY"
+    assert features["advisory.advisory_copilot"]["enabled"] is True
+    assert features["advisory.advisory_copilot"]["operational_ready"] is False
+    assert features["advisory.advisory_copilot"]["owner_service"] == "ADVISORY"
+    assert (
+        features["advisory.advisory_copilot"]["degraded_reason"]
+        == "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+    )
     assert features["advisory.proposals.execution_handoff"]["operational_ready"] is True
     assert features["advise.observability.advisory_supportability"]["enabled"] is True
     assert features["advise.observability.advisory_supportability"]["owner_service"] == "ADVISORY"
@@ -276,6 +284,13 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "advisory.proposals.memo_evidence_pack",
         "advisory.advisor_cockpit",
     ]
+    assert workflows["advisory_copilot_interaction"]["enabled"] is True
+    assert workflows["advisory_copilot_interaction"]["operational_ready"] is False
+    assert workflows["advisory_copilot_interaction"]["required_features"] == [
+        "advisory.proposals.lifecycle",
+        "advisory.advisory_copilot",
+    ]
+    assert workflows["advisory_copilot_interaction"]["dependency_keys"] == ["lotus_ai"]
     assert workflows["advisory_proposal_execution_handoff"]["operational_ready"] is True
     assert payload["supportability"] == {
         "state": "degraded",
@@ -285,7 +300,7 @@ def test_integration_capabilities_reports_lotus_dependency_readiness(monkeypatch
         "dependency_count": 5,
         "ready_dependency_count": 2,
         "degraded_dependency_count": 3,
-        "enabled_feature_count": 14,
+        "enabled_feature_count": 15,
         "ready_feature_count": 10,
     }
 
@@ -459,6 +474,7 @@ def test_integration_capabilities_disable_reporting_and_execution_with_lifecycle
     assert workflows["advisory_proposal_reviewed_narrative_evidence"]["enabled"] is False
     assert workflows["advisory_proposal_memo_evidence_pack"]["enabled"] is False
     assert workflows["advisor_cockpit_operating_workflow"]["enabled"] is False
+    assert workflows["advisory_copilot_interaction"]["enabled"] is False
     assert workflows["advisory_proposal_execution_handoff"]["enabled"] is False
     assert features["advise.observability.advisory_supportability"]["operational_ready"] is False
     assert payload["supportability"]["state"] == "unsupported"
@@ -485,8 +501,8 @@ def test_integration_capabilities_reports_ready_advisory_supportability(monkeypa
         "dependency_count": 5,
         "ready_dependency_count": 5,
         "degraded_dependency_count": 0,
-        "enabled_feature_count": 14,
-        "ready_feature_count": 14,
+            "enabled_feature_count": 15,
+            "ready_feature_count": 15,
     }
 
 

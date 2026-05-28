@@ -371,6 +371,66 @@
       }
     },
     {
+      "product_name": "AdvisoryCopilotInteractionRecord",
+      "product_version": "v1",
+      "owner_repository": "lotus-advise",
+      "product_family": "workflow_and_decision_state",
+      "authoritative_domain": "advisory_workflow",
+      "lifecycle_status": "active",
+      "request_scope": {
+        "scope_level": "workflow_run",
+        "supports_bulk": false
+      },
+      "temporal_scope": {
+        "primary_time_field": "generated_at",
+        "freshness_basis": "event_time",
+        "supports_restatement": true
+      },
+      "temporal_semantics_ref": "generated_at",
+      "identifier_refs": [
+        "portfolio_id",
+        "correlation_id"
+      ],
+      "required_trust_metadata": [
+        "product_name",
+        "product_version",
+        "generated_at",
+        "content_hash",
+        "correlation_id"
+      ],
+      "current_routes": [
+        "/advisory/copilot/evidence-packets/from-proposal-version",
+        "/advisory/copilot/actions",
+        "/advisory/copilot/actions/{run_id}",
+        "/advisory/copilot/actions/{run_id}/reviews",
+        "/advisory/copilot/supportability",
+        "/advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs"
+      ],
+      "freshness_policy": {
+        "freshness_class": "event_driven",
+        "max_allowed_age_description": "Advisory copilot interaction freshness is measured against source-backed proposal-version evidence packets, persisted run/review records, workflow-pack lineage, guardrail posture, supportability posture, Gateway/Workbench visibility, canonical PB_SG_GLOBAL_BAL_001 live proof, and platform SLO/access/evidence-policy certification. This active product is bounded to reviewed internal advisor/reviewer copilot support; client-ready publication, external client communication, policy approval/sign-off authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP package claims remain blocked."
+      },
+      "completeness_policy": {
+        "default_status": "complete",
+        "partial_allowed": false
+      },
+      "lineage_policy": {
+        "lineage_required": true,
+        "evidence_bundle_required": true,
+        "lineage_bundle_class_ref": "customer_lineage_summary",
+        "evidence_access_class_ref": "customer_consumable"
+      },
+      "security_profile_ref": "business_consumer_access:client_confidential:retain_for_client_record:audit_read_and_export",
+      "approved_consumers": [
+        "lotus-gateway",
+        "lotus-workbench"
+      ],
+      "deprecation_policy": {
+        "state": "not_deprecated",
+        "successor_product": null
+      }
+    },
+    {
       "product_name": "TacticalHouseViewAffectedCohort",
       "product_version": "v1",
       "owner_repository": "lotus-advise",

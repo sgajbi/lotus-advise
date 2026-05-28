@@ -34,9 +34,6 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0016 costs, fees, and transaction frictions
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
-- RFC-0027 governed advisory AI copilot, Slice 0 ready for implementation after 2026-05-28
-  tightening; no day-2 or wave-2 deferral is allowed for seed, automation, Gateway, Workbench,
-  `lotus-ai`, data-mesh, production, documentation, or proof work required by the supported claim
 - RFC-0028 bank demo journey and client-ready proof
 
 ## Important Interpretation
@@ -61,12 +58,14 @@ detail, cursor pagination, invalid-cursor rejection, compliance and DPM role pro
 preparation packets, house-view impact, acknowledgement idempotency, supportability posture, and
 action evidence/lineage.
 
-RFC-0027 is the next implementation RFC. The 2026-05-28 tightening resolves first-wave copilot
-action families, selected API direction, source-authority decisions, canonical
-`RFC27_ADVISORY_COPILOT_CANONICAL` proof expectations, seed/automation scope, and business-facing
-documentation quality requirements before implementation begins. Any data, automation, UI, report,
-Gateway, `lotus-ai`, platform, production, or documentation work needed to prove the supported
-copilot belongs inside RFC-0027.
+RFC-0027 is implemented for governed internal advisor/reviewer copilot interactions. It supports
+all six first-wave action families through Advise-owned source evidence, governed `lotus-ai`
+workflow-pack execution, Gateway publication, Workbench Gateway-first rendering, canonical
+`RFC27_ADVISORY_COPILOT_CANONICAL` proof, and active
+`AdvisoryCopilotInteractionRecord:v1` data-product posture. Evidence packets and review events are
+audit records inside the interaction product boundary rather than standalone promoted data
+products. Client-ready publication, external client communication, policy approval/sign-off
+authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
 
 RFC-0027 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
@@ -131,8 +130,16 @@ RFC-0027 Slice 9 is implemented as certified Advise advisory copilot APIs and Op
 Evidence lives in `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`. `lotus-advise`
 now exposes evidence-packet create/read, Workbench-safe proposal-version source projection, action
 run/read, review, supportability, and proposal-version run lookup endpoints with no free-form
-prompt endpoint. Workbench, canonical proof, data-product promotion, and supported runtime claims
-remain unpromoted.
+prompt endpoint. Its Workbench, canonical proof, data-product promotion, and supported runtime
+claim boundary is historical and closed by the final RFC-0027 slices.
+
+RFC-0027 Slices 10-14 are implemented as Gateway/Workbench product realization, canonical proof,
+data-mesh promotion, repeatability hardening, and closure. Evidence lives in
+`docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md`. Canonical validation records
+`ADVISORY_COPILOT_CANONICAL_PROOF_CREATED`, proves all six first-wave action families, internal
+review, client-ready guardrail rejection, proposal-version run lineage, and the
+`advisory.advisory_copilot` Workbench panel. `AdvisoryCopilotInteractionRecord:v1` is active with
+trust telemetry; standalone evidence-packet and review-record products are not promoted.
 
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and

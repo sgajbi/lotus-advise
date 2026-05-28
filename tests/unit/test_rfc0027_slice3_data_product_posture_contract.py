@@ -8,6 +8,9 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 TRUST_TELEMETRY_README_PATH = Path("contracts/trust-telemetry/README.md")
+FINAL_CLOSURE_PATH = Path(
+    "docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md"
+)
 
 
 def _read(path: Path) -> str:
@@ -32,8 +35,8 @@ def test_rfc0027_slice3_evidence_is_indexed_and_non_promoting() -> None:
     assert "does not declare `AdvisoryCopilotInteractionRecord:v1`" in slice3
     assert "does not add copilot trust telemetry" in slice3
     assert "does not promote `/platform/capabilities` copilot support" in slice3
-    assert "Slice 3 blocks premature data-product and capability promotion" in flat_supported
-    assert "before any supported copilot claim is promoted" in flat_supported
+    assert "Slices 10-14 close Gateway publication" in flat_supported
+    assert "active `AdvisoryCopilotInteractionRecord:v1` data-product posture" in flat_supported
 
 
 def test_rfc0027_slice3_records_promotion_requirements() -> None:
@@ -67,8 +70,12 @@ def test_rfc0027_slice3_records_negative_governance_tests() -> None:
     assert "no copilot trust telemetry snapshot exists yet" in flat_slice3
 
 
-def test_rfc0027_trust_telemetry_readme_does_not_promote_copilot_yet() -> None:
+def test_rfc0027_final_closure_promotes_only_interaction_record() -> None:
+    final_closure = _flat(FINAL_CLOSURE_PATH)
     trust_readme = _flat(TRUST_TELEMETRY_README_PATH)
 
-    assert "AdvisoryCopilotInteractionRecord" not in trust_readme
-    assert "advisory copilot" not in trust_readme.lower()
+    assert "AdvisoryCopilotInteractionRecord:v1" in final_closure
+    assert "Evidence packets and review events remain audit records" in final_closure
+    assert "client-ready publication" in final_closure
+    assert "AdvisoryCopilotInteractionRecord:v1" in trust_readme
+    assert "client-ready publication" in trust_readme

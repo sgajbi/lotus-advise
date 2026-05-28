@@ -261,6 +261,27 @@ def build_feature_capabilities(
             degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
         ),
         FeatureCapability(
+            key="advisory.advisory_copilot",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled and lotus_ai_ready,
+            owner_service="ADVISORY",
+            description=(
+                "RFC-0027 governed advisory copilot interaction product with source-backed "
+                "proposal-version evidence packets, governed lotus-ai workflow-pack execution, "
+                "persisted run/review posture, guardrails, Gateway/Workbench canonical proof, "
+                "and active AdvisoryCopilotInteractionRecord:v1 trust telemetry. Client-ready "
+                "publication, external client communication, policy approval/sign-off authority, "
+                "OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP package "
+                "claims remain gated."
+            ),
+            fallback_mode="NONE",
+            degraded_reason=(
+                None
+                if not lifecycle_enabled or lotus_ai_ready
+                else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+            ),
+        ),
+        FeatureCapability(
             key="advisory.proposals.execution_handoff",
             enabled=lifecycle_enabled,
             operational_ready=lifecycle_enabled,
@@ -419,6 +440,21 @@ def build_workflow_capabilities(
             ],
             dependency_keys=[],
             degraded_reason=None if lifecycle_enabled else "ADVISORY_LIFECYCLE_DISABLED",
+        ),
+        WorkflowCapability(
+            workflow_key="advisory_copilot_interaction",
+            enabled=lifecycle_enabled,
+            operational_ready=lifecycle_enabled and lotus_ai_ready,
+            required_features=[
+                "advisory.proposals.lifecycle",
+                "advisory.advisory_copilot",
+            ],
+            dependency_keys=["lotus_ai"],
+            degraded_reason=(
+                None
+                if not lifecycle_enabled or lotus_ai_ready
+                else "LOTUS_AI_DEPENDENCY_UNAVAILABLE"
+            ),
         ),
         WorkflowCapability(
             workflow_key="advisory_proposal_execution_handoff",

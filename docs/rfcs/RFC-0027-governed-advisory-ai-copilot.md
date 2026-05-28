@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN - SLICE 0 READY |
+| **Status** | IMPLEMENTED for governed internal advisor/reviewer copilot interactions; client-ready and execution authority remain gated |
 | **Created** | 2026-05-22 |
 | **Last Tightened** | 2026-05-28 |
 | **Owner** | `lotus-advise` for advisory evidence, copilot use-case authority, validation, audit, and product truth; `lotus-ai` for workflow-pack execution, provider orchestration, model telemetry, and AI safety controls |
@@ -1101,20 +1101,46 @@ Acceptance gate:
 | --- | --- | --- |
 | Governed advisory copilot action catalog | Proposed | Promote only after action families, forbidden behaviors, audiences, review posture, and docs are implemented and tested. |
 | Copilot evidence packet | Proposed | Promote only after deterministic packet build, redaction, source refs, replay/rebuild, lineage, and proof exist. |
-| Advisory proposal explanation | Proposed | Promote only after workflow-pack adapter, guardrails, API, Gateway/Workbench proof, and live evidence exist. |
-| Advisory evidence Q&A | Proposed | Promote only after unsupported-question, source-ref, prompt-injection, and guardrail tests pass. |
-| Advisor meeting preparation draft | Proposed | Promote only after source-backed memo/cockpit/policy/workspace evidence integration and review posture exist. |
-| Compliance review summary | Proposed | Promote only after RFC-0025 policy outcomes or copilot-critical policy evidence are integrated and tested. |
-| Operations/report handoff summary | Proposed | Promote only after report/render/archive/execution ownership boundaries and readiness evidence are integrated. |
-| Client follow-up draft | Proposed | Promote only after human review, disclosure, unsupported-evidence, and client-ready blocking controls are proven. |
-| Copilot run/review audit | Proposed | Promote only after persistence/replay, hashes, review actions, retention, and audit lineage are tested. |
-| Copilot data products | Proposed | Promote only after declarations, trust telemetry, SLO/access/evidence policy, certification, docs, and tests are complete. |
-| Gateway/Workbench copilot experience | Proposed | Promote only after downstream implementation and browser/product validation are complete. |
-| Copilot model-risk and supportability pack | Proposed | Promote only after evaluation, operations, supportability, security, and model-risk docs are implementation-backed. |
+| Advisory proposal explanation | Supported for internal advisor/reviewer use | Proven through Advise APIs, governed workflow-pack execution, Gateway/Workbench rendering, internal review, and canonical live evidence. |
+| Advisory evidence Q&A | Supported for internal advisor/reviewer use | Source refs, unsupported-evidence posture, prompt-injection controls, and guardrail tests are implemented. |
+| Advisor meeting preparation draft | Supported for internal advisor/reviewer use | Source-backed proposal-version evidence, review posture, and canonical proof are implemented. |
+| Compliance review summary | Supported for internal reviewer use | RFC-0025 policy evidence is consumed as source-backed evidence where present; missing evidence stays explicit. |
+| Operations/report handoff summary | Supported for internal operations support | Report/operations ownership boundaries are preserved and no execution authority is claimed. |
+| Client follow-up draft | Supported only as advisor-reviewed internal draft | Human review, unsupported-evidence posture, and blocked client-ready publication are proven. |
+| Copilot run/review audit | Supported | Persistence/replay, hashes, review actions, retention, and audit lineage are implemented. |
+| Copilot data products | Supported for `AdvisoryCopilotInteractionRecord:v1` | Evidence packets and review events remain audit records inside the interaction product boundary, not standalone promoted data products. |
+| Gateway/Workbench copilot experience | Supported | Gateway and Workbench implementation is proven by canonical browser/product validation. |
+| Copilot model-risk and supportability pack | Supported for first-wave scope | Workflow-pack lineage, guardrails, unavailable posture, supportability, and trust telemetry are implementation-backed. |
 
 ---
 
-## 21. Acceptance Criteria
+## 21. Implementation Closure
+
+RFC-0027 is implemented for the first-wave governed advisory copilot scope. Closure evidence lives
+in `docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md`.
+
+Implemented:
+
+1. all six first-wave action families are action-specific and no free-form prompt endpoint exists,
+2. Advise builds and persists source-backed proposal-version evidence packets,
+3. governed `lotus-ai` workflow-pack execution is used through the approved adapter,
+4. run and review records preserve hashes, lineage, guardrail posture, review posture, correlation
+   IDs, and idempotency,
+5. Gateway exposes `/api/v1/advisory-copilot/*` without direct `lotus-ai` calls,
+6. Workbench consumes Gateway/BFF only at `/recommendations?mode=copilot`,
+7. canonical `PB_SG_GLOBAL_BAL_001` validation records
+   `ADVISORY_COPILOT_CANONICAL_PROOF_CREATED` and captures `advisory-advisory-copilot-live.png`,
+8. `AdvisoryCopilotInteractionRecord:v1` is an active data product with trust telemetry.
+
+Still gated outside RFC-0027 support:
+
+1. client-ready publication,
+2. external client communication delivery,
+3. completed policy approval or sign-off authority,
+4. OMS order lifecycle, fills, settlement, and execution,
+5. full RFC-0028 bank-demo/RFP package claims.
+
+## 22. Acceptance Criteria
 
 RFC-0027 is implemented only when:
 
@@ -1142,7 +1168,7 @@ RFC-0027 is implemented only when:
 
 ---
 
-## 22. Risks and Mitigations
+## 23. Risks and Mitigations
 
 | Risk | Mitigation |
 | --- | --- |
@@ -1160,7 +1186,7 @@ RFC-0027 is implemented only when:
 
 ---
 
-## 23. No-WTBD Execution Rule
+## 24. No-WTBD Execution Rule
 
 RFC-0027 is the single source of execution for the governed advisory AI copilot outcome.
 
@@ -1181,7 +1207,7 @@ Rules:
 
 ---
 
-## 24. Delivery Governance and CI
+## 25. Delivery Governance and CI
 
 Implementation must use GitHub effectively:
 
@@ -1210,7 +1236,7 @@ Affected repositories must use their repo-native gates and GitHub lanes.
 
 ---
 
-## 25. Slice 0 Pre-Implementation Decisions
+## 26. Slice 0 Pre-Implementation Decisions
 
 These decisions replace the earlier open-question list and are closure gates for implementation:
 

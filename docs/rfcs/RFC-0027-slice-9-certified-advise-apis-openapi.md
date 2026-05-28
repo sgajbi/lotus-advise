@@ -6,9 +6,11 @@ Status: IMPLEMENTED - ADVISE API SURFACE ONLY
 
 Slice 9 exposes the governed advisory copilot through `lotus-advise` APIs. The API surface is
 action-specific, evidence-packet backed, review-gated, idempotent where mutation occurs, and
-OpenAPI documented. It does not expose Gateway routes, Workbench surfaces, canonical front-office
-proof, data-product promotion, or client-ready publication. Those remain mandatory later RFC-0027
-slices.
+OpenAPI documented. At Slice 9 time it did not expose Gateway routes, Workbench surfaces,
+canonical front-office proof, data-product promotion, or client-ready publication. Later RFC-0027
+closure slices now implement Gateway, Workbench, canonical proof, and the bounded
+`AdvisoryCopilotInteractionRecord:v1` data-product promotion. Client-ready publication remains
+blocked.
 
 Implemented endpoints:
 
@@ -74,8 +76,11 @@ Implementation-backed tests cover:
 7. proposal-version run lookup,
 8. OpenAPI registration and absence of free-form prompt endpoints.
 
-## Remaining RFC-0027 Boundary
+## Historical Slice 9 Boundary
 
-This slice certifies Advise APIs only. Gateway, Workbench, canonical seed/automation, data-mesh
-promotion, live front-office proof, and polished user-facing product surfaces remain inside
-RFC-0027 and must be implemented before the advisory copilot becomes a supported product feature.
+This slice certified Advise APIs only. The remaining Gateway, Workbench, canonical
+seed/automation, data-mesh promotion, live front-office proof, and polished product-surface work is
+closed by `docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md`. Client-ready
+publication, external client communication, policy approval/sign-off authority, OMS order
+lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain outside the RFC-0027
+supported claim.
