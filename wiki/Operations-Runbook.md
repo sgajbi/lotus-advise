@@ -76,11 +76,15 @@ Operational interpretation:
    around it in Workbench, Gateway, or documentation
 2. runtime posture must not contain credentials, query strings, fragments, secrets, tokens,
    prompts, raw payloads, trace IDs, or correlation IDs
-3. endpoint posture should use bounded integer `latency_ms` values, not raw traces or request
+3. live-suite result refs, live-suite bundle refs, and output ref prefixes must be local relative
+   artifact references; URL/query/fragment/traversal and sensitive-token material is rejected
+4. HTTP 422 request-validation responses should name the invalid field and rule without echoing the
+   rejected sensitive value
+5. endpoint posture should use bounded integer `latency_ms` values, not raw traces or request
    payloads
-4. local `output/` artifacts are evidence, not authored documentation source; README and wiki truth
+6. local `output/` artifacts are evidence, not authored documentation source; README and wiki truth
    must be updated separately when implementation posture changes
-5. client-ready publication, external client communication, bank-specific attestations,
+7. client-ready publication, external client communication, bank-specific attestations,
    legal/regulatory advice, completed policy sign-off/approval, and OMS/order/fill/settlement stay
    blocked unless separately implemented and proven
 

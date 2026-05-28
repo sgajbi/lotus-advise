@@ -100,7 +100,6 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
@@ -125,6 +124,15 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in rfc_index
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in wiki_index
     assert "Draft with Slice 0 decisions locked" not in supported_features
+    assert (
+        "IMPLEMENTED - bank-demo proof and claim-controlled commercial material complete"
+        in rfc_index
+    )
+    assert "RFC-0028 is implemented for repeatable bank-demo proof" in wiki_index
+    assert "Implemented for source scenario contracts" in supported_features
+    assert "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE" not in rfc_index
+    assert "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE" not in wiki_index
+    assert "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE" not in supported_features
 
 
 def test_rfc0028_records_slice_two_cleanup_scope_and_wiki_gate() -> None:
@@ -452,12 +460,85 @@ def test_rfc0028_records_slice_twelve_documentation_product_truth() -> None:
     for marker in operations_markers:
         assert marker in operations
 
-    for source in (rfc_index, wiki_index):
-        assert "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE" in source
-
     for source in (rfc_index, wiki_index, supported_features):
         assert "Slice 12" in source
         assert "runtime posture" in source
         assert "HTTP 409" in source
         assert "client-ready publication" in source
         assert "OMS/order/fill/settlement" in source
+
+
+def test_rfc0028_records_final_closure_artifact_hardening_and_communication() -> None:
+    flat = _flat(RFC28_PATH)
+    rfc_index = _flat(RFC_INDEX_PATH)
+    wiki_index = _flat(WIKI_RFC_INDEX_PATH)
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
+    readme = _flat(README_PATH)
+    repo_context = _flat(REPO_CONTEXT_PATH)
+    api_surface = _flat(WIKI_API_SURFACE_PATH)
+    security = _flat(WIKI_SECURITY_PATH)
+    operations = _flat(WIKI_OPERATIONS_PATH)
+    commercial = _flat(COMMERCIAL_GUIDE_PATH)
+
+    rfc_markers = (
+        "IMPLEMENTED - BANK-DEMO PROOF AND CLAIM-CONTROLLED COMMERCIAL MATERIAL COMPLETE",
+        "Slice 13 implementation decision and evidence",
+        "Slice 14 hardening decision and evidence",
+        "Slice 15 closure decision and evidence",
+        "Slice 16 post-completion communication decision and evidence",
+        "PR #213",
+        "a99474e5457dcdd4c87e79faf83bc8f64580544b",
+        "26573760885",
+        "src/core/bank_demo_proof/artifact_refs.py",
+        "HTTP 422 responses retain useful",
+        "PR #369",
+        "26d74e65e231ac3d62457187c6eb7f787a4d9f88",
+        "26574820026",
+        "LI-2026-05-28-043-demo-proof-should-show-the-boundary.md",
+    )
+    for marker in rfc_markers:
+        assert marker in flat
+
+    closure_sources = (
+        rfc_index,
+        wiki_index,
+        supported_features,
+        readme,
+        repo_context,
+        api_surface,
+        security,
+        operations,
+        commercial,
+    )
+    for source in closure_sources:
+        assert (
+            "artifact_refs.py" in source
+            or "proof artifact refs" in source
+            or "proof artifact references" in source
+            or "proof-artifact references" in source
+            or "artifact references" in source
+            or "artifact-reference" in source
+        )
+        assert "HTTP 422" in source
+        assert "client-ready publication" in source
+        assert "OMS/order/fill/settlement" in source
+
+    for source in (readme, api_surface, security, operations, commercial):
+        assert "token" in source
+        assert "prompt" in source
+
+    for source in (rfc_index, wiki_index, supported_features, readme, repo_context):
+        assert "26573760885" in source
+        assert "a99474e5457dcdd4c87e79faf83bc8f64580544b" in source
+        assert "LI-2026-05-28-043-demo-proof-should-show-the-boundary.md" in source
+
+    assert (
+        "IMPLEMENTED - bank-demo proof and claim-controlled commercial material complete"
+        in rfc_index
+    )
+    assert "RFC-0028 is implemented for repeatable bank-demo proof" in wiki_index
+    assert "Implemented for source scenario contracts" in supported_features
+    for source in (wiki_index, readme, repo_context):
+        assert "PR #369" in source
+        assert "26d74e65e231ac3d62457187c6eb7f787a4d9f88" in source
+        assert "26574820026" in source

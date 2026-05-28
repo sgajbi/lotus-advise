@@ -98,7 +98,15 @@ Boundary rules that matter:
    integer `latency_ms` evidence, runtime URL hygiene, and sensitive-summary redaction to
    `runtime-posture.json` and `sanitized-runtime-summary.json`. Slice 12 makes that product truth
    explicit in README and wiki source so operators, pre-sales, and engineers use the same
-   implementation-backed proof boundaries.
+   implementation-backed proof boundaries. Slice 13/14 closes final implementation proof and
+   hardening through local artifact-reference normalization, safe HTTP 422 validation error
+   responses that do not echo rejected sensitive input, targeted proof tests, PR Merge Gate, and
+   Main Releasability Gate run `26573760885` on merge
+   `a99474e5457dcdd4c87e79faf83bc8f64580544b`. Slice 15/16 closes durable
+   docs/context/wiki truth and post-completion communication evidence through `lotus-platform`
+   PR #369 at `26d74e65e231ac3d62457187c6eb7f787a4d9f88`, Main Releasability Gate run
+   `26574820026`, and
+   `lotus-platform/thought-leadership/linkedin/drafts/LI-2026-05-28-043-demo-proof-should-show-the-boundary.md`.
 
 ## Architecture At A Glance
 
@@ -282,8 +290,11 @@ Contract rules that are easy to get wrong:
    proof-pack truth for Gateway and Workbench consumption. `POST
    /advisory/bank-demo-proof/proof-packs` fails with HTTP 409 when material proof fields drift from
    the supported-claim register, rejects runtime base URLs that include credentials, query strings,
-   or fragments, redacts secrets, tokens, prompts, raw payloads, trace IDs, and correlation IDs from
-   summaries, and records bounded integer `latency_ms` endpoint evidence. These APIs do not approve
+   or fragments, rejects proof artifact references that include URL/query/fragment/traversal or
+   sensitive token/secret/prompt/raw-payload path material, redacts secrets, tokens, prompts, raw
+   payloads, trace IDs, and correlation IDs from summaries, does not echo rejected sensitive input
+   in HTTP 422 validation responses, and records bounded integer `latency_ms` endpoint evidence.
+   These APIs do not approve
    client-ready publication, external client communication, bank-specific attestations,
    legal/regulatory advice, completed sign-off/approval, or OMS/order/fill/settlement.
 9. `GET /platform/capabilities` separates feature enablement from operational readiness and returns
@@ -316,6 +327,9 @@ generation, or downstream execution truth.
 - capture RFC-0028 backend proof with `scripts/capture_rfc0028_backend_proof.py` and review
   `proof-pack.json`, `runtime-posture.json`, `sanitized-runtime-summary.json`, and
   `commercial-material-pack.json` before using demo or RFP material
+- keep `live_suite_result_ref`, `live_suite_bundle_ref`, and `output_ref_prefix` as local relative
+  proof-artifact references; URL, query, fragment, traversal, and sensitive-token material is
+  rejected before proof capture can proceed
 - treat `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED` and HTTP 409 proof-pack responses as
   material-drift defects that require code, seed, or documentation correction before demo evidence
   is reused

@@ -125,7 +125,11 @@ def test_rfc0027_indexes_and_supported_features_promote_only_proven_internal_cop
     rfc26 = _flat(RFC26_PATH)
 
     assert "IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow" in rfc26
-    assert "1. `RFC-0028` bank demo journey and client-ready proof" in rfc_index
+    assert (
+        "RFC-0028 | Bank Demo Journey and Client-Ready Proof | "
+        "IMPLEMENTED - bank-demo proof and claim-controlled commercial material complete"
+        in rfc_index
+    )
     expected_rfc27_row = (
         "RFC-0027 | Governed Advisory AI Copilot | IMPLEMENTED for governed internal "
         "advisor/reviewer copilot interactions; client-ready and execution authority remain gated"
@@ -149,4 +153,4 @@ def test_rfc0027_indexes_and_supported_features_promote_only_proven_internal_cop
     )[0]
     assert "- `RFC-0026`" not in not_yet_implemented
     assert "- `RFC-0027`" not in not_yet_implemented
-    assert "- `RFC-0028`" in not_yet_implemented
+    assert "- `RFC-0028`" not in not_yet_implemented

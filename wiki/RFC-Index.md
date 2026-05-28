@@ -34,7 +34,6 @@ The repository RFC index currently keeps these as active future work:
 - RFC-0016 costs, fees, and transaction frictions
 - RFC-0017 execution integration interface
 - RFC-0018 monitoring, surveillance, and post-trade controls
-- RFC-0028 bank demo journey and client-ready proof
 
 ## Important Interpretation
 
@@ -67,7 +66,8 @@ audit records inside the interaction product boundary rather than standalone pro
 products. Client-ready publication, external client communication, policy approval/sign-off
 authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
 
-RFC-0028 status is `DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE`. Slice 0 locks the
+RFC-0028 is implemented for repeatable bank-demo proof and claim-controlled commercial material.
+Slice 0 locks the
 hybrid Advise proof API plus platform/front-office automation path for scenario
 `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`, portfolio `PB_SG_GLOBAL_BAL_001`, and proof marker
 `BANK_DEMO_PROOF_PACK_CREATED`. Slice 1 merged the reusable `lotus-platform` supported-claim
@@ -107,7 +107,18 @@ security/latency posture without leaking secrets, prompts, raw payloads, trace I
 IDs. Slice 12 updates README and wiki product truth for the source-owned proof APIs, runtime
 posture artifacts, repeatable capture commands, commercial proof-guide navigation,
 HTTP 409 material-drift handling, and blocked client-ready publication plus OMS/order/fill/settlement
-boundaries.
+boundaries. Slice 13/14 close implementation proof and final hardening through PR #213,
+`src/core/bank_demo_proof/artifact_refs.py`, local artifact-reference normalization, safe HTTP 422
+validation error responses that do not echo rejected sensitive input, targeted proof tests,
+`make check`, PR Merge Gate, and Main Releasability Gate run `26573760885` on merge
+`a99474e5457dcdd4c87e79faf83bc8f64580544b`. Slice 15/16 close durable
+docs/context/wiki/supported-features truth and post-completion communication through
+`lotus-platform` PR #369 at `26d74e65e231ac3d62457187c6eb7f787a4d9f88`, Main Releasability
+Gate run `26574820026`, and
+`lotus-platform/thought-leadership/linkedin/drafts/LI-2026-05-28-043-demo-proof-should-show-the-boundary.md`.
+Client-ready publication, external client communication, bank-specific attestations,
+legal/regulatory advice, completed sign-off/approval, and OMS/order/fill/settlement remain
+unpromoted.
 
 RFC-0027 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
@@ -714,3 +725,6 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`
 - `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`
 - `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`
+- `docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md`
+- `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md`
+- `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md`
