@@ -1042,9 +1042,41 @@ Slice 7A Advise source API implementation decision and evidence:
       exclusion, material-drift rejection, and OpenAPI error documentation.
    2. Existing core tests continue to prove document proof and material-field review at the
       lowest useful layer.
-8. Slice 7A does not complete Gateway publication by itself. Gateway must consume these Advise
-   endpoints in the next owner-repository PR before Gateway, Workbench, screenshot, product
-   one-pager, RFP/security, or client-ready publication claims are promoted.
+8. Slice 7A did not complete Gateway publication by itself. Gateway publication is closed by
+   Slice 7B below, while Workbench, screenshot, product one-pager, RFP/security, or client-ready
+   publication claims remain unpromoted.
+
+Slice 7B Gateway publication implementation decision and evidence:
+
+1. `lotus-gateway` PR #252, merged at
+   `f99ca1dfe074b57c99793ab1ca86542869d579a4`, exposes the product-facing RFC-0028 proof
+   contract through:
+   1. `GET /api/v1/advisory/bank-demo-proof/scenario-contract`,
+   2. `GET /api/v1/advisory/bank-demo-proof/supported-claim-register`,
+   3. `POST /api/v1/advisory/bank-demo-proof/proof-packs`.
+2. Gateway consumes canonical `lotus-advise` `/advisory/bank-demo-proof/*` endpoints, preserves
+   correlation context, wraps source payloads in the Gateway product envelope, and propagates
+   Advise-owned HTTP 409 material-review conflicts without rewriting supported-claim semantics.
+3. Gateway documentation records `lotus-advise` as proof authority in
+   `docs/rfcs/RFC-0028-bank-demo-proof-gateway-publication.md`,
+   `docs/standards/RFC-0082-upstream-contract-family-map.md`, `wiki/API-Surface.md`,
+   `wiki/Supported-Features.md`, and repository context.
+4. Gateway tests prove service, router, client, route-coverage, and documentation behavior through
+   `tests/unit/test_bank_demo_proof_service.py`,
+   `tests/integration/test_bank_demo_proof_router.py`,
+   `tests/contract/test_advise_gateway_route_coverage.py`,
+   `tests/unit/test_upstream_clients.py`, and
+   `tests/unit/test_rfc0028_bank_demo_proof_documentation.py`.
+5. Gateway local validation passed with `make check` (`621 passed` plus the existing
+   advisor-cockpit HTTP 422 deprecation warning). PR #252 Feature Lane and PR Merge Gate passed,
+   including workflow lint, lint/typecheck/unit, integration, coverage, Docker build, and Docker
+   parity. Gateway Main Releasability Gate run `26559811341` passed on `main`.
+6. Gateway wiki publication completed after merge with wiki publish commit `a73cd24` and
+   `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-gateway` returned `DiffCount 0`.
+7. Slice 7 now completes the Gateway experience contract and capability publication requirement.
+   It does not complete Workbench UI, screenshot readiness, RFP/security package review, product
+   one-pager review, client-ready publication, external client communication, CRM system-of-record
+   behavior, or OMS/order/fill/settlement support.
 
 ### Slice 8 - Workbench End-to-End Demo Experience
 

@@ -93,7 +93,7 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICES 0-6 COMPLETE",
+        "DRAFT - SLICES 0-7 GATEWAY PUBLICATION COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
@@ -104,7 +104,7 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
         assert marker in rfc_index
         assert marker in wiki_index or marker in supported_features
 
-    assert "No Gateway, Workbench, screenshot, RFP/security" in supported_features
+    assert "No Workbench, screenshot, RFP/security" in supported_features
     assert "bank-demo/RFP, screenshot, product one-pager" in wiki_index
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in rfc_index
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in wiki_index
@@ -196,12 +196,15 @@ def test_rfc0028_records_slice_six_document_proof_capture() -> None:
         assert marker in flat
 
     for source in (rfc_index, wiki_index, supported_features):
-        assert "DRAFT - SLICES 0-6 COMPLETE" in source or "Slices 0-6 complete" in source
+        assert (
+            "DRAFT - SLICES 0-7 GATEWAY PUBLICATION COMPLETE" in source
+            or "Slices 0-7 Gateway publication complete" in source
+        )
         assert "document-proof-summary.json" in source
         assert "client-ready document publication remains blocked" in source
 
 
-def test_rfc0028_records_slice_seven_a_advise_proof_api_without_gateway_overclaim() -> None:
+def test_rfc0028_records_slice_seven_gateway_publication_without_product_overclaim() -> None:
     flat = _flat(RFC28_PATH)
     rfc_index = _flat(RFC_INDEX_PATH)
     wiki_index = _flat(WIKI_RFC_INDEX_PATH)
@@ -217,13 +220,28 @@ def test_rfc0028_records_slice_seven_a_advise_proof_api_without_gateway_overclai
         "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED",
         "HTTP 409",
         "tests/unit/advisory/api/test_api_bank_demo_proof.py",
+        "Slice 7B Gateway publication implementation decision and evidence",
+        "lotus-gateway` PR #252",
+        "f99ca1dfe074b57c99793ab1ca86542869d579a4",
+        "GET /api/v1/advisory/bank-demo-proof/scenario-contract",
+        "GET /api/v1/advisory/bank-demo-proof/supported-claim-register",
+        "POST /api/v1/advisory/bank-demo-proof/proof-packs",
+        "tests/unit/test_bank_demo_proof_service.py",
+        "tests/integration/test_bank_demo_proof_router.py",
+        "tests/contract/test_advise_gateway_route_coverage.py",
+        "tests/unit/test_rfc0028_bank_demo_proof_documentation.py",
+        "26559811341",
+        "a73cd24",
     )
     for marker in markers:
         assert marker in flat
 
     for source in (rfc_index, wiki_index, supported_features):
-        assert "SLICE 7A ADVISE API COMPLETE" in source or "Slice 7A Advise API complete" in source
-        assert "Gateway consumption remains the next Slice 7 owner-repository step" in source
+        assert (
+            "SLICES 0-7 GATEWAY PUBLICATION COMPLETE" in source
+            or "Slices 0-7 Gateway publication complete" in source
+        )
+        assert "Gateway consumption remains the next Slice 7 owner-repository step" not in source
         assert "screenshot" in source
         assert "RFP" in source
         assert "client-ready publication claims unpromoted" in source or (
