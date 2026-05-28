@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-28T03:26:49.573746+00:00",
+  "generatedAt": "2026-05-28T06:24:37.959852+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -596,6 +596,22 @@
       ]
     },
     {
+      "semanticId": "lotus.allowed_materials",
+      "canonicalTerm": "allowed_materials",
+      "preferredName": "allowed_materials",
+      "description": "Documentation or demo material where this claim may appear.",
+      "example": [
+        "README"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.allowed_quantity",
       "canonicalTerm": "allowed_quantity",
       "preferredName": "allowed_quantity",
@@ -804,6 +820,48 @@
       ]
     },
     {
+      "semanticId": "lotus.archive_access_audit_ref_status",
+      "canonicalTerm": "archive_access_audit_ref_status",
+      "preferredName": "archive_access_audit_ref_status",
+      "description": "Bounded archive access-audit reference status.",
+      "example": "ACTIVE",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.archive_legal_hold_posture",
+      "canonicalTerm": "archive_legal_hold_posture",
+      "preferredName": "archive_legal_hold_posture",
+      "description": "Archive legal-hold ownership posture.",
+      "example": "example_archive_legal_hold_posture",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.archive_ref_status",
+      "canonicalTerm": "archive_ref_status",
+      "preferredName": "archive_ref_status",
+      "description": "Bounded archive reference status.",
+      "example": "ACTIVE",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.archive_refs",
       "canonicalTerm": "archive_refs",
       "preferredName": "archive_refs",
@@ -819,6 +877,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.archive_retention_posture",
+      "canonicalTerm": "archive_retention_posture",
+      "preferredName": "archive_retention_posture",
+      "description": "Archive retention ownership posture.",
+      "example": "example_archive_retention_posture",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -865,6 +937,22 @@
       "observedTypes": [
         "string",
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.artifact_policy",
+      "canonicalTerm": "artifact_policy",
+      "preferredName": "artifact_policy",
+      "description": "Canonical artifact policy used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "ArtifactPolicy",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "ArtifactPolicy"
       ]
     },
     {
@@ -921,6 +1009,50 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.asset_id",
+      "canonicalTerm": "asset_id",
+      "preferredName": "asset_id",
+      "description": "Stable proof asset identifier.",
+      "example": "ASSET_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.asset_type",
+      "canonicalTerm": "asset_type",
+      "preferredName": "asset_type",
+      "description": "Proof asset family.",
+      "example": "API_RESPONSE_SUMMARY",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.assets",
+      "canonicalTerm": "assets",
+      "preferredName": "assets",
+      "description": "Proof asset index.",
+      "example": [
+        "assets_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -1012,6 +1144,22 @@
       ]
     },
     {
+      "semanticId": "lotus.audiences",
+      "canonicalTerm": "audiences",
+      "preferredName": "audiences",
+      "description": "Audiences allowed to consume this claim.",
+      "example": [
+        "DEVELOPER"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.audit",
       "canonicalTerm": "audit",
       "preferredName": "audit",
@@ -1086,6 +1234,20 @@
       ]
     },
     {
+      "semanticId": "lotus.base_url",
+      "canonicalTerm": "base_url",
+      "preferredName": "base_url",
+      "description": "Runtime base URL used for endpoint probes.",
+      "example": "example_base_url",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.base_url_env",
       "canonicalTerm": "base_url_env",
       "preferredName": "base_url_env",
@@ -1151,6 +1313,20 @@
       "canonicalTerm": "block_on_missing_prices",
       "preferredName": "block_on_missing_prices",
       "description": "Block run when required prices are missing.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.blocking",
+      "canonicalTerm": "blocking",
+      "preferredName": "blocking",
+      "description": "Whether missing evidence blocks claim promotion.",
       "example": true,
       "type": "boolean",
       "locations": [
@@ -1490,6 +1666,80 @@
       ]
     },
     {
+      "semanticId": "lotus.claim_id",
+      "canonicalTerm": "claim_id",
+      "preferredName": "claim_id",
+      "description": "Stable snake_case supported-claim identifier.",
+      "example": "CLAIM_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.claim_posture",
+      "canonicalTerm": "claim_posture",
+      "preferredName": "claim_posture",
+      "description": "Whether the document proof is advisor-use supported or client-ready blocked.",
+      "example": "ADVISOR_USE_SUPPORTED",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.claim_refs",
+      "canonicalTerm": "claim_refs",
+      "preferredName": "claim_refs",
+      "description": "Supported-claim identifiers that depend on this field.",
+      "example": [
+        "example_claim_refs_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.claim_text",
+      "canonicalTerm": "claim_text",
+      "preferredName": "claim_text",
+      "description": "Approved business-facing claim wording.",
+      "example": "example_claim_text",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.claims",
+      "canonicalTerm": "claims",
+      "preferredName": "claims",
+      "description": "Governed claim inventory.",
+      "example": [
+        "claims_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.classification",
       "canonicalTerm": "classification",
       "preferredName": "classification",
@@ -1559,6 +1809,34 @@
       ],
       "observedTypes": [
         "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.client_ready_document_status",
+      "canonicalTerm": "client_ready_document_status",
+      "preferredName": "client_ready_document_status",
+      "description": "Client-ready document request posture.",
+      "example": "ACTIVE",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.client_ready_posture",
+      "canonicalTerm": "client_ready_posture",
+      "preferredName": "client_ready_posture",
+      "description": "Client-ready publication posture proven by this pack.",
+      "example": "CLIENT_READY_REVIEW_REQUIRED",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -1659,6 +1937,36 @@
       ],
       "observedTypes": [
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.commit_allowed",
+      "canonicalTerm": "commit_allowed",
+      "preferredName": "commit_allowed",
+      "description": "Whether this asset may be committed to the repository.",
+      "example": true,
+      "type": "boolean",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.commit_allowed_access_classes",
+      "canonicalTerm": "commit_allowed_access_classes",
+      "preferredName": "commit_allowed_access_classes",
+      "description": "Access classes allowed in committed proof summaries.",
+      "example": [
+        "COMMIT_SAFE_SUMMARY"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -1870,6 +2178,20 @@
       "observedTypes": [
         "AdvisoryReplayContinuity",
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.contract_name",
+      "canonicalTerm": "contract_name",
+      "preferredName": "contract_name",
+      "description": "advisory demo scenario contract field: contract name.",
+      "example": "example_contract_name",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -2264,7 +2586,7 @@
       "semanticId": "lotus.degraded_reason",
       "canonicalTerm": "degraded_reason",
       "preferredName": "degraded_reason",
-      "description": "Optional degraded-mode reason when the feature is enabled but not fully ready.",
+      "description": "Bounded degraded reason when report/render/archive is unavailable.",
       "example": "degraded_reason_example",
       "type": "object",
       "locations": [
@@ -2627,6 +2949,52 @@
       ]
     },
     {
+      "semanticId": "lotus.document_family",
+      "canonicalTerm": "document_family",
+      "preferredName": "document_family",
+      "description": "Document/evidence family proven by the backend proof pack.",
+      "example": "PROPOSAL_MEMO",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.document_proof_summary",
+      "canonicalTerm": "document_proof_summary",
+      "preferredName": "document_proof_summary",
+      "description": "Canonical document proof summary used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "AdvisoryDocumentProofSummary",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "AdvisoryDocumentProofSummary"
+      ]
+    },
+    {
+      "semanticId": "lotus.documents",
+      "canonicalTerm": "documents",
+      "preferredName": "documents",
+      "description": "Document proof rows included in the RFC-0028 proof pack.",
+      "example": [
+        "documents_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.draft_state",
       "canonicalTerm": "draft_state",
       "preferredName": "draft_state",
@@ -2886,6 +3254,36 @@
       ]
     },
     {
+      "semanticId": "lotus.endpoint",
+      "canonicalTerm": "endpoint",
+      "preferredName": "endpoint",
+      "description": "Runtime endpoint that was probed.",
+      "example": "example_endpoint",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.endpoints",
+      "canonicalTerm": "endpoints",
+      "preferredName": "endpoints",
+      "description": "Sanitized health, readiness, and capability endpoint evidence.",
+      "example": [
+        "endpoints_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.engine_outputs",
       "canonicalTerm": "engine_outputs",
       "preferredName": "engine_outputs",
@@ -2914,6 +3312,21 @@
       "observedTypes": [
         "object",
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.environment",
+      "canonicalTerm": "environment",
+      "preferredName": "environment",
+      "description": "Runtime environment label.",
+      "example": "example_environment",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string",
+        "object"
       ]
     },
     {
@@ -3242,6 +3655,22 @@
       ]
     },
     {
+      "semanticId": "lotus.evidence_markers",
+      "canonicalTerm": "evidence_markers",
+      "preferredName": "evidence_markers",
+      "description": "Evidence markers observed during proof capture.",
+      "example": [
+        "example_evidence_markers_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.evidence_packet",
       "canonicalTerm": "evidence_packet",
       "preferredName": "evidence_packet",
@@ -3301,6 +3730,20 @@
       ],
       "observedTypes": [
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.evidence_ref",
+      "canonicalTerm": "evidence_ref",
+      "preferredName": "evidence_ref",
+      "description": "Evidence reference required for this claim.",
+      "example": "example_evidence_ref",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -3498,6 +3941,20 @@
       ],
       "observedTypes": [
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.expected_posture",
+      "canonicalTerm": "expected_posture",
+      "preferredName": "expected_posture",
+      "description": "Expected posture for this material field.",
+      "example": "example_expected_posture",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -3934,6 +4391,20 @@
       ]
     },
     {
+      "semanticId": "lotus.governed_as_of_date",
+      "canonicalTerm": "governed_as_of_date",
+      "preferredName": "governed_as_of_date",
+      "description": "Governed scenario as-of date.",
+      "example": "2026-03-02",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.grounding_packet",
       "canonicalTerm": "grounding_packet",
       "preferredName": "grounding_packet",
@@ -4197,6 +4668,20 @@
       "preferredName": "household_ref",
       "description": "Source-backed household reference when available.",
       "example": "household_ref_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.http_status",
+      "canonicalTerm": "http_status",
+      "preferredName": "http_status",
+      "description": "Observed HTTP status, or null when the endpoint was not probed.",
+      "example": "ACTIVE",
       "type": "object",
       "locations": [
         "body"
@@ -5062,6 +5547,66 @@
       ]
     },
     {
+      "semanticId": "lotus.live_runtime_payload",
+      "canonicalTerm": "live_runtime_payload",
+      "preferredName": "live_runtime_payload",
+      "description": "Governed live runtime suite result used as source evidence for RFC-0028 proof capture. The API returns sanitized proof output and does not persist raw payloads.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.live_suite_bundle_ref",
+      "canonicalTerm": "live_suite_bundle_ref",
+      "preferredName": "live_suite_bundle_ref",
+      "description": "Optional local-only reference to the source live runtime evidence bundle.",
+      "example": "live_suite_bundle_ref_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.live_suite_result_ref",
+      "canonicalTerm": "live_suite_result_ref",
+      "preferredName": "live_suite_result_ref",
+      "description": "Optional local-only reference to the source live runtime result.",
+      "example": "live_suite_result_ref_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.local_only_access_classes",
+      "canonicalTerm": "local_only_access_classes",
+      "preferredName": "local_only_access_classes",
+      "description": "Access classes that must remain under output/ or equivalent local evidence.",
+      "example": [
+        "COMMIT_SAFE_SUMMARY"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.lotus_ai_model_version",
       "canonicalTerm": "lotus_ai_model_version",
       "preferredName": "lotus_ai_model_version",
@@ -5145,6 +5690,22 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.material_field_reviews",
+      "canonicalTerm": "material_field_reviews",
+      "preferredName": "material_field_reviews",
+      "description": "backend proof capture bundle field: material field reviews.",
+      "example": [
+        "material_field_reviews_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -5409,6 +5970,7 @@
       ],
       "observedTypes": [
         "ProposalCreateMetadata",
+        "BackendProofCaptureMetadata",
         "WorkspaceLifecycleHandoffMetadata"
       ]
     },
@@ -5693,6 +6255,20 @@
       ]
     },
     {
+      "semanticId": "lotus.observed_value",
+      "canonicalTerm": "observed_value",
+      "preferredName": "observed_value",
+      "description": "Observed bounded value used for claim review.",
+      "example": "observed_value_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
       "semanticId": "lotus.occurred_at",
       "canonicalTerm": "occurred_at",
       "preferredName": "occurred_at",
@@ -5811,6 +6387,20 @@
       ]
     },
     {
+      "semanticId": "lotus.output_ref_prefix",
+      "canonicalTerm": "output_ref_prefix",
+      "preferredName": "output_ref_prefix",
+      "description": "Sanitized proof artifact reference prefix used inside the returned proof pack.",
+      "example": "example_output_ref_prefix",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.output_schema_version",
       "canonicalTerm": "output_schema_version",
       "preferredName": "output_schema_version",
@@ -5840,6 +6430,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.owner_repository",
+      "canonicalTerm": "owner_repository",
+      "preferredName": "owner_repository",
+      "description": "Repository that owns the step evidence.",
+      "example": "example_owner_repository",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -6317,6 +6921,20 @@
       ]
     },
     {
+      "semanticId": "lotus.primary_portfolio_id",
+      "canonicalTerm": "primary_portfolio_id",
+      "preferredName": "primary_portfolio_id",
+      "description": "Canonical portfolio identifier.",
+      "example": "PRIMARY_PORTFOLIO_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.priority",
       "canonicalTerm": "priority",
       "preferredName": "priority",
@@ -6477,6 +7095,66 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.proof_marker",
+      "canonicalTerm": "proof_marker",
+      "preferredName": "proof_marker",
+      "description": "Evidence marker emitted by successful proof capture.",
+      "example": "example_proof_marker",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.proof_pack",
+      "canonicalTerm": "proof_pack",
+      "preferredName": "proof_pack",
+      "description": "Canonical proof pack used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "AdvisoryBankDemoProofPack",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "AdvisoryBankDemoProofPack"
+      ]
+    },
+    {
+      "semanticId": "lotus.proof_pack_id",
+      "canonicalTerm": "proof_pack_id",
+      "preferredName": "proof_pack_id",
+      "description": "Stable proof-pack identifier.",
+      "example": "PROOF_PACK_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.proof_requirements",
+      "canonicalTerm": "proof_requirements",
+      "preferredName": "proof_requirements",
+      "description": "Proof requirements that must be satisfied before promotion.",
+      "example": [
+        "proof_requirements_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -7188,6 +7866,20 @@
       ]
     },
     {
+      "semanticId": "lotus.render_ref_status",
+      "canonicalTerm": "render_ref_status",
+      "preferredName": "render_ref_status",
+      "description": "Bounded render reference status.",
+      "example": "ACTIVE",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.replacement_narrative_id",
       "canonicalTerm": "replacement_narrative_id",
       "preferredName": "replacement_narrative_id",
@@ -7457,6 +8149,20 @@
       ]
     },
     {
+      "semanticId": "lotus.report_status",
+      "canonicalTerm": "report_status",
+      "preferredName": "report_status",
+      "description": "Observed report status.",
+      "example": "ACTIVE",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.report_type",
       "canonicalTerm": "report_type",
       "preferredName": "report_type",
@@ -7476,6 +8182,37 @@
       "preferredName": "reporting",
       "description": "Normalized reporting delivery summary derived from append-only workflow events.",
       "example": "reporting_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.repository_sha",
+      "canonicalTerm": "repository_sha",
+      "preferredName": "repository_sha",
+      "description": "Optional lotus-advise commit SHA. When omitted, the service uses configured runtime metadata and falls back to runtime-unknown.",
+      "example": "repository_sha_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object",
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.repository_shas",
+      "canonicalTerm": "repository_shas",
+      "preferredName": "repository_shas",
+      "description": "Repository commit SHAs included in the proof pack.",
+      "example": {
+        "key": "sample_text"
+      },
       "type": "object",
       "locations": [
         "body"
@@ -7654,6 +8391,38 @@
       ]
     },
     {
+      "semanticId": "lotus.required_evidence_markers",
+      "canonicalTerm": "required_evidence_markers",
+      "preferredName": "required_evidence_markers",
+      "description": "Evidence markers that must appear in a successful proof pack.",
+      "example": [
+        "example_required_evidence_markers_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.required_evidence_refs",
+      "canonicalTerm": "required_evidence_refs",
+      "preferredName": "required_evidence_refs",
+      "description": "Evidence references required before this step can be claimed.",
+      "example": [
+        "example_required_evidence_refs_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.required_features",
       "canonicalTerm": "required_features",
       "preferredName": "required_features",
@@ -7681,6 +8450,38 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.required_source_products",
+      "canonicalTerm": "required_source_products",
+      "preferredName": "required_source_products",
+      "description": "Active Advise data products used as source evidence.",
+      "example": [
+        "example_required_source_products_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.required_workbench_panels",
+      "canonicalTerm": "required_workbench_panels",
+      "preferredName": "required_workbench_panels",
+      "description": "Workbench panel identifiers required when this step is a product-surface step.",
+      "example": [
+        "example_required_workbench_panels_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -8150,6 +8951,22 @@
       ]
     },
     {
+      "semanticId": "lotus.runtime_posture",
+      "canonicalTerm": "runtime_posture",
+      "preferredName": "runtime_posture",
+      "description": "Canonical runtime posture used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "BackendRuntimePosture",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "BackendRuntimePosture"
+      ]
+    },
+    {
       "semanticId": "lotus.runtime_probe_enabled",
       "canonicalTerm": "runtime_probe_enabled",
       "preferredName": "runtime_probe_enabled",
@@ -8191,6 +9008,22 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.sanitized_runtime_summary",
+      "canonicalTerm": "sanitized_runtime_summary",
+      "preferredName": "sanitized_runtime_summary",
+      "description": "Timestamp for sanitized runtime summary.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
       ]
     },
     {
@@ -8300,6 +9133,50 @@
       ]
     },
     {
+      "semanticId": "lotus.scenario_contract",
+      "canonicalTerm": "scenario_contract",
+      "preferredName": "scenario_contract",
+      "description": "Canonical scenario contract used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "AdvisoryDemoScenarioContract",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "AdvisoryDemoScenarioContract"
+      ]
+    },
+    {
+      "semanticId": "lotus.scenario_contract_ref",
+      "canonicalTerm": "scenario_contract_ref",
+      "preferredName": "scenario_contract_ref",
+      "description": "Scenario contract reference.",
+      "example": "example_scenario_contract_ref",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.scenario_id",
+      "canonicalTerm": "scenario_id",
+      "preferredName": "scenario_id",
+      "description": "Governed bank-demo scenario identifier.",
+      "example": "SCENARIO_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.schema_version",
       "canonicalTerm": "schema_version",
       "preferredName": "schema_version",
@@ -8386,16 +9263,47 @@
       ]
     },
     {
+      "semanticId": "lotus.sensitive_material_rules",
+      "canonicalTerm": "sensitive_material_rules",
+      "preferredName": "sensitive_material_rules",
+      "description": "Rules for secrets, tokens, prompts, provider payloads, and raw runtime logs.",
+      "example": [
+        "example_sensitive_material_rules_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.service_name",
       "canonicalTerm": "service_name",
       "preferredName": "service_name",
-      "description": "Lotus service name for the dependency.",
+      "description": "backend runtime posture field: service name.",
       "example": "example_service_name",
       "type": "string",
       "locations": [
         "body"
       ],
       "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.service_version",
+      "canonicalTerm": "service_version",
+      "preferredName": "service_version",
+      "description": "Optional service version recorded in proof metadata.",
+      "example": "service_version_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object",
         "string"
       ]
     },
@@ -8854,6 +9762,36 @@
       ]
     },
     {
+      "semanticId": "lotus.source_path",
+      "canonicalTerm": "source_path",
+      "preferredName": "source_path",
+      "description": "Path in the sanitized live runtime suite payload.",
+      "example": "example_source_path",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.source_product_refs",
+      "canonicalTerm": "source_product_refs",
+      "preferredName": "source_product_refs",
+      "description": "Active data products used as proof sources.",
+      "example": [
+        "example_source_product_refs_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.source_readiness_gaps",
       "canonicalTerm": "source_readiness_gaps",
       "preferredName": "source_readiness_gaps",
@@ -8883,6 +9821,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.source_repository",
+      "canonicalTerm": "source_repository",
+      "preferredName": "source_repository",
+      "description": "Repository that produced the asset.",
+      "example": "example_source_repository",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -9131,6 +10083,36 @@
       ]
     },
     {
+      "semanticId": "lotus.step_id",
+      "canonicalTerm": "step_id",
+      "preferredName": "step_id",
+      "description": "Stable scenario step identifier.",
+      "example": "STEP_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.steps",
+      "canonicalTerm": "steps",
+      "preferredName": "steps",
+      "description": "Business scenario steps in demo order.",
+      "example": [
+        "steps_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.subject",
       "canonicalTerm": "subject",
       "preferredName": "subject",
@@ -9209,6 +10191,7 @@
         "GateDecisionSummary",
         "ProposalArtifactSummary",
         "string",
+        "object",
         "array"
       ]
     },
@@ -9302,6 +10285,36 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.supported_claim_register",
+      "canonicalTerm": "supported_claim_register",
+      "preferredName": "supported_claim_register",
+      "description": "Canonical supported claim register used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "AdvisorySupportedClaimRegister",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "AdvisorySupportedClaimRegister"
+      ]
+    },
+    {
+      "semanticId": "lotus.supported_claim_register_ref",
+      "canonicalTerm": "supported_claim_register_ref",
+      "preferredName": "supported_claim_register_ref",
+      "description": "Supported-claim register reference.",
+      "example": "example_supported_claim_register_ref",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -9728,6 +10741,22 @@
       ]
     },
     {
+      "semanticId": "lotus.unsupported_boundaries",
+      "canonicalTerm": "unsupported_boundaries",
+      "preferredName": "unsupported_boundaries",
+      "description": "Capability boundaries that must not be overclaimed in the demo.",
+      "example": [
+        "example_unsupported_boundaries_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.unsupported_capabilities",
       "canonicalTerm": "unsupported_capabilities",
       "preferredName": "unsupported_capabilities",
@@ -9793,6 +10822,20 @@
       "preferredName": "updated_at",
       "description": "UTC timestamp when the run record was last updated.",
       "example": "2026-03-02T10:30:00Z",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.uri",
+      "canonicalTerm": "uri",
+      "preferredName": "uri",
+      "description": "URI or local output path for the asset.",
+      "example": "example_uri",
       "type": "string",
       "locations": [
         "body"
@@ -10068,6 +11111,22 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.wording_rules",
+      "canonicalTerm": "wording_rules",
+      "preferredName": "wording_rules",
+      "description": "Required wording guardrails for this claim.",
+      "example": [
+        "example_wording_rules_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -12090,6 +13149,18 @@
       "required": false,
       "type": "object",
       "description": "Optional trace/correlation identifier propagated to logs and response.",
+      "example": "ENTITY_001",
+      "allowedValues": [],
+      "semanticId": "lotus.x_correlation_id",
+      "attributeRef": "#/attributeCatalog/lotus.x_correlation_id"
+    },
+    {
+      "name": "x_correlation_id",
+      "kind": "request_option",
+      "location": "header",
+      "required": false,
+      "type": "object",
+      "description": "Optional caller correlation id propagated into proof metadata.",
       "example": "ENTITY_001",
       "allowedValues": [],
       "semanticId": "lotus.x_correlation_id",
@@ -45575,6 +46646,1361 @@
             "type": "string",
             "semanticId": "lotus.engine_version",
             "attributeRef": "#/attributeCatalog/lotus.engine_version"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "bank_demo_proof",
+      "method": "GET",
+      "path": "/advisory/bank-demo-proof/scenario-contract",
+      "operationId": "get_bank_demo_scenario_contract_advisory_bank_demo_proof_scenario_contract_get",
+      "summary": "Get RFC-0028 Demo Scenario Contract",
+      "request": {
+        "fields": []
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "contract_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_name",
+            "attributeRef": "#/attributeCatalog/lotus.contract_name"
+          },
+          {
+            "name": "contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "scenario_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scenario_id",
+            "attributeRef": "#/attributeCatalog/lotus.scenario_id"
+          },
+          {
+            "name": "primary_portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.primary_portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.primary_portfolio_id"
+          },
+          {
+            "name": "governed_as_of_date",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.governed_as_of_date",
+            "attributeRef": "#/attributeCatalog/lotus.governed_as_of_date"
+          },
+          {
+            "name": "proof_marker",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proof_marker",
+            "attributeRef": "#/attributeCatalog/lotus.proof_marker"
+          },
+          {
+            "name": "required_evidence_markers",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.required_evidence_markers",
+            "attributeRef": "#/attributeCatalog/lotus.required_evidence_markers"
+          },
+          {
+            "name": "required_source_products",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.required_source_products",
+            "attributeRef": "#/attributeCatalog/lotus.required_source_products"
+          },
+          {
+            "name": "unsupported_boundaries",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.unsupported_boundaries",
+            "attributeRef": "#/attributeCatalog/lotus.unsupported_boundaries"
+          },
+          {
+            "name": "steps",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.steps",
+            "attributeRef": "#/attributeCatalog/lotus.steps"
+          },
+          {
+            "name": "steps[].step_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.step_id",
+            "attributeRef": "#/attributeCatalog/lotus.step_id"
+          },
+          {
+            "name": "steps[].title",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.title",
+            "attributeRef": "#/attributeCatalog/lotus.title"
+          },
+          {
+            "name": "steps[].owner_repository",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.owner_repository",
+            "attributeRef": "#/attributeCatalog/lotus.owner_repository"
+          },
+          {
+            "name": "steps[].required_evidence_refs",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.required_evidence_refs",
+            "attributeRef": "#/attributeCatalog/lotus.required_evidence_refs"
+          },
+          {
+            "name": "steps[].required_workbench_panels",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.required_workbench_panels",
+            "attributeRef": "#/attributeCatalog/lotus.required_workbench_panels"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "bank_demo_proof",
+      "method": "GET",
+      "path": "/advisory/bank-demo-proof/supported-claim-register",
+      "operationId": "get_bank_demo_supported_claim_register_advisory_bank_demo_proof_supported_claim_register_get",
+      "summary": "Get RFC-0028 Supported-Claim Register",
+      "request": {
+        "fields": []
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "contract_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_name",
+            "attributeRef": "#/attributeCatalog/lotus.contract_name"
+          },
+          {
+            "name": "contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "scenario_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scenario_id",
+            "attributeRef": "#/attributeCatalog/lotus.scenario_id"
+          },
+          {
+            "name": "primary_portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.primary_portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.primary_portfolio_id"
+          },
+          {
+            "name": "proof_marker",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proof_marker",
+            "attributeRef": "#/attributeCatalog/lotus.proof_marker"
+          },
+          {
+            "name": "claims",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.claims",
+            "attributeRef": "#/attributeCatalog/lotus.claims"
+          },
+          {
+            "name": "claims[].claim_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.claim_id",
+            "attributeRef": "#/attributeCatalog/lotus.claim_id"
+          },
+          {
+            "name": "claims[].title",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.title",
+            "attributeRef": "#/attributeCatalog/lotus.title"
+          },
+          {
+            "name": "claims[].classification",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.classification",
+            "attributeRef": "#/attributeCatalog/lotus.classification"
+          },
+          {
+            "name": "claims[].audiences",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.audiences",
+            "attributeRef": "#/attributeCatalog/lotus.audiences"
+          },
+          {
+            "name": "claims[].allowed_materials",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allowed_materials",
+            "attributeRef": "#/attributeCatalog/lotus.allowed_materials"
+          },
+          {
+            "name": "claims[].claim_text",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.claim_text",
+            "attributeRef": "#/attributeCatalog/lotus.claim_text"
+          },
+          {
+            "name": "claims[].evidence_refs",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.evidence_refs",
+            "attributeRef": "#/attributeCatalog/lotus.evidence_refs"
+          },
+          {
+            "name": "claims[].proof_requirements",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.proof_requirements",
+            "attributeRef": "#/attributeCatalog/lotus.proof_requirements"
+          },
+          {
+            "name": "claims[].proof_requirements[].requirement_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_id",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_id"
+          },
+          {
+            "name": "claims[].proof_requirements[].evidence_ref",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evidence_ref",
+            "attributeRef": "#/attributeCatalog/lotus.evidence_ref"
+          },
+          {
+            "name": "claims[].proof_requirements[].blocking",
+            "location": "body",
+            "required": false,
+            "type": "boolean",
+            "semanticId": "lotus.blocking",
+            "attributeRef": "#/attributeCatalog/lotus.blocking"
+          },
+          {
+            "name": "claims[].wording_rules",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.wording_rules",
+            "attributeRef": "#/attributeCatalog/lotus.wording_rules"
+          },
+          {
+            "name": "artifact_policy",
+            "location": "body",
+            "required": true,
+            "type": "ArtifactPolicy",
+            "semanticId": "lotus.artifact_policy",
+            "attributeRef": "#/attributeCatalog/lotus.artifact_policy"
+          },
+          {
+            "name": "artifact_policy.commit_allowed_access_classes",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.commit_allowed_access_classes",
+            "attributeRef": "#/attributeCatalog/lotus.commit_allowed_access_classes"
+          },
+          {
+            "name": "artifact_policy.local_only_access_classes",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.local_only_access_classes",
+            "attributeRef": "#/attributeCatalog/lotus.local_only_access_classes"
+          },
+          {
+            "name": "artifact_policy.sensitive_material_rules",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.sensitive_material_rules",
+            "attributeRef": "#/attributeCatalog/lotus.sensitive_material_rules"
+          }
+        ]
+      }
+    },
+    {
+      "domain": "bank_demo_proof",
+      "method": "POST",
+      "path": "/advisory/bank-demo-proof/proof-packs",
+      "operationId": "build_bank_demo_proof_pack_advisory_bank_demo_proof_proof_packs_post",
+      "summary": "Build RFC-0028 Backend Proof Pack",
+      "request": {
+        "fields": [
+          {
+            "name": "X-Correlation-Id",
+            "location": "header",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.x_correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.x_correlation_id"
+          },
+          {
+            "name": "live_runtime_payload",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.live_runtime_payload",
+            "attributeRef": "#/attributeCatalog/lotus.live_runtime_payload"
+          },
+          {
+            "name": "runtime_posture",
+            "location": "body",
+            "required": true,
+            "type": "BackendRuntimePosture",
+            "semanticId": "lotus.runtime_posture",
+            "attributeRef": "#/attributeCatalog/lotus.runtime_posture"
+          },
+          {
+            "name": "runtime_posture.service_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.service_name",
+            "attributeRef": "#/attributeCatalog/lotus.service_name"
+          },
+          {
+            "name": "runtime_posture.base_url",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.base_url",
+            "attributeRef": "#/attributeCatalog/lotus.base_url"
+          },
+          {
+            "name": "runtime_posture.environment",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.environment",
+            "attributeRef": "#/attributeCatalog/lotus.environment"
+          },
+          {
+            "name": "runtime_posture.endpoints",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.endpoints",
+            "attributeRef": "#/attributeCatalog/lotus.endpoints"
+          },
+          {
+            "name": "runtime_posture.endpoints[].endpoint",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.endpoint",
+            "attributeRef": "#/attributeCatalog/lotus.endpoint"
+          },
+          {
+            "name": "runtime_posture.endpoints[].http_status",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.http_status",
+            "attributeRef": "#/attributeCatalog/lotus.http_status"
+          },
+          {
+            "name": "runtime_posture.endpoints[].posture",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.posture",
+            "attributeRef": "#/attributeCatalog/lotus.posture"
+          },
+          {
+            "name": "runtime_posture.endpoints[].summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "repository_sha",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.repository_sha",
+            "attributeRef": "#/attributeCatalog/lotus.repository_sha"
+          },
+          {
+            "name": "service_version",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.service_version",
+            "attributeRef": "#/attributeCatalog/lotus.service_version"
+          },
+          {
+            "name": "environment",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.environment",
+            "attributeRef": "#/attributeCatalog/lotus.environment"
+          },
+          {
+            "name": "live_suite_result_ref",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.live_suite_result_ref",
+            "attributeRef": "#/attributeCatalog/lotus.live_suite_result_ref"
+          },
+          {
+            "name": "live_suite_bundle_ref",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.live_suite_bundle_ref",
+            "attributeRef": "#/attributeCatalog/lotus.live_suite_bundle_ref"
+          },
+          {
+            "name": "output_ref_prefix",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.output_ref_prefix",
+            "attributeRef": "#/attributeCatalog/lotus.output_ref_prefix"
+          }
+        ]
+      },
+      "response": {
+        "fields": [
+          {
+            "name": "metadata",
+            "location": "body",
+            "required": true,
+            "type": "BackendProofCaptureMetadata",
+            "semanticId": "lotus.metadata",
+            "attributeRef": "#/attributeCatalog/lotus.metadata"
+          },
+          {
+            "name": "metadata.generated_at",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.generated_at",
+            "attributeRef": "#/attributeCatalog/lotus.generated_at"
+          },
+          {
+            "name": "metadata.repository_sha",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.repository_sha",
+            "attributeRef": "#/attributeCatalog/lotus.repository_sha"
+          },
+          {
+            "name": "metadata.service_version",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.service_version",
+            "attributeRef": "#/attributeCatalog/lotus.service_version"
+          },
+          {
+            "name": "metadata.environment",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.environment",
+            "attributeRef": "#/attributeCatalog/lotus.environment"
+          },
+          {
+            "name": "metadata.correlation_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.correlation_id"
+          },
+          {
+            "name": "metadata.live_suite_result_ref",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.live_suite_result_ref",
+            "attributeRef": "#/attributeCatalog/lotus.live_suite_result_ref"
+          },
+          {
+            "name": "metadata.live_suite_bundle_ref",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.live_suite_bundle_ref",
+            "attributeRef": "#/attributeCatalog/lotus.live_suite_bundle_ref"
+          },
+          {
+            "name": "scenario_contract",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryDemoScenarioContract",
+            "semanticId": "lotus.scenario_contract",
+            "attributeRef": "#/attributeCatalog/lotus.scenario_contract"
+          },
+          {
+            "name": "scenario_contract.contract_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_name",
+            "attributeRef": "#/attributeCatalog/lotus.contract_name"
+          },
+          {
+            "name": "scenario_contract.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "scenario_contract.scenario_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scenario_id",
+            "attributeRef": "#/attributeCatalog/lotus.scenario_id"
+          },
+          {
+            "name": "scenario_contract.primary_portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.primary_portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.primary_portfolio_id"
+          },
+          {
+            "name": "scenario_contract.governed_as_of_date",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.governed_as_of_date",
+            "attributeRef": "#/attributeCatalog/lotus.governed_as_of_date"
+          },
+          {
+            "name": "scenario_contract.proof_marker",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proof_marker",
+            "attributeRef": "#/attributeCatalog/lotus.proof_marker"
+          },
+          {
+            "name": "scenario_contract.required_evidence_markers",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.required_evidence_markers",
+            "attributeRef": "#/attributeCatalog/lotus.required_evidence_markers"
+          },
+          {
+            "name": "scenario_contract.required_source_products",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.required_source_products",
+            "attributeRef": "#/attributeCatalog/lotus.required_source_products"
+          },
+          {
+            "name": "scenario_contract.unsupported_boundaries",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.unsupported_boundaries",
+            "attributeRef": "#/attributeCatalog/lotus.unsupported_boundaries"
+          },
+          {
+            "name": "scenario_contract.steps",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.steps",
+            "attributeRef": "#/attributeCatalog/lotus.steps"
+          },
+          {
+            "name": "scenario_contract.steps[].step_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.step_id",
+            "attributeRef": "#/attributeCatalog/lotus.step_id"
+          },
+          {
+            "name": "scenario_contract.steps[].title",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.title",
+            "attributeRef": "#/attributeCatalog/lotus.title"
+          },
+          {
+            "name": "scenario_contract.steps[].owner_repository",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.owner_repository",
+            "attributeRef": "#/attributeCatalog/lotus.owner_repository"
+          },
+          {
+            "name": "scenario_contract.steps[].required_evidence_refs",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.required_evidence_refs",
+            "attributeRef": "#/attributeCatalog/lotus.required_evidence_refs"
+          },
+          {
+            "name": "scenario_contract.steps[].required_workbench_panels",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.required_workbench_panels",
+            "attributeRef": "#/attributeCatalog/lotus.required_workbench_panels"
+          },
+          {
+            "name": "supported_claim_register",
+            "location": "body",
+            "required": true,
+            "type": "AdvisorySupportedClaimRegister",
+            "semanticId": "lotus.supported_claim_register",
+            "attributeRef": "#/attributeCatalog/lotus.supported_claim_register"
+          },
+          {
+            "name": "supported_claim_register.contract_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_name",
+            "attributeRef": "#/attributeCatalog/lotus.contract_name"
+          },
+          {
+            "name": "supported_claim_register.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "supported_claim_register.scenario_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scenario_id",
+            "attributeRef": "#/attributeCatalog/lotus.scenario_id"
+          },
+          {
+            "name": "supported_claim_register.primary_portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.primary_portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.primary_portfolio_id"
+          },
+          {
+            "name": "supported_claim_register.proof_marker",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proof_marker",
+            "attributeRef": "#/attributeCatalog/lotus.proof_marker"
+          },
+          {
+            "name": "supported_claim_register.claims",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.claims",
+            "attributeRef": "#/attributeCatalog/lotus.claims"
+          },
+          {
+            "name": "supported_claim_register.claims[].claim_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.claim_id",
+            "attributeRef": "#/attributeCatalog/lotus.claim_id"
+          },
+          {
+            "name": "supported_claim_register.claims[].title",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.title",
+            "attributeRef": "#/attributeCatalog/lotus.title"
+          },
+          {
+            "name": "supported_claim_register.claims[].classification",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.classification",
+            "attributeRef": "#/attributeCatalog/lotus.classification"
+          },
+          {
+            "name": "supported_claim_register.claims[].audiences",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.audiences",
+            "attributeRef": "#/attributeCatalog/lotus.audiences"
+          },
+          {
+            "name": "supported_claim_register.claims[].allowed_materials",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.allowed_materials",
+            "attributeRef": "#/attributeCatalog/lotus.allowed_materials"
+          },
+          {
+            "name": "supported_claim_register.claims[].claim_text",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.claim_text",
+            "attributeRef": "#/attributeCatalog/lotus.claim_text"
+          },
+          {
+            "name": "supported_claim_register.claims[].evidence_refs",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.evidence_refs",
+            "attributeRef": "#/attributeCatalog/lotus.evidence_refs"
+          },
+          {
+            "name": "supported_claim_register.claims[].proof_requirements",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.proof_requirements",
+            "attributeRef": "#/attributeCatalog/lotus.proof_requirements"
+          },
+          {
+            "name": "supported_claim_register.claims[].proof_requirements[].requirement_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.requirement_id",
+            "attributeRef": "#/attributeCatalog/lotus.requirement_id"
+          },
+          {
+            "name": "supported_claim_register.claims[].proof_requirements[].evidence_ref",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.evidence_ref",
+            "attributeRef": "#/attributeCatalog/lotus.evidence_ref"
+          },
+          {
+            "name": "supported_claim_register.claims[].proof_requirements[].blocking",
+            "location": "body",
+            "required": false,
+            "type": "boolean",
+            "semanticId": "lotus.blocking",
+            "attributeRef": "#/attributeCatalog/lotus.blocking"
+          },
+          {
+            "name": "supported_claim_register.claims[].wording_rules",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.wording_rules",
+            "attributeRef": "#/attributeCatalog/lotus.wording_rules"
+          },
+          {
+            "name": "supported_claim_register.artifact_policy",
+            "location": "body",
+            "required": true,
+            "type": "ArtifactPolicy",
+            "semanticId": "lotus.artifact_policy",
+            "attributeRef": "#/attributeCatalog/lotus.artifact_policy"
+          },
+          {
+            "name": "supported_claim_register.artifact_policy.commit_allowed_access_classes",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.commit_allowed_access_classes",
+            "attributeRef": "#/attributeCatalog/lotus.commit_allowed_access_classes"
+          },
+          {
+            "name": "supported_claim_register.artifact_policy.local_only_access_classes",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.local_only_access_classes",
+            "attributeRef": "#/attributeCatalog/lotus.local_only_access_classes"
+          },
+          {
+            "name": "supported_claim_register.artifact_policy.sensitive_material_rules",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.sensitive_material_rules",
+            "attributeRef": "#/attributeCatalog/lotus.sensitive_material_rules"
+          },
+          {
+            "name": "proof_pack",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryBankDemoProofPack",
+            "semanticId": "lotus.proof_pack",
+            "attributeRef": "#/attributeCatalog/lotus.proof_pack"
+          },
+          {
+            "name": "proof_pack.contract_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_name",
+            "attributeRef": "#/attributeCatalog/lotus.contract_name"
+          },
+          {
+            "name": "proof_pack.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "proof_pack.proof_pack_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proof_pack_id",
+            "attributeRef": "#/attributeCatalog/lotus.proof_pack_id"
+          },
+          {
+            "name": "proof_pack.scenario_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scenario_id",
+            "attributeRef": "#/attributeCatalog/lotus.scenario_id"
+          },
+          {
+            "name": "proof_pack.primary_portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.primary_portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.primary_portfolio_id"
+          },
+          {
+            "name": "proof_pack.proof_marker",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proof_marker",
+            "attributeRef": "#/attributeCatalog/lotus.proof_marker"
+          },
+          {
+            "name": "proof_pack.generated_at",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.generated_at",
+            "attributeRef": "#/attributeCatalog/lotus.generated_at"
+          },
+          {
+            "name": "proof_pack.correlation_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.correlation_id",
+            "attributeRef": "#/attributeCatalog/lotus.correlation_id"
+          },
+          {
+            "name": "proof_pack.client_ready_posture",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.client_ready_posture",
+            "attributeRef": "#/attributeCatalog/lotus.client_ready_posture"
+          },
+          {
+            "name": "proof_pack.repository_shas",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.repository_shas",
+            "attributeRef": "#/attributeCatalog/lotus.repository_shas"
+          },
+          {
+            "name": "proof_pack.evidence_markers",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.evidence_markers",
+            "attributeRef": "#/attributeCatalog/lotus.evidence_markers"
+          },
+          {
+            "name": "proof_pack.scenario_contract_ref",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scenario_contract_ref",
+            "attributeRef": "#/attributeCatalog/lotus.scenario_contract_ref"
+          },
+          {
+            "name": "proof_pack.supported_claim_register_ref",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.supported_claim_register_ref",
+            "attributeRef": "#/attributeCatalog/lotus.supported_claim_register_ref"
+          },
+          {
+            "name": "proof_pack.source_product_refs",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.source_product_refs",
+            "attributeRef": "#/attributeCatalog/lotus.source_product_refs"
+          },
+          {
+            "name": "proof_pack.assets",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.assets",
+            "attributeRef": "#/attributeCatalog/lotus.assets"
+          },
+          {
+            "name": "proof_pack.assets[].asset_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.asset_id",
+            "attributeRef": "#/attributeCatalog/lotus.asset_id"
+          },
+          {
+            "name": "proof_pack.assets[].asset_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.asset_type",
+            "attributeRef": "#/attributeCatalog/lotus.asset_type"
+          },
+          {
+            "name": "proof_pack.assets[].source_repository",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_repository",
+            "attributeRef": "#/attributeCatalog/lotus.source_repository"
+          },
+          {
+            "name": "proof_pack.assets[].uri",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.uri",
+            "attributeRef": "#/attributeCatalog/lotus.uri"
+          },
+          {
+            "name": "proof_pack.assets[].access_class",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.access_class",
+            "attributeRef": "#/attributeCatalog/lotus.access_class"
+          },
+          {
+            "name": "proof_pack.assets[].retention_class",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.retention_class",
+            "attributeRef": "#/attributeCatalog/lotus.retention_class"
+          },
+          {
+            "name": "proof_pack.assets[].evidence_refs",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.evidence_refs",
+            "attributeRef": "#/attributeCatalog/lotus.evidence_refs"
+          },
+          {
+            "name": "proof_pack.assets[].content_hash",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.content_hash",
+            "attributeRef": "#/attributeCatalog/lotus.content_hash"
+          },
+          {
+            "name": "proof_pack.assets[].commit_allowed",
+            "location": "body",
+            "required": true,
+            "type": "boolean",
+            "semanticId": "lotus.commit_allowed",
+            "attributeRef": "#/attributeCatalog/lotus.commit_allowed"
+          },
+          {
+            "name": "proof_pack.unsupported_boundaries",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.unsupported_boundaries",
+            "attributeRef": "#/attributeCatalog/lotus.unsupported_boundaries"
+          },
+          {
+            "name": "document_proof_summary",
+            "location": "body",
+            "required": true,
+            "type": "AdvisoryDocumentProofSummary",
+            "semanticId": "lotus.document_proof_summary",
+            "attributeRef": "#/attributeCatalog/lotus.document_proof_summary"
+          },
+          {
+            "name": "document_proof_summary.contract_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_name",
+            "attributeRef": "#/attributeCatalog/lotus.contract_name"
+          },
+          {
+            "name": "document_proof_summary.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "document_proof_summary.scenario_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scenario_id",
+            "attributeRef": "#/attributeCatalog/lotus.scenario_id"
+          },
+          {
+            "name": "document_proof_summary.primary_portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.primary_portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.primary_portfolio_id"
+          },
+          {
+            "name": "document_proof_summary.proof_marker",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proof_marker",
+            "attributeRef": "#/attributeCatalog/lotus.proof_marker"
+          },
+          {
+            "name": "document_proof_summary.client_ready_publication",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.client_ready_publication",
+            "attributeRef": "#/attributeCatalog/lotus.client_ready_publication"
+          },
+          {
+            "name": "document_proof_summary.documents",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.documents",
+            "attributeRef": "#/attributeCatalog/lotus.documents"
+          },
+          {
+            "name": "document_proof_summary.documents[].document_family",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.document_family",
+            "attributeRef": "#/attributeCatalog/lotus.document_family"
+          },
+          {
+            "name": "document_proof_summary.documents[].claim_posture",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.claim_posture",
+            "attributeRef": "#/attributeCatalog/lotus.claim_posture"
+          },
+          {
+            "name": "document_proof_summary.documents[].report_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.report_status",
+            "attributeRef": "#/attributeCatalog/lotus.report_status"
+          },
+          {
+            "name": "document_proof_summary.documents[].report_package_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.report_package_status",
+            "attributeRef": "#/attributeCatalog/lotus.report_package_status"
+          },
+          {
+            "name": "document_proof_summary.documents[].requested_output_formats",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.requested_output_formats",
+            "attributeRef": "#/attributeCatalog/lotus.requested_output_formats"
+          },
+          {
+            "name": "document_proof_summary.documents[].render_ref_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.render_ref_status",
+            "attributeRef": "#/attributeCatalog/lotus.render_ref_status"
+          },
+          {
+            "name": "document_proof_summary.documents[].archive_ref_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.archive_ref_status",
+            "attributeRef": "#/attributeCatalog/lotus.archive_ref_status"
+          },
+          {
+            "name": "document_proof_summary.documents[].archive_retention_posture",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.archive_retention_posture",
+            "attributeRef": "#/attributeCatalog/lotus.archive_retention_posture"
+          },
+          {
+            "name": "document_proof_summary.documents[].archive_legal_hold_posture",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.archive_legal_hold_posture",
+            "attributeRef": "#/attributeCatalog/lotus.archive_legal_hold_posture"
+          },
+          {
+            "name": "document_proof_summary.documents[].archive_access_audit_ref_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.archive_access_audit_ref_status",
+            "attributeRef": "#/attributeCatalog/lotus.archive_access_audit_ref_status"
+          },
+          {
+            "name": "document_proof_summary.documents[].client_ready_document_status",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.client_ready_document_status",
+            "attributeRef": "#/attributeCatalog/lotus.client_ready_document_status"
+          },
+          {
+            "name": "document_proof_summary.documents[].degraded_reason",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.degraded_reason",
+            "attributeRef": "#/attributeCatalog/lotus.degraded_reason"
+          },
+          {
+            "name": "runtime_posture",
+            "location": "body",
+            "required": true,
+            "type": "BackendRuntimePosture",
+            "semanticId": "lotus.runtime_posture",
+            "attributeRef": "#/attributeCatalog/lotus.runtime_posture"
+          },
+          {
+            "name": "runtime_posture.service_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.service_name",
+            "attributeRef": "#/attributeCatalog/lotus.service_name"
+          },
+          {
+            "name": "runtime_posture.base_url",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.base_url",
+            "attributeRef": "#/attributeCatalog/lotus.base_url"
+          },
+          {
+            "name": "runtime_posture.environment",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.environment",
+            "attributeRef": "#/attributeCatalog/lotus.environment"
+          },
+          {
+            "name": "runtime_posture.endpoints",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.endpoints",
+            "attributeRef": "#/attributeCatalog/lotus.endpoints"
+          },
+          {
+            "name": "runtime_posture.endpoints[].endpoint",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.endpoint",
+            "attributeRef": "#/attributeCatalog/lotus.endpoint"
+          },
+          {
+            "name": "runtime_posture.endpoints[].http_status",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.http_status",
+            "attributeRef": "#/attributeCatalog/lotus.http_status"
+          },
+          {
+            "name": "runtime_posture.endpoints[].posture",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.posture",
+            "attributeRef": "#/attributeCatalog/lotus.posture"
+          },
+          {
+            "name": "runtime_posture.endpoints[].summary",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.summary",
+            "attributeRef": "#/attributeCatalog/lotus.summary"
+          },
+          {
+            "name": "sanitized_runtime_summary",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.sanitized_runtime_summary",
+            "attributeRef": "#/attributeCatalog/lotus.sanitized_runtime_summary"
+          },
+          {
+            "name": "material_field_reviews",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.material_field_reviews",
+            "attributeRef": "#/attributeCatalog/lotus.material_field_reviews"
+          },
+          {
+            "name": "material_field_reviews[].review_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.review_id",
+            "attributeRef": "#/attributeCatalog/lotus.review_id"
+          },
+          {
+            "name": "material_field_reviews[].source_path",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_path",
+            "attributeRef": "#/attributeCatalog/lotus.source_path"
+          },
+          {
+            "name": "material_field_reviews[].observed_value",
+            "location": "body",
+            "required": true,
+            "type": "object",
+            "semanticId": "lotus.observed_value",
+            "attributeRef": "#/attributeCatalog/lotus.observed_value"
+          },
+          {
+            "name": "material_field_reviews[].expected_posture",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.expected_posture",
+            "attributeRef": "#/attributeCatalog/lotus.expected_posture"
+          },
+          {
+            "name": "material_field_reviews[].review_posture",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.review_posture",
+            "attributeRef": "#/attributeCatalog/lotus.review_posture"
+          },
+          {
+            "name": "material_field_reviews[].claim_refs",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.claim_refs",
+            "attributeRef": "#/attributeCatalog/lotus.claim_refs"
           }
         ]
       }

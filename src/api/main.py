@@ -29,6 +29,7 @@ from src.api.routers.advisory_simulation import (
 from src.api.routers.advisory_simulation import (
     router as advisory_simulation_router,
 )
+from src.api.routers.bank_demo_proof import router as bank_demo_proof_router
 from src.api.routers.integration_capabilities import (
     router as integration_capabilities_router,
 )
@@ -116,6 +117,15 @@ app = FastAPI(
             ),
         },
         {
+            "name": "Bank Demo Proof",
+            "description": (
+                "RFC-0028 source-owned bank-demo proof APIs for scenario contracts, "
+                "supported-claim governance, and sanitized proof-pack capture. These APIs do "
+                "not approve client-ready publication, external client communication, OMS order "
+                "lifecycle, or RFP/security claims."
+            ),
+        },
+        {
             "name": "Advisory Operations & Support",
             "description": (
                 "Operational lookup and investigation endpoints for async status, workflow "
@@ -165,6 +175,7 @@ app.middleware("http")(build_enterprise_audit_middleware())
 
 app.include_router(proposal_lifecycle_router)
 app.include_router(advisory_simulation_router)
+app.include_router(bank_demo_proof_router)
 app.include_router(integration_capabilities_router)
 app.include_router(tactical_house_view_router)
 app.include_router(workspace_router)

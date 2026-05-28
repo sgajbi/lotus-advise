@@ -1017,6 +1017,35 @@ Acceptance gate:
 3. Gateway does not invent advisory workflow, supportability, or supported-claim state,
 4. cross-repo evidence is captured in the proof pack.
 
+Slice 7A Advise source API implementation decision and evidence:
+
+1. `lotus-advise` now exposes the source-owned RFC-0028 proof contract through:
+   1. `GET /advisory/bank-demo-proof/scenario-contract`,
+   2. `GET /advisory/bank-demo-proof/supported-claim-register`,
+   3. `POST /advisory/bank-demo-proof/proof-packs`.
+2. `src/api/routers/bank_demo_proof.py` is intentionally a thin API boundary. Scenario,
+   supported-claim, document-proof, material-field review, runtime-posture, and proof-pack
+   construction stay in `src/core/bank_demo_proof/`.
+3. The proof-pack endpoint returns the same sanitized `BackendProofCaptureBundle` produced by
+   `scripts/capture_rfc0028_backend_proof.py` and does not persist or return raw runtime payloads,
+   prompt material, secrets, or provider payloads.
+4. Material-field drift returns HTTP 409 with the `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED`
+   reason instead of allowing Gateway or Workbench to promote stale or incomplete proof.
+5. Correlation IDs are accepted through `X-Correlation-Id` and recorded in proof metadata. The API
+   records service version, environment, and repository SHA from caller/runtime metadata without
+   turning Gateway into proof authority.
+6. OpenAPI now documents the `Bank Demo Proof` route family with descriptions for source ownership,
+   supported-claim governance, client-ready publication boundaries, and HTTP 409/422 behavior.
+7. Test evidence:
+   1. `tests/unit/advisory/api/test_api_bank_demo_proof.py` proves scenario and supported-claim
+      read endpoints, sanitized proof-pack responses, correlation-id preservation, raw hash
+      exclusion, material-drift rejection, and OpenAPI error documentation.
+   2. Existing core tests continue to prove document proof and material-field review at the
+      lowest useful layer.
+8. Slice 7A does not complete Gateway publication by itself. Gateway must consume these Advise
+   endpoints in the next owner-repository PR before Gateway, Workbench, screenshot, product
+   one-pager, RFP/security, or client-ready publication claims are promoted.
+
 ### Slice 8 - Workbench End-to-End Demo Experience
 
 Outcome:
