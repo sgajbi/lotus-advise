@@ -9,6 +9,10 @@ WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 COMMERCIAL_GUIDE_PATH = Path("docs/commercial/RFC-0028-bank-demo-client-proof-materials.md")
 DEMO_README_PATH = Path("docs/demo/README.md")
 REPO_CONTEXT_PATH = Path("REPOSITORY-ENGINEERING-CONTEXT.md")
+README_PATH = Path("README.md")
+WIKI_API_SURFACE_PATH = Path("wiki/API-Surface.md")
+WIKI_SECURITY_PATH = Path("wiki/Security-and-Governance.md")
+WIKI_OPERATIONS_PATH = Path("wiki/Operations-Runbook.md")
 
 
 def _read(path: Path) -> str:
@@ -96,7 +100,7 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICES 0-11 RUNTIME SECURITY HARDENING COMPLETE",
+        "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
@@ -377,3 +381,83 @@ def test_rfc0028_records_slice_eleven_runtime_security_and_latency_hardening() -
     assert "bounded probe latency" in commercial
     assert "credentials, query strings, or fragments" in commercial
     assert "trace, and correlation fields" in commercial
+
+
+def test_rfc0028_records_slice_twelve_documentation_product_truth() -> None:
+    flat = _flat(RFC28_PATH)
+    rfc_index = _flat(RFC_INDEX_PATH)
+    wiki_index = _flat(WIKI_RFC_INDEX_PATH)
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
+    readme = _flat(README_PATH)
+    api_surface = _flat(WIKI_API_SURFACE_PATH)
+    security = _flat(WIKI_SECURITY_PATH)
+    operations = _flat(WIKI_OPERATIONS_PATH)
+
+    rfc_markers = (
+        "Slice 12 implementation decision and evidence",
+        "README.md",
+        "wiki/API-Surface.md",
+        "wiki/Security-and-Governance.md",
+        "wiki/Operations-Runbook.md",
+        "RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED",
+        "tests/unit/test_rfc0028_gold_standard_tightening_contract.py",
+    )
+    for marker in rfc_markers:
+        assert marker in flat
+
+    readme_markers = (
+        "/advisory/bank-demo-proof/proof-packs",
+        "runtime-posture.json",
+        "sanitized-runtime-summary.json",
+        "latency_ms",
+        "docs/commercial/RFC-0028-bank-demo-client-proof-materials.md",
+        "HTTP 409",
+        "client-ready publication",
+        "OMS/order/fill/settlement",
+    )
+    for marker in readme_markers:
+        assert marker in readme
+
+    api_markers = (
+        "GET /advisory/bank-demo-proof/scenario-contract",
+        "GET /advisory/bank-demo-proof/supported-claim-register",
+        "POST /advisory/bank-demo-proof/proof-packs",
+        "HTTP 409",
+        "latency_ms",
+        "Gateway and Workbench",
+        "OMS/order/fill/settlement",
+    )
+    for marker in api_markers:
+        assert marker in api_surface
+
+    security_markers = (
+        "RFC-0028 Proof Artifact Governance",
+        "credentials, query strings, or fragments",
+        "secrets, tokens, prompts",
+        "bank-specific attestations",
+        "OMS/order/fill/settlement",
+    )
+    for marker in security_markers:
+        assert marker in security
+
+    operations_markers = (
+        "scripts/capture_rfc0028_backend_proof.py",
+        "--run-live-suite",
+        "proof-pack.json",
+        "runtime-posture.json",
+        "BANK_DEMO_PROOF_PACK_CREATED",
+        "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED",
+        "client-ready publication",
+    )
+    for marker in operations_markers:
+        assert marker in operations
+
+    for source in (rfc_index, wiki_index):
+        assert "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE" in source
+
+    for source in (rfc_index, wiki_index, supported_features):
+        assert "Slice 12" in source
+        assert "runtime posture" in source
+        assert "HTTP 409" in source
+        assert "client-ready publication" in source
+        assert "OMS/order/fill/settlement" in source

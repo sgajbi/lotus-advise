@@ -1267,6 +1267,39 @@ Acceptance gate:
 3. supported-features wording is promoted only after proof,
 4. explicit no-wiki-change decisions are recorded for reviewed docs that do not change.
 
+Slice 12 implementation decision and evidence:
+
+1. The concrete documentation gap was product/operator truth after Slice 11: implementation existed
+   for Advise-owned proof APIs, sanitized runtime posture, `latency_ms`, material-drift HTTP 409
+   handling, and commercial proof material, but README and wiki source did not yet give engineers,
+   operators, pre-sales, and business users one clear implementation-backed path.
+2. `README.md` now documents `/advisory/bank-demo-proof/*`, `proof-pack.json`,
+   `runtime-posture.json`, `sanitized-runtime-summary.json`, `commercial-material-pack.json`,
+   `latency_ms`, `scripts/capture_rfc0028_backend_proof.py`, the commercial proof-guide pointer,
+   and the blocked boundaries for client-ready publication and OMS/order/fill/settlement.
+3. `wiki/API-Surface.md` now contains the RFC-0028 Bank Demo Proof API section for:
+   1. `GET /advisory/bank-demo-proof/scenario-contract`,
+   2. `GET /advisory/bank-demo-proof/supported-claim-register`,
+   3. `POST /advisory/bank-demo-proof/proof-packs`.
+4. `wiki/Security-and-Governance.md` now records RFC-0028 proof artifact governance, including
+   supported-claim mapping, access posture, runtime URL hygiene, sensitive-summary redaction, and
+   non-promoted bank-specific attestation, legal/regulatory, sign-off, client-ready publication,
+   and OMS/order/fill/settlement claims.
+5. `wiki/Operations-Runbook.md` now records repeatable proof-capture commands, expected output
+   artifacts, `BANK_DEMO_PROOF_PACK_CREATED`, `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED`,
+   runtime-posture review expectations, and the operator rule that material drift is fixed at the
+   source layer rather than worked around in Gateway, Workbench, or documentation.
+6. `docs/rfcs/README.md`, `wiki/RFC-Index.md`, and `wiki/Supported-Features.md` now report
+   `DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE` and describe the Slice 12 evidence
+   without promoting client-ready publication, external client communication, bank-specific
+   attestations, legal/regulatory advice, completed sign-off/approval, or OMS/order/fill/settlement.
+7. Wiki source changed in this slice for `wiki/API-Surface.md`,
+   `wiki/Security-and-Governance.md`, `wiki/Operations-Runbook.md`, `wiki/RFC-Index.md`, and
+   `wiki/Supported-Features.md`; therefore wiki publication is required after merge to `main`.
+8. `tests/unit/test_rfc0028_gold_standard_tightening_contract.py` covers the documentation-product
+   truth markers so future edits cannot silently remove proof API, runtime posture, operator
+   command, commercial-guide, material-drift, or blocked-claim boundaries.
+
 ### Slice 13 - Implementation Proof
 
 Outcome:

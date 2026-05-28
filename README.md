@@ -94,7 +94,11 @@ Boundary rules that matter:
    operator material through `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md` and
    `commercial-material-pack.json`, while keeping client-ready publication, external client
    communication, bank-specific attestations, legal/regulatory advice, completed sign-off, and
-   OMS/order/fill/settlement claims blocked.
+   OMS/order/fill/settlement claims blocked. Slice 11 adds sanitized runtime security posture,
+   integer `latency_ms` evidence, runtime URL hygiene, and sensitive-summary redaction to
+   `runtime-posture.json` and `sanitized-runtime-summary.json`. Slice 12 makes that product truth
+   explicit in README and wiki source so operators, pre-sales, and engineers use the same
+   implementation-backed proof boundaries.
 
 ## Architecture At A Glance
 
@@ -114,6 +118,11 @@ Main runtime surfaces come from [src/api/main.py](src/api/main.py):
 - advisor cockpit
   source-owned action, snapshot, supportability, and acknowledgement routes under
   `/advisory/cockpit/*`
+- bank demo proof
+  source-owned scenario contract, supported-claim register, and sanitized proof-pack capture through
+  `GET /advisory/bank-demo-proof/scenario-contract`,
+  `GET /advisory/bank-demo-proof/supported-claim-register`, and
+  `POST /advisory/bank-demo-proof/proof-packs`
 - integration capabilities
   `GET /platform/capabilities`
 - platform surfaces
@@ -249,7 +258,8 @@ Important public route groups:
 5. tactical house-view affected-cohort evaluation
 6. policy-pack catalog and policy-evaluation evidence
 7. advisor cockpit action, snapshot, supportability, and acknowledgement evidence
-8. integration capabilities
+8. bank-demo proof contract and proof-pack capture
+9. integration capabilities
 
 Contract rules that are easy to get wrong:
 
@@ -268,7 +278,15 @@ Contract rules that are easy to get wrong:
 7. advisor cockpit endpoints preserve source refs, action lineage, SLA/acknowledgement posture, and
    unsupported-claim boundaries; acknowledgements do not approve policy, clear blockers, contact
    clients, create CRM tasks, or initiate orders
-8. `GET /platform/capabilities` separates feature enablement from operational readiness and returns
+8. bank-demo proof APIs return Advise-owned scenario, supported-claim, runtime-posture, and
+   proof-pack truth for Gateway and Workbench consumption. `POST
+   /advisory/bank-demo-proof/proof-packs` fails with HTTP 409 when material proof fields drift from
+   the supported-claim register, rejects runtime base URLs that include credentials, query strings,
+   or fragments, redacts secrets, tokens, prompts, raw payloads, trace IDs, and correlation IDs from
+   summaries, and records bounded integer `latency_ms` endpoint evidence. These APIs do not approve
+   client-ready publication, external client communication, bank-specific attestations,
+   legal/regulatory advice, completed sign-off/approval, or OMS/order/fill/settlement.
+9. `GET /platform/capabilities` separates feature enablement from operational readiness and returns
    bounded dependency evidence through `runtime_probe_enabled`, `readiness_basis`, and
    `degraded_reason` without exposing dependency base URLs
 
@@ -295,6 +313,12 @@ generation, or downstream execution truth.
 - use readiness to confirm persistence and runtime boot posture before treating the service as healthy
 - treat upstream simulation and risk failures as dependency issues first, not as reasons to invent local fallback truth
 - keep proposal decision-summary and alternatives behavior aligned to canonical and degraded live evidence
+- capture RFC-0028 backend proof with `scripts/capture_rfc0028_backend_proof.py` and review
+  `proof-pack.json`, `runtime-posture.json`, `sanitized-runtime-summary.json`, and
+  `commercial-material-pack.json` before using demo or RFP material
+- treat `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED` and HTTP 409 proof-pack responses as
+  material-drift defects that require code, seed, or documentation correction before demo evidence
+  is reused
 
 ## Documentation Map
 
@@ -304,6 +328,8 @@ generation, or downstream execution truth.
   [docs/architecture/RFC-0082-upstream-contract-family-map.md](docs/architecture/RFC-0082-upstream-contract-family-map.md)
 - demo scenarios:
   [docs/demo/README.md](docs/demo/README.md)
+- RFC-0028 bank-demo commercial proof material:
+  [docs/commercial/RFC-0028-bank-demo-client-proof-materials.md](docs/commercial/RFC-0028-bank-demo-client-proof-materials.md)
 - development workflow:
   [docs/operations/development-workflow-and-ci-strategy.md](docs/operations/development-workflow-and-ci-strategy.md)
 - Postgres rollout runbook:
