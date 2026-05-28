@@ -4,14 +4,14 @@
 | --- | --- |
 | **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
 | **Created** | 2026-05-22 |
-| **Last Tightened** | 2026-05-22 |
+| **Last Tightened** | 2026-05-28 |
 | **Owner** | `lotus-advise` for advisory journey proof, supported-claim authority, and demo evidence truth; `lotus-platform` for reusable scenario/proof automation and scaffolding where applicable |
 | **Business Sponsor Persona** | sales, pre-sales, client demo lead, advisory desk head, relationship manager, compliance reviewer, model-risk reviewer, operations, security/RFP reviewer, engineering, product marketing |
 | **Primary Business Outcome** | make `lotus-advise` demonstrably bank-buyable by delivering a repeatable, truthful, implementation-backed advisory demo journey, proof pack, supported-claim register, and enterprise sales/RFP package across the required Lotus repositories |
 | **Depends On** | RFC-0013, RFC-0019, RFC-0020, RFC-0021, RFC-0022, RFC-0023, RFC-0024, RFC-0025, RFC-0026, RFC-0027 |
 | **Cross-Repository Scope** | `lotus-advise`, `lotus-core`, `lotus-risk`, `lotus-ai`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, `lotus-workbench`, `lotus-manage`, `lotus-platform` |
 | **Compatibility Posture** | backward compatibility is not a constraint; breaking API or contract changes are allowed when they are the cleanest design, but every affected upstream or downstream consumer must be updated in this RFC before closure |
-| **Tightening Branch** | `docs/rfc0028-gold-standard-tightening` |
+| **Tightening Branch** | `rfc0028-gold-standard-implementation` |
 | **Implementation Branching Rule** | implementation may continue on this branch or a follow-on RFC-0028 feature branch, but all branch names, PRs, commits, checks, and cross-repo closures must be recorded in RFC closure evidence |
 | **Doc Location** | `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` |
 
@@ -1163,25 +1163,38 @@ Affected repositories must use their repo-native gates and GitHub lanes.
 
 ---
 
-## 22. Open Questions to Resolve in Slice 0
+## 22. Slice 0 Pre-Implementation Decisions
 
-These questions must be resolved before implementation begins or explicitly answered by Slice 0:
+Slice 0 decisions are locked before implementation starts. They are based on current `main` after
+RFC-0027 merge `1dda5a2619a5f8dab367f393c972a30c251b1543`, clean stranded-truth reconciliation,
+and the RFC-0024 through RFC-0027 canonical evidence already merged to `main`.
 
-1. Should first supported proof capture be script-first, API-backed, or hybrid?
-2. Which canonical dataset should be used: `PB_SG_GLOBAL_BAL_001`, an advisory-specific synthetic
-   portfolio, or both?
-3. Which journey is first client-demo ready: proposal simulation, proposal memo, policy pack,
-   advisor cockpit, AI copilot, or combined scenario?
-4. Which claims require Workbench proof before promotion, and which are backend-only for first
-   wave?
-5. Which report/render/archive artifacts are required for "client-ready proof" rather than
-   "backend advisory proof"?
-6. Which RFP/security sections need formal evidence versus explicit roadmap/risk treatment?
-7. Which load, latency, SLO, DR/RTO/RPO, tenant, and legal-entity evidence should block closure?
-8. Which proof artifacts can be committed as durable summaries, and which must remain under
-   non-git-tracked `output/`?
-9. Which platform scaffolding gaps should be fixed before app-specific proof work begins?
-10. Which commercial assets must be produced as markdown source now versus deck-ready outline for
-    later presentation tooling?
+| Question | Decision | Implementation consequence |
+| --- | --- | --- |
+| Proof capture style | Hybrid. `lotus-advise` must implement an Advise-owned proof-pack and supported-claim API because Gateway and Workbench need product-facing truth. `lotus-platform` automation must orchestrate repeatable canonical proof capture and write machine-readable evidence under `output/`. | Slice 4 and Slice 5 implement proof models/APIs in Advise; Slice 7 and Slice 8 consume through Gateway/Workbench; platform automation is expanded where the pattern is reusable. Script-only proof is insufficient for RFC-0028 because it cannot back product surfaces or supported-claim governance. |
+| Canonical dataset | Primary dataset is `PB_SG_GLOBAL_BAL_001` with governed scenario id `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`. No new synthetic portfolio is introduced unless Slice 0/Slice 5 proves a source-field gap that cannot be truthfully represented by the governed portfolio. | Seed or automation expansion is RFC-0028 scope, not follow-up work. Any additional data must be added to the owning repository and platform canonical front-office contracts before Workbench screenshots or commercial material use it. |
+| First supported demo journey | First supported journey is the combined private-banking advisory scenario: advisor cockpit entry point, proposal simulation/artifact, advisor-use memo evidence, policy evaluation posture, governed AI copilot, report/readiness/archive evidence where implemented, supported-claim register, and Workbench proof. | Single-feature demos are allowed only as drill-downs inside the combined proof pack. A capability is not promoted as client-demo ready until backend, Gateway, Workbench, documentation, and proof evidence agree. |
+| Workbench proof requirement | Every product-journey claim, screenshot, demo script step, and sales/RFP statement that describes advisor workflow or client-ready evidence requires Workbench proof through Gateway/BFF. Backend-only claims are limited to APIs, data products, supportability, and operational proof explicitly labeled internal. | Workbench must stay Gateway-first. No Workbench component may reconstruct advisory suitability, memo, narrative, policy, claim, proof, or AI semantics locally. |
+| Client-ready artifact boundary | RFC-0028 must prove a client-ready evidence package can be assembled and reviewed, but it must not claim external client delivery, legal approval, or regulatory sign-off unless the owning workflow implements those controls. The first proof package may carry `CLIENT_READY_REVIEW_REQUIRED` or `CLIENT_READY_PUBLICATION_BLOCKED` when that is the truthful posture. | Report/render/archive work is required if the demo includes proposal-pack materialization. If final publication controls are incomplete, commercial material must say "client-ready evidence review" or "proposal-pack proof" rather than "approved client communication." |
+| RFP/security evidence | Formal evidence is required for dependency/security audit posture, OpenAPI quality, no-alias governance, data-product/trust telemetry, Docker build, production profile, health/readiness, correlation IDs, audit/lineage, synthetic data handling, and screenshot/privacy controls. External certifications, bank-specific control attestations, SOC/ISO status, DR commitments, or regulator-specific approval claims require either actual evidence or explicit unsupported/planned wording. | RFP/security pack content must map each statement to a check, repo artifact, live evidence, or supported-claim classification. Unsupported certifications are not implemented as text-only claims. |
+| Non-functional blockers | Closure is blocked by red repository-native gates, red PR Merge Gate, red main releasability, failed canonical front-office validation, missing proof for promoted UI claims, missing synthetic-data/privacy review, missing supported-claim register validation, or untriaged security/dependency findings. Load, latency, SLO, DR/RTO/RPO, tenant, and legal-entity claims block closure only when they are promoted as supported claims; otherwise they must be risk-treated or marked planned/unsupported. | Performance and operational evidence must be generated for any promoted non-functional claim. The demo may not hide degraded or blocked dependency posture. |
+| Durable versus runtime artifacts | Commit stable scenario contracts, proof-pack schemas/models, supported-claim rules, sanitized proof summaries, docs, wiki source, commercial markdown, and tests. Keep raw runtime payloads, screenshots before validation, trace logs, provider payloads, secrets, tokens, and environment-specific proof under non-git-tracked `output/`. | Proof automation must write a sanitized summary suitable for docs and a richer local evidence bundle for audit. Committed summaries must include repo SHAs, scenario id, evidence markers, and unsupported-claim posture without sensitive payloads. |
+| Platform scaffolding | Slice 1 must assess and, where reusable, add platform support for scenario/proof contract validation, supported-claim register checks, canonical evidence summary validation, front-office proof markers, screenshot privacy posture, and wiki publication checks. | If platform already has sufficient support, Slice 1 records a no-change decision. If not, platform changes are implemented and merged before app-specific closure depends on them. |
+| Commercial assets | Produce markdown source now for demo script, proof interpretation guide, RFP/security pack, architecture narrative/diagrams, product one-pager, ROI story, and supported-versus-planned feature matrix. Deck-ready outlines are allowed in markdown; generated PowerPoint is not required unless requested separately after implementation proof. | Commercial content is product documentation, not decorative collateral. It must be implementation-backed, business-facing, and free of raw technical leakage. |
 
-Open questions cannot remain open at final closure.
+Front-office canonical automation decision:
+
+1. RFC-0028 must expand canonical front-office automation when the existing RFC-0024 through
+   RFC-0027 validation does not prove the end-to-end bank-demo journey.
+2. The canonical proof marker is `BANK_DEMO_PROOF_PACK_CREATED`.
+3. The canonical scenario id is `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`.
+4. The primary portfolio remains `PB_SG_GLOBAL_BAL_001`.
+5. Workbench evidence is not demo-ready until `npm run live:validate` and the governed platform
+   front-office QA path prove the RFC-0028 panel/journey through Gateway-backed data.
+6. Any live validation defect discovered during RFC-0028 must be covered by the lowest useful test:
+   unit for pure domain rules, contract/API test for schema and route behavior, integration test for
+   cross-service contracts, or front-office/live validation for product-surface regressions.
+
+No open implementation question remains for RFC-0028 Slice 1. New facts discovered during
+implementation must be recorded as slice decisions, not parked in WTBD, "day 2", or "wave 2"
+language.
