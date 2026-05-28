@@ -29,6 +29,8 @@ def test_bank_demo_proof_contract_endpoints_expose_source_owned_truth() -> None:
     )
     assert claim_postures["advisor_use_document_proof_available"] == "BACKEND_BACKED_UI_PENDING"
     assert claim_postures["ai_policy_cockpit_proof_integrated"] == "IMPLEMENTATION_BACKED"
+    assert claim_postures["commercial_rfp_security_material_available"] == "IMPLEMENTATION_BACKED"
+    assert claim_postures["rfp_security_package_pending"] == "UNSUPPORTED"
     assert claim_postures["client_ready_publication_blocked"] == "UNSUPPORTED"
     scenario_panels = {
         panel for step in scenario["steps"] for panel in step["required_workbench_panels"]
@@ -64,6 +66,16 @@ def test_bank_demo_proof_pack_endpoint_returns_sanitized_gateway_consumable_bund
     assert (
         "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED" in (payload["proof_pack"]["evidence_markers"])
     )
+    assert "RFC0028_COMMERCIAL_MATERIAL_PACK_CREATED" in (payload["proof_pack"]["evidence_markers"])
+    assert payload["commercial_material_pack"]["publication_posture"] == (
+        "CUSTOMER_CONSUMABLE_WITH_BOUNDARIES"
+    )
+    commercial_material_ids = {
+        material["material_id"] for material in payload["commercial_material_pack"]["materials"]
+    }
+    assert "rfp_response_pack" in commercial_material_ids
+    assert "security_posture_pack" in commercial_material_ids
+    assert "client_ready_publication" in payload["commercial_material_pack"]["blocked_claims"]
     assert (
         payload["journey_integration_proof_summary"]["policy_evidence"]["client_ready_publication"]
         == "BLOCKED"

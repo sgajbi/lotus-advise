@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-28T09:11:36.759933+00:00",
+  "generatedAt": "2026-05-28T09:36:42.417087+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -1381,6 +1381,22 @@
       ]
     },
     {
+      "semanticId": "lotus.blocked_claims",
+      "canonicalTerm": "blocked_claims",
+      "preferredName": "blocked_claims",
+      "description": "Claims that remain blocked in every commercial asset.",
+      "example": [
+        "example_blocked_claims_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.blocking",
       "canonicalTerm": "blocking",
       "preferredName": "blocking",
@@ -2011,6 +2027,22 @@
       ],
       "observedTypes": [
         "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.commercial_material_pack",
+      "canonicalTerm": "commercial_material_pack",
+      "preferredName": "commercial_material_pack",
+      "description": "Canonical commercial material pack used by lotus-advise APIs.",
+      "example": {
+        "key": "sample_text"
+      },
+      "type": "CommercialMaterialPack",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "CommercialMaterialPack"
       ]
     },
     {
@@ -3862,6 +3894,22 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.excluded_claims",
+      "canonicalTerm": "excluded_claims",
+      "preferredName": "excluded_claims",
+      "description": "Unsupported claims explicitly excluded from the material.",
+      "example": [
+        "example_excluded_claims_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -5824,6 +5872,22 @@
       ]
     },
     {
+      "semanticId": "lotus.mapped_claim_ids",
+      "canonicalTerm": "mapped_claim_ids",
+      "preferredName": "mapped_claim_ids",
+      "description": "Supported-claim ids that govern the material wording.",
+      "example": [
+        "example_mapped_claim_ids_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
+      ]
+    },
+    {
       "semanticId": "lotus.market_data_snapshot",
       "canonicalTerm": "market_data_snapshot",
       "preferredName": "market_data_snapshot",
@@ -5870,6 +5934,20 @@
       ]
     },
     {
+      "semanticId": "lotus.material_id",
+      "canonicalTerm": "material_id",
+      "preferredName": "material_id",
+      "description": "Stable commercial material identifier.",
+      "example": "MATERIAL_001",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.material_rule_count",
       "canonicalTerm": "material_rule_count",
       "preferredName": "material_rule_count",
@@ -5881,6 +5959,20 @@
       ],
       "observedTypes": [
         "integer"
+      ]
+    },
+    {
+      "semanticId": "lotus.material_type",
+      "canonicalTerm": "material_type",
+      "preferredName": "material_type",
+      "description": "Governed material family.",
+      "example": "PRODUCT_ONE_PAGER",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -5909,6 +6001,22 @@
       ],
       "observedTypes": [
         "boolean"
+      ]
+    },
+    {
+      "semanticId": "lotus.materials",
+      "canonicalTerm": "materials",
+      "preferredName": "materials",
+      "description": "Governed material inventory.",
+      "example": [
+        "materials_item_example"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -7592,6 +7700,20 @@
       ]
     },
     {
+      "semanticId": "lotus.publication_posture",
+      "canonicalTerm": "publication_posture",
+      "preferredName": "publication_posture",
+      "description": "Commercial publication posture for the material pack.",
+      "example": "example_publication_posture",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
+      ]
+    },
+    {
       "semanticId": "lotus.quantity",
       "canonicalTerm": "quantity",
       "preferredName": "quantity",
@@ -8604,6 +8726,22 @@
       ],
       "observedTypes": [
         "string"
+      ]
+    },
+    {
+      "semanticId": "lotus.required_claim_ids",
+      "canonicalTerm": "required_claim_ids",
+      "preferredName": "required_claim_ids",
+      "description": "Supported-claim ids required before using the pack.",
+      "example": [
+        "example_required_claim_ids_item"
+      ],
+      "type": "array",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "array"
       ]
     },
     {
@@ -10051,6 +10189,20 @@
       ],
       "observedTypes": [
         "array"
+      ]
+    },
+    {
+      "semanticId": "lotus.source_ref",
+      "canonicalTerm": "source_ref",
+      "preferredName": "source_ref",
+      "description": "Repository source reference for this material.",
+      "example": "example_source_ref",
+      "type": "string",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "string"
       ]
     },
     {
@@ -48421,6 +48573,142 @@
             "type": "array",
             "semanticId": "lotus.unsupported_claims",
             "attributeRef": "#/attributeCatalog/lotus.unsupported_claims"
+          },
+          {
+            "name": "commercial_material_pack",
+            "location": "body",
+            "required": true,
+            "type": "CommercialMaterialPack",
+            "semanticId": "lotus.commercial_material_pack",
+            "attributeRef": "#/attributeCatalog/lotus.commercial_material_pack"
+          },
+          {
+            "name": "commercial_material_pack.contract_name",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_name",
+            "attributeRef": "#/attributeCatalog/lotus.contract_name"
+          },
+          {
+            "name": "commercial_material_pack.contract_version",
+            "location": "body",
+            "required": false,
+            "type": "string",
+            "semanticId": "lotus.contract_version",
+            "attributeRef": "#/attributeCatalog/lotus.contract_version"
+          },
+          {
+            "name": "commercial_material_pack.scenario_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.scenario_id",
+            "attributeRef": "#/attributeCatalog/lotus.scenario_id"
+          },
+          {
+            "name": "commercial_material_pack.primary_portfolio_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.primary_portfolio_id",
+            "attributeRef": "#/attributeCatalog/lotus.primary_portfolio_id"
+          },
+          {
+            "name": "commercial_material_pack.proof_marker",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.proof_marker",
+            "attributeRef": "#/attributeCatalog/lotus.proof_marker"
+          },
+          {
+            "name": "commercial_material_pack.publication_posture",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.publication_posture",
+            "attributeRef": "#/attributeCatalog/lotus.publication_posture"
+          },
+          {
+            "name": "commercial_material_pack.required_claim_ids",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.required_claim_ids",
+            "attributeRef": "#/attributeCatalog/lotus.required_claim_ids"
+          },
+          {
+            "name": "commercial_material_pack.blocked_claims",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.blocked_claims",
+            "attributeRef": "#/attributeCatalog/lotus.blocked_claims"
+          },
+          {
+            "name": "commercial_material_pack.materials",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.materials",
+            "attributeRef": "#/attributeCatalog/lotus.materials"
+          },
+          {
+            "name": "commercial_material_pack.materials[].material_id",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.material_id",
+            "attributeRef": "#/attributeCatalog/lotus.material_id"
+          },
+          {
+            "name": "commercial_material_pack.materials[].title",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.title",
+            "attributeRef": "#/attributeCatalog/lotus.title"
+          },
+          {
+            "name": "commercial_material_pack.materials[].material_type",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.material_type",
+            "attributeRef": "#/attributeCatalog/lotus.material_type"
+          },
+          {
+            "name": "commercial_material_pack.materials[].source_ref",
+            "location": "body",
+            "required": true,
+            "type": "string",
+            "semanticId": "lotus.source_ref",
+            "attributeRef": "#/attributeCatalog/lotus.source_ref"
+          },
+          {
+            "name": "commercial_material_pack.materials[].mapped_claim_ids",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.mapped_claim_ids",
+            "attributeRef": "#/attributeCatalog/lotus.mapped_claim_ids"
+          },
+          {
+            "name": "commercial_material_pack.materials[].allowed_audiences",
+            "location": "body",
+            "required": true,
+            "type": "array",
+            "semanticId": "lotus.allowed_audiences",
+            "attributeRef": "#/attributeCatalog/lotus.allowed_audiences"
+          },
+          {
+            "name": "commercial_material_pack.materials[].excluded_claims",
+            "location": "body",
+            "required": false,
+            "type": "array",
+            "semanticId": "lotus.excluded_claims",
+            "attributeRef": "#/attributeCatalog/lotus.excluded_claims"
           },
           {
             "name": "runtime_posture",

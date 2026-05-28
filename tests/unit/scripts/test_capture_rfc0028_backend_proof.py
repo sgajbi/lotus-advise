@@ -68,6 +68,7 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
         "proof_pack",
         "document_proof_summary",
         "journey_integration_proof_summary",
+        "commercial_material_pack",
         "runtime_posture",
         "sanitized_runtime_summary",
         "material_field_review",
@@ -83,6 +84,7 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
     integration_proof = json.loads(
         paths["journey_integration_proof_summary"].read_text(encoding="utf-8")
     )
+    commercial_pack = json.loads(paths["commercial_material_pack"].read_text(encoding="utf-8"))
     manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
     sanitized_summary = paths["sanitized_runtime_summary"].read_text(encoding="utf-8")
     markdown_summary = paths["summary"].read_text(encoding="utf-8")
@@ -90,6 +92,7 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
     assert proof_pack["client_ready_posture"] == "CLIENT_READY_PUBLICATION_BLOCKED"
     assert proof_pack["assets"][1]["asset_id"] == "document_proof_summary"
     assert proof_pack["assets"][2]["asset_id"] == "journey_integration_proof_summary"
+    assert any(asset["asset_id"] == "commercial_material_pack" for asset in proof_pack["assets"])
     assert document_proof["client_ready_publication"] == "BLOCKED"
     assert {item["document_family"] for item in document_proof["documents"]} == {
         "PROPOSAL_MEMO",
@@ -97,8 +100,11 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
     }
     assert integration_proof["policy_evidence"]["client_ready_publication"] == "BLOCKED"
     assert "advisory.advisor_cockpit" in integration_proof["required_workbench_panels"]
+    assert commercial_pack["publication_posture"] == "CUSTOMER_CONSUMABLE_WITH_BOUNDARIES"
+    assert "commercial_rfp_security_material_available" in commercial_pack["required_claim_ids"]
     assert manifest["artifact_family"] == "rfc0028.backend-proof-capture.v1"
     assert "BANK_DEMO_PROOF_PACK_CREATED" in markdown_summary
     assert "AI, Policy, And Cockpit Integration Proof" in markdown_summary
+    assert "Commercial, RFP, Security, Architecture, ROI, And Demo Material" in markdown_summary
     assert "sha256:memo" not in sanitized_summary
     assert "source_input_hash" not in sanitized_summary
