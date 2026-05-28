@@ -4500,3 +4500,38 @@
 - Follow-Up:
   - Slice 12 should route policy evaluation, review queue, maker-checker, sign-off, report package,
     and AI evidence posture through Gateway and Workbench without local UI inference.
+
+## LA-REV-173
+
+- Scope: RFC-0027 advisory copilot proposal-version run history
+- Pattern: query/performance risk / API contract hardening / test gap
+- Status: Hardened
+- Finding Class: query/performance risk
+- Summary: The RFC-0027 proposal-version copilot run list exposed `next_cursor` but returned every
+  matching run and always set the cursor to `null`; repeated canonical validation could therefore
+  turn a proof-history read into an unbounded repository operation.
+- Evidence:
+  - `src/core/advisory_copilot/pagination.py` now owns opaque keyset cursor encode/decode logic.
+  - `src/infrastructure/advisory_copilot/in_memory.py` and
+    `src/infrastructure/advisory_copilot/postgres.py` now return newest-first bounded pages and
+    next cursors from the repository boundary.
+  - `src/infrastructure/postgres_migrations/advisory_copilot/0003_copilot_run_version_pagination_indexes.sql`
+    adds proposal-version expression indexes for the production run-history path.
+  - `src/api/proposals/routes_advisory_copilot.py` documents `limit` and `cursor`, bounds page size,
+    and maps invalid cursors to validation errors.
+  - `tests/unit/advisory/engine/test_advisory_copilot_persistence.py` and
+    `tests/unit/advisory/api/test_api_advisory_copilot.py` prove bounded pagination, no duplicate
+    pages, and invalid cursor rejection.
+  - `tests/unit/shared/dependencies/test_production_cutover_contract.py` now pins migration `0003`
+    as part of the cutover contract.
+- Consequence:
+  - Gateway, Workbench, and canonical validation can consume RFC-0027 copilot run history
+    repeatably as proof runs accumulate, without rebuilding lineage in the UI or depending on
+    unbounded read behavior.
+- Documentation:
+  - RFC-0027 Slice 8, Slice 9, the main RFC, and API vocabulary inventory were updated to reflect
+    bounded run-history pagination.
+- Follow-Up:
+  - Continue reviewing the copilot route orchestration boundary; if it grows further, move
+    proposal-version packet construction and AI run orchestration behind a dedicated application
+    service rather than adding more controller-layer workflow logic.
