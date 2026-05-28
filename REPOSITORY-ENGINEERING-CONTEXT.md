@@ -133,22 +133,29 @@ Current repository posture:
    Client-ready publication, external client communication, CRM system-of-record behavior, OMS
    order/fill/settlement lifecycle, completed policy approval authority, and full RFC-0028
    demo/RFP package claims remain gated,
-9. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
-10. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
-11. repo-native CI is already aligned to explicit lane expectations,
-12. RFC-0086 repo-native declaration onboarding now covers the advisory proposal lifecycle product,
+9. RFC-0028 bank-demo proof is implemented through the Advise scenario contract,
+   `AdvisorySupportedClaimRegister:v1`, sanitized proof-pack capture, Gateway publication,
+   Platform canonical scenario/panel registration, and Workbench `advisory.bank_demo_proof`
+   evidence. Canonical `PB_SG_GLOBAL_BAL_001` validation records
+   `BANK_DEMO_PROOF_PACK_CREATED` and proves blocked client-ready publication posture without
+   claiming external client communication, OMS/order/fill/settlement, approval authority, or full
+   RFP/demo collateral readiness,
+10. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
+11. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
+12. repo-native CI is already aligned to explicit lane expectations,
+13. RFC-0086 repo-native declaration onboarding now covers the advisory proposal lifecycle product,
    proposal narrative evidence product, and a bounded tactical house-view affected-cohort product
    in `contracts/domain-data-products/`, with explicit upstream dependencies,
-13. RFC-0087 trust telemetry proof for `AdvisoryProposalLifecycleRecord`, RFC-0023 trust telemetry
+14. RFC-0087 trust telemetry proof for `AdvisoryProposalLifecycleRecord`, RFC-0023 trust telemetry
    proof for `ProposalNarrativeEvidence`, and RFC-0026 trust telemetry proof for the advisor
    cockpit operating snapshot and action-item register now live under `contracts/trust-telemetry/`
    and are validated by `tests/unit/test_trust_telemetry.py` against the platform trust telemetry
    validator when `lotus-platform` is available,
-14. the advisory workspace rationale path now uses the explicit `lotus-ai` workflow-pack execution
+15. the advisory workspace rationale path now uses the explicit `lotus-ai` workflow-pack execution
    seam for the `workspace_rationale.pack` family, preserves bounded run posture in the advisory
    response, and exposes a separate bounded review-action pass-through that retains Lotus AI
    lineage truth,
-15. execution handoff, status, and delivery projections carry explicit ownership-boundary evidence
+16. execution handoff, status, and delivery projections carry explicit ownership-boundary evidence
    so advisory posture cannot be confused with downstream execution system-of-record truth.
 
 ## Architecture And Module Map
