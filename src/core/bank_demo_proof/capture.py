@@ -5,6 +5,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from src.core.bank_demo_proof.document_proof import (
+    AdvisoryDocumentProofSummary,
+    build_document_proof_summary,
+)
 from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
@@ -110,6 +114,7 @@ class BackendProofCaptureBundle(BaseModel):
     scenario_contract: AdvisoryDemoScenarioContract
     supported_claim_register: AdvisorySupportedClaimRegister
     proof_pack: AdvisoryBankDemoProofPack
+    document_proof_summary: AdvisoryDocumentProofSummary
     runtime_posture: BackendRuntimePosture
     sanitized_runtime_summary: dict[str, Any]
     material_field_reviews: list[MaterialFieldReview]
@@ -195,6 +200,54 @@ _MATERIAL_FIELD_SPECS: tuple[tuple[str, str, str, str], ...] = (
         "client_ready_publication_blocked",
     ),
     (
+        "memo_document_render",
+        "parity.proposal_memo.render_ref_status",
+        "RECORDED",
+        "advisor_use_document_proof_available",
+    ),
+    (
+        "memo_document_archive",
+        "parity.proposal_memo.archive_ref_status",
+        "RECORDED",
+        "advisor_use_document_proof_available",
+    ),
+    (
+        "memo_archive_retention",
+        "parity.proposal_memo.archive_retention_posture",
+        "OWNED_BY_LOTUS_ARCHIVE",
+        "advisor_use_document_proof_available",
+    ),
+    (
+        "memo_archive_access_audit",
+        "parity.proposal_memo.archive_access_audit_ref_status",
+        "RECORDED",
+        "advisor_use_document_proof_available",
+    ),
+    (
+        "policy_document_render",
+        "parity.proposal_policy.render_ref_status",
+        "RECORDED",
+        "advisor_use_document_proof_available",
+    ),
+    (
+        "policy_document_archive",
+        "parity.proposal_policy.archive_ref_status",
+        "RECORDED",
+        "advisor_use_document_proof_available",
+    ),
+    (
+        "policy_archive_retention",
+        "parity.proposal_policy.archive_retention_posture",
+        "OWNED_BY_LOTUS_ARCHIVE",
+        "advisor_use_document_proof_available",
+    ),
+    (
+        "policy_archive_access_audit",
+        "parity.proposal_policy.archive_access_audit_ref_status",
+        "RECORDED",
+        "advisor_use_document_proof_available",
+    ),
+    (
         "degraded_risk",
         "degraded.risk_degraded_reason",
         "LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
@@ -256,6 +309,7 @@ def build_default_scenario_contract() -> AdvisoryDemoScenarioContract:
 
 def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
     backend_summary_ref = "proof.assets.sanitized_runtime_summary"
+    document_proof_ref = "proof.assets.document_proof_summary"
     field_review_ref = "proof.assets.material_field_review"
     runtime_posture_ref = "proof.assets.runtime_posture"
     return AdvisorySupportedClaimRegister(
@@ -301,6 +355,10 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                         requirement_id="rfc0028-runtime-posture",
                         evidence_ref=runtime_posture_ref,
                     ),
+                    SupportedClaimProofRequirement(
+                        requirement_id="rfc0028-document-proof-summary",
+                        evidence_ref=document_proof_ref,
+                    ),
                 ],
                 wording_rules=[
                     "State that this is backend proof until Gateway and Workbench slices pass.",
@@ -328,6 +386,29 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                 wording_rules=[
                     "Use 'backend evidence available' until Gateway and Workbench proof is merged.",
                     "Do not use screenshots for this claim in Slice 5.",
+                ],
+            ),
+            SupportedClaim(
+                claim_id="advisor_use_document_proof_available",
+                title="Advisor-use document proof is available",
+                classification="BACKEND_BACKED_UI_PENDING",
+                audiences=["BUSINESS_USER", "SALES", "PRE_SALES", "CLIENT_DEMO"],
+                allowed_materials=["WIKI", "DEMO_SCRIPT"],
+                claim_text=(
+                    "The advisory backend records advisor-use memo and policy report packages "
+                    "with render, archive, retention, legal-hold, and access-audit posture while "
+                    "keeping client-ready documents blocked."
+                ),
+                evidence_refs=[document_proof_ref, field_review_ref],
+                proof_requirements=[
+                    SupportedClaimProofRequirement(
+                        requirement_id="rfc0028-advisor-use-document-proof",
+                        evidence_ref=document_proof_ref,
+                    )
+                ],
+                wording_rules=[
+                    "Use advisor-use document wording only until product-surface proof passes.",
+                    "Do not imply client-ready publication or external client distribution.",
                 ],
             ),
             SupportedClaim(
@@ -430,8 +511,12 @@ def sanitize_live_runtime_summary(live_runtime_payload: dict[str, Any]) -> dict[
                 "review_client_ready_publication",
                 "report_status",
                 "report_package_status",
+                "requested_output_formats",
                 "render_ref_status",
                 "archive_ref_status",
+                "archive_retention_posture",
+                "archive_legal_hold_posture",
+                "archive_access_audit_ref_status",
                 "ai_status",
                 "ai_authoritative_for_memo_status",
                 "ai_review_required",
@@ -461,8 +546,12 @@ def sanitize_live_runtime_summary(live_runtime_payload: dict[str, Any]) -> dict[
                 "sign_off_decision_status",
                 "report_status",
                 "report_package_status",
+                "requested_output_formats",
                 "render_ref_status",
                 "archive_ref_status",
+                "archive_retention_posture",
+                "archive_legal_hold_posture",
+                "archive_access_audit_ref_status",
                 "ai_status",
                 "ai_authoritative_for_policy_status",
                 "ai_human_review_required",
@@ -562,6 +651,7 @@ def build_backend_proof_capture(
     output_ref_prefix: str = RFC28_DEFAULT_OUTPUT_REF_PREFIX,
 ) -> BackendProofCaptureBundle:
     sanitized_summary = sanitize_live_runtime_summary(live_runtime_payload)
+    document_proof_summary = build_document_proof_summary(live_runtime_payload)
     material_reviews = review_material_fields(live_runtime_payload)
     if any(review.review_posture == "BLOCKED" for review in material_reviews):
         blocked = ", ".join(
@@ -574,6 +664,7 @@ def build_backend_proof_capture(
     scenario_contract = build_default_scenario_contract()
     supported_claim_register = build_default_supported_claim_register()
     runtime_posture_payload = runtime_posture.model_dump(mode="json")
+    document_proof_payload = document_proof_summary.model_dump(mode="json")
     material_review_payload = [review.model_dump(mode="json") for review in material_reviews]
     proof_pack = AdvisoryBankDemoProofPack(
         proof_pack_id=f"rfc0028-backend-proof-{metadata.generated_at.strftime('%Y%m%dT%H%M%SZ')}",
@@ -587,6 +678,7 @@ def build_backend_proof_capture(
         evidence_markers=[
             RFC28_CANONICAL_PROOF_MARKER,
             "RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED",
+            "RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED",
             "RFC0028_RUNTIME_POSTURE_CAPTURED",
         ],
         scenario_contract_ref=RFC28_SCENARIO_CONTRACT_REF,
@@ -606,6 +698,20 @@ def build_backend_proof_capture(
                     "advisor_journey_backend_evidence_available",
                 ],
                 content_hash=hash_canonical_payload(sanitized_summary),
+                commit_allowed=False,
+            ),
+            ProofAsset(
+                asset_id="document_proof_summary",
+                asset_type="REPORT_PACKAGE_SUMMARY",
+                source_repository="lotus-advise",
+                uri=f"{output_ref_prefix}/document-proof-summary.json",
+                access_class="COMMIT_SAFE_SUMMARY",
+                retention_class="LOCAL_EVIDENCE_BUNDLE",
+                evidence_refs=[
+                    "backend_proof_capture_repeatable",
+                    "advisor_use_document_proof_available",
+                ],
+                content_hash=hash_canonical_payload(document_proof_payload),
                 commit_allowed=False,
             ),
             ProofAsset(
@@ -653,6 +759,7 @@ def build_backend_proof_capture(
         scenario_contract=scenario_contract,
         supported_claim_register=supported_claim_register,
         proof_pack=proof_pack,
+        document_proof_summary=document_proof_summary,
         runtime_posture=runtime_posture,
         sanitized_runtime_summary=sanitized_summary,
         material_field_reviews=material_reviews,

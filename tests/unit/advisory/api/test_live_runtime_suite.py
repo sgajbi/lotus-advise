@@ -135,8 +135,12 @@ def _memo_snapshot() -> LiveProposalMemoSnapshot:
         review_client_ready_publication="BLOCKED",
         report_status="READY",
         report_package_status="ARCHIVED",
+        requested_output_formats=("pdf",),
         render_ref_status="RECORDED",
         archive_ref_status="RECORDED",
+        archive_retention_posture="OWNED_BY_LOTUS_ARCHIVE",
+        archive_legal_hold_posture="OWNED_BY_LOTUS_ARCHIVE",
+        archive_access_audit_ref_status="RECORDED",
         ai_status="UNAVAILABLE",
         ai_authoritative_for_memo_status=False,
         ai_review_required=True,
@@ -178,8 +182,12 @@ def _policy_snapshot() -> LivePolicyEvaluationSnapshot:
         sign_off_decision_status="SIGNED_OFF",
         report_status="READY",
         report_package_status="ARCHIVED",
+        requested_output_formats=("pdf",),
         render_ref_status="RECORDED",
         archive_ref_status="RECORDED",
+        archive_retention_posture="OWNED_BY_LOTUS_ARCHIVE",
+        archive_legal_hold_posture="OWNED_BY_LOTUS_ARCHIVE",
+        archive_access_audit_ref_status="RECORDED",
         ai_status="UNAVAILABLE",
         ai_authoritative_for_policy_status=False,
         ai_human_review_required=True,
@@ -453,11 +461,19 @@ def test_live_runtime_suite_serializes_machine_readable_result(monkeypatch, tmp_
     assert payload["parity"]["proposal_memo"]["review_action"] == "APPROVE_FOR_ADVISOR_USE"
     assert payload["parity"]["proposal_memo"]["report_package_status"] == "ARCHIVED"
     assert payload["parity"]["proposal_memo"]["archive_ref_status"] == "RECORDED"
+    assert payload["parity"]["proposal_memo"]["archive_retention_posture"] == (
+        "OWNED_BY_LOTUS_ARCHIVE"
+    )
+    assert payload["parity"]["proposal_memo"]["archive_access_audit_ref_status"] == "RECORDED"
     assert payload["parity"]["proposal_memo"]["ai_authoritative_for_memo_status"] is False
     assert payload["parity"]["proposal_memo"]["replay_client_ready_publication"] == "BLOCKED"
     assert payload["parity"]["proposal_policy"]["evaluation_status"] == "PENDING_REVIEW"
     assert payload["parity"]["proposal_policy"]["sign_off_decision_status"] == "SIGNED_OFF"
     assert payload["parity"]["proposal_policy"]["report_package_status"] == "ARCHIVED"
+    assert payload["parity"]["proposal_policy"]["archive_retention_posture"] == (
+        "OWNED_BY_LOTUS_ARCHIVE"
+    )
+    assert payload["parity"]["proposal_policy"]["archive_access_audit_ref_status"] == "RECORDED"
     assert payload["parity"]["proposal_policy"]["ai_authoritative_for_policy_status"] is False
     assert payload["parity"]["proposal_policy"]["ai_raw_source_evidence_included"] is False
     assert (
@@ -535,6 +551,8 @@ def test_live_runtime_suite_writes_timestamped_evidence_bundle(monkeypatch, tmp_
     assert "client-ready status: `NOT_REQUESTED`" in summary_text
     assert "guardrail failure path: `LOCAL_POLICY_REPRODUCED`" in summary_text
     assert "review: `APPROVE_FOR_ADVISOR_USE` / `BLOCKED`" in summary_text
+    assert "retention `OWNED_BY_LOTUS_ARCHIVE`" in summary_text
+    assert "access audit `RECORDED`" in summary_text
     assert "AI commentary: `UNAVAILABLE` / review required `True` / authoritative `False`" in (
         summary_text
     )
@@ -577,10 +595,12 @@ def test_live_runtime_bundle_helpers_select_latest_bundle_and_render_pr_summary(
         "`APPROVED_FOR_ADVISOR_USE` / `INCLUDED_REVIEWED_NARRATIVE`"
     ) in summary
     assert (
-        "- proposal memo: `BLOCKED` / `APPROVE_FOR_ADVISOR_USE` / `ARCHIVED` / AI `UNAVAILABLE`"
+        "- proposal memo: `BLOCKED` / `APPROVE_FOR_ADVISOR_USE` / `ARCHIVED` / "
+        "archive `OWNED_BY_LOTUS_ARCHIVE` / AI `UNAVAILABLE`"
     ) in summary
     assert (
-        "- policy evaluation: `PENDING_REVIEW` / `SIGNED_OFF` / `ARCHIVED` / AI `UNAVAILABLE`"
+        "- policy evaluation: `PENDING_REVIEW` / `SIGNED_OFF` / `ARCHIVED` / "
+        "archive `OWNED_BY_LOTUS_ARCHIVE` / AI `UNAVAILABLE`"
     ) in summary
     assert "- review path: `REQUIRES_RISK_REVIEW` / `NEW_MEDIUM_SUITABILITY_ISSUE`" in summary
     assert "- insufficient-evidence path: `INSUFFICIENT_EVIDENCE` / `MISSING_RISK_LENS`" in summary

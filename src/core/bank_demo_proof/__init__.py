@@ -11,6 +11,13 @@ from src.core.bank_demo_proof.capture import (
     review_material_fields,
     sanitize_live_runtime_summary,
 )
+from src.core.bank_demo_proof.document_proof import (
+    AdvisoryDocumentProof,
+    AdvisoryDocumentProofSummary,
+    DocumentProofClaimPosture,
+    DocumentProofFamily,
+    build_document_proof_summary,
+)
 from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
@@ -36,6 +43,8 @@ from src.core.bank_demo_proof.models import (
 __all__ = [
     "AdvisoryBankDemoProofPack",
     "AdvisoryDemoScenarioContract",
+    "AdvisoryDocumentProof",
+    "AdvisoryDocumentProofSummary",
     "AdvisorySupportedClaimRegister",
     "ArtifactPolicy",
     "BackendProofCaptureBundle",
@@ -43,6 +52,8 @@ __all__ = [
     "BackendRuntimePosture",
     "ClientReadyProofPosture",
     "DemoScenarioStep",
+    "DocumentProofClaimPosture",
+    "DocumentProofFamily",
     "MaterialFieldReview",
     "ProofAsset",
     "ProofAssetAccessClass",
@@ -61,6 +72,7 @@ __all__ = [
     "build_backend_proof_capture",
     "build_default_scenario_contract",
     "build_default_supported_claim_register",
+    "build_document_proof_summary",
     "default_capture_metadata",
     "review_material_fields",
     "sanitize_live_runtime_summary",

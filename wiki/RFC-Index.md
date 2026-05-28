@@ -67,14 +67,17 @@ audit records inside the interaction product boundary rather than standalone pro
 products. Client-ready publication, external client communication, policy approval/sign-off
 authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
 
-RFC-0028 status is `DRAFT - SLICES 0-5 COMPLETE`. Slice 0 locks the hybrid Advise proof API plus
+RFC-0028 status is `DRAFT - SLICES 0-6 COMPLETE`. Slice 0 locks the hybrid Advise proof API plus
 platform/front-office automation path for scenario `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`,
 portfolio `PB_SG_GLOBAL_BAL_001`, and proof marker `BANK_DEMO_PROOF_PACK_CREATED`. Slice 1 merged
 the reusable `lotus-platform` supported-claim register schema and validator through PR #366, with
 main releasability run `26554797152` green. Slices 2-5 add durable index cleanup, no-premature
 data-product promotion guards, core proof/claim/scenario models, and repeatable backend proof
 capture through `scripts/capture_rfc0028_backend_proof.py` with sanitized
-`output/rfc0028/backend-proof` artifacts and material-field review. The RFC keeps full
+`output/rfc0028/backend-proof` artifacts and material-field review. Slice 6 adds
+`AdvisoryDocumentProofSummary:v1`, live-suite document proof fields, and
+`document-proof-summary.json` for advisor-use memo/policy report-render-archive posture while
+client-ready document publication remains blocked. The RFC keeps full
 bank-demo/RFP, screenshot, product one-pager, and client-ready publication claims unpromoted until
 Gateway/Workbench validation, supported-claim review, commercial artifact review, and wiki
 publication are complete.

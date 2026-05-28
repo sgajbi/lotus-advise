@@ -125,7 +125,10 @@ def _format_memo_summary_lines(memo: dict[str, Any]) -> list[str]:
         (
             "- report package: "
             f"`{memo['report_status']}` / `{memo['report_package_status']}` / "
-            f"render `{memo['render_ref_status']}` / archive `{memo['archive_ref_status']}`"
+            f"formats `{_inline_reason_codes(memo['requested_output_formats'])}` / "
+            f"render `{memo['render_ref_status']}` / archive `{memo['archive_ref_status']}` / "
+            f"retention `{memo['archive_retention_posture']}` / access audit "
+            f"`{memo['archive_access_audit_ref_status']}`"
         ),
         (
             "- AI commentary: "
@@ -184,7 +187,10 @@ def _format_policy_summary_lines(policy: dict[str, Any]) -> list[str]:
         (
             "- report package: "
             f"`{policy['report_status']}` / `{policy['report_package_status']}` / "
-            f"render `{policy['render_ref_status']}` / archive `{policy['archive_ref_status']}`"
+            f"formats `{_inline_reason_codes(policy['requested_output_formats'])}` / "
+            f"render `{policy['render_ref_status']}` / archive `{policy['archive_ref_status']}` / "
+            f"retention `{policy['archive_retention_posture']}` / access audit "
+            f"`{policy['archive_access_audit_ref_status']}`"
         ),
         (
             "- AI evidence: "
@@ -416,6 +422,7 @@ def build_pr_summary(
             f"`{parity['proposal_memo']['memo_status']}` / "
             f"`{parity['proposal_memo']['review_action']}` / "
             f"`{parity['proposal_memo']['report_package_status']}` / "
+            f"archive `{parity['proposal_memo']['archive_retention_posture']}` / "
             f"AI `{parity['proposal_memo']['ai_status']}`"
         ),
         (
@@ -423,6 +430,7 @@ def build_pr_summary(
             f"`{parity['proposal_policy']['evaluation_status']}` / "
             f"`{parity['proposal_policy']['sign_off_decision_status']}` / "
             f"`{parity['proposal_policy']['report_package_status']}` / "
+            f"archive `{parity['proposal_policy']['archive_retention_posture']}` / "
             f"AI `{parity['proposal_policy']['ai_status']}`"
         ),
         "",

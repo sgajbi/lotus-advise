@@ -54,8 +54,12 @@ def _live_runtime_payload() -> dict:
                 "review_client_ready_publication": "BLOCKED",
                 "report_status": "READY",
                 "report_package_status": "ARCHIVED",
+                "requested_output_formats": ["pdf"],
                 "render_ref_status": "RECORDED",
                 "archive_ref_status": "RECORDED",
+                "archive_retention_posture": "OWNED_BY_LOTUS_ARCHIVE",
+                "archive_legal_hold_posture": "OWNED_BY_LOTUS_ARCHIVE",
+                "archive_access_audit_ref_status": "RECORDED",
                 "ai_status": "UNAVAILABLE",
                 "ai_authoritative_for_memo_status": False,
                 "ai_review_required": True,
@@ -82,8 +86,12 @@ def _live_runtime_payload() -> dict:
                 "sign_off_decision_status": "SIGNED_OFF",
                 "report_status": "READY",
                 "report_package_status": "ARCHIVED",
+                "requested_output_formats": ["pdf"],
                 "render_ref_status": "RECORDED",
                 "archive_ref_status": "RECORDED",
+                "archive_retention_posture": "OWNED_BY_LOTUS_ARCHIVE",
+                "archive_legal_hold_posture": "OWNED_BY_LOTUS_ARCHIVE",
+                "archive_access_audit_ref_status": "RECORDED",
                 "ai_status": "UNAVAILABLE",
                 "ai_authoritative_for_policy_status": False,
                 "ai_human_review_required": True,
@@ -280,6 +288,7 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
     assert bundle.proof_pack.proof_marker == RFC28_CANONICAL_PROOF_MARKER
     assert bundle.proof_pack.client_ready_posture == "CLIENT_READY_PUBLICATION_BLOCKED"
     assert "RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED" in bundle.proof_pack.evidence_markers
+    assert "RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED" in bundle.proof_pack.evidence_markers
     assert "RFC0028_RUNTIME_POSTURE_CAPTURED" in bundle.proof_pack.evidence_markers
     assert bundle.proof_pack.repository_shas == {"lotus-advise": "abc123"}
     assert all(not asset.commit_allowed for asset in bundle.proof_pack.assets)
@@ -290,4 +299,13 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
     assert (
         claim_postures["advisor_journey_backend_evidence_available"] == "BACKEND_BACKED_UI_PENDING"
     )
+    assert claim_postures["advisor_use_document_proof_available"] == "BACKEND_BACKED_UI_PENDING"
     assert claim_postures["client_ready_publication_blocked"] == "UNSUPPORTED"
+    document_families = {
+        document.document_family for document in bundle.document_proof_summary.documents
+    }
+    assert document_families == {"PROPOSAL_MEMO", "POLICY_SIGN_OFF"}
+    assert all(
+        document.archive_retention_posture == "OWNED_BY_LOTUS_ARCHIVE"
+        for document in bundle.document_proof_summary.documents
+    )
