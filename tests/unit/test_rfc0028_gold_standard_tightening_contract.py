@@ -69,6 +69,24 @@ def test_rfc0028_requires_canonical_front_office_automation_and_lowest_layer_tes
         assert marker in flat
 
 
+def test_rfc0028_records_platform_slice_one_supported_claim_scaffolding() -> None:
+    flat = _flat(RFC28_PATH)
+
+    markers = (
+        "A reusable platform gap exists",
+        "1f46cd764b1e8437091c6d5e567403053b899313",
+        "ea6e8151d253f5d738dfb5902d8193238b946bba",
+        "PR #366",
+        "26554797152",
+        "supported-claim-register.schema.json",
+        "validate_supported_claim_register.py",
+        "test_supported_claim_register_contract.py",
+        "No Advise-local claim taxonomy may diverge from the platform validator",
+    )
+    for marker in markers:
+        assert marker in flat
+
+
 def test_rfc0028_indexes_record_locked_slice_zero_without_promotion() -> None:
     rfc_index = _flat(RFC_INDEX_PATH)
     wiki_index = _flat(WIKI_RFC_INDEX_PATH)

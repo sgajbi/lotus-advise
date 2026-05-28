@@ -740,6 +740,28 @@ Acceptance gate:
 2. platform changes are tested, merged, and referenced in RFC-0028 closure evidence,
 3. future Lotus apps benefit from any scaffolding improvement.
 
+Slice 1 implementation decision and evidence:
+
+1. A reusable platform gap exists: Lotus had front-office contracts and DPM proof-pack vocabulary,
+   but no platform-owned supported-claim register contract or validator that could prevent demo,
+   wiki, screenshot, RFP, security, and one-pager claims from outrunning implementation evidence.
+2. The reusable platform fix was merged through `lotus-platform` PR #366 at merge commit
+   `1f46cd764b1e8437091c6d5e567403053b899313`. The implementation commit
+   `ea6e8151d253f5d738dfb5902d8193238b946bba` adds:
+   1. `platform-contracts/supported-claims/supported-claim-register.schema.json`,
+   2. `platform-contracts/supported-claims/README.md`,
+   3. `platform-contracts/supported-claims/examples/rfc0028-advisory-bank-demo-supported-claims.valid.json`,
+   4. `automation/validate_supported_claim_register.py`,
+   5. `tests/unit/test_supported_claim_register_contract.py`.
+3. Validation evidence:
+   1. `python -m ruff check automation\validate_supported_claim_register.py tests\unit\test_supported_claim_register_contract.py` passed,
+   2. `python -m pytest tests\unit\test_supported_claim_register_contract.py -q` passed with `4 passed`,
+   3. `python automation\validate_supported_claim_register.py --path platform-contracts\supported-claims\examples\rfc0028-advisory-bank-demo-supported-claims.valid.json` passed,
+   4. PR #366 Feature Lane, PR Merge Gate, Cross-App Vocabulary Gate, API Vocabulary Governance,
+      and Main Releasability Gate all passed. Main releasability run `26554797152` passed.
+4. RFC-0028 Advise implementation must consume this platform contract for the first supported
+   claim register. No Advise-local claim taxonomy may diverge from the platform validator.
+
 ### Slice 2 - Cleanup and Structure
 
 Outcome:
