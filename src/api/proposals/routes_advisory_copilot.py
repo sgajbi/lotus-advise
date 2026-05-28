@@ -5,6 +5,7 @@ from typing import Annotated, cast
 from fastapi import Depends, Header, HTTPException, Path, status
 
 from src.api.proposals import router as shared
+from src.api.proposals.router import get_proposal_repository
 from src.api.proposals.runtime import proposal_postgres_dsn
 from src.core.advisory_copilot import (
     build_copilot_evidence_packet,
@@ -19,6 +20,7 @@ from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
     AdvisoryCopilotEvidencePacketResponse,
+    AdvisoryCopilotProposalVersionEvidenceRequest,
     AdvisoryCopilotReviewRequest,
     AdvisoryCopilotReviewResponse,
     AdvisoryCopilotRunPage,
@@ -26,6 +28,11 @@ from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotSupportabilityResponse,
 )
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
+from src.core.advisory_copilot.source_projection import (
+    build_proposal_version_copilot_evidence_packet,
+)
+from src.core.policy_packs.persistence import list_policy_evaluation_records
+from src.core.proposals.repository import ProposalRepository
 from src.infrastructure.advisory_copilot import PostgresAdvisoryCopilotRepository
 from src.integrations.lotus_ai import generate_advisory_copilot_draft_with_lotus_ai
 
@@ -98,6 +105,65 @@ def create_advisory_copilot_evidence_packet(
             created_by=payload.created_by,
             reason=payload.reason,
             correlation_id=correlation_id or f"corr-{payload.evidence_packet_id}",
+        )
+        return AdvisoryCopilotEvidencePacketResponse(evidence_packet=packet, record=record)
+    except ValueError as exc:
+        _raise_copilot_http_exception(exc)
+
+
+@shared.router.post(
+    "/advisory/copilot/evidence-packets/from-proposal-version",
+    response_model=AdvisoryCopilotEvidencePacketResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Advisory Copilot"],
+    summary="Create Proposal Version Advisory Copilot Evidence Packet",
+    description=(
+        "Builds and persists a bounded advisory copilot evidence packet from Advise-owned "
+        "proposal, memo, policy evaluation, advisor cockpit, report-readiness, and handoff "
+        "records. This endpoint is the Workbench-safe projection path: callers request a "
+        "proposal/version/action family, while Advise owns evidence selection, unsupported "
+        "evidence, source refs, redaction, hashes, and lineage."
+    ),
+    responses=ADVISORY_COPILOT_RESPONSES,
+)
+def create_advisory_copilot_evidence_packet_from_proposal_version(
+    payload: AdvisoryCopilotProposalVersionEvidenceRequest,
+    correlation_id: Annotated[
+        str | None,
+        Header(alias="X-Correlation-ID", description="Correlation id for packet creation."),
+    ] = None,
+    repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
+    proposal_repository: ProposalRepository = Depends(get_proposal_repository),
+) -> AdvisoryCopilotEvidencePacketResponse:
+    try:
+        proposal = proposal_repository.get_proposal(proposal_id=payload.proposal_id)
+        if proposal is None:
+            raise ValueError("COPILOT_PROPOSAL_VERSION_NOT_FOUND")
+        policy_evaluations = list_policy_evaluation_records(
+            evaluation_status=None,
+            portfolio_id=proposal.portfolio_id,
+        )
+        packet = build_proposal_version_copilot_evidence_packet(
+            repository=proposal_repository,
+            evidence_packet_id=payload.evidence_packet_id,
+            action_family=payload.action_family,
+            proposal_id=payload.proposal_id,
+            proposal_version_no=payload.proposal_version_no,
+            audience=payload.audience,
+            policy_evaluations=policy_evaluations,
+        )
+        record = save_advisory_copilot_evidence_packet(
+            repository=repository,
+            evidence_packet=packet,
+            audience=payload.audience,
+            created_by=payload.created_by,
+            reason={
+                **payload.reason,
+                "source_projection": "PROPOSAL_VERSION",
+                "proposal_id": payload.proposal_id,
+                "proposal_version_no": payload.proposal_version_no,
+            },
+            correlation_id=correlation_id or f"corr-{packet.evidence_packet_id}",
         )
         return AdvisoryCopilotEvidencePacketResponse(evidence_packet=packet, record=record)
     except ValueError as exc:

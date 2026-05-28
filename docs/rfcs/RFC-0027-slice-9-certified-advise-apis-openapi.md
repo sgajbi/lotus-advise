@@ -13,12 +13,13 @@ slices.
 Implemented endpoints:
 
 1. `POST /advisory/copilot/evidence-packets`
-2. `GET /advisory/copilot/evidence-packets/{evidence_packet_id}`
-3. `POST /advisory/copilot/actions`
-4. `GET /advisory/copilot/actions/{run_id}`
-5. `POST /advisory/copilot/actions/{run_id}/reviews`
-6. `GET /advisory/copilot/supportability`
-7. `GET /advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs`
+2. `POST /advisory/copilot/evidence-packets/from-proposal-version`
+3. `GET /advisory/copilot/evidence-packets/{evidence_packet_id}`
+4. `POST /advisory/copilot/actions`
+5. `GET /advisory/copilot/actions/{run_id}`
+6. `POST /advisory/copilot/actions/{run_id}/reviews`
+7. `GET /advisory/copilot/supportability`
+8. `GET /advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs`
 
 No free-form prompt endpoint exists.
 
@@ -27,12 +28,14 @@ No free-form prompt endpoint exists.
 The API owns advisory copilot orchestration in Advise:
 
 1. evidence-packet creation uses the deterministic redaction/projection builder,
-2. action execution loads a persisted evidence packet and calls the approved `lotus-ai`
+2. Workbench-safe proposal-version projection lets callers request source-owned evidence by
+   proposal/version/action family without constructing source sections in the browser,
+3. action execution loads a persisted evidence packet and calls the approved `lotus-ai`
    workflow-pack adapter,
-3. run persistence records hashes, guardrails, review posture, lineage, tenant, caller, and
+4. run persistence records hashes, guardrails, review posture, lineage, tenant, caller, and
    correlation id,
-4. review actions are idempotent and audited,
-5. supportability explicitly blocks client-ready publication, policy approval/sign-off authority,
+5. review actions are idempotent and audited,
+6. supportability explicitly blocks client-ready publication, policy approval/sign-off authority,
    order/fill/settlement authority, and Gateway/Workbench promotion claims.
 
 The API rejects raw prompt/provider/unsafe-output storage through the Slice 8 persistence guard.
@@ -63,12 +66,13 @@ Targeted commands:
 Implementation-backed tests cover:
 
 1. evidence-packet create/read,
-2. unsupported-evidence projection,
-3. action run persistence and idempotent replay,
-4. no raw user instruction persisted in API readback,
-5. review action idempotency,
-6. proposal-version run lookup,
-7. OpenAPI registration and absence of free-form prompt endpoints.
+2. source-owned proposal-version evidence-packet projection for Workbench-safe consumption,
+3. unsupported-evidence projection,
+4. action run persistence and idempotent replay,
+5. no raw user instruction persisted in API readback,
+6. review action idempotency,
+7. proposal-version run lookup,
+8. OpenAPI registration and absence of free-form prompt endpoints.
 
 ## Remaining RFC-0027 Boundary
 

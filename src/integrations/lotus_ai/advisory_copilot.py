@@ -336,8 +336,21 @@ def _build_lineage(
         "output_schema_version": OUTPUT_SCHEMA_VERSION,
         "evaluation_pack_ref": EVALUATION_PACK_REF,
         "evidence_packet_hash": evidence_packet.evidence_packet_hash,
+        "proposal_version_id": _proposal_version_id(evidence_packet),
         "fallback_reason": fallback_reason,
     }
+
+
+def _proposal_version_id(evidence_packet: CopilotEvidencePacket) -> str | None:
+    for section in evidence_packet.sections:
+        for source_ref in section.source_refs:
+            if (
+                source_ref.source_system == "lotus-advise"
+                and source_ref.source_type == "PROPOSAL_VERSION"
+                and source_ref.source_id
+            ):
+                return source_ref.source_id
+    return None
 
 
 def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:

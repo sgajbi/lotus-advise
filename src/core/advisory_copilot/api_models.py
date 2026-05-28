@@ -54,6 +54,43 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     )
 
 
+class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
+    proposal_id: str = Field(
+        description="Proposal identifier whose source-owned evidence should be projected.",
+        examples=["proposal_sg_structured_note_001"],
+    )
+    proposal_version_no: int = Field(
+        ge=1,
+        description="Immutable proposal version number to use as the evidence source.",
+        examples=[1],
+    )
+    evidence_packet_id: str | None = Field(
+        default=None,
+        description=(
+            "Optional stable evidence-packet identifier. When omitted, Advise derives a "
+            "deterministic identifier from action family, proposal, and version."
+        ),
+        examples=["copilot_packet_pb_sg_001"],
+    )
+    action_family: CopilotActionFamily = Field(
+        description="Governed copilot action family the source projection supports.",
+        examples=["PROPOSAL_EXPLANATION"],
+    )
+    audience: CopilotAudience = Field(
+        description="Audience projection used for role-aware evidence filtering.",
+        examples=["ADVISOR"],
+    )
+    created_by: str = Field(
+        description="Actor creating or rebuilding the source-owned packet projection.",
+        examples=["advisor_123"],
+    )
+    reason: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Business reason for packet creation; raw prompt fields are rejected.",
+        examples=[{"business_reason": "Prepare advisor copilot review."}],
+    )
+
+
 class AdvisoryCopilotEvidencePacketResponse(BaseModel):
     evidence_packet: CopilotEvidencePacket = Field(
         description="Bounded, redacted copilot evidence packet."

@@ -475,9 +475,9 @@ Current note:
   data-product promotion, and supported product claims unpromoted.
 - RFC-0027 Slice 9 certified API evidence lives in
   `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`; it exposes Advise-owned copilot
-  evidence-packet, action, run retrieval, review, supportability, and proposal-version run lookup
-  APIs with OpenAPI coverage while keeping Gateway, Workbench, canonical proof, data-product
-  promotion, and supported product claims unpromoted.
+  evidence-packet, Workbench-safe proposal-version source projection, action, run retrieval,
+  review, supportability, and proposal-version run lookup APIs with OpenAPI coverage while keeping
+  Workbench, canonical proof, data-product promotion, and supported product claims unpromoted.
 
 RFC-0025 implementation evidence includes:
 

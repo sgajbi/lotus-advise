@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -9,9 +10,13 @@ import src.api.proposals.router as proposals_router
 import src.api.proposals.routes_advisory_copilot as copilot_routes
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, ProposalVersionRecord
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 from src.integrations.lotus_ai import AdvisoryCopilotAiDraft
+
+NOW = datetime(2026, 5, 28, 9, 0, tzinfo=UTC)
 
 
 @pytest.fixture()
@@ -56,6 +61,75 @@ def _evidence_packet_payload() -> dict[str, Any]:
     }
 
 
+def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:
+    repository.create_proposal(
+        ProposalRecord(
+            proposal_id="proposal_sg_structured_note_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            created_by="advisor_123",
+            created_at=NOW,
+            last_event_at=NOW,
+            current_state="COMPLIANCE_REVIEW",
+            current_version_no=1,
+            title="Structured note proposal review",
+        )
+    )
+    repository.create_version(
+        ProposalVersionRecord(
+            proposal_version_id="version_sg_001",
+            proposal_id="proposal_sg_structured_note_001",
+            version_no=1,
+            created_at=NOW,
+            request_hash="sha256:request",
+            artifact_hash="sha256:artifact",
+            simulation_hash="sha256:simulation",
+            status_at_creation="READY",
+            proposal_result_json={"status": "READY"},
+            artifact_json={"narrative": {"status": "REVIEW_REQUIRED"}},
+            evidence_bundle_json={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+        )
+    )
+    repository.create_memo(
+        ProposalMemoRecord(
+            memo_id="memo_sg_001",
+            proposal_id="proposal_sg_structured_note_001",
+            proposal_version_no=1,
+            proposal_version_id="version_sg_001",
+            artifact_id="artifact_sg_001",
+            memo_version="advisory-proposal-memo-evidence-pack.v1",
+            memo_status="BLOCKED",
+            lifecycle_status="FINALIZED",
+            created_by="advisor_123",
+            created_at=NOW,
+            source_input_hash="sha256:memo-source",
+            memo_hash="sha256:memo",
+            memo_json={"memo_id": "memo_sg_001"},
+            report_package_events_json=[
+                {"event_id": "memo_report_pkg_001", "report_reference_id": "report_pkg_001"}
+            ],
+        )
+    )
+
+
+def _policy_evaluation() -> PolicyEvaluationRecord:
+    return PolicyEvaluationRecord(
+        evaluation_id="policy_eval_sg_001",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_id="version_sg_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        generated_at="2026-05-28T09:00:00+00:00",
+        created_by="advisor_123",
+        evaluation_status="PENDING_REVIEW",
+        policy_content_hash="sha256:policy-content",
+        source_evidence_hash="sha256:source-evidence",
+        evaluation_hash="sha256:policy-evaluation",
+        evaluation_json={"evaluation_status": "PENDING_REVIEW"},
+        approval_dependencies=["COMPLIANCE_REVIEW"],
+    )
+
+
 def test_advisory_copilot_evidence_packet_create_and_read(
     copilot_repository: InMemoryAdvisoryCopilotRepository,
 ) -> None:
@@ -76,6 +150,53 @@ def test_advisory_copilot_evidence_packet_create_and_read(
     assert {item["reason_code"] for item in payload["evidence_packet"]["unsupported_evidence"]} == {
         "SOURCE_NOT_AVAILABLE"
     }
+
+
+def test_advisory_copilot_evidence_packet_from_proposal_version_is_source_owned(
+    monkeypatch: pytest.MonkeyPatch,
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    _ = copilot_repository
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    monkeypatch.setattr(proposals_router.runtime, "build_repository", lambda: proposal_repository)
+    reset_proposal_workflow_service_for_tests()
+    monkeypatch.setattr(
+        copilot_routes,
+        "list_policy_evaluation_records",
+        lambda **_: [_policy_evaluation()],
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/copilot/evidence-packets/from-proposal-version",
+            json={
+                "proposal_id": "proposal_sg_structured_note_001",
+                "proposal_version_no": 1,
+                "action_family": "PROPOSAL_EXPLANATION",
+                "audience": "ADVISOR",
+                "created_by": "advisor_123",
+                "reason": {"business_reason": "Prepare advisor copilot review."},
+            },
+            headers={"X-Correlation-ID": "corr_projection_001"},
+        )
+
+    assert response.status_code == 201
+    payload = response.json()
+    packet = payload["evidence_packet"]
+    assert packet["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
+    assert packet["client_ready_publication"] == "BLOCKED"
+    assert {section["section_key"] for section in packet["sections"]} >= {
+        "PROPOSAL_CONTEXT",
+        "NARRATIVE_POSTURE",
+        "MEMO_EVIDENCE",
+        "POLICY_POSTURE",
+    }
+    assert "REPORT_READINESS" not in {
+        item["reason_code"] for item in packet["unsupported_evidence"]
+    }
+    assert "raw prompt" not in str(payload).lower()
+    assert payload["record"]["reason_json"]["source_projection"] == "PROPOSAL_VERSION"
 
 
 def test_advisory_copilot_action_persists_review_gated_run(
@@ -220,6 +341,7 @@ def test_advisory_copilot_openapi_is_action_specific() -> None:
     assert "/advisory/copilot/actions/{run_id}" in paths
     assert "/advisory/copilot/actions/{run_id}/reviews" in paths
     assert "/advisory/copilot/evidence-packets" in paths
+    assert "/advisory/copilot/evidence-packets/from-proposal-version" in paths
     assert "/advisory/copilot/supportability" in paths
     assert "/advisory/copilot/prompt" not in paths
     assert "Advisory Copilot" in {tag["name"] for tag in schema["tags"]}
