@@ -473,6 +473,11 @@ Current note:
   idempotency, review, audit, retention, legal-hold, and Postgres migration support while rejecting
   raw prompt/provider/unsafe-output storage and keeping API, Gateway, Workbench, canonical proof,
   data-product promotion, and supported product claims unpromoted.
+- RFC-0027 Slice 9 certified API evidence lives in
+  `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`; it exposes Advise-owned copilot
+  evidence-packet, action, run retrieval, review, supportability, and proposal-version run lookup
+  APIs with OpenAPI coverage while keeping Gateway, Workbench, canonical proof, data-product
+  promotion, and supported product claims unpromoted.
 
 RFC-0025 implementation evidence includes:
 
@@ -533,4 +538,5 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`
 - `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`
 - `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`
+- `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`
 

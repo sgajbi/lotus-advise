@@ -40,6 +40,7 @@ from src.core.advisory_copilot.projection import (
     business_projection_for_action,
 )
 from src.core.advisory_copilot.records import (
+    AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
     AdvisoryCopilotRunIdempotencyRecord,
     AdvisoryCopilotRunRecord,
@@ -57,9 +58,11 @@ from src.core.advisory_copilot.service import (
     AdvisoryCopilotRunPersistenceResult,
     canonical_json_hash,
     list_advisory_copilot_reviews,
+    load_advisory_copilot_evidence_packet,
     persist_advisory_copilot_run,
     record_advisory_copilot_review,
     retention_expires_at,
+    save_advisory_copilot_evidence_packet,
 )
 from src.core.advisory_copilot.workflow_pack import (
     WORKFLOW_PACK_CALLER_APP,
@@ -78,6 +81,7 @@ __all__ = [
     "TERMINAL_REVIEW_POSTURES",
     "WORKFLOW_PACK_CALLER_APP",
     "WORKFLOW_PACK_EXECUTION_AUTHORITY",
+    "AdvisoryCopilotEvidencePacketRecord",
     "AdvisoryCopilotRepository",
     "AdvisoryCopilotReviewRecord",
     "AdvisoryCopilotReviewResult",
@@ -113,11 +117,13 @@ __all__ = [
     "is_terminal_review_posture",
     "list_advisory_copilot_reviews",
     "list_copilot_action_definitions",
+    "load_advisory_copilot_evidence_packet",
     "persist_advisory_copilot_run",
     "record_advisory_copilot_review",
     "required_evidence_sections",
     "retention_expires_at",
     "review_posture_for_action",
+    "save_advisory_copilot_evidence_packet",
     "workflow_pack_id_for_action",
     "workflow_pack_version_for_action",
 ]

@@ -41,7 +41,7 @@ def test_cutover_contract_includes_copilot_persistence_migrations():
     assert "advisory_copilot" in production_cutover_contract.CUTOVER_MIGRATION_NAMESPACES
     assert production_cutover_contract.expected_migration_versions(
         namespace="advisory_copilot"
-    ) == ["0001"]
+    ) == ["0001", "0002"]
 
 
 def test_cutover_contract_propagates_runtime_failures(monkeypatch):

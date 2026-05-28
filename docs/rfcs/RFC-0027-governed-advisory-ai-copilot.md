@@ -913,6 +913,10 @@ Acceptance gate:
    relevant,
 4. `/platform/capabilities` remains truthful.
 
+Slice 9 evidence:
+
+1. `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`
+
 ### Slice 10 - Gateway Integration
 
 Outcome:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from src.core.advisory_copilot.records import (
+    AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
     AdvisoryCopilotRunIdempotencyRecord,
     AdvisoryCopilotRunRecord,
@@ -10,6 +11,14 @@ from src.core.advisory_copilot.records import (
 
 
 class AdvisoryCopilotRepository(Protocol):
+    def save_evidence_packet(
+        self, record: AdvisoryCopilotEvidencePacketRecord
+    ) -> AdvisoryCopilotEvidencePacketRecord: ...
+
+    def get_evidence_packet(
+        self, *, evidence_packet_id: str
+    ) -> AdvisoryCopilotEvidencePacketRecord | None: ...
+
     def get_run(self, *, run_id: str) -> AdvisoryCopilotRunRecord | None: ...
 
     def get_run_idempotency(

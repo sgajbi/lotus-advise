@@ -127,6 +127,12 @@ copilot records. The persistence layer rejects raw prompt, provider, and unsafe-
 Advise copilot APIs, Gateway, Workbench, canonical proof, data-product promotion, and supported
 runtime claims remain unpromoted.
 
+RFC-0027 Slice 9 is implemented as certified Advise advisory copilot APIs and OpenAPI coverage.
+Evidence lives in `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`. `lotus-advise`
+now exposes evidence-packet create/read, action run/read, review, supportability, and proposal
+version run lookup endpoints with no free-form prompt endpoint. Gateway, Workbench, canonical
+proof, data-product promotion, and supported runtime claims remain unpromoted.
+
 RFC-0026 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
 repo-native controls are sufficient before cockpit domain work, so no `lotus-platform` code change
@@ -657,3 +663,4 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-6-guardrail-unsupported-evidence-engine.md`
 - `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`
 - `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`
+- `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`

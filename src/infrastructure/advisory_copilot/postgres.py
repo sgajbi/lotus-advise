@@ -7,6 +7,7 @@ from importlib.util import find_spec
 from typing import Any
 
 from src.core.advisory_copilot.records import (
+    AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
     AdvisoryCopilotRunIdempotencyRecord,
     AdvisoryCopilotRunRecord,
@@ -22,6 +23,60 @@ class PostgresAdvisoryCopilotRepository:
             raise RuntimeError("ADVISORY_COPILOT_POSTGRES_DRIVER_MISSING")
         self._dsn = dsn
         self._init_db()
+
+    def save_evidence_packet(
+        self, record: AdvisoryCopilotEvidencePacketRecord
+    ) -> AdvisoryCopilotEvidencePacketRecord:
+        query = """
+            INSERT INTO advisory_copilot_evidence_packets (
+                evidence_packet_id, evidence_packet_hash, action_family, audience, portfolio_id,
+                proposal_id, created_by, created_at, correlation_id, packet_json, reason_json
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (evidence_packet_id) DO NOTHING
+        """
+        with closing(self._connect()) as connection:
+            existing = connection.execute(
+                """
+                SELECT *
+                FROM advisory_copilot_evidence_packets
+                WHERE evidence_packet_id = %s
+                """,
+                (record.evidence_packet_id,),
+            ).fetchone()
+            if existing is not None:
+                if existing["evidence_packet_hash"] != record.evidence_packet_hash:
+                    raise ValueError("COPILOT_EVIDENCE_PACKET_HASH_CONFLICT")
+                return _evidence_packet_from_row(existing)
+            connection.execute(
+                query,
+                (
+                    record.evidence_packet_id,
+                    record.evidence_packet_hash,
+                    record.action_family,
+                    record.audience,
+                    record.portfolio_id,
+                    record.proposal_id,
+                    record.created_by,
+                    record.created_at.isoformat(),
+                    record.correlation_id,
+                    _json_dump(record.packet_json),
+                    _json_dump(record.reason_json),
+                ),
+            )
+            connection.commit()
+        return record
+
+    def get_evidence_packet(
+        self, *, evidence_packet_id: str
+    ) -> AdvisoryCopilotEvidencePacketRecord | None:
+        query = """
+            SELECT *
+            FROM advisory_copilot_evidence_packets
+            WHERE evidence_packet_id = %s
+        """
+        with closing(self._connect()) as connection:
+            row = connection.execute(query, (evidence_packet_id,)).fetchone()
+        return _evidence_packet_from_row(row) if row is not None else None
 
     def get_run(self, *, run_id: str) -> AdvisoryCopilotRunRecord | None:
         query = "SELECT * FROM advisory_copilot_runs WHERE run_id = %s"
@@ -301,6 +356,22 @@ def _run_from_row(row: dict[str, Any]) -> AdvisoryCopilotRunRecord:
         review_guidance_json=_json_load(row["review_guidance_json"]),
         guardrail_results_json=_json_load(row["guardrail_results_json"]),
         lineage_json=_json_load(row["lineage_json"]),
+    )
+
+
+def _evidence_packet_from_row(row: dict[str, Any]) -> AdvisoryCopilotEvidencePacketRecord:
+    return AdvisoryCopilotEvidencePacketRecord(
+        evidence_packet_id=row["evidence_packet_id"],
+        evidence_packet_hash=row["evidence_packet_hash"],
+        action_family=row["action_family"],
+        audience=row["audience"],
+        portfolio_id=row["portfolio_id"],
+        proposal_id=row["proposal_id"],
+        created_by=row["created_by"],
+        created_at=datetime.fromisoformat(row["created_at"]),
+        correlation_id=row["correlation_id"],
+        packet_json=_json_load(row["packet_json"]),
+        reason_json=_json_load(row["reason_json"]),
     )
 
 

@@ -163,6 +163,53 @@ class AdvisoryCopilotRunRecord(BaseModel):
     )
 
 
+class AdvisoryCopilotEvidencePacketRecord(BaseModel):
+    evidence_packet_id: str = Field(
+        description="Evidence-packet identifier available for governed copilot actions.",
+        examples=["copilot_packet_pb_sg_001"],
+    )
+    evidence_packet_hash: str = Field(
+        description="Canonical hash of the bounded evidence packet.",
+        examples=["sha256:copilot-evidence-packet-001"],
+    )
+    action_family: CopilotActionFamily = Field(
+        description="Copilot action family supported by the packet.",
+        examples=["PROPOSAL_EXPLANATION"],
+    )
+    audience: CopilotAudience = Field(
+        description="Audience projection used when the packet was created.",
+        examples=["ADVISOR"],
+    )
+    portfolio_id: str = Field(
+        description="Portfolio identifier for the source-scoped advisory evidence.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    )
+    proposal_id: str | None = Field(
+        default=None,
+        description="Proposal identifier when the packet is proposal-scoped.",
+        examples=["proposal_sg_structured_note_001"],
+    )
+    created_by: str = Field(
+        description="Actor that created or rebuilt the evidence packet.",
+        examples=["advisor_123"],
+    )
+    created_at: datetime = Field(
+        description="UTC timestamp when the packet record was created.",
+        examples=["2026-05-28T09:00:00+00:00"],
+    )
+    correlation_id: str = Field(
+        description="Correlation id recorded for packet creation.",
+        examples=["corr_rfc0027_packet_001"],
+    )
+    packet_json: dict[str, Any] = Field(
+        description="Bounded, redacted copilot evidence packet JSON.",
+    )
+    reason_json: dict[str, Any] = Field(
+        description="Business reason for creating or rebuilding the packet.",
+        examples=[{"business_reason": "Prepare advisor review."}],
+    )
+
+
 class AdvisoryCopilotRunIdempotencyRecord(BaseModel):
     idempotency_key: str = Field(description="Idempotency key for a copilot action request.")
     request_hash: str = Field(description="Canonical request hash mapped to the idempotency key.")

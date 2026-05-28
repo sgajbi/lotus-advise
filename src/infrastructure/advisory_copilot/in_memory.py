@@ -4,6 +4,7 @@ from copy import deepcopy
 from threading import Lock
 
 from src.core.advisory_copilot.records import (
+    AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
     AdvisoryCopilotRunIdempotencyRecord,
     AdvisoryCopilotRunRecord,
@@ -14,10 +15,30 @@ from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 class InMemoryAdvisoryCopilotRepository(AdvisoryCopilotRepository):
     def __init__(self) -> None:
         self._lock = Lock()
+        self._evidence_packets: dict[str, AdvisoryCopilotEvidencePacketRecord] = {}
         self._runs: dict[str, AdvisoryCopilotRunRecord] = {}
         self._run_idempotency: dict[str, AdvisoryCopilotRunIdempotencyRecord] = {}
         self._reviews: dict[str, list[AdvisoryCopilotReviewRecord]] = {}
         self._review_idempotency: dict[tuple[str, str], str] = {}
+
+    def save_evidence_packet(
+        self, record: AdvisoryCopilotEvidencePacketRecord
+    ) -> AdvisoryCopilotEvidencePacketRecord:
+        with self._lock:
+            existing = self._evidence_packets.get(record.evidence_packet_id)
+            if existing is not None:
+                if existing.evidence_packet_hash != record.evidence_packet_hash:
+                    raise ValueError("COPILOT_EVIDENCE_PACKET_HASH_CONFLICT")
+                return deepcopy(existing)
+            self._evidence_packets[record.evidence_packet_id] = deepcopy(record)
+            return deepcopy(record)
+
+    def get_evidence_packet(
+        self, *, evidence_packet_id: str
+    ) -> AdvisoryCopilotEvidencePacketRecord | None:
+        with self._lock:
+            record = self._evidence_packets.get(evidence_packet_id)
+            return deepcopy(record) if record is not None else None
 
     def get_run(self, *, run_id: str) -> AdvisoryCopilotRunRecord | None:
         with self._lock:

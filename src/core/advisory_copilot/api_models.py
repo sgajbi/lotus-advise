@@ -1,0 +1,158 @@
+from __future__ import annotations
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from src.core.advisory_copilot.models import (
+    CopilotActionFamily,
+    CopilotAudience,
+    CopilotEvidencePacket,
+    CopilotEvidenceSectionInput,
+)
+from src.core.advisory_copilot.records import (
+    AdvisoryCopilotEvidencePacketRecord,
+    AdvisoryCopilotReviewRecord,
+    AdvisoryCopilotRunRecord,
+)
+from src.core.advisory_copilot.review import CopilotReviewAction
+
+
+class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
+    evidence_packet_id: str = Field(
+        description="Stable evidence-packet identifier supplied by the caller.",
+        examples=["copilot_packet_pb_sg_001"],
+    )
+    action_family: CopilotActionFamily = Field(
+        description="Governed copilot action family the packet supports.",
+        examples=["PROPOSAL_EXPLANATION"],
+    )
+    portfolio_id: str = Field(
+        description="Portfolio identifier for source-scoped advisory evidence.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    )
+    proposal_id: str | None = Field(
+        default=None,
+        description="Proposal identifier when the packet is proposal-scoped.",
+        examples=["proposal_sg_structured_note_001"],
+    )
+    audience: CopilotAudience = Field(
+        description="Audience projection used for source-section filtering.",
+        examples=["ADVISOR"],
+    )
+    source_sections: tuple[CopilotEvidenceSectionInput, ...] = Field(
+        description="Bounded source-backed evidence sections to project into the packet.",
+    )
+    created_by: str = Field(
+        description="Actor creating or rebuilding the packet.",
+        examples=["advisor_123"],
+    )
+    reason: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Business reason for packet creation; raw prompt fields are rejected.",
+        examples=[{"business_reason": "Prepare advisor review."}],
+    )
+
+
+class AdvisoryCopilotEvidencePacketResponse(BaseModel):
+    evidence_packet: CopilotEvidencePacket = Field(
+        description="Bounded, redacted copilot evidence packet."
+    )
+    record: AdvisoryCopilotEvidencePacketRecord = Field(
+        description="Durable evidence-packet record and audit context."
+    )
+
+
+class AdvisoryCopilotActionRequest(BaseModel):
+    evidence_packet_id: str = Field(
+        description="Persisted evidence packet to use for copilot action execution.",
+        examples=["copilot_packet_pb_sg_001"],
+    )
+    audience: CopilotAudience = Field(
+        description="Audience projection requested for the action.",
+        examples=["ADVISOR"],
+    )
+    requested_outputs: tuple[str, ...] = Field(
+        description="Named business output sections requested from the governed action.",
+        examples=[["advisor_review_summary"]],
+    )
+    requested_by: str = Field(
+        description="Actor requesting the copilot action.",
+        examples=["advisor_123"],
+    )
+    reason: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Business reason for the action; raw prompt fields are rejected.",
+        examples=[{"business_reason": "Prepare advisor review."}],
+    )
+    requested_intents: tuple[str, ...] = Field(
+        default=(),
+        description="Bounded requested intents used by guardrails before execution.",
+        examples=[["explain_policy_posture"]],
+    )
+    user_instruction: str = Field(
+        default="",
+        description="Optional user instruction used only for guardrail evaluation and hashing.",
+        examples=["Summarize advisor-use evidence."],
+    )
+
+
+class AdvisoryCopilotRunResponse(BaseModel):
+    run: AdvisoryCopilotRunRecord = Field(description="Persisted advisory copilot run.")
+    reviews: tuple[AdvisoryCopilotReviewRecord, ...] = Field(
+        default=(),
+        description="Ordered review audit events for the run.",
+    )
+    replayed: bool = Field(
+        default=False,
+        description="Whether the action request replayed an existing idempotent run.",
+    )
+
+
+class AdvisoryCopilotReviewRequest(BaseModel):
+    action: CopilotReviewAction = Field(
+        description="Review action to apply to the copilot run.",
+        examples=["APPROVE_FOR_INTERNAL_USE"],
+    )
+    actor_id: str = Field(
+        description="Actor recording the review event.",
+        examples=["supervisor_123"],
+    )
+    reason: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured review reason; raw prompt fields are rejected.",
+        examples=[{"decision": "Reviewed against cited source evidence."}],
+    )
+
+
+class AdvisoryCopilotReviewResponse(BaseModel):
+    run: AdvisoryCopilotRunRecord = Field(description="Run after review processing.")
+    review: AdvisoryCopilotReviewRecord = Field(description="Persisted review event.")
+    replayed: bool = Field(description="Whether this was an idempotent replay.")
+
+
+class AdvisoryCopilotSupportabilityResponse(BaseModel):
+    support_status: str = Field(
+        description="Current support posture for the Advise copilot API surface.",
+        examples=["ADVISE_API_CERTIFIED_GATEWAY_WORKBENCH_PENDING"],
+    )
+    client_ready_publication: str = Field(
+        description="Client-ready publication posture for first-wave copilot output.",
+        examples=["BLOCKED"],
+    )
+    supported_action_families: tuple[CopilotActionFamily, ...] = Field(
+        description="Action families exposed by the Advise copilot API.",
+    )
+    boundaries: tuple[str, ...] = Field(
+        description="Unsupported claims and system-of-record boundaries.",
+    )
+
+
+class AdvisoryCopilotRunPage(BaseModel):
+    items: tuple[AdvisoryCopilotRunRecord, ...] = Field(
+        description="Copilot runs for the requested proposal version scope."
+    )
+    next_cursor: str | None = Field(
+        default=None,
+        description="Reserved cursor for future keyset pagination.",
+    )
