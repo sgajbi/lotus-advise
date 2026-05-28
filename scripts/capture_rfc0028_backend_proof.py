@@ -142,6 +142,9 @@ def write_backend_proof_capture_bundle(
         "supported_claim_register": output_dir / "supported-claim-register.json",
         "proof_pack": output_dir / "proof-pack.json",
         "document_proof_summary": output_dir / "document-proof-summary.json",
+        "journey_integration_proof_summary": (
+            output_dir / "journey-integration-proof-summary.json"
+        ),
         "runtime_posture": output_dir / "runtime-posture.json",
         "sanitized_runtime_summary": output_dir / "sanitized-runtime-summary.json",
         "material_field_review": output_dir / "material-field-review.json",
@@ -158,6 +161,10 @@ def write_backend_proof_capture_bundle(
     _write_json(
         paths["document_proof_summary"],
         bundle.document_proof_summary.model_dump(mode="json"),
+    )
+    _write_json(
+        paths["journey_integration_proof_summary"],
+        bundle.journey_integration_proof_summary.model_dump(mode="json"),
     )
     _write_json(paths["runtime_posture"], bundle.runtime_posture.model_dump(mode="json"))
     _write_json(paths["sanitized_runtime_summary"], bundle.sanitized_runtime_summary)
@@ -315,6 +322,15 @@ def _render_capture_summary(bundle: BackendProofCaptureBundle) -> str:
         f"client-ready `{document.client_ready_document_status}`"
         for document in bundle.document_proof_summary.documents
     )
+    ai_rows = "\n".join(
+        "- "
+        f"`{row.evidence_family}`: `{row.proof_posture}` / AI `{row.ai_status}`, "
+        f"review required `{row.human_review_required}`, "
+        f"authoritative `{row.authoritative_for_advice}`, guardrail `{row.guardrail_status}`"
+        for row in bundle.journey_integration_proof_summary.ai_model_risk_controls
+    )
+    policy = bundle.journey_integration_proof_summary.policy_evidence
+    cockpit = bundle.journey_integration_proof_summary.cockpit_evidence
     return (
         "# RFC-0028 Backend Proof Capture\n\n"
         f"- proof pack: `{bundle.proof_pack.proof_pack_id}`\n"
@@ -327,6 +343,12 @@ def _render_capture_summary(bundle: BackendProofCaptureBundle) -> str:
         f"{runtime}\n\n"
         "## Document Proof\n\n"
         f"{document_rows}\n\n"
+        "## AI, Policy, And Cockpit Integration Proof\n\n"
+        f"{ai_rows}\n\n"
+        f"- policy: `{policy.policy_pack_id}` / `{policy.policy_version}` / "
+        f"`{policy.evaluation_status}` / client-ready `{policy.client_ready_publication}`\n"
+        f"- cockpit panel: `{cockpit.required_workbench_panel}` / "
+        f"`{cockpit.proof_posture}` / client-ready `{cockpit.client_ready_publication}`\n\n"
         "## Material Field Review\n\n"
         f"{material_reviews}\n\n"
         "## Unsupported Boundaries\n\n"

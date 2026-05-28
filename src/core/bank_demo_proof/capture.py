@@ -9,6 +9,10 @@ from src.core.bank_demo_proof.document_proof import (
     AdvisoryDocumentProofSummary,
     build_document_proof_summary,
 )
+from src.core.bank_demo_proof.integration_proof import (
+    AdvisoryJourneyIntegrationProofSummary,
+    build_journey_integration_proof_summary,
+)
 from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
@@ -115,12 +119,13 @@ class BackendProofCaptureBundle(BaseModel):
     supported_claim_register: AdvisorySupportedClaimRegister
     proof_pack: AdvisoryBankDemoProofPack
     document_proof_summary: AdvisoryDocumentProofSummary
+    journey_integration_proof_summary: AdvisoryJourneyIntegrationProofSummary
     runtime_posture: BackendRuntimePosture
     sanitized_runtime_summary: dict[str, Any]
     material_field_reviews: list[MaterialFieldReview]
 
 
-_MATERIAL_FIELD_SPECS: tuple[tuple[str, str, str, str], ...] = (
+_MATERIAL_FIELD_SPECS: tuple[tuple[str, str, Any, str], ...] = (
     (
         "canonical_portfolio",
         "parity.complete_issuer_portfolio",
@@ -248,6 +253,48 @@ _MATERIAL_FIELD_SPECS: tuple[tuple[str, str, str, str], ...] = (
         "advisor_use_document_proof_available",
     ),
     (
+        "narrative_guardrail_reproduction",
+        "parity.proposal_narrative.guardrail_failure_status",
+        "LOCAL_POLICY_REPRODUCED",
+        "ai_policy_cockpit_proof_integrated",
+    ),
+    (
+        "memo_ai_non_authoritative",
+        "parity.proposal_memo.ai_authoritative_for_memo_status",
+        False,
+        "ai_policy_cockpit_proof_integrated",
+    ),
+    (
+        "memo_ai_review_required",
+        "parity.proposal_memo.ai_review_required",
+        True,
+        "ai_policy_cockpit_proof_integrated",
+    ),
+    (
+        "policy_ai_non_authoritative",
+        "parity.proposal_policy.ai_authoritative_for_policy_status",
+        False,
+        "ai_policy_cockpit_proof_integrated",
+    ),
+    (
+        "policy_ai_human_review_required",
+        "parity.proposal_policy.ai_human_review_required",
+        True,
+        "ai_policy_cockpit_proof_integrated",
+    ),
+    (
+        "policy_ai_raw_source_excluded",
+        "parity.proposal_policy.ai_raw_source_evidence_included",
+        False,
+        "ai_policy_cockpit_proof_integrated",
+    ),
+    (
+        "policy_ai_forbidden_action_blocked",
+        "parity.proposal_policy.forbidden_ai_action_block_status",
+        "POLICY_AI_EVIDENCE_FORBIDDEN_ACTION",
+        "ai_policy_cockpit_proof_integrated",
+    ),
+    (
         "degraded_risk",
         "degraded.risk_degraded_reason",
         "LOTUS_RISK_DEPENDENCY_UNAVAILABLE",
@@ -283,7 +330,7 @@ def build_default_scenario_contract() -> AdvisoryDemoScenarioContract:
                 title="Advisor reviews source-backed cockpit actions",
                 owner_repository="lotus-advise",
                 required_evidence_refs=["proof.assets.sanitized_runtime_summary"],
-                required_workbench_panels=["advisor_cockpit"],
+                required_workbench_panels=["advisory.advisor_cockpit"],
             ),
             DemoScenarioStep(
                 step_id="proposal_lifecycle_and_decision_paths",
@@ -295,7 +342,14 @@ def build_default_scenario_contract() -> AdvisoryDemoScenarioContract:
                 step_id="narrative_memo_policy_evidence",
                 title="Advisor reviews narrative, memo, and policy evidence",
                 owner_repository="lotus-advise",
-                required_evidence_refs=["proof.assets.sanitized_runtime_summary"],
+                required_evidence_refs=[
+                    "proof.assets.sanitized_runtime_summary",
+                    "proof.assets.journey_integration_proof_summary",
+                ],
+                required_workbench_panels=[
+                    "proposal.memo_evidence_pack",
+                    "advisory.suitability_review",
+                ],
             ),
             DemoScenarioStep(
                 step_id="degraded_source_readiness",
@@ -310,6 +364,7 @@ def build_default_scenario_contract() -> AdvisoryDemoScenarioContract:
 def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
     backend_summary_ref = "proof.assets.sanitized_runtime_summary"
     document_proof_ref = "proof.assets.document_proof_summary"
+    integration_proof_ref = "proof.assets.journey_integration_proof_summary"
     field_review_ref = "proof.assets.material_field_review"
     runtime_posture_ref = "proof.assets.runtime_posture"
     return AdvisorySupportedClaimRegister(
@@ -430,6 +485,38 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                 ],
                 wording_rules=[
                     "Describe degraded support as controlled evidence posture, not as approval.",
+                ],
+            ),
+            SupportedClaim(
+                claim_id="ai_policy_cockpit_proof_integrated",
+                title="AI, policy, and cockpit proof boundaries are integrated",
+                classification="IMPLEMENTATION_BACKED",
+                audiences=["DEVELOPER", "OPERATIONS", "PRE_SALES"],
+                allowed_materials=["README", "WIKI", "OPERATOR_RUNBOOK"],
+                claim_text=(
+                    "RFC-0028 backend proof includes a sanitized integration summary for "
+                    "governed AI/model-risk controls, policy evidence, and advisor-cockpit "
+                    "product-surface boundaries without promoting AI authority, policy approval, "
+                    "or client-ready publication."
+                ),
+                evidence_refs=[integration_proof_ref, field_review_ref],
+                proof_requirements=[
+                    SupportedClaimProofRequirement(
+                        requirement_id="rfc0028-ai-policy-cockpit-integration-proof",
+                        evidence_ref=integration_proof_ref,
+                    ),
+                    SupportedClaimProofRequirement(
+                        requirement_id="rfc0028-ai-policy-cockpit-material-review",
+                        evidence_ref=field_review_ref,
+                    ),
+                ],
+                wording_rules=[
+                    "State that AI is review-gated and non-authoritative.",
+                    (
+                        "State that policy examples are source-owned reference controls, "
+                        "not legal advice."
+                    ),
+                    "Do not imply advisor acknowledgement clears policy blockers.",
                 ],
             ),
             SupportedClaim(
@@ -660,11 +747,15 @@ def build_backend_proof_capture(
             if review.review_posture == "BLOCKED"
         )
         raise ValueError(f"RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: {blocked}")
+    journey_integration_proof_summary = build_journey_integration_proof_summary(
+        live_runtime_payload
+    )
 
     scenario_contract = build_default_scenario_contract()
     supported_claim_register = build_default_supported_claim_register()
     runtime_posture_payload = runtime_posture.model_dump(mode="json")
     document_proof_payload = document_proof_summary.model_dump(mode="json")
+    integration_proof_payload = journey_integration_proof_summary.model_dump(mode="json")
     material_review_payload = [review.model_dump(mode="json") for review in material_reviews]
     proof_pack = AdvisoryBankDemoProofPack(
         proof_pack_id=f"rfc0028-backend-proof-{metadata.generated_at.strftime('%Y%m%dT%H%M%SZ')}",
@@ -679,6 +770,7 @@ def build_backend_proof_capture(
             RFC28_CANONICAL_PROOF_MARKER,
             "RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED",
             "RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED",
+            "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED",
             "RFC0028_RUNTIME_POSTURE_CAPTURED",
         ],
         scenario_contract_ref=RFC28_SCENARIO_CONTRACT_REF,
@@ -715,6 +807,20 @@ def build_backend_proof_capture(
                 commit_allowed=False,
             ),
             ProofAsset(
+                asset_id="journey_integration_proof_summary",
+                asset_type="GOVERNANCE_INTEGRATION_SUMMARY",
+                source_repository="lotus-advise",
+                uri=f"{output_ref_prefix}/journey-integration-proof-summary.json",
+                access_class="COMMIT_SAFE_SUMMARY",
+                retention_class="LOCAL_EVIDENCE_BUNDLE",
+                evidence_refs=[
+                    "backend_proof_capture_repeatable",
+                    "ai_policy_cockpit_proof_integrated",
+                ],
+                content_hash=hash_canonical_payload(integration_proof_payload),
+                commit_allowed=False,
+            ),
+            ProofAsset(
                 asset_id="material_field_review",
                 asset_type="API_RESPONSE_SUMMARY",
                 source_repository="lotus-advise",
@@ -724,6 +830,7 @@ def build_backend_proof_capture(
                 evidence_refs=[
                     "backend_proof_capture_repeatable",
                     "advisor_journey_backend_evidence_available",
+                    "ai_policy_cockpit_proof_integrated",
                     "degraded_runtime_boundary_evidence_available",
                 ],
                 content_hash=hash_canonical_payload(material_review_payload),
@@ -760,6 +867,7 @@ def build_backend_proof_capture(
         supported_claim_register=supported_claim_register,
         proof_pack=proof_pack,
         document_proof_summary=document_proof_summary,
+        journey_integration_proof_summary=journey_integration_proof_summary,
         runtime_posture=runtime_posture,
         sanitized_runtime_summary=sanitized_summary,
         material_field_reviews=material_reviews,

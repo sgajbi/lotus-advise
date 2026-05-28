@@ -28,7 +28,13 @@ def test_bank_demo_proof_contract_endpoints_expose_source_owned_truth() -> None:
         claim_postures["advisor_journey_backend_evidence_available"] == "BACKEND_BACKED_UI_PENDING"
     )
     assert claim_postures["advisor_use_document_proof_available"] == "BACKEND_BACKED_UI_PENDING"
+    assert claim_postures["ai_policy_cockpit_proof_integrated"] == "IMPLEMENTATION_BACKED"
     assert claim_postures["client_ready_publication_blocked"] == "UNSUPPORTED"
+    scenario_panels = {
+        panel for step in scenario["steps"] for panel in step["required_workbench_panels"]
+    }
+    assert "advisory.advisor_cockpit" in scenario_panels
+    assert "advisor_cockpit" not in scenario_panels
 
 
 def test_bank_demo_proof_pack_endpoint_returns_sanitized_gateway_consumable_bundle() -> None:
@@ -55,6 +61,19 @@ def test_bank_demo_proof_pack_endpoint_returns_sanitized_gateway_consumable_bund
     assert payload["proof_pack"]["proof_marker"] == "BANK_DEMO_PROOF_PACK_CREATED"
     assert payload["proof_pack"]["client_ready_posture"] == "CLIENT_READY_PUBLICATION_BLOCKED"
     assert "RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED" in payload["proof_pack"]["evidence_markers"]
+    assert (
+        "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED" in (payload["proof_pack"]["evidence_markers"])
+    )
+    assert (
+        payload["journey_integration_proof_summary"]["policy_evidence"]["client_ready_publication"]
+        == "BLOCKED"
+    )
+    ai_rows = {
+        row["evidence_family"]: row
+        for row in payload["journey_integration_proof_summary"]["ai_model_risk_controls"]
+    }
+    assert ai_rows["POLICY_EVIDENCE"]["raw_source_evidence_included"] is False
+    assert ai_rows["ADVISORY_COPILOT"]["proof_posture"] == "NOT_PROBED"
     assert payload["sanitized_runtime_summary"]["primary_portfolio_id"] == (
         RFC28_CANONICAL_PORTFOLIO_ID
     )

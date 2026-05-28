@@ -85,7 +85,11 @@ Boundary rules that matter:
    registration, and Workbench `advisory.bank_demo_proof` surface. Canonical validation for
    `PB_SG_GLOBAL_BAL_001` records `BANK_DEMO_PROOF_PACK_CREATED` and keeps client-ready
    publication, external client communication, OMS/order/fill/settlement, and full RFP/demo
-   collateral claims blocked until separately implementation-backed.
+   collateral claims blocked until separately implementation-backed. Slice 9 adds
+   `AdvisoryJourneyIntegrationProofSummary:v1` and
+   `journey-integration-proof-summary.json` so the backend proof pack now carries sanitized
+   AI/model-risk, policy, and advisor-cockpit boundary evidence without promoting AI authority,
+   legal advice, policy approval, or client-ready publication.
 
 ## Architecture At A Glance
 

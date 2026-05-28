@@ -93,12 +93,16 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICES 0-8 WORKBENCH PROOF COMPLETE",
+        "DRAFT - SLICES 0-9 INTEGRATION PROOF COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
         "PR #366",
         "26554797152",
+        "AdvisoryJourneyIntegrationProofSummary:v1",
+        "journey-integration-proof-summary.json",
+        "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED",
+        "ai_policy_cockpit_proof_integrated",
     )
     for marker in index_markers:
         assert marker in rfc_index
@@ -199,8 +203,8 @@ def test_rfc0028_records_slice_six_document_proof_capture() -> None:
 
     for source in (rfc_index, wiki_index, supported_features):
         assert (
-            "DRAFT - SLICES 0-8 WORKBENCH PROOF COMPLETE" in source
-            or "Slices 0-8 are implementation-backed" in source
+            "DRAFT - SLICES 0-9 INTEGRATION PROOF COMPLETE" in source
+            or "Slices 0-9 are implementation-backed" in source
             or "Slice 8 closes Workbench proof" in source
         )
         assert "document-proof-summary.json" in source
@@ -241,8 +245,8 @@ def test_rfc0028_records_slice_seven_gateway_publication_without_product_overcla
 
     for source in (rfc_index, wiki_index, supported_features):
         assert (
-            "SLICES 0-8 WORKBENCH PROOF COMPLETE" in source
-            or "Slices 0-8 are implementation-backed" in source
+            "SLICES 0-9 INTEGRATION PROOF COMPLETE" in source
+            or "Slices 0-9 are implementation-backed" in source
             or "Slice 8 closes Workbench proof" in source
         )
         assert "Gateway consumption remains the next Slice 7 owner-repository step" not in source
@@ -253,3 +257,37 @@ def test_rfc0028_records_slice_seven_gateway_publication_without_product_overcla
             or ("client-ready publication claim is promoted" in source)
             or ("client-ready publication remain unpromoted" in source)
         )
+
+
+def test_rfc0028_records_slice_nine_integration_proof_without_client_ready_overclaim() -> None:
+    flat = _flat(RFC28_PATH)
+    rfc_index = _flat(RFC_INDEX_PATH)
+    wiki_index = _flat(WIKI_RFC_INDEX_PATH)
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
+
+    markers = (
+        "AdvisoryJourneyIntegrationProofSummary:v1",
+        "src/core/bank_demo_proof/integration_proof.py",
+        "journey-integration-proof-summary.json",
+        "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED",
+        "GOVERNANCE_INTEGRATION_SUMMARY",
+        "ai_policy_cockpit_proof_integrated",
+        "parity.proposal_policy.ai_raw_source_evidence_included",
+        "advisory.advisor_cockpit",
+        "advisory.suitability_review",
+        "proposal.memo_evidence_pack",
+        "advisory.bank_demo_proof",
+        "tests/unit/advisory/api/test_api_bank_demo_proof.py",
+    )
+    for marker in markers:
+        assert marker in flat
+
+    for source in (rfc_index, wiki_index, supported_features):
+        assert "Slice 9 adds" in source
+        assert "AdvisoryJourneyIntegrationProofSummary:v1" in source
+        assert "journey-integration-proof-summary.json" in source
+        assert "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED" in source
+        assert "ai_policy_cockpit_proof_integrated" in source
+        assert "client-ready publication" in source
+        assert "RFP/security" in source
+        assert "OMS/order/fill/settlement" in source
