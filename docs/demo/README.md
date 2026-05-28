@@ -53,6 +53,20 @@ AI policy-evidence examples, and explicitly separates advisor/compliance/supervi
 from active data-product promotion, client-ready publication, and broader RFC-0028 bank-demo/RFP
 proof.
 
+## RFC-0028 Bank Demo Proof Materials
+
+For RFC-0028 bank-demo and client-proof walkthroughs, use the claim-controlled commercial support
+guide instead of ad hoc demo, RFP, security, architecture, ROI, or product wording:
+
+- `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md`
+
+That guide includes the implementation-backed product one-pager, RFP response pack, security
+posture pack, architecture outline, demo script, proof-pack interpretation guide, ROI story,
+supported-feature matrix, client-demo boundaries, and operator checklist. It maps every material
+family to the RFC-0028 supported-claim register and keeps client-ready publication, external client
+communication, legal/regulatory advice, completed policy approval/sign-off authority, bank-specific
+security attestations, and OMS order/fill/settlement claims blocked.
+
 ## Scenario Index
 
 | File | Scenario | Expected Status | Key Feature |

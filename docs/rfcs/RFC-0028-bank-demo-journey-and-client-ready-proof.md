@@ -1180,6 +1180,35 @@ Acceptance gate:
    client demos, and client pitches,
 4. sensitive implementation details and raw payloads are excluded.
 
+Implementation evidence:
+
+1. `src/core/bank_demo_proof/commercial_materials.py` adds
+   `AdvisoryCommercialMaterialPack:v1` for product one-pager, RFP response, security posture,
+   architecture outline, demo script, proof-pack interpretation guide, ROI story, feature matrix,
+   client-demo boundaries, and operator/demo-lead checklist material.
+2. `build_backend_proof_capture` emits `commercial-material-pack.json`, adds proof marker
+   `RFC0028_COMMERCIAL_MATERIAL_PACK_CREATED`, and indexes a commit-source
+   `COMMERCIAL_DOCUMENT` asset for
+   `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md`.
+3. `AdvisorySupportedClaimRegister:v1` adds
+   `commercial_rfp_security_material_available` as an implementation-backed claim for product,
+   RFP, security, architecture, ROI, demo, wiki, README, supported-features, and operator material.
+   The previous `rfp_security_package_pending` claim is retained only as a retired unsupported
+   guard so old wording cannot re-enter product material.
+4. `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md` is the claim-controlled business
+   source for the one-pager, RFP answers, security posture, architecture talk track, demo script,
+   proof-pack guide, ROI story, supported-feature matrix, client-demo boundaries, and operator
+   checklist. It is intentionally customer-consumable and excludes raw prompts, raw evidence,
+   local-only logs, secrets, and unsupported certifications.
+5. `docs/demo/README.md` routes RFC-0028 demo preparation to the commercial guide rather than
+   ad hoc talk tracks.
+6. Tests cover the claim register, proof-pack marker, commercial material pack, API response shape,
+   writer artifact, and durable documentation truth:
+   `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py`,
+   `tests/unit/advisory/api/test_api_bank_demo_proof.py`,
+   `tests/unit/scripts/test_capture_rfc0028_backend_proof.py`, and
+   `tests/unit/test_rfc0028_gold_standard_tightening_contract.py`.
+
 ### Slice 11 - Security, Production, Performance, and CI Hardening
 
 Outcome:
@@ -1334,10 +1363,10 @@ Acceptance gate:
 
 Current implementation note:
 
-1. Slices 0-9 are implementation-backed for the source scenario contract, supported-claim
+1. Slices 0-10 are implementation-backed for the source scenario contract, supported-claim
    register, proof-pack capture, document proof summary, AI/model-risk/policy/cockpit integration
-   proof summary, Gateway publication, Platform canonical contract registration, and Workbench
-   proof surface.
+   proof summary, claim-controlled commercial material pack, Gateway publication, Platform
+   canonical contract registration, and Workbench proof surface.
 2. The canonical Workbench proof path is `advisory.bank_demo_proof` at
    `/recommendations?portfolioId=PB_SG_GLOBAL_BAL_001&mode=proof`; live validation records
    `BANK_DEMO_PROOF_PACK_CREATED` for scenario
@@ -1347,6 +1376,14 @@ Current implementation note:
    external client communication, OMS/order/fill/settlement, approval authority, product one-pager,
    ROI story, RFP/security pack, and LinkedIn post-completion output are not promoted by this
    evidence unless their owner-repo implementation and review gates are complete.
+4. Slice 10 adds `commercial-material-pack.json`,
+   `commercial_rfp_security_material_available`, and
+   `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md` for claim-controlled product,
+   RFP, security, architecture, ROI, demo, proof-guide, feature-matrix, client-boundary, and
+   operator material. Client-ready publication, external client communication,
+   OMS/order/fill/settlement, approval authority, legal/regulatory advice, bank-specific
+   certifications, and LinkedIn post-completion output remain blocked unless separately
+   implementation-backed and reviewed.
 
 ---
 
