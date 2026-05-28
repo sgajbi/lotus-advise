@@ -487,19 +487,6 @@ def _optional_datetime(value: Any) -> datetime | None:
     return datetime.fromisoformat(value) if isinstance(value, str) and value else None
 
 
-def _matches_proposal_version(
-    *,
-    run: AdvisoryCopilotRunRecord,
-    proposal_version_id: str | None,
-    proposal_version_no: int | None,
-) -> bool:
-    if proposal_version_id is not None:
-        return run.lineage_json.get("proposal_version_id") == proposal_version_id
-    if proposal_version_no is not None:
-        return run.lineage_json.get("proposal_version_no") == proposal_version_no
-    return True
-
-
 def _can_refresh_source_projection_packet(
     *,
     existing: AdvisoryCopilotEvidencePacketRecord,

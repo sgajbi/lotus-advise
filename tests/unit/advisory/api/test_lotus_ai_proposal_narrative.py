@@ -12,6 +12,7 @@ from src.core.advisory.narrative_models import (
 from src.integrations.lotus_ai.proposal_narrative import (
     LotusAIProposalNarrativeUnavailableError,
     _build_workflow_pack_request,
+    build_ai_fallback_lineage,
     generate_proposal_narrative_draft_with_lotus_ai,
 )
 
@@ -189,3 +190,158 @@ def test_generate_proposal_narrative_draft_masks_timeout_and_transport_failure(
         )
 
     assert str(exc.value) == "LOTUS_AI_NARRATIVE_UNAVAILABLE"
+
+
+def test_generate_proposal_narrative_draft_requires_lotus_ai_base_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LOTUS_AI_BASE_URL", raising=False)
+
+    with pytest.raises(LotusAIProposalNarrativeUnavailableError) as exc:
+        generate_proposal_narrative_draft_with_lotus_ai(
+            grounding_packet=_grounding_packet(),
+            narrative_policy=_narrative_policy(),
+            requested_sections=["EXECUTIVE_SUMMARY"],
+            requested_by="advisor_123",
+        )
+
+    assert str(exc.value) == "LOTUS_AI_NARRATIVE_UNAVAILABLE"
+
+
+def test_generate_proposal_narrative_draft_fails_closed_for_incomplete_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.proposal_narrative.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {"execution": {"status": "FAILED"}},
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIProposalNarrativeUnavailableError) as exc:
+        generate_proposal_narrative_draft_with_lotus_ai(
+            grounding_packet=_grounding_packet(),
+            narrative_policy=_narrative_policy(),
+            requested_sections=["EXECUTIVE_SUMMARY"],
+            requested_by="advisor_123",
+        )
+
+    assert str(exc.value) == "LOTUS_AI_NARRATIVE_UNAVAILABLE"
+
+
+def test_generate_proposal_narrative_draft_uses_provider_detail_for_business_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.proposal_narrative.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    400,
+                    {"detail": "WORKFLOW_PACK_DISABLED"},
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIProposalNarrativeUnavailableError) as exc:
+        generate_proposal_narrative_draft_with_lotus_ai(
+            grounding_packet=_grounding_packet(),
+            narrative_policy=_narrative_policy(),
+            requested_sections=["EXECUTIVE_SUMMARY"],
+            requested_by="advisor_123",
+        )
+
+    assert str(exc.value) == "WORKFLOW_PACK_DISABLED"
+
+
+def test_generate_proposal_narrative_draft_masks_server_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.proposal_narrative.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    503,
+                    {"detail": "provider down"},
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIProposalNarrativeUnavailableError) as exc:
+        generate_proposal_narrative_draft_with_lotus_ai(
+            grounding_packet=_grounding_packet(),
+            narrative_policy=_narrative_policy(),
+            requested_sections=["EXECUTIVE_SUMMARY"],
+            requested_by="advisor_123",
+        )
+
+    assert str(exc.value) == "LOTUS_AI_NARRATIVE_UNAVAILABLE"
+
+
+def test_generate_proposal_narrative_draft_rejects_invalid_structured_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.proposal_narrative.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "sections": [
+                                    "ignore",
+                                    {"section_key": "UNKNOWN", "title": "x", "text": "y"},
+                                    {"section_key": "EXECUTIVE_SUMMARY", "title": "", "text": ""},
+                                ]
+                            },
+                        }
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIProposalNarrativeUnavailableError) as exc:
+        generate_proposal_narrative_draft_with_lotus_ai(
+            grounding_packet=_grounding_packet(),
+            narrative_policy=_narrative_policy(),
+            requested_sections=["EXECUTIVE_SUMMARY"],
+            requested_by="advisor_123",
+        )
+
+    assert str(exc.value) == "LOTUS_AI_NARRATIVE_UNAVAILABLE"
+
+
+def test_proposal_narrative_fallback_lineage_records_reason_without_provider_payload() -> None:
+    lineage = build_ai_fallback_lineage("PACK_DISABLED")
+
+    assert lineage.fallback_reason == "PACK_DISABLED"
+    assert lineage.workflow_run_id is None
+    assert lineage.prompt_template_version == "proposal-narrative-instructions.v1"

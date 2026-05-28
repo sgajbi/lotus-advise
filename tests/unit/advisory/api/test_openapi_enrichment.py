@@ -1,0 +1,116 @@
+from __future__ import annotations
+
+from src.api.openapi_enrichment import enrich_openapi_schema
+
+
+def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples() -> None:
+    schema = {
+        "info": {"description": "Advisory API."},
+        "paths": {
+            "/health": {"get": {"responses": {"200": {"description": "ok"}}}},
+            "/metrics": {"get": {"responses": {"200": {"description": "ok"}}}},
+            "/advisory/proposals": {
+                "post": {"responses": {"201": {"description": "created"}}},
+                "parameters": [],
+            },
+            "/ignored": ["not", "a", "method-map"],
+        },
+        "components": {
+            "schemas": {
+                "ExampleModel": {
+                    "properties": {
+                        "portfolioId": {"type": "string"},
+                        "status": {"enum": ["READY", "PENDING"]},
+                        "items": {"type": "array", "items": {"type": "integer"}},
+                        "metadata": {"type": "object"},
+                        "enabled": {"type": "boolean"},
+                        "ttlHours": {"type": "integer"},
+                        "version": {"type": "integer"},
+                        "weight": {"type": "number"},
+                        "marketPrice": {"type": "number"},
+                        "orderQuantity": {"type": "number"},
+                        "marketValue": {"type": "number"},
+                        "genericRatio": {"type": "number"},
+                        "businessDate": {"type": "string", "format": "date"},
+                        "generatedAt": {"type": "string", "format": "date-time"},
+                        "settlementCurrency": {"type": "string"},
+                        "effectiveDate": {"type": "string"},
+                        "eventTimestamp": {"type": "string"},
+                        "lifecycleStatus": {"type": "string"},
+                        "unknownText": {"type": "string"},
+                        "fallbackThingId": {},
+                        "fallback": {},
+                        "ignored": ["not", "a", "property"],
+                    }
+                },
+                "ModelWithoutProperties": {"properties": []},
+                "IgnoredModel": ["not", "a", "schema"],
+            }
+        },
+    }
+
+    enriched = enrich_openapi_schema(schema, service_name="lotus-advise")
+
+    assert enriched["info"]["title"] == "Lotus Advise API"
+    assert enriched["info"]["description"].startswith("Lotus platform API contract.")
+    health = enriched["paths"]["/health"]["get"]
+    metrics = enriched["paths"]["/metrics"]["get"]
+    proposal = enriched["paths"]["/advisory/proposals"]["post"]
+    properties = enriched["components"]["schemas"]["ExampleModel"]["properties"]
+
+    assert health["summary"] == "GET /health"
+    assert health["tags"] == ["Health"]
+    assert metrics["tags"] == ["Monitoring"]
+    assert proposal["tags"] == ["Advisory"]
+    assert proposal["responses"]["default"] == {"description": "Unexpected error response."}
+    assert properties["portfolioId"]["description"] == "Unique portfolio identifier."
+    assert properties["portfolioId"]["example"] == "DEMO_DPM_EUR_001"
+    assert properties["status"]["example"] == "READY"
+    assert properties["items"]["example"] == [10]
+    assert properties["metadata"]["example"] == {"key": "sample_text"}
+    assert properties["enabled"]["example"] is True
+    assert properties["ttlHours"]["example"] == 24
+    assert properties["version"]["example"] == 1
+    assert properties["weight"]["example"] == 0.125
+    assert properties["marketPrice"]["example"] == 1.2345
+    assert properties["orderQuantity"]["example"] == 100.0
+    assert properties["marketValue"]["example"] == 125000.5
+    assert properties["genericRatio"]["example"] == 10.5
+    assert properties["businessDate"]["example"] == "2026-03-02"
+    assert properties["generatedAt"]["example"] == "2026-03-02T10:30:00Z"
+    assert properties["settlementCurrency"]["example"] == "USD"
+    assert properties["effectiveDate"]["description"] == "example model field: effective date."
+    assert properties["eventTimestamp"]["example"] == "2026-03-02T10:30:00Z"
+    assert properties["lifecycleStatus"]["example"] == "ACTIVE"
+    assert properties["unknownText"]["example"] == "example_unknown_text"
+    assert properties["fallbackThingId"]["example"] == "FALLBACK_THING_001"
+    assert properties["fallback"]["example"] == "fallback_example"
+
+
+def test_openapi_enrichment_preserves_existing_lotus_description_and_error_responses() -> None:
+    schema = {
+        "info": {"title": "Custom API", "description": "Lotus custom contract."},
+        "paths": {
+            "/custom": {
+                "get": {
+                    "summary": "Existing summary",
+                    "description": "Existing description",
+                    "tags": ["Custom"],
+                    "responses": {"404": {"description": "missing"}},
+                },
+                "head": {"responses": {"200": {"description": "ok"}}},
+                "post": ["not", "an", "operation"],
+            }
+        },
+        "components": {"schemas": {}},
+    }
+
+    enriched = enrich_openapi_schema(schema, service_name="lotus-advise")
+
+    operation = enriched["paths"]["/custom"]["get"]
+    assert enriched["info"]["title"] == "Custom API"
+    assert enriched["info"]["description"] == "Lotus custom contract."
+    assert operation["summary"] == "Existing summary"
+    assert operation["description"] == "Existing description"
+    assert operation["tags"] == ["Custom"]
+    assert "default" not in operation["responses"]

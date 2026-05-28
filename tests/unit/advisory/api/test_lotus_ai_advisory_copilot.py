@@ -210,6 +210,77 @@ def test_generate_advisory_copilot_returns_review_required_sections(
     assert response.lineage["fallback_reason"] is None
 
 
+def test_generate_advisory_copilot_extracts_proposal_version_from_source_refs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "sections": [
+                                        {
+                                            "section_key": "POLICY_POSTURE",
+                                            "title": "Policy posture",
+                                            "text": "Evidence remains under advisor review.",
+                                        },
+                                        "ignore invalid section",
+                                        {"section_key": "", "title": "", "text": ""},
+                                    ],
+                                    "review_guidance": ["", "Use cited evidence only.", 7],
+                                },
+                            },
+                        },
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+    source_ref = CopilotSourceRef(
+        source_system="lotus-advise",
+        source_type="PROPOSAL_VERSION",
+        source_id="version_sg_source_ref_001",
+        content_hash="sha256:version",
+        access_class="ADVISOR_USE_SUMMARY",
+    )
+    packet = _packet().model_copy(
+        update={
+            "lineage_refs": (),
+            "sections": (_packet().sections[0].model_copy(update={"source_refs": (source_ref,)}),),
+        }
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=packet,
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "REVIEW_REQUIRED"
+    assert response.lineage["proposal_version_id"] == "version_sg_source_ref_001"
+    assert response.sections == (
+        {
+            "section_key": "POLICY_POSTURE",
+            "title": "Policy posture",
+            "text": "Evidence remains under advisor review.",
+            "review_state": "REVIEW_REQUIRED",
+        },
+    )
+    assert response.review_guidance == ("Use cited evidence only.",)
+
+
 def test_generate_advisory_copilot_fails_closed_before_unsafe_execution(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -311,6 +382,68 @@ def test_generate_advisory_copilot_returns_unavailable_without_lotus_ai(
     assert response.lineage["fallback_reason"] == "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE"
 
 
+def test_generate_advisory_copilot_fails_closed_for_non_completed_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {"execution": {"status": "FAILED"}},
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert response.lineage["fallback_reason"] == "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE"
+
+
+def test_generate_advisory_copilot_uses_error_detail_for_non_success_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    429,
+                    {"detail": "WORKFLOW_PACK_RATE_LIMITED"},
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert response.lineage["fallback_reason"] == "WORKFLOW_PACK_RATE_LIMITED"
+
+
 def test_unavailable_advisory_copilot_is_review_guided() -> None:
     fallback = build_advisory_copilot_unavailable_draft(
         evidence_packet=_packet(),
@@ -321,6 +454,17 @@ def test_unavailable_advisory_copilot_is_review_guided() -> None:
     assert fallback.lineage["workflow_run_id"] is None
     assert fallback.lineage["fallback_reason"] == "PACK_DISABLED"
     assert any("Do not infer missing suitability" in line for line in fallback.review_guidance)
+
+
+def test_unavailable_advisory_copilot_uses_exception_name_when_reason_is_blank() -> None:
+    fallback = build_advisory_copilot_unavailable_draft(
+        evidence_packet=_packet(),
+        fallback_reason="",
+        caused_by=httpx.ReadTimeout("timeout"),
+    )
+
+    assert fallback.status == "UNAVAILABLE"
+    assert fallback.lineage["fallback_reason"] == "ReadTimeout"
 
 
 def test_generate_advisory_copilot_masks_transport_failure(

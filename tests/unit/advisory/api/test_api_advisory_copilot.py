@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 import src.api.proposals.router as proposals_router
@@ -521,3 +522,99 @@ def test_advisory_copilot_openapi_is_action_specific() -> None:
     assert "/advisory/copilot/supportability" in paths
     assert "/advisory/copilot/prompt" not in paths
     assert "Advisory Copilot" in {tag["name"] for tag in schema["tags"]}
+
+
+def test_advisory_copilot_repository_dependency_maps_startup_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    copilot_routes.reset_advisory_copilot_repository_for_tests()
+    monkeypatch.setattr(copilot_routes, "proposal_postgres_dsn", lambda: "postgres://advise")
+
+    class _UnavailableRepository:
+        def __init__(self, *, dsn: str) -> None:
+            assert dsn == "postgres://advise"
+            raise RuntimeError("ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE")
+
+    monkeypatch.setattr(copilot_routes, "PostgresAdvisoryCopilotRepository", _UnavailableRepository)
+
+    with pytest.raises(HTTPException) as exc:
+        copilot_routes.get_advisory_copilot_repository()
+
+    assert exc.value.status_code == 503
+    assert exc.value.detail == "ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE"
+    copilot_routes.reset_advisory_copilot_repository_for_tests()
+
+
+def test_advisory_copilot_application_dependency_wires_policy_loader(
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    service = copilot_routes.get_advisory_copilot_application_service(repository=copilot_repository)
+
+    assert isinstance(service, copilot_routes.AdvisoryCopilotApplicationService)
+
+
+def test_advisory_copilot_route_errors_keep_contract_specific_status_codes() -> None:
+    class _FailingService:
+        def create_evidence_packet(self, **_: Any) -> None:
+            raise ValueError("EVIDENCE_PACKET_CONFLICT")
+
+        def create_proposal_version_evidence_packet(self, **_: Any) -> None:
+            raise ValueError("PROPOSAL_VERSION_EVIDENCE_INVALID")
+
+        def get_evidence_packet(self, **_: Any) -> None:
+            raise ValueError("EVIDENCE_PACKET_NOT_FOUND")
+
+        def run_action(self, **_: Any) -> None:
+            raise ValueError("COPILOT_ACTION_TERMINAL")
+
+        def get_run(self, **_: Any) -> None:
+            raise ValueError("COPILOT_RUN_NOT_FOUND")
+
+        def review_run(self, **_: Any) -> None:
+            raise ValueError("COPILOT_REVIEW_INVALID")
+
+    service = _FailingService()
+
+    route_calls = [
+        (
+            copilot_routes.create_advisory_copilot_evidence_packet,
+            {"payload": object(), "service": service},
+            409,
+        ),
+        (
+            copilot_routes.create_advisory_copilot_evidence_packet_from_proposal_version,
+            {"payload": object(), "service": service, "proposal_repository": object()},
+            422,
+        ),
+        (
+            copilot_routes.get_advisory_copilot_evidence_packet,
+            {"evidence_packet_id": "missing", "service": service},
+            404,
+        ),
+        (
+            copilot_routes.run_advisory_copilot_action,
+            {"payload": object(), "service": service},
+            409,
+        ),
+        (
+            copilot_routes.get_advisory_copilot_run,
+            {"run_id": "missing", "service": service},
+            404,
+        ),
+        (
+            copilot_routes.review_advisory_copilot_run,
+            {
+                "run_id": "run_001",
+                "payload": object(),
+                "idempotency_key": "review-idem-001",
+                "service": service,
+            },
+            422,
+        ),
+    ]
+
+    for route, kwargs, expected_status in route_calls:
+        with pytest.raises(HTTPException) as exc:
+            route(**kwargs)
+
+        assert exc.value.status_code == expected_status

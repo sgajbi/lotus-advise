@@ -185,6 +185,41 @@ def test_lotus_report_adapter_submits_portfolio_review_job_with_reviewed_narrati
     assert post["json"]["proposal_narrative_package"]["narrative_id"] == "pnar_live_001"
 
 
+def test_lotus_report_adapter_normalizes_pending_status_and_lineage_dates(monkeypatch) -> None:
+    request = _proposal_request()
+    request["proposal_version"] = {
+        "proposal_result": {
+            "lineage": {
+                "core_snapshot_uri": "s3://lotus-core/snapshots/PB_SG_GLOBAL_BAL_001/2026-05-28"
+            }
+        }
+    }
+    request["proposal"]["jurisdiction"] = ""
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_job_id": "rjob_report_pending_001",
+                "status": "queued_for_render",
+                "status_url": "/reports/jobs/rjob_report_pending_001",
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_report_with_lotus_report(request=request)
+
+    assert response.status == "QUEUED_FOR_RENDER"
+    [post] = fake_client.posts
+    assert post["headers"]["X-Region"] == "SG"
+    assert post["json"]["as_of_date"] == "2026-05-28"
+    assert post["json"]["reporting_currency"] == "USD"
+
+
 def test_lotus_report_adapter_submits_memo_package_for_pdf_render_archive(monkeypatch) -> None:
     fake_client = _FakeClient(
         _FakeResponse(
@@ -216,6 +251,35 @@ def test_lotus_report_adapter_submits_memo_package_for_pdf_render_archive(monkey
     assert post["json"]["requested_output_formats"] == ["pdf"]
     assert post["json"]["proposal_memo_package"]["memo_id"] == "memo_001"
     assert post["json"]["proposal_memo_package"]["client_ready_publication"] == "BLOCKED"
+
+
+def test_lotus_report_adapter_defaults_memo_outputs_and_tolerates_missing_status_url(
+    monkeypatch,
+) -> None:
+    request = _memo_report_package_request()
+    request["requested_output_formats"] = ["xlsx", "", "JSON"]
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_job_id": "rjob_memo_accepted_001",
+                "status": "completed_with_warnings",
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_memo_report_package_with_lotus_report(request=request)
+
+    assert response.status == "READY"
+    assert response.explanation["render"] == {}
+    assert response.explanation["archive"] == {}
+    [post] = fake_client.posts
+    assert post["json"]["requested_output_formats"] == ["json"]
 
 
 def test_lotus_report_adapter_submits_policy_sign_off_package_for_render_archive(
@@ -260,11 +324,69 @@ def test_lotus_report_adapter_submits_policy_sign_off_package_for_render_archive
     assert post["json"]["policy_sign_off_package"]["workflow"]["sign_off_status"] == "SIGNED_OFF"
 
 
+def test_lotus_report_adapter_defaults_policy_outputs_when_formats_are_invalid(
+    monkeypatch,
+) -> None:
+    request = _policy_report_package_request()
+    request["requested_output_formats"] = ["docx"]
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_job_id": "rjob_policy_accepted_001",
+                "status": "accepted",
+            },
+        ),
+        status_payload={},
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_policy_sign_off_report_package_with_lotus_report(request=request)
+
+    assert response.status == "ACCEPTED"
+    [post] = fake_client.posts
+    assert post["json"]["requested_output_formats"] == ["pdf"]
+
+
 def test_lotus_report_adapter_fails_closed_when_report_base_url_is_missing(monkeypatch) -> None:
     monkeypatch.delenv("LOTUS_REPORT_BASE_URL", raising=False)
 
     with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
         request_proposal_report_with_lotus_report(request=_proposal_request())
+
+
+def test_lotus_report_adapter_fails_closed_for_http_and_validation_errors(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: _FakeClient(_FakeResponse(500, {"detail": "down"})),
+    )
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        request_proposal_report_with_lotus_report(request=_proposal_request())
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        request_proposal_memo_report_package_with_lotus_report(
+            request=_memo_report_package_request()
+        )
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        request_policy_sign_off_report_package_with_lotus_report(
+            request=_policy_report_package_request()
+        )
+
+
+def test_lotus_report_adapter_requires_request_identifiers(monkeypatch) -> None:
+    request = _proposal_request()
+    request.pop("report_request_id")
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        request_proposal_report_with_lotus_report(request=request)
 
 
 def test_lotus_report_timeout_defaults_to_report_job_acceptance_sla(monkeypatch) -> None:
