@@ -148,7 +148,11 @@ Current repository posture:
    `commercial_rfp_security_material_available` for claim-controlled product, RFP, security,
    architecture, ROI, demo, feature-matrix, boundary, proof-guide, and operator material while
    preserving blocked client-ready, external-communication, legal/regulatory, bank-attestation,
-   completed-sign-off, and OMS/order/fill/settlement claims,
+   completed-sign-off, and OMS/order/fill/settlement claims. Slice 11 moves runtime posture into
+   `src/core/bank_demo_proof/runtime_posture.py`, records bounded `latency_ms`, rejects runtime
+   proof URLs with credentials/query/fragment material, and redacts sensitive runtime summaries
+   before proof artifacts can carry security/latency evidence with proof marker
+   `RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED`,
 10. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 11. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 12. repo-native CI is already aligned to explicit lane expectations,

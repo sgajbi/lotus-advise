@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-28T09:36:42.417087+00:00",
+  "generatedAt": "2026-05-28T10:05:19.087660+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -3377,7 +3377,7 @@
       "semanticId": "lotus.endpoints",
       "canonicalTerm": "endpoints",
       "preferredName": "endpoints",
-      "description": "Sanitized health, readiness, and capability endpoint evidence.",
+      "description": "Sanitized health, readiness, capability, and runtime evidence.",
       "example": [
         "endpoints_item_example"
       ],
@@ -5295,6 +5295,20 @@
       "preferredName": "last_gate_decision",
       "description": "Gate decision from current version.",
       "example": "last_gate_decision_example",
+      "type": "object",
+      "locations": [
+        "body"
+      ],
+      "observedTypes": [
+        "object"
+      ]
+    },
+    {
+      "semanticId": "lotus.latency_ms",
+      "canonicalTerm": "latency_ms",
+      "preferredName": "latency_ms",
+      "description": "Bounded endpoint probe latency in milliseconds, when observed.",
+      "example": "latency_ms_example",
       "type": "object",
       "locations": [
         "body"
@@ -47491,6 +47505,14 @@
             "attributeRef": "#/attributeCatalog/lotus.posture"
           },
           {
+            "name": "runtime_posture.endpoints[].latency_ms",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.latency_ms",
+            "attributeRef": "#/attributeCatalog/lotus.latency_ms"
+          },
+          {
             "name": "runtime_posture.endpoints[].summary",
             "location": "body",
             "required": false,
@@ -48773,6 +48795,14 @@
             "type": "string",
             "semanticId": "lotus.posture",
             "attributeRef": "#/attributeCatalog/lotus.posture"
+          },
+          {
+            "name": "runtime_posture.endpoints[].latency_ms",
+            "location": "body",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.latency_ms",
+            "attributeRef": "#/attributeCatalog/lotus.latency_ms"
           },
           {
             "name": "runtime_posture.endpoints[].summary",

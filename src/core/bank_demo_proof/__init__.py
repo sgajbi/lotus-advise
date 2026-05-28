@@ -1,9 +1,7 @@
 from src.core.bank_demo_proof.capture import (
     BackendProofCaptureBundle,
     BackendProofCaptureMetadata,
-    BackendRuntimePosture,
     MaterialFieldReview,
-    RuntimeEndpointEvidence,
     build_backend_proof_capture,
     build_default_scenario_contract,
     build_default_supported_claim_register,
@@ -52,6 +50,10 @@ from src.core.bank_demo_proof.models import (
     SupportedClaimClassification,
     SupportedClaimMaterial,
     SupportedClaimProofRequirement,
+)
+from src.core.bank_demo_proof.runtime_posture import (
+    BackendRuntimePosture,
+    RuntimeEndpointEvidence,
 )
 
 __all__ = [

@@ -30,6 +30,7 @@ from src.core.bank_demo_proof.models import (
     SupportedClaim,
     SupportedClaimProofRequirement,
 )
+from src.core.bank_demo_proof.runtime_posture import BackendRuntimePosture
 from src.core.common.canonical import hash_canonical_payload
 
 RFC28_SCENARIO_CONTRACT_REF = "lotus-advise://rfc0028/scenario-contract.v1.json"
@@ -76,31 +77,6 @@ class BackendProofCaptureMetadata(BaseModel):
         if self.generated_at.tzinfo is None:
             raise ValueError("generated_at must be timezone-aware UTC")
         return self
-
-
-class RuntimeEndpointEvidence(BaseModel):
-    endpoint: str = Field(description="Runtime endpoint that was probed.")
-    http_status: int | None = Field(
-        default=None,
-        description="Observed HTTP status, or null when the endpoint was not probed.",
-    )
-    posture: Literal["READY", "DEGRADED", "UNAVAILABLE", "NOT_PROBED"] = Field(
-        description="Bounded runtime posture for this endpoint."
-    )
-    summary: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Sanitized, bounded endpoint summary.",
-    )
-
-
-class BackendRuntimePosture(BaseModel):
-    service_name: Literal["lotus-advise"] = Field(default="lotus-advise")
-    base_url: str = Field(description="Runtime base URL used for endpoint probes.")
-    environment: str = Field(description="Runtime environment label.")
-    endpoints: list[RuntimeEndpointEvidence] = Field(
-        min_length=1,
-        description="Sanitized health, readiness, and capability endpoint evidence.",
-    )
 
 
 class MaterialFieldReview(BaseModel):
@@ -831,6 +807,7 @@ def build_backend_proof_capture(
             "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED",
             "RFC0028_COMMERCIAL_MATERIAL_PACK_CREATED",
             "RFC0028_RUNTIME_POSTURE_CAPTURED",
+            "RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED",
         ],
         scenario_contract_ref=RFC28_SCENARIO_CONTRACT_REF,
         supported_claim_register_ref=RFC28_SUPPORTED_CLAIM_REGISTER_REF,

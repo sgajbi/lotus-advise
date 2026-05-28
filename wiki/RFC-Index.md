@@ -67,7 +67,7 @@ audit records inside the interaction product boundary rather than standalone pro
 products. Client-ready publication, external client communication, policy approval/sign-off
 authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
 
-RFC-0028 status is `DRAFT - SLICES 0-10 COMMERCIAL PROOF MATERIAL COMPLETE`. Slice 0 locks the
+RFC-0028 status is `DRAFT - SLICES 0-11 RUNTIME SECURITY HARDENING COMPLETE`. Slice 0 locks the
 hybrid Advise proof API plus platform/front-office automation path for scenario
 `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`, portfolio `PB_SG_GLOBAL_BAL_001`, and proof marker
 `BANK_DEMO_PROOF_PACK_CREATED`. Slice 1 merged the reusable `lotus-platform` supported-claim
@@ -99,7 +99,12 @@ response, security posture, architecture, ROI, demo, feature-matrix, proof-guide
 operator material in `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md`. Client-ready
 publication, external client communication, bank-specific attestations, legal/regulatory advice,
 completed sign-off/approval, OMS/order/fill/settlement, and LinkedIn post-completion output remain
-unpromoted until separately implementation-backed and reviewed.
+unpromoted until separately implementation-backed and reviewed. Slice 11 adds
+`src/core/bank_demo_proof/runtime_posture.py`, bounded `latency_ms`, runtime base-URL
+credential/query/fragment rejection, sensitive summary redaction, and proof marker
+`RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED` so runtime proof artifacts carry sanitized
+security/latency posture without leaking secrets, prompts, raw payloads, trace IDs, or correlation
+IDs.
 
 RFC-0027 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and

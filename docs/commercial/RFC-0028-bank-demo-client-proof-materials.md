@@ -84,12 +84,16 @@ Implementation-backed posture:
    evidence, operator diagnostics, or secret material,
 2. secrets, tokens, prompts, raw provider payloads, raw source evidence, and raw runtime logs are
    blocked from committed and client-facing proof material,
-3. runtime posture records health, liveness, readiness, and platform-capability checks,
+3. runtime posture records health, liveness, readiness, platform-capability checks, and bounded
+   probe latency,
 4. CI covers lint, typecheck, OpenAPI quality, no-alias governance, API vocabulary, data-product
    declarations, dependency health, security audit, unit, integration, e2e, coverage, Docker, and
    production-profile smoke/guardrail checks,
 5. degraded source paths are represented as bounded proof posture rather than hidden failures,
-6. evidence refs use support-safe lineage and hashes rather than raw business payload dumps.
+6. runtime proof evidence rejects probe URLs with credentials, query strings, or fragments and
+   redacts secret, token, credential, authorization, cookie, prompt, raw payload/source, trace, and
+   correlation fields from nested summaries,
+7. evidence refs use support-safe lineage and hashes rather than raw business payload dumps.
 
 Not claimed:
 
