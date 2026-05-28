@@ -93,7 +93,7 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICES 0-1 COMPLETE",
+        "DRAFT - SLICES 0-5 COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
@@ -104,8 +104,8 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
         assert marker in rfc_index
         assert marker in wiki_index or marker in supported_features
 
-    assert "No bank-demo/RFP or client-ready publication claim is promoted" in supported_features
-    assert "full bank-demo/RFP and client-ready publication claims unpromoted" in wiki_index
+    assert "No Gateway, Workbench, screenshot, RFP/security" in supported_features
+    assert "bank-demo/RFP, screenshot, product one-pager" in wiki_index
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in rfc_index
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in wiki_index
     assert "Draft with Slice 0 decisions locked" not in supported_features
@@ -143,6 +143,32 @@ def test_rfc0028_records_slice_four_proof_model_implementation() -> None:
         "local-only or secret runtime assets cannot be commit-allowed",
         "CLIENT_READY_APPROVED` remains blocked",
         "tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py",
+    )
+    for marker in markers:
+        assert marker in flat
+
+
+def test_rfc0028_records_slice_five_backend_proof_capture() -> None:
+    flat = _flat(RFC28_PATH)
+
+    markers = (
+        "src/core/bank_demo_proof/capture.py",
+        "scripts/capture_rfc0028_backend_proof.py",
+        "output/rfc0028/backend-proof",
+        "metadata.json",
+        "scenario-contract.json",
+        "supported-claim-register.json",
+        "proof-pack.json",
+        "runtime-posture.json",
+        "sanitized-runtime-summary.json",
+        "material-field-review.json",
+        "BANK_DEMO_PROOF_PACK_CREATED",
+        "RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED",
+        "RFC0028_RUNTIME_POSTURE_CAPTURED",
+        "CLIENT_READY_PUBLICATION_BLOCKED",
+        "BACKEND_BACKED_UI_PENDING",
+        "tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py",
+        "tests/unit/scripts/test_capture_rfc0028_backend_proof.py",
     )
     for marker in markers:
         assert marker in flat
