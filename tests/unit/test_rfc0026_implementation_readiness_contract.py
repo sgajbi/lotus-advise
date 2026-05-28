@@ -96,15 +96,19 @@ def test_rfc_index_and_wiki_reflect_rfc0026_closure_and_rfc0027_completion() -> 
     assert "- `RFC-0025`" not in not_yet_implemented
     assert "- `RFC-0026`" not in not_yet_implemented
     assert "- `RFC-0027`" not in not_yet_implemented
-    assert "- `RFC-0028`" in not_yet_implemented
-    assert "1. `RFC-0028` bank demo journey and client-ready proof" in rfc_index
+    assert "- `RFC-0028`" not in not_yet_implemented
+    assert (
+        "RFC-0028 | Bank Demo Journey and Client-Ready Proof | "
+        "IMPLEMENTED - bank-demo proof and claim-controlled commercial material complete"
+        in rfc_index
+    )
 
     assert "RFC-0026 is implemented" in wiki_index
     expected_rfc27_wiki_status = (
         "RFC-0027 is implemented for governed internal advisor/reviewer copilot interactions"
     )
     assert expected_rfc27_wiki_status in wiki_index
-    assert "RFC-0028 bank demo journey and client-ready proof" in wiki_index
+    assert "RFC-0028 is implemented for repeatable bank-demo proof" in wiki_index
     assert "RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL" in wiki_index
     assert "Implemented for the source-owned first-wave advisor cockpit" in supported_features
     assert "AdvisorCockpitOperatingSnapshot:v1" in supported_features

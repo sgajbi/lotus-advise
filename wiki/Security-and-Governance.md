@@ -39,9 +39,13 @@ supported-claim register and proof-pack evidence before it is reused outside eng
 Runtime proof artifacts are sanitized before they become commit-safe or demo-supporting evidence:
 
 1. runtime base URLs must not include credentials, query strings, or fragments
-2. summaries redact secrets, tokens, prompts, raw payloads, trace IDs, and correlation IDs
-3. endpoint posture records bounded integer `latency_ms` values only
-4. local-only runtime outputs under `output/` must not be treated as wiki or README source truth
+2. proof artifact references must stay as local relative paths and must not include URL schemes,
+   authorities, credentials, query strings, fragments, absolute paths, parent-directory traversal,
+   control characters, or sensitive token/secret/prompt/raw-payload path material
+3. HTTP 422 request-validation errors must not echo rejected sensitive input values
+4. summaries redact secrets, tokens, prompts, raw payloads, trace IDs, and correlation IDs
+5. endpoint posture records bounded integer `latency_ms` values only
+6. local-only runtime outputs under `output/` must not be treated as wiki or README source truth
 
 The proof boundary remains deliberately conservative. RFC-0028 does not certify bank-specific
 attestations, legal/regulatory advice, completed policy sign-off/approval, external client

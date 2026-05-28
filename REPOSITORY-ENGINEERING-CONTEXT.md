@@ -152,7 +152,19 @@ Current repository posture:
    `src/core/bank_demo_proof/runtime_posture.py`, records bounded `latency_ms`, rejects runtime
    proof URLs with credentials/query/fragment material, and redacts sensitive runtime summaries
    before proof artifacts can carry security/latency evidence with proof marker
-   `RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED`,
+   `RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED`. Slice 13/14 closes final implementation proof and
+   hardening through PR #213, `src/core/bank_demo_proof/artifact_refs.py`, local artifact-reference
+   normalization, safe HTTP 422 validation error responses that do not echo rejected sensitive
+   input, targeted proof tests, `make check`, PR Merge Gate, and Main Releasability Gate run
+   `26573760885` on merge `a99474e5457dcdd4c87e79faf83bc8f64580544b`. Slice 15/16 closes durable
+   RFC, README, wiki, repository-context, supported-features, and post-completion communication
+   truth through `lotus-platform` PR #369 at `26d74e65e231ac3d62457187c6eb7f787a4d9f88`,
+   Main Releasability Gate run `26574820026`, and
+   `lotus-platform/thought-leadership/linkedin/drafts/LI-2026-05-28-043-demo-proof-should-show-the-boundary.md`.
+   RFC-0028 is implemented for repeatable bank-demo proof and claim-controlled commercial
+   material; client-ready publication, external client communication, bank-specific attestations,
+   legal/regulatory advice, completed sign-off/approval, and OMS/order/fill/settlement remain
+   unpromoted,
 10. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 11. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 12. repo-native CI is already aligned to explicit lane expectations,

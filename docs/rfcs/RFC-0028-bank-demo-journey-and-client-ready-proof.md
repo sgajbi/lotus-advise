@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN |
+| **Status** | IMPLEMENTED - BANK-DEMO PROOF AND CLAIM-CONTROLLED COMMERCIAL MATERIAL COMPLETE |
 | **Created** | 2026-05-22 |
 | **Last Tightened** | 2026-05-28 |
 | **Owner** | `lotus-advise` for advisory journey proof, supported-claim authority, and demo evidence truth; `lotus-platform` for reusable scenario/proof automation and scaffolding where applicable |
@@ -1321,6 +1321,32 @@ Acceptance gate:
    ref, AI review state, UI label, screenshot, and RFP claim is critically reviewed,
 7. discovered gaps are fixed inside this RFC.
 
+Slice 13 implementation decision and evidence:
+
+1. RFC-0028 implementation proof is closed on `lotus-advise` main through PR #213, merge commit
+   `a99474e5457dcdd4c87e79faf83bc8f64580544b`, and Main Releasability Gate run
+   `26573760885`.
+2. The proof surface is implementation-backed by:
+   1. `src/core/bank_demo_proof/` scenario, claim, document-proof, journey-integration,
+      commercial-material, runtime-posture, and proof-capture models,
+   2. `src/api/routers/bank_demo_proof.py` source-owned scenario, supported-claim, and proof-pack
+      APIs,
+   3. `scripts/capture_rfc0028_backend_proof.py` repeatable sanitized artifact capture,
+   4. Gateway PR #252, Workbench PR #384, Platform PR #367, and canonical
+      `PB_SG_GLOBAL_BAL_001` proof for `advisory.bank_demo_proof`.
+3. Local validation for the final implementation-proof and hardening pass included:
+   1. targeted RFC-0028 proof tests with 14 passing tests,
+   2. `make check` with lint, typecheck, OpenAPI quality, no-alias, API vocabulary, domain
+      data-product declarations, and 1,324 unit tests passing,
+   3. `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise` with `DiffCount 0` before the
+      hardening merge,
+   4. GitHub Feature Lane, Pull Request Merge Gate, and Main Releasability Gate all green for
+      the final code-bearing RFC-0028 slice.
+4. The proof remains bounded: it supports repeatable bank-demo evidence, claim-controlled
+   commercial/RFP/security material, and blocked client-ready publication posture. It does not
+   promote external client communication, completed legal/regulatory approval, bank-specific
+   attestations, completed sign-off authority, or OMS/order/fill/settlement.
+
 ### Slice 14 - Second-Last Hardening and Review
 
 Outcome:
@@ -1344,6 +1370,25 @@ Acceptance gate:
 3. every request/response attribute has description, type, and example value,
 4. all repo-native and affected cross-repo CI gates are green,
 5. RFP/security/product material passes supported-claim review.
+
+Slice 14 hardening decision and evidence:
+
+1. The final review found one real backend/API boundary gap after Slice 12: proof artifact
+   references were still free-form even though runtime URLs and summaries were already sanitized.
+2. PR #213 added `src/core/bank_demo_proof/artifact_refs.py` and now rejects proof artifact
+   references that contain URL schemes, authorities, credentials, query strings, fragments,
+   absolute paths, parent-directory traversal, control characters, or sensitive path fragments
+   such as token, secret, credential, authorization, prompt, and raw payload.
+3. `BackendProofCaptureMetadata`, `build_backend_proof_capture`, and
+   `BankDemoProofCaptureRequest` now normalize local relative artifact refs consistently.
+4. `src/api/main.py` now sanitizes FastAPI request-validation errors so HTTP 422 responses retain
+   useful `type`, `loc`, and `msg` details without echoing rejected sensitive input values.
+5. Regression tests prove:
+   1. sensitive `output_ref_prefix` and `live_suite_result_ref` values are rejected at the engine
+      and API boundaries,
+   2. rejected token-bearing input such as `should-not-leak` is not reflected in API error
+      details,
+   3. OpenAPI documents the tightened local-reference contract.
 
 ### Slice 15 - Final Closure
 
@@ -1369,6 +1414,21 @@ Acceptance gate:
    decision is recorded,
 8. no follow-up RFC, second wave, WTBD, or side ledger is required to realize the RFC-0028 business
    value.
+
+Slice 15 closure decision and evidence:
+
+1. RFC-0028 is closed for the implemented bank-demo proof, supported-claim governance,
+   claim-controlled commercial material, Gateway/Workbench/platform proof, sanitized runtime
+   posture, and final artifact-reference/request-validation hardening.
+2. Closure updates promote RFC-0028 from draft to implemented in this RFC, `docs/rfcs/README.md`,
+   `wiki/RFC-Index.md`, `wiki/Supported-Features.md`, `README.md`,
+   `REPOSITORY-ENGINEERING-CONTEXT.md`, `wiki/API-Surface.md`,
+   `wiki/Security-and-Governance.md`, and `wiki/Operations-Runbook.md`.
+3. No new implementation slice is required before closure. The remaining non-claims are explicit
+   unsupported or separately gated capabilities: external client communication, completed
+   legal/regulatory approval, bank-specific attestations, completed sign-off/approval authority,
+   and OMS/order/fill/settlement.
+4. Wiki publication is required after this closure PR merges because wiki source changes.
 
 ### Slice 16 - Post-Completion Communication
 
@@ -1398,6 +1458,22 @@ Acceptance gate:
 3. post path and ledger update are referenced in closure evidence, or closure records a deliberate
    user-approved no-post decision.
 
+Slice 16 post-completion communication decision and evidence:
+
+1. Post-completion communication is handled in `lotus-platform` because the LinkedIn
+   thought-leadership system is platform-owned personal-brand content, not `lotus-advise` product
+   truth.
+2. Draft path:
+   `lotus-platform/thought-leadership/linkedin/drafts/LI-2026-05-28-043-demo-proof-should-show-the-boundary.md`.
+3. Ledger path:
+   `lotus-platform/thought-leadership/linkedin/content-ledger.md`.
+4. Platform PR #369 merged the draft and ledger entry at
+   `26d74e65e231ac3d62457187c6eb7f787a4d9f88`; Main Releasability Gate run
+   `26574820026` validates the platform post-merge state.
+5. The draft is employer-safe, industry-framed, non-confidential, non-promotional, and avoids
+   investment, legal, regulatory, bank-adoption, client-ready publication, AI-authority, and
+   execution/OMS claims.
+
 ---
 
 ## 17. Supported-Features Ledger
@@ -1423,10 +1499,11 @@ Acceptance gate:
 
 Current implementation note:
 
-1. Slices 0-10 are implementation-backed for the source scenario contract, supported-claim
+1. Slices 0-16 are implementation-backed for the source scenario contract, supported-claim
    register, proof-pack capture, document proof summary, AI/model-risk/policy/cockpit integration
    proof summary, claim-controlled commercial material pack, Gateway publication, Platform
-   canonical contract registration, and Workbench proof surface.
+   canonical contract registration, Workbench proof surface, sanitized runtime/security posture,
+   artifact-reference hardening, final closure truth, and post-completion communication evidence.
 2. The canonical Workbench proof path is `advisory.bank_demo_proof` at
    `/recommendations?portfolioId=PB_SG_GLOBAL_BAL_001&mode=proof`; live validation records
    `BANK_DEMO_PROOF_PACK_CREATED` for scenario
@@ -1444,6 +1521,15 @@ Current implementation note:
    OMS/order/fill/settlement, approval authority, legal/regulatory advice, bank-specific
    certifications, and LinkedIn post-completion output remain blocked unless separately
    implementation-backed and reviewed.
+5. Slice 11 adds `runtime-posture.json`, bounded `latency_ms`, runtime base-URL hygiene, sensitive
+   summary redaction, and `RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED`.
+6. Slice 12 updates README and wiki product truth for the source-owned proof APIs, runtime posture
+   artifacts, capture commands, commercial proof-guide navigation, HTTP 409 material-drift
+   handling, and blocked client-ready/OMS boundaries.
+7. Slice 13/14 closes implementation proof and final hardening through artifact-reference
+   normalization plus safe request-validation error responses.
+8. Slice 15/16 closes durable RFC, README, wiki, repository-context, supported-features, and
+   post-completion communication truth through `lotus-platform` PR #369.
 
 ---
 

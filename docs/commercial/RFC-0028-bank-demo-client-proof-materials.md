@@ -93,7 +93,12 @@ Implementation-backed posture:
 6. runtime proof evidence rejects probe URLs with credentials, query strings, or fragments and
    redacts secret, token, credential, authorization, cookie, prompt, raw payload/source, trace, and
    correlation fields from nested summaries,
-7. evidence refs use support-safe lineage and hashes rather than raw business payload dumps.
+7. proof artifact refs must be local relative references and reject URL schemes, authorities,
+   credentials, queries, fragments, absolute paths, traversal, control characters, and sensitive
+   token/secret/prompt/raw-payload path material,
+8. HTTP 422 request-validation responses keep the field/rule diagnostic but do not echo rejected
+   sensitive input values,
+9. evidence refs use support-safe lineage and hashes rather than raw business payload dumps.
 
 Not claimed:
 
@@ -242,9 +247,10 @@ Implementation evidence:
 1. `src/core/bank_demo_proof/commercial_materials.py`,
 2. `scripts/capture_rfc0028_backend_proof.py`,
 3. `src/core/bank_demo_proof/capture.py`,
-4. `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md`,
-5. `wiki/Supported-Features.md`,
-6. `docs/demo/README.md`.
+4. `src/core/bank_demo_proof/artifact_refs.py`,
+5. `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md`,
+6. `wiki/Supported-Features.md`,
+7. `docs/demo/README.md`.
 
 Primary validation:
 
