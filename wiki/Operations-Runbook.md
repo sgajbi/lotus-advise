@@ -43,6 +43,51 @@ Operationally, cockpit acknowledgements are not remediation authority. Treat the
 advisor workflow evidence. They must not be used as proof of completed policy approval, client
 communication, CRM system-of-record task creation, or OMS order/fill/settlement activity.
 
+## RFC-0028 Bank Demo Proof Operations
+
+RFC-0028 proof capture is repeatable and evidence-backed for the governed canonical portfolio
+`PB_SG_GLOBAL_BAL_001`. The expected proof marker is `BANK_DEMO_PROOF_PACK_CREATED`; material drift
+is represented by `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED` or an HTTP 409 response from the
+proof-pack API.
+
+Use one of these capture modes:
+
+```bash
+python scripts/capture_rfc0028_backend_proof.py --live-suite-json <path> --output-dir output/rfc0028/backend-proof
+python scripts/capture_rfc0028_backend_proof.py --run-live-suite --output-dir output/rfc0028/backend-proof
+```
+
+Review these artifacts before reusing demo, RFP, security, or proof-guide material:
+
+1. `proof-pack.json`
+2. `scenario-contract.json`
+3. `supported-claim-register.json`
+4. `runtime-posture.json`
+5. `sanitized-runtime-summary.json`
+6. `material-field-review.json`
+7. `document-proof-summary.json`
+8. `journey-integration-proof-summary.json`
+9. `commercial-material-pack.json`
+10. `capture-summary.md`
+
+Operational interpretation:
+
+1. a material-review block or HTTP 409 is a defect to triage at the source layer; do not work
+   around it in Workbench, Gateway, or documentation
+2. runtime posture must not contain credentials, query strings, fragments, secrets, tokens,
+   prompts, raw payloads, trace IDs, or correlation IDs
+3. endpoint posture should use bounded integer `latency_ms` values, not raw traces or request
+   payloads
+4. local `output/` artifacts are evidence, not authored documentation source; README and wiki truth
+   must be updated separately when implementation posture changes
+5. client-ready publication, external client communication, bank-specific attestations,
+   legal/regulatory advice, completed policy sign-off/approval, and OMS/order/fill/settlement stay
+   blocked unless separately implemented and proven
+
+Use `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md` for sales, pre-sales, RFP, and
+demo-lead wording. It is the business-facing guide, but it remains constrained by the supported
+claim register and proof-pack evidence.
+
 ## Canonical Local Identity
 
 Use:

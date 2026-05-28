@@ -27,3 +27,24 @@ The highest-risk documentation and implementation drift usually appears at these
 2. decision-summary posture must remain backend-owned
 3. local fallback or degraded behavior must not be presented as canonical upstream truth
 4. live runtime evidence matters when advisory behavior changes materially
+
+## RFC-0028 Proof Artifact Governance
+
+RFC-0028 bank-demo proof is governed as implementation evidence, not marketing copy. The supported
+claim register controls which product, security, RFP, demo, and proof-guide statements can be used
+by business-facing material. Claims must stay in one of the documented postures: implementation
+backed, blocked, planned, local-only, or secret material. Commercial wording must map back to the
+supported-claim register and proof-pack evidence before it is reused outside engineering.
+
+Runtime proof artifacts are sanitized before they become commit-safe or demo-supporting evidence:
+
+1. runtime base URLs must not include credentials, query strings, or fragments
+2. summaries redact secrets, tokens, prompts, raw payloads, trace IDs, and correlation IDs
+3. endpoint posture records bounded integer `latency_ms` values only
+4. local-only runtime outputs under `output/` must not be treated as wiki or README source truth
+
+The proof boundary remains deliberately conservative. RFC-0028 does not certify bank-specific
+attestations, legal/regulatory advice, completed policy sign-off/approval, external client
+communication, client-ready publication, or OMS/order/fill/settlement. Any future promotion of
+those claims requires implementation evidence, tests at the owning layer, and updated API/wiki/RFC
+truth in the same slice.

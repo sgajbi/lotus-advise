@@ -92,6 +92,27 @@ source refs, action reason codes, SLA posture, acknowledgement lineage, and unsu
 boundaries. Acknowledgements are advisor workflow evidence only: they do not approve policy, clear
 blockers, contact clients, create CRM tasks, or initiate OMS activity.
 
+## Bank Demo Proof
+
+- `GET /advisory/bank-demo-proof/scenario-contract`
+- `GET /advisory/bank-demo-proof/supported-claim-register`
+- `POST /advisory/bank-demo-proof/proof-packs`
+
+These RFC-0028 endpoints expose the Advise-owned bank-demo proof contract for Gateway and Workbench
+product consumption. The scenario contract fixes the canonical `PB_SG_GLOBAL_BAL_001` journey,
+the supported-claim register maps each demo/RFP claim to implementation evidence, and proof-pack
+capture writes sanitized runtime posture for repeatable validation.
+
+`POST /advisory/bank-demo-proof/proof-packs` must fail with HTTP 409 when material proof fields
+drift from the supported-claim register. Runtime posture rejects runtime base URLs that carry
+credentials, query strings, or fragments; summaries redact secrets, tokens, prompts, raw payloads,
+trace IDs, and correlation IDs; endpoint evidence records bounded integer `latency_ms` values.
+
+The proof APIs do not approve client-ready publication, external client communication,
+bank-specific attestations, legal/regulatory advice, completed sign-off/approval, or
+OMS/order/fill/settlement. Gateway and Workbench must consume this source-owned contract rather
+than reconstructing advisory suitability, memo, narrative, policy, or proof semantics locally.
+
 ## Contract Notes
 
 - OpenAPI is the governed external contract.
@@ -118,6 +139,10 @@ blockers, contact clients, create CRM tasks, or initiate OMS activity.
   bounded to advisor operating workflow evidence and does not promote client-ready publication,
   external client communication, CRM system-of-record behavior, OMS lifecycle, completed policy
   approval authority, or full RFC-0028 demo/RFP package claims.
+- RFC-0028 bank-demo proof is exposed through `/advisory/bank-demo-proof/*`, not through a
+  generic capability toggle. Supported demo claims must be backed by the supported-claim register,
+  proof-pack evidence, and runtime posture artifacts before they are reused in demo, RFP, security,
+  or commercial material.
 - `GET /platform/capabilities` also includes a bounded `supportability` summary for advisory
   readiness, degraded dependency posture, and lifecycle-disabled posture. The
   `supportability.metric_labels` field documents the exact bounded label tuple for
