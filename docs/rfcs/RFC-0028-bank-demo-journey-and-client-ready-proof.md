@@ -851,6 +851,29 @@ Acceptance gate:
 4. proof pack can represent backend, Gateway, Workbench, report, AI, platform, security, and RFP
    evidence.
 
+Slice 4 implementation decision and evidence:
+
+1. `src/core/bank_demo_proof/` now defines the pure domain contracts for
+   `AdvisoryDemoScenarioContract:v1`, `AdvisorySupportedClaimRegister:v1`, and
+   `AdvisoryBankDemoProofPack:v1`.
+2. The model package also defines proof asset indexing, artifact access classes, retention classes,
+   client-ready proof posture, the RFC-0028 canonical scenario constants, and the supported-claim
+   taxonomy inherited from the platform supported-claim validator.
+3. The models are intentionally core-domain only. No controller, API route, persistence table,
+   data-product declaration, or `/platform/capabilities` promotion is added in Slice 4.
+4. Validation rules enforce:
+   1. scenario proof marker must be present in required evidence markers,
+   2. `IMPLEMENTATION_BACKED` claims require evidence refs and proof requirements,
+   3. `PLANNED_RFC` and `UNSUPPORTED` claims cannot appear in screenshots, product one-pagers, or
+      RFP responses,
+   4. `BACKEND_BACKED_UI_PENDING` claims cannot use screenshots,
+   5. claim IDs are unique inside a register,
+   6. artifact policy names secrets, tokens, and prompts,
+   7. local-only or secret runtime assets cannot be commit-allowed,
+   8. `CLIENT_READY_APPROVED` remains blocked before publication controls exist.
+5. Test evidence lives in
+   `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py`.
+
 ### Slice 5 - Backend Proof Capture in `lotus-advise`
 
 Outcome:
