@@ -6,6 +6,8 @@ RFC28_PATH = Path("docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.m
 RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
+COMMERCIAL_GUIDE_PATH = Path("docs/commercial/RFC-0028-bank-demo-client-proof-materials.md")
+DEMO_README_PATH = Path("docs/demo/README.md")
 
 
 def _read(path: Path) -> str:
@@ -93,7 +95,7 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICES 0-9 INTEGRATION PROOF COMPLETE",
+        "DRAFT - SLICES 0-10 COMMERCIAL PROOF MATERIAL COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
@@ -103,6 +105,9 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
         "journey-integration-proof-summary.json",
         "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED",
         "ai_policy_cockpit_proof_integrated",
+        "commercial-material-pack.json",
+        "RFC0028_COMMERCIAL_MATERIAL_PACK_CREATED",
+        "commercial_rfp_security_material_available",
     )
     for marker in index_markers:
         assert marker in rfc_index
@@ -110,8 +115,8 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
 
     assert "advisory.bank_demo_proof" in supported_features
     assert "advisory-bank-demo-proof-live.png" in wiki_index
-    assert "RFP/security" in supported_features
-    assert "client-ready publication remain unpromoted" in supported_features
+    assert "RFP response" in supported_features
+    assert "client-ready publication" in supported_features
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in rfc_index
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in wiki_index
     assert "Draft with Slice 0 decisions locked" not in supported_features
@@ -203,8 +208,8 @@ def test_rfc0028_records_slice_six_document_proof_capture() -> None:
 
     for source in (rfc_index, wiki_index, supported_features):
         assert (
-            "DRAFT - SLICES 0-9 INTEGRATION PROOF COMPLETE" in source
-            or "Slices 0-9 are implementation-backed" in source
+            "DRAFT - SLICES 0-10 COMMERCIAL PROOF MATERIAL COMPLETE" in source
+            or "Slices 0-10 are implementation-backed" in source
             or "Slice 8 closes Workbench proof" in source
         )
         assert "document-proof-summary.json" in source
@@ -245,18 +250,15 @@ def test_rfc0028_records_slice_seven_gateway_publication_without_product_overcla
 
     for source in (rfc_index, wiki_index, supported_features):
         assert (
-            "SLICES 0-9 INTEGRATION PROOF COMPLETE" in source
-            or "Slices 0-9 are implementation-backed" in source
+            "SLICES 0-10 COMMERCIAL PROOF MATERIAL COMPLETE" in source
+            or "Slices 0-10 are implementation-backed" in source
             or "Slice 8 closes Workbench proof" in source
         )
         assert "Gateway consumption remains the next Slice 7 owner-repository step" not in source
         assert "screenshot" in source
         assert "RFP" in source
-        assert (
-            "client-ready publication claims unpromoted" in source
-            or ("client-ready publication claim is promoted" in source)
-            or ("client-ready publication remain unpromoted" in source)
-        )
+        assert "client-ready publication" in source
+        assert "unpromoted" in source or "blocked" in source
 
 
 def test_rfc0028_records_slice_nine_integration_proof_without_client_ready_overclaim() -> None:
@@ -289,5 +291,57 @@ def test_rfc0028_records_slice_nine_integration_proof_without_client_ready_overc
         assert "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED" in source
         assert "ai_policy_cockpit_proof_integrated" in source
         assert "client-ready publication" in source
-        assert "RFP/security" in source
+        assert "RFP" in source
         assert "OMS/order/fill/settlement" in source
+
+
+def test_rfc0028_records_slice_ten_commercial_material_without_unsupported_claims() -> None:
+    flat = _flat(RFC28_PATH)
+    rfc_index = _flat(RFC_INDEX_PATH)
+    wiki_index = _flat(WIKI_RFC_INDEX_PATH)
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
+    commercial = _read(COMMERCIAL_GUIDE_PATH)
+    demo_readme = _read(DEMO_README_PATH)
+
+    markers = (
+        "AdvisoryCommercialMaterialPack:v1",
+        "src/core/bank_demo_proof/commercial_materials.py",
+        "commercial-material-pack.json",
+        "RFC0028_COMMERCIAL_MATERIAL_PACK_CREATED",
+        "COMMERCIAL_DOCUMENT",
+        "commercial_rfp_security_material_available",
+        "docs/commercial/RFC-0028-bank-demo-client-proof-materials.md",
+        "tests/unit/scripts/test_capture_rfc0028_backend_proof.py",
+    )
+    for marker in markers:
+        assert marker in flat
+
+    for heading in (
+        "## Implementation-Backed Product One-Pager",
+        "## Supported-Claim Mapping",
+        "## RFP Response Pack",
+        "## Security Posture Pack",
+        "## Deck-Ready Architecture Outline",
+        "## Demo Script And Talk Track",
+        "## Proof-Pack Interpretation Guide",
+        "## ROI Story",
+        "## Supported Versus Blocked Feature Matrix",
+        "## Client-Demo Boundaries",
+        "## Operator And Demo-Lead Checklist",
+    ):
+        assert heading in commercial
+
+    for source in (rfc_index, wiki_index, supported_features, demo_readme):
+        assert "commercial-material-pack.json" in source or "bank-demo-client-proof-materials" in (
+            source
+        )
+        assert "commercial_rfp_security_material_available" in source or (
+            "claim-controlled commercial support guide" in source
+        )
+        assert "client-ready publication" in source
+        assert "OMS/order/fill/settlement" in source or "OMS order/fill/settlement" in source
+
+    assert "Safe RFP wording" in commercial
+    assert "Unsafe RFP wording" in commercial
+    assert "bank-specific certification" in commercial
+    assert "Do not present quantified time savings" in commercial

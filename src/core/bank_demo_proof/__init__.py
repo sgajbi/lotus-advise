@@ -11,6 +11,11 @@ from src.core.bank_demo_proof.capture import (
     review_material_fields,
     sanitize_live_runtime_summary,
 )
+from src.core.bank_demo_proof.commercial_materials import (
+    CommercialMaterial,
+    CommercialMaterialPack,
+    build_commercial_material_pack,
+)
 from src.core.bank_demo_proof.document_proof import (
     AdvisoryDocumentProof,
     AdvisoryDocumentProofSummary,
@@ -64,6 +69,8 @@ __all__ = [
     "AiModelRiskControlProof",
     "CockpitEvidenceProof",
     "ClientReadyProofPosture",
+    "CommercialMaterial",
+    "CommercialMaterialPack",
     "DemoScenarioStep",
     "DocumentProofClaimPosture",
     "DocumentProofFamily",
@@ -87,6 +94,7 @@ __all__ = [
     "build_backend_proof_capture",
     "build_default_scenario_contract",
     "build_default_supported_claim_register",
+    "build_commercial_material_pack",
     "build_document_proof_summary",
     "build_journey_integration_proof_summary",
     "default_capture_metadata",

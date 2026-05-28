@@ -5,6 +5,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from src.core.bank_demo_proof.commercial_materials import (
+    CommercialMaterialPack,
+    build_commercial_material_pack,
+)
 from src.core.bank_demo_proof.document_proof import (
     AdvisoryDocumentProofSummary,
     build_document_proof_summary,
@@ -120,6 +124,7 @@ class BackendProofCaptureBundle(BaseModel):
     proof_pack: AdvisoryBankDemoProofPack
     document_proof_summary: AdvisoryDocumentProofSummary
     journey_integration_proof_summary: AdvisoryJourneyIntegrationProofSummary
+    commercial_material_pack: CommercialMaterialPack
     runtime_posture: BackendRuntimePosture
     sanitized_runtime_summary: dict[str, Any]
     material_field_reviews: list[MaterialFieldReview]
@@ -365,6 +370,7 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
     backend_summary_ref = "proof.assets.sanitized_runtime_summary"
     document_proof_ref = "proof.assets.document_proof_summary"
     integration_proof_ref = "proof.assets.journey_integration_proof_summary"
+    commercial_material_ref = "proof.assets.commercial_material_pack"
     field_review_ref = "proof.assets.material_field_review"
     runtime_posture_ref = "proof.assets.runtime_posture"
     return AdvisorySupportedClaimRegister(
@@ -534,18 +540,68 @@ def build_default_supported_claim_register() -> AdvisorySupportedClaimRegister:
                 ],
             ),
             SupportedClaim(
+                claim_id="commercial_rfp_security_material_available",
+                title="Commercial, RFP, security, architecture, ROI, and demo material available",
+                classification="IMPLEMENTATION_BACKED",
+                audiences=[
+                    "DEVELOPER",
+                    "OPERATIONS",
+                    "SALES",
+                    "PRE_SALES",
+                    "CLIENT_DEMO",
+                    "RFP_SECURITY",
+                ],
+                allowed_materials=[
+                    "README",
+                    "WIKI",
+                    "SUPPORTED_FEATURES",
+                    "DEMO_SCRIPT",
+                    "PRODUCT_ONE_PAGER",
+                    "RFP_RESPONSE",
+                    "SECURITY_PACK",
+                    "ARCHITECTURE_DECK",
+                    "ROI_STORY",
+                    "OPERATOR_RUNBOOK",
+                ],
+                claim_text=(
+                    "RFC-0028 has claim-controlled product one-pager, RFP response, security "
+                    "posture, architecture, demo-script, proof-guide, ROI, feature-matrix, "
+                    "client-demo boundary, and operator-checklist material grounded in the "
+                    "supported-claim register and sanitized proof pack."
+                ),
+                evidence_refs=[commercial_material_ref, field_review_ref],
+                proof_requirements=[
+                    SupportedClaimProofRequirement(
+                        requirement_id="rfc0028-commercial-material-pack",
+                        evidence_ref=commercial_material_ref,
+                    ),
+                    SupportedClaimProofRequirement(
+                        requirement_id="rfc0028-commercial-material-field-review",
+                        evidence_ref=field_review_ref,
+                    ),
+                ],
+                wording_rules=[
+                    "Map every asset to the supported-claim register before use.",
+                    "Do not claim bank-specific certifications or external attestations.",
+                    (
+                        "Do not claim client-ready publication, policy approval, "
+                        "or execution authority."
+                    ),
+                ],
+            ),
+            SupportedClaim(
                 claim_id="rfp_security_package_pending",
-                title="RFP and security pack publication pending",
-                classification="PLANNED_RFC",
-                audiences=["DEVELOPER", "OPERATIONS", "SALES", "PRE_SALES"],
+                title="Legacy RFP and security pack pending claim is retired",
+                classification="UNSUPPORTED",
+                audiences=["DEVELOPER", "OPERATIONS"],
                 allowed_materials=["WIKI", "OPERATOR_RUNBOOK"],
                 claim_text=(
-                    "RFP, security, one-pager, and architecture-pack publication remains pending "
-                    "until the commercial artifact slice reviews claims against implementation "
-                    "evidence."
+                    "The old pending RFP/security wording is retired. Use "
+                    "commercial_rfp_security_material_available for the implemented, "
+                    "claim-controlled material pack and preserve the blocked boundaries."
                 ),
                 wording_rules=[
-                    "Do not include this claim in RFP responses before Slice 10 completion.",
+                    "Do not use this retired claim in product, RFP, security, or demo material.",
                 ],
             ),
         ],
@@ -739,6 +795,7 @@ def build_backend_proof_capture(
 ) -> BackendProofCaptureBundle:
     sanitized_summary = sanitize_live_runtime_summary(live_runtime_payload)
     document_proof_summary = build_document_proof_summary(live_runtime_payload)
+    commercial_material_pack = build_commercial_material_pack()
     material_reviews = review_material_fields(live_runtime_payload)
     if any(review.review_posture == "BLOCKED" for review in material_reviews):
         blocked = ", ".join(
@@ -756,6 +813,7 @@ def build_backend_proof_capture(
     runtime_posture_payload = runtime_posture.model_dump(mode="json")
     document_proof_payload = document_proof_summary.model_dump(mode="json")
     integration_proof_payload = journey_integration_proof_summary.model_dump(mode="json")
+    commercial_material_payload = commercial_material_pack.model_dump(mode="json")
     material_review_payload = [review.model_dump(mode="json") for review in material_reviews]
     proof_pack = AdvisoryBankDemoProofPack(
         proof_pack_id=f"rfc0028-backend-proof-{metadata.generated_at.strftime('%Y%m%dT%H%M%SZ')}",
@@ -771,6 +829,7 @@ def build_backend_proof_capture(
             "RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED",
             "RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED",
             "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED",
+            "RFC0028_COMMERCIAL_MATERIAL_PACK_CREATED",
             "RFC0028_RUNTIME_POSTURE_CAPTURED",
         ],
         scenario_contract_ref=RFC28_SCENARIO_CONTRACT_REF,
@@ -837,6 +896,20 @@ def build_backend_proof_capture(
                 commit_allowed=False,
             ),
             ProofAsset(
+                asset_id="commercial_material_pack",
+                asset_type="COMMERCIAL_DOCUMENT",
+                source_repository="lotus-advise",
+                uri="docs/commercial/RFC-0028-bank-demo-client-proof-materials.md",
+                access_class="CUSTOMER_CONSUMABLE_SUMMARY",
+                retention_class="COMMIT_SOURCE",
+                evidence_refs=[
+                    "commercial_rfp_security_material_available",
+                    "client_ready_publication_blocked",
+                ],
+                content_hash=hash_canonical_payload(commercial_material_payload),
+                commit_allowed=True,
+            ),
+            ProofAsset(
                 asset_id="runtime_posture",
                 asset_type="SECURITY_CHECK_SUMMARY",
                 source_repository="lotus-advise",
@@ -868,6 +941,7 @@ def build_backend_proof_capture(
         proof_pack=proof_pack,
         document_proof_summary=document_proof_summary,
         journey_integration_proof_summary=journey_integration_proof_summary,
+        commercial_material_pack=commercial_material_pack,
         runtime_posture=runtime_posture,
         sanitized_runtime_summary=sanitized_summary,
         material_field_reviews=material_reviews,

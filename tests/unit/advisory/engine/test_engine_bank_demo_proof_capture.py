@@ -332,12 +332,22 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
     assert "RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED" in bundle.proof_pack.evidence_markers
     assert "RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED" in bundle.proof_pack.evidence_markers
     assert "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED" in bundle.proof_pack.evidence_markers
+    assert "RFC0028_COMMERCIAL_MATERIAL_PACK_CREATED" in bundle.proof_pack.evidence_markers
     assert "RFC0028_RUNTIME_POSTURE_CAPTURED" in bundle.proof_pack.evidence_markers
     assert bundle.proof_pack.repository_shas == {"lotus-advise": "abc123"}
-    assert all(not asset.commit_allowed for asset in bundle.proof_pack.assets)
+    commit_allowed_assets = {
+        asset.asset_id for asset in bundle.proof_pack.assets if asset.commit_allowed
+    }
+    assert commit_allowed_assets == {"commercial_material_pack"}
     assert any(
         asset.asset_id == "journey_integration_proof_summary"
         and asset.asset_type == "GOVERNANCE_INTEGRATION_SUMMARY"
+        for asset in bundle.proof_pack.assets
+    )
+    assert any(
+        asset.asset_id == "commercial_material_pack"
+        and asset.asset_type == "COMMERCIAL_DOCUMENT"
+        and asset.access_class == "CUSTOMER_CONSUMABLE_SUMMARY"
         for asset in bundle.proof_pack.assets
     )
     claim_postures = {
@@ -349,7 +359,23 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
     )
     assert claim_postures["advisor_use_document_proof_available"] == "BACKEND_BACKED_UI_PENDING"
     assert claim_postures["ai_policy_cockpit_proof_integrated"] == "IMPLEMENTATION_BACKED"
+    assert claim_postures["commercial_rfp_security_material_available"] == "IMPLEMENTATION_BACKED"
+    assert claim_postures["rfp_security_package_pending"] == "UNSUPPORTED"
     assert claim_postures["client_ready_publication_blocked"] == "UNSUPPORTED"
+    material_ids = {material.material_id for material in bundle.commercial_material_pack.materials}
+    assert material_ids == {
+        "product_one_pager",
+        "rfp_response_pack",
+        "security_posture_pack",
+        "architecture_outline",
+        "demo_script",
+        "proof_pack_interpretation_guide",
+        "roi_story",
+        "supported_feature_matrix",
+        "client_demo_boundaries",
+        "operator_demo_lead_checklist",
+    }
+    assert "client_ready_publication" in bundle.commercial_material_pack.blocked_claims
     assert (
         bundle.journey_integration_proof_summary.policy_evidence.client_ready_publication
         == "BLOCKED"

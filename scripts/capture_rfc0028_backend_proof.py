@@ -145,6 +145,7 @@ def write_backend_proof_capture_bundle(
         "journey_integration_proof_summary": (
             output_dir / "journey-integration-proof-summary.json"
         ),
+        "commercial_material_pack": output_dir / "commercial-material-pack.json",
         "runtime_posture": output_dir / "runtime-posture.json",
         "sanitized_runtime_summary": output_dir / "sanitized-runtime-summary.json",
         "material_field_review": output_dir / "material-field-review.json",
@@ -165,6 +166,10 @@ def write_backend_proof_capture_bundle(
     _write_json(
         paths["journey_integration_proof_summary"],
         bundle.journey_integration_proof_summary.model_dump(mode="json"),
+    )
+    _write_json(
+        paths["commercial_material_pack"],
+        bundle.commercial_material_pack.model_dump(mode="json"),
     )
     _write_json(paths["runtime_posture"], bundle.runtime_posture.model_dump(mode="json"))
     _write_json(paths["sanitized_runtime_summary"], bundle.sanitized_runtime_summary)
@@ -331,6 +336,12 @@ def _render_capture_summary(bundle: BackendProofCaptureBundle) -> str:
     )
     policy = bundle.journey_integration_proof_summary.policy_evidence
     cockpit = bundle.journey_integration_proof_summary.cockpit_evidence
+    commercial_materials = "\n".join(
+        "- "
+        f"`{material.material_id}`: `{material.material_type}` / "
+        f"claims `{', '.join(material.mapped_claim_ids)}`"
+        for material in bundle.commercial_material_pack.materials
+    )
     return (
         "# RFC-0028 Backend Proof Capture\n\n"
         f"- proof pack: `{bundle.proof_pack.proof_pack_id}`\n"
@@ -349,6 +360,10 @@ def _render_capture_summary(bundle: BackendProofCaptureBundle) -> str:
         f"`{policy.evaluation_status}` / client-ready `{policy.client_ready_publication}`\n"
         f"- cockpit panel: `{cockpit.required_workbench_panel}` / "
         f"`{cockpit.proof_posture}` / client-ready `{cockpit.client_ready_publication}`\n\n"
+        "## Commercial, RFP, Security, Architecture, ROI, And Demo Material\n\n"
+        f"{commercial_materials}\n\n"
+        f"- publication posture: `{bundle.commercial_material_pack.publication_posture}`\n"
+        f"- blocked claims: `{', '.join(bundle.commercial_material_pack.blocked_claims)}`\n\n"
         "## Material Field Review\n\n"
         f"{material_reviews}\n\n"
         "## Unsupported Boundaries\n\n"

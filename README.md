@@ -89,7 +89,12 @@ Boundary rules that matter:
    `AdvisoryJourneyIntegrationProofSummary:v1` and
    `journey-integration-proof-summary.json` so the backend proof pack now carries sanitized
    AI/model-risk, policy, and advisor-cockpit boundary evidence without promoting AI authority,
-   legal advice, policy approval, or client-ready publication.
+   legal advice, policy approval, or client-ready publication. Slice 10 adds claim-controlled
+   commercial, RFP, security, architecture, ROI, demo, feature-matrix, proof-guide, boundary, and
+   operator material through `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md` and
+   `commercial-material-pack.json`, while keeping client-ready publication, external client
+   communication, bank-specific attestations, legal/regulatory advice, completed sign-off, and
+   OMS/order/fill/settlement claims blocked.
 
 ## Architecture At A Glance
 
