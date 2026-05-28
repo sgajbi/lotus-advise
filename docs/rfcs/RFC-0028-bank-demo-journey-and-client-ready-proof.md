@@ -813,6 +813,27 @@ Acceptance gate:
    guardrails are green,
 5. `/platform/capabilities` advertises demo/proof support only after implementation is real.
 
+Slice 3 implementation decision and evidence:
+
+1. RFC-0028 proof-pack and supported-claim records remain internal/proposed at this point because
+   the Advise-owned proof API, proof-pack model, scenario contract, and supported-claim API are
+   implemented in later RFC-0028 slices, not in Slice 3.
+2. No `AdvisoryBankDemoProofPack`, `AdvisorySupportedClaimRegister`, or
+   `AdvisoryDemoScenarioContract` active data product declaration, trust-telemetry snapshot, or
+   `/platform/capabilities` feature is allowed before those records are backed by real contracts,
+   APIs, proof evidence, and canonical validation.
+3. Existing active Advise evidence products are the source products for the eventual RFC-0028 proof
+   pack: `ProposalNarrativeEvidence`, `AdvisoryProposalMemoEvidencePack`,
+   `AdvisoryPolicyEvaluationRecord`, `AdvisorCockpitOperatingSnapshot`,
+   `AdvisoryActionItemRegister`, and `AdvisoryCopilotInteractionRecord`.
+4. `/platform/capabilities` must not advertise bank-demo proof or supported-claim support until
+   Slice 5 and the later Gateway/Workbench proof slices promote the capability with evidence.
+5. No `contracts/domain-data-products/`, `contracts/trust-telemetry/`, or capabilities code change
+   is made in Slice 3 because the correct hardening is a regression guard against premature
+   promotion.
+6. No wiki source change is required for Slice 3 because no product capability, operator flow,
+   supported feature, or client-facing posture changed.
+
 ### Slice 4 - Scenario Contract, Supported-Claim Register, and Proof-Pack Model
 
 Outcome:
