@@ -171,7 +171,7 @@ class AdvisoryCopilotReviewResponse(BaseModel):
 class AdvisoryCopilotSupportabilityResponse(BaseModel):
     support_status: str = Field(
         description="Current support posture for the Advise copilot API surface.",
-        examples=["ADVISE_API_CERTIFIED_GATEWAY_WORKBENCH_PENDING"],
+        examples=["ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"],
     )
     client_ready_publication: str = Field(
         description="Client-ready publication posture for first-wave copilot output.",

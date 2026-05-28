@@ -335,16 +335,16 @@ def review_advisory_copilot_run(
 )
 def get_advisory_copilot_supportability() -> AdvisoryCopilotSupportabilityResponse:
     return AdvisoryCopilotSupportabilityResponse(
-        support_status="ADVISE_API_CERTIFIED_GATEWAY_WORKBENCH_PENDING",
+        support_status="ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
         client_ready_publication="BLOCKED",
         supported_action_families=tuple(
             definition.action_family for definition in list_copilot_action_definitions()
         ),
         boundaries=(
-            "No client-ready publication",
-            "No policy approval or sign-off authority",
-            "No order, fill, settlement, or OMS authority",
-            "Gateway and Workbench support remain pending later RFC-0027 slices",
+            "CLIENT_READY_PUBLICATION is blocked",
+            "POLICY_APPROVAL_OR_SIGN_OFF is not delegated to copilot",
+            "OMS_ORDER_LIFECYCLE is not delegated to copilot",
+            "CLIENT_COMMUNICATION_DELIVERY is not delegated to copilot",
         ),
     )
 
