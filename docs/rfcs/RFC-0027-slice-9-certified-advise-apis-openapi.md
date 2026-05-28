@@ -36,8 +36,10 @@ The API owns advisory copilot orchestration in Advise:
    workflow-pack adapter,
 4. run persistence records hashes, guardrails, review posture, lineage, tenant, caller, and
    correlation id,
-5. review actions are idempotent and audited,
-6. supportability explicitly blocks client-ready publication, policy approval/sign-off authority,
+5. proposal-version run history uses bounded newest-first keyset pagination with invalid-cursor
+   rejection,
+6. review actions are idempotent and audited,
+7. supportability explicitly blocks client-ready publication, policy approval/sign-off authority,
    order/fill/settlement authority, and Gateway/Workbench promotion claims.
 
 The API rejects raw prompt/provider/unsafe-output storage through the Slice 8 persistence guard.
@@ -48,12 +50,16 @@ audit lineage; the raw value is not persisted in the run record.
 
 Slice 9 adds durable evidence-packet records and migration
 `src/infrastructure/postgres_migrations/advisory_copilot/0002_evidence_packet_records.sql`.
+Follow-on hardening adds
+`src/infrastructure/postgres_migrations/advisory_copilot/0003_copilot_run_version_pagination_indexes.sql`
+for indexed proposal-version run history.
 
-The migration supports:
+The migrations support:
 
 1. evidence-packet readback,
 2. proposal/portfolio scoped operational lookup,
-3. repeatable API and future Gateway/Workbench validation.
+3. proposal-version scoped copilot run history without unbounded repository reads,
+4. repeatable API and Gateway/Workbench validation.
 
 ## Validation Evidence
 
@@ -73,8 +79,9 @@ Implementation-backed tests cover:
 4. action run persistence and idempotent replay,
 5. no raw user instruction persisted in API readback,
 6. review action idempotency,
-7. proposal-version run lookup,
-8. OpenAPI registration and absence of free-form prompt endpoints.
+7. proposal-version run lookup with bounded keyset pagination,
+8. invalid cursor rejection,
+9. OpenAPI registration and absence of free-form prompt endpoints.
 
 ## Historical Slice 9 Boundary
 

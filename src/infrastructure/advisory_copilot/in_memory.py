@@ -3,6 +3,11 @@ from __future__ import annotations
 from copy import deepcopy
 from threading import Lock
 
+from src.core.advisory_copilot.pagination import (
+    decode_copilot_run_cursor,
+    encode_copilot_run_cursor,
+    run_is_after_cursor,
+)
 from src.core.advisory_copilot.records import (
     AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
@@ -130,7 +135,10 @@ class InMemoryAdvisoryCopilotRepository(AdvisoryCopilotRepository):
         proposal_id: str,
         proposal_version_id: str | None,
         proposal_version_no: int | None,
-    ) -> list[AdvisoryCopilotRunRecord]:
+        limit: int,
+        cursor: str | None,
+    ) -> tuple[list[AdvisoryCopilotRunRecord], str | None]:
+        decoded_cursor = decode_copilot_run_cursor(cursor)
         with self._lock:
             runs = [
                 run
@@ -141,9 +149,12 @@ class InMemoryAdvisoryCopilotRepository(AdvisoryCopilotRepository):
                     proposal_version_id=proposal_version_id,
                     proposal_version_no=proposal_version_no,
                 )
+                and run_is_after_cursor(run, decoded_cursor)
             ]
         runs.sort(key=lambda run: (run.created_at, run.run_id), reverse=True)
-        return [deepcopy(run) for run in runs]
+        page = runs[:limit]
+        next_cursor = encode_copilot_run_cursor(page[-1]) if len(runs) > limit and page else None
+        return [deepcopy(run) for run in page], next_cursor
 
 
 def _matches_proposal_version(

@@ -187,9 +187,12 @@ class AdvisoryCopilotSupportabilityResponse(BaseModel):
 
 class AdvisoryCopilotRunPage(BaseModel):
     items: tuple[AdvisoryCopilotRunRecord, ...] = Field(
-        description="Copilot runs for the requested proposal version scope."
+        description=(
+            "Newest-first copilot runs for the requested proposal version scope, bounded by "
+            "the requested page size."
+        )
     )
     next_cursor: str | None = Field(
         default=None,
-        description="Reserved cursor for future keyset pagination.",
+        description="Opaque cursor to request the next page, or null when the page is complete.",
     )

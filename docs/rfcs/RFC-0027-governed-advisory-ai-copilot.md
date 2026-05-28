@@ -489,6 +489,9 @@ Selected first-wave Advise endpoints:
 6. `GET /advisory/copilot/supportability`
 7. `GET /advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs`
 
+The proposal-version run-history endpoint must use bounded newest-first keyset pagination and
+return an opaque `next_cursor`; invalid cursors fail closed as validation errors.
+
 Gateway must publish the same surface under `/api/v1/advisory-copilot/*` after Advise API
 certification. Workbench must consume it only through the Gateway/BFF boundary.
 

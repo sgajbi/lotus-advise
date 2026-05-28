@@ -6,6 +6,10 @@ from datetime import datetime
 from importlib.util import find_spec
 from typing import Any
 
+from src.core.advisory_copilot.pagination import (
+    decode_copilot_run_cursor,
+    encode_copilot_run_cursor,
+)
 from src.core.advisory_copilot.records import (
     AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
@@ -286,25 +290,42 @@ class PostgresAdvisoryCopilotRepository:
         proposal_id: str,
         proposal_version_id: str | None,
         proposal_version_no: int | None,
-    ) -> list[AdvisoryCopilotRunRecord]:
-        query = """
+        limit: int,
+        cursor: str | None,
+    ) -> tuple[list[AdvisoryCopilotRunRecord], str | None]:
+        decoded_cursor = decode_copilot_run_cursor(cursor)
+        clauses = ["proposal_id = %s"]
+        params: list[Any] = [proposal_id]
+        if proposal_version_id is not None:
+            clauses.append("(lineage_json::jsonb ->> 'proposal_version_id') = %s")
+            params.append(proposal_version_id)
+        elif proposal_version_no is not None:
+            clauses.append("(lineage_json::jsonb ->> 'proposal_version_no') = %s")
+            params.append(str(proposal_version_no))
+        if decoded_cursor is not None:
+            cursor_created_at = decoded_cursor.created_at.isoformat()
+            clauses.append("(created_at < %s OR (created_at = %s AND run_id < %s))")
+            params.extend(
+                [
+                    cursor_created_at,
+                    cursor_created_at,
+                    decoded_cursor.run_id,
+                ]
+            )
+        params.append(limit + 1)
+        query = f"""
             SELECT *
             FROM advisory_copilot_runs
-            WHERE proposal_id = %s
+            WHERE {" AND ".join(clauses)}
             ORDER BY created_at DESC, run_id DESC
+            LIMIT %s
         """
         with closing(self._connect()) as connection:
-            rows = connection.execute(query, (proposal_id,)).fetchall()
+            rows = connection.execute(query, tuple(params)).fetchall()
         runs = [_run_from_row(row) for row in rows]
-        return [
-            run
-            for run in runs
-            if _matches_proposal_version(
-                run=run,
-                proposal_version_id=proposal_version_id,
-                proposal_version_no=proposal_version_no,
-            )
-        ]
+        page = runs[:limit]
+        next_cursor = encode_copilot_run_cursor(page[-1]) if len(runs) > limit and page else None
+        return page, next_cursor
 
     def _connect(self) -> Any:
         import psycopg

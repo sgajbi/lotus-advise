@@ -23,7 +23,9 @@ Implemented capability:
 5. `InMemoryAdvisoryCopilotRepository` supports fast unit and service testing.
 6. `PostgresAdvisoryCopilotRepository` and migration namespace `advisory_copilot` provide the
    production persistence path.
-7. Production cutover migration checks now include the `advisory_copilot` namespace.
+7. proposal-version run history is bounded by repository-level keyset pagination so repeated
+   canonical proof runs do not require unbounded run-history reads.
+8. Production cutover migration checks now include the `advisory_copilot` namespace.
 
 ## Persistence Posture
 
@@ -40,7 +42,8 @@ Persisted records include:
 5. lotus-ai workflow-pack id, version, workflow run id, model version, prompt-template lineage,
    output-schema lineage, and evaluation-pack ref,
 6. caller app, tenant id, requested-by actor, idempotency key, and correlation id,
-7. retention class, legal-hold flag, and retention expiry.
+7. retention class, legal-hold flag, and retention expiry,
+8. proposal-version lineage used for indexed, newest-first run-history pagination.
 
 Raw prompt text, raw provider output, provider payloads, unsafe rejected text, and unrestricted
 source payloads are rejected before persistence.
@@ -83,8 +86,9 @@ Implementation-backed test coverage:
 3. raw prompt/raw AI payload rejection,
 4. review action idempotency and audit records,
 5. terminal posture protection,
-6. proposal-version run lookup,
-7. production cutover migration namespace coverage.
+6. proposal-version run lookup and keyset pagination,
+7. invalid cursor rejection,
+8. production cutover migration namespace coverage.
 
 ## Remaining RFC-0027 Boundary
 

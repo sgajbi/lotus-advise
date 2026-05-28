@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Annotated, cast
+from typing import Annotated, NoReturn, cast
 
-from fastapi import Depends, Header, HTTPException, Path, status
+from fastapi import Depends, Header, HTTPException, Path, Query, status
 
 from src.api.proposals import router as shared
 from src.api.proposals.router import get_proposal_repository
@@ -355,20 +355,37 @@ def get_advisory_copilot_supportability() -> AdvisoryCopilotSupportabilityRespon
     status_code=status.HTTP_200_OK,
     tags=["Advisory Copilot"],
     summary="List Proposal Version Copilot Runs",
-    description="Lists persisted advisory copilot runs for a proposal version scope.",
+    description=(
+        "Lists persisted advisory copilot runs for a proposal version scope using bounded "
+        "keyset pagination. The list is ordered by newest run first and filtered in Advise so "
+        "Gateway and Workbench can consume run history without rebuilding copilot lineage."
+    ),
     responses=ADVISORY_COPILOT_RESPONSES,
 )
 def list_proposal_version_copilot_runs(
     proposal_id: Annotated[str, Path(description="Proposal identifier.")],
     version_id: Annotated[str, Path(description="Proposal version identifier.")],
+    limit: Annotated[
+        int,
+        Query(description="Bounded page size. Default is 25; maximum is 100.", ge=1, le=100),
+    ] = 25,
+    cursor: Annotated[
+        str | None,
+        Query(description="Opaque cursor from a previous copilot run page."),
+    ] = None,
     repository: AdvisoryCopilotRepository = Depends(get_advisory_copilot_repository),
 ) -> AdvisoryCopilotRunPage:
-    runs = repository.list_runs_for_proposal_version(
-        proposal_id=proposal_id,
-        proposal_version_id=version_id,
-        proposal_version_no=None,
-    )
-    return AdvisoryCopilotRunPage(items=tuple(runs), next_cursor=None)
+    try:
+        runs, next_cursor = repository.list_runs_for_proposal_version(
+            proposal_id=proposal_id,
+            proposal_version_id=version_id,
+            proposal_version_no=None,
+            limit=limit,
+            cursor=cursor,
+        )
+        return AdvisoryCopilotRunPage(items=tuple(runs), next_cursor=next_cursor)
+    except ValueError as exc:
+        _raise_copilot_http_exception(exc)
 
 
 def _advisory_copilot_postgres_dsn() -> str:
@@ -377,7 +394,7 @@ def _advisory_copilot_postgres_dsn() -> str:
     return os.getenv("ADVISORY_COPILOT_POSTGRES_DSN", "").strip() or proposal_postgres_dsn()
 
 
-def _raise_copilot_http_exception(exc: ValueError) -> None:
+def _raise_copilot_http_exception(exc: ValueError) -> NoReturn:
     detail = str(exc)
     if detail.endswith("_NOT_FOUND"):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail) from exc

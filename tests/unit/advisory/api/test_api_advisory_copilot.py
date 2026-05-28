@@ -231,8 +231,7 @@ def test_proposal_version_copilot_packet_preserves_version_lineage_for_every_act
     packet = response.json()["evidence_packet"]
     assert "PROPOSAL_CONTEXT" not in {section["section_key"] for section in packet["sections"]}
     assert {
-        (lineage["lineage_type"], lineage["lineage_id"])
-        for lineage in packet["lineage_refs"]
+        (lineage["lineage_type"], lineage["lineage_id"]) for lineage in packet["lineage_refs"]
     } >= {
         ("PROPOSAL_VERSION", "version_sg_001"),
         ("PROPOSAL_VERSION_NO", "1"),
@@ -281,11 +280,13 @@ def test_proposal_version_copilot_packet_refreshes_same_projection_when_hash_cha
 
     assert first.status_code == 201
     assert second.status_code == 201
-    assert first.json()["evidence_packet"]["evidence_packet_id"] == (
-        second.json()["evidence_packet"]["evidence_packet_id"]
+    assert (
+        first.json()["evidence_packet"]["evidence_packet_id"]
+        == (second.json()["evidence_packet"]["evidence_packet_id"])
     )
-    assert first.json()["evidence_packet"]["evidence_packet_hash"] != (
-        second.json()["evidence_packet"]["evidence_packet_hash"]
+    assert (
+        first.json()["evidence_packet"]["evidence_packet_hash"]
+        != (second.json()["evidence_packet"]["evidence_packet_hash"])
     )
 
 
@@ -366,6 +367,80 @@ def test_advisory_copilot_action_persists_review_gated_run(
     assert read.json()["reviews"] == []
     assert version_runs.json()["items"][0]["run_id"] == run_id
     assert "Summarize the advisory evidence" not in str(read.json())
+
+
+def test_proposal_version_copilot_runs_are_paginated(
+    monkeypatch: pytest.MonkeyPatch,
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    _ = copilot_repository
+    monkeypatch.setattr(
+        copilot_routes,
+        "generate_advisory_copilot_draft_with_lotus_ai",
+        lambda **_: AdvisoryCopilotAiDraft(
+            status="REVIEW_REQUIRED",
+            sections=(
+                {
+                    "section_key": "SUMMARY",
+                    "title": "Advisor summary",
+                    "text": "Policy review is required before client communication.",
+                },
+            ),
+            lineage={
+                "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+                "proposal_version_id": "version_sg_001",
+            },
+            review_guidance=("Review source evidence before internal use.",),
+            guardrail_reasons=(),
+        ),
+    )
+
+    with TestClient(app) as client:
+        client.post("/advisory/copilot/evidence-packets", json=_evidence_packet_payload())
+        run_ids: set[str] = set()
+        for index in range(3):
+            response = client.post(
+                "/advisory/copilot/actions",
+                json={
+                    "evidence_packet_id": "copilot_packet_pb_sg_001",
+                    "audience": "ADVISOR",
+                    "requested_outputs": ["advisor_review_summary"],
+                    "requested_by": "advisor_123",
+                    "reason": {"business_reason": "Prepare advisor review."},
+                    "user_instruction": f"Prepare internal review pass {index}.",
+                },
+                headers={"Idempotency-Key": f"copilot-action-idem-page-{index}"},
+            )
+            assert response.status_code == 200
+            run_ids.add(response.json()["run"]["run_id"])
+
+        first_page = client.get(
+            "/advisory/proposals/proposal_sg_structured_note_001/versions/"
+            "version_sg_001/copilot-runs",
+            params={"limit": 2},
+        )
+        second_page = client.get(
+            "/advisory/proposals/proposal_sg_structured_note_001/versions/"
+            "version_sg_001/copilot-runs",
+            params={"limit": 2, "cursor": first_page.json()["next_cursor"]},
+        )
+        invalid_cursor = client.get(
+            "/advisory/proposals/proposal_sg_structured_note_001/versions/"
+            "version_sg_001/copilot-runs",
+            params={"cursor": "not-a-valid-cursor"},
+        )
+
+    assert first_page.status_code == 200
+    assert second_page.status_code == 200
+    assert invalid_cursor.status_code == 422
+    assert len(first_page.json()["items"]) == 2
+    assert first_page.json()["next_cursor"] is not None
+    assert len(second_page.json()["items"]) == 1
+    assert second_page.json()["next_cursor"] is None
+    paged_ids = {
+        item["run_id"] for item in first_page.json()["items"] + second_page.json()["items"]
+    }
+    assert paged_ids == run_ids
 
 
 def test_advisory_copilot_review_api_is_idempotent(

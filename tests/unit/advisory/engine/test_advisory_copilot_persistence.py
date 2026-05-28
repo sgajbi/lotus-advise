@@ -56,6 +56,9 @@ def _persist_run(
     draft_status: str = "REVIEW_REQUIRED",
     output_sections: tuple[dict[str, str], ...] | None = None,
     lineage: dict[str, str | int | None] | None = None,
+    idempotency_key: str | None = "copilot-action-idem-001",
+    user_instruction: str = "Summarize the advisory evidence for internal review.",
+    created_at: datetime | None = None,
 ):
     if output_sections is None:
         output_sections = (
@@ -89,10 +92,10 @@ def _persist_run(
         review_guidance=("Review source evidence before internal use.",),
         guardrail_reasons=(),
         correlation_id="corr_rfc0027_copilot_001",
-        idempotency_key="copilot-action-idem-001",
+        idempotency_key=idempotency_key,
         requested_intents=("explain_policy_posture",),
-        user_instruction="Summarize the advisory evidence for internal review.",
-        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
+        user_instruction=user_instruction,
+        created_at=created_at or datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
     )
 
 
@@ -114,12 +117,57 @@ def test_persisted_copilot_run_is_replayable_and_excludes_raw_prompt() -> None:
     assert "user_instruction_hash" in result.run.request_summary_json
     assert "Summarize the advisory evidence" not in str(result.run.model_dump(mode="json"))
 
-    runs = repository.list_runs_for_proposal_version(
+    runs, next_cursor = repository.list_runs_for_proposal_version(
         proposal_id="proposal_sg_structured_note_001",
         proposal_version_id=None,
         proposal_version_no=1,
+        limit=25,
+        cursor=None,
     )
     assert [run.run_id for run in runs] == [result.run.run_id]
+    assert next_cursor is None
+
+
+def test_copilot_run_listing_is_bounded_and_keyset_paginated() -> None:
+    repository = InMemoryAdvisoryCopilotRepository()
+    first = _persist_run(
+        repository,
+        idempotency_key="copilot-action-idem-001",
+        user_instruction="First internal review request.",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
+    ).run
+    second = _persist_run(
+        repository,
+        idempotency_key="copilot-action-idem-002",
+        user_instruction="Second internal review request.",
+        created_at=datetime(2026, 5, 28, 9, 1, tzinfo=timezone.utc),
+    ).run
+    third = _persist_run(
+        repository,
+        idempotency_key="copilot-action-idem-003",
+        user_instruction="Third internal review request.",
+        created_at=datetime(2026, 5, 28, 9, 2, tzinfo=timezone.utc),
+    ).run
+
+    page_one, next_cursor = repository.list_runs_for_proposal_version(
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_id=None,
+        proposal_version_no=1,
+        limit=2,
+        cursor=None,
+    )
+    page_two, final_cursor = repository.list_runs_for_proposal_version(
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_id=None,
+        proposal_version_no=1,
+        limit=2,
+        cursor=next_cursor,
+    )
+
+    assert [run.run_id for run in page_one] == [third.run_id, second.run_id]
+    assert next_cursor is not None
+    assert [run.run_id for run in page_two] == [first.run_id]
+    assert final_cursor is None
 
 
 def test_retrying_dependency_unavailable_copilot_run_refreshes_same_idempotent_request() -> None:

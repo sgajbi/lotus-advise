@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, Field
 
@@ -99,7 +99,7 @@ def load_advisory_copilot_evidence_packet(
     record = repository.get_evidence_packet(evidence_packet_id=evidence_packet_id)
     if record is None:
         raise ValueError("COPILOT_EVIDENCE_PACKET_NOT_FOUND")
-    return CopilotEvidencePacket.model_validate(record.packet_json)
+    return cast(CopilotEvidencePacket, CopilotEvidencePacket.model_validate(record.packet_json))
 
 
 def persist_advisory_copilot_run(
@@ -372,8 +372,7 @@ def _can_refresh_retryable_run(
     return (
         existing_run.review_posture == "GUARDRAIL_REJECTED"
         and incoming_review_posture == "REVIEW_REQUIRED"
-        and existing_run.lineage_json.get("fallback_reason")
-        == "COPILOT_OUTPUT_GUARDRAIL_REJECTED"
+        and existing_run.lineage_json.get("fallback_reason") == "COPILOT_OUTPUT_GUARDRAIL_REJECTED"
     )
 
 

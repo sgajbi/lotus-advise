@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-28T00:23:26.052560+00:00",
+  "generatedAt": "2026-05-28T03:04:41.581245+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -12022,6 +12022,30 @@
       "allowedValues": [],
       "semanticId": "lotus.version_id",
       "attributeRef": "#/attributeCatalog/lotus.version_id"
+    },
+    {
+      "name": "limit",
+      "kind": "request_option",
+      "location": "query",
+      "required": false,
+      "type": "integer",
+      "description": "Bounded page size. Default is 25; maximum is 100.",
+      "example": 1,
+      "allowedValues": [],
+      "semanticId": "lotus.limit",
+      "attributeRef": "#/attributeCatalog/lotus.limit"
+    },
+    {
+      "name": "cursor",
+      "kind": "request_option",
+      "location": "query",
+      "required": false,
+      "type": "object",
+      "description": "Opaque cursor from a previous copilot run page.",
+      "example": "STANDARD_TEXT",
+      "allowedValues": [],
+      "semanticId": "lotus.cursor",
+      "attributeRef": "#/attributeCatalog/lotus.cursor"
     },
     {
       "name": "idempotency_key",
@@ -42421,6 +42445,22 @@
             "type": "string",
             "semanticId": "lotus.version_id",
             "attributeRef": "#/attributeCatalog/lotus.version_id"
+          },
+          {
+            "name": "limit",
+            "location": "query",
+            "required": false,
+            "type": "integer",
+            "semanticId": "lotus.limit",
+            "attributeRef": "#/attributeCatalog/lotus.limit"
+          },
+          {
+            "name": "cursor",
+            "location": "query",
+            "required": false,
+            "type": "object",
+            "semanticId": "lotus.cursor",
+            "attributeRef": "#/attributeCatalog/lotus.cursor"
           }
         ]
       },

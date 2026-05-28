@@ -48,4 +48,6 @@ class AdvisoryCopilotRepository(Protocol):
         proposal_id: str,
         proposal_version_id: str | None,
         proposal_version_no: int | None,
-    ) -> list[AdvisoryCopilotRunRecord]: ...
+        limit: int,
+        cursor: str | None,
+    ) -> tuple[list[AdvisoryCopilotRunRecord], str | None]: ...
