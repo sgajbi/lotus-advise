@@ -199,6 +199,46 @@ def test_advisory_copilot_evidence_packet_from_proposal_version_is_source_owned(
     assert payload["record"]["reason_json"]["source_projection"] == "PROPOSAL_VERSION"
 
 
+def test_proposal_version_copilot_packet_preserves_version_lineage_for_every_action(
+    monkeypatch: pytest.MonkeyPatch,
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    _ = copilot_repository
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    monkeypatch.setattr(proposals_router.runtime, "build_repository", lambda: proposal_repository)
+    reset_proposal_workflow_service_for_tests()
+    monkeypatch.setattr(
+        copilot_routes,
+        "list_policy_evaluation_records",
+        lambda **_: [_policy_evaluation()],
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/copilot/evidence-packets/from-proposal-version",
+            json={
+                "proposal_id": "proposal_sg_structured_note_001",
+                "proposal_version_no": 1,
+                "action_family": "MEETING_PREPARATION",
+                "audience": "ADVISOR",
+                "created_by": "advisor_123",
+                "reason": {"business_reason": "Prepare advisor meeting."},
+            },
+        )
+
+    assert response.status_code == 201
+    packet = response.json()["evidence_packet"]
+    assert "PROPOSAL_CONTEXT" not in {section["section_key"] for section in packet["sections"]}
+    assert {
+        (lineage["lineage_type"], lineage["lineage_id"])
+        for lineage in packet["lineage_refs"]
+    } >= {
+        ("PROPOSAL_VERSION", "version_sg_001"),
+        ("PROPOSAL_VERSION_NO", "1"),
+    }
+
+
 def test_advisory_copilot_action_persists_review_gated_run(
     monkeypatch: pytest.MonkeyPatch,
     copilot_repository: InMemoryAdvisoryCopilotRepository,

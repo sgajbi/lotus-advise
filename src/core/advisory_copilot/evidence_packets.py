@@ -86,6 +86,7 @@ def build_copilot_evidence_packet(
     proposal_id: str | None,
     audience: CopilotAudience,
     source_sections: tuple[CopilotEvidenceSectionInput, ...],
+    lineage_refs: tuple[CopilotLineageRef, ...] = (),
 ) -> CopilotEvidencePacket:
     required_sections = required_evidence_sections(action_family)
     sections_by_key = {section.section_key: section for section in source_sections}
@@ -125,12 +126,13 @@ def build_copilot_evidence_packet(
             )
         )
 
-    lineage_refs = (
+    packet_lineage_refs = (
         CopilotLineageRef(
             lineage_type="EVIDENCE_PACKET",
             lineage_id=evidence_packet_id,
             source_system="lotus-advise",
         ),
+        *lineage_refs,
     )
     packet_hash = _packet_hash(
         evidence_packet_id=evidence_packet_id,
@@ -140,7 +142,7 @@ def build_copilot_evidence_packet(
         audience=audience,
         sections=tuple(projected_sections),
         unsupported=tuple(unsupported),
-        lineage_refs=lineage_refs,
+        lineage_refs=packet_lineage_refs,
     )
     return CopilotEvidencePacket(
         evidence_packet_id=evidence_packet_id,
@@ -150,7 +152,7 @@ def build_copilot_evidence_packet(
         proposal_id=proposal_id,
         sections=tuple(projected_sections),
         unsupported_evidence=tuple(unsupported),
-        lineage_refs=lineage_refs,
+        lineage_refs=packet_lineage_refs,
         retention_class="ADVISORY_REVIEW_RECORD",
     )
 

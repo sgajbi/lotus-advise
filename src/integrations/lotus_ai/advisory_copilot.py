@@ -337,11 +337,19 @@ def _build_lineage(
         "evaluation_pack_ref": EVALUATION_PACK_REF,
         "evidence_packet_hash": evidence_packet.evidence_packet_hash,
         "proposal_version_id": _proposal_version_id(evidence_packet),
+        "proposal_version_no": _proposal_version_no(evidence_packet),
         "fallback_reason": fallback_reason,
     }
 
 
 def _proposal_version_id(evidence_packet: CopilotEvidencePacket) -> str | None:
+    for lineage_ref in evidence_packet.lineage_refs:
+        if (
+            lineage_ref.source_system == "lotus-advise"
+            and lineage_ref.lineage_type == "PROPOSAL_VERSION"
+            and lineage_ref.lineage_id
+        ):
+            return lineage_ref.lineage_id
     for section in evidence_packet.sections:
         for source_ref in section.source_refs:
             if (
@@ -350,6 +358,17 @@ def _proposal_version_id(evidence_packet: CopilotEvidencePacket) -> str | None:
                 and source_ref.source_id
             ):
                 return source_ref.source_id
+    return None
+
+
+def _proposal_version_no(evidence_packet: CopilotEvidencePacket) -> int | None:
+    for lineage_ref in evidence_packet.lineage_refs:
+        if (
+            lineage_ref.source_system == "lotus-advise"
+            and lineage_ref.lineage_type == "PROPOSAL_VERSION_NO"
+            and lineage_ref.lineage_id.isdigit()
+        ):
+            return int(lineage_ref.lineage_id)
     return None
 
 

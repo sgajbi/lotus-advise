@@ -13,6 +13,7 @@ from src.core.advisory_copilot.models import (
     CopilotAudience,
     CopilotEvidencePacket,
     CopilotEvidenceSectionInput,
+    CopilotLineageRef,
     CopilotSourceRef,
 )
 from src.core.policy_packs.models import PolicyEvaluationRecord
@@ -77,6 +78,18 @@ def build_proposal_version_copilot_evidence_packet(
         proposal_id=proposal.proposal_id,
         audience=audience,
         source_sections=tuple(source_sections),
+        lineage_refs=(
+            CopilotLineageRef(
+                lineage_type="PROPOSAL_VERSION",
+                lineage_id=version.proposal_version_id,
+                source_system="lotus-advise",
+            ),
+            CopilotLineageRef(
+                lineage_type="PROPOSAL_VERSION_NO",
+                lineage_id=str(version.version_no),
+                source_system="lotus-advise",
+            ),
+        ),
     )
 
 

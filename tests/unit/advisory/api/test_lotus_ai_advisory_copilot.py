@@ -164,8 +164,30 @@ def test_generate_advisory_copilot_returns_review_required_sections(
         ),
     )
 
+    packet = _packet().model_copy(
+        update={
+            "lineage_refs": (
+                CopilotLineageRef(
+                    lineage_type="EVIDENCE_PACKET",
+                    lineage_id="copilot_packet_pb_sg_001",
+                    source_system="lotus-advise",
+                ),
+                CopilotLineageRef(
+                    lineage_type="PROPOSAL_VERSION",
+                    lineage_id="version_sg_001",
+                    source_system="lotus-advise",
+                ),
+                CopilotLineageRef(
+                    lineage_type="PROPOSAL_VERSION_NO",
+                    lineage_id="1",
+                    source_system="lotus-advise",
+                ),
+            )
+        }
+    )
+
     response = generate_advisory_copilot_draft_with_lotus_ai(
-        evidence_packet=_packet(),
+        evidence_packet=packet,
         audience="ADVISOR",
         requested_outputs=["advisor_review_summary"],
         requested_by="advisor_001",
@@ -183,6 +205,8 @@ def test_generate_advisory_copilot_returns_review_required_sections(
     )
     assert response.lineage["workflow_run_id"] == "packrun_copilot_001"
     assert response.lineage["model_version"] == "lotus-ai-governed-model.v1"
+    assert response.lineage["proposal_version_id"] == "version_sg_001"
+    assert response.lineage["proposal_version_no"] == 1
     assert response.lineage["fallback_reason"] is None
 
 
