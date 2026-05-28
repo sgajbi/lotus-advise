@@ -4,7 +4,7 @@ import os
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Header, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 from src.api.observability import correlation_id_var
 from src.core.bank_demo_proof import (
@@ -16,6 +16,10 @@ from src.core.bank_demo_proof import (
     build_default_scenario_contract,
     build_default_supported_claim_register,
     default_capture_metadata,
+)
+from src.core.bank_demo_proof.artifact_refs import (
+    normalize_optional_local_artifact_ref,
+    normalize_output_ref_prefix,
 )
 from src.core.bank_demo_proof.capture import RFC28_DEFAULT_OUTPUT_REF_PREFIX
 
@@ -55,21 +59,45 @@ class BankDemoProofCaptureRequest(BaseModel):
     )
     live_suite_result_ref: str | None = Field(
         default=None,
-        description="Optional local-only reference to the source live runtime result.",
+        description=(
+            "Optional local-only relative reference to the source live runtime result. URL "
+            "schemes, credentials, query strings, fragments, traversal, and sensitive tokens are "
+            "rejected."
+        ),
         examples=["output/live-runtime-suite/result.json"],
     )
     live_suite_bundle_ref: str | None = Field(
         default=None,
-        description="Optional local-only reference to the source live runtime evidence bundle.",
+        description=(
+            "Optional local-only relative reference to the source live runtime evidence bundle. "
+            "URL schemes, credentials, query strings, fragments, traversal, and sensitive tokens "
+            "are rejected."
+        ),
         examples=["output/live-runtime-suite"],
     )
     output_ref_prefix: str = Field(
         default=RFC28_DEFAULT_OUTPUT_REF_PREFIX,
         description=(
-            "Sanitized proof artifact reference prefix used inside the returned proof pack."
+            "Sanitized relative proof artifact reference prefix used inside the returned proof "
+            "pack. It must not contain URL schemes, credentials, query strings, fragments, "
+            "traversal, or sensitive tokens."
         ),
         examples=[RFC28_DEFAULT_OUTPUT_REF_PREFIX],
     )
+
+    @field_validator("live_suite_result_ref", "live_suite_bundle_ref")
+    @classmethod
+    def _live_suite_refs_must_be_local(
+        cls,
+        value: str | None,
+        info: ValidationInfo,
+    ) -> str | None:
+        return normalize_optional_local_artifact_ref(value, field_name=info.field_name)
+
+    @field_validator("output_ref_prefix")
+    @classmethod
+    def _output_ref_prefix_must_be_local(cls, value: str) -> str:
+        return normalize_output_ref_prefix(value)
 
 
 @router.get(

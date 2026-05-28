@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, cast
 
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
@@ -13,6 +14,7 @@ from src.api.enterprise_readiness import (
     build_enterprise_audit_middleware,
     validate_enterprise_runtime_config,
 )
+from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.observability import correlation_id_var, setup_observability
 from src.api.openapi_enrichment import enrich_openapi_schema
 from src.api.proposals.router import (
@@ -245,6 +247,32 @@ def health_ready() -> JSONResponse:
     )
 
 
+def _safe_request_validation_errors(
+    errors: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    safe_errors: list[dict[str, Any]] = []
+    for error in errors:
+        safe_errors.append(
+            {
+                "type": error.get("type", "value_error"),
+                "loc": error.get("loc", []),
+                "msg": error.get("msg", "Invalid request payload."),
+            }
+        )
+    return safe_errors
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error_to_safe_response(
+    _request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=HTTP_422_UNPROCESSABLE,
+        content={"detail": _safe_request_validation_errors(exc.errors())},
+    )
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_to_problem_details(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled exception while serving request", exc_info=exc)
@@ -292,6 +320,7 @@ __all__ = [
     "build_proposal_artifact_endpoint",
     "get_db_session",
     "lotus_core_simulation_unavailable_to_problem_details",
+    "request_validation_error_to_safe_response",
     "run_proposal_simulation",
     "simulate_proposal",
     "unhandled_exception_to_problem_details",

@@ -114,6 +114,25 @@ def test_bank_demo_proof_pack_endpoint_blocks_material_drift() -> None:
     assert "policy_evaluation='APPROVED'" in response.json()["detail"]
 
 
+def test_bank_demo_proof_pack_endpoint_rejects_sensitive_artifact_refs_as_request_shape() -> None:
+    request = {
+        "live_runtime_payload": _live_runtime_payload(),
+        "runtime_posture": _runtime_posture().model_dump(mode="json"),
+        "repository_sha": "api-sha-123",
+        "live_suite_result_ref": "output/live-runtime-suite/result.json?token=should-not-leak",
+        "output_ref_prefix": "../output/rfc0028/backend-proof",
+    }
+
+    with TestClient(app) as client:
+        response = client.post("/advisory/bank-demo-proof/proof-packs", json=request)
+
+    assert response.status_code == 422
+    detail = repr(response.json()["detail"])
+    assert "live_suite_result_ref must not include URL" in detail
+    assert "output_ref_prefix cannot contain parent-directory traversal" in detail
+    assert "should-not-leak" not in detail
+
+
 def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() -> None:
     operation = app.openapi()["paths"]["/advisory/bank-demo-proof/proof-packs"]["post"]
 
@@ -123,3 +142,5 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     assert "422" in operation["responses"]
     runtime_endpoint_schema = app.openapi()["components"]["schemas"]["RuntimeEndpointEvidence"]
     assert "latency_ms" in runtime_endpoint_schema["properties"]
+    request_schema = app.openapi()["components"]["schemas"]["BankDemoProofCaptureRequest"]
+    assert "query strings" in request_schema["properties"]["output_ref_prefix"]["description"]
