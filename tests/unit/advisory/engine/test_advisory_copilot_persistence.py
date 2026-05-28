@@ -151,6 +151,56 @@ def test_retrying_dependency_unavailable_copilot_run_refreshes_same_idempotent_r
     assert refreshed.run.output_sections_json[0]["section_key"] == "SUMMARY"
 
 
+def test_retrying_false_positive_output_guardrail_refreshes_same_idempotent_request() -> None:
+    repository = InMemoryAdvisoryCopilotRepository()
+    first = persist_advisory_copilot_run(
+        repository=repository,
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=("advisor_review_summary",),
+        requested_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+        draft_status="GUARDRAIL_REJECTED",
+        output_sections=(),
+        lineage={
+            "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+            "workflow_pack_version": "v1",
+            "workflow_run_id": "packrun_false_positive",
+            "model_version": "stub-advisory-copilot-v1",
+            "prompt_template_version": "advisory-copilot-prompt-template.v1",
+            "output_schema_version": "advisory-copilot-output-schema.v1",
+            "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",
+            "proposal_version_no": 1,
+            "fallback_reason": "COPILOT_OUTPUT_GUARDRAIL_REJECTED",
+        },
+        review_guidance=("The advisory copilot request was blocked.",),
+        guardrail_reasons=("CLIENT_READY_PUBLICATION_FORBIDDEN",),
+        correlation_id="corr_rfc0027_copilot_001",
+        idempotency_key="copilot-action-idem-001",
+        requested_intents=("explain_policy_posture",),
+        user_instruction="Summarize the advisory evidence for internal review.",
+        created_at=datetime(2026, 5, 28, 9, 0, tzinfo=timezone.utc),
+    )
+    refreshed = _persist_run(
+        repository,
+        output_sections=(
+            {
+                "section_key": "NARRATIVE_POSTURE",
+                "title": "Narrative posture",
+                "text": "Client-ready publication remains blocked until review gates pass.",
+            },
+        ),
+    )
+
+    assert first.run.review_posture == "GUARDRAIL_REJECTED"
+    assert refreshed.replayed is False
+    assert refreshed.run.run_id == first.run.run_id
+    assert refreshed.run.created_at == first.run.created_at
+    assert refreshed.run.review_posture == "REVIEW_REQUIRED"
+    assert refreshed.run.guardrail_results_json == []
+    assert refreshed.run.output_sections_json[0]["section_key"] == "NARRATIVE_POSTURE"
+
+
 def test_copilot_run_idempotency_rejects_changed_request() -> None:
     repository = InMemoryAdvisoryCopilotRepository()
     _persist_run(repository)

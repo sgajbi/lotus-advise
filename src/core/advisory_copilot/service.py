@@ -201,7 +201,7 @@ def persist_advisory_copilot_run(
         lineage_json=dict(lineage),
     )
     if existing_run is not None:
-        if _can_refresh_retryable_dependency_failure(
+        if _can_refresh_retryable_run(
             existing_run=existing_run,
             incoming_review_posture=review_posture,
         ):
@@ -358,15 +358,22 @@ def _review_posture_from_draft(status: str) -> CopilotReviewPosture:
     return status if status in allowed else "REVIEW_REQUIRED"  # type: ignore[return-value]
 
 
-def _can_refresh_retryable_dependency_failure(
+def _can_refresh_retryable_run(
     *,
     existing_run: AdvisoryCopilotRunRecord,
     incoming_review_posture: CopilotReviewPosture,
 ) -> bool:
-    return (
+    if (
         existing_run.review_posture == "UNAVAILABLE"
         and incoming_review_posture != "UNAVAILABLE"
         and existing_run.lineage_json.get("fallback_reason") is not None
+    ):
+        return True
+    return (
+        existing_run.review_posture == "GUARDRAIL_REJECTED"
+        and incoming_review_posture == "REVIEW_REQUIRED"
+        and existing_run.lineage_json.get("fallback_reason")
+        == "COPILOT_OUTPUT_GUARDRAIL_REJECTED"
     )
 
 

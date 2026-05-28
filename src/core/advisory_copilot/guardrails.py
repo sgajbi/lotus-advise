@@ -40,7 +40,12 @@ _PROMPT_INJECTION_MARKERS = (
 
 _CLIENT_READY_MARKERS = (
     "approved for client",
-    "client-ready publication",
+    "client-ready publication approved",
+    "client-ready publication is approved",
+    "client-ready publication enabled",
+    "client-ready publication is enabled",
+    "client-ready publication permitted",
+    "client-ready publication is permitted",
     "ready to send to client",
     "send this to the client",
     "final client advice",

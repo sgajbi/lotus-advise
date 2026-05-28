@@ -91,6 +91,21 @@ def test_copilot_guardrail_evaluator_rejects_unsafe_requests_and_outputs() -> No
     )
 
 
+def test_copilot_guardrail_evaluator_allows_blocked_client_ready_boundary_language() -> None:
+    assert (
+        evaluate_copilot_guardrails(
+            requested_intents=(),
+            source_refs_present=True,
+            user_instruction="",
+            output_text=(
+                "Client-ready publication remains blocked until policy and review gates "
+                "are resolved."
+            ),
+        )
+        == ()
+    )
+
+
 def test_copilot_guardrail_evaluator_allows_source_backed_review_request() -> None:
     assert evaluate_copilot_guardrails(
         requested_intents=("summarize_supported_evidence",),
