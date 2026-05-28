@@ -67,7 +67,7 @@ audit records inside the interaction product boundary rather than standalone pro
 products. Client-ready publication, external client communication, policy approval/sign-off
 authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
 
-RFC-0028 status is `DRAFT - SLICES 0-6 COMPLETE; SLICE 7A ADVISE API COMPLETE`. Slice 0 locks the
+RFC-0028 status is `DRAFT - SLICES 0-7 GATEWAY PUBLICATION COMPLETE`. Slice 0 locks the
 hybrid Advise proof API plus platform/front-office automation path for scenario
 `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`, portfolio `PB_SG_GLOBAL_BAL_001`, and proof marker
 `BANK_DEMO_PROOF_PACK_CREATED`. Slice 1 merged the reusable `lotus-platform` supported-claim
@@ -79,10 +79,12 @@ and material-field review. Slice 6 adds `AdvisoryDocumentProofSummary:v1`, live-
 proof fields, and `document-proof-summary.json` for advisor-use memo/policy report-render-archive
 posture while client-ready document publication remains blocked. Slice 7A exposes source-owned
 Advise proof APIs for the scenario contract, supported-claim register, and sanitized proof-pack
-capture with HTTP 409 material-drift rejection. Gateway consumption remains the next Slice 7
-owner-repository step. The RFC keeps full bank-demo/RFP, screenshot, product one-pager, and
-client-ready publication claims unpromoted until Gateway/Workbench validation, supported-claim
-review, commercial artifact review, and wiki publication are complete.
+capture with HTTP 409 material-drift rejection. Slice 7B closes Gateway publication through
+`lotus-gateway` PR #252 at `f99ca1dfe074b57c99793ab1ca86542869d579a4`, with Gateway Main
+Releasability Gate run `26559811341` green and wiki publish commit `a73cd24`. The RFC keeps
+Workbench, full bank-demo/RFP, screenshot, product one-pager, and client-ready publication claims
+unpromoted until Workbench validation, supported-claim review, commercial artifact review, and wiki
+publication are complete.
 
 RFC-0027 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and
