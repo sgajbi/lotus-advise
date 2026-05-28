@@ -50,23 +50,23 @@ def _packet() -> CopilotEvidencePacket:
     )
 
 
-def _persist_run(repository: InMemoryAdvisoryCopilotRepository):
-    return persist_advisory_copilot_run(
-        repository=repository,
-        evidence_packet=_packet(),
-        audience="ADVISOR",
-        requested_outputs=("advisor_review_summary",),
-        requested_by="advisor_123",
-        reason={"business_reason": "Prepare advisor review."},
-        draft_status="REVIEW_REQUIRED",
-        output_sections=(
+def _persist_run(
+    repository: InMemoryAdvisoryCopilotRepository,
+    *,
+    draft_status: str = "REVIEW_REQUIRED",
+    output_sections: tuple[dict[str, str], ...] | None = None,
+    lineage: dict[str, str | int | None] | None = None,
+):
+    if output_sections is None:
+        output_sections = (
             {
                 "section_key": "SUMMARY",
                 "title": "Advisor summary",
                 "text": "Policy review is required before client communication.",
             },
-        ),
-        lineage={
+        )
+    if lineage is None:
+        lineage = {
             "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
             "workflow_pack_version": "v1",
             "workflow_run_id": "packrun_copilot_001",
@@ -75,7 +75,17 @@ def _persist_run(repository: InMemoryAdvisoryCopilotRepository):
             "output_schema_version": "advisory-copilot-output-schema.v1",
             "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",
             "proposal_version_no": 1,
-        },
+        }
+    return persist_advisory_copilot_run(
+        repository=repository,
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=("advisor_review_summary",),
+        requested_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+        draft_status=draft_status,
+        output_sections=output_sections,
+        lineage=lineage,
         review_guidance=("Review source evidence before internal use.",),
         guardrail_reasons=(),
         correlation_id="corr_rfc0027_copilot_001",
@@ -110,6 +120,35 @@ def test_persisted_copilot_run_is_replayable_and_excludes_raw_prompt() -> None:
         proposal_version_no=1,
     )
     assert [run.run_id for run in runs] == [result.run.run_id]
+
+
+def test_retrying_dependency_unavailable_copilot_run_refreshes_same_idempotent_request() -> None:
+    repository = InMemoryAdvisoryCopilotRepository()
+    unavailable = _persist_run(
+        repository,
+        draft_status="UNAVAILABLE",
+        output_sections=(),
+        lineage={
+            "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+            "workflow_pack_version": "v1",
+            "workflow_run_id": None,
+            "model_version": None,
+            "prompt_template_version": "advisory-copilot-prompt-template.v1",
+            "output_schema_version": "advisory-copilot-output-schema.v1",
+            "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",
+            "proposal_version_no": 1,
+            "fallback_reason": "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
+        },
+    )
+    refreshed = _persist_run(repository)
+
+    assert unavailable.run.review_posture == "UNAVAILABLE"
+    assert refreshed.replayed is False
+    assert refreshed.run.run_id == unavailable.run.run_id
+    assert refreshed.run.created_at == unavailable.run.created_at
+    assert refreshed.run.review_posture == "REVIEW_REQUIRED"
+    assert refreshed.run.lotus_ai_workflow_run_id == "packrun_copilot_001"
+    assert refreshed.run.output_sections_json[0]["section_key"] == "SUMMARY"
 
 
 def test_copilot_run_idempotency_rejects_changed_request() -> None:

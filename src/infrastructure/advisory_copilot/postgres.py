@@ -151,21 +151,46 @@ class PostgresAdvisoryCopilotRepository:
     def update_run(self, run: AdvisoryCopilotRunRecord) -> None:
         query = """
             UPDATE advisory_copilot_runs
-            SET review_posture = %s, legal_hold = %s, retention_expires_at = %s,
-                updated_at = %s, lineage_json = %s
+            SET schema_version = %s,
+                action_family = %s,
+                audience = %s,
+                portfolio_id = %s,
+                proposal_id = %s,
+                evidence_packet_id = %s,
+                evidence_packet_hash = %s,
+                request_hash = %s,
+                output_hash = %s,
+                review_posture = %s,
+                client_ready_publication = %s,
+                retention_class = %s,
+                legal_hold = %s,
+                retention_expires_at = %s,
+                created_by = %s,
+                caller_app = %s,
+                tenant_id = %s,
+                correlation_id = %s,
+                idempotency_key = %s,
+                created_at = %s,
+                updated_at = %s,
+                lotus_ai_workflow_run_id = %s,
+                lotus_ai_model_version = %s,
+                workflow_pack_id = %s,
+                workflow_pack_version = %s,
+                prompt_template_version = %s,
+                output_schema_version = %s,
+                evaluation_pack_ref = %s,
+                evidence_packet_json = %s,
+                request_summary_json = %s,
+                output_sections_json = %s,
+                review_guidance_json = %s,
+                guardrail_results_json = %s,
+                lineage_json = %s
             WHERE run_id = %s
         """
         with closing(self._connect()) as connection:
             connection.execute(
                 query,
-                (
-                    run.review_posture,
-                    run.legal_hold,
-                    run.retention_expires_at.isoformat() if run.retention_expires_at else None,
-                    run.updated_at.isoformat(),
-                    _json_dump(run.lineage_json),
-                    run.run_id,
-                ),
+                _run_values(run)[1:] + (run.run_id,),
             )
             connection.commit()
 

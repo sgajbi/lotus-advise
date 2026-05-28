@@ -139,6 +139,7 @@ def persist_advisory_copilot_run(
         user_instruction=user_instruction,
     )
     request_hash = canonical_json_hash(request_summary)
+    existing_run: AdvisoryCopilotRunRecord | None = None
     if idempotency_key:
         existing_idempotency = repository.get_run_idempotency(idempotency_key=idempotency_key)
         if existing_idempotency is not None:
@@ -147,7 +148,6 @@ def persist_advisory_copilot_run(
             existing_run = repository.get_run(run_id=existing_idempotency.run_id)
             if existing_run is None:
                 raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
-            return AdvisoryCopilotRunPersistenceResult(run=existing_run, replayed=True)
 
     review_posture = _review_posture_from_draft(draft_status)
     output_json = [dict(section) for section in output_sections]
@@ -200,6 +200,23 @@ def persist_advisory_copilot_run(
         guardrail_results_json=list(guardrail_reasons),
         lineage_json=dict(lineage),
     )
+    if existing_run is not None:
+        if _can_refresh_retryable_dependency_failure(
+            existing_run=existing_run,
+            incoming_review_posture=review_posture,
+        ):
+            refreshed_run = run.model_copy(
+                update={
+                    "run_id": existing_run.run_id,
+                    "created_at": existing_run.created_at,
+                    "idempotency_key": existing_run.idempotency_key,
+                    "legal_hold": existing_run.legal_hold,
+                }
+            )
+            repository.update_run(refreshed_run)
+            return AdvisoryCopilotRunPersistenceResult(run=refreshed_run, replayed=False)
+        return AdvisoryCopilotRunPersistenceResult(run=existing_run, replayed=True)
+
     idempotency = (
         AdvisoryCopilotRunIdempotencyRecord(
             idempotency_key=idempotency_key,
@@ -339,6 +356,18 @@ def _review_posture_from_draft(status: str) -> CopilotReviewPosture:
         "UNAVAILABLE",
     }
     return status if status in allowed else "REVIEW_REQUIRED"  # type: ignore[return-value]
+
+
+def _can_refresh_retryable_dependency_failure(
+    *,
+    existing_run: AdvisoryCopilotRunRecord,
+    incoming_review_posture: CopilotReviewPosture,
+) -> bool:
+    return (
+        existing_run.review_posture == "UNAVAILABLE"
+        and incoming_review_posture != "UNAVAILABLE"
+        and existing_run.lineage_json.get("fallback_reason") is not None
+    )
 
 
 def _assert_safe_structured_payload(value: Any) -> None:
