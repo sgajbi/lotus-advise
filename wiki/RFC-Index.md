@@ -67,7 +67,7 @@ audit records inside the interaction product boundary rather than standalone pro
 products. Client-ready publication, external client communication, policy approval/sign-off
 authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
 
-RFC-0028 status is `DRAFT - SLICES 0-8 WORKBENCH PROOF COMPLETE`. Slice 0 locks the
+RFC-0028 status is `DRAFT - SLICES 0-9 INTEGRATION PROOF COMPLETE`. Slice 0 locks the
 hybrid Advise proof API plus platform/front-office automation path for scenario
 `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`, portfolio `PB_SG_GLOBAL_BAL_001`, and proof marker
 `BANK_DEMO_PROOF_PACK_CREATED`. Slice 1 merged the reusable `lotus-platform` supported-claim
@@ -85,10 +85,16 @@ Releasability Gate run `26559811341` green and wiki publish commit `a73cd24`. Sl
 Workbench proof through `lotus-workbench` PR #384 and `lotus-platform` PR #367: canonical
 validation for `PB_SG_GLOBAL_BAL_001` proves `advisory.bank_demo_proof`, screenshot
 `advisory-bank-demo-proof-live.png`, and blocked client-ready publication posture through
-Gateway/BFF. The RFC keeps full bank-demo/RFP, RFP/security, product one-pager, ROI story,
-LinkedIn post-completion output, external client communication, OMS/order/fill/settlement, and
-client-ready publication claims unpromoted until their owner-repo implementation and review gates
-are complete.
+Gateway/BFF. Slice 9 adds Advise-owned `AdvisoryJourneyIntegrationProofSummary:v1`,
+`journey-integration-proof-summary.json`, governed panel ids, proof marker
+`RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED`, and supported claim
+`ai_policy_cockpit_proof_integrated` for AI/model-risk, policy, and advisor-cockpit proof
+boundaries without promoting AI authority, legal advice, policy approval, client-ready
+publication, RFP/security, product one-pager, ROI, external client communication, or
+OMS/order/fill/settlement claims. The RFC keeps full bank-demo/RFP, RFP/security, product
+one-pager, ROI story, LinkedIn post-completion output, external client communication,
+OMS/order/fill/settlement, and client-ready publication claims unpromoted until their owner-repo
+implementation and review gates are complete.
 
 RFC-0027 Slice 1 is implemented as platform automation and scaffolding review. Evidence lives in
 `docs/rfcs/RFC-0027-slice-1-platform-automation-and-scaffolding-review.md`. Existing platform and

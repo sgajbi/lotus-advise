@@ -1127,6 +1127,32 @@ Acceptance gate:
 3. policy proof avoids regulatory/legal overclaiming,
 4. cockpit proof avoids UI-local workflow logic.
 
+Implementation evidence:
+
+1. `src/core/bank_demo_proof/integration_proof.py` adds
+   `AdvisoryJourneyIntegrationProofSummary:v1` with explicit AI/model-risk, policy, and
+   advisor-cockpit proof rows.
+2. `build_backend_proof_capture` now emits `journey-integration-proof-summary.json`, adds proof
+   marker `RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED`, and indexes a
+   `GOVERNANCE_INTEGRATION_SUMMARY` proof asset in `AdvisoryBankDemoProofPack:v1`.
+3. Material-field review now blocks drift in narrative guardrail reproduction, memo AI
+   non-authority, memo review-required posture, policy AI non-authority, policy human-review
+   posture, `parity.proposal_policy.ai_raw_source_evidence_included`, raw policy
+   source-evidence exclusion, and forbidden policy-AI action blocking.
+4. The scenario contract now uses governed panel identifiers
+   `advisory.advisor_cockpit`, `advisory.suitability_review`,
+   `proposal.memo_evidence_pack`, and `advisory.bank_demo_proof` instead of local aliases.
+5. The supported-claim register adds `ai_policy_cockpit_proof_integrated` as an
+   implementation-backed backend proof claim for developer, operations, and pre-sales/operator
+   material only. It does not authorize screenshots, product one-pagers, RFP answers, policy
+   approval, client-ready publication, external client communication, or OMS/order/fill/settlement
+   claims.
+6. Tests cover the integration proof model, material drift blocking, API response shape, writer
+   artifacts, and governed Workbench panel identifiers:
+   `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py`,
+   `tests/unit/advisory/api/test_api_bank_demo_proof.py`, and
+   `tests/unit/scripts/test_capture_rfc0028_backend_proof.py`.
+
 ### Slice 10 - Commercial, RFP, Security, Architecture, ROI, and Demo Package
 
 Outcome:
@@ -1308,17 +1334,19 @@ Acceptance gate:
 
 Current implementation note:
 
-1. Slices 0-8 are implementation-backed for the source scenario contract, supported-claim register,
-   proof-pack capture, Gateway publication, Platform canonical contract registration, and Workbench
+1. Slices 0-9 are implementation-backed for the source scenario contract, supported-claim
+   register, proof-pack capture, document proof summary, AI/model-risk/policy/cockpit integration
+   proof summary, Gateway publication, Platform canonical contract registration, and Workbench
    proof surface.
 2. The canonical Workbench proof path is `advisory.bank_demo_proof` at
    `/recommendations?portfolioId=PB_SG_GLOBAL_BAL_001&mode=proof`; live validation records
    `BANK_DEMO_PROOF_PACK_CREATED` for scenario
    `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`.
-3. Client-ready publication, external client communication, OMS/order/fill/settlement, approval
-   authority, product one-pager, ROI story, RFP/security pack, and LinkedIn post-completion output
-   are not promoted by this evidence unless their owner-repo implementation and review gates are
-   complete.
+3. Slice 9 adds `journey-integration-proof-summary.json` and
+   `ai_policy_cockpit_proof_integrated` for backend proof material only. Client-ready publication,
+   external client communication, OMS/order/fill/settlement, approval authority, product one-pager,
+   ROI story, RFP/security pack, and LinkedIn post-completion output are not promoted by this
+   evidence unless their owner-repo implementation and review gates are complete.
 
 ---
 

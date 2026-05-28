@@ -139,7 +139,10 @@ Current repository posture:
    evidence. Canonical `PB_SG_GLOBAL_BAL_001` validation records
    `BANK_DEMO_PROOF_PACK_CREATED` and proves blocked client-ready publication posture without
    claiming external client communication, OMS/order/fill/settlement, approval authority, or full
-   RFP/demo collateral readiness,
+   RFP/demo collateral readiness. Slice 9 adds
+   `AdvisoryJourneyIntegrationProofSummary:v1` to the backend proof pack so AI/model-risk,
+   policy, and advisor-cockpit boundary evidence is reviewed as source-owned proof without raw
+   prompt/source leakage or unsupported approval/client-ready claims,
 10. live operator evidence validates decision-summary and proposal-alternatives posture across canonical and degraded runtime paths,
 11. upstream service consumption is classified under RFC-0082 in `docs/architecture/RFC-0082-upstream-contract-family-map.md`,
 12. repo-native CI is already aligned to explicit lane expectations,
