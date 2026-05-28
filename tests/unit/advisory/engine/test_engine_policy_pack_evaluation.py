@@ -9,6 +9,7 @@ from src.core.policy_packs import (
     reset_policy_pack_catalog_for_tests,
     validate_policy_pack_version,
 )
+from src.core.policy_packs.evaluation import _artifact_section, _section, _source_refs
 from src.core.proposals.exceptions import ProposalValidationError
 
 
@@ -302,3 +303,127 @@ def test_policy_evaluation_blocks_material_conflict_until_supervisory_review() -
     assert conflicts.status == "BLOCKED"
     assert "MATERIAL_CONFLICT_REQUIRES_SUPERVISORY_REVIEW" in conflicts.reason_codes
     assert "SUPERVISORY_CONFLICT_REVIEW" in conflicts.required_actions
+
+
+def test_policy_evaluation_uses_existing_source_posture_without_rebuilding() -> None:
+    evidence = deepcopy(_base_evidence_bundle())
+    evidence["policy_source_readiness"] = {
+        "overall_posture": "READY",
+        "sections": [
+            {
+                "key": "core_mandate_objectives_restrictions",
+                "status": "READY",
+                "evidence_refs": ["mandate-ref-001"],
+            }
+        ],
+    }
+
+    result = evaluate_policy_pack_version(
+        evidence_bundle=evidence,
+        policy_pack_id="GLOBAL_PRIVATE_BANKING_BASELINE",
+        policy_version="2026.05",
+    )
+
+    assert result.evaluation_status == "READY"
+    assert result.source_posture["sections"][0]["evidence_refs"] == ["mandate-ref-001"]
+    assert _rule(result, "GLOBAL_SOURCE_READINESS_REQUIRED").status == "READY"
+
+
+def test_policy_evaluation_marks_booking_center_and_segment_out_of_scope() -> None:
+    _activate_sg_policy_pack()
+    evidence = deepcopy(_base_evidence_bundle())
+    evidence["context_resolution"]["advisory_policy_context"]["booking_center_code"] = "HK"
+
+    booking_result = evaluate_policy_pack_version(
+        evidence_bundle=evidence,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+
+    evidence = deepcopy(_base_evidence_bundle())
+    evidence["context_resolution"]["advisory_policy_context"]["client_classification"] = "RETAIL"
+    segment_result = evaluate_policy_pack_version(
+        evidence_bundle=evidence,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+
+    assert booking_result.evaluation_status == "NOT_APPLICABLE"
+    assert booking_result.applicability.reason_codes == [
+        "POLICY_PACK_BOOKING_LOCATION_NOT_APPLICABLE"
+    ]
+    assert segment_result.evaluation_status == "NOT_APPLICABLE"
+    assert segment_result.applicability.reason_codes == [
+        "POLICY_PACK_CLIENT_SEGMENT_NOT_APPLICABLE"
+    ]
+
+
+def test_policy_evaluation_blocks_missing_or_jurisdiction_ineligible_product_shelf() -> None:
+    _activate_sg_policy_pack()
+    missing_shelf = deepcopy(_base_evidence_bundle())
+    missing_shelf["inputs"]["proposed_trades"][0]["instrument_id"] = "MISSING_FUND"
+
+    missing_result = evaluate_policy_pack_version(
+        evidence_bundle=missing_shelf,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+
+    ineligible = deepcopy(_base_evidence_bundle())
+    ineligible["inputs"]["shelf_entries"][0]["eligibility"] = {"jurisdictions": ["US"]}
+    ineligible_result = evaluate_policy_pack_version(
+        evidence_bundle=ineligible,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+
+    assert _rule(missing_result, "SG_AI_PRODUCT_ELIGIBILITY_REVIEW").status == "BLOCKED"
+    assert (
+        "shelf_entry:MISSING_FUND"
+        in _rule(missing_result, "SG_AI_PRODUCT_ELIGIBILITY_REVIEW").missing_evidence
+    )
+    assert (
+        "PRODUCT_NOT_ELIGIBLE_FOR_JURISDICTION"
+        in _rule(ineligible_result, "SG_AI_PRODUCT_ELIGIBILITY_REVIEW").reason_codes
+    )
+
+
+def test_policy_evaluation_records_all_best_interest_missing_evidence() -> None:
+    _activate_sg_policy_pack()
+    evidence = deepcopy(_base_evidence_bundle())
+    evidence["artifact"]["assumptions_and_limits"]["tax"]["included"] = False
+    evidence["artifact"]["assumptions_and_limits"]["execution"]["included"] = False
+
+    result = evaluate_policy_pack_version(
+        evidence_bundle=evidence,
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+    )
+
+    best_interest = _rule(result, "SG_BEST_INTEREST_COST_REVIEW")
+    assert best_interest.status == "PENDING_REVIEW"
+    assert "tax_evidence" in best_interest.missing_evidence
+    assert "execution_friction_evidence" in best_interest.missing_evidence
+
+
+def test_policy_evaluation_internal_helpers_keep_source_refs_and_fallback_sections() -> None:
+    assert _artifact_section({"disclosures": {"risk": "captured"}}, "disclosures") == {
+        "risk": "captured"
+    }
+    assert _section({"sections": []}, "missing") == {}
+    assert _source_refs(
+        {
+            "rule_id": "RISK_READY",
+            "required_evidence_fields": [
+                "policy_source_readiness.overall_posture",
+                "fee_evidence",
+                "risk_var",
+                "core_mandate_objectives_restrictions",
+            ],
+        }
+    ) == [
+        "lotus-advise:policy_source_readiness",
+        "lotus-advise:proposal_artifact_policy_evidence",
+        "lotus-risk:risk_var",
+        "lotus-core:core_mandate_objectives_restrictions",
+    ]
