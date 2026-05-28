@@ -93,7 +93,7 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICES 0-7 GATEWAY PUBLICATION COMPLETE",
+        "DRAFT - SLICES 0-8 WORKBENCH PROOF COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
@@ -104,8 +104,10 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
         assert marker in rfc_index
         assert marker in wiki_index or marker in supported_features
 
-    assert "No Workbench, screenshot, RFP/security" in supported_features
-    assert "bank-demo/RFP, screenshot, product one-pager" in wiki_index
+    assert "advisory.bank_demo_proof" in supported_features
+    assert "advisory-bank-demo-proof-live.png" in wiki_index
+    assert "RFP/security" in supported_features
+    assert "client-ready publication remain unpromoted" in supported_features
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in rfc_index
     assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in wiki_index
     assert "Draft with Slice 0 decisions locked" not in supported_features
@@ -197,8 +199,9 @@ def test_rfc0028_records_slice_six_document_proof_capture() -> None:
 
     for source in (rfc_index, wiki_index, supported_features):
         assert (
-            "DRAFT - SLICES 0-7 GATEWAY PUBLICATION COMPLETE" in source
-            or "Slices 0-7 Gateway publication complete" in source
+            "DRAFT - SLICES 0-8 WORKBENCH PROOF COMPLETE" in source
+            or "Slices 0-8 are implementation-backed" in source
+            or "Slice 8 closes Workbench proof" in source
         )
         assert "document-proof-summary.json" in source
         assert "client-ready document publication remains blocked" in source
@@ -238,12 +241,15 @@ def test_rfc0028_records_slice_seven_gateway_publication_without_product_overcla
 
     for source in (rfc_index, wiki_index, supported_features):
         assert (
-            "SLICES 0-7 GATEWAY PUBLICATION COMPLETE" in source
-            or "Slices 0-7 Gateway publication complete" in source
+            "SLICES 0-8 WORKBENCH PROOF COMPLETE" in source
+            or "Slices 0-8 are implementation-backed" in source
+            or "Slice 8 closes Workbench proof" in source
         )
         assert "Gateway consumption remains the next Slice 7 owner-repository step" not in source
         assert "screenshot" in source
         assert "RFP" in source
-        assert "client-ready publication claims unpromoted" in source or (
-            "client-ready publication claim is promoted" in source
+        assert (
+            "client-ready publication claims unpromoted" in source
+            or ("client-ready publication claim is promoted" in source)
+            or ("client-ready publication remain unpromoted" in source)
         )

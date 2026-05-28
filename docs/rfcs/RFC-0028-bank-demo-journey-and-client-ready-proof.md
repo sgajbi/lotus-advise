@@ -1093,6 +1093,22 @@ Acceptance gate:
 3. screenshots are labeled demo-ready only when supported-claim and privacy gates pass,
 4. no UI-local advisory truth or supportability inference exists.
 
+Implementation evidence:
+
+1. `lotus-workbench` PR #384 added `/recommendations?portfolioId=PB_SG_GLOBAL_BAL_001&mode=proof`
+   as the Gateway/BFF-backed `advisory.bank_demo_proof` surface.
+2. `lotus-platform` PR #367 registered the panel, canonical scenario, proof marker, and validation
+   expectations in the governed front-office contracts.
+3. `npm run live:stack:up:validate` passed for `PB_SG_GLOBAL_BAL_001` with scenario
+   `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`, proof marker
+   `BANK_DEMO_PROOF_PACK_CREATED`, screenshot `advisory-bank-demo-proof-live.png`, and
+   client-ready publication posture `blocked`.
+4. The Workbench proof surface consumes Gateway contracts only and does not create local advisory
+   suitability, policy, memo, proof, or AI semantics.
+5. Client-ready publication, external client communication, OMS/order/fill/settlement, approval
+   authority, and full RFP/demo collateral readiness remain blocked or unsupported unless a later
+   owner-repo implementation provides evidence.
+
 ### Slice 9 - AI, Model-Risk, Policy, and Cockpit Proof Integration
 
 Outcome:
@@ -1289,6 +1305,20 @@ Acceptance gate:
 | Product one-pager | Proposed | Promote only after supported claims are client-ready approved or clearly marked planned. |
 | ROI story | Proposed | Promote only after wording is grounded in implemented workflow value and avoids unsupported numeric claims. |
 | LinkedIn post-completion draft | Proposed | Promote only after implementation is complete and the draft follows the thought-leadership workflow. |
+
+Current implementation note:
+
+1. Slices 0-8 are implementation-backed for the source scenario contract, supported-claim register,
+   proof-pack capture, Gateway publication, Platform canonical contract registration, and Workbench
+   proof surface.
+2. The canonical Workbench proof path is `advisory.bank_demo_proof` at
+   `/recommendations?portfolioId=PB_SG_GLOBAL_BAL_001&mode=proof`; live validation records
+   `BANK_DEMO_PROOF_PACK_CREATED` for scenario
+   `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`.
+3. Client-ready publication, external client communication, OMS/order/fill/settlement, approval
+   authority, product one-pager, ROI story, RFP/security pack, and LinkedIn post-completion output
+   are not promoted by this evidence unless their owner-repo implementation and review gates are
+   complete.
 
 ---
 
