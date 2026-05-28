@@ -29,8 +29,12 @@ class LivePolicyEvaluationSnapshot:
     sign_off_decision_status: str
     report_status: str
     report_package_status: str
+    requested_output_formats: tuple[str, ...]
     render_ref_status: str
     archive_ref_status: str
+    archive_retention_posture: str
+    archive_legal_hold_posture: str
+    archive_access_audit_ref_status: str
     ai_status: str
     ai_authoritative_for_policy_status: bool
     ai_human_review_required: bool
@@ -74,14 +78,25 @@ def extract_live_policy_evaluation_snapshot(
     hash_comparison = cast(dict[str, Any], replay_body["hash_comparison"])
 
     report_package_status = "UNAVAILABLE"
+    requested_output_formats: tuple[str, ...] = ()
     render_ref_status = "UNAVAILABLE"
     archive_ref_status = "UNAVAILABLE"
+    archive_retention_posture = "NOT_RETURNED"
+    archive_legal_hold_posture = "NOT_RETURNED"
+    archive_access_audit_ref_status = "NOT_RETURNED"
     if report_body is not None:
         report_event = cast(dict[str, Any], report_body["report_package_event"])
         reason = _event_reason(report_event)
         report_package_status = str(reason.get("report_package_status", "UNKNOWN"))
+        requested_output_formats = tuple(
+            str(item) for item in cast(list[Any], reason.get("requested_output_formats", []))
+        )
+        archive = reason.get("archive")
         render_ref_status = _ref_status(reason.get("render"), key="render_job_id")
-        archive_ref_status = _ref_status(reason.get("archive"), key="document_id")
+        archive_ref_status = _ref_status(archive, key="document_id")
+        archive_retention_posture = _archive_posture(archive, key="retention_posture")
+        archive_legal_hold_posture = _archive_posture(archive, key="legal_hold_posture")
+        archive_access_audit_ref_status = _ref_status(archive, key="access_audit_ref")
 
     return LivePolicyEvaluationSnapshot(
         proposal_id=str(record["proposal_id"]),
@@ -113,8 +128,12 @@ def extract_live_policy_evaluation_snapshot(
         sign_off_decision_status=str(workflow["sign_off_status"]),
         report_status=report_status,
         report_package_status=report_package_status,
+        requested_output_formats=requested_output_formats,
         render_ref_status=render_ref_status,
         archive_ref_status=archive_ref_status,
+        archive_retention_posture=archive_retention_posture,
+        archive_legal_hold_posture=archive_legal_hold_posture,
+        archive_access_audit_ref_status=archive_access_audit_ref_status,
         ai_status=str(ai_evidence["status"]),
         ai_authoritative_for_policy_status=bool(ai_evidence["authoritative_for_policy_status"]),
         ai_human_review_required=bool(ai_evidence["human_review_required"]),
@@ -134,6 +153,12 @@ def extract_live_policy_evaluation_snapshot(
 def _ref_status(value: Any, *, key: str) -> str:
     if isinstance(value, dict) and value.get(key):
         return "RECORDED"
+    return "NOT_RETURNED"
+
+
+def _archive_posture(value: Any, *, key: str) -> str:
+    if isinstance(value, dict) and value.get(key):
+        return str(value[key])
     return "NOT_RETURNED"
 
 

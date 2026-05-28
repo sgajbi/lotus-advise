@@ -141,6 +141,7 @@ def write_backend_proof_capture_bundle(
         "scenario_contract": output_dir / "scenario-contract.json",
         "supported_claim_register": output_dir / "supported-claim-register.json",
         "proof_pack": output_dir / "proof-pack.json",
+        "document_proof_summary": output_dir / "document-proof-summary.json",
         "runtime_posture": output_dir / "runtime-posture.json",
         "sanitized_runtime_summary": output_dir / "sanitized-runtime-summary.json",
         "material_field_review": output_dir / "material-field-review.json",
@@ -154,6 +155,10 @@ def write_backend_proof_capture_bundle(
         bundle.supported_claim_register.model_dump(mode="json"),
     )
     _write_json(paths["proof_pack"], bundle.proof_pack.model_dump(mode="json"))
+    _write_json(
+        paths["document_proof_summary"],
+        bundle.document_proof_summary.model_dump(mode="json"),
+    )
     _write_json(paths["runtime_posture"], bundle.runtime_posture.model_dump(mode="json"))
     _write_json(paths["sanitized_runtime_summary"], bundle.sanitized_runtime_summary)
     _write_json(
@@ -302,6 +307,14 @@ def _render_capture_summary(bundle: BackendProofCaptureBundle) -> str:
         f"- `{endpoint.endpoint}`: `{endpoint.posture}` / `{endpoint.http_status}`"
         for endpoint in bundle.runtime_posture.endpoints
     )
+    document_rows = "\n".join(
+        "- "
+        f"`{document.document_family}`: report `{document.report_package_status}`, "
+        f"render `{document.render_ref_status}`, archive `{document.archive_ref_status}`, "
+        f"retention `{document.archive_retention_posture}`, "
+        f"client-ready `{document.client_ready_document_status}`"
+        for document in bundle.document_proof_summary.documents
+    )
     return (
         "# RFC-0028 Backend Proof Capture\n\n"
         f"- proof pack: `{bundle.proof_pack.proof_pack_id}`\n"
@@ -312,6 +325,8 @@ def _render_capture_summary(bundle: BackendProofCaptureBundle) -> str:
         f"- correlation id: `{bundle.proof_pack.correlation_id}`\n\n"
         "## Runtime Posture\n\n"
         f"{runtime}\n\n"
+        "## Document Proof\n\n"
+        f"{document_rows}\n\n"
         "## Material Field Review\n\n"
         f"{material_reviews}\n\n"
         "## Unsupported Boundaries\n\n"

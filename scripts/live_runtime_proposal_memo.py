@@ -20,8 +20,12 @@ class LiveProposalMemoSnapshot:
     review_client_ready_publication: str
     report_status: str
     report_package_status: str
+    requested_output_formats: tuple[str, ...]
     render_ref_status: str
     archive_ref_status: str
+    archive_retention_posture: str
+    archive_legal_hold_posture: str
+    archive_access_audit_ref_status: str
     ai_status: str
     ai_authoritative_for_memo_status: bool
     ai_review_required: bool
@@ -65,14 +69,25 @@ def extract_live_memo_snapshot(
     replay_hashes = cast(dict[str, Any], replay_body["hashes"])
     replay_explanation = cast(dict[str, Any], replay_body["explanation"])
     report_package_status = "UNAVAILABLE"
+    requested_output_formats: tuple[str, ...] = ()
     render_ref_status = "UNAVAILABLE"
     archive_ref_status = "UNAVAILABLE"
+    archive_retention_posture = "NOT_RETURNED"
+    archive_legal_hold_posture = "NOT_RETURNED"
+    archive_access_audit_ref_status = "NOT_RETURNED"
     if report_body is not None:
         report_event = cast(dict[str, Any], report_body["report_package_event"])
         report_reason = cast(dict[str, Any], report_event["reason"])
         report_package_status = str(report_reason.get("report_package_status", "UNKNOWN"))
+        requested_output_formats = tuple(
+            str(item) for item in cast(list[Any], report_reason.get("requested_output_formats", []))
+        )
+        archive = report_reason.get("archive")
         render_ref_status = _ref_status(report_reason.get("render"), key="render_job_id")
-        archive_ref_status = _ref_status(report_reason.get("archive"), key="document_id")
+        archive_ref_status = _ref_status(archive, key="document_id")
+        archive_retention_posture = _archive_posture(archive, key="retention_posture")
+        archive_legal_hold_posture = _archive_posture(archive, key="legal_hold_posture")
+        archive_access_audit_ref_status = _ref_status(archive, key="access_audit_ref")
 
     return LiveProposalMemoSnapshot(
         proposal_id=proposal_id,
@@ -89,8 +104,12 @@ def extract_live_memo_snapshot(
         review_client_ready_publication=str(review_reason["client_ready_publication"]),
         report_status=report_status,
         report_package_status=report_package_status,
+        requested_output_formats=requested_output_formats,
         render_ref_status=render_ref_status,
         archive_ref_status=archive_ref_status,
+        archive_retention_posture=archive_retention_posture,
+        archive_legal_hold_posture=archive_legal_hold_posture,
+        archive_access_audit_ref_status=archive_access_audit_ref_status,
         ai_status=str(ai_reason["ai_status"]),
         ai_authoritative_for_memo_status=bool(ai_commentary["authoritative_for_memo_status"]),
         ai_review_required=bool(ai_commentary["review_required"]),
@@ -110,4 +129,10 @@ def extract_live_memo_snapshot(
 def _ref_status(value: Any, *, key: str) -> str:
     if isinstance(value, dict) and value.get(key):
         return "RECORDED"
+    return "NOT_RETURNED"
+
+
+def _archive_posture(value: Any, *, key: str) -> str:
+    if isinstance(value, dict) and value.get(key):
+        return str(value[key])
     return "NOT_RETURNED"
