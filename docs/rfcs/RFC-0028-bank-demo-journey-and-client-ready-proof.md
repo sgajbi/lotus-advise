@@ -959,6 +959,49 @@ Acceptance gate:
    degraded document behavior,
 3. client-ready document claims are blocked unless review and supported-claim gates pass.
 
+Slice 6 implementation decision and evidence:
+
+1. No new `lotus-report`, `lotus-render`, or `lotus-archive` owner-repository PR is required for
+   this slice because RFC-0024 and RFC-0025 already implemented advisor-use memo and policy
+   report/render/archive handoff. RFC-0028 Slice 6 strengthens proof capture over those existing
+   implementation-backed paths.
+2. `scripts/live_runtime_proposal_memo.py` and
+   `scripts/live_runtime_policy_evaluation.py` now preserve document proof posture in the live
+   runtime suite:
+   1. requested output formats,
+   2. render reference status,
+   3. archive reference status,
+   4. archive retention posture,
+   5. archive legal-hold posture,
+   6. archive access-audit reference status,
+   7. report degraded reason,
+   8. client-ready document blocker.
+3. `src/core/bank_demo_proof/document_proof.py` adds
+   `AdvisoryDocumentProofSummary:v1` and `AdvisoryDocumentProof` so report/render/archive proof is
+   a first-class RFC-0028 proof section rather than incidental fields in the live-suite summary.
+4. Archived advisor-use memo and policy packages must have recorded render refs, recorded archive
+   refs, recorded archive access-audit refs, `OWNED_BY_LOTUS_ARCHIVE` retention posture, and
+   `OWNED_BY_LOTUS_ARCHIVE` legal-hold posture. The model rejects archived packages without those
+   controls.
+5. `scripts/capture_rfc0028_backend_proof.py` now writes `document-proof-summary.json`, indexes it
+   in `proof-pack.json` as a `REPORT_PACKAGE_SUMMARY` asset, and includes
+   `RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED` in proof-pack evidence markers.
+6. The supported-claim register adds `advisor_use_document_proof_available` as
+   `BACKEND_BACKED_UI_PENDING`. It is deliberately not a screenshot, RFP/security, product
+   one-pager, or client-ready publication claim.
+7. Client-ready memo and policy document requests remain blocked through
+   `MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED` and `POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED`.
+   Slice 6 does not promote client-ready proposal packs, external client communication, completed
+   sign-off/approval authority, or downstream document distribution.
+8. Test evidence:
+   1. `tests/unit/advisory/engine/test_engine_bank_demo_document_proof.py` covers document proof
+      construction and rejects archived packages missing archive controls or client-ready blockers,
+   2. `tests/unit/advisory/api/test_live_runtime_suite.py` pins live-suite serialization and
+      summary wording for retention/access posture,
+   3. `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` and
+      `tests/unit/scripts/test_capture_rfc0028_backend_proof.py` prove the document summary is
+      included in the RFC-0028 backend proof pack and artifact writer.
+
 ### Slice 7 - Gateway Experience Contract and Capability Publication
 
 Outcome:

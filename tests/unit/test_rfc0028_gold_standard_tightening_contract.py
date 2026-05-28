@@ -93,7 +93,7 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICES 0-5 COMPLETE",
+        "DRAFT - SLICES 0-6 COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
@@ -172,3 +172,30 @@ def test_rfc0028_records_slice_five_backend_proof_capture() -> None:
     )
     for marker in markers:
         assert marker in flat
+
+
+def test_rfc0028_records_slice_six_document_proof_capture() -> None:
+    flat = _flat(RFC28_PATH)
+    rfc_index = _flat(RFC_INDEX_PATH)
+    wiki_index = _flat(WIKI_RFC_INDEX_PATH)
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
+
+    markers = (
+        "AdvisoryDocumentProofSummary:v1",
+        "src/core/bank_demo_proof/document_proof.py",
+        "document-proof-summary.json",
+        "RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED",
+        "advisor_use_document_proof_available",
+        "BACKEND_BACKED_UI_PENDING",
+        "OWNED_BY_LOTUS_ARCHIVE",
+        "MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED",
+        "POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED",
+        "tests/unit/advisory/engine/test_engine_bank_demo_document_proof.py",
+    )
+    for marker in markers:
+        assert marker in flat
+
+    for source in (rfc_index, wiki_index, supported_features):
+        assert "DRAFT - SLICES 0-6 COMPLETE" in source or "Slices 0-6 complete" in source
+        assert "document-proof-summary.json" in source
+        assert "client-ready document publication remains blocked" in source
