@@ -1289,10 +1289,10 @@ Slice 12 implementation decision and evidence:
    artifacts, `BANK_DEMO_PROOF_PACK_CREATED`, `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED`,
    runtime-posture review expectations, and the operator rule that material drift is fixed at the
    source layer rather than worked around in Gateway, Workbench, or documentation.
-6. `docs/rfcs/README.md`, `wiki/RFC-Index.md`, and `wiki/Supported-Features.md` now report
-   `DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE` and describe the Slice 12 evidence
-   without promoting client-ready publication, external client communication, bank-specific
-   attestations, legal/regulatory advice, completed sign-off/approval, or OMS/order/fill/settlement.
+6. `docs/rfcs/README.md`, `wiki/RFC-Index.md`, and `wiki/Supported-Features.md` now record the
+   Slice 12 documentation-product evidence without promoting client-ready publication, external
+   client communication, bank-specific attestations, legal/regulatory advice, completed
+   sign-off/approval, or OMS/order/fill/settlement.
 7. Wiki source changed in this slice for `wiki/API-Surface.md`,
    `wiki/Security-and-Governance.md`, `wiki/Operations-Runbook.md`, `wiki/RFC-Index.md`, and
    `wiki/Supported-Features.md`; therefore wiki publication is required after merge to `main`.

@@ -133,6 +133,7 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     assert "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE" not in rfc_index
     assert "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE" not in wiki_index
     assert "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE" not in supported_features
+    assert "DRAFT - SLICES 0-12 DOCUMENTATION PRODUCT TRUTH COMPLETE" not in _flat(RFC28_PATH)
 
 
 def test_rfc0028_records_slice_two_cleanup_scope_and_wiki_gate() -> None:
