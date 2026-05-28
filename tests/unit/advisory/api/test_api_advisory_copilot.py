@@ -239,6 +239,56 @@ def test_proposal_version_copilot_packet_preserves_version_lineage_for_every_act
     }
 
 
+def test_proposal_version_copilot_packet_refreshes_same_projection_when_hash_changes(
+    monkeypatch: pytest.MonkeyPatch,
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    _ = copilot_repository
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    monkeypatch.setattr(proposals_router.runtime, "build_repository", lambda: proposal_repository)
+    reset_proposal_workflow_service_for_tests()
+    policy_record = _policy_evaluation()
+    monkeypatch.setattr(
+        copilot_routes,
+        "list_policy_evaluation_records",
+        lambda **_: [policy_record],
+    )
+    request = {
+        "proposal_id": "proposal_sg_structured_note_001",
+        "proposal_version_no": 1,
+        "action_family": "PROPOSAL_EXPLANATION",
+        "audience": "ADVISOR",
+        "created_by": "advisor_123",
+        "reason": {"business_reason": "Prepare advisor copilot review."},
+    }
+
+    with TestClient(app) as client:
+        first = client.post(
+            "/advisory/copilot/evidence-packets/from-proposal-version",
+            json=request,
+        )
+        policy_record = policy_record.model_copy(
+            update={
+                "evaluation_hash": "sha256:refreshed-policy-evaluation",
+                "approval_dependencies": ["COMPLIANCE_REVIEW", "UPDATED_SOURCE_EVIDENCE"],
+            }
+        )
+        second = client.post(
+            "/advisory/copilot/evidence-packets/from-proposal-version",
+            json=request,
+        )
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert first.json()["evidence_packet"]["evidence_packet_id"] == (
+        second.json()["evidence_packet"]["evidence_packet_id"]
+    )
+    assert first.json()["evidence_packet"]["evidence_packet_hash"] != (
+        second.json()["evidence_packet"]["evidence_packet_hash"]
+    )
+
+
 def test_advisory_copilot_action_persists_review_gated_run(
     monkeypatch: pytest.MonkeyPatch,
     copilot_repository: InMemoryAdvisoryCopilotRepository,

@@ -45,7 +45,42 @@ class PostgresAdvisoryCopilotRepository:
             ).fetchone()
             if existing is not None:
                 if existing["evidence_packet_hash"] != record.evidence_packet_hash:
-                    raise ValueError("COPILOT_EVIDENCE_PACKET_HASH_CONFLICT")
+                    if not _can_refresh_source_projection_packet(
+                        existing=_evidence_packet_from_row(existing),
+                        incoming=record,
+                    ):
+                        raise ValueError("COPILOT_EVIDENCE_PACKET_HASH_CONFLICT")
+                    connection.execute(
+                        """
+                        UPDATE advisory_copilot_evidence_packets
+                        SET evidence_packet_hash = %s,
+                            action_family = %s,
+                            audience = %s,
+                            portfolio_id = %s,
+                            proposal_id = %s,
+                            created_by = %s,
+                            created_at = %s,
+                            correlation_id = %s,
+                            packet_json = %s,
+                            reason_json = %s
+                        WHERE evidence_packet_id = %s
+                        """,
+                        (
+                            record.evidence_packet_hash,
+                            record.action_family,
+                            record.audience,
+                            record.portfolio_id,
+                            record.proposal_id,
+                            record.created_by,
+                            record.created_at.isoformat(),
+                            record.correlation_id,
+                            _json_dump(record.packet_json),
+                            _json_dump(record.reason_json),
+                            record.evidence_packet_id,
+                        ),
+                    )
+                    connection.commit()
+                    return record
                 return _evidence_packet_from_row(existing)
             connection.execute(
                 query,
@@ -442,3 +477,21 @@ def _matches_proposal_version(
     if proposal_version_no is not None:
         return run.lineage_json.get("proposal_version_no") == proposal_version_no
     return True
+
+
+def _can_refresh_source_projection_packet(
+    *,
+    existing: AdvisoryCopilotEvidencePacketRecord,
+    incoming: AdvisoryCopilotEvidencePacketRecord,
+) -> bool:
+    return (
+        existing.reason_json.get("source_projection") == "PROPOSAL_VERSION"
+        and incoming.reason_json.get("source_projection") == "PROPOSAL_VERSION"
+        and existing.reason_json.get("proposal_id") == incoming.reason_json.get("proposal_id")
+        and existing.reason_json.get("proposal_version_no")
+        == incoming.reason_json.get("proposal_version_no")
+        and existing.action_family == incoming.action_family
+        and existing.audience == incoming.audience
+        and existing.portfolio_id == incoming.portfolio_id
+        and existing.proposal_id == incoming.proposal_id
+    )

@@ -28,7 +28,13 @@ class InMemoryAdvisoryCopilotRepository(AdvisoryCopilotRepository):
             existing = self._evidence_packets.get(record.evidence_packet_id)
             if existing is not None:
                 if existing.evidence_packet_hash != record.evidence_packet_hash:
-                    raise ValueError("COPILOT_EVIDENCE_PACKET_HASH_CONFLICT")
+                    if not _can_refresh_source_projection_packet(
+                        existing=existing,
+                        incoming=record,
+                    ):
+                        raise ValueError("COPILOT_EVIDENCE_PACKET_HASH_CONFLICT")
+                    self._evidence_packets[record.evidence_packet_id] = deepcopy(record)
+                    return deepcopy(record)
                 return deepcopy(existing)
             self._evidence_packets[record.evidence_packet_id] = deepcopy(record)
             return deepcopy(record)
@@ -152,3 +158,21 @@ def _matches_proposal_version(
     if proposal_version_no is not None:
         return lineage.get("proposal_version_no") == proposal_version_no
     return True
+
+
+def _can_refresh_source_projection_packet(
+    *,
+    existing: AdvisoryCopilotEvidencePacketRecord,
+    incoming: AdvisoryCopilotEvidencePacketRecord,
+) -> bool:
+    return (
+        existing.reason_json.get("source_projection") == "PROPOSAL_VERSION"
+        and incoming.reason_json.get("source_projection") == "PROPOSAL_VERSION"
+        and existing.reason_json.get("proposal_id") == incoming.reason_json.get("proposal_id")
+        and existing.reason_json.get("proposal_version_no")
+        == incoming.reason_json.get("proposal_version_no")
+        and existing.action_family == incoming.action_family
+        and existing.audience == incoming.audience
+        and existing.portfolio_id == incoming.portfolio_id
+        and existing.proposal_id == incoming.proposal_id
+    )
