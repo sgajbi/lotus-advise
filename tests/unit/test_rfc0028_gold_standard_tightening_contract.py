@@ -87,16 +87,18 @@ def test_rfc0028_records_platform_slice_one_supported_claim_scaffolding() -> Non
         assert marker in flat
 
 
-def test_rfc0028_indexes_record_locked_slice_zero_without_promotion() -> None:
+def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     rfc_index = _flat(RFC_INDEX_PATH)
     wiki_index = _flat(WIKI_RFC_INDEX_PATH)
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICE 0 DECISIONS LOCKED",
+        "DRAFT - SLICES 0-1 COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
+        "PR #366",
+        "26554797152",
     )
     for marker in index_markers:
         assert marker in rfc_index
@@ -104,3 +106,25 @@ def test_rfc0028_indexes_record_locked_slice_zero_without_promotion() -> None:
 
     assert "No bank-demo/RFP or client-ready publication claim is promoted" in supported_features
     assert "full bank-demo/RFP and client-ready publication claims unpromoted" in wiki_index
+    assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in rfc_index
+    assert "DRAFT - SLICE 0 DECISIONS LOCKED" not in wiki_index
+    assert "Draft with Slice 0 decisions locked" not in supported_features
+
+
+def test_rfc0028_records_slice_two_cleanup_scope_and_wiki_gate() -> None:
+    flat = _flat(RFC28_PATH)
+
+    markers = (
+        "The first cleanup gap was durable documentation drift after Slice 1",
+        "docs/rfcs/README.md",
+        "wiki/RFC-Index.md",
+        "wiki/Supported-Features.md",
+        (
+            "No Advise runtime code, controller, infrastructure module, "
+            "or commercial asset was created"
+        ),
+        "Wiki source changed because supported-feature and RFC-index truth changed",
+        "publication must happen after merge to `main`",
+    )
+    for marker in markers:
+        assert marker in flat

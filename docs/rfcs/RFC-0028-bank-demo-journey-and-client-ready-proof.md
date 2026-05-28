@@ -780,6 +780,20 @@ Acceptance gate:
 3. controllers remain thin and business logic stays outside controllers and infrastructure,
 4. wiki source is updated only for durable product/operator truth.
 
+Slice 2 implementation decision and evidence:
+
+1. The first cleanup gap was durable documentation drift after Slice 1: `docs/rfcs/README.md`,
+   `wiki/RFC-Index.md`, and `wiki/Supported-Features.md` still described RFC-0028 as only
+   `DRAFT - SLICE 0 DECISIONS LOCKED`.
+2. The durable indexes now report `DRAFT - SLICES 0-1 COMPLETE`, reference `lotus-platform`
+   PR #366 and main releasability run `26554797152`, and still state that no bank-demo/RFP or
+   client-ready publication claim is promoted.
+3. No Advise runtime code, controller, infrastructure module, or commercial asset was created in
+   this slice; the cleanup is limited to correcting durable product/operator truth before proof and
+   claim models are implemented.
+4. Wiki source changed because supported-feature and RFC-index truth changed. The wiki publication
+   gate must run before merge, and publication must happen after merge to `main`.
+
 ### Slice 3 - Data Product and Platform Hardening
 
 Outcome:
