@@ -29,11 +29,11 @@ def test_rfc0027_slice7_evidence_is_indexed_and_non_promoting() -> None:
 
     assert "IMPLEMENTED - ADAPTER AND WORKFLOW-PACK EXECUTION SEAM ONLY" in slice7
     assert "does not expose Advise copilot APIs" in slice7
-    assert "Slice 7 adds governed `lotus-ai` workflow-pack execution" in flat_supported
-    assert "without Advise API, Gateway, Workbench, data-product, canonical proof" in (
+    assert "Implemented for governed internal advisor/reviewer copilot interactions" in (
         flat_supported
     )
-    assert "before any supported copilot claim is promoted" in flat_supported
+    assert "governed `lotus-ai` workflow-pack execution" in flat_supported
+    assert "all six action families" in flat_supported
 
 
 def test_rfc0027_slice7_records_workflow_pack_and_model_risk_evidence() -> None:

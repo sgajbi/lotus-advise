@@ -30,10 +30,11 @@ def test_rfc0027_slice6_evidence_is_indexed_and_non_promoting() -> None:
     assert "IMPLEMENTED - PURE GUARDRAIL ENGINE ONLY" in slice6
     assert "does not invoke `lotus-ai`" in slice6
     assert "Those remain mandatory subsequent RFC-0027 slices" in slice6
-    assert "Slice 6 adds pure guardrail evaluation without runtime support promotion" in (
+    assert "Implemented for governed internal advisor/reviewer copilot interactions" in (
         flat_supported
     )
-    assert "before any supported copilot claim is promoted" in flat_supported
+    assert "guardrail rejection for client-ready publication" in flat_supported
+    assert "Client-ready publication, external client communication" in flat_supported
 
 
 def test_rfc0027_slice6_records_guardrail_reason_coverage() -> None:

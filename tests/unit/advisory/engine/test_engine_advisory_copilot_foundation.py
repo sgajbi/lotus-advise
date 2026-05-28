@@ -107,12 +107,15 @@ def test_copilot_guardrail_evaluator_allows_blocked_client_ready_boundary_langua
 
 
 def test_copilot_guardrail_evaluator_allows_source_backed_review_request() -> None:
-    assert evaluate_copilot_guardrails(
-        requested_intents=("summarize_supported_evidence",),
-        source_refs_present=True,
-        user_instruction="Summarize the cited policy evidence for advisor review.",
-        output_text="Policy evidence requires compliance review.",
-    ) == ()
+    assert (
+        evaluate_copilot_guardrails(
+            requested_intents=("summarize_supported_evidence",),
+            source_refs_present=True,
+            user_instruction="Summarize the cited policy evidence for advisor review.",
+            output_text="Policy evidence requires compliance review.",
+        )
+        == ()
+    )
 
 
 def test_copilot_review_foundation_keeps_review_controlled_posture() -> None:

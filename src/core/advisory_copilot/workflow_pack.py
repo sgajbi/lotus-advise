@@ -13,4 +13,3 @@ def workflow_pack_id_for_action(action_family: CopilotActionFamily) -> str:
 
 def workflow_pack_version_for_action(action_family: CopilotActionFamily) -> str:
     return get_copilot_action_definition(action_family).workflow_pack_version
-

@@ -32,4 +32,3 @@ def review_posture_for_action(action: CopilotReviewAction) -> CopilotReviewPostu
 
 def is_terminal_review_posture(posture: CopilotReviewPosture) -> bool:
     return posture in TERMINAL_REVIEW_POSTURES
-

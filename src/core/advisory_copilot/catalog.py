@@ -104,4 +104,3 @@ def get_copilot_action_definition(
     action_family: CopilotActionFamily,
 ) -> CopilotActionDefinition:
     return COPILOT_ACTION_CATALOG[action_family]
-

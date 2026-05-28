@@ -31,8 +31,9 @@ def test_rfc0027_slice8_evidence_is_indexed_and_non_promoting() -> None:
 
     assert "IMPLEMENTED - DOMAIN PERSISTENCE AND REVIEW AUDIT FOUNDATION ONLY" in slice8
     assert "does not expose public copilot APIs" in slice8
-    assert "Advise API, Gateway, Workbench, data-product, canonical proof" in supported
-    assert "supported product promotion remain unpromoted" in supported
+    assert "durable run/review persistence" in supported
+    assert "active `AdvisoryCopilotInteractionRecord:v1` data-product posture" in supported
+    assert "Client-ready publication, external client communication" in supported
 
 
 def test_rfc0027_slice8_documents_audit_retention_and_raw_ai_storage_boundary() -> None:

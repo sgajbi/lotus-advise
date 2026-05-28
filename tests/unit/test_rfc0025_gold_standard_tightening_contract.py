@@ -100,7 +100,7 @@ def test_rfc_and_wiki_indexes_point_past_rfc0025_without_stale_future_claim() ->
     wiki_index = _read(WIKI_RFC_INDEX_PATH)
     flat_wiki_index = _flat(wiki_index)
 
-    assert "1. `RFC-0027` governed advisory AI copilot" in rfc_index
+    assert "1. `RFC-0028` bank demo journey and client-ready proof" in rfc_index
     assert "- `RFC-0025` advisor/compliance policy evidence" in rfc_index
     assert "RFC-0024 is implemented for advisor-use proposal memo evidence" in flat_wiki_index
     assert "RFC-0025 is implemented for advisor/compliance policy evaluation evidence" in (
@@ -125,4 +125,5 @@ def test_rfc_and_wiki_indexes_point_past_rfc0025_without_stale_future_claim() ->
         active_future_section
     )
     assert "RFC-0026 advisor cockpit operating workflow" not in active_future_section
-    assert "RFC-0027 governed advisory AI copilot" in active_future_section
+    assert "RFC-0027 governed advisory AI copilot" not in active_future_section
+    assert "RFC-0028 bank demo journey and client-ready proof" in active_future_section

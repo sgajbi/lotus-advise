@@ -32,10 +32,11 @@ def test_rfc0027_slice5_evidence_is_indexed_and_non_promoting() -> None:
         slice5
     )
     assert "Those remain mandatory subsequent RFC-0027 slices" in slice5
-    assert "Slice 5 adds pure evidence-packet projection without runtime support promotion" in (
+    assert "Implemented for governed internal advisor/reviewer copilot interactions" in (
         flat_supported
     )
-    assert "before any supported copilot claim is promoted" in flat_supported
+    assert "Evidence packets and review events remain audit records" in flat_supported
+    assert "Client-ready publication, external client communication" in flat_supported
 
 
 def test_rfc0027_slice5_records_projection_hash_and_redaction_behavior() -> None:

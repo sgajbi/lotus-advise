@@ -30,8 +30,11 @@ def test_rfc0027_slice4_evidence_is_indexed_and_non_promoting() -> None:
     assert "IMPLEMENTED - PURE DOMAIN CONTRACT ONLY" in slice4
     assert "does not build evidence packets from live sources" in slice4
     assert "Those remain mandatory subsequent RFC-0027 slices" in slice4
-    assert "Slice 4 strengthens pure evidence-packet" in flat_supported
-    assert "before any supported copilot claim is promoted" in flat_supported
+    assert "Implemented for governed internal advisor/reviewer copilot interactions" in (
+        flat_supported
+    )
+    assert "active `AdvisoryCopilotInteractionRecord:v1` data-product posture" in flat_supported
+    assert "Evidence packets and review events remain audit records" in flat_supported
 
 
 def test_rfc0027_slice4_records_packet_review_unsupported_and_retention_vocabulary() -> None:

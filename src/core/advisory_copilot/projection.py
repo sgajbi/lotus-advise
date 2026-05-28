@@ -50,4 +50,3 @@ def business_projection_for_action(
     action_family: CopilotActionFamily,
 ) -> CopilotBusinessProjection:
     return COPILOT_BUSINESS_PROJECTIONS[action_family]
-

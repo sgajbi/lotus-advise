@@ -17,15 +17,15 @@ def _flat(path: Path) -> str:
     return " ".join(_read(path).split())
 
 
-def test_rfc0027_slice_zero_is_ready_with_no_open_questions() -> None:
+def test_rfc0027_closure_preserves_slice_zero_decisions_and_no_open_questions() -> None:
     rfc = _read(RFC27_PATH)
     flat_rfc = _flat(RFC27_PATH)
 
-    assert "DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN - SLICE 0 READY" in rfc
+    assert "IMPLEMENTED for governed internal advisor/reviewer copilot interactions" in rfc
     assert "Last Tightened** | 2026-05-28" in rfc
     assert "rfc0027-governed-advisory-ai-copilot" in rfc
-    assert "## 25. Slice 0 Pre-Implementation Decisions" in rfc
-    assert "## 25. Open Questions" not in rfc
+    assert "## 26. Slice 0 Pre-Implementation Decisions" in rfc
+    assert "## 26. Open Questions" not in rfc
     assert "No open question may remain at final closure" in rfc
 
     required_decisions = (
@@ -118,28 +118,35 @@ def test_rfc0027_pins_enterprise_backend_hardening_and_business_copy_rules() -> 
         assert marker in flat_rfc
 
 
-def test_rfc0027_indexes_and_supported_features_do_not_promote_unbuilt_copilot() -> None:
+def test_rfc0027_indexes_and_supported_features_promote_only_proven_internal_copilot() -> None:
     rfc_index = _flat(RFC_INDEX_PATH)
     wiki_index = _flat(WIKI_RFC_INDEX_PATH)
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
     rfc26 = _flat(RFC26_PATH)
 
     assert "IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow" in rfc26
-    assert "1. `RFC-0027` governed advisory AI copilot" in rfc_index
+    assert "1. `RFC-0028` bank demo journey and client-ready proof" in rfc_index
     expected_rfc27_row = (
-        "RFC-0027 | Governed Advisory AI Copilot | "
-        "DRAFT - GOLD-STANDARD IMPLEMENTATION PLAN"
+        "RFC-0027 | Governed Advisory AI Copilot | IMPLEMENTED for governed internal "
+        "advisor/reviewer copilot interactions; client-ready and execution authority remain gated"
     )
     assert expected_rfc27_row in rfc_index
-    assert "RFC-0027 is the next implementation RFC" in wiki_index
-    assert "no day-2 or wave-2 deferral is allowed" in wiki_index
-    assert "Planned feature implementation; Slice 0 is ready for implementation" in (
+    expected_rfc27_wiki_status = (
+        "RFC-0027 is implemented for governed internal advisor/reviewer copilot interactions"
+    )
+    assert expected_rfc27_wiki_status in wiki_index
+    assert "ADVISORY_COPILOT_CANONICAL_PROOF_CREATED" in wiki_index
+    assert "Implemented for governed internal advisor/reviewer copilot interactions" in (
         supported_features
     )
-    assert "before any supported copilot claim is promoted" in supported_features
+    assert "AdvisoryCopilotInteractionRecord:v1" in supported_features
+    assert "Client-ready publication, external client communication, policy approval/sign-off" in (
+        supported_features
+    )
 
     not_yet_implemented = rfc_index.split("## Not Yet Implemented", maxsplit=1)[1].split(
         "Recommended near-term implementation order", maxsplit=1
     )[0]
-    assert "- `RFC-0027`" in not_yet_implemented
     assert "- `RFC-0026`" not in not_yet_implemented
+    assert "- `RFC-0027`" not in not_yet_implemented
+    assert "- `RFC-0028`" in not_yet_implemented

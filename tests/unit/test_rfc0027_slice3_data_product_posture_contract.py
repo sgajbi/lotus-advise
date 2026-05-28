@@ -8,9 +8,7 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 TRUST_TELEMETRY_README_PATH = Path("contracts/trust-telemetry/README.md")
-FINAL_CLOSURE_PATH = Path(
-    "docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md"
-)
+FINAL_CLOSURE_PATH = Path("docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md")
 
 
 def _read(path: Path) -> str:

@@ -30,8 +30,11 @@ def test_rfc0027_slice1_is_indexed_and_non_claiming() -> None:
     assert "NO PLATFORM CHANGE REQUIRED BEFORE COPILOT DOMAIN WORK" in slice1
     assert "This slice does not implement copilot APIs" in slice1
     assert "Those remain mandatory RFC-0027 work in subsequent slices" in slice1
-    assert "Slice 1 is complete as non-promoting platform-scaffolding review" in flat_supported
-    assert "before any supported copilot claim is promoted" in flat_supported
+    assert "Implemented for governed internal advisor/reviewer copilot interactions" in (
+        flat_supported
+    )
+    assert "Slices 1-9 build the platform-scaffolding review" in flat_supported
+    assert "Client-ready publication, external client communication" in flat_supported
 
 
 def test_rfc0027_slice1_reuses_platform_controls_without_premature_scaffolding() -> None:

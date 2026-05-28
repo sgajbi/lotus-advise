@@ -31,8 +31,11 @@ def test_rfc0027_slice2_evidence_is_indexed_and_non_claiming() -> None:
     assert "This slice creates the copilot domain foundation" in slice2
     assert "does not expose copilot APIs" in slice2
     assert "Those remain mandatory subsequent RFC-0027 slices" in slice2
-    assert "without runtime support promotion" in flat_supported
-    assert "before any supported copilot claim is promoted" in flat_supported
+    assert "Implemented for governed internal advisor/reviewer copilot interactions" in (
+        flat_supported
+    )
+    assert "Advise copilot domain foundation" in flat_supported
+    assert "Client-ready publication, external client communication" in flat_supported
 
 
 def test_rfc0027_slice2_records_clean_module_boundaries() -> None:

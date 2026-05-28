@@ -78,7 +78,7 @@ def test_rfc0026_slice_zero_decisions_are_closed_before_implementation() -> None
         assert marker in rfc
 
 
-def test_rfc_index_and_wiki_reflect_rfc0026_closure_and_rfc0027_readiness() -> None:
+def test_rfc_index_and_wiki_reflect_rfc0026_closure_and_rfc0027_completion() -> None:
     rfc_index = _read(RFC_INDEX_PATH)
     wiki_index = _flat(WIKI_RFC_INDEX_PATH)
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
@@ -95,10 +95,16 @@ def test_rfc_index_and_wiki_reflect_rfc0026_closure_and_rfc0027_readiness() -> N
     )[0]
     assert "- `RFC-0025`" not in not_yet_implemented
     assert "- `RFC-0026`" not in not_yet_implemented
-    assert "1. `RFC-0027` governed advisory AI copilot" in rfc_index
+    assert "- `RFC-0027`" not in not_yet_implemented
+    assert "- `RFC-0028`" in not_yet_implemented
+    assert "1. `RFC-0028` bank demo journey and client-ready proof" in rfc_index
 
     assert "RFC-0026 is implemented" in wiki_index
-    assert "RFC-0027 is the next implementation RFC" in wiki_index
+    expected_rfc27_wiki_status = (
+        "RFC-0027 is implemented for governed internal advisor/reviewer copilot interactions"
+    )
+    assert expected_rfc27_wiki_status in wiki_index
+    assert "RFC-0028 bank demo journey and client-ready proof" in wiki_index
     assert "RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL" in wiki_index
     assert "Implemented for the source-owned first-wave advisor cockpit" in supported_features
     assert "AdvisorCockpitOperatingSnapshot:v1" in supported_features

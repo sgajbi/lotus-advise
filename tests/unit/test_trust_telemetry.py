@@ -434,11 +434,13 @@ def test_rfc0027_copilot_trust_telemetry_is_active_and_tied_to_declaration() -> 
         in snapshot["lineage"]["evidence_uris"]
     )
     assert snapshot["blocking"] == {"blocked": False}
-    assert "reviewed internal advisor/reviewer copilot interaction product" in (
-        snapshot["evidence"]["claim_boundary"]
+    assert (
+        "reviewed internal advisor/reviewer copilot interaction product"
+        in (snapshot["evidence"]["claim_boundary"])
     )
-    assert "Evidence packets and review events remain audit records" in (
-        snapshot["evidence"]["claim_boundary"]
+    assert (
+        "Evidence packets and review events remain audit records"
+        in (snapshot["evidence"]["claim_boundary"])
     )
     claim_boundary = snapshot["evidence"]["claim_boundary"].lower()
     assert "client-ready publication" in claim_boundary

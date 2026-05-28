@@ -501,8 +501,8 @@ def test_integration_capabilities_reports_ready_advisory_supportability(monkeypa
         "dependency_count": 5,
         "ready_dependency_count": 5,
         "degraded_dependency_count": 0,
-            "enabled_feature_count": 15,
-            "ready_feature_count": 15,
+        "enabled_feature_count": 15,
+        "ready_feature_count": 15,
     }
 
 
