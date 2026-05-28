@@ -10,6 +10,8 @@ from src.core.bank_demo_proof import (
     BackendRuntimePosture,
     RuntimeEndpointEvidence,
     build_backend_proof_capture,
+    build_default_scenario_contract,
+    build_journey_integration_proof_summary,
     default_capture_metadata,
     review_material_fields,
     sanitize_live_runtime_summary,
@@ -267,6 +269,11 @@ def test_material_field_review_blocks_claim_drift_at_lowest_layer() -> None:
     assert any(
         review.source_path == "parity.proposal_policy.evaluation_status" for review in reviews
     )
+    assert any(
+        review.source_path == "parity.proposal_policy.ai_raw_source_evidence_included"
+        and review.expected_posture == "False"
+        for review in reviews
+    )
 
     drifted = _live_runtime_payload()
     drifted["parity"]["proposal_policy"]["workflow_client_ready_publication"] = "APPROVED"
@@ -276,6 +283,41 @@ def test_material_field_review_blocks_claim_drift_at_lowest_layer() -> None:
             metadata=_metadata(),
             runtime_posture=_runtime_posture(),
         )
+
+
+def test_journey_integration_proof_blocks_ai_policy_and_cockpit_overclaims() -> None:
+    summary = build_journey_integration_proof_summary(_live_runtime_payload())
+
+    assert summary.required_workbench_panels == [
+        "advisory.advisor_cockpit",
+        "advisory.suitability_review",
+        "proposal.memo_evidence_pack",
+        "advisory.bank_demo_proof",
+    ]
+    assert summary.policy_evidence.policy_pack_id == "SG_PRIVATE_BANKING_REFERENCE"
+    assert summary.policy_evidence.client_ready_publication == "BLOCKED"
+    assert summary.cockpit_evidence.required_workbench_panel == "advisory.advisor_cockpit"
+    ai_rows = {row.evidence_family: row for row in summary.ai_model_risk_controls}
+    assert ai_rows["PROPOSAL_MEMO"].authoritative_for_advice is False
+    assert ai_rows["PROPOSAL_MEMO"].human_review_required is True
+    assert ai_rows["POLICY_EVIDENCE"].raw_source_evidence_included is False
+    assert ai_rows["ADVISORY_COPILOT"].proof_posture == "NOT_PROBED"
+    assert "Raw prompts" in summary.unsupported_claims[1]
+
+    drifted = _live_runtime_payload()
+    drifted["parity"]["proposal_policy"]["ai_raw_source_evidence_included"] = True
+    with pytest.raises(ValueError, match="raw prompts or raw source evidence"):
+        build_journey_integration_proof_summary(drifted)
+
+
+def test_scenario_contract_uses_governed_workbench_panel_identifiers() -> None:
+    scenario = build_default_scenario_contract()
+    panel_refs = {panel for step in scenario.steps for panel in step.required_workbench_panels}
+
+    assert "advisory.advisor_cockpit" in panel_refs
+    assert "proposal.memo_evidence_pack" in panel_refs
+    assert "advisory.suitability_review" in panel_refs
+    assert "advisor_cockpit" not in panel_refs
 
 
 def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() -> None:
@@ -289,9 +331,15 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
     assert bundle.proof_pack.client_ready_posture == "CLIENT_READY_PUBLICATION_BLOCKED"
     assert "RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED" in bundle.proof_pack.evidence_markers
     assert "RFC0028_DOCUMENT_PROOF_SUMMARY_CREATED" in bundle.proof_pack.evidence_markers
+    assert "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED" in bundle.proof_pack.evidence_markers
     assert "RFC0028_RUNTIME_POSTURE_CAPTURED" in bundle.proof_pack.evidence_markers
     assert bundle.proof_pack.repository_shas == {"lotus-advise": "abc123"}
     assert all(not asset.commit_allowed for asset in bundle.proof_pack.assets)
+    assert any(
+        asset.asset_id == "journey_integration_proof_summary"
+        and asset.asset_type == "GOVERNANCE_INTEGRATION_SUMMARY"
+        for asset in bundle.proof_pack.assets
+    )
     claim_postures = {
         claim.claim_id: claim.classification for claim in bundle.supported_claim_register.claims
     }
@@ -300,7 +348,12 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
         claim_postures["advisor_journey_backend_evidence_available"] == "BACKEND_BACKED_UI_PENDING"
     )
     assert claim_postures["advisor_use_document_proof_available"] == "BACKEND_BACKED_UI_PENDING"
+    assert claim_postures["ai_policy_cockpit_proof_integrated"] == "IMPLEMENTATION_BACKED"
     assert claim_postures["client_ready_publication_blocked"] == "UNSUPPORTED"
+    assert (
+        bundle.journey_integration_proof_summary.policy_evidence.client_ready_publication
+        == "BLOCKED"
+    )
     document_families = {
         document.document_family for document in bundle.document_proof_summary.documents
     }
