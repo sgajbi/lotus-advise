@@ -4535,3 +4535,36 @@
   - Continue reviewing the copilot route orchestration boundary; if it grows further, move
     proposal-version packet construction and AI run orchestration behind a dedicated application
     service rather than adding more controller-layer workflow logic.
+
+## LA-REV-174
+
+- Scope: RFC-0027 advisory copilot API orchestration boundary
+- Pattern: controller business-logic cleanup / service-boundary hardening
+- Status: Hardened
+- Finding Class: modularity problem
+- Summary: The RFC-0027 FastAPI route module still owned proposal-version packet assembly,
+  policy-evaluation lookup, lotus-ai draft execution, run persistence, supportability construction,
+  and run-history projection. That made the controller more than HTTP wiring and increased the
+  risk of future Gateway/Workbench-facing behavior being patched in the route layer.
+- Evidence:
+  - `src/core/advisory_copilot/application.py` now owns the application-service boundary for
+    evidence-packet creation, proposal-version evidence projection, evidence-packet reads,
+    governed copilot action execution, run reads, review actions, supportability projection, and
+    proposal-version run-history pages.
+  - `src/api/proposals/routes_advisory_copilot.py` now stays focused on FastAPI routing,
+    dependency assembly, request headers/path/query parameters, and product-safe HTTP error
+    mapping.
+  - The lotus-ai draft generator and policy-evaluation loader are injected into the application
+    service instead of being called directly from route handlers.
+  - `tests/unit/advisory/api/test_api_advisory_copilot.py` proves the public behavior still works
+    after the extraction and adds coverage that supportability remains a static contract read that
+    does not initialize copilot persistence.
+- Consequence:
+  - RFC-0027 copilot behavior is easier to test and extend without adding more business workflow
+    logic to controllers, and supportability reads stay operationally safe when persistence is not
+    configured.
+- Documentation:
+  - This ledger entry records the boundary hardening; public API and wiki truth are unchanged.
+- Follow-Up:
+  - If further orchestration growth appears, add focused unit tests for
+    `AdvisoryCopilotApplicationService` rather than expanding controller tests.
