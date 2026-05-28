@@ -8,6 +8,7 @@ WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 COMMERCIAL_GUIDE_PATH = Path("docs/commercial/RFC-0028-bank-demo-client-proof-materials.md")
 DEMO_README_PATH = Path("docs/demo/README.md")
+REPO_CONTEXT_PATH = Path("REPOSITORY-ENGINEERING-CONTEXT.md")
 
 
 def _read(path: Path) -> str:
@@ -95,7 +96,7 @@ def test_rfc0028_indexes_record_platform_slice_one_without_promotion() -> None:
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
 
     index_markers = (
-        "DRAFT - SLICES 0-10 COMMERCIAL PROOF MATERIAL COMPLETE",
+        "DRAFT - SLICES 0-11 RUNTIME SECURITY HARDENING COMPLETE",
         "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL",
         "BANK_DEMO_PROOF_PACK_CREATED",
         "PB_SG_GLOBAL_BAL_001",
@@ -300,7 +301,7 @@ def test_rfc0028_records_slice_ten_commercial_material_without_unsupported_claim
     rfc_index = _flat(RFC_INDEX_PATH)
     wiki_index = _flat(WIKI_RFC_INDEX_PATH)
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
-    commercial = _read(COMMERCIAL_GUIDE_PATH)
+    commercial = _flat(COMMERCIAL_GUIDE_PATH)
     demo_readme = _read(DEMO_README_PATH)
 
     markers = (
@@ -345,3 +346,34 @@ def test_rfc0028_records_slice_ten_commercial_material_without_unsupported_claim
     assert "Unsafe RFP wording" in commercial
     assert "bank-specific certification" in commercial
     assert "Do not present quantified time savings" in commercial
+
+
+def test_rfc0028_records_slice_eleven_runtime_security_and_latency_hardening() -> None:
+    flat = _flat(RFC28_PATH)
+    rfc_index = _flat(RFC_INDEX_PATH)
+    supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
+    commercial = _flat(COMMERCIAL_GUIDE_PATH)
+    repo_context = _flat(REPO_CONTEXT_PATH)
+
+    markers = (
+        "src/core/bank_demo_proof/runtime_posture.py",
+        "RuntimeEndpointEvidence",
+        "latency_ms",
+        "RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED",
+        "tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py",
+        "tests/unit/scripts/test_capture_rfc0028_backend_proof.py",
+        "tests/unit/advisory/api/test_api_bank_demo_proof.py",
+    )
+    for marker in markers:
+        assert marker in flat
+
+    for source in (rfc_index, supported_features, repo_context):
+        assert "runtime_posture.py" in source
+        assert "latency_ms" in source
+        assert "RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED" in source
+        assert "client-ready publication" in source
+        assert "OMS/order/fill/settlement" in source or "OMS/order/fill/settlement" in (source)
+
+    assert "bounded probe latency" in commercial
+    assert "credentials, query strings, or fragments" in commercial
+    assert "trace, and correlation fields" in commercial

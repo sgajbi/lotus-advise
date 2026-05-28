@@ -67,6 +67,9 @@ def test_bank_demo_proof_pack_endpoint_returns_sanitized_gateway_consumable_bund
         "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED" in (payload["proof_pack"]["evidence_markers"])
     )
     assert "RFC0028_COMMERCIAL_MATERIAL_PACK_CREATED" in (payload["proof_pack"]["evidence_markers"])
+    assert (
+        "RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED" in (payload["proof_pack"]["evidence_markers"])
+    )
     assert payload["commercial_material_pack"]["publication_posture"] == (
         "CUSTOMER_CONSUMABLE_WITH_BOUNDARIES"
     )
@@ -89,6 +92,7 @@ def test_bank_demo_proof_pack_endpoint_returns_sanitized_gateway_consumable_bund
     assert payload["sanitized_runtime_summary"]["primary_portfolio_id"] == (
         RFC28_CANONICAL_PORTFOLIO_ID
     )
+    assert "latency_ms" in payload["runtime_posture"]["endpoints"][0]
     assert "sha256:memo" not in repr(payload)
     assert "sha256:source-narrative" not in repr(payload)
 
@@ -117,3 +121,5 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     assert "Gateway and Workbench cannot promote stale" in operation["description"]
     assert "409" in operation["responses"]
     assert "422" in operation["responses"]
+    runtime_endpoint_schema = app.openapi()["components"]["schemas"]["RuntimeEndpointEvidence"]
+    assert "latency_ms" in runtime_endpoint_schema["properties"]

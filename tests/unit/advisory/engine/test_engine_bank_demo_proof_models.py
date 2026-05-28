@@ -14,8 +14,10 @@ from src.core.bank_demo_proof import (
     AdvisoryDemoScenarioContract,
     AdvisorySupportedClaimRegister,
     ArtifactPolicy,
+    BackendRuntimePosture,
     DemoScenarioStep,
     ProofAsset,
+    RuntimeEndpointEvidence,
     SupportedClaim,
     SupportedClaimProofRequirement,
 )
@@ -225,3 +227,48 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
                 "client_ready_posture": "CLIENT_READY_APPROVED",
             }
         )
+
+
+def test_runtime_posture_blocks_secret_urls_and_sanitizes_probe_summaries() -> None:
+    posture = BackendRuntimePosture(
+        base_url="https://advise.dev.lotus:8443/runtime/",
+        environment="local",
+        endpoints=[
+            RuntimeEndpointEvidence(
+                endpoint="/platform/capabilities",
+                http_status=200,
+                posture="READY",
+                latency_ms=12,
+                summary={
+                    "status": "ok",
+                    "feature_keys": ["advisory.bank_demo_proof"],
+                    "Authorization": "Bearer should-not-leak",
+                    "degraded_reasons": [
+                        "see https://advise.dev.lotus/ready?token=should-not-leak#fragment"
+                    ],
+                    "diagnostics": {
+                        "trace_id": "trace-123",
+                        "safe": "runtime capability summary",
+                    },
+                },
+            )
+        ],
+    )
+
+    endpoint = posture.endpoints[0]
+    assert posture.base_url == "https://advise.dev.lotus:8443/runtime"
+    assert endpoint.latency_ms == 12
+    assert endpoint.summary["Authorization"] == "[REDACTED]"
+    assert endpoint.summary["diagnostics"]["trace_id"] == "[REDACTED]"
+    assert "token" not in endpoint.summary["degraded_reasons"][0]
+    assert endpoint.summary["diagnostics"]["safe"] == "runtime capability summary"
+
+    with pytest.raises(ValidationError, match="credentials, query, or fragment"):
+        BackendRuntimePosture(
+            base_url="https://user:secret@advise.dev.lotus/health?token=abc",
+            environment="local",
+            endpoints=[RuntimeEndpointEvidence(endpoint="/health", posture="READY", summary={})],
+        )
+
+    with pytest.raises(ValidationError, match="path without query or fragment"):
+        RuntimeEndpointEvidence(endpoint="/health?token=abc", posture="READY", summary={})

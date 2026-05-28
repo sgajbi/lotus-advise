@@ -1226,6 +1226,33 @@ Acceptance gate:
 5. no high-cardinality or sensitive logs/metrics remain,
 6. RFP/security pack reflects actual evidence.
 
+Implementation evidence:
+
+1. `src/core/bank_demo_proof/runtime_posture.py` now owns RFC-0028 runtime posture modeling
+   instead of embedding this production/security concern in the proof-capture assembler.
+   `BackendRuntimePosture` rejects base URLs with credentials, query strings, or fragments, bounds
+   environment labels, and records only sanitized runtime endpoints.
+2. `RuntimeEndpointEvidence` now records bounded `latency_ms` for health, liveness, readiness, and
+   capability probes. Endpoint evidence must be path-only, so query-string tokens and fragments
+   cannot enter committed or local proof summaries through endpoint identity.
+3. Runtime probe summaries are sanitized at the model boundary: secret, token, credential,
+   authorization, cookie, prompt, raw payload/source, trace, and correlation fields are redacted;
+   nested summaries and lists are bounded; embedded URLs are stripped of credentials, query strings,
+   and fragments before proof artifacts are written.
+4. `scripts/capture_rfc0028_backend_proof.py` records elapsed probe latency in `runtime-posture.json`
+   and `capture-summary.md` and the proof pack emits
+   `RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED` alongside
+   `RFC0028_RUNTIME_POSTURE_CAPTURED`.
+5. Tests pin this at the right layers:
+   `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` covers model-level URL and
+   summary sanitization, `tests/unit/scripts/test_capture_rfc0028_backend_proof.py` covers probe
+   latency and sanitized writer output, `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py`
+   covers the proof marker, and `tests/unit/advisory/api/test_api_bank_demo_proof.py` covers the
+   API/OpenAPI response shape.
+6. This slice does not promote external certifications, tenant-isolation attestation,
+   legal-entity production onboarding, DR/RTO/RPO certification, penetration-test completion,
+   client-ready publication, policy approval/sign-off authority, or OMS/order/fill/settlement.
+
 ### Slice 12 - Documentation During Build
 
 Outcome:

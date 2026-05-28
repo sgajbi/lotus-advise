@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -234,6 +235,7 @@ def _probe_endpoint(
     base_url: str,
     endpoint: str,
 ) -> RuntimeEndpointEvidence:
+    started_at = time.perf_counter()
     try:
         response = client.get(f"{base_url.rstrip('/')}{endpoint}")
     except httpx.HTTPError as exc:
@@ -241,6 +243,7 @@ def _probe_endpoint(
             endpoint=endpoint,
             http_status=None,
             posture="UNAVAILABLE",
+            latency_ms=_elapsed_ms(started_at),
             summary={"error_type": type(exc).__name__},
         )
     summary = (
@@ -253,6 +256,7 @@ def _probe_endpoint(
         endpoint=endpoint,
         http_status=response.status_code,
         posture=posture,
+        latency_ms=_elapsed_ms(started_at),
         summary=summary,
     )
 
@@ -286,6 +290,10 @@ def _json_body(response: httpx.Response) -> Any:
         return None
 
 
+def _elapsed_ms(started_at) -> int:
+    return int(round((time.perf_counter() - started_at) * 1000))
+
+
 def _capability_summary(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict):
         return {"body_type": type(payload).__name__}
@@ -315,10 +323,14 @@ def _render_capture_summary(bundle: BackendProofCaptureBundle) -> str:
         f"- `{review.source_path}`: `{review.observed_value}` ({review.review_posture})"
         for review in bundle.material_field_reviews
     )
-    runtime = "\n".join(
-        f"- `{endpoint.endpoint}`: `{endpoint.posture}` / `{endpoint.http_status}`"
-        for endpoint in bundle.runtime_posture.endpoints
-    )
+    runtime_rows = []
+    for endpoint in bundle.runtime_posture.endpoints:
+        latency = f"{endpoint.latency_ms} ms" if endpoint.latency_ms is not None else "not measured"
+        runtime_rows.append(
+            f"- `{endpoint.endpoint}`: `{endpoint.posture}` / `{endpoint.http_status}`"
+            f" / `{latency}`"
+        )
+    runtime = "\n".join(runtime_rows)
     document_rows = "\n".join(
         "- "
         f"`{document.document_family}`: report `{document.report_package_status}`, "

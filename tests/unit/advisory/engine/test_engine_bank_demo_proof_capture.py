@@ -334,6 +334,7 @@ def test_backend_proof_capture_builds_claim_register_and_blocked_proof_pack() ->
     assert "RFC0028_JOURNEY_INTEGRATION_PROOF_CREATED" in bundle.proof_pack.evidence_markers
     assert "RFC0028_COMMERCIAL_MATERIAL_PACK_CREATED" in bundle.proof_pack.evidence_markers
     assert "RFC0028_RUNTIME_POSTURE_CAPTURED" in bundle.proof_pack.evidence_markers
+    assert "RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED" in bundle.proof_pack.evidence_markers
     assert bundle.proof_pack.repository_shas == {"lotus-advise": "abc123"}
     commit_allowed_assets = {
         asset.asset_id for asset in bundle.proof_pack.assets if asset.commit_allowed

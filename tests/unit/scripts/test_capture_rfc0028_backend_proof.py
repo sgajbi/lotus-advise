@@ -3,7 +3,12 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 
-from scripts.capture_rfc0028_backend_proof import write_backend_proof_capture_bundle
+import httpx
+
+from scripts.capture_rfc0028_backend_proof import (
+    _probe_endpoint,
+    write_backend_proof_capture_bundle,
+)
 from src.core.bank_demo_proof import (
     BackendRuntimePosture,
     RuntimeEndpointEvidence,
@@ -32,24 +37,28 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
                     endpoint="/health",
                     http_status=200,
                     posture="READY",
+                    latency_ms=5,
                     summary={"status": "ok"},
                 ),
                 RuntimeEndpointEvidence(
                     endpoint="/health/live",
                     http_status=200,
                     posture="READY",
+                    latency_ms=6,
                     summary={"status": "live"},
                 ),
                 RuntimeEndpointEvidence(
                     endpoint="/health/ready",
                     http_status=200,
                     posture="READY",
+                    latency_ms=6,
                     summary={"status": "ready"},
                 ),
                 RuntimeEndpointEvidence(
                     endpoint="/platform/capabilities",
                     http_status=200,
                     posture="READY",
+                    latency_ms=9,
                     summary={
                         "feature_keys": ["advisory.proposals.lifecycle"],
                         "workflow_keys": ["advisory_proposal_lifecycle"],
@@ -87,6 +96,7 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
     commercial_pack = json.loads(paths["commercial_material_pack"].read_text(encoding="utf-8"))
     manifest = json.loads(paths["manifest"].read_text(encoding="utf-8"))
     sanitized_summary = paths["sanitized_runtime_summary"].read_text(encoding="utf-8")
+    runtime_posture = json.loads(paths["runtime_posture"].read_text(encoding="utf-8"))
     markdown_summary = paths["summary"].read_text(encoding="utf-8")
 
     assert proof_pack["client_ready_posture"] == "CLIENT_READY_PUBLICATION_BLOCKED"
@@ -106,5 +116,40 @@ def test_backend_proof_capture_writer_emits_sanitized_artifact_set(tmp_path) -> 
     assert "BANK_DEMO_PROOF_PACK_CREATED" in markdown_summary
     assert "AI, Policy, And Cockpit Integration Proof" in markdown_summary
     assert "Commercial, RFP, Security, Architecture, ROI, And Demo Material" in markdown_summary
+    assert runtime_posture["endpoints"][0]["latency_ms"] == 5
+    assert "`5 ms`" in markdown_summary
     assert "sha256:memo" not in sanitized_summary
     assert "source_input_hash" not in sanitized_summary
+
+
+def test_runtime_probe_redacts_sensitive_material_and_records_latency() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/platform/capabilities"
+        return httpx.Response(
+            200,
+            json={
+                "features": [{"key": "advisory.bank_demo_proof"}],
+                "workflows": [{"workflow_key": "advisory_bank_demo_proof"}],
+                "readiness": {
+                    "operational_ready": True,
+                    "degraded": False,
+                    "degraded_reasons": [
+                        "see https://advise.dev.lotus/ready?token=should-not-leak"
+                    ],
+                },
+                "authorization": "Bearer should-not-leak",
+                "trace_id": "trace-should-not-leak",
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), base_url="http://test")
+
+    evidence = _probe_endpoint(client, "https://advise.dev.lotus", "/platform/capabilities")
+
+    assert evidence.posture == "READY"
+    assert evidence.http_status == 200
+    assert evidence.latency_ms is not None
+    assert evidence.summary["feature_keys"] == ["advisory.bank_demo_proof"]
+    assert "token" not in evidence.summary["degraded_reasons"][0]
+    assert "authorization" not in evidence.summary
+    assert "trace_id" not in evidence.summary
