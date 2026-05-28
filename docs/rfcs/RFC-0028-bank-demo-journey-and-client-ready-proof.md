@@ -890,6 +890,59 @@ Acceptance gate:
    posture,
 4. no raw sensitive payload is committed.
 
+Slice 5 implementation decision and evidence:
+
+1. Backend proof capture is implemented as a core-domain projection plus thin operator script:
+   1. `src/core/bank_demo_proof/capture.py` owns RFC-0028 scenario construction, supported-claim
+      register construction, sanitized live-runtime summary projection, material-field review,
+      runtime-posture indexing, and `AdvisoryBankDemoProofPack:v1` assembly.
+   2. `scripts/capture_rfc0028_backend_proof.py` loads an existing live-suite `result.json`,
+      resolves a live-suite bundle, or runs the governed live runtime suite, then writes sanitized
+      RFC-0028 artifacts under `output/rfc0028/backend-proof`.
+   3. The script probes `/health`, `/health/live`, `/health/ready`, and `/platform/capabilities`
+      unless explicitly skipped, and records only bounded endpoint posture, feature keys,
+      workflow keys, readiness booleans, and degraded reasons.
+2. The repeatable operator command is:
+
+   ```powershell
+   python scripts\capture_rfc0028_backend_proof.py `
+     --live-suite-bundle output\live-runtime-suite `
+     --output-dir output\rfc0028\backend-proof
+   ```
+
+   The same command can use `--live-suite-json <path>` for an existing `result.json` or
+   `--run-live-suite` when the local canonical runtime is already up.
+3. The generated non-git-tracked artifact set is:
+   1. `metadata.json`,
+   2. `scenario-contract.json`,
+   3. `supported-claim-register.json`,
+   4. `proof-pack.json`,
+   5. `runtime-posture.json`,
+   6. `sanitized-runtime-summary.json`,
+   7. `material-field-review.json`,
+   8. `capture-summary.md`,
+   9. `manifest.json`.
+4. Material-field review currently blocks claim drift for canonical portfolio identity, synchronous
+   and asynchronous lifecycle state, workspace rationale lineage, execution handoff/status, report
+   seam, narrative review posture, memo review posture, policy evaluation posture, client-ready
+   blocked posture, and lotus-risk/lotus-core degraded paths.
+5. The proof pack emits `BANK_DEMO_PROOF_PACK_CREATED`,
+   `RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED`, and
+   `RFC0028_RUNTIME_POSTURE_CAPTURED`, records the `lotus-advise` commit SHA, service version,
+   environment, and correlation id, and keeps `CLIENT_READY_PUBLICATION_BLOCKED`.
+6. Sanitization deliberately omits raw hashes and raw runtime payloads from
+   `sanitized-runtime-summary.json`; the source live-suite bundle remains local-only runtime
+   evidence and is indexed as non-committable.
+7. Slice 5 does not promote Gateway, Workbench, screenshot, RFP/security, product one-pager, or
+   client-ready publication claims. The backend-supported advisor-journey claim remains
+   `BACKEND_BACKED_UI_PENDING` until the later Gateway and Workbench slices pass.
+8. Lowest-layer test coverage:
+   1. `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` covers sanitized
+      summary projection, material-field drift blocking, claim classifications, evidence markers,
+      commit SHA recording, and blocked client-ready posture.
+   2. `tests/unit/scripts/test_capture_rfc0028_backend_proof.py` covers the ignored-output
+      artifact writer and verifies sanitized evidence does not write raw memo/source hashes.
+
 ### Slice 6 - Client-Ready Artifact, Report, Render, and Archive Proof
 
 Outcome:
