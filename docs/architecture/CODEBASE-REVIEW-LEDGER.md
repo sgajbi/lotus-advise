@@ -7120,3 +7120,30 @@
 - Follow-Up:
   - Continue auditing runtime probe configuration, CLI validation, and proof-pack summary copy for
     remaining operator-experience or disclosure issues.
+
+## LA-REV-272
+
+- Scope: RFC-0028 runtime probe configuration
+- Pattern: pre-probe base URL validation
+- Status: Hardened
+- Finding Class: runtime configuration and sensitive URL disclosure risk
+- Summary: Runtime posture models rejected base URLs containing credentials, query strings, or
+  fragments, but the proof-capture script normalized that posture after probe calls were assembled.
+  An unsafe operator-provided URL could therefore be used in an HTTP request before the final
+  posture model rejected it.
+- Evidence:
+  - `src/core/bank_demo_proof/runtime_posture.py` now exposes a reusable
+    `normalize_runtime_base_url(...)` helper used by the model validator and proof-capture script.
+  - `scripts/capture_rfc0028_backend_proof.py` validates the base URL before probed and
+    not-probed runtime posture construction.
+  - Proof-capture script tests prove credential/query/fragment URLs fail before capture and that
+    safe runtime paths are normalized consistently.
+- Consequence:
+  - RFC-0028 runtime proof capture fails unsafe runtime configuration before any HTTP probe,
+    strengthening operator safety and keeping proof evidence free of sensitive URL material.
+- Documentation:
+  - No wiki source change is required. This is runtime-capture validation hardening for the
+    existing RFC-0028 proof workflow.
+- Follow-Up:
+  - Continue auditing proof-pack summary copy and script source-path handling before RFC-0028
+    closure review.

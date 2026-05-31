@@ -98,16 +98,7 @@ class BackendRuntimePosture(BaseModel):
     @field_validator("base_url")
     @classmethod
     def _base_url_must_not_carry_secrets(cls, value: str) -> str:
-        parsed = urlsplit(value.strip())
-        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-            raise ValueError("runtime base_url must be an http(s) URL with a host")
-        if parsed.username or parsed.password or parsed.query or parsed.fragment:
-            raise ValueError("runtime base_url cannot include credentials, query, or fragment")
-        netloc = parsed.hostname
-        if parsed.port is not None:
-            netloc = f"{netloc}:{parsed.port}"
-        path = parsed.path.rstrip("/")
-        return urlunsplit((parsed.scheme, netloc, path, "", ""))
+        return normalize_runtime_base_url(value)
 
     @field_validator("environment")
     @classmethod
@@ -132,6 +123,22 @@ def _sanitize_summary_dict(payload: dict[str, Any]) -> dict[str, Any]:
             continue
         sanitized[normalized_key] = _sanitize_summary_value(value)
     return sanitized
+
+
+def normalize_runtime_base_url(value: str) -> str:
+    normalized = value.strip()
+    if not normalized or len(normalized) > _MAX_BASE_URL_LENGTH:
+        raise ValueError("runtime base_url must be present and bounded")
+    parsed = urlsplit(normalized)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("runtime base_url must be an http(s) URL with a host")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("runtime base_url cannot include credentials, query, or fragment")
+    netloc = parsed.hostname
+    if parsed.port is not None:
+        netloc = f"{netloc}:{parsed.port}"
+    path = parsed.path.rstrip("/")
+    return urlunsplit((parsed.scheme, netloc, path, "", ""))
 
 
 def _sanitize_summary_value(value: Any) -> Any:

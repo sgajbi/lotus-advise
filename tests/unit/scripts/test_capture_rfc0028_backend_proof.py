@@ -4,9 +4,12 @@ import json
 from datetime import UTC, datetime
 
 import httpx
+import pytest
 
 from scripts.capture_rfc0028_backend_proof import (
+    _not_probed_runtime_posture,
     _probe_endpoint,
+    _probe_runtime_posture,
     write_backend_proof_capture_bundle,
 )
 from src.core.bank_demo_proof import (
@@ -158,3 +161,15 @@ def test_runtime_probe_redacts_sensitive_material_and_records_latency() -> None:
     assert "token" not in evidence.summary["degraded_reasons"][0]
     assert "authorization" not in evidence.summary
     assert "trace_id" not in evidence.summary
+
+
+def test_runtime_probe_rejects_unsafe_base_url_before_capture() -> None:
+    with pytest.raises(ValueError, match="credentials, query, or fragment"):
+        _probe_runtime_posture("https://user:secret@advise.dev.lotus?token=abc", "local")
+
+    with pytest.raises(ValueError, match="credentials, query, or fragment"):
+        _not_probed_runtime_posture("https://advise.dev.lotus#token=abc", "local")
+
+    posture = _not_probed_runtime_posture("https://advise.dev.lotus/runtime/", "local")
+
+    assert posture.base_url == "https://advise.dev.lotus/runtime"

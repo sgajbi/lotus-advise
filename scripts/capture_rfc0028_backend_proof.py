@@ -28,6 +28,7 @@ from src.core.bank_demo_proof import (  # noqa: E402
     RuntimeEndpointEvidence,
     build_backend_proof_capture,
     default_capture_metadata,
+    normalize_runtime_base_url,
 )
 
 _DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
@@ -228,13 +229,18 @@ def _load_or_run_live_suite(
 
 
 def _probe_runtime_posture(base_url: str, environment: str) -> BackendRuntimePosture:
+    normalized_base_url = normalize_runtime_base_url(base_url)
     endpoints: list[RuntimeEndpointEvidence] = []
     with httpx.Client(timeout=10.0) as client:
-        endpoints.append(_probe_endpoint(client, base_url, "/health"))
-        endpoints.append(_probe_endpoint(client, base_url, "/health/live"))
-        endpoints.append(_probe_endpoint(client, base_url, "/health/ready"))
-        endpoints.append(_probe_endpoint(client, base_url, "/platform/capabilities"))
-    return BackendRuntimePosture(base_url=base_url, environment=environment, endpoints=endpoints)
+        endpoints.append(_probe_endpoint(client, normalized_base_url, "/health"))
+        endpoints.append(_probe_endpoint(client, normalized_base_url, "/health/live"))
+        endpoints.append(_probe_endpoint(client, normalized_base_url, "/health/ready"))
+        endpoints.append(_probe_endpoint(client, normalized_base_url, "/platform/capabilities"))
+    return BackendRuntimePosture(
+        base_url=normalized_base_url,
+        environment=environment,
+        endpoints=endpoints,
+    )
 
 
 def _probe_endpoint(
@@ -269,8 +275,9 @@ def _probe_endpoint(
 
 
 def _not_probed_runtime_posture(base_url: str, environment: str) -> BackendRuntimePosture:
+    normalized_base_url = normalize_runtime_base_url(base_url)
     return BackendRuntimePosture(
-        base_url=base_url,
+        base_url=normalized_base_url,
         environment=environment,
         endpoints=[
             RuntimeEndpointEvidence(
