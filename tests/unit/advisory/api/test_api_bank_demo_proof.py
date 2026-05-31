@@ -200,6 +200,14 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     assert "409" in operation["responses"]
     assert "422" in operation["responses"]
     assert "source evidence validation failed" in operation["responses"]["422"]["description"]
+    assert (
+        "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED"
+        in (operation["responses"]["409"]["content"]["application/json"]["example"]["detail"])
+    )
+    assert (
+        "RFC0028_INTEGRATION_PROOF_FIELD_MISSING"
+        in (operation["responses"]["422"]["content"]["application/json"]["example"]["detail"])
+    )
     runtime_endpoint_schema = app.openapi()["components"]["schemas"]["RuntimeEndpointEvidence"]
     assert "latency_ms" in runtime_endpoint_schema["properties"]
     assert runtime_endpoint_schema["properties"]["endpoint"]["maxLength"] == 160

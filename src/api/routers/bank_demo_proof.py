@@ -70,10 +70,27 @@ def get_bank_demo_supported_claim_register() -> AdvisorySupportedClaimRegister:
         status.HTTP_409_CONFLICT: {
             "description": (
                 "Material proof evidence is missing or does not match the canonical scenario."
-            )
+            ),
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": (
+                            "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: "
+                            "policy_evaluation expected PENDING_REVIEW"
+                        )
+                    }
+                }
+            },
         },
         422: {
-            "description": ("Request shape, proof metadata, or source evidence validation failed.")
+            "description": ("Request shape, proof metadata, or source evidence validation failed."),
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": ("RFC0028_INTEGRATION_PROOF_FIELD_MISSING: policy_pack_id")
+                    }
+                }
+            },
         },
     },
 )

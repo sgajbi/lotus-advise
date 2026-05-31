@@ -7992,3 +7992,28 @@
     covered by endpoint tests.
 - Follow-Up:
   - Continue tightening error models only where consumers need different remediation behavior.
+
+## LA-REV-303
+
+- Scope: RFC-0028 proof-pack OpenAPI response examples
+- Pattern: documented API error examples distinguish proof conflict from source-evidence validation
+- Status: Hardened
+- Finding Class: OpenAPI usability and integration contract clarity
+- Summary: After the RFC-0028 proof-pack endpoint started classifying material drift as 409 and
+  malformed source evidence as 422, the OpenAPI response descriptions named the statuses but did
+  not provide concrete examples. Gateway, Workbench, and automation integrators benefit from stable
+  examples for the two remediation paths.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now includes response examples for 409 material-review
+    conflict and 422 missing source-evidence diagnostics.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof.py` asserts those examples remain present in
+    the generated OpenAPI operation.
+  - Focused OpenAPI lifecycle docs tests and `scripts/openapi_quality_gate.py` pass.
+- Consequence:
+  - RFC-0028 proof API consumers can understand expected error payloads from the OpenAPI document
+    without relying only on code or test fixtures.
+- Documentation:
+  - No README or wiki source change is required. The API contract is documented in OpenAPI.
+- Follow-Up:
+  - If Gateway or Workbench needs typed problem-details bodies later, introduce that as a dedicated
+    cross-repo API-contract slice rather than a local response-description edit.
