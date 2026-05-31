@@ -7390,3 +7390,34 @@
 - Follow-Up:
   - Continue auditing other large adapters for the same request mapping / transport / response
     projection separation pattern.
+
+## LA-REV-282
+
+- Scope: Lotus Risk concentration request mapping
+- Pattern: risk-enrichment transport separated from concentration payload construction
+- Status: Hardened
+- Finding Class: service-boundary modularity and test gap
+- Summary: The Lotus Risk enrichment client mixed retrying HTTP transport, upstream response
+  validation, stateless concentration payload construction, stateful simulation payload
+  construction, cash-position projection, security-trade change mapping, issuer mapping, and
+  response application in one module. That made the concentration request contract harder to test
+  without fake HTTP clients and made future risk-contract changes more likely to couple to retry
+  behavior.
+- Evidence:
+  - `src/integrations/lotus_risk/concentration_request.py` now owns stateless and stateful
+    concentration request construction, including cash positions, projected positions, simulation
+    changes, issuer mappings, and enrichment-policy selection.
+  - `src/integrations/lotus_risk/enrichment.py` now keeps runtime configuration, retrying HTTP
+    transport, upstream response validation, and risk-lens application.
+  - `tests/unit/advisory/api/test_lotus_risk_concentration_request.py` proves stateless
+    position/cash projection and stateful simulation-change/issuer-mapping projection without
+    using HTTP fakes.
+- Consequence:
+  - Risk enrichment request mapping is reusable and directly testable, while transport retry
+    behavior remains isolated from concentration-payload business mapping.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing the remaining risk enrichment response-application and retry diagnostics
+    boundaries if later slices touch risk-lens behavior.
