@@ -35,9 +35,8 @@ def run_async_operation_until_terminal(
             operation_id=operation_id,
         )
         operation = read_model.operation
-        if should_skip_async_operation_run(operation):
+        if operation is None or should_skip_async_operation_run(operation):
             return
-        assert operation is not None
         if has_exhausted_async_attempts(operation):
             persist_async_operation_failed(
                 repository=repository,

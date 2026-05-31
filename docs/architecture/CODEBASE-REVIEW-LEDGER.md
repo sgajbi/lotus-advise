@@ -5123,3 +5123,28 @@
 - Follow-Up:
   - Keep proposal context validation explicit because it feeds idempotency, replay, policy
     evaluation, and Gateway-facing advisory behavior.
+
+## LA-REV-194
+
+- Scope: Proposal async operation missing-work handling
+- Pattern: async lifecycle and optimized-runtime safety
+- Status: Hardened
+- Finding Class: validation and operational reliability gap
+- Summary: The async operation runner relied on an `assert` after loading an optional read model
+  operation. Missing operations already represented a no-work condition, but the explicit runtime
+  behavior was not pinned by tests and depended on assertion control flow.
+- Evidence:
+  - `src/core/proposals/async_operation_runner.py` now returns explicitly when the operation read
+    model has no operation.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operation_runner.py` covers the
+    missing-operation path and proves the executor is not called.
+- Consequence:
+  - Async operation runners now have deterministic no-work behavior under optimized Python and
+    cannot accidentally execute work for an absent operation record.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal async lifecycle control flow
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep async runner no-work, terminal, exhausted, retryable, and failed paths directly tested as
+    lifecycle behavior evolves.
