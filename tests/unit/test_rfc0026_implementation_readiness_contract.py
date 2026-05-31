@@ -21,7 +21,7 @@ def test_rfc0026_records_current_prerequisites_and_readiness_boundary() -> None:
 
     required_markers = (
         "IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow",
-        "Last Tightened** | 2026-05-27",
+        "Last Tightened** | 2026-05-31",
         "rfc0026-advisor-cockpit-gold-standard",
         "2026-05-27 Implementation Readiness Decision",
         "RFC-0023 is implemented for advisor-review proposal narrative evidence",
@@ -112,3 +112,26 @@ def test_rfc_index_and_wiki_reflect_rfc0026_closure_and_rfc0027_completion() -> 
     assert "RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL" in wiki_index
     assert "Implemented for the source-owned first-wave advisor cockpit" in supported_features
     assert "AdvisorCockpitOperatingSnapshot:v1" in supported_features
+
+
+def test_rfc0026_supported_features_ledger_reflects_implemented_closure_truth() -> None:
+    rfc = _read(RFC26_PATH)
+    ledger = rfc.split("## 20. Supported-Features Ledger", maxsplit=1)[1].split(
+        "## 21. Acceptance Criteria", maxsplit=1
+    )[0]
+    flat_ledger = " ".join(ledger.split())
+
+    assert "Current support posture" in ledger
+    assert "Initial RFC state" not in ledger
+    assert "| Advisor cockpit snapshot | Supported for source-owned first-wave" in ledger
+    assert "| Advisory action item register | Supported |" in ledger
+    gateway_surface_marker = (
+        "| Gateway/Workbench advisor cockpit | Supported for the canonical first-wave surface |"
+    )
+    assert gateway_surface_marker in ledger
+    assert "| Cockpit data products | Supported |" in ledger
+    assert "Client-ready publication and external client communication remain blocked" in (
+        flat_ledger
+    )
+    assert "OMS order/fill/settlement support remains unsupported" in flat_ledger
+    assert "| Proposed |" not in ledger

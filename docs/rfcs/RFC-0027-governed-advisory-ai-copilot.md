@@ -4,7 +4,7 @@
 | --- | --- |
 | **Status** | IMPLEMENTED for governed internal advisor/reviewer copilot interactions; client-ready and execution authority remain gated |
 | **Created** | 2026-05-22 |
-| **Last Tightened** | 2026-05-28 |
+| **Last Tightened** | 2026-05-31 |
 | **Owner** | `lotus-advise` for advisory evidence, copilot use-case authority, validation, audit, and product truth; `lotus-ai` for workflow-pack execution, provider orchestration, model telemetry, and AI safety controls |
 | **Business Sponsor Persona** | relationship manager, investment advisor, advisory desk head, compliance reviewer, model-risk reviewer, operations support, sales/pre-sales, client-demo lead |
 | **Primary Business Outcome** | give advisors a governed AI assistant that can explain source-backed advisory evidence, prepare meetings, answer bounded evidence questions, and support review workflows without becoming an investment decision maker |
@@ -1100,10 +1100,10 @@ Acceptance gate:
 
 ## 20. Supported-Features Ledger
 
-| Capability | Initial RFC state | Promotion rule |
+| Capability | Current support posture | Closure evidence and boundary |
 | --- | --- | --- |
-| Governed advisory copilot action catalog | Proposed | Promote only after action families, forbidden behaviors, audiences, review posture, and docs are implemented and tested. |
-| Copilot evidence packet | Proposed | Promote only after deterministic packet build, redaction, source refs, replay/rebuild, lineage, and proof exist. |
+| Governed advisory copilot action catalog | Supported for first-wave internal advisor/reviewer actions | Action families, forbidden behaviors, audiences, review posture, Gateway/Workbench consumption, docs, and tests are implemented. No free-form prompt endpoint is supported. |
+| Copilot evidence packet | Supported | Deterministic packet build, redaction, source refs, lineage, replay/rebuild posture, and proof are implemented. Raw prompts, unrestricted source payloads, and provider responses remain outside supported projections. |
 | Advisory proposal explanation | Supported for internal advisor/reviewer use | Proven through Advise APIs, governed workflow-pack execution, Gateway/Workbench rendering, internal review, and canonical live evidence. |
 | Advisory evidence Q&A | Supported for internal advisor/reviewer use | Source refs, unsupported-evidence posture, prompt-injection controls, and guardrail tests are implemented. |
 | Advisor meeting preparation draft | Supported for internal advisor/reviewer use | Source-backed proposal-version evidence, review posture, and canonical proof are implemented. |

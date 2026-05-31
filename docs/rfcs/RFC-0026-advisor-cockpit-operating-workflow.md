@@ -4,7 +4,7 @@
 | --- | --- |
 | **Status** | IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow |
 | **Created** | 2026-05-22 |
-| **Last Tightened** | 2026-05-27 |
+| **Last Tightened** | 2026-05-31 |
 | **Owner** | `lotus-advise` for advisor-cockpit workflow authority, action semantics, and evidence-product truth |
 | **Business Sponsor Persona** | relationship manager, investment advisor, desk head, advisory support, compliance reviewer, operations, sales/pre-sales, client-demo lead |
 | **Primary Business Outcome** | make advisory work operable from one backend-owned cockpit that tells advisors what needs attention, why it matters, what evidence exists, what is blocked, and what next action is allowed |
@@ -1354,19 +1354,19 @@ Acceptance gate:
 
 ## 20. Supported-Features Ledger
 
-| Capability | Initial RFC state | Promotion rule |
+| Capability | Current support posture | Closure evidence and boundary |
 | --- | --- | --- |
-| Advisor cockpit snapshot | Proposed | Promote only after backend snapshot API, OpenAPI, tests, data-product posture, live proof, Gateway, Workbench, docs, and capabilities are complete. |
-| Advisory action item register | Proposed | Promote only after deterministic priority, reason-code, pagination, entitlement, acknowledgement, and evidence tests cover core families. |
-| Meeting preparation packet | Proposed | Promote only after source-backed client/proposal/memo/policy/workspace evidence is integrated and documented. |
-| Client follow-up items | Proposed | Promote only after owner boundaries, acknowledgement, CRM/handoff posture, and audit behavior are implemented. |
-| Approval and supervisory queues | Proposed | Promote only after maker-checker, SLA aging, entitlement, evidence refs, and Workbench rendering are implementation-backed. |
-| Evidence-gap worklist | Proposed | Promote only after missing/stale/degraded/unsupported source states are explicit and tested. |
-| Report/render/archive readiness items | Proposed | Promote only after downstream owner evidence is integrated and no unsupported report/archive claim remains. |
-| Execution handoff/status attention items | Proposed | Promote only after advisory/downstream SOR boundaries are visible and tested. |
-| Tactical house-view impact items | Proposed | Promote only after source-backed cohort evidence is rendered through Gateway/Workbench with Manage boundary preserved. |
-| Cockpit data products | Proposed | Promote only after declarations, trust telemetry, SLO/access/evidence policy, certification, docs, and tests are complete. |
-| Gateway/Workbench advisor cockpit | Proposed | Promote only after downstream implementation and browser/product validation are complete. |
+| Advisor cockpit snapshot | Supported for source-owned first-wave advisor operating workflow | Backend snapshot APIs, certified OpenAPI, unit and contract tests, active data-product posture, Gateway/Workbench consumption, canonical `PB_SG_GLOBAL_BAL_001` proof, and docs/wiki support are complete. Client-ready publication and external client communication remain blocked. |
+| Advisory action item register | Supported | Deterministic priority, reason codes, pagination, role projection, acknowledgement, lineage, and evidence-source tests cover the implemented action families. |
+| Meeting preparation packet | Supported for advisor-use preparation | Source-backed client, portfolio, proposal, memo, policy, house-view, and workspace evidence is integrated. CRM system-of-record writes and external client communication remain unsupported. |
+| Client follow-up items | Supported as advisor-review internal actions | Owner boundaries, acknowledgement, audit behavior, and blocked client-ready posture are implemented. External delivery remains gated. |
+| Approval and supervisory queues | Supported for queue visibility and review routing | SLA aging, owner roles, evidence refs, policy pending-review posture, and Workbench rendering are implementation-backed. Completed approval/sign-off authority remains outside RFC-0026 support. |
+| Evidence-gap worklist | Supported | Missing, stale, degraded, unsupported, and source-readiness states are explicit in action evidence and covered by tests/live proof. |
+| Report/render/archive readiness items | Supported for readiness visibility | Downstream owner refs and readiness/degraded posture are integrated without claiming client-ready report/archive publication. |
+| Execution handoff/status attention items | Supported for advisory boundary visibility | Advisory/downstream system-of-record boundaries and lineage refs are visible and tested; OMS order/fill/settlement support remains unsupported. |
+| Tactical house-view impact items | Supported | Source-backed cohort evidence renders through Gateway/Workbench with Manage boundary preserved and no DPM campaign creation claim. |
+| Cockpit data products | Supported | `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active with declarations, trust telemetry, SLO/access/evidence policy, certification, docs, and tests. |
+| Gateway/Workbench advisor cockpit | Supported for the canonical first-wave surface | Gateway and Workbench implementation is proven through governed canonical browser/product validation. UI-local workflow logic remains prohibited. |
 
 ---
 
