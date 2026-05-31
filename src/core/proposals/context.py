@@ -26,6 +26,33 @@ class ProposalContextResolutionError(Exception):
     pass
 
 
+def _require_stateful_input(
+    stateful_input: ProposalStatefulInput | None,
+) -> ProposalStatefulInput:
+    if stateful_input is None:
+        raise ProposalContextResolutionError("PROPOSAL_STATEFUL_INPUT_REQUIRED")
+    return stateful_input
+
+
+def _require_stateless_simulate_request(
+    payload: ProposalCreateRequest | ProposalSimulationRequest | ProposalVersionRequest,
+) -> ProposalSimulateRequest:
+    if payload.stateless_input is None:
+        raise ProposalContextResolutionError("PROPOSAL_STATELESS_INPUT_REQUIRED")
+    return cast(
+        ProposalSimulateRequest,
+        payload.stateless_input.simulate_request.model_copy(deep=True),
+    )
+
+
+def _require_legacy_simulate_request(
+    simulate_request: ProposalSimulateRequest | None,
+) -> ProposalSimulateRequest:
+    if simulate_request is None:
+        raise ProposalContextResolutionError("PROPOSAL_SIMULATE_REQUEST_REQUIRED")
+    return cast(ProposalSimulateRequest, simulate_request.model_copy(deep=True))
+
+
 @dataclass(frozen=True)
 class ResolvedProposalContext:
     input_mode: ProposalInputMode
@@ -146,9 +173,9 @@ def _policy_selectors(
 
 def resolve_create_request(payload: ProposalCreateRequest) -> ResolvedProposalContext:
     if payload.input_mode == "stateful":
-        assert payload.stateful_input is not None
-        simulate_request, resolved_context = _resolve_stateful_input(payload.stateful_input)
-        metadata = _metadata_with_stateful_defaults(payload.metadata, payload.stateful_input)
+        stateful_input = _require_stateful_input(payload.stateful_input)
+        simulate_request, resolved_context = _resolve_stateful_input(stateful_input)
+        metadata = _metadata_with_stateful_defaults(payload.metadata, stateful_input)
         return ResolvedProposalContext(
             input_mode="stateful",
             resolution_source="LOTUS_CORE",
@@ -157,14 +184,13 @@ def resolve_create_request(payload: ProposalCreateRequest) -> ResolvedProposalCo
             metadata=metadata,
             policy_selectors=_policy_selectors(
                 metadata=metadata,
-                stateful_input=payload.stateful_input,
+                stateful_input=stateful_input,
             ),
             used_legacy_contract=False,
         )
 
     if payload.input_mode == "stateless":
-        assert payload.stateless_input is not None
-        simulate_request = payload.stateless_input.simulate_request.model_copy(deep=True)
+        simulate_request = _require_stateless_simulate_request(payload)
         return ResolvedProposalContext(
             input_mode="stateless",
             resolution_source="DIRECT_REQUEST",
@@ -175,8 +201,7 @@ def resolve_create_request(payload: ProposalCreateRequest) -> ResolvedProposalCo
             used_legacy_contract=False,
         )
 
-    assert payload.simulate_request is not None
-    simulate_request = payload.simulate_request.model_copy(deep=True)
+    simulate_request = _require_legacy_simulate_request(payload.simulate_request)
     return ResolvedProposalContext(
         input_mode="stateless",
         resolution_source="DIRECT_REQUEST",
@@ -190,8 +215,8 @@ def resolve_create_request(payload: ProposalCreateRequest) -> ResolvedProposalCo
 
 def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSimulationContext:
     if payload.input_mode == "stateful":
-        assert payload.stateful_input is not None
-        simulate_request, resolved_context = _resolve_stateful_input(payload.stateful_input)
+        stateful_input = _require_stateful_input(payload.stateful_input)
+        simulate_request, resolved_context = _resolve_stateful_input(stateful_input)
         simulate_request = _merge_alternatives_request(
             simulate_request,
             alternatives_request=payload.alternatives_request,
@@ -201,13 +226,12 @@ def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSi
             resolution_source="LOTUS_CORE",
             simulate_request=simulate_request,
             resolved_context=resolved_context,
-            policy_selectors=_policy_selectors(stateful_input=payload.stateful_input),
+            policy_selectors=_policy_selectors(stateful_input=stateful_input),
             used_legacy_contract=False,
         )
 
     if payload.input_mode == "stateless":
-        assert payload.stateless_input is not None
-        simulate_request = payload.stateless_input.simulate_request.model_copy(deep=True)
+        simulate_request = _require_stateless_simulate_request(payload)
         return ResolvedSimulationContext(
             input_mode="stateless",
             resolution_source="DIRECT_REQUEST",
@@ -217,8 +241,7 @@ def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSi
             used_legacy_contract=False,
         )
 
-    assert payload.simulate_request is not None
-    simulate_request = payload.simulate_request.model_copy(deep=True)
+    simulate_request = _require_legacy_simulate_request(payload.simulate_request)
     return ResolvedSimulationContext(
         input_mode="stateless",
         resolution_source="DIRECT_REQUEST",
@@ -232,9 +255,9 @@ def resolve_simulation_request(payload: ProposalSimulationRequest) -> ResolvedSi
 def resolve_version_request(payload: ProposalVersionRequest) -> ResolvedProposalContext:
     metadata = ProposalCreateMetadata()
     if payload.input_mode == "stateful":
-        assert payload.stateful_input is not None
-        simulate_request, resolved_context = _resolve_stateful_input(payload.stateful_input)
-        resolved_metadata = _metadata_with_stateful_defaults(metadata, payload.stateful_input)
+        stateful_input = _require_stateful_input(payload.stateful_input)
+        simulate_request, resolved_context = _resolve_stateful_input(stateful_input)
+        resolved_metadata = _metadata_with_stateful_defaults(metadata, stateful_input)
         return ResolvedProposalContext(
             input_mode="stateful",
             resolution_source="LOTUS_CORE",
@@ -243,14 +266,13 @@ def resolve_version_request(payload: ProposalVersionRequest) -> ResolvedProposal
             metadata=resolved_metadata,
             policy_selectors=_policy_selectors(
                 metadata=resolved_metadata,
-                stateful_input=payload.stateful_input,
+                stateful_input=stateful_input,
             ),
             used_legacy_contract=False,
         )
 
     if payload.input_mode == "stateless":
-        assert payload.stateless_input is not None
-        simulate_request = payload.stateless_input.simulate_request.model_copy(deep=True)
+        simulate_request = _require_stateless_simulate_request(payload)
         return ResolvedProposalContext(
             input_mode="stateless",
             resolution_source="DIRECT_REQUEST",
@@ -261,8 +283,7 @@ def resolve_version_request(payload: ProposalVersionRequest) -> ResolvedProposal
             used_legacy_contract=False,
         )
 
-    assert payload.simulate_request is not None
-    simulate_request = payload.simulate_request.model_copy(deep=True)
+    simulate_request = _require_legacy_simulate_request(payload.simulate_request)
     return ResolvedProposalContext(
         input_mode="stateless",
         resolution_source="DIRECT_REQUEST",

@@ -1,10 +1,18 @@
+import pytest
+
 from src.core.proposals.context import (
+    ProposalContextResolutionError,
     build_create_request_hash,
     build_version_request_hash,
     resolve_create_request,
+    resolve_simulation_request,
     resolve_version_request,
 )
-from src.core.proposals.models import ProposalCreateRequest, ProposalVersionRequest
+from src.core.proposals.models import (
+    ProposalCreateRequest,
+    ProposalSimulationRequest,
+    ProposalVersionRequest,
+)
 
 
 def _simulate_request(portfolio_id: str = "pf_context_hash") -> dict:
@@ -92,3 +100,75 @@ def test_build_version_request_hash_is_canonical_and_concurrency_sensitive():
     assert first_hash.startswith("sha256:")
     assert first_hash == same_hash
     assert first_hash != changed_hash
+
+
+@pytest.mark.parametrize(
+    ("payload", "resolver", "expected_message"),
+    [
+        (
+            ProposalCreateRequest.model_construct(
+                created_by="advisor_context",
+                input_mode="stateful",
+                stateful_input=None,
+                stateless_input=None,
+                simulate_request=None,
+                metadata={},
+            ),
+            resolve_create_request,
+            "PROPOSAL_STATEFUL_INPUT_REQUIRED",
+        ),
+        (
+            ProposalCreateRequest.model_construct(
+                created_by="advisor_context",
+                input_mode="stateless",
+                stateful_input=None,
+                stateless_input=None,
+                simulate_request=None,
+                metadata={},
+            ),
+            resolve_create_request,
+            "PROPOSAL_STATELESS_INPUT_REQUIRED",
+        ),
+        (
+            ProposalSimulationRequest.model_construct(
+                input_mode="stateful",
+                stateful_input=None,
+                stateless_input=None,
+                simulate_request=None,
+                alternatives_request=None,
+            ),
+            resolve_simulation_request,
+            "PROPOSAL_STATEFUL_INPUT_REQUIRED",
+        ),
+        (
+            ProposalSimulationRequest.model_construct(
+                input_mode="stateless",
+                stateful_input=None,
+                stateless_input=None,
+                simulate_request=None,
+                alternatives_request=None,
+            ),
+            resolve_simulation_request,
+            "PROPOSAL_STATELESS_INPUT_REQUIRED",
+        ),
+        (
+            ProposalVersionRequest.model_construct(
+                created_by="advisor_context",
+                input_mode="legacy",
+                stateful_input=None,
+                stateless_input=None,
+                simulate_request=None,
+                expected_current_version_no=None,
+            ),
+            resolve_version_request,
+            "PROPOSAL_SIMULATE_REQUEST_REQUIRED",
+        ),
+    ],
+)
+def test_context_resolution_uses_domain_errors_for_constructed_invalid_payloads(
+    payload,
+    resolver,
+    expected_message: str,
+):
+    with pytest.raises(ProposalContextResolutionError, match=expected_message):
+        resolver(payload)

@@ -5096,3 +5096,30 @@
     posture.
 - Follow-Up:
   - Avoid using `assert` for business or request-shape invariants in runtime domain mutation paths.
+
+## LA-REV-193
+
+- Scope: Proposal context-resolution request-shape guards
+- Pattern: idempotency, policy-context, and optimized-runtime safety
+- Status: Hardened
+- Finding Class: validation and reliability gap
+- Summary: Proposal context resolution relied on `assert` statements for stateful, stateless, and
+  legacy request payload invariants before building simulation context, hashes, and policy
+  selectors. Optimized Python can remove those checks, and malformed constructed payloads could
+  fail with less deterministic errors.
+- Evidence:
+  - `src/core/proposals/context.py` now uses explicit helper guards that raise
+    `ProposalContextResolutionError` for missing stateful input, stateless input, or legacy
+    simulation request payloads.
+  - `tests/unit/advisory/engine/test_engine_proposal_context.py` covers constructed malformed
+    create, simulation, and version payloads for deterministic context-resolution errors.
+- Consequence:
+  - Proposal context resolution now fails predictably before request hashes, policy context, or
+    lifecycle replay evidence are derived from malformed internal payload objects.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal context-resolution validation
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep proposal context validation explicit because it feeds idempotency, replay, policy
+    evaluation, and Gateway-facing advisory behavior.
