@@ -29,6 +29,8 @@ def test_rfc0028_locks_slice_zero_decisions_before_implementation() -> None:
 
     assert "Last Tightened** | 2026-05-31" in rfc
     assert "rfc0028-gold-standard-implementation" in rfc
+    assert "Baseline gaps RFC-0028 closed or explicitly classified" in rfc
+    assert "Current gaps RFC-0028 must close or classify" not in rfc
     assert "## 22. Slice 0 Pre-Implementation Decisions" in rfc
     assert "## 22. Open Questions" not in rfc
     assert "No open implementation question remains for RFC-0028 Slice 1" in rfc

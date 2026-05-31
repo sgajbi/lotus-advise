@@ -25,6 +25,8 @@ def test_rfc0027_closure_preserves_slice_zero_decisions_and_no_open_questions() 
     assert "IMPLEMENTED for governed internal advisor/reviewer copilot interactions" in rfc
     assert "Last Tightened** | 2026-05-31" in rfc
     assert "rfc0027-governed-advisory-ai-copilot" in rfc
+    assert "Baseline gaps RFC-0027 closed or explicitly classified" in rfc
+    assert "Current gaps that RFC-0027 must close" not in rfc
     assert "## 26. Slice 0 Pre-Implementation Decisions" in rfc
     assert "## 26. Open Questions" not in rfc
     assert "No open question may remain at final closure" in rfc

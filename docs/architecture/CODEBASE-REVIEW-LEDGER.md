@@ -8598,3 +8598,30 @@
 - Follow-Up:
   - Continue final RFC-0028 closure review across proof automation, documentation truth, and
     branch hygiene before PR handoff.
+
+## LA-REV-324
+
+- Scope: RFC-0026 through RFC-0028 baseline-gap wording
+- Pattern: Closed RFCs should distinguish pre-implementation baseline gaps from current product
+  posture
+- Status: Hardened
+- Finding Class: Documentation truth
+- Summary: The implemented RFC-0026, RFC-0027, and RFC-0028 documents still used "Current gaps"
+  wording in baseline sections. The gap lists were historically useful, but after implementation
+  they could make readers believe supported cockpit, copilot, or bank-demo proof features were
+  still missing.
+- Evidence:
+  - Renamed the RFC-0026 baseline section to "Pre-RFC Implementation Baseline".
+  - Reworded RFC-0026, RFC-0027, and RFC-0028 gap lists as baseline gaps closed or explicitly
+    classified by the RFC.
+  - Added documentation contract assertions so the stale "Current gaps" wording cannot reappear in
+    those implemented RFCs.
+- Consequence:
+  - Business, pre-sales, operations, and engineering readers get current implementation truth
+    without losing the original baseline rationale for the work.
+- Documentation:
+  - RFC source changed. No wiki source change is required because the wiki already carries current
+    implemented support posture.
+- Follow-Up:
+  - Keep baseline/audit sections in future RFCs clearly labeled once the RFC moves from planning to
+    implemented closure.

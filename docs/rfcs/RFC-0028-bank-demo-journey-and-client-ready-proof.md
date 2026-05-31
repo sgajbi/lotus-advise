@@ -261,7 +261,7 @@ Implementation-backed foundations available before RFC-0028 implementation:
 13. OpenAPI, vocabulary, no-alias, data-product, trust telemetry, Docker, dependency, security,
     runtime-smoke, and production-profile guardrails.
 
-Current gaps RFC-0028 must close or classify:
+Baseline gaps RFC-0028 closed or explicitly classified:
 
 1. no canonical bank demo journey contract,
 2. no machine-readable supported-claim register,

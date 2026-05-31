@@ -266,7 +266,7 @@ Implementation-backed foundations as of the 2026-05-28 tightening:
     idempotency, supportability, and lineage,
 13. WTBD is a closed historical ledger and is not a future execution mechanism.
 
-Current gaps that RFC-0027 must close:
+Baseline gaps RFC-0027 closed or explicitly classified:
 
 1. no complete copilot use-case catalog and action registry,
 2. no first-class copilot evidence-packet lifecycle,

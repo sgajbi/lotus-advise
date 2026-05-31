@@ -274,7 +274,7 @@ claim, RFC-0026 must implement the cockpit-critical subset or remove the unsuppo
 
 ---
 
-## 7. Current Implementation Baseline
+## 7. Pre-RFC Implementation Baseline
 
 Implementation-backed foundations as of 2026-05-27:
 
@@ -299,10 +299,10 @@ Implementation-backed foundations as of 2026-05-27:
    and policy evaluation evidence products,
 10. RFC-0023, RFC-0024, and RFC-0025 are closed as bounded implementation-backed evidence
     capabilities and remain prerequisites for RFC-0026 cockpit evidence consumption,
-11. `wiki/Supported-Features.md` correctly lists RFC-0026 as a planned runtime capability with no
-    supported cockpit claim.
+11. `wiki/Supported-Features.md` correctly listed RFC-0026 as a planned runtime capability before
+    RFC-0026 implementation, with no supported cockpit claim.
 
-Current gaps:
+Baseline gaps RFC-0026 closed or explicitly classified:
 
 1. no backend-owned advisor book-level worklist,
 2. no cockpit data product,
