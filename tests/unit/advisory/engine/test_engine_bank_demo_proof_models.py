@@ -113,6 +113,64 @@ def test_scenario_contract_requires_the_canonical_proof_marker() -> None:
         )
 
 
+def test_scenario_contract_bounds_steps_and_refs() -> None:
+    with pytest.raises(ValidationError, match="scenario step title"):
+        DemoScenarioStep(
+            step_id="unsafe_step",
+            title="Raw prompt review",
+            owner_repository="lotus-advise",
+        )
+
+    with pytest.raises(ValidationError, match="entries must be unique"):
+        DemoScenarioStep(
+            step_id="duplicate_refs",
+            title="Advisor opens cockpit",
+            owner_repository="lotus-advise",
+            required_evidence_refs=["cockpit.snapshot", "cockpit.snapshot"],
+        )
+
+    with pytest.raises(ValidationError, match="step_id values must be unique"):
+        AdvisoryDemoScenarioContract(
+            scenario_id=RFC28_CANONICAL_SCENARIO_ID,
+            primary_portfolio_id=RFC28_CANONICAL_PORTFOLIO_ID,
+            governed_as_of_date=date(2026, 5, 28),
+            proof_marker=RFC28_CANONICAL_PROOF_MARKER,
+            required_evidence_markers=[RFC28_CANONICAL_PROOF_MARKER],
+            required_source_products=["AdvisoryCopilotInteractionRecord:v1"],
+            unsupported_boundaries=["CLIENT_READY_PUBLICATION_BLOCKED"],
+            steps=[
+                DemoScenarioStep(
+                    step_id="advisor_cockpit",
+                    title="Advisor opens cockpit",
+                    owner_repository="lotus-advise",
+                ),
+                DemoScenarioStep(
+                    step_id="advisor_cockpit",
+                    title="Advisor reviews proof",
+                    owner_repository="lotus-advise",
+                ),
+            ],
+        )
+
+    with pytest.raises(ValidationError, match="unsupported_boundaries"):
+        AdvisoryDemoScenarioContract(
+            scenario_id=RFC28_CANONICAL_SCENARIO_ID,
+            primary_portfolio_id=RFC28_CANONICAL_PORTFOLIO_ID,
+            governed_as_of_date=date(2026, 5, 28),
+            proof_marker=RFC28_CANONICAL_PROOF_MARKER,
+            required_evidence_markers=[RFC28_CANONICAL_PROOF_MARKER],
+            required_source_products=["AdvisoryCopilotInteractionRecord:v1"],
+            unsupported_boundaries=["Client output includes raw prompt material."],
+            steps=[
+                DemoScenarioStep(
+                    step_id="advisor_cockpit",
+                    title="Advisor opens cockpit",
+                    owner_repository="lotus-advise",
+                )
+            ],
+        )
+
+
 def test_supported_claim_register_requires_evidence_and_unique_claim_ids() -> None:
     register = AdvisorySupportedClaimRegister(
         scenario_id=RFC28_CANONICAL_SCENARIO_ID,

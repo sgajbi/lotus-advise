@@ -7147,3 +7147,31 @@
 - Follow-Up:
   - Continue auditing proof-pack summary copy and script source-path handling before RFC-0028
     closure review.
+
+## LA-REV-273
+
+- Scope: RFC-0028 demo scenario contract
+- Pattern: bounded scenario steps and source/evidence references
+- Status: Hardened
+- Finding Class: contract drift, generated-schema, and proof-governance risk
+- Summary: RFC-0028 proof packs were tightly bounded, but the upstream scenario contract still
+  allowed weakly bounded scenario step fields, duplicated step evidence references, duplicated
+  step ids, and sensitive technical wording in scenario titles or unsupported-boundary text.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now bounds scenario step identifiers, titles, owner
+    repositories, evidence references, Workbench panel references, source products, evidence
+    markers, unsupported boundaries, and step inventories.
+  - Scenario contract validation now rejects duplicate step ids, duplicate step reference lists,
+    and sensitive technical wording before proof-pack construction.
+  - RFC-0028 proof model tests cover sensitive titles, duplicate refs, duplicate step ids, and
+    unsafe unsupported-boundary wording.
+- Consequence:
+  - RFC-0028 scenario contracts now provide a stronger source-of-truth envelope for Advise,
+    Gateway, Workbench, and platform canonical automation without allowing duplicated or unsafe
+    scenario evidence to pass into proof packs.
+- Documentation:
+  - No wiki source change is required. This strengthens the existing scenario contract rather than
+    changing the documented RFC-0028 feature posture.
+- Follow-Up:
+  - Continue auditing supported-claim register list bounds and wording rules before RFC-0028
+    closure review.
