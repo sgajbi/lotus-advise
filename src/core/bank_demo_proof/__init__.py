@@ -6,12 +6,10 @@ from src.core.bank_demo_proof.artifact_refs import (
 from src.core.bank_demo_proof.capture import (
     BackendProofCaptureBundle,
     BackendProofCaptureMetadata,
-    MaterialFieldReview,
     build_backend_proof_capture,
     build_default_scenario_contract,
     build_default_supported_claim_register,
     default_capture_metadata,
-    review_material_fields,
 )
 from src.core.bank_demo_proof.commercial_materials import (
     CommercialMaterial,
@@ -34,6 +32,7 @@ from src.core.bank_demo_proof.integration_proof import (
     PolicyEvidenceProof,
     build_journey_integration_proof_summary,
 )
+from src.core.bank_demo_proof.material_review import MaterialFieldReview, review_material_fields
 from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,

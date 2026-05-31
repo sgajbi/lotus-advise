@@ -7594,3 +7594,32 @@
 - Follow-Up:
   - Continue auditing proof-pack metadata and supported-claim register construction for additional
     separable contracts if future slices change client-demo material.
+
+## LA-REV-289
+
+- Scope: RFC-0028 material field review gate
+- Pattern: supported-claim material review separated from proof-capture orchestration
+- Status: Hardened
+- Finding Class: claim-gate modularity and validation reuse
+- Summary: Material field reviews are the lowest-layer supported-claim gate for RFC-0028, but the
+  review DTO, expected field matrix, sensitive-text validation, and review builder lived inside
+  `capture.py`. That kept a durable claim-control contract coupled to proof-pack orchestration and
+  duplicated validation concerns that metadata also needed.
+- Evidence:
+  - `src/core/bank_demo_proof/material_review.py` now owns `MaterialFieldReview`, the material
+    field matrix, and `review_material_fields`.
+  - `src/core/bank_demo_proof/validation.py` now owns shared proof-capture text normalization and
+    sensitive-term detection for metadata and material review fields.
+  - `src/core/bank_demo_proof/capture.py` now imports the material review contract and composes it
+    during proof capture.
+  - Existing RFC-0028 proof-capture tests continue to prove material review pass/block behavior,
+    sensitive observed-value rejection, and full proof-pack enforcement.
+- Consequence:
+  - Supported-claim gating is easier to audit and extend, and proof capture is further reduced to
+    orchestration rather than owning every proof sub-contract.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-capture modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing supported-claim register construction if future slices add claim families or
+    demo audiences.
