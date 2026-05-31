@@ -6901,3 +6901,31 @@
     RFC-0026 acknowledgement semantics.
 - Follow-Up:
   - Continue auditing route-level path/query inputs for bounded, support-safe service entry.
+
+## LA-REV-264
+
+- Scope: RFC-0026 advisor cockpit route input contract
+- Pattern: route-level bounded path, query, and header inputs
+- Status: Hardened
+- Finding Class: API contract and validation risk
+- Summary: Core models, service projections, and persistence records were bounded, but the FastAPI
+  cockpit routes still accepted oversized portfolio, advisor, cursor, action id, idempotency, and
+  correlation values before handing them to the service. Some oversized inputs could be rejected
+  downstream or projected later, but the OpenAPI contract did not advertise the route boundary.
+- Evidence:
+  - `src/api/proposals/routes_advisor_cockpit.py` now applies max-length constraints to cockpit
+    route path parameters, query parameters, and headers, and uses the shared cockpit page-size
+    maximum for route-level pagination.
+  - Advisor cockpit API tests prove oversized query, cursor, path, and idempotency-header values
+    fail with HTTP 422 at the route boundary.
+  - OpenAPI tests prove advisor id, preparation cursor, limit, and 128-character idempotency
+    header constraints are published in the schema.
+- Consequence:
+  - RFC-0026 route contracts now fail invalid inputs consistently before service execution and are
+    clearer for Gateway, Workbench, generated clients, and operational runbooks.
+- Documentation:
+  - No wiki source change is required. This is OpenAPI-backed route contract hardening for existing
+    RFC-0026 API behavior.
+- Follow-Up:
+  - Continue auditing RFC-0027/RFC-0028 route contracts for the same boundary consistency where
+    implementation-backed APIs already exist.

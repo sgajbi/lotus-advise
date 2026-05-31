@@ -20,6 +20,9 @@ from src.core.advisor_cockpit import (
     AdvisoryActionItemPage,
     CockpitCallerContext,
 )
+from src.core.advisor_cockpit.pagination import COCKPIT_ACTION_MAX_PAGE_SIZE
+from src.core.advisor_cockpit.projection_bounds import COCKPIT_IDENTIFIER_MAX_LENGTH
+from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
@@ -67,12 +70,17 @@ def list_advisor_cockpit_actions(
         str | None,
         Query(
             description="Optional portfolio scope for cockpit actions.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
             examples=["PB_SG_GLOBAL_BAL_001"],
         ),
     ] = None,
     advisor_id: Annotated[
         str | None,
-        Query(description="Optional advisor actor scope.", examples=["advisor_sg_001"]),
+        Query(
+            description="Optional advisor actor scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["advisor_sg_001"],
+        ),
     ] = None,
     role: Annotated[
         AdvisorCockpitOwnerRole,
@@ -80,17 +88,25 @@ def list_advisor_cockpit_actions(
     ] = "ADVISOR",
     limit: Annotated[
         int,
-        Query(description="Bounded page size. Default is 25; maximum is 100.", ge=1, le=100),
+        Query(
+            description="Bounded page size. Default is 25; maximum is 100.",
+            ge=1,
+            le=COCKPIT_ACTION_MAX_PAGE_SIZE,
+        ),
     ] = 25,
     cursor: Annotated[
         str | None,
-        Query(description="Opaque action cursor from a previous page."),
+        Query(
+            description="Opaque action cursor from a previous page.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+        ),
     ] = None,
     correlation_id: Annotated[
         str | None,
         Header(
             alias="X-Correlation-ID",
             description="Optional correlation id propagated into returned action items.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
         ),
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
@@ -123,22 +139,37 @@ def list_advisor_cockpit_actions(
 def get_advisor_cockpit_action(
     action_item_id: Annotated[
         str,
-        Path(description="Advisor cockpit action item identifier."),
+        Path(
+            description="Advisor cockpit action item identifier.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+        ),
     ],
     portfolio_id: Annotated[
         str | None,
-        Query(description="Optional portfolio scope.", examples=["PB_SG_GLOBAL_BAL_001"]),
+        Query(
+            description="Optional portfolio scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["PB_SG_GLOBAL_BAL_001"],
+        ),
     ] = None,
     advisor_id: Annotated[
         str | None,
-        Query(description="Optional advisor actor scope.", examples=["advisor_sg_001"]),
+        Query(
+            description="Optional advisor actor scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["advisor_sg_001"],
+        ),
     ] = None,
     role: Annotated[
         AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
     ] = "ADVISOR",
     correlation_id: Annotated[
         str | None,
-        Header(alias="X-Correlation-ID", description="Optional correlation id."),
+        Header(
+            alias="X-Correlation-ID",
+            description="Optional correlation id.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisoryActionItem:
@@ -168,18 +199,30 @@ def get_advisor_cockpit_action(
 def get_advisor_cockpit_snapshot(
     portfolio_id: Annotated[
         str | None,
-        Query(description="Optional portfolio scope.", examples=["PB_SG_GLOBAL_BAL_001"]),
+        Query(
+            description="Optional portfolio scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["PB_SG_GLOBAL_BAL_001"],
+        ),
     ] = None,
     advisor_id: Annotated[
         str | None,
-        Query(description="Optional advisor actor scope.", examples=["advisor_sg_001"]),
+        Query(
+            description="Optional advisor actor scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["advisor_sg_001"],
+        ),
     ] = None,
     role: Annotated[
         AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
     ] = "ADVISOR",
     correlation_id: Annotated[
         str | None,
-        Header(alias="X-Correlation-ID", description="Optional correlation id."),
+        Header(
+            alias="X-Correlation-ID",
+            description="Optional correlation id.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitSnapshotResponse:
@@ -208,26 +251,45 @@ def get_advisor_cockpit_snapshot(
 def list_advisor_cockpit_preparation_packets(
     portfolio_id: Annotated[
         str | None,
-        Query(description="Optional portfolio scope.", examples=["PB_SG_GLOBAL_BAL_001"]),
+        Query(
+            description="Optional portfolio scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["PB_SG_GLOBAL_BAL_001"],
+        ),
     ] = None,
     advisor_id: Annotated[
         str | None,
-        Query(description="Optional advisor actor scope.", examples=["advisor_sg_001"]),
+        Query(
+            description="Optional advisor actor scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["advisor_sg_001"],
+        ),
     ] = None,
     role: Annotated[
         AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
     ] = "ADVISOR",
     limit: Annotated[
         int,
-        Query(description="Bounded page size. Default is 25; maximum is 100.", ge=1, le=100),
+        Query(
+            description="Bounded page size. Default is 25; maximum is 100.",
+            ge=1,
+            le=COCKPIT_ACTION_MAX_PAGE_SIZE,
+        ),
     ] = 25,
     cursor: Annotated[
         str | None,
-        Query(description="Opaque preparation-packet cursor from a previous page."),
+        Query(
+            description="Opaque preparation-packet cursor from a previous page.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+        ),
     ] = None,
     correlation_id: Annotated[
         str | None,
-        Header(alias="X-Correlation-ID", description="Optional correlation id."),
+        Header(
+            alias="X-Correlation-ID",
+            description="Optional correlation id.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitPreparationPacketPage:
@@ -259,18 +321,30 @@ def list_advisor_cockpit_preparation_packets(
 def get_advisor_cockpit_supportability(
     portfolio_id: Annotated[
         str | None,
-        Query(description="Optional portfolio scope.", examples=["PB_SG_GLOBAL_BAL_001"]),
+        Query(
+            description="Optional portfolio scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["PB_SG_GLOBAL_BAL_001"],
+        ),
     ] = None,
     advisor_id: Annotated[
         str | None,
-        Query(description="Optional advisor actor scope.", examples=["advisor_sg_001"]),
+        Query(
+            description="Optional advisor actor scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["advisor_sg_001"],
+        ),
     ] = None,
     role: Annotated[
         AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
     ] = "ADVISOR",
     correlation_id: Annotated[
         str | None,
-        Header(alias="X-Correlation-ID", description="Optional correlation id."),
+        Header(
+            alias="X-Correlation-ID",
+            description="Optional correlation id.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitSupportabilityResponse:
@@ -297,7 +371,10 @@ def get_advisor_cockpit_supportability(
 def acknowledge_advisor_cockpit_action(
     action_item_id: Annotated[
         str,
-        Path(description="Advisor cockpit action item identifier."),
+        Path(
+            description="Advisor cockpit action item identifier.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+        ),
     ],
     payload: AdvisorCockpitAcknowledgeRequest,
     idempotency_key: Annotated[
@@ -305,23 +382,36 @@ def acknowledge_advisor_cockpit_action(
         Header(
             alias="Idempotency-Key",
             description="Required replay-safe acknowledgement idempotency key.",
+            max_length=MAX_IDEMPOTENCY_KEY_LENGTH,
             examples=["ack-cockpit-action-001"],
         ),
     ],
     portfolio_id: Annotated[
         str | None,
-        Query(description="Optional portfolio scope.", examples=["PB_SG_GLOBAL_BAL_001"]),
+        Query(
+            description="Optional portfolio scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["PB_SG_GLOBAL_BAL_001"],
+        ),
     ] = None,
     advisor_id: Annotated[
         str | None,
-        Query(description="Optional advisor actor scope.", examples=["advisor_sg_001"]),
+        Query(
+            description="Optional advisor actor scope.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+            examples=["advisor_sg_001"],
+        ),
     ] = None,
     role: Annotated[
         AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
     ] = "ADVISOR",
     correlation_id: Annotated[
         str | None,
-        Header(alias="X-Correlation-ID", description="Optional correlation id."),
+        Header(
+            alias="X-Correlation-ID",
+            description="Optional correlation id.",
+            max_length=COCKPIT_IDENTIFIER_MAX_LENGTH,
+        ),
     ] = None,
     service: AdvisorCockpitService = Depends(get_advisor_cockpit_service),
 ) -> AdvisorCockpitAcknowledgeResponse:

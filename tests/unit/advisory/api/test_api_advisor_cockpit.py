@@ -286,6 +286,39 @@ def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
     assert blank_actor.status_code == 422
 
 
+def test_advisor_cockpit_api_rejects_oversized_route_inputs(
+    cockpit_repository: InMemoryProposalRepository,
+) -> None:
+    _ = cockpit_repository
+    oversized_ref = "x" * 161
+    with TestClient(app) as client:
+        actions = client.get(
+            "/advisory/cockpit/actions",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+        ).json()
+        action_id = actions["items"][0]["action_item_id"]
+        oversized_query = client.get(
+            "/advisory/cockpit/actions",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": oversized_ref},
+        )
+        oversized_cursor = client.get(
+            "/advisory/cockpit/preparation-packets",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "cursor": oversized_ref},
+        )
+        oversized_path = client.get(f"/advisory/cockpit/actions/{oversized_ref}")
+        oversized_header = client.post(
+            f"/advisory/cockpit/actions/{action_id}/acknowledgements",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            headers={"Idempotency-Key": oversized_ref},
+            json={"action_item_version": 1, "acknowledged_by": "advisor_sg_001"},
+        )
+
+    assert oversized_query.status_code == 422
+    assert oversized_cursor.status_code == 422
+    assert oversized_path.status_code == 422
+    assert oversized_header.status_code == 422
+
+
 def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
     with TestClient(app) as client:
         schema = client.get("/openapi.json").json()
@@ -317,7 +350,20 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
         parameter["name"] == "cursor"
         and parameter["in"] == "query"
         and "preparation-packet cursor" in parameter["description"]
+        and _max_length(parameter["schema"]) == 160
         for parameter in preparation_operation["parameters"]
+    )
+    assert any(
+        parameter["name"] == "advisor_id"
+        and parameter["in"] == "query"
+        and _max_length(parameter["schema"]) == 160
+        for parameter in action_operation["parameters"]
+    )
+    assert any(
+        parameter["name"] == "limit"
+        and parameter["in"] == "query"
+        and parameter["schema"]["maximum"] == 100
+        for parameter in action_operation["parameters"]
     )
     assert "Gateway publication" in supportability_operation["description"]
     assert "active data-product posture" in supportability_operation["description"]
@@ -329,8 +375,18 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
         parameter["name"] == "Idempotency-Key"
         and parameter["in"] == "header"
         and parameter["required"] is True
+        and _max_length(parameter["schema"]) == 128
         for parameter in acknowledgement_operation["parameters"]
     )
+
+
+def _max_length(parameter_schema: dict) -> int | None:
+    if "maxLength" in parameter_schema:
+        return parameter_schema["maxLength"]
+    for option in parameter_schema.get("anyOf", []):
+        if isinstance(option, dict) and "maxLength" in option:
+            return option["maxLength"]
+    return None
 
 
 def _house_view_payload() -> dict:
