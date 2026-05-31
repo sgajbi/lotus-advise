@@ -10,6 +10,7 @@ from src.core.advisory_copilot import (
     CopilotSourceRef,
 )
 from src.integrations.lotus_ai.advisory_copilot import (
+    MAX_COPILOT_OUTPUT_SECTIONS,
     _build_workflow_pack_request,
     build_advisory_copilot_unavailable_draft,
     generate_advisory_copilot_draft_with_lotus_ai,
@@ -279,6 +280,111 @@ def test_generate_advisory_copilot_extracts_proposal_version_from_source_refs(
         },
     )
     assert response.review_guidance == ("Use cited evidence only.",)
+
+
+def test_generate_advisory_copilot_fails_closed_for_invalid_output_sections(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "state": "REVIEW_REQUIRED",
+                                    "sections": [
+                                        {"section_key": "", "title": "", "text": ""},
+                                        {
+                                            "section_key": "POLICY_POSTURE",
+                                            "title": "Policy posture",
+                                            "text": "x" * 4001,
+                                        },
+                                    ],
+                                },
+                            },
+                        },
+                        "workflow_pack_run": {"run_id": "packrun_copilot_invalid_output"},
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert response.sections == ()
+    assert response.lineage["fallback_reason"] == "LOTUS_AI_ADVISORY_COPILOT_INVALID_OUTPUT"
+
+
+def test_generate_advisory_copilot_bounds_sections_and_review_guidance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.advisory_copilot.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "state": "REVIEW_REQUIRED",
+                                    "sections": [
+                                        {
+                                            "section_key": f"SECTION_{index}",
+                                            "title": f"Section {index}",
+                                            "text": "Evidence remains under advisor review.",
+                                        }
+                                        for index in range(MAX_COPILOT_OUTPUT_SECTIONS + 2)
+                                    ],
+                                    "review_guidance": [
+                                        "Use cited evidence only.",
+                                        "x" * 1001,
+                                        "Check review posture.",
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_advisory_copilot_draft_with_lotus_ai(
+        evidence_packet=_packet(),
+        audience="ADVISOR",
+        requested_outputs=["advisor_review_summary"],
+        requested_by="advisor_001",
+        reason={"purpose": "advisor review"},
+    )
+
+    assert response.status == "REVIEW_REQUIRED"
+    assert len(response.sections) == MAX_COPILOT_OUTPUT_SECTIONS
+    assert response.sections[-1]["section_key"] == "SECTION_7"
+    assert response.review_guidance == ("Use cited evidence only.", "Check review posture.")
 
 
 def test_generate_advisory_copilot_fails_closed_before_unsafe_execution(

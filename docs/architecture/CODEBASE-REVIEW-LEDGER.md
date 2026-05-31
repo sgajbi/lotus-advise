@@ -6157,3 +6157,28 @@
     endpoints.
 - Follow-Up:
   - None.
+
+## LA-REV-234
+
+- Scope: Governed advisory copilot AI output boundary
+- Pattern: fail-closed AI output mapping, bounded advisor-facing content, RFC-0027 supportability
+- Status: Hardened
+- Finding Class: unbounded or empty AI draft output
+- Summary: The RFC-0027 Lotus AI copilot adapter treated a completed workflow-pack execution as
+  review-required output even when every returned section was invalid. It also accepted unbounded
+  section and review-guidance counts and string lengths from downstream AI output.
+- Evidence:
+  - `src/integrations/lotus_ai/advisory_copilot.py` now fails closed with
+    `LOTUS_AI_ADVISORY_COPILOT_INVALID_OUTPUT` when no valid bounded section remains.
+  - The adapter bounds advisor-facing section count, section identifiers, titles, text, and review
+    guidance before returning draft content.
+  - Unit tests prove invalid/oversized output is not surfaced and valid output is bounded
+    deterministically.
+- Consequence:
+  - RFC-0027 copilot output remains advisor-review only and cannot surface empty, malformed, or
+    oversized downstream AI text as a usable advisory draft.
+- Documentation:
+  - No wiki source change is required. This hardens existing RFC-0027 runtime semantics without
+    changing user-facing capability scope.
+- Follow-Up:
+  - None.

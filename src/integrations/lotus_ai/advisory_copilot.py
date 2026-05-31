@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -27,6 +27,12 @@ PROMPT_TEMPLATE_VERSION = "advisory-copilot-prompt-template.v1"
 OUTPUT_SCHEMA_VERSION = "advisory-copilot-output-schema.v1"
 EVALUATION_PACK_REF = "advisory-copilot-eval-pack.v1"
 WORKFLOW_SURFACE_PREFIX = "advisory-copilot"
+MAX_COPILOT_OUTPUT_SECTIONS = 8
+MAX_COPILOT_SECTION_KEY_LENGTH = 96
+MAX_COPILOT_SECTION_TITLE_LENGTH = 160
+MAX_COPILOT_SECTION_TEXT_LENGTH = 4000
+MAX_COPILOT_REVIEW_GUIDANCE_ITEMS = 8
+MAX_COPILOT_REVIEW_GUIDANCE_LENGTH = 1000
 
 
 @dataclass(frozen=True)
@@ -100,6 +106,12 @@ def generate_advisory_copilot_draft_with_lotus_ai(
     result = _safe_dict(execution.get("result"))
     structured_output = _safe_dict(result.get("structured_output"))
     sections = _map_sections(structured_output.get("sections"))
+    if not sections:
+        return build_advisory_copilot_unavailable_draft(
+            evidence_packet=evidence_packet,
+            fallback_reason="LOTUS_AI_ADVISORY_COPILOT_INVALID_OUTPUT",
+            caused_by=None,
+        )
     output_reasons = evaluate_copilot_guardrails(
         requested_intents=(),
         source_refs_present=True,
@@ -247,9 +259,12 @@ def _build_workflow_pack_request(
 
 
 def _resolve_base_url() -> str:
-    return resolve_lotus_ai_base_url(
-        unavailable_error_type=LotusAIAdvisoryCopilotUnavailableError,
-        unavailable_message="LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
+    return cast(
+        str,
+        resolve_lotus_ai_base_url(
+            unavailable_error_type=LotusAIAdvisoryCopilotUnavailableError,
+            unavailable_message="LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
+        ),
     )
 
 
@@ -288,10 +303,12 @@ def _has_source_refs(evidence_packet: CopilotEvidencePacket) -> bool:
 def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
     if not isinstance(value, list):
         return ()
-    sections = []
+    sections: list[dict[str, Any]] = []
     for item in value:
         if not isinstance(item, dict):
             continue
+        if len(sections) >= MAX_COPILOT_OUTPUT_SECTIONS:
+            break
         section_key = item.get("section_key")
         title = item.get("title")
         text = item.get("text")
@@ -302,6 +319,12 @@ def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
             and section_key.strip()
             and title.strip()
             and text.strip()
+        ):
+            continue
+        if (
+            len(section_key.strip()) > MAX_COPILOT_SECTION_KEY_LENGTH
+            or len(title.strip()) > MAX_COPILOT_SECTION_TITLE_LENGTH
+            or len(text.strip()) > MAX_COPILOT_SECTION_TEXT_LENGTH
         ):
             continue
         sections.append(
@@ -318,7 +341,17 @@ def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
 def _map_string_list(value: Any) -> tuple[str, ...]:
     if not isinstance(value, list):
         return ()
-    return tuple(item.strip() for item in value if isinstance(item, str) and item.strip())
+    items: list[str] = []
+    for item in value:
+        if len(items) >= MAX_COPILOT_REVIEW_GUIDANCE_ITEMS:
+            break
+        if not isinstance(item, str):
+            continue
+        stripped = item.strip()
+        if not stripped or len(stripped) > MAX_COPILOT_REVIEW_GUIDANCE_LENGTH:
+            continue
+        items.append(stripped)
+    return tuple(items)
 
 
 def _build_lineage(
