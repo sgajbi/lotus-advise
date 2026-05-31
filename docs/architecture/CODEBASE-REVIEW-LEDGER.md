@@ -4626,3 +4626,31 @@
 - Follow-Up:
   - Keep future route modules on shared status/error helpers rather than importing deprecated
     framework aliases directly.
+
+## LA-REV-177
+
+- Scope: RFC-0026 advisor cockpit acknowledgement idempotency
+- Pattern: idempotency / correlation-id boundary hardening
+- Status: Hardened
+- Finding Class: reliability gap
+- Summary: Advisor cockpit acknowledgement replay identity included `correlation_id` in the
+  canonical request hash. A normal client retry with the same idempotency key but a new
+  correlation id could therefore be rejected as a business conflict even though the acknowledged
+  action, version, actor, and acknowledgement note were unchanged.
+- Evidence:
+  - `src/core/advisor_cockpit/service.py` now excludes observability metadata from the
+    acknowledgement request hash while still persisting the original correlation id in the
+    acknowledgement audit record.
+  - `tests/unit/advisory/engine/test_engine_advisor_cockpit_service.py` proves a same-business
+    acknowledgement with a changed retry correlation id replays, preserves the original audit
+    correlation id, and still rejects changed business payloads under the same idempotency key.
+- Consequence:
+  - RFC-0026 cockpit acknowledgements now have a cleaner idempotency boundary: correlation ids
+    remain operational lineage, not part of the replay fingerprint, while real payload changes
+    still fail closed.
+- Documentation:
+  - Public API semantics are unchanged; this ledger entry records the implementation-backed
+    reliability hardening.
+- Follow-Up:
+  - Keep future idempotency hashes focused on business request identity and store trace/correlation
+    fields as audit lineage unless a contract explicitly requires them in the replay fingerprint.

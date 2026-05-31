@@ -228,7 +228,6 @@ class AdvisorCockpitService:
                 "action_item_version": payload.action_item_version,
                 "acknowledged_by": payload.acknowledged_by,
                 "acknowledgement_note": payload.acknowledgement_note,
-                "correlation_id": correlation_id,
             }
         )
         replayed = self._repository.get_cockpit_acknowledgement_idempotency(
