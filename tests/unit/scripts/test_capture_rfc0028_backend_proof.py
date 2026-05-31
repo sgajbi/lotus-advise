@@ -7,6 +7,8 @@ import httpx
 import pytest
 
 from scripts.capture_rfc0028_backend_proof import (
+    _DEFAULT_OUTPUT_DIR,
+    _artifact_ref_prefix_for,
     _not_probed_runtime_posture,
     _probe_endpoint,
     _probe_runtime_posture,
@@ -173,3 +175,14 @@ def test_runtime_probe_rejects_unsafe_base_url_before_capture() -> None:
     posture = _not_probed_runtime_posture("https://advise.dev.lotus/runtime/", "local")
 
     assert posture.base_url == "https://advise.dev.lotus/runtime"
+
+
+def test_artifact_ref_prefix_remains_relative_for_absolute_output_dir(tmp_path) -> None:
+    assert _artifact_ref_prefix_for(tmp_path, None) == _DEFAULT_OUTPUT_DIR
+    assert (
+        _artifact_ref_prefix_for(tmp_path, "output/rfc0028/custom-proof")
+        == "output/rfc0028/custom-proof"
+    )
+
+    with pytest.raises(ValueError, match="sensitive material"):
+        _artifact_ref_prefix_for(tmp_path, "output/rfc0028/token-proof")

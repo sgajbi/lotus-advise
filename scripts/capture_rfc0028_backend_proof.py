@@ -28,6 +28,7 @@ from src.core.bank_demo_proof import (  # noqa: E402
     RuntimeEndpointEvidence,
     build_backend_proof_capture,
     default_capture_metadata,
+    normalize_output_ref_prefix,
     normalize_runtime_base_url,
 )
 
@@ -63,6 +64,15 @@ def main() -> None:
         "--output-dir",
         default=_DEFAULT_OUTPUT_DIR,
         help="Directory where sanitized RFC-0028 proof artifacts should be written.",
+    )
+    parser.add_argument(
+        "--artifact-ref-prefix",
+        default=None,
+        help=(
+            "Relative proof artifact reference prefix recorded inside proof-pack assets. "
+            "Defaults to --output-dir when it is relative, otherwise "
+            f"{_DEFAULT_OUTPUT_DIR}."
+        ),
     )
     parser.add_argument(
         "--advise-base-url",
@@ -123,7 +133,7 @@ def main() -> None:
         live_payload,
         metadata=metadata,
         runtime_posture=runtime_posture,
-        output_ref_prefix=_display_path(output_dir),
+        output_ref_prefix=_artifact_ref_prefix_for(output_dir, args.artifact_ref_prefix),
     )
     written = write_backend_proof_capture_bundle(bundle, output_dir=output_dir)
     print(
@@ -200,6 +210,16 @@ def _manifest_artifact_refs(paths: dict[str, Path], output_dir: Path) -> dict[st
     for key, path in paths.items():
         artifact_refs[key] = path.relative_to(output_dir).as_posix()
     return artifact_refs
+
+
+def _artifact_ref_prefix_for(output_dir: Path, configured_prefix: str | None) -> str:
+    if configured_prefix is not None:
+        return normalize_output_ref_prefix(configured_prefix)
+    output_ref = _display_path(output_dir)
+    try:
+        return normalize_output_ref_prefix(output_ref)
+    except ValueError:
+        return _DEFAULT_OUTPUT_DIR
 
 
 def _load_or_run_live_suite(

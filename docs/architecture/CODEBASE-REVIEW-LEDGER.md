@@ -7281,3 +7281,28 @@
     integration proof semantics.
 - Follow-Up:
   - Continue auditing script CLI/output handling and then run RFC-0028 closure reconciliation.
+
+## LA-REV-278
+
+- Scope: RFC-0028 proof-capture CLI artifact references
+- Pattern: separate filesystem output from proof asset references
+- Status: Hardened
+- Finding Class: operator experience, portability, and local-path disclosure risk
+- Summary: The proof-capture CLI used `--output-dir` as both the filesystem write location and
+  proof-pack asset reference prefix. Relative output directories worked, but absolute operator
+  paths could either fail proof-asset validation or risk coupling proof references to local
+  workstation paths.
+- Evidence:
+  - `scripts/capture_rfc0028_backend_proof.py` now supports an explicit `--artifact-ref-prefix`
+    and derives a safe relative default when `--output-dir` is absolute.
+  - Script tests prove absolute output directories fall back to the governed default artifact ref
+    prefix, custom relative prefixes are preserved, and sensitive prefixes are rejected.
+- Consequence:
+  - RFC-0028 proof capture can write evidence to operator-selected filesystem locations while
+    preserving portable, sanitized proof-pack asset references for review and archive.
+- Documentation:
+  - No wiki source change is required. The CLI behavior is backward compatible for the governed
+    default output path and strengthens absolute-output handling.
+- Follow-Up:
+  - Run RFC-0028 closure reconciliation and decide whether this branch is ready for the next PR
+    checkpoint.
