@@ -4798,3 +4798,1289 @@
   - Keep future demo-oriented wiki additions as navigation and interpretation layers over
     implementation-backed proof artifacts; do not duplicate long-form RFC or commercial-guide
     content.
+
+## LA-REV-182
+
+- Scope: Advisory copilot run pagination cursor validation
+- Pattern: API validation boundary / keyset pagination hardening
+- Status: Hardened
+- Finding Class: validation and error-handling gap
+- Summary: The advisory copilot run cursor decoder accepted decoded payloads without confirming the
+  payload shape, typed fields, or timezone-aware `created_at` value. A client-supplied cursor with a
+  naive timestamp could reach repository keyset comparison against timezone-aware run records and
+  risk a runtime failure instead of the governed `COPILOT_RUN_CURSOR_INVALID` API response.
+- Evidence:
+  - `src/core/advisory_copilot/pagination.py` now validates opaque cursor JSON shape, string
+    fields, non-empty run identifiers, and timezone-aware timestamps before repository filtering.
+  - `tests/unit/advisory/engine/test_advisory_copilot_pagination.py` covers round-trip encoding,
+    non-UTC aware offsets, invalid payload shapes, naive timestamps, and stable descending keyset
+    ordering.
+  - `tests/unit/advisory/api/test_api_advisory_copilot.py` now proves the API returns HTTP 422 with
+    `COPILOT_RUN_CURSOR_INVALID` for naive timestamp cursors, matching the existing malformed-cursor
+    contract.
+- Consequence:
+  - Invalid client cursors are rejected at the domain pagination boundary before in-memory or
+    Postgres repositories evaluate the keyset predicate, preserving predictable API behavior and
+    avoiding infrastructure-layer runtime failures.
+- Documentation:
+  - No wiki source change is required. This slice hardens an existing opaque cursor validation
+    boundary without changing supported product behavior, operator workflow, or business-facing
+    feature posture.
+- Follow-Up:
+  - Keep future keyset pagination helpers covered by direct decoder tests and at least one API-level
+    malformed-cursor contract test.
+
+## LA-REV-183
+
+- Scope: Advisory copilot application idempotency refresh path
+- Pattern: idempotency correctness / retryable dependency recovery
+- Status: Hardened
+- Finding Class: correctness and duplication gap
+- Summary: The application-service replay fast path duplicated part of the persistence idempotency
+  logic and returned an existing idempotent run before the persistence layer could apply its
+  retryable-run refresh rule. That left dependency-unavailable or false-positive guardrail copilot
+  runs at risk of being replayed as stale results even after the underlying lotus-ai dependency or
+  guardrail condition recovered.
+- Evidence:
+  - `src/core/advisory_copilot/service.py` now exposes
+    `can_attempt_advisory_copilot_run_refresh` as the shared retryability predicate used by the
+    application layer and the persistence refresh rule.
+  - `src/core/advisory_copilot/application.py` keeps normal idempotent replay efficient, but allows
+    retryable existing runs to proceed through draft generation and persistence refresh.
+  - `tests/unit/advisory/engine/test_advisory_copilot_application.py` now proves an unavailable
+    copilot run refreshes on the same idempotency key, preserves the stable run identity and
+    creation timestamp, and then reverts to efficient replay after the refreshed run is no longer
+    retryable.
+- Consequence:
+  - RFC-0027 advisory copilot recovery behavior now matches its persistence contract at the API
+    application boundary without forcing normal idempotent replays to call lotus-ai again.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal idempotency and recovery
+    semantics without changing supported product behavior, operator workflow, or business-facing
+    feature posture.
+- Follow-Up:
+  - Keep application-layer replay shortcuts tied to shared domain predicates when persistence owns
+    the authoritative recovery or idempotency rule.
+
+## LA-REV-184
+
+- Scope: Enterprise audit metadata redaction
+- Pattern: sensitive-data handling / operational diagnostics hardening
+- Status: Hardened
+- Finding Class: security and observability gap
+- Summary: The enterprise audit redaction helper only redacted exact lowercase field names and
+  assumed dictionary keys were strings. Common audit metadata variants such as `apiToken`,
+  `client-email`, `authorizationHeader`, `privateKey`, or `session_cookie` could avoid redaction,
+  and non-string keys could make redaction brittle.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now normalizes audit metadata field names, handles non-string
+    keys safely, and redacts common token, authorization, cookie, password, secret, key, account,
+    session, SSN, and client-email field-name variants.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` covers nested dictionaries, lists,
+    non-string keys, common camel-case and hyphenated sensitive names, safe business metadata, and
+    non-mutating behavior.
+- Consequence:
+  - Enterprise audit logging is less likely to leak credentials or client-identifying metadata when
+    callers use realistic field naming conventions in diagnostic metadata.
+- Documentation:
+  - No wiki source change is required. This slice hardens an internal security/diagnostic utility
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep future audit metadata expansions covered with direct redaction tests before adding new log
+    fields or diagnostic payloads.
+
+## LA-REV-185
+
+- Scope: Enterprise write-authorization header validation
+- Pattern: authorization/auditability hardening
+- Status: Hardened
+- Finding Class: security and validation gap
+- Summary: Enterprise write authorization normalized header names but did not trim header values.
+  Whitespace-only actor, tenant, role, correlation, service identity, or authorization values could
+  be treated as present, weakening enforcement and audit lineage quality for write requests.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now strips normalized header names and values before required
+    header, service-identity, authorization, and capability checks.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now covers whitespace-only required
+    headers, whitespace-only service identity, and trimmed valid header/capability values.
+- Consequence:
+  - Enterprise authorization checks now require meaningful identity and correlation values before
+    allowing write requests under enforced authorization mode.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal authorization validation without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Keep authorization-policy normalization covered when new enterprise headers or capability rules
+    are added.
+
+## LA-REV-186
+
+- Scope: Enterprise capability-rule path matching
+- Pattern: authorization boundary hardening
+- Status: Hardened
+- Finding Class: security and validation gap
+- Summary: Enterprise capability rules used raw prefix matching for route paths. A configured rule
+  for `/advisory/proposals` could also match sibling paths such as `/advisory/proposals-extra`,
+  making capability requirements broader than intended.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now matches capability rules only for the exact configured
+    route path or a child path below it.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now proves child paths inherit the rule
+    while sibling paths do not.
+- Consequence:
+  - Capability enforcement is now aligned to route boundaries instead of accidental string-prefix
+    overlap, reducing over-broad authorization policy application.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal authorization matching without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Keep capability-rule matching tests in place when wildcard or templated route policies are
+    introduced.
+
+## LA-REV-187
+
+- Scope: Enterprise runtime JSON configuration validation
+- Pattern: configuration hardening / startup safety
+- Status: Hardened
+- Finding Class: security and operational diagnostics gap
+- Summary: Invalid `ENTERPRISE_FEATURE_FLAGS_JSON` and `ENTERPRISE_CAPABILITY_RULES_JSON` values
+  were loaded as empty maps without surfacing configuration drift. In strict runtime-config mode,
+  that could let a malformed capability or feature-flag configuration pass startup validation.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now reports invalid or non-object JSON map configuration for
+    feature flags and capability rules, and preserves fail-fast startup behavior when
+    `ENTERPRISE_ENFORCE_RUNTIME_CONFIG=true`.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now covers issue reporting and strict
+    fail-fast behavior for malformed enterprise JSON maps.
+- Consequence:
+  - Operators receive deterministic configuration issues instead of silent fallback to empty
+    feature-flag or capability-rule maps.
+- Documentation:
+  - No wiki source change is required. This slice hardens runtime configuration validation without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Keep startup validation aligned with any future enterprise policy env vars before enabling
+    production enforcement.
+
+## LA-REV-188
+
+- Scope: Advisor cockpit pagination boundary
+- Pattern: modularity and duplicate cursor handling
+- Status: Hardened
+- Finding Class: modularity and validation gap
+- Summary: Advisor cockpit page-size behavior lived in the pagination module while action and
+  preparation-packet cursor resolution lived as duplicate service-local loops. That kept validation
+  details inside the application service and made future cockpit paginated surfaces more likely to
+  reimplement cursor handling.
+- Evidence:
+  - `src/core/advisor_cockpit/pagination.py` now owns reusable cockpit cursor resolution alongside
+    page-size normalization.
+  - `src/core/advisor_cockpit/service.py` now delegates action and preparation-packet cursor
+    validation to the pagination module.
+  - `tests/unit/advisory/engine/test_engine_advisor_cockpit_models.py` covers reusable cursor
+    start, none-cursor behavior, valid cursor advancement, and invalid-cursor error code.
+- Consequence:
+  - The advisor cockpit service is narrower, cursor validation is centralized, and future RFC-0026
+    cockpit pagination can reuse the same validated boundary.
+- Documentation:
+  - No wiki source change is required. This slice refactors internal pagination structure without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Prefer extending `advisor_cockpit.pagination` for future cockpit page tokens instead of adding
+    service-local cursor loops.
+
+## LA-REV-189
+
+- Scope: Proposal async lifecycle payload resolution
+- Pattern: idempotency, lineage, and validation hardening
+- Status: Hardened
+- Finding Class: validation and operational reliability gap
+- Summary: Async proposal lifecycle payload resolution accepted whitespace-only idempotency keys and
+  proposal identifiers as meaningful replay scope, and model validation used broad exception
+  handling. That could degrade retry lineage quality and hide unexpected implementation defects
+  behind a generic payload-invalid failure.
+- Evidence:
+  - `src/core/proposals/async_payloads.py` now resolves idempotency keys and proposal identifiers
+    through a shared non-blank string helper, trims accepted values, falls back across persisted and
+    request-scope sources only when values are meaningful, and catches Pydantic validation errors
+    explicitly.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_payloads.py` covers trimmed fallback
+    resolution and whitespace-only rejection for async create idempotency keys and async version
+    proposal scope.
+- Consequence:
+  - Proposal async replay and retry paths now carry meaningful lifecycle identity before work is
+    retried or marked failed, improving operational auditability and preventing blank replay
+    scopes from being treated as valid state.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal async lifecycle validation
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep future async lifecycle identity fields normalized through shared helpers before they are
+    used for idempotency, persistence lookup, or audit lineage.
+
+## LA-REV-190
+
+- Scope: Target-generation solver dependency boundary
+- Pattern: optional dependency and diagnostics hardening
+- Status: Hardened
+- Finding Class: validation and modularity gap
+- Summary: Solver dependency loading was embedded directly in target generation with broad
+  exception handling. That kept optional dependency behavior harder to test and could convert
+  unexpected implementation defects into a generic `SOLVER_ERROR` diagnostic.
+- Evidence:
+  - `src/core/target_generation.py` now isolates cvxpy/numpy loading in
+    `load_target_solver_dependencies`, catches only explicit import/runtime loader failures, and
+    keeps target generation's unavailable-solver behavior unchanged.
+  - `tests/unit/advisory/engine/test_engine_target_generation_dependencies.py` covers unavailable
+    solver fallback, successful dependency resolution, and the `SOLVER_ERROR`/`BLOCKED` target
+    generation outcome when the solver stack is not available.
+- Consequence:
+  - Optional solver availability is now a small tested boundary, while unexpected solver-path code
+    defects are less likely to be silently masked during target-generation execution.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal optional dependency behavior
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep additional optional analytics dependencies behind explicit loader boundaries with direct
+    tests for unavailable and available dependency states.
+
+## LA-REV-191
+
+- Scope: Workspace session cache bounds
+- Pattern: bounded in-memory runtime hardening
+- Status: Hardened
+- Finding Class: validation and operational reliability gap
+- Summary: The Workspace session cache accepted invalid cache sizes and changing the cache size did
+  not immediately evict existing sessions over the new limit. A zero or negative limit could make
+  the next save fail at runtime rather than failing configuration deterministically.
+- Evidence:
+  - `src/api/services/workspace_store.py` now validates cache size at construction and resize time,
+    rejects non-meaningful limits, centralizes over-capacity eviction, and applies eviction
+    immediately when the cache size changes.
+  - `tests/unit/advisory/api/test_workspace_store.py` now covers invalid cache sizes and immediate
+    oldest-session eviction after reducing the cache limit.
+- Consequence:
+  - Workspace runtime memory bounds are deterministic, misconfiguration fails early, and cache
+    resizing cannot leave the store temporarily above its configured capacity.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal bounded-cache behavior without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Keep future in-memory fallback stores explicit about bounded capacity and deterministic
+    validation before runtime traffic reaches them.
+
+## LA-REV-192
+
+- Scope: Workspace draft-action domain guards
+- Pattern: domain validation and optimized-runtime safety
+- Status: Hardened
+- Finding Class: validation and reliability gap
+- Summary: Workspace draft-action application relied on `assert` statements after request model
+  validation. Optimized Python can remove asserts, and tests or internal callers can construct
+  malformed request objects directly, turning domain validation failures into less predictable
+  attribute errors or missing-state behavior.
+- Evidence:
+  - `src/core/workspace/draft_actions.py` now uses explicit domain guard helpers for required
+    trade, cash-flow, row identifier, and replacement-option fields.
+  - `tests/unit/advisory/api/test_workspace_draft_actions.py` covers malformed constructed draft
+    action requests and verifies deterministic `WorkspaceDraftActionError` messages.
+- Consequence:
+  - Workspace draft mutation behavior no longer depends on Python assertion settings and remains
+    deterministic even when internal callers bypass Pydantic construction.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal workspace domain validation
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Avoid using `assert` for business or request-shape invariants in runtime domain mutation paths.
+
+## LA-REV-193
+
+- Scope: Proposal context-resolution request-shape guards
+- Pattern: idempotency, policy-context, and optimized-runtime safety
+- Status: Hardened
+- Finding Class: validation and reliability gap
+- Summary: Proposal context resolution relied on `assert` statements for stateful, stateless, and
+  legacy request payload invariants before building simulation context, hashes, and policy
+  selectors. Optimized Python can remove those checks, and malformed constructed payloads could
+  fail with less deterministic errors.
+- Evidence:
+  - `src/core/proposals/context.py` now uses explicit helper guards that raise
+    `ProposalContextResolutionError` for missing stateful input, stateless input, or legacy
+    simulation request payloads.
+  - `tests/unit/advisory/engine/test_engine_proposal_context.py` covers constructed malformed
+    create, simulation, and version payloads for deterministic context-resolution errors.
+- Consequence:
+  - Proposal context resolution now fails predictably before request hashes, policy context, or
+    lifecycle replay evidence are derived from malformed internal payload objects.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal context-resolution validation
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep proposal context validation explicit because it feeds idempotency, replay, policy
+    evaluation, and Gateway-facing advisory behavior.
+
+## LA-REV-194
+
+- Scope: Proposal async operation missing-work handling
+- Pattern: async lifecycle and optimized-runtime safety
+- Status: Hardened
+- Finding Class: validation and operational reliability gap
+- Summary: The async operation runner relied on an `assert` after loading an optional read model
+  operation. Missing operations already represented a no-work condition, but the explicit runtime
+  behavior was not pinned by tests and depended on assertion control flow.
+- Evidence:
+  - `src/core/proposals/async_operation_runner.py` now returns explicitly when the operation read
+    model has no operation.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operation_runner.py` covers the
+    missing-operation path and proves the executor is not called.
+- Consequence:
+  - Async operation runners now have deterministic no-work behavior under optimized Python and
+    cannot accidentally execute work for an absent operation record.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal async lifecycle control flow
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep async runner no-work, terminal, exhausted, retryable, and failed paths directly tested as
+    lifecycle behavior evolves.
+
+## LA-REV-195
+
+- Scope: Proposal delivery execution projection guard
+- Pattern: delivery projection and optimized-runtime safety
+- Status: Hardened
+- Finding Class: validation and reliability gap
+- Summary: Delivery summary projection relied on an `assert` after selecting the latest execution
+  status event or execution-request event. While normal control flow made the assertion redundant,
+  optimized Python can remove it and the status-without-request behavior was not directly pinned.
+- Evidence:
+  - `src/core/proposals/delivery_summary.py` now guards the selected execution event explicitly
+    instead of relying on assertion behavior.
+  - `tests/unit/advisory/engine/test_engine_proposal_delivery_summary.py` covers projecting an
+    execution status event when no execution-request event is present.
+- Consequence:
+  - Delivery summary projection remains deterministic for partial event histories and no longer
+    depends on Python assertion settings.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal delivery projection behavior
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep delivery projection tests focused on partial histories because report, execution, and
+    archive events can arrive from independent downstream services.
+
+## LA-REV-196
+
+- Scope: Correlation and observability header normalization
+- Pattern: audit lineage and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: observability and lineage gap
+- Summary: Correlation ID resolution and HTTP observability middleware accepted whitespace-only or
+  padded correlation/request/trace headers as meaningful values. That could propagate low-quality
+  lineage identifiers into logs, response headers, proposal workflow records, and downstream
+  diagnostics.
+- Evidence:
+  - `src/core/proposals/correlation.py` now trims supplied correlation IDs and generates governed
+    fallback IDs for blank values.
+  - `src/api/observability.py` now trims inbound correlation, request, and traceparent headers,
+    generates request IDs for blank values, and normalizes response correlation headers.
+  - `tests/unit/advisory/engine/test_engine_proposal_correlation.py` and
+    `tests/unit/advisory/api/test_api_observability_headers.py` cover trimmed and blank inbound
+    identifiers.
+- Consequence:
+  - Advisory workflow and HTTP request lineage now carry meaningful identifiers, improving audit
+    replay, support diagnostics, and cross-service trace consistency.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal and API observability behavior
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep new externally supplied lineage headers normalized before they enter logs, workflow
+    records, persistence, or downstream service calls.
+
+## LA-REV-197
+
+- Scope: Proposal create idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: validation and operational reliability gap
+- Summary: Proposal create and async-create commands accepted padded or whitespace-only
+  idempotency keys. That could create distinct replay records for semantically identical client
+  keys or allow blank replay identity to enter persistence.
+- Evidence:
+  - `src/core/proposals/idempotency.py` now exposes a required idempotency-key normalizer that
+    trims meaningful values and rejects missing or blank keys.
+  - `src/core/proposals/service.py` applies the normalizer before sync and async proposal-create
+    persistence, mapping invalid keys to `ProposalValidationError`.
+  - `src/api/proposals/routes_async.py` now maps async create idempotency-key validation failures
+    through the standard proposal HTTP error model.
+  - `tests/unit/advisory/engine/test_engine_proposal_idempotency.py` and
+    `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` cover trimming,
+    rejection, and repository lookup behavior.
+- Consequence:
+  - Proposal create replay identity is deterministic and cannot persist blank or padded
+    idempotency keys as distinct lifecycle records.
+- Documentation:
+  - No wiki source change is required. This slice hardens API-adjacent idempotency behavior
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Completed by LA-REV-198 for lifecycle, memo, cockpit, and copilot idempotency scopes.
+
+## LA-REV-198
+
+- Scope: Advisory command idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: validation, replay determinism, and API evidence gap
+- Summary: Several advisory write commands accepted caller-supplied idempotency keys without
+  normalizing whitespace. Padded keys could create separate replay identities from the same client
+  retry, while whitespace-only optional keys could be persisted as misleading audit metadata.
+- Evidence:
+  - `src/core/common/idempotency.py` centralizes required and optional idempotency-key
+    normalization for reuse across advisory domains.
+  - Proposal lifecycle transitions, approval decisions, narrative reviews, memo creation and memo
+    events, report-package requests, AI commentary requests, advisory copilot runs/reviews, and
+    advisor cockpit acknowledgements normalize idempotency keys before replay lookup or
+    persistence.
+  - Advisor cockpit acknowledgement responses now return the normalized idempotency key in audit
+    context, matching the documented response model and giving callers replay evidence without
+    inspecting storage.
+  - Focused tests cover padded-key replay and normalized persisted/audit evidence across proposal
+    lifecycle, memo API, advisor cockpit, and advisory copilot paths.
+- Consequence:
+  - Advisory command replay identity is deterministic across HTTP and service callers, and optional
+    whitespace-only keys no longer become persisted audit identity.
+- Documentation:
+  - No wiki source change is required. This is command-boundary hardening and response evidence
+    alignment; supported product behavior and operator workflow are unchanged.
+- Follow-Up:
+  - None.
+
+## LA-REV-199
+
+- Scope: Policy-pack and policy-evaluation idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: replay determinism and policy audit reliability gap
+- Summary: RFC 25 policy-pack validation/activation, policy-evaluation finalization, workflow
+  sign-off, report-package, and AI-evidence commands used caller-supplied idempotency keys without
+  consistent normalization. Padded keys could create separate policy audit events for the same
+  client retry, weakening replay determinism and audit supportability.
+- Evidence:
+  - `src/core/policy_packs/catalog.py` and `src/core/policy_packs/persistence.py` normalize
+    required idempotency keys before validation, activation, and evaluation finalization.
+  - `src/core/policy_packs/workflow.py`, `src/core/policy_packs/reporting.py`, and
+    `src/core/policy_packs/ai.py` normalize optional idempotency keys before sign-off,
+    report-package, and AI-evidence replay lookup.
+  - Focused engine and API tests cover padded-key normalization across policy-pack validation,
+    activation, evaluation finalization, append-only review events, sign-off, report-package, and
+    AI-evidence paths.
+- Consequence:
+  - Policy audit lineage now records deterministic idempotency identity across RFC 25 and RFC 27
+    policy evidence flows, reducing duplicate audit events and replay ambiguity.
+- Documentation:
+  - No wiki source change is required. This is policy command-boundary hardening and does not
+    change product behavior, supported feature posture, or operator workflow.
+- Follow-Up:
+  - None.
+
+## LA-REV-200
+
+- Scope: Proposal simulation and workspace handoff idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: replay determinism and lineage reliability gap
+- Summary: Proposal simulation and workspace handoff entry points accepted caller-supplied
+  idempotency keys before replay lookup and downstream lineage emission. Padded keys could produce
+  duplicate simulation replay records or non-canonical proposal lineage for semantically identical
+  retries.
+- Evidence:
+  - `src/api/services/advisory_simulation_service.py` normalizes required simulation
+    idempotency keys before repository replay lookup, downstream orchestration, and persistence.
+  - `src/api/services/workspace_lifecycle_handoff.py` normalizes the first-create handoff key before
+    proposal creation.
+  - `src/core/advisory/orchestration.py` and `src/core/advisory_engine.py` normalize optional
+    idempotency keys before passing them into local fallback or result lineage.
+  - Focused API tests cover padded-key replay for proposal artifact/simulation and workspace
+    handoff lineage.
+- Consequence:
+  - Simulation, artifact, and workspace handoff lineage now carry deterministic replay identity
+    across HTTP retries and local fallback paths.
+- Documentation:
+  - No wiki source change is required. This is replay/lineage hardening; supported feature posture
+    and operator workflow are unchanged.
+- Follow-Up:
+  - None.
+
+## LA-REV-201
+
+- Scope: Shared Postgres migration cleanup and diagnostics
+- Pattern: operational hardening and persistence infrastructure reliability
+- Status: Hardened
+- Finding Class: observability and migration failure-handling gap
+- Summary: The shared Postgres migration runner suppressed rollback failures silently and allowed
+  advisory-lock cleanup failures to mask the original migration error. That weakened operator
+  diagnostics for proposal and advisory-copilot persistence migrations during cutover or startup.
+- Evidence:
+  - `src/infrastructure/postgres_migrations.py` now has explicit rollback and advisory-lock
+    cleanup helpers with structured logging for cleanup failures.
+  - Migration failures still attempt rollback and advisory unlock while preserving the original
+    failure if cleanup also fails.
+  - Successful migrations surface advisory-unlock failures as
+    `POSTGRES_MIGRATION_UNLOCK_FAILED:<namespace>` instead of hiding lock-release problems.
+  - `tests/unit/infrastructure/test_postgres_migrations.py` covers rollback/unlock behavior,
+    original-error preservation when cleanup fails, and successful-migration unlock failures.
+- Consequence:
+  - Proposal and advisory-copilot Postgres migration startup behavior is more diagnosable and less
+    likely to mislead operators during production cutover or incident triage.
+- Documentation:
+  - No wiki source change is required. This slice hardens shared persistence infrastructure
+    behavior without changing supported feature posture, operator workflow, or business-facing
+    documentation.
+- Follow-Up:
+  - None.
+
+## LA-REV-202
+
+- Scope: Proposal execution handoff idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: replay determinism and execution-boundary audit gap
+- Summary: Proposal execution handoff accepted optional caller idempotency keys without
+  normalization before replay lookup or workflow-event persistence. Padded keys could produce
+  duplicate execution handoff audit events for the same advisory handoff request.
+- Evidence:
+  - `src/core/proposals/execution_handoff_command.py` normalizes optional handoff idempotency keys
+    before replay lookup and event creation.
+  - `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` now covers padded-key
+    execution handoff replay and confirms only one workflow event is recorded.
+- Consequence:
+  - RFC 26/RFC 28 execution handoff evidence remains deterministic without overclaiming OMS order,
+    fill, settlement, or external execution completion.
+- Documentation:
+  - No wiki source change is required. This is execution-boundary replay hardening with no change
+    to product feature posture or operator workflow.
+- Follow-Up:
+  - None.
+
+## LA-REV-203
+
+- Scope: Proposal async operation runner retry contract
+- Pattern: async orchestration and runtime recovery hardening
+- Status: Hardened
+- Finding Class: test gap and service-boundary typing gap
+- Summary: The async operation runner had lower-level tests for runtime exception state
+  transitions, but the runner-level retry loop was not directly pinned. Its executor contract also
+  accepted `Any`, weakening the boundary between orchestration and proposal-create result
+  persistence.
+- Evidence:
+  - `src/core/proposals/async_operation_runner.py` now types async executors as returning
+    `ProposalCreateResponse`.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operation_runner.py` now covers a
+    transient runtime exception followed by successful retry, verifying attempt count, terminal
+    success, proposal lineage, and lease/error cleanup.
+- Consequence:
+  - RFC 23/RFC 26 asynchronous proposal creation has stronger regression coverage for runtime
+    recovery behavior without relying only on lower-level state helper tests.
+- Documentation:
+  - No wiki source change is required. This is test and type-contract hardening with no change to
+    product feature posture, API shape, or operator workflow.
+- Follow-Up:
+  - None.
+
+## LA-REV-204
+
+- Scope: RFC 26-28 no-deferred-wave documentation posture
+- Pattern: documentation truth and supported-feature governance
+- Status: Hardened
+- Finding Class: documentation drift and product-claim clarity gap
+- Summary: RFC 26/27 closure and wiki/index material still used "first-wave", "day-2", or
+  "wave-2" phrasing in several places. That wording conflicted with the governed expectation that
+  required implementation must be completed inside the RFC scope rather than implied as a later
+  wave.
+- Evidence:
+  - RFC 26/27/28, relevant slice docs, `docs/rfcs/README.md`, and wiki source now use
+    supported/implemented-scope language instead of deferred-wave terminology.
+  - Contract tests for RFC 26 and RFC 27 documentation were updated to pin the no-deferred-wave
+    posture.
+  - Targeted documentation contract suite passed for RFC 26 and RFC 27 after the wording update.
+- Consequence:
+  - Product documentation is cleaner for enterprise review and no longer suggests staged deferral
+    for requirements that are part of the implemented RFC business value.
+- Documentation:
+  - Wiki source changed and requires `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise`
+    before merge and `-Publish` after merge to `main`.
+- Follow-Up:
+  - None.
+
+## LA-REV-205
+
+- Scope: Advisory copilot model-version vocabulary
+- Pattern: private-banking API copy and model lineage hardening
+- Status: Hardened
+- Finding Class: documentation/API example quality gap
+- Summary: Advisory copilot model-version examples and tests used `stub-advisory-copilot-v1`.
+  That leaked test/prototype language into model lineage examples and weakened the business-facing
+  polish expected for governed AI evidence.
+- Evidence:
+  - `src/core/advisory_copilot/records.py` now uses `lotus-ai-governed-model.v1` as the model
+    lineage example.
+  - Advisory copilot API, application, and persistence tests now use the same governed model
+    vocabulary.
+  - Focused copilot API/application/persistence tests, ruff, and mypy passed.
+- Consequence:
+  - RFC 27 copilot API/model examples now read as governed product lineage instead of prototype
+    scaffolding, without changing runtime behavior or evidence semantics.
+- Documentation:
+  - No wiki source change is required. This slice improves API/model example vocabulary only.
+- Follow-Up:
+  - None.
+
+## LA-REV-206
+
+- Scope: Proposal artifact placeholder vocabulary
+- Pattern: private-banking API copy and proposal artifact polish
+- Status: Hardened
+- Finding Class: API/documentation vocabulary quality gap
+- Summary: Proposal artifact models and deterministic disclosure output still used "placeholder"
+  and "later slices" language for advisor notes, product-document references, risk disclaimers, and
+  generated intents. That wording made supported artifact evidence read like scaffolding instead
+  of implementation-backed advisor material.
+- Evidence:
+  - `src/core/advisory/artifact_models.py` now describes advisor notes, disclosures, and product
+    document references with business-facing terminology.
+  - `src/core/advisory/artifact.py` now emits
+    `KID/FactSheet reference pending source confirmation` instead of a placeholder label.
+  - `src/core/advisory/alternatives_models.py` no longer describes generated intents as a later
+    slice placeholder.
+  - Focused proposal artifact and memo-builder tests, ruff, and mypy passed.
+- Consequence:
+  - RFC 23/24 proposal artifact evidence is cleaner for demos, API consumers, and downstream memo
+    material without changing supported capability boundaries or overclaiming client-ready
+    publication.
+- Documentation:
+  - No wiki source change is required. This slice improves API/model copy and deterministic
+    artifact wording only.
+- Follow-Up:
+  - None.
+
+## LA-REV-207
+
+- Scope: RFC 23-28 supported-scope public vocabulary and cockpit action builder naming
+- Pattern: public API copy, documentation truth, and domain-model vocabulary hardening
+- Status: Hardened
+- Finding Class: documentation/API vocabulary quality gap and stale internal naming
+- Summary: Active RFC/wiki/OpenAPI/model surfaces still used wave-based or later-slice wording in
+  current-state product copy, and the cockpit aggregate action builder was named
+  `build_first_wave_cockpit_actions`. That weakened enterprise product language and made supported
+  capability boundaries look like staged prototype scaffolding.
+- Evidence:
+  - Public RFC 23-28, wiki, OpenAPI tag descriptions, policy route descriptions, cockpit source
+    model descriptions, and copilot model descriptions now use supported-scope and governed-gate
+    language.
+  - `src/core/advisor_cockpit/action_factory.py` now exposes
+    `build_source_backed_cockpit_actions`, and source-read-model/tests use the source-backed name.
+  - `tests/unit/test_rfc0023_0028_public_vocabulary_contract.py` now pins active public surfaces
+    against stale wave/later-slice phrases.
+  - Targeted RFC vocabulary, cockpit, copilot, advisor-cockpit API, advisory-copilot API, and
+    OpenAPI contract tests passed with `66 passed`.
+- Consequence:
+  - RFC 23-28 current-state surfaces read as implementation-backed private-banking capabilities
+    with explicit client-ready gates, without implying deferred waves or overclaiming external
+    client publication.
+- Documentation:
+  - Wiki source changed and requires the repo wiki check with unpublished source changes allowed
+    before merge, followed by wiki publication after merge to `main`.
+- Follow-Up:
+  - None.
+
+## LA-REV-208
+
+- Scope: Enterprise write-authorization capability-rule configuration
+- Pattern: security posture and fail-closed authorization hardening
+- Status: Hardened
+- Finding Class: security configuration gap
+- Summary: Runtime configuration validation reported malformed
+  `ENTERPRISE_CAPABILITY_RULES_JSON`, but write authorization could still treat malformed
+  capability rules as an empty rule map when `ENTERPRISE_ENFORCE_AUTHZ=true` and startup
+  fail-fast was not enabled. Whitespace-padded capability-rule keys could also fail to match and
+  behave like no rule. Those paths created fail-open posture for capability-specific write
+  authorization.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now rejects write authorization with
+    `invalid_capability_rules_json` when capability rules are malformed.
+  - Capability-rule keys and capability values are normalized before request matching.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now covers the fail-closed behavior.
+  - Focused enterprise-readiness tests passed with `9 passed`.
+- Consequence:
+  - Enterprise write authorization no longer silently drops malformed or padded capability policy,
+    improving bank-grade configuration safety without changing default non-enforcing local
+    development behavior.
+- Documentation:
+  - No wiki source change is required. This is security posture hardening of existing middleware
+    behavior and does not change product feature posture.
+- Follow-Up:
+  - None.
+
+## LA-REV-209
+
+- Scope: Advisor cockpit acknowledgement actor and note normalization
+- Pattern: idempotency, audit lineage, and API DTO validation hardening
+- Status: Hardened
+- Finding Class: API validation and replay-determinism gap
+- Summary: RFC-0026 cockpit acknowledgement normalized the idempotency key, but the request DTO did
+  not normalize `acknowledged_by` or support-safe acknowledgement notes. Padded actor values or
+  multiline notes could create dirty audit lineage and avoidable request-hash drift; blank actor
+  values were not rejected at the DTO boundary.
+- Evidence:
+  - `src/core/advisor_cockpit/api_models.py` now trims and validates `acknowledged_by`, normalizes
+    acknowledgement notes, and treats blank notes as absent.
+  - Advisor cockpit service tests now verify normalized actor/note persistence and replay.
+  - Advisor cockpit API tests now verify blank actors return HTTP 422.
+  - Focused advisor-cockpit service, API, and RFC-0026 API-contract tests passed with `17 passed`.
+- Consequence:
+  - Cockpit acknowledgement audit records are cleaner, replay hashes are less brittle, and invalid
+    business actors are blocked before persistence.
+- Documentation:
+  - No wiki source change is required. This is DTO/audit-lineage hardening with no product posture
+    change.
+- Follow-Up:
+  - None.
+
+## LA-REV-210
+
+- Scope: Advisory copilot actor normalization
+- Pattern: RFC-0027 API DTO validation, idempotency, and audit-lineage hardening
+- Status: Hardened
+- Finding Class: API validation and audit hygiene gap
+- Summary: Governed advisory copilot requests accepted actor fields without DTO-level
+  normalization. Padded `created_by`, `requested_by`, or review `actor_id` values could create
+  dirty audit records and avoidable idempotency hash drift, while blank review actors were not
+  rejected before service execution.
+- Evidence:
+  - `src/core/advisory_copilot/api_models.py` now trims and validates copilot actor fields.
+  - Advisory copilot application tests now verify normalized packet/run audit actors.
+  - Advisory copilot API tests now verify padded review actor replay and blank actor rejection.
+  - Focused advisory-copilot application, API, and RFC-0027 certified API tests passed with
+    `17 passed`.
+- Consequence:
+  - RFC-0027 copilot audit lineage is cleaner, replay hashes are less brittle, and invalid review
+    actors are blocked at the API model boundary.
+- Documentation:
+  - No wiki source change is required. This is DTO/audit-lineage hardening with no product posture
+    change.
+- Follow-Up:
+  - None.
+
+## LA-REV-211
+
+- Scope: Shared actor and support-note normalization
+- Pattern: duplicate DTO validation cleanup and shared core helper extraction
+- Status: Hardened
+- Finding Class: duplication and maintainability gap
+- Summary: RFC-0026 cockpit acknowledgement and RFC-0027 copilot APIs both implemented local
+  actor normalization after audit-lineage hardening. Keeping separate validators would invite
+  drift in actor trimming, blank actor rejection, and support-safe note normalization across
+  advisor workflow surfaces.
+- Evidence:
+  - `src/core/common/actors.py` now provides reusable `normalize_required_actor_id` and
+    `normalize_optional_support_note` helpers.
+  - Cockpit and copilot API DTOs now delegate to the shared helpers while preserving their
+    existing domain-specific error codes.
+  - `tests/unit/core/test_actor_normalization.py` covers helper behavior directly.
+  - Focused actor-normalization, advisor-cockpit API/service, and advisory-copilot API/application
+    tests passed with `31 passed`.
+- Consequence:
+  - Actor/audit normalization is reusable across Advise modules, reducing duplicate DTO logic and
+    making future advisory workflow APIs easier to keep consistent.
+- Documentation:
+  - No wiki source change is required. This is internal shared-helper refactoring with no product
+    posture or operator workflow change.
+- Follow-Up:
+  - None.
+
+## LA-REV-212
+
+- Scope: RFC-0027 correlation-id normalization across copilot and audit boundaries
+- Pattern: audit lineage, API boundary hygiene, and observability consistency
+- Status: Hardened
+- Finding Class: API validation and audit hygiene gap
+- Summary: Advisory copilot application methods and enterprise audit emission accepted raw
+  correlation ids even though request observability already normalized response headers. Padded
+  `X-Correlation-ID` values could therefore leak into persisted copilot lineage or enterprise
+  audit records, while blank values did not consistently fall back to the deterministic copilot
+  correlation identifiers used by replayable workflows.
+- Evidence:
+  - `src/core/proposals/correlation.py` now exposes reusable optional correlation-id
+    normalization while preserving generated fallback behavior for observability.
+  - `src/core/advisory_copilot/application.py` now normalizes optional correlation ids and keeps
+    deterministic fallback ids for packet, run, and review persistence.
+  - `src/api/enterprise_readiness.py` now normalizes correlation ids before audit emission.
+  - Focused correlation, copilot application/API, observability, and enterprise-readiness tests
+    passed with `32 passed`.
+- Consequence:
+  - Persisted copilot lineage and enterprise audit records no longer carry padded correlation
+    identifiers, and blank inbound values use governed fallbacks instead of dirty audit values.
+- Documentation:
+  - No wiki source change is required. This is audit-lineage and boundary normalization hardening
+    with no product posture or operator workflow change.
+- Follow-Up:
+  - None.
+
+## LA-REV-213
+
+- Scope: Advisory copilot run-list page-size normalization
+- Pattern: pagination hardening and service-boundary consistency
+- Status: Hardened
+- Finding Class: API/service boundary validation gap
+- Summary: The RFC-0027 copilot run-list route bounded `limit` through FastAPI query validation,
+  but direct application-service callers could still pass invalid or oversized page sizes to the
+  repositories. That left repository behavior dependent on Python slicing or database `LIMIT`
+  semantics rather than a shared domain pagination rule.
+- Evidence:
+  - `src/core/advisory_copilot/pagination.py` now defines default and maximum run-list page sizes
+    and rejects non-positive service-level page sizes.
+  - `src/core/advisory_copilot/application.py` now normalizes run-list page sizes before calling
+    the repository.
+  - Copilot pagination and application-service tests now pin page-size normalization and invalid
+    service-call rejection.
+- Consequence:
+  - RFC-0027 run history pagination is consistently bounded for API and non-API callers, reducing
+    avoidable performance risk and eliminating ambiguous repository behavior for invalid limits.
+- Documentation:
+  - No wiki source change is required. This preserves the existing API contract and strengthens
+    service-boundary enforcement.
+- Follow-Up:
+  - None.
+
+## LA-REV-214
+
+- Scope: Integration dependency readiness URL sanitization
+- Pattern: sensitive-data handling and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: security and observability hygiene gap
+- Summary: Dependency readiness state exposed configured base URLs directly. A misconfigured
+  runtime URL containing credentials, query tokens, or fragments could therefore leak sensitive
+  material through readiness/capability diagnostics even when runtime probing legitimately needed
+  the configured URL.
+- Evidence:
+  - `src/integrations/base.py` now sanitizes the public dependency `base_url` returned in
+    readiness state while preserving the configured URL for runtime probes.
+  - Integration dependency tests now verify credentials, query strings, and fragments are stripped
+    from public state and invalid URL ports are not surfaced.
+- Consequence:
+  - Operational readiness APIs remain useful for support and pre-sales diagnostics without
+    exposing credential-bearing dependency URLs.
+- Documentation:
+  - No wiki source change is required. This strengthens existing sensitive-data handling without
+    changing supported product capabilities.
+- Follow-Up:
+  - None.
+
+## LA-REV-215
+
+- Scope: Integration dependency health probe target hardening
+- Pattern: operational diagnostics and security posture hardening
+- Status: Hardened
+- Finding Class: security and runtime resilience gap
+- Summary: Dependency health probes accepted any configured URL shape and followed redirects.
+  Misconfigured dependency URLs could therefore trigger unnecessary non-http probe attempts or
+  redirect-driven probe behavior that is not needed for Lotus readiness decisions.
+- Evidence:
+  - `src/integrations/base.py` now fails closed for non-http(s) or invalid-port probe targets
+    before creating an HTTP client.
+  - Dependency probes now run with redirects disabled.
+  - Integration base tests verify redirect disabling and fail-closed behavior for invalid probe
+    targets.
+- Consequence:
+  - Runtime readiness probing is more predictable and avoids probing unexpected schemes or
+    redirect targets from misconfigured dependency URLs.
+- Documentation:
+  - No wiki source change is required. This is internal operational hardening with no product
+    posture change.
+- Follow-Up:
+  - None.
+
+## LA-REV-216
+
+- Scope: Lotus-core stateful-context base URL derivation sanitization
+- Pattern: sensitive configuration handling and upstream integration hardening
+- Status: Hardened
+- Finding Class: security and configuration hygiene gap
+- Summary: Stateful-context query/control-plane URL derivation preserved embedded credentials
+  from `LOTUS_CORE_BASE_URL` or `LOTUS_CORE_QUERY_BASE_URL`. Those derived URLs are reused across
+  upstream source reads, making credential-bearing URL propagation an avoidable security and
+  diagnostics risk.
+- Evidence:
+  - `src/integrations/lotus_core/stateful_context_routes.py` now strips URL credentials, query
+    strings, and fragments while preserving host, path, scheme, and query/control-plane port
+    derivation.
+  - Stateful-context tests now verify explicit query URLs and derived query/control-plane URLs do
+    not retain credentials or sensitive URL components.
+- Consequence:
+  - Lotus-core stateful context reads use cleaner derived service URLs and no longer propagate
+    embedded URL credentials through Advise integration routing.
+- Documentation:
+  - No wiki source change is required. This is runtime configuration hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
+
+## LA-REV-217
+
+- Scope: Lotus-core simulation base URL sanitization
+- Pattern: sensitive configuration handling and upstream integration hardening
+- Status: Hardened
+- Finding Class: security and configuration hygiene gap
+- Summary: The direct lotus-core simulation adapter still constructed upstream request URLs from
+  raw `LOTUS_CORE_BASE_URL` even after stateful-context routing was hardened. Credential-bearing
+  URLs, query tokens, fragments, or non-http schemes could therefore reach the simulation call
+  path.
+- Evidence:
+  - `src/integrations/base.py` now provides reusable `sanitized_http_base_url` for integration
+    runtime URL handling.
+  - `src/integrations/lotus_core/simulation.py` now strips credentials, query strings, and
+    fragments from the configured base URL and rejects non-http(s) values before opening a client.
+  - Lotus-core simulation tests now prove sanitized request URL construction and fail-closed
+    behavior for invalid configured schemes.
+- Consequence:
+  - Advise no longer propagates embedded URL credentials through the direct lotus-core simulation
+    execution path, and invalid schemes fail before network activity.
+- Documentation:
+  - No wiki source change is required. This is runtime configuration hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
+
+## LA-REV-218
+
+- Scope: Lotus AI adapter base URL sanitization
+- Pattern: sensitive configuration handling, duplicate integration setup, and fail-closed adapter
+  configuration
+- Status: Hardened
+- Finding Class: security and maintainability gap
+- Summary: The Lotus AI adapters resolved `LOTUS_AI_BASE_URL` independently across proposal
+  narrative, proposal memo commentary, policy evidence, workspace rationale, and advisory copilot
+  paths. The duplicated parsing accepted raw configured URLs, which made it easier for
+  credential-bearing URLs, query tokens, fragments, or unsupported schemes to leak into workflow
+  pack calls.
+- Evidence:
+  - `src/integrations/lotus_ai/runtime_config.py` centralizes Lotus AI base URL resolution through
+    the shared sanitized HTTP URL helper.
+  - The five Lotus AI workflow-pack adapters now use the shared resolver instead of local
+    environment parsing.
+  - `tests/unit/advisory/api/test_lotus_ai_runtime_config.py` proves every adapter strips
+    credentials, query strings, and fragments while rejecting invalid schemes with the
+    adapter-specific unavailable error.
+- Consequence:
+  - AI-assisted advisory paths now fail closed on invalid runtime configuration and no longer
+    propagate embedded URL secrets through workflow-pack endpoints.
+- Documentation:
+  - No wiki source change is required. This is runtime configuration hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
+
+## LA-REV-219
+
+- Scope: Lotus Risk and Lotus Report adapter base URL sanitization
+- Pattern: sensitive configuration handling and upstream integration hardening
+- Status: Hardened
+- Finding Class: security and configuration hygiene gap
+- Summary: The direct lotus-risk enrichment and lotus-report package adapters still constructed
+  upstream request URLs from raw `LOTUS_RISK_BASE_URL` and `LOTUS_REPORT_BASE_URL`. This left two
+  RFC 23-28 integration paths able to propagate embedded URL credentials, query tokens, fragments,
+  or unsupported schemes into outbound service calls.
+- Evidence:
+  - `src/integrations/lotus_risk/enrichment.py` now sanitizes and validates the configured base URL
+    before opening an HTTP client and reuses the resolved URL across retry attempts.
+  - `src/integrations/lotus_report/adapter.py` now sanitizes and validates the configured base URL
+    before report-package requests.
+  - Risk and report adapter tests prove sanitized request URL construction and fail-closed behavior
+    for invalid configured schemes without opening an HTTP client.
+- Consequence:
+  - Advise integration calls to risk and report services no longer propagate embedded URL secrets,
+    and invalid schemes fail before network activity.
+- Documentation:
+  - No wiki source change is required. This is runtime configuration hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
+
+## LA-REV-220
+
+- Scope: Dependency health probe URL sanitization
+- Pattern: sensitive configuration handling and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: security and observability hygiene gap
+- Summary: Dependency readiness probing validated that configured service URLs were HTTP(S), but
+  still built `/health/ready` and `/health` requests from the raw configured value. A
+  credential-bearing URL, query token, or fragment could therefore leak into probe URLs even though
+  public dependency state already used sanitized values.
+- Evidence:
+  - `src/integrations/base.py` now resolves a sanitized HTTP probe base URL once and uses that
+    value for readiness checks.
+  - `tests/unit/advisory/api/test_integrations_base.py` proves probe calls strip embedded
+    credentials, query strings, and fragments while preserving scheme, host, port, and path.
+- Consequence:
+  - Operational readiness checks no longer propagate embedded URL secrets through diagnostic
+    health-probe requests.
+- Documentation:
+  - No wiki source change is required. This is internal operational hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
+
+## LA-REV-221
+
+- Scope: Dependency readiness invalid-configuration posture
+- Pattern: API truthfulness, operational diagnostics, and configuration validation
+- Status: Hardened
+- Finding Class: readiness overclaim and API semantics gap
+- Summary: Dependency readiness treated any non-empty base URL configuration as
+  `configuration_only` ready when runtime probes were disabled, even when the configured value was
+  not a usable HTTP(S) base URL. This could overstate `/platform/capabilities` readiness for
+  malformed service configuration.
+- Evidence:
+  - `src/integrations/base.py` now marks configured but invalid dependency URLs as
+    `invalid_configuration`, keeps `operational_ready=false`, and avoids runtime probing.
+  - Dependency readiness probes now receive sanitized base URLs instead of raw configured values.
+  - `src/api/capabilities/models.py` documents the new readiness basis in the response contract.
+  - Integration and `/platform/capabilities` tests prove invalid configured URLs remain configured
+    but fail closed without making dependent features or workflows ready.
+- Consequence:
+  - Operator and API readiness output no longer overclaims bank-runtime readiness when dependency
+    URLs are malformed.
+- Documentation:
+  - No wiki source change is required. This is API readiness-contract hardening; the OpenAPI
+    response model carries the implementation-backed contract truth.
+- Follow-Up:
+  - None.
+
+## LA-REV-222
+
+- Scope: Enterprise audit structured log serialization
+- Pattern: auditability and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: audit evidence serialization gap
+- Summary: Enterprise audit events attached audit details to log records through
+  `extra={"audit": ...}`, but the JSON log formatter only serialized `extra_fields`. This left
+  audit details visible to in-process `caplog` assertions while risking loss from actual structured
+  JSON log output.
+- Evidence:
+  - `src/api/observability.py` now emits an `audit` object when a log record carries structured
+    audit data.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now formats an emitted enterprise audit
+    event through the production JSON formatter and proves normalized correlation IDs plus redacted
+    sensitive metadata are present in the JSON payload.
+- Consequence:
+  - Enterprise authorization and write-path audit events remain machine-readable in production log
+    pipelines instead of only being available inside Python log records.
+- Documentation:
+  - No wiki source change is required. This is observability serialization hardening with no
+    supported feature posture change.
+- Follow-Up:
+  - None.
+
+## LA-REV-223
+
+- Scope: Correlation and request ID boundary hardening
+- Pattern: response-header safety, log hygiene, and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: reflected diagnostic identifier validation gap
+- Summary: Inbound correlation and request identifiers were trimmed but otherwise trusted before
+  being reflected into response headers and structured logs. Oversized or control-character-bearing
+  identifiers could therefore degrade log quality or produce unsafe diagnostic headers.
+- Evidence:
+  - `src/core/proposals/correlation.py` now rejects oversized and control-character-bearing
+    correlation IDs before preserving caller values.
+  - `src/api/observability.py` now applies the same boundary to request IDs and response-provided
+    correlation IDs before reflecting them.
+  - Unit and API tests prove oversized inbound IDs are replaced by generated Lotus IDs.
+- Consequence:
+  - Diagnostic identifiers remain bounded and safe for response headers, logs, and cross-service
+    tracing while preserving valid caller-supplied IDs.
+- Documentation:
+  - No wiki source change is required. This is operational boundary hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
+
+## LA-REV-224
+
+- Scope: Enterprise audit identity normalization
+- Pattern: auditability, response-header safety, and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: audit identity hygiene gap
+- Summary: Enterprise audit events normalized correlation IDs but emitted actor, tenant, and role
+  values directly from caller headers. Padded, blank, oversized, or control-character-bearing audit
+  identity fields could therefore degrade machine-readable audit records.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now normalizes audit actor, tenant, and role values before
+    structured audit emission, with bounded fallbacks for invalid values.
+  - Enterprise readiness tests prove trimmed actor/role values are preserved and invalid tenant
+    identity falls back to `default`.
+- Consequence:
+  - Authorization and write-path audit records use bounded, clean identity fields suitable for
+    production log indexing and review.
+- Documentation:
+  - No wiki source change is required. This is audit serialization hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
+
+## LA-REV-225
+
+- Scope: Workspace rationale Lotus AI tenant context
+- Pattern: domain vocabulary, private-banking tenant posture, and configuration consistency
+- Status: Hardened
+- Finding Class: stale hardcoded tenant context gap
+- Summary: The workspace rationale Lotus AI adapter still sent a hardcoded `tenant-us-002`
+  workflow caller context while the rest of the advisory AI integration used the Singapore private
+  banking default or the `LOTUS_ADVISE_TENANT_ID` runtime setting. This created inconsistent
+  tenant context for RFC 27 workspace rationale flows.
+- Evidence:
+  - `src/integrations/lotus_ai/rationale.py` now uses `LOTUS_ADVISE_TENANT_ID` with the governed
+    `tenant-sg-001` default.
+  - Lotus AI rationale tests prove both the default private-banking tenant context and runtime
+    tenant override behavior.
+- Consequence:
+  - Workspace rationale workflow-pack calls now carry consistent private-banking tenant context
+    across advisory AI paths.
+- Documentation:
+  - No wiki source change is required. This aligns runtime configuration behavior with existing
+    advisory AI tenant posture and does not change supported feature scope.
+- Follow-Up:
+  - None.
+
+## LA-REV-226
+
+- Scope: Enterprise write-denial audit middleware
+- Pattern: auditability, operational diagnostics, and security posture
+- Status: Hardened
+- Finding Class: unaudited payload-size denial gap
+- Summary: Oversized write requests were denied with `413 payload_too_large` before the normal
+  response path, which meant the denial did not emit an enterprise audit event and did not include
+  the enterprise policy-version response header. This weakened supportability for blocked write
+  attempts on advisory RFC 23-28 APIs.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now emits a structured `DENY <method> <path>` audit event
+    for payload-size denials with bounded metadata for content length and configured maximum.
+  - Enterprise middleware tests prove the 413 denial audit payload and policy-version header.
+  - Authorization-denial middleware tests prove the 403 path also carries the policy-version
+    header.
+- Consequence:
+  - Security, compliance, and operations can correlate rejected write attempts without inspecting
+    request bodies or relying on infrastructure-only logs.
+- Documentation:
+  - No wiki source change is required. This tightens existing enterprise middleware behavior
+    without changing supported feature scope.
+- Follow-Up:
+  - None.
+
+## LA-REV-227
+
+- Scope: Lotus Report outbound identity headers
+- Pattern: outbound integration hardening, private-banking tenant posture, and duplication removal
+- Status: Hardened
+- Finding Class: duplicated and weakly bounded downstream identity context
+- Summary: Lotus Report adapter calls built outbound identity headers separately in each report
+  path, defaulted tenant context to `default`, and passed raw `requested_by` values through
+  headers and report options. This created inconsistent private-banking tenant posture and avoidable
+  downstream header hygiene risk.
+- Evidence:
+  - `src/integrations/lotus_report/adapter.py` now uses one shared report-header builder across
+    portfolio review, memo package, and policy sign-off package calls.
+  - Outbound report calls use the governed `LOTUS_ADVISE_TENANT_ID` setting with `tenant-sg-001`
+    default and bounded actor identity values for headers and report options.
+  - Lotus Report adapter tests prove default tenant context, tenant override, invalid tenant
+    fallback, and malformed actor fallback without opening new downstream contracts.
+- Consequence:
+  - Reporting integration calls carry consistent private-banking context and avoid propagating
+    malformed actor identifiers into downstream report audit or render/archive jobs.
+- Documentation:
+  - No wiki source change is required. This tightens existing integration behavior without changing
+    supported feature scope.
+- Follow-Up:
+  - None.
+
+## LA-REV-228
+
+- Scope: Lotus Core and Lotus Risk outbound correlation headers
+- Pattern: integration boundary hardening, observability, and downstream diagnostics
+- Status: Hardened
+- Finding Class: weak outbound correlation-id normalization
+- Summary: Lotus Core simulation and Lotus Risk enrichment clients passed caller-provided
+  correlation identifiers directly into downstream headers. API entrypoints already normalize
+  request IDs, but the integration clients lacked defensive boundary normalization for direct
+  service use and tests.
+- Evidence:
+  - `src/integrations/lotus_core/simulation.py` now resolves outbound correlation IDs before
+    calling Lotus Core.
+  - `src/integrations/lotus_risk/enrichment.py` now resolves one outbound correlation ID per
+    enrichment request and reuses it across retry attempts.
+  - Integration client tests prove malformed correlation IDs are not propagated downstream.
+- Consequence:
+  - Downstream Core and Risk logs receive bounded correlation identifiers even when an internal
+    caller bypasses normal API ingress validation.
+- Documentation:
+  - No wiki source change is required. This tightens existing observability hygiene without
+    changing supported feature scope.
+- Follow-Up:
+  - None.
+
+## LA-REV-229
+
+- Scope: Lotus Report status retrieval path
+- Pattern: outbound integration hardening and downstream URL trust boundary
+- Status: Hardened
+- Finding Class: weak downstream status-url constraint
+- Summary: Lotus Report memo and policy package flows consumed the downstream `status_url`
+  response value directly when retrieving render/archive status. The call still used the configured
+  Lotus Report base URL, but the adapter did not explicitly constrain the response path to the
+  expected report-job route.
+- Evidence:
+  - `src/integrations/lotus_report/adapter.py` now retrieves status only for clean relative
+    `/reports/jobs/...` paths.
+  - Lotus Report adapter tests prove valid status paths are fetched and untrusted absolute status
+    URLs are ignored without losing the accepted report job posture.
+- Consequence:
+  - Advise no longer follows unexpected report status paths from downstream response payloads,
+    keeping render/archive polling inside the documented Lotus Report job route.
+- Documentation:
+  - No wiki source change is required. This is boundary hardening for an existing integration path.
+- Follow-Up:
+  - None.
+
+## LA-REV-230
+
+- Scope: Lotus AI workflow-pack tenant context
+- Pattern: private-banking tenant posture, outbound integration consistency, and runtime
+  configuration hardening
+- Status: Hardened
+- Finding Class: inconsistent workflow-pack caller tenant context
+- Summary: Lotus AI advisory copilot and workspace rationale calls carried tenant context, but
+  proposal memo commentary, proposal narrative, and policy evidence workflow-pack calls did not.
+  The tenant resolution was also duplicated and not bounded for invalid environment values.
+- Evidence:
+  - `src/integrations/lotus_ai/runtime_config.py` now exposes one bounded
+    `resolve_lotus_ai_tenant_id()` helper with the governed `tenant-sg-001` default.
+  - Advisory copilot, workspace rationale, proposal memo commentary, proposal narrative, and policy
+    evidence adapters all use the shared tenant resolver in workflow-pack caller context.
+  - Lotus AI runtime-config tests prove default, override, and invalid tenant fallback behavior.
+  - Workflow-pack request tests prove memo, narrative, and policy evidence calls include the
+    private-banking tenant context.
+- Consequence:
+  - All Advise-to-Lotus-AI workflow-pack calls now carry consistent bounded private-banking tenant
+    context for downstream audit, review, and operational diagnostics.
+- Documentation:
+  - No wiki source change is required. This aligns existing AI integration calls with the already
+    documented advisory AI tenant posture.
+- Follow-Up:
+  - None.

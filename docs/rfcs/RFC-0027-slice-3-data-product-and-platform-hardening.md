@@ -12,7 +12,7 @@
 
 ## Decision
 
-RFC-0027 now has a first-wave copilot domain foundation, but it still lacks runtime action APIs,
+RFC-0027 now has a supported copilot domain foundation, but it still lacks runtime action APIs,
 durable evidence-packet and run persistence, review-state persistence, `lotus-ai` workflow-pack
 execution, Gateway routing, Workbench product surfaces, canonical live proof, and production
 evidence. Declaring a copilot data product or capability now would be misleading.

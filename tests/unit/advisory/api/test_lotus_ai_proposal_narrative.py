@@ -87,7 +87,11 @@ def _narrative_policy() -> ProposalNarrativePolicy:
     )
 
 
-def test_workflow_pack_request_uses_structured_grounding_packet_without_raw_prompt() -> None:
+def test_workflow_pack_request_uses_structured_grounding_packet_without_raw_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID", raising=False)
+
     request_payload = _build_workflow_pack_request(
         grounding_packet=_grounding_packet(),
         narrative_policy=_narrative_policy(),
@@ -97,6 +101,8 @@ def test_workflow_pack_request_uses_structured_grounding_packet_without_raw_prom
 
     task_request = request_payload["task_request"]
     assert isinstance(task_request, dict)
+    caller = task_request["caller"]
+    assert isinstance(caller, dict)
     context = task_request["context"]
     assert isinstance(context, dict)
     payload = context["payload"]
@@ -104,6 +110,7 @@ def test_workflow_pack_request_uses_structured_grounding_packet_without_raw_prom
 
     assert request_payload["pack_id"] == "proposal_narrative_draft.pack"
     assert task_request["input_mode"] == "STRUCTURED_CONTEXT"
+    assert caller["tenant_id"] == "tenant-sg-001"
     assert "prompt" not in task_request
     assert "instruction" not in task_request
     assert "prompt" not in payload

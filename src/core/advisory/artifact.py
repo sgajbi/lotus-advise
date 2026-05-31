@@ -431,7 +431,7 @@ def build_proposal_artifact(
             product_docs=[
                 ProposalArtifactProductDoc(
                     instrument_id=instrument_id,
-                    doc_ref="KID/FactSheet placeholder",
+                    doc_ref="KID/FactSheet reference pending source confirmation",
                 )
                 for instrument_id in traded_instruments
             ],

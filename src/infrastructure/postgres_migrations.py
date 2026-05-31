@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -20,13 +24,34 @@ def apply_postgres_migrations(*, connection: Any, namespace: str) -> None:
     try:
         _apply_migrations_locked(connection=connection, namespace=namespace)
     except Exception:
-        try:
-            connection.rollback()
-        except Exception:
-            pass
+        _rollback_failed_migration(connection=connection, namespace=namespace)
         raise
     finally:
+        _unlock_migration_lock(connection=connection, namespace=namespace, lock_key=lock_key)
+
+
+def _rollback_failed_migration(*, connection: Any, namespace: str) -> None:
+    try:
+        connection.rollback()
+    except Exception:
+        logger.exception(
+            "Postgres migration rollback failed",
+            extra={"migration_namespace": namespace},
+        )
+
+
+def _unlock_migration_lock(*, connection: Any, namespace: str, lock_key: int) -> None:
+    active_exception = sys.exc_info()[1]
+    try:
         connection.execute("SELECT pg_advisory_unlock(%s::bigint)", (lock_key,))
+    except Exception as exc:
+        if active_exception is not None:
+            logger.exception(
+                "Postgres migration advisory unlock failed after migration error",
+                extra={"migration_namespace": namespace},
+            )
+            return
+        raise RuntimeError(f"POSTGRES_MIGRATION_UNLOCK_FAILED:{namespace}") from exc
 
 
 def _apply_migrations_locked(*, connection: Any, namespace: str) -> None:

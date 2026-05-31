@@ -52,7 +52,7 @@ def test_rfc0025_resolves_preimplementation_decisions_before_coding() -> None:
         "SG_PRIVATE_BANKING_REFERENCE",
         "PB_SG_GLOBAL_BAL_001",
         "Client-ready publication stays blocked",
-        "`lotus-core` is the first-wave source authority",
+        "`lotus-core` is the source authority",
         "`lotus-risk` is the source authority",
         "RFC-0025 consumes only implementation-backed RFC-0016 or owner-repo evidence",
         "No local-only policy scaffold may be introduced before Slice 1",

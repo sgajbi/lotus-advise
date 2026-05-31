@@ -70,7 +70,7 @@ CopilotUnsupportedEvidenceReason = Literal[
 
 class CopilotActionDefinition(BaseModel):
     action_family: CopilotActionFamily = Field(
-        description="Stable first-wave governed advisory copilot action family.",
+        description="Stable supported governed advisory copilot action family.",
         examples=["PROPOSAL_EXPLANATION"],
     )
     display_name: str = Field(
@@ -99,7 +99,7 @@ class CopilotActionDefinition(BaseModel):
     )
     workflow_pack_version: str = Field(
         default="v1",
-        description="Workflow-pack version expected by first-wave copilot integration.",
+        description="Workflow-pack version expected by supported copilot integration.",
         examples=["v1"],
     )
     workbench_surface_key: str = Field(
@@ -115,7 +115,7 @@ class CopilotActionDefinition(BaseModel):
     )
     client_ready_publication: CopilotClientReadyPosture = Field(
         default="BLOCKED",
-        description="Client-ready publication posture for all first-wave copilot output.",
+        description="Client-ready publication posture for all supported copilot output.",
         examples=["BLOCKED"],
     )
 

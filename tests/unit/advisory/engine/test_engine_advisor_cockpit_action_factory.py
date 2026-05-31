@@ -21,13 +21,13 @@ from src.core.advisor_cockpit import (
     build_client_follow_up_action,
     build_execution_handoff_ready_action,
     build_execution_status_attention_action,
-    build_first_wave_cockpit_actions,
     build_house_view_impact_action,
     build_meeting_preparation_action,
     build_memo_package_blocked_action,
     build_policy_review_required_action,
     build_report_render_archive_action,
     build_source_backed_action,
+    build_source_backed_cockpit_actions,
     build_supportability_degraded_action,
     build_unsupported_capability_action,
 )
@@ -380,8 +380,8 @@ def test_source_backed_action_builder_rejects_unexplained_actions() -> None:
         )
 
 
-def test_first_wave_builder_returns_stable_priority_order() -> None:
-    actions = build_first_wave_cockpit_actions(
+def test_source_backed_builder_returns_stable_priority_order() -> None:
+    actions = build_source_backed_cockpit_actions(
         policy_reviews=[
             PolicyReviewActionSource(
                 policy_evaluation_id="policy_eval_sg_001",

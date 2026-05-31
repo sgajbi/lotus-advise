@@ -1412,7 +1412,7 @@ def test_workspace_handoff_creates_proposal_then_new_version_without_duplicating
         )
         first_handoff = client.post(
             f"/advisory/workspaces/{workspace_id}/handoff",
-            headers={"Idempotency-Key": "workspace-handoff-idem-001"},
+            headers={"Idempotency-Key": "  workspace-handoff-idem-001  "},
             json={
                 "handoff_by": "advisor_123",
                 "metadata": {
@@ -1447,6 +1447,10 @@ def test_workspace_handoff_creates_proposal_then_new_version_without_duplicating
     assert first_body["proposal"]["proposal"]["source_workspace_id"] == workspace_id
     assert first_body["workspace"]["lifecycle_link"]["proposal_id"] == proposal_id
     assert first_body["proposal"]["version"]["version_no"] == 1
+    assert (
+        first_body["proposal"]["version"]["proposal_result"]["lineage"]["idempotency_key"]
+        == "workspace-handoff-idem-001"
+    )
 
     assert second_handoff.status_code == 200
     second_body = second_handoff.json()

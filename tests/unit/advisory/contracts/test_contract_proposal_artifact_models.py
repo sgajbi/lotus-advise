@@ -142,7 +142,7 @@ def test_proposal_artifact_contract_shape():
             product_docs=[
                 ProposalArtifactProductDoc(
                     instrument_id="EQ_1",
-                    doc_ref="KID/FactSheet placeholder",
+                    doc_ref="KID/FactSheet reference pending source confirmation",
                 )
             ],
         ),

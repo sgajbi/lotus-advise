@@ -27,7 +27,7 @@ def test_policy_pack_validation_is_hash_backed_and_idempotent() -> None:
         policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
         policy_version="2026.05",
         requested_by="policy_steward_1",
-        idempotency_key="validate-sg-reference",
+        idempotency_key="  validate-sg-reference  ",
         reason={"purpose": "pre-activation validation"},
     )
     replayed = validate_policy_pack_version(
@@ -41,6 +41,7 @@ def test_policy_pack_validation_is_hash_backed_and_idempotent() -> None:
     assert response.validation_status == "READY"
     assert response.policy_pack.content_hash == detail.policy_pack.content_hash
     assert response.validation_event.content_hash == detail.policy_pack.content_hash
+    assert response.validation_event.idempotency_key == "validate-sg-reference"
     assert response.validation_event.reason["dry_run_status"] == "REFERENCE_FIXTURES_VALIDATED"
     assert "PB_SG_GLOBAL_BAL_001" in response.validation_event.reason["sample_fixture_refs"]
     assert replayed.replayed is True
@@ -104,7 +105,7 @@ def test_policy_pack_activation_enforces_hash_maker_checker_and_immutability() -
         policy_version="2026.05",
         activated_by="policy_checker_1",
         source_content_hash=detail.policy_pack.content_hash,
-        idempotency_key="activate-sg-reference",
+        idempotency_key="  activate-sg-reference  ",
         reason={"purpose": "activate reference pack"},
     )
     replayed = activate_policy_pack_version(
@@ -117,6 +118,7 @@ def test_policy_pack_activation_enforces_hash_maker_checker_and_immutability() -
     )
 
     assert activated.policy_pack.activation_state == "ACTIVE"
+    assert activated.activation_event.idempotency_key == "activate-sg-reference"
     assert activated.policy_pack.content_hash == detail.policy_pack.content_hash
     assert activated.activation_event.reason["validated_by"] == "policy_steward_1"
     assert replayed.replayed is True

@@ -171,12 +171,13 @@ def test_policy_sign_off_requires_maker_checker_and_all_requirements_resolved() 
             satisfied_consent_requirements=record.consent_requirements,
             reason={"purpose": "all requirements reviewed"},
         ),
-        idempotency_key="policy-sign-off-decision-001",
+        idempotency_key="  policy-sign-off-decision-001  ",
     )
 
     assert response.workflow.sign_off_status == "SIGNED_OFF"
     assert response.workflow.sign_off_blockers == []
     assert response.sign_off_event.event_type == "POLICY_EVALUATION_SIGN_OFF_RECORDED"
+    assert response.sign_off_event.idempotency_key == "policy-sign-off-decision-001"
     assert response.replay_metadata["client_ready_publication"] == "BLOCKED"
 
 

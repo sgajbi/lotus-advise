@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -60,6 +62,11 @@ def _evidence_packet_payload() -> dict[str, Any]:
             }
         ],
     }
+
+
+def _opaque_cursor_payload(**payload: object) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(encoded).decode("ascii").rstrip("=")
 
 
 def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:
@@ -139,7 +146,7 @@ def test_advisory_copilot_evidence_packet_create_and_read(
         created = client.post(
             "/advisory/copilot/evidence-packets",
             json=_evidence_packet_payload(),
-            headers={"X-Correlation-ID": "corr_packet_001"},
+            headers={"X-Correlation-ID": "  corr_packet_001  "},
         )
         read = client.get("/advisory/copilot/evidence-packets/copilot_packet_pb_sg_001")
 
@@ -311,7 +318,7 @@ def test_advisory_copilot_action_persists_review_gated_run(
                 "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
                 "workflow_pack_version": "v1",
                 "workflow_run_id": "packrun_copilot_001",
-                "model_version": "stub-advisory-copilot-v1",
+                "model_version": "lotus-ai-governed-model.v1",
                 "prompt_template_version": "advisory-copilot-prompt-template.v1",
                 "output_schema_version": "advisory-copilot-output-schema.v1",
                 "evaluation_pack_ref": "advisory-copilot-eval-pack.v1",
@@ -338,7 +345,7 @@ def test_advisory_copilot_action_persists_review_gated_run(
             },
             headers={
                 "Idempotency-Key": "copilot-action-idem-001",
-                "X-Correlation-ID": "corr_action_001",
+                "X-Correlation-ID": "  corr_action_001  ",
             },
         )
         replay = client.post(
@@ -365,6 +372,7 @@ def test_advisory_copilot_action_persists_review_gated_run(
     assert replay.status_code == 200
     assert replay.json()["replayed"] is True
     assert read.json()["run"]["review_posture"] == "REVIEW_REQUIRED"
+    assert read.json()["run"]["correlation_id"] == "corr_action_001"
     assert read.json()["reviews"] == []
     assert version_runs.json()["items"][0]["run_id"] == run_id
     assert "Summarize the advisory evidence" not in str(read.json())
@@ -430,10 +438,22 @@ def test_proposal_version_copilot_runs_are_paginated(
             "version_sg_001/copilot-runs",
             params={"cursor": "not-a-valid-cursor"},
         )
+        naive_timestamp_cursor = client.get(
+            "/advisory/proposals/proposal_sg_structured_note_001/versions/"
+            "version_sg_001/copilot-runs",
+            params={
+                "cursor": _opaque_cursor_payload(
+                    created_at="2026-05-28T09:00:00",
+                    run_id="copilot_run_001",
+                )
+            },
+        )
 
     assert first_page.status_code == 200
     assert second_page.status_code == 200
     assert invalid_cursor.status_code == 422
+    assert naive_timestamp_cursor.status_code == 422
+    assert naive_timestamp_cursor.json()["detail"] == "COPILOT_RUN_CURSOR_INVALID"
     assert len(first_page.json()["items"]) == 2
     assert first_page.json()["next_cursor"] is not None
     assert len(second_page.json()["items"]) == 1
@@ -480,22 +500,37 @@ def test_advisory_copilot_review_api_is_idempotent(
                 "actor_id": "supervisor_123",
                 "reason": {"decision": "Reviewed against cited source evidence."},
             },
-            headers={"Idempotency-Key": "copilot-review-idem-001"},
+            headers={
+                "Idempotency-Key": "copilot-review-idem-001",
+                "X-Correlation-ID": "  corr_review_001  ",
+            },
         )
         replay = client.post(
             f"/advisory/copilot/actions/{run['run_id']}/reviews",
             json={
                 "action": "APPROVE_FOR_INTERNAL_USE",
-                "actor_id": "supervisor_123",
+                "actor_id": "  supervisor_123  ",
                 "reason": {"decision": "Reviewed against cited source evidence."},
             },
             headers={"Idempotency-Key": "copilot-review-idem-001"},
+        )
+        blank_actor = client.post(
+            f"/advisory/copilot/actions/{run['run_id']}/reviews",
+            json={
+                "action": "APPROVE_FOR_INTERNAL_USE",
+                "actor_id": "   ",
+                "reason": {"decision": "Reviewed against cited source evidence."},
+            },
+            headers={"Idempotency-Key": "copilot-review-idem-blank"},
         )
 
     assert first.status_code == 200
     assert replay.status_code == 200
     assert replay.json()["replayed"] is True
+    assert first.json()["review"]["actor_id"] == "supervisor_123"
+    assert first.json()["review"]["correlation_id"] == "corr_review_001"
     assert first.json()["run"]["review_posture"] == "APPROVED_FOR_INTERNAL_USE"
+    assert blank_actor.status_code == 422
 
 
 def test_advisory_copilot_supportability_is_static_contract_without_repository() -> None:

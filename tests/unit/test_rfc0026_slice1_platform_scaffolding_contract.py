@@ -31,7 +31,7 @@ def test_rfc0026_slice1_is_indexed_and_non_claiming() -> None:
     assert "This slice does not implement advisor cockpit APIs" in slice1
     assert "Those remain mandatory RFC-0026 work in subsequent slices" in slice1
     assert "Slice 1 is complete as platform-scaffolding review only" in flat_supported
-    assert "Implemented for the source-owned first-wave advisor cockpit" in flat_supported
+    assert "Implemented for the source-owned advisor cockpit" in flat_supported
 
 
 def test_rfc0026_slice1_reuses_platform_controls_without_premature_scaffolding() -> None:

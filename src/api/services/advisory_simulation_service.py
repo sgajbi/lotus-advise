@@ -9,6 +9,7 @@ from src.api.proposals.router import get_proposal_repository
 from src.core.advisory.alternatives_normalizer import AlternativesRequestNormalizationError
 from src.core.advisory.orchestration import evaluate_advisory_proposal
 from src.core.common.canonical import hash_canonical_payload
+from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.models import ProposalResult
 from src.core.proposals.context import (
     ProposalContextResolutionError,
@@ -38,6 +39,10 @@ def simulate_proposal_response(
     correlation_id: Optional[str],
     resolved_request: ResolvedSimulationContext | None = None,
 ) -> ProposalResult:
+    try:
+        idempotency_key = normalize_required_idempotency_key(idempotency_key)
+    except ValueError as exc:
+        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE, detail=str(exc)) from exc
     resolved_request = resolved_request or resolve_simulation_input(request)
 
     try:

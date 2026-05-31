@@ -14,7 +14,7 @@ from src.core.advisor_cockpit.action_factory import (
     ReportRenderArchiveActionSource,
     SupportabilityDegradedActionSource,
     UnsupportedCapabilityActionSource,
-    build_first_wave_cockpit_actions,
+    build_source_backed_cockpit_actions,
 )
 from src.core.advisor_cockpit.models import AdvisoryActionItem
 from src.core.policy_packs.models import PolicyEvaluationRecord
@@ -118,7 +118,9 @@ class AdvisorCockpitSourceReadModel(BaseModel):
         description="Unsupported capability markers that must remain visible."
     )
     action_items: list[AdvisoryActionItem] = Field(
-        description="Sorted first-wave cockpit action items derived from the source batch."
+        description=(
+            "Sorted source-backed cockpit action items derived from the bounded source batch."
+        )
     )
 
 
@@ -198,7 +200,7 @@ def build_advisor_cockpit_source_read_model(
         )
         is not None
     ]
-    action_items = build_first_wave_cockpit_actions(
+    action_items = build_source_backed_cockpit_actions(
         policy_reviews=policy_reviews,
         memo_blocks=memo_blocks,
         meeting_preparations=meeting_preparations,

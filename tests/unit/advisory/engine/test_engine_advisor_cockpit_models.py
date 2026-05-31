@@ -9,9 +9,11 @@ from src.core.advisor_cockpit import (
     AdvisorCockpitOperatingSnapshot,
     AdvisoryActionItem,
     CockpitCallerContext,
+    cockpit_cursor_start,
     normalize_cockpit_page_size,
     sort_cockpit_action_items,
 )
+from src.core.proposals.exceptions import ProposalValidationError
 
 
 def _action(
@@ -99,6 +101,41 @@ def test_advisor_cockpit_page_size_is_bounded_for_large_books() -> None:
     assert normalize_cockpit_page_size(0) == 25
     assert normalize_cockpit_page_size(250) == 100
     assert normalize_cockpit_page_size(50) == 50
+
+
+def test_advisor_cockpit_cursor_start_is_reusable_and_validated() -> None:
+    actions = [_action("a-1"), _action("a-2"), _action("a-3")]
+
+    assert (
+        cockpit_cursor_start(
+            items=actions,
+            cursor=None,
+            identity=lambda action: action.action_item_id,
+            invalid_code="ADVISOR_COCKPIT_CURSOR_INVALID",
+        )
+        == 0
+    )
+    assert (
+        cockpit_cursor_start(
+            items=actions,
+            cursor="a-2",
+            identity=lambda action: action.action_item_id,
+            invalid_code="ADVISOR_COCKPIT_CURSOR_INVALID",
+        )
+        == 2
+    )
+
+    try:
+        cockpit_cursor_start(
+            items=actions,
+            cursor="missing-action",
+            identity=lambda action: action.action_item_id,
+            invalid_code="ADVISOR_COCKPIT_CURSOR_INVALID",
+        )
+    except ProposalValidationError as exc:
+        assert str(exc) == "ADVISOR_COCKPIT_CURSOR_INVALID"
+    else:
+        raise AssertionError("missing action cursor should fail validation")
 
 
 def test_advisor_cockpit_core_package_has_no_api_or_ui_dependency() -> None:

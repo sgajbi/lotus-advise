@@ -12,6 +12,11 @@ from prometheus_client import Counter
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.api.observability_contracts import ADVISORY_SUPPORTABILITY_METRIC_LABELS
+from src.core.proposals.correlation import (
+    MAX_CORRELATION_ID_LENGTH,
+    normalize_optional_correlation_id,
+    resolve_correlation_id,
+)
 
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="")
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
@@ -24,9 +29,32 @@ ADVISORY_SUPPORTABILITY_TOTAL = Counter(
 )
 
 
+def _meaningful_header(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+def _normalize_request_id(request_id: str | None) -> str | None:
+    meaningful = _meaningful_header(request_id)
+    if meaningful is None:
+        return None
+    if len(meaningful) > MAX_CORRELATION_ID_LENGTH:
+        return None
+    if any(ord(char) < 32 or ord(char) == 127 for char in meaningful):
+        return None
+    return meaningful
+
+
+def _resolve_request_id(request_id: str | None) -> str:
+    meaningful_request_id = _normalize_request_id(request_id)
+    return meaningful_request_id or f"req_{uuid4().hex[:12]}"
+
+
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        payload = {
+        payload: dict[str, object] = {
             "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "service": os.getenv("SERVICE_NAME", "lotus-advise"),
@@ -39,6 +67,8 @@ class JsonFormatter(logging.Formatter):
         }
         if hasattr(record, "extra_fields") and isinstance(record.extra_fields, dict):
             payload.update(record.extra_fields)
+        if hasattr(record, "audit") and isinstance(record.audit, dict):
+            payload["audit"] = record.audit
         return json.dumps({k: v for k, v in payload.items() if v is not None})
 
 
@@ -60,9 +90,9 @@ def setup_observability(app: FastAPI) -> None:
         logger = logging.getLogger("http.access")
         started = time.perf_counter()
 
-        correlation_id = request.headers.get("X-Correlation-Id") or f"corr_{uuid4().hex[:12]}"
-        request_id = request.headers.get("X-Request-Id") or f"req_{uuid4().hex[:12]}"
-        traceparent = request.headers.get("traceparent", "")
+        correlation_id = resolve_correlation_id(request.headers.get("X-Correlation-Id"))
+        request_id = _resolve_request_id(request.headers.get("X-Request-Id"))
+        traceparent = _meaningful_header(request.headers.get("traceparent")) or ""
         trace_id = uuid4().hex
         if traceparent:
             parts = traceparent.split("-")
@@ -90,7 +120,10 @@ def setup_observability(app: FastAPI) -> None:
             request_id_var.reset(request_token)
             trace_id_var.reset(trace_token)
 
-        response_correlation_id = response.headers.get("X-Correlation-Id", correlation_id)
+        response_correlation_id = (
+            normalize_optional_correlation_id(response.headers.get("X-Correlation-Id"))
+            or correlation_id
+        )
         response.headers["X-Correlation-Id"] = response_correlation_id
         response.headers["X-Request-Id"] = request_id
         response.headers["X-Trace-Id"] = trace_id

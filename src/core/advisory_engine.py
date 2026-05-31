@@ -11,6 +11,7 @@ from src.core.advisory.intents import (
 )
 from src.core.common.diagnostics import make_diagnostics_data
 from src.core.common.drift_analytics import compute_drift_analysis
+from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.common.intent_dependencies import link_buy_intent_dependencies
 from src.core.common.simulation_shared import (
     apply_security_trade_to_portfolio,
@@ -53,6 +54,7 @@ def run_proposal_simulation(
     simulation_contract_version: Optional[str] = None,
     policy_context: Optional[dict[str, Any]] = None,
 ) -> ProposalResult:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     run_id = proposal_run_id_from_request_hash(request_hash)
     diagnostics = make_diagnostics_data()
 

@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from pydantic import ValidationError
+
 from src.core.common.canonical import hash_canonical_payload
 from src.core.proposals.context import (
     canonicalize_create_request_payload,
@@ -30,6 +32,16 @@ class AsyncCreatePayloadResolution:
 class AsyncVersionPayloadResolution:
     proposal_id: str
     payload: ProposalVersionRequest
+
+
+def _first_non_blank_string(*values: object) -> str | None:
+    for value in values:
+        if not isinstance(value, str):
+            continue
+        stripped = value.strip()
+        if stripped:
+            return stripped
+    return None
 
 
 def extract_async_submission_hash(operation: ProposalAsyncOperationRecord) -> str | None:
@@ -98,15 +110,15 @@ def resolve_async_create_payload(
     else:
         try:
             payload = ProposalCreateRequest.model_validate(payload_json)
-        except Exception:
+        except ValidationError:
             return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_PAYLOAD_INVALID")
 
-    resolved_idempotency_key = (
-        operation.payload_json.get("idempotency_key")
-        or operation.idempotency_key
-        or fallback_idempotency_key
+    resolved_idempotency_key = _first_non_blank_string(
+        operation.payload_json.get("idempotency_key"),
+        operation.idempotency_key,
+        fallback_idempotency_key,
     )
-    if not isinstance(resolved_idempotency_key, str) or not resolved_idempotency_key:
+    if resolved_idempotency_key is None:
         return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_IDEMPOTENCY_KEY_REQUIRED")
     return AsyncCreatePayloadResolution(
         payload=payload,
@@ -128,13 +140,15 @@ def resolve_async_version_payload(
     else:
         try:
             payload = ProposalVersionRequest.model_validate(payload_json)
-        except Exception:
+        except ValidationError:
             return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_PAYLOAD_INVALID")
 
-    resolved_proposal_id = operation.payload_json.get("proposal_id") or operation.proposal_id
-    if not isinstance(resolved_proposal_id, str) or not resolved_proposal_id:
-        resolved_proposal_id = fallback_proposal_id or ""
-    if not resolved_proposal_id:
+    resolved_proposal_id = _first_non_blank_string(
+        operation.payload_json.get("proposal_id"),
+        operation.proposal_id,
+        fallback_proposal_id,
+    )
+    if resolved_proposal_id is None:
         return AsyncPayloadResolutionFailure(message="PROPOSAL_ASYNC_PROPOSAL_ID_REQUIRED")
     return AsyncVersionPayloadResolution(
         proposal_id=resolved_proposal_id,

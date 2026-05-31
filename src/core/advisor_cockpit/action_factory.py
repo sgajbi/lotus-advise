@@ -790,7 +790,7 @@ def build_unsupported_capability_action(
     )
 
 
-def build_first_wave_cockpit_actions(
+def build_source_backed_cockpit_actions(
     *,
     policy_reviews: Sequence[PolicyReviewActionSource] = (),
     memo_blocks: Sequence[MemoPackageBlockedActionSource] = (),

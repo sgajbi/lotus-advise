@@ -17,6 +17,7 @@ class _FakeClient:
     def __init__(self, *args, responses: dict[str, object], **kwargs) -> None:
         self._responses = responses
         self._enter_error = kwargs.get("enter_error")
+        self.calls: list[str] = []
 
     def __enter__(self) -> "_FakeClient":
         if isinstance(self._enter_error, Exception):
@@ -27,6 +28,7 @@ class _FakeClient:
         return False
 
     def get(self, url: str) -> _FakeResponse:
+        self.calls.append(url)
         response = self._responses.get(url, httpx.ConnectError("unavailable"))
         if isinstance(response, Exception):
             raise response
@@ -49,16 +51,21 @@ def test_runtime_dependency_probing_enabled_respects_override(
 
 def test_probe_dependency_health_checks_ready_then_health(monkeypatch: pytest.MonkeyPatch) -> None:
     base_url = "http://service.dev.lotus"
-    monkeypatch.setattr(
-        "src.integrations.base.httpx.Client",
-        lambda *args, **kwargs: _FakeClient(
+
+    def _client(*args, **kwargs) -> _FakeClient:  # noqa: ANN002, ANN003
+        assert kwargs["follow_redirects"] is False
+        return _FakeClient(
             *args,
             responses={
                 f"{base_url}/health/ready": httpx.ReadTimeout("not ready"),
                 f"{base_url}/health": _FakeResponse(200),
             },
             **kwargs,
-        ),
+        )
+
+    monkeypatch.setattr(
+        "src.integrations.base.httpx.Client",
+        _client,
     )
 
     assert probe_dependency_health(base_url) is True
@@ -77,6 +84,42 @@ def test_probe_dependency_health_reports_false_for_not_ready_and_transport_error
         ),
     )
     assert probe_dependency_health(base_url) is False
+
+
+def test_probe_dependency_health_uses_sanitized_http_base_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sanitized_base_url = "https://service.dev.lotus:9443/api"
+    fake_client = _FakeClient(responses={f"{sanitized_base_url}/health/ready": _FakeResponse(200)})
+
+    monkeypatch.setattr(
+        "src.integrations.base.httpx.Client",
+        lambda *args, **kwargs: fake_client,
+    )
+
+    assert (
+        probe_dependency_health(
+            "https://user:secret@service.dev.lotus:9443/api?token=should-not-leak#fragment"
+        )
+        is True
+    )
+    assert fake_client.calls == [f"{sanitized_base_url}/health/ready"]
+    assert "secret" not in fake_client.calls[0]
+    assert "token" not in fake_client.calls[0]
+
+
+def test_probe_dependency_health_fails_closed_for_non_http_targets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://service.dev.lotus"
+
+    def _unexpected_client(*args, **kwargs) -> _FakeClient:  # noqa: ANN002, ANN003
+        raise AssertionError("invalid dependency probe target should not open a client")
+
+    monkeypatch.setattr("src.integrations.base.httpx.Client", _unexpected_client)
+
+    assert probe_dependency_health("ftp://service.dev.lotus") is False
+    assert probe_dependency_health("https://service.dev.lotus:not-a-port") is False
 
     monkeypatch.setattr(
         "src.integrations.base.httpx.Client",

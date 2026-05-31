@@ -12,6 +12,10 @@ from src.core.advisory.narrative_models import (
     ProposalNarrativePolicy,
     ProposalNarrativeSectionKey,
 )
+from src.integrations.lotus_ai.runtime_config import (
+    resolve_lotus_ai_base_url,
+    resolve_lotus_ai_tenant_id,
+)
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 ADAPTER_VERSION = "proposal-narrative-lotus-ai-adapter.v1"
@@ -85,10 +89,10 @@ def build_ai_fallback_lineage(reason: str) -> ProposalNarrativeAiLineage:
 
 
 def _resolve_base_url() -> str:
-    base_url = os.getenv("LOTUS_AI_BASE_URL", "").strip()
-    if not base_url:
-        raise LotusAIProposalNarrativeUnavailableError("LOTUS_AI_NARRATIVE_UNAVAILABLE")
-    return base_url.rstrip("/")
+    return resolve_lotus_ai_base_url(
+        unavailable_error_type=LotusAIProposalNarrativeUnavailableError,
+        unavailable_message="LOTUS_AI_NARRATIVE_UNAVAILABLE",
+    )
 
 
 def _resolve_timeout() -> httpx.Timeout:
@@ -115,6 +119,7 @@ def _build_workflow_pack_request(
                 "caller_app": "lotus-advise",
                 "correlation_id": f"proposal-narrative-{grounding_packet.packet_id}",
                 "requested_by": requested_by,
+                "tenant_id": resolve_lotus_ai_tenant_id(),
             },
             "context": {
                 "summary": "Draft advisor-review proposal narrative from governed evidence.",

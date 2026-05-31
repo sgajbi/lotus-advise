@@ -124,7 +124,7 @@ def _draft_generator(**kwargs: Any) -> AdvisoryCopilotAiDraft:
         "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
         "workflow_pack_version": "v1",
         "workflow_run_id": "packrun_copilot_001",
-        "model_version": "stub-advisory-copilot-v1",
+        "model_version": "lotus-ai-governed-model.v1",
         "proposal_version_id": "version_sg_001",
     }
     return AdvisoryCopilotAiDraft(
@@ -164,11 +164,11 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
             proposal_version_no=1,
             action_family="PROPOSAL_EXPLANATION",
             audience="ADVISOR",
-            created_by="advisor_123",
+            created_by="  advisor_123  ",
             reason={"business_reason": "Prepare advisor copilot review."},
         ),
         proposal_repository=proposal_repository,
-        correlation_id="corr_projection_001",
+        correlation_id="  corr_projection_001  ",
     )
 
     assert loader_calls == [{"evaluation_status": None, "portfolio_id": "PB_SG_GLOBAL_BAL_001"}]
@@ -182,6 +182,7 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
     }
     assert response.record.reason_json["source_projection"] == "PROPOSAL_VERSION"
     assert response.record.correlation_id == "corr_projection_001"
+    assert response.record.created_by == "advisor_123"
 
 
 def test_application_service_run_action_keeps_raw_instruction_out_of_persistence() -> None:
@@ -207,13 +208,13 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
             evidence_packet_id="copilot_packet_pb_sg_001",
             audience="ADVISOR",
             requested_outputs=("advisor_review_summary",),
-            requested_by="advisor_123",
+            requested_by="  advisor_123  ",
             reason={"business_reason": "Prepare advisor review."},
             requested_intents=("explain_policy_posture",),
             user_instruction="Summarize the advisory evidence for internal review.",
         ),
-        idempotency_key="copilot-action-idem-001",
-        correlation_id="corr_action_001",
+        idempotency_key="  copilot-action-idem-001  ",
+        correlation_id="  corr_action_001  ",
     )
     replay = service.run_action(
         payload=AdvisoryCopilotActionRequest(
@@ -251,7 +252,125 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
     assert replay.replayed is True
     assert len(draft_calls) == 1
     assert first.run.run_id == replay.run.run_id
+    assert first.run.idempotency_key == "copilot-action-idem-001"
+    assert first.run.created_by == "advisor_123"
     assert first.run.correlation_id == "corr_action_001"
     assert first.run.request_summary_json["user_instruction_hash"].startswith("sha256:")
     assert "user_instruction" not in first.run.request_summary_json
     assert "Summarize the advisory evidence" not in str(first.run.model_dump(mode="json"))
+
+
+def test_application_service_uses_deterministic_correlation_fallback_for_blank_values() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    service = AdvisoryCopilotApplicationService(
+        repository=copilot_repository,
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+    packet = service.create_evidence_packet(
+        payload=_evidence_packet_request(),
+        correlation_id="   ",
+    )
+    run = service.run_action(
+        payload=AdvisoryCopilotActionRequest(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            audience="ADVISOR",
+            requested_outputs=("advisor_review_summary",),
+            requested_by="advisor_123",
+            reason={"business_reason": "Prepare advisor review."},
+        ),
+        idempotency_key=None,
+        correlation_id="   ",
+    )
+
+    assert packet.record.correlation_id == "corr-copilot_packet_pb_sg_001"
+    assert run.run.correlation_id == "corr-copilot_packet_pb_sg_001"
+
+
+def test_application_service_rejects_invalid_copilot_run_page_size() -> None:
+    service = AdvisoryCopilotApplicationService(
+        repository=InMemoryAdvisoryCopilotRepository(),
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+
+    with pytest.raises(ValueError, match="COPILOT_RUN_PAGE_SIZE_INVALID"):
+        service.list_proposal_version_runs(
+            proposal_id="proposal_sg_structured_note_001",
+            version_id="version_sg_001",
+            limit=0,
+            cursor=None,
+        )
+
+
+def test_application_service_refreshes_retryable_unavailable_copilot_run() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    draft_calls: list[dict[str, Any]] = []
+    drafts = iter(
+        [
+            AdvisoryCopilotAiDraft(
+                status="UNAVAILABLE",
+                sections=(),
+                lineage={
+                    "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+                    "workflow_pack_version": "v1",
+                    "workflow_run_id": None,
+                    "model_version": None,
+                    "proposal_version_id": "version_sg_001",
+                    "fallback_reason": "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
+                },
+                review_guidance=("Retry after lotus-ai availability is restored.",),
+                guardrail_reasons=(),
+            ),
+            _draft_generator(),
+        ]
+    )
+
+    def _sequenced_draft_generator(**kwargs: Any) -> AdvisoryCopilotAiDraft:
+        draft_calls.append(dict(kwargs))
+        return next(drafts)
+
+    service = AdvisoryCopilotApplicationService(
+        repository=copilot_repository,
+        draft_generator=_sequenced_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+    service.create_evidence_packet(
+        payload=_evidence_packet_request(),
+        correlation_id="corr_packet_001",
+    )
+    request = AdvisoryCopilotActionRequest(
+        evidence_packet_id="copilot_packet_pb_sg_001",
+        audience="ADVISOR",
+        requested_outputs=("advisor_review_summary",),
+        requested_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+        requested_intents=("explain_policy_posture",),
+        user_instruction="Summarize the advisory evidence for internal review.",
+    )
+
+    unavailable = service.run_action(
+        payload=request,
+        idempotency_key="copilot-action-idem-refresh",
+        correlation_id="corr_action_001",
+    )
+    refreshed = service.run_action(
+        payload=request,
+        idempotency_key="copilot-action-idem-refresh",
+        correlation_id="corr_action_002",
+    )
+    replay = service.run_action(
+        payload=request,
+        idempotency_key="copilot-action-idem-refresh",
+        correlation_id="corr_action_003",
+    )
+
+    assert unavailable.run.review_posture == "UNAVAILABLE"
+    assert refreshed.replayed is False
+    assert refreshed.run.run_id == unavailable.run.run_id
+    assert refreshed.run.created_at == unavailable.run.created_at
+    assert refreshed.run.review_posture == "REVIEW_REQUIRED"
+    assert refreshed.run.output_sections_json[0]["section_key"] == "SUMMARY"
+    assert replay.replayed is True
+    assert replay.run.review_posture == "REVIEW_REQUIRED"
+    assert len(draft_calls) == 2

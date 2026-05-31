@@ -53,7 +53,7 @@ The copilot must never:
 10. expose restricted evidence outside its allowed projection.
 
 This RFC must deliver the full governed copilot outcome end to end. There is no "backend done, UI
-later" closure, no WTBD handoff, no second wave, and no unsupported demo claim. Any required
+later" closure, no WTBD handoff, no deferred follow-up bucket, and no unsupported demo claim. Any required
 upstream, downstream, platform, data-product, security, observability, documentation, supported
 features, or sales/pre-sales evidence work belongs inside this RFC as a slice and closure gate.
 
@@ -257,7 +257,7 @@ Implementation-backed foundations as of the 2026-05-28 tightening:
     posture,
 11. OpenAPI, vocabulary, no-alias, dependency, security, data-product, trust-telemetry,
     production-guardrail, Docker, migration, and runtime-smoke gates are part of the repo posture,
-12. RFC-0026 advisor cockpit operating workflow is implemented for the source-owned first-wave
+12. RFC-0026 advisor cockpit operating workflow is implemented for the source-owned
     Advise/Gateway/Workbench scope, with canonical `PB_SG_GLOBAL_BAL_001` proof, active
     `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` data products, trust
     telemetry, `/platform/capabilities` promotion, and hardened live proof for action detail,
@@ -334,7 +334,7 @@ Architecture rules:
 
 ## 10. Target Copilot Capability
 
-First-wave copilot action families:
+Supported copilot action families:
 
 1. **Proposal explanation**
    explain a proposal version, drivers, trade-offs, blockers, and source refs.
@@ -476,10 +476,10 @@ Rules:
 
 ## 13. API and Contract Direction
 
-The first-wave API shape is selected by Slice 0. It may be refined for naming clarity during Slice 9,
+The supported API shape is selected by Slice 0. It may be refined for naming clarity during Slice 9,
 but the implementation must keep the action-specific, no-free-form-prompt posture.
 
-Selected first-wave Advise endpoints:
+Selected supported Advise endpoints:
 
 1. `POST /advisory/copilot/evidence-packets`
 2. `GET /advisory/copilot/evidence-packets/{evidence_packet_id}`
@@ -701,7 +701,7 @@ Canonical front-office automation must be expanded before RFC-0027 product promo
 canonical contract must add `RFC27_ADVISORY_COPILOT_CANONICAL` for `PB_SG_GLOBAL_BAL_001`, reusing
 the RFC-0023 through RFC-0026 seeded proposal, memo, policy, and cockpit evidence where possible.
 If this scenario needs richer seeded evidence, seed and automation changes are RFC-0027 scope, not
-day-2 work. The Workbench live validator must prove:
+deferred work. The Workbench live validator must prove:
 
 1. all six copilot action families return source-backed or explicitly unsupported posture,
 2. proposal explanation, evidence Q&A, meeting preparation, compliance summary, operations handoff,
@@ -727,7 +727,7 @@ response must be checked for truthfulness and safety.
 
 Outcome:
 
-1. resolve the exact first-wave action families, endpoints, source dependencies, audiences,
+1. resolve the exact supported action families, endpoints, source dependencies, audiences,
    canonical proof scenario, and owner repositories,
 2. map current code, tests, docs, contracts, OpenAPI, `lotus-ai` workflow-pack seams, Gateway,
    Workbench, and platform evidence,
@@ -816,7 +816,7 @@ Outcome:
 
 Acceptance gate:
 
-1. deterministic unit tests cover first-wave action families,
+1. deterministic unit tests cover supported action families,
 2. vocabulary inventory and no-alias gates pass,
 3. private-banking terminology is consistent across code, API, tests, docs, and wiki.
 
@@ -1102,7 +1102,7 @@ Acceptance gate:
 
 | Capability | Current support posture | Closure evidence and boundary |
 | --- | --- | --- |
-| Governed advisory copilot action catalog | Supported for first-wave internal advisor/reviewer actions | Action families, forbidden behaviors, audiences, review posture, Gateway/Workbench consumption, docs, and tests are implemented. No free-form prompt endpoint is supported. |
+| Governed advisory copilot action catalog | Supported for supported internal advisor/reviewer actions | Action families, forbidden behaviors, audiences, review posture, Gateway/Workbench consumption, docs, and tests are implemented. No free-form prompt endpoint is supported. |
 | Copilot evidence packet | Supported | Deterministic packet build, redaction, source refs, lineage, replay/rebuild posture, and proof are implemented. Raw prompts, unrestricted source payloads, and provider responses remain outside supported projections. |
 | Advisory proposal explanation | Supported for internal advisor/reviewer use | Proven through Advise APIs, governed workflow-pack execution, Gateway/Workbench rendering, internal review, and canonical live evidence. |
 | Advisory evidence Q&A | Supported for internal advisor/reviewer use | Source refs, unsupported-evidence posture, prompt-injection controls, and guardrail tests are implemented. |
@@ -1113,18 +1113,18 @@ Acceptance gate:
 | Copilot run/review audit | Supported | Persistence/replay, hashes, review actions, retention, and audit lineage are implemented. |
 | Copilot data products | Supported for `AdvisoryCopilotInteractionRecord:v1` | Evidence packets and review events remain audit records inside the interaction product boundary, not standalone promoted data products. |
 | Gateway/Workbench copilot experience | Supported | Gateway and Workbench implementation is proven by canonical browser/product validation. |
-| Copilot model-risk and supportability pack | Supported for first-wave scope | Workflow-pack lineage, guardrails, unavailable posture, supportability, and trust telemetry are implementation-backed. |
+| Copilot model-risk and supportability pack | Supported for implemented scope | Workflow-pack lineage, guardrails, unavailable posture, supportability, and trust telemetry are implementation-backed. |
 
 ---
 
 ## 21. Implementation Closure
 
-RFC-0027 is implemented for the first-wave governed advisory copilot scope. Closure evidence lives
+RFC-0027 is implemented for the governed advisory copilot scope. Closure evidence lives
 in `docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md`.
 
 Implemented:
 
-1. all six first-wave action families are action-specific and no free-form prompt endpoint exists,
+1. all six supported action families are action-specific and no free-form prompt endpoint exists,
 2. Advise builds and persists source-backed proposal-version evidence packets,
 3. governed `lotus-ai` workflow-pack execution is used through the approved adapter,
 4. run and review records preserve hashes, lineage, guardrail posture, review posture, correlation
@@ -1243,7 +1243,7 @@ Affected repositories must use their repo-native gates and GitHub lanes.
 
 These decisions replace the earlier open-question list and are closure gates for implementation:
 
-1. First-wave action families are all six listed in Section 10: proposal explanation, evidence
+1. Supported action families are all six listed in Section 10: proposal explanation, evidence
    Q&A, advisor meeting preparation, compliance review summary, operations/report handoff summary,
    and client follow-up draft. An action family is not supported until its Advise API, Gateway
    route, Workbench surface, tests, live proof, and documentation are complete.
@@ -1255,7 +1255,7 @@ These decisions replace the earlier open-question list and are closure gates for
 3. `lotus-ai` integration uses governed workflow-pack execution and run/review posture only. Any
    missing `lotus-ai` workflow-pack registry, schema, model-risk, disabled-pack, or unavailable
    behavior required by the copilot is implemented inside RFC-0027 before promotion.
-4. First-wave audiences are advisor, desk head, compliance reviewer, operations support, and model
+4. Supported audiences are advisor, desk head, compliance reviewer, operations support, and model
    risk/operator. Sales/pre-sales receives implementation-backed explanatory material only after
    proof; it is not a runtime caller context.
 5. Evidence packet metadata, hashes, source refs, allowed evidence sections, missing evidence,
@@ -1266,11 +1266,11 @@ These decisions replace the earlier open-question list and are closure gates for
    reviewed, source-backed copilot runs. Evidence packets and rejected/unsupported runs are
    auditable internal records until implementation proves they meet data-product promotion
    criteria.
-7. First-wave jurisdiction and booking-center behavior is bounded to source evidence already
+7. Supported jurisdiction and booking-center behavior is bounded to source evidence already
    present in RFC-0024 and RFC-0025 records, including Singapore private-banking policy evidence
    for the canonical scenario. Missing jurisdiction, fee/conflict, disclosure, eligibility, or
    client-ready evidence returns unsupported-evidence posture rather than positive claims.
-8. First-wave performance posture must include bounded request timeouts, deterministic disabled or
+8. Supported performance posture must include bounded request timeouts, deterministic disabled or
    unavailable pack behavior, idempotent replay, no high-cardinality metric labels, and local plus
    GitHub gate evidence. Load or latency evidence is required before final support promotion.
 9. Gateway must expose `/api/v1/advisory-copilot/*` without calling `lotus-ai` directly. Workbench
@@ -1279,8 +1279,7 @@ These decisions replace the earlier open-question list and are closure gates for
    canonical `PB_SG_GLOBAL_BAL_001` live validation.
 10. If `RFC27_ADVISORY_COPILOT_CANONICAL` needs additional portfolio, proposal, memo, policy,
     cockpit, report, operations, model-risk, or supportability data, that seed and automation work
-    is an RFC-0027 slice and must merge before product promotion. There is no day-2 or wave-2
-    deferral for data needed to prove the supported copilot.
+    is an RFC-0027 slice and must merge before product promotion. There is no deferred follow-up bucket for data needed to prove the supported copilot.
 11. RFC-0027 documentation owns copilot API, workflow, model-risk, security, operations, support,
     and implementation-backed business material. RFC-0028 owns broader bank-demo/RFP packaging and
     cannot promote copilot claims until RFC-0027 proof exists.

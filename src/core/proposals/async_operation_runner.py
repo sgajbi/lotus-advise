@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any
 
 from src.core.proposals.async_operation_persistence import (
     persist_async_attempt_started,
@@ -14,11 +13,12 @@ from src.core.proposals.async_operations import (
     should_skip_async_operation_run,
 )
 from src.core.proposals.exceptions import ProposalLifecycleError
+from src.core.proposals.models import ProposalCreateResponse
 from src.core.proposals.repository import ProposalRepository
 
 ASYNC_OPERATION_LEASE_SECONDS = 60
 
-AsyncOperationExecutor = Callable[[], Any]
+AsyncOperationExecutor = Callable[[], ProposalCreateResponse]
 UtcNow = Callable[[], datetime]
 
 
@@ -35,9 +35,8 @@ def run_async_operation_until_terminal(
             operation_id=operation_id,
         )
         operation = read_model.operation
-        if should_skip_async_operation_run(operation):
+        if operation is None or should_skip_async_operation_run(operation):
             return
-        assert operation is not None
         if has_exhausted_async_attempts(operation):
             persist_async_operation_failed(
                 repository=repository,

@@ -38,44 +38,44 @@ def build_delivery_summary_from_events(
     execution: dict[str, Any] | None = None
     if latest_execution_requested is not None or latest_execution_event is not None:
         target_event = latest_execution_event or latest_execution_requested
-        assert target_event is not None
-        execution = {
-            "handoff_status": execution_status_for_event(target_event.event_type),
-            "execution_request_id": _optional_str(
-                target_event.reason_json.get("execution_request_id")
-                if target_event.reason_json.get("execution_request_id") is not None
-                else (
-                    latest_execution_requested.reason_json.get("execution_request_id")
+        if target_event is not None:
+            execution = {
+                "handoff_status": execution_status_for_event(target_event.event_type),
+                "execution_request_id": _optional_str(
+                    target_event.reason_json.get("execution_request_id")
+                    if target_event.reason_json.get("execution_request_id") is not None
+                    else (
+                        latest_execution_requested.reason_json.get("execution_request_id")
+                        if latest_execution_requested is not None
+                        else None
+                    )
+                ),
+                "execution_provider": _optional_str(
+                    target_event.reason_json.get("execution_provider")
+                    if target_event.reason_json.get("execution_provider") is not None
+                    else (
+                        latest_execution_requested.reason_json.get("execution_provider")
+                        if latest_execution_requested is not None
+                        else None
+                    )
+                ),
+                "related_version_no": target_event.related_version_no,
+                "handoff_requested_at": (
+                    latest_execution_requested.occurred_at.isoformat()
                     if latest_execution_requested is not None
                     else None
-                )
-            ),
-            "execution_provider": _optional_str(
-                target_event.reason_json.get("execution_provider")
-                if target_event.reason_json.get("execution_provider") is not None
-                else (
-                    latest_execution_requested.reason_json.get("execution_provider")
-                    if latest_execution_requested is not None
+                ),
+                "executed_at": (
+                    target_event.occurred_at.isoformat()
+                    if target_event.event_type == "EXECUTED"
                     else None
-                )
-            ),
-            "related_version_no": target_event.related_version_no,
-            "handoff_requested_at": (
-                latest_execution_requested.occurred_at.isoformat()
-                if latest_execution_requested is not None
-                else None
-            ),
-            "executed_at": (
-                target_event.occurred_at.isoformat()
-                if target_event.event_type == "EXECUTED"
-                else None
-            ),
-            "latest_event_type": target_event.event_type,
-            "external_execution_id": _optional_str(
-                target_event.reason_json.get("external_execution_id")
-            ),
-            "execution_ownership": execution_ownership_boundary(),
-        }
+                ),
+                "latest_event_type": target_event.event_type,
+                "external_execution_id": _optional_str(
+                    target_event.reason_json.get("external_execution_id")
+                ),
+                "execution_ownership": execution_ownership_boundary(),
+            }
 
     reporting: dict[str, Any] | None = None
     if latest_report_request is not None:

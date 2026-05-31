@@ -13,6 +13,7 @@ from src.core.proposals.models import (
     ProposalApprovalRecordData,
     ProposalApprovalRequest,
     ProposalCreateRequest,
+    ProposalExecutionHandoffRequest,
     ProposalExecutionUpdateRequest,
     ProposalIdempotencyRecord,
     ProposalRecord,
@@ -173,6 +174,28 @@ def test_service_version_payload_is_immutable_from_caller_mutation():
         proposal_id=proposal_id, version_no=1, include_evidence=True
     )
     assert version_again.evidence_bundle["hashes"]["artifact_hash"].startswith("sha256:")
+
+
+def test_service_create_proposal_normalizes_required_idempotency_key():
+    repository = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repository)
+
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="  service-idem-normalized  ",
+        correlation_id="corr-service-normalized",
+    )
+
+    assert repository.get_idempotency(idempotency_key="service-idem-normalized") is not None
+    assert repository.get_idempotency(idempotency_key="  service-idem-normalized  ") is None
+    assert created.proposal.proposal_id.startswith("pp_")
+
+    with pytest.raises(ProposalValidationError, match="IDEMPOTENCY_KEY_REQUIRED"):
+        service.create_proposal(
+            payload=_create_payload(),
+            idempotency_key="   ",
+            correlation_id="corr-service-blank-idem",
+        )
 
 
 def test_service_create_proposal_uses_upstream_simulation_authority_when_available(
@@ -1249,7 +1272,7 @@ def test_transition_idempotency_replay_and_conflict():
     first = service.transition_state(
         proposal_id=proposal_id,
         payload=payload,
-        idempotency_key="idem-transition-1",
+        idempotency_key="  idem-transition-1  ",
     )
     replay = service.transition_state(
         proposal_id=proposal_id,
@@ -1258,6 +1281,7 @@ def test_transition_idempotency_replay_and_conflict():
     )
     assert replay.latest_workflow_event.event_id == first.latest_workflow_event.event_id
     assert replay.current_state == "RISK_REVIEW"
+    assert first.latest_workflow_event.reason["idempotency_key"] == "idem-transition-1"
 
     try:
         service.transition_state(
@@ -1303,7 +1327,7 @@ def test_approval_idempotency_replay_and_conflict():
     first = service.record_approval(
         proposal_id=proposal_id,
         payload=approval_payload,
-        idempotency_key="idem-approval-1",
+        idempotency_key="  idem-approval-1  ",
     )
     replay = service.record_approval(
         proposal_id=proposal_id,
@@ -1314,6 +1338,7 @@ def test_approval_idempotency_replay_and_conflict():
     assert replay.approval is not None
     assert first.approval is not None
     assert replay.approval.approval_id == first.approval.approval_id
+    assert first.approval.details["idempotency_key"] == "idem-approval-1"
 
     try:
         service.record_approval(
@@ -1349,7 +1374,7 @@ def test_narrative_review_records_version_scoped_replayable_event() -> None:
             reviewed_by="compliance_001",
             reason="Evidence-grounded advisor-review narrative.",
         ),
-        idempotency_key="idem-narrative-review-approve",
+        idempotency_key="  idem-narrative-review-approve  ",
     )
     replayed = service.record_narrative_review(
         proposal_id=created.proposal.proposal_id,
@@ -1371,6 +1396,9 @@ def test_narrative_review_records_version_scoped_replayable_event() -> None:
     assert first.narrative_review.client_ready_status == "NOT_REQUESTED"
     assert replayed.narrative_review.replayed is True
     assert replayed.narrative_review.review_id == first.narrative_review.review_id
+    assert first.latest_workflow_event.reason["idempotency_key"] == (
+        "idem-narrative-review-approve"
+    )
     assert replay.evidence["proposal_narrative"]["narrative_id"] == (
         first.narrative_review.narrative_id
     )
@@ -1630,6 +1658,47 @@ def test_service_create_proposal_requires_workspace_reference_for_workspace_hand
         assert str(exc) == "WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED"
     else:
         raise AssertionError("Expected WORKSPACE_HANDOFF_SOURCE_WORKSPACE_ID_REQUIRED")
+
+
+def test_service_execution_handoff_normalizes_idempotency_key_for_replay():
+    repo = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repo)
+    occurred_at = datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc)
+    proposal = ProposalRecord(
+        proposal_id="pp_execution_handoff_replay",
+        portfolio_id="pf_execution_handoff_replay",
+        mandate_id="mandate_execution_handoff_replay",
+        jurisdiction="SG",
+        created_by="advisor_execution_handoff",
+        created_at=occurred_at,
+        last_event_at=occurred_at,
+        current_state="EXECUTION_READY",
+        current_version_no=3,
+        title="Execution handoff replay",
+    )
+    repo.create_proposal(proposal)
+    payload = ProposalExecutionHandoffRequest(
+        actor_id="advisor_execution_handoff",
+        execution_provider="lotus-manage",
+        expected_state="EXECUTION_READY",
+        correlation_id="corr-execution-handoff",
+        notes={"desk": "ADVISORY_EXECUTION"},
+    )
+
+    first = service.request_execution_handoff(
+        proposal_id=proposal.proposal_id,
+        payload=payload,
+        idempotency_key="  idem-execution-handoff  ",
+    )
+    replay = service.request_execution_handoff(
+        proposal_id=proposal.proposal_id,
+        payload=payload,
+        idempotency_key="idem-execution-handoff",
+    )
+
+    assert replay.latest_workflow_event.event_id == first.latest_workflow_event.event_id
+    assert replay.latest_workflow_event.reason["idempotency_key"] == "idem-execution-handoff"
+    assert len(repo.list_events(proposal_id=proposal.proposal_id)) == 1
 
 
 def test_execution_update_replay_uses_loaded_events_for_status_projection():

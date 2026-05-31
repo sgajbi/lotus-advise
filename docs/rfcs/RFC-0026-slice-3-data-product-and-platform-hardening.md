@@ -52,7 +52,7 @@ products are mandatory, but their promotion is blocked until implementation evid
 2. action-detail API returns evidence refs, owner boundaries, lineage refs, dependency readiness,
    and source-readiness gaps,
 3. acknowledgement writes are idempotent, audited, and stale-version protected,
-4. action families cover the first-wave RFC-0026 required set,
+4. action families cover the supported RFC-0026 required set,
 5. entitlement projection is tested for advisor, desk head, compliance reviewer, operations, and
    demo/read-only contexts,
 6. Gateway and Workbench preserve priorities, statuses, reason codes, owner roles, and pagination,
@@ -93,6 +93,6 @@ Validation:
 
 ## Next Slice Handoff
 
-Slice 4 can now add first-wave action-family construction and vocabulary behavior on top of the
+Slice 4 can now add supported action-family construction and vocabulary behavior on top of the
 dedicated cockpit core package. Data-product promotion remains blocked until runtime APIs, source
 aggregation, Gateway/Workbench, and canonical evidence exist.

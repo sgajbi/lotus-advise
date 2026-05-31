@@ -425,6 +425,33 @@ def test_integration_capabilities_mark_core_unready_when_production_probe_fails(
     )
 
 
+def test_integration_capabilities_mark_invalid_dependency_configuration_unready(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "local")
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "ftp://lotus-core:8201")
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.delenv("LOTUS_REPORT_BASE_URL", raising=False)
+    monkeypatch.delenv("LOTUS_AI_BASE_URL", raising=False)
+    monkeypatch.delenv("LOTUS_PERFORMANCE_BASE_URL", raising=False)
+
+    with TestClient(app) as client:
+        response = client.get("/platform/capabilities")
+
+    assert response.status_code == 200
+    payload = response.json()
+    dependencies = {item["dependency_key"]: item for item in payload["readiness"]["dependencies"]}
+    features = {item["key"]: item for item in payload["features"]}
+    workflows = {item["workflow_key"]: item for item in payload["workflows"]}
+
+    assert dependencies["lotus_core"]["configured"] is True
+    assert "base_url" not in dependencies["lotus_core"]
+    assert dependencies["lotus_core"]["operational_ready"] is False
+    assert dependencies["lotus_core"]["runtime_probe_enabled"] is False
+    assert dependencies["lotus_core"]["readiness_basis"] == "invalid_configuration"
+    assert dependencies["lotus_core"]["degraded_reason"] == "LOTUS_CORE_DEPENDENCY_UNAVAILABLE"
+    assert features["advisory.proposals.simulation"]["operational_ready"] is False
+    assert workflows["advisory_proposal_simulation"]["operational_ready"] is False
+
+
 def test_integration_capabilities_quarantine_local_fallback_in_production(monkeypatch):
     monkeypatch.delenv("LOTUS_CORE_BASE_URL", raising=False)
     monkeypatch.setenv("LOTUS_ADVISE_ALLOW_LOCAL_SIMULATION_FALLBACK", "true")

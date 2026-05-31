@@ -23,7 +23,7 @@ from src.core.advisory_copilot import (
 )
 
 
-def test_copilot_catalog_defines_first_wave_actions_without_client_ready_claims() -> None:
+def test_copilot_catalog_defines_supported_actions_without_client_ready_claims() -> None:
     definitions = list_copilot_action_definitions()
 
     assert {definition.action_family for definition in definitions} == {

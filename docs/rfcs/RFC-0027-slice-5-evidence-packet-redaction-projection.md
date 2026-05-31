@@ -44,7 +44,7 @@ This is intentionally a pure builder. It does not fetch source records, infer mi
 
 Slice 5 does not yet connect to RFC-0023, RFC-0024, RFC-0025, or RFC-0026 repositories/read models.
 That source aggregation belongs in later implementation slices once the evidence packet builder,
-guardrail engine, persistence, and API boundaries are stable. This is not day-2 or wave-2 deferral;
+guardrail engine, persistence, and API boundaries are stable. This is not deferred follow-up bucket;
 it is staged implementation inside RFC-0027.
 
 ## Next Slice Readiness

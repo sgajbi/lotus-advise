@@ -193,6 +193,12 @@ def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
             json={"action_item_version": 99, "acknowledged_by": "advisor_sg_001"},
             headers={"Idempotency-Key": "ack-api-stale"},
         )
+        blank_actor = client.post(
+            f"/advisory/cockpit/actions/{action_id}/acknowledgements",
+            params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "advisor_id": "advisor_sg_001"},
+            json={"action_item_version": 1, "acknowledged_by": "   "},
+            headers={"Idempotency-Key": "ack-api-blank-actor"},
+        )
 
     assert first.status_code == 200
     assert first.json()["replayed"] is False
@@ -200,6 +206,7 @@ def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
     assert replay.json()["replayed"] is True
     assert replay.json()["action_item"]["status"] == "PENDING_REVIEW"
     assert stale.status_code == 422
+    assert blank_actor.status_code == 422
 
 
 def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:

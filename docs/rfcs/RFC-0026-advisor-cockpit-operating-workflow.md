@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow |
+| **Status** | IMPLEMENTED for source-owned advisor cockpit operating workflow |
 | **Created** | 2026-05-22 |
 | **Last Tightened** | 2026-05-31 |
 | **Owner** | `lotus-advise` for advisor-cockpit workflow authority, action semantics, and evidence-product truth |
@@ -622,7 +622,7 @@ Priority must be deterministic and explainable. It must not be a UI-side score.
 
 ### 13.4 Action Families
 
-First-wave action families:
+Supported action families:
 
 1. `CLIENT_MEETING_PREPARATION`
 2. `PROPOSAL_READY_FOR_REVIEW`
@@ -1050,7 +1050,7 @@ Outcome:
 
 Acceptance gate:
 
-1. deterministic unit tests cover all first-wave action families,
+1. deterministic unit tests cover all supported action families,
 2. vocabulary inventory and no-alias gates pass,
 3. private-banking terminology is consistent across code, API, tests, docs, and wiki.
 
@@ -1209,7 +1209,7 @@ Outcome:
 
 1. promote `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` only after
    Advise, Gateway, Workbench, and canonical proof exist,
-2. add trust telemetry and `/platform/capabilities` posture for the supported first-wave cockpit
+2. add trust telemetry and `/platform/capabilities` posture for the supported cockpit
    scope,
 3. update Advise supportability to report Gateway support, Workbench canonical proof, active
    data-product posture, and canonical `PB_SG_GLOBAL_BAL_001` validation.
@@ -1356,7 +1356,7 @@ Acceptance gate:
 
 | Capability | Current support posture | Closure evidence and boundary |
 | --- | --- | --- |
-| Advisor cockpit snapshot | Supported for source-owned first-wave advisor operating workflow | Backend snapshot APIs, certified OpenAPI, unit and contract tests, active data-product posture, Gateway/Workbench consumption, canonical `PB_SG_GLOBAL_BAL_001` proof, and docs/wiki support are complete. Client-ready publication and external client communication remain blocked. |
+| Advisor cockpit snapshot | Supported for source-owned advisor operating workflow | Backend snapshot APIs, certified OpenAPI, unit and contract tests, active data-product posture, Gateway/Workbench consumption, canonical `PB_SG_GLOBAL_BAL_001` proof, and docs/wiki support are complete. Client-ready publication and external client communication remain blocked. |
 | Advisory action item register | Supported | Deterministic priority, reason codes, pagination, role projection, acknowledgement, lineage, and evidence-source tests cover the implemented action families. |
 | Meeting preparation packet | Supported for advisor-use preparation | Source-backed client, portfolio, proposal, memo, policy, house-view, and workspace evidence is integrated. CRM system-of-record writes and external client communication remain unsupported. |
 | Client follow-up items | Supported as advisor-review internal actions | Owner boundaries, acknowledgement, audit behavior, and blocked client-ready posture are implemented. External delivery remains gated. |
@@ -1366,7 +1366,7 @@ Acceptance gate:
 | Execution handoff/status attention items | Supported for advisory boundary visibility | Advisory/downstream system-of-record boundaries and lineage refs are visible and tested; OMS order/fill/settlement support remains unsupported. |
 | Tactical house-view impact items | Supported | Source-backed cohort evidence renders through Gateway/Workbench with Manage boundary preserved and no DPM campaign creation claim. |
 | Cockpit data products | Supported | `AdvisorCockpitOperatingSnapshot:v1` and `AdvisoryActionItemRegister:v1` are active with declarations, trust telemetry, SLO/access/evidence policy, certification, docs, and tests. |
-| Gateway/Workbench advisor cockpit | Supported for the canonical first-wave surface | Gateway and Workbench implementation is proven through governed canonical browser/product validation. UI-local workflow logic remains prohibited. |
+| Gateway/Workbench advisor cockpit | Supported for the canonical advisor cockpit surface | Gateway and Workbench implementation is proven through governed canonical browser/product validation. UI-local workflow logic remains prohibited. |
 
 ---
 
@@ -1475,20 +1475,20 @@ Affected repositories must use their repo-native gates and GitHub lanes.
 
 ## 25. Slice 0 Implementation Decisions
 
-These decisions close the pre-implementation questions for Slice 0. Later slices may refine field
+These decisions close the pre-implementation questions for Slice 0. Implementation slices may refine field
 names or endpoint shape when code evidence shows a simpler design, but they must not reopen these
 boundaries without updating this RFC, tests, docs, and downstream contracts.
 
 | Question | Decision before implementation |
 | --- | --- |
-| First-wave caller context | Support advisor, desk head, compliance reviewer, operations reviewer, and demo/read-only contexts. Coverage-team scope may be represented as desk scope until `lotus-core` exposes a stronger assignment source. |
+| Supported caller context | Support advisor, desk head, compliance reviewer, operations reviewer, and demo/read-only contexts. Coverage-team scope may be represented as desk scope until `lotus-core` exposes a stronger assignment source. |
 | Client, household, and advisor-assignment source fields | Consume existing portfolio/proposal identity, advisor/context refs, and `PB_SG_GLOBAL_BAL_001` canonical portfolio evidence first. Any missing household, meeting, booking-center, or coverage-team fields must appear as explicit `SOURCE_READINESS_GAP` action items or a source-enhancement slice; do not invent them in `lotus-advise`. |
-| Meeting-preparation packet variants | First wave supports portfolio and proposal contexts, plus client/household refs only when source-backed. Meeting-id scheduling remains out of scope until an implementation-backed calendar/CRM source exists. |
+| Meeting-preparation packet variants | Supported implementation covers portfolio and proposal contexts, plus client/household refs only when source-backed. Meeting-id scheduling remains out of scope until an implementation-backed calendar/CRM source exists. |
 | Action families required before Workbench promotion | Workbench promotion requires at least `CLIENT_MEETING_PREPARATION`, `PROPOSAL_READY_FOR_REVIEW`, `POLICY_REVIEW_REQUIRED`, `APPROVAL_DEPENDENCY_AGING`, `MEMO_PACKAGE_BLOCKED`, `REPORT_RENDER_ARCHIVE_BLOCKED`, `CLIENT_FOLLOW_UP_REQUIRED`, `SUPPORTABILITY_DEGRADED`, and `UNSUPPORTED_CAPABILITY`, plus any source-backed execution or house-view family claimed in the UI. |
 | Cursor pagination defaults | Default page size is 25, maximum page size is 100, and stable ordering is priority rank, due time, SLA aging rank, materiality rank, status rank, action family, source timestamp, then `action_item_id`. Invalid or stale cursors return safe machine-readable errors. |
 | Acknowledgement ownership | `lotus-advise` owns acknowledgement only for advisory-owned action items. CRM, compliance, report, archive, execution, DPM, and external workflow handoffs must remain explicit ownership boundaries and cannot be completed by advisory acknowledgement. |
 | Evidence access classes | Cockpit fields must be classified as customer-consumable summary, restricted customer evidence, operator-only supportability, or internal-only diagnostics. Customer-facing projections must not include raw memo, policy, AI, report, archive, execution, or storage payloads. |
-| First-wave load benchmark | Minimum benchmark is an advisor book with at least 100 portfolios, 250 proposals or proposal-like work items, 500 action items, mixed statuses, mixed owner roles, and degraded-source cases. The benchmark must verify deterministic pagination and bounded snapshot payloads. |
+| Supported load benchmark | Minimum benchmark is an advisor book with at least 100 portfolios, 250 proposals or proposal-like work items, 500 action items, mixed statuses, mixed owner roles, and degraded-source cases. The benchmark must verify deterministic pagination and bounded snapshot payloads. |
 | RFC-0026 versus RFC-0028 claims | RFC-0026 owns implementation-backed cockpit capability, APIs, Gateway/Workbench product surface, cockpit-specific docs, and cockpit-specific proof. RFC-0028 owns full bank-demo/RFP packaging, demo journey orchestration, and broader commercial claims. |
 
 Open implementation defects found during live validation must be covered by the lowest useful

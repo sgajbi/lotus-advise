@@ -16,10 +16,12 @@ from src.core.advisory_copilot.api_models import (
 from src.core.advisory_copilot.catalog import list_copilot_action_definitions
 from src.core.advisory_copilot.evidence_packets import build_copilot_evidence_packet
 from src.core.advisory_copilot.models import CopilotAudience, CopilotEvidencePacket
+from src.core.advisory_copilot.pagination import normalize_copilot_run_page_size
 from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.advisory_copilot.service import (
     build_advisory_copilot_run_request_hash,
+    can_attempt_advisory_copilot_run_refresh,
     list_advisory_copilot_reviews,
     load_advisory_copilot_evidence_packet,
     persist_advisory_copilot_run,
@@ -29,7 +31,12 @@ from src.core.advisory_copilot.service import (
 from src.core.advisory_copilot.source_projection import (
     build_proposal_version_copilot_evidence_packet,
 )
+from src.core.common.idempotency import (
+    normalize_optional_idempotency_key,
+    normalize_required_idempotency_key,
+)
 from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.proposals.correlation import normalize_optional_correlation_id
 from src.core.proposals.repository import ProposalRepository
 
 
@@ -96,7 +103,10 @@ class AdvisoryCopilotApplicationService:
             audience=payload.audience,
             created_by=payload.created_by,
             reason=payload.reason,
-            correlation_id=correlation_id or f"corr-{payload.evidence_packet_id}",
+            correlation_id=_resolve_copilot_correlation_id(
+                correlation_id,
+                fallback=f"corr-{payload.evidence_packet_id}",
+            ),
         )
         return AdvisoryCopilotEvidencePacketResponse(evidence_packet=packet, record=record)
 
@@ -135,7 +145,10 @@ class AdvisoryCopilotApplicationService:
                 "proposal_id": payload.proposal_id,
                 "proposal_version_no": payload.proposal_version_no,
             },
-            correlation_id=correlation_id or f"corr-{packet.evidence_packet_id}",
+            correlation_id=_resolve_copilot_correlation_id(
+                correlation_id,
+                fallback=f"corr-{packet.evidence_packet_id}",
+            ),
         )
         return AdvisoryCopilotEvidencePacketResponse(evidence_packet=packet, record=record)
 
@@ -158,6 +171,7 @@ class AdvisoryCopilotApplicationService:
         idempotency_key: str | None,
         correlation_id: str | None,
     ) -> AdvisoryCopilotRunResponse:
+        idempotency_key = normalize_optional_idempotency_key(idempotency_key)
         evidence_packet = load_advisory_copilot_evidence_packet(
             repository=self._repository,
             evidence_packet_id=payload.evidence_packet_id,
@@ -181,7 +195,8 @@ class AdvisoryCopilotApplicationService:
                 existing_run = self._repository.get_run(run_id=existing_idempotency.run_id)
                 if existing_run is None:
                     raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
-                return AdvisoryCopilotRunResponse(run=existing_run, replayed=True)
+                if not can_attempt_advisory_copilot_run_refresh(existing_run):
+                    return AdvisoryCopilotRunResponse(run=existing_run, replayed=True)
         draft = self._draft_generator(
             evidence_packet=evidence_packet,
             audience=payload.audience,
@@ -203,7 +218,10 @@ class AdvisoryCopilotApplicationService:
             lineage=draft.lineage,
             review_guidance=draft.review_guidance,
             guardrail_reasons=cast(tuple[str, ...], draft.guardrail_reasons),
-            correlation_id=correlation_id or f"corr-{payload.evidence_packet_id}",
+            correlation_id=_resolve_copilot_correlation_id(
+                correlation_id,
+                fallback=f"corr-{payload.evidence_packet_id}",
+            ),
             idempotency_key=idempotency_key,
             requested_intents=payload.requested_intents,
             user_instruction=payload.user_instruction,
@@ -225,13 +243,17 @@ class AdvisoryCopilotApplicationService:
         idempotency_key: str,
         correlation_id: str | None,
     ) -> AdvisoryCopilotReviewResponse:
+        idempotency_key = normalize_required_idempotency_key(idempotency_key)
         result = record_advisory_copilot_review(
             repository=self._repository,
             run_id=run_id,
             action=cast(CopilotReviewAction, payload.action),
             actor_id=payload.actor_id,
             reason=payload.reason,
-            correlation_id=correlation_id or f"corr-{run_id}",
+            correlation_id=_resolve_copilot_correlation_id(
+                correlation_id,
+                fallback=f"corr-{run_id}",
+            ),
             idempotency_key=idempotency_key,
         )
         return AdvisoryCopilotReviewResponse(
@@ -248,20 +270,25 @@ class AdvisoryCopilotApplicationService:
         *,
         proposal_id: str,
         version_id: str,
-        limit: int,
+        limit: int | None,
         cursor: str | None,
     ) -> AdvisoryCopilotRunPage:
+        page_size = normalize_copilot_run_page_size(limit)
         runs, next_cursor = self._repository.list_runs_for_proposal_version(
             proposal_id=proposal_id,
             proposal_version_id=version_id,
             proposal_version_no=None,
-            limit=limit,
+            limit=page_size,
             cursor=cursor,
         )
         return AdvisoryCopilotRunPage(
             items=tuple(runs),
             next_cursor=next_cursor,
         )
+
+
+def _resolve_copilot_correlation_id(correlation_id: str | None, *, fallback: str) -> str:
+    return normalize_optional_correlation_id(correlation_id) or fallback
 
 
 def build_advisory_copilot_supportability_response() -> AdvisoryCopilotSupportabilityResponse:

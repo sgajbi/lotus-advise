@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.core.advisory_copilot.models import (
     CopilotActionFamily,
@@ -16,6 +16,7 @@ from src.core.advisory_copilot.records import (
     AdvisoryCopilotRunRecord,
 )
 from src.core.advisory_copilot.review import CopilotReviewAction
+from src.core.common.actors import normalize_required_actor_id
 
 
 class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
@@ -53,6 +54,11 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
         examples=[{"business_reason": "Prepare advisor review."}],
     )
 
+    @field_validator("created_by")
+    @classmethod
+    def _normalize_created_by(cls, value: str) -> str:
+        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
+
 
 class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
     proposal_id: str = Field(
@@ -89,6 +95,11 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
         description="Business reason for packet creation; raw prompt fields are rejected.",
         examples=[{"business_reason": "Prepare advisor copilot review."}],
     )
+
+    @field_validator("created_by")
+    @classmethod
+    def _normalize_created_by(cls, value: str) -> str:
+        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
 
 
 class AdvisoryCopilotEvidencePacketResponse(BaseModel):
@@ -133,6 +144,11 @@ class AdvisoryCopilotActionRequest(BaseModel):
         examples=["Summarize advisor-use evidence."],
     )
 
+    @field_validator("requested_by")
+    @classmethod
+    def _normalize_requested_by(cls, value: str) -> str:
+        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
+
 
 class AdvisoryCopilotRunResponse(BaseModel):
     run: AdvisoryCopilotRunRecord = Field(description="Persisted advisory copilot run.")
@@ -161,6 +177,11 @@ class AdvisoryCopilotReviewRequest(BaseModel):
         examples=[{"decision": "Reviewed against cited source evidence."}],
     )
 
+    @field_validator("actor_id")
+    @classmethod
+    def _normalize_actor_id(cls, value: str) -> str:
+        return normalize_required_actor_id(value, error_code="COPILOT_ACTOR_REQUIRED")
+
 
 class AdvisoryCopilotReviewResponse(BaseModel):
     run: AdvisoryCopilotRunRecord = Field(description="Run after review processing.")
@@ -174,7 +195,7 @@ class AdvisoryCopilotSupportabilityResponse(BaseModel):
         examples=["ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"],
     )
     client_ready_publication: str = Field(
-        description="Client-ready publication posture for first-wave copilot output.",
+        description="Client-ready publication posture for supported copilot output.",
         examples=["BLOCKED"],
     )
     supported_action_families: tuple[CopilotActionFamily, ...] = Field(

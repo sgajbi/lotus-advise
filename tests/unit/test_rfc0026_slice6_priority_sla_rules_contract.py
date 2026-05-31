@@ -44,7 +44,7 @@ def test_rfc0026_slice6_records_non_promoting_rule_posture() -> None:
         assert marker in slice6
 
     assert "deterministic SLA/acknowledgement rules" in supported
-    assert "Implemented for the source-owned first-wave advisor cockpit" in supported
+    assert "Implemented for the source-owned advisor cockpit" in supported
 
 
 def test_rfc0026_slice6_contract_is_backed_by_code_and_behavior_tests() -> None:

@@ -817,7 +817,7 @@ Slice 3 implementation decision and evidence:
 
 1. RFC-0028 proof-pack and supported-claim records remain internal/proposed at this point because
    the Advise-owned proof API, proof-pack model, scenario contract, and supported-claim API are
-   implemented in later RFC-0028 slices, not in Slice 3.
+   implemented in the bounded RFC-0028 implementation scope, not in Slice 3.
 2. No `AdvisoryBankDemoProofPack`, `AdvisorySupportedClaimRegister`, or
    `AdvisoryDemoScenarioContract` active data product declaration, trust-telemetry snapshot, or
    `/platform/capabilities` feature is allowed before those records are backed by real contracts,
@@ -1412,7 +1412,7 @@ Acceptance gate:
 6. supported-features material is implementation-backed,
 7. agent-context, skills, or guidance changes are added if needed, or an explicit no-change
    decision is recorded,
-8. no follow-up RFC, second wave, WTBD, or side ledger is required to realize the RFC-0028 business
+8. no follow-up RFC, deferred implementation bucket, WTBD, or side ledger is required to realize the RFC-0028 business
    value.
 
 Slice 15 closure decision and evidence:
@@ -1490,7 +1490,7 @@ Slice 16 post-completion communication decision and evidence:
 | Client-ready proposal pack proof | Supported only for advisor-use/internal proof boundaries | Advisor-use document proof is captured. Client-ready document publication, external client communication, and client delivery remain blocked. |
 | Enterprise policy-pack demo proof | Supported as configurable policy-evidence proof | RFC-0025 evidence is integrated and framed as configurable policy support, not legal advice or completed policy sign-off authority. |
 | Advisor cockpit demo proof | Supported | RFC-0026 Gateway/Workbench cockpit evidence is implemented, browser validated, and integrated into `journey-integration-proof-summary.json`. |
-| Governed AI copilot demo proof | Supported for RFC-0027 first-wave internal copilot scope | Guardrails, lineage, review posture, unavailable behavior, and model-risk evidence are implemented; AI never becomes advice, policy, approval, client-ready publication, or execution authority. |
+| Governed AI copilot demo proof | Supported for RFC-0027 supported internal copilot scope | Guardrails, lineage, review posture, unavailable behavior, and model-risk evidence are implemented; AI never becomes advice, policy, approval, client-ready publication, or execution authority. |
 | RFP/security pack | Supported for implementation-backed responses | Security, dependency, config, supportability, sensitive-artifact, HTTP 409/422, and implementation evidence are reviewed; bank-specific attestations remain blocked unless separately proven. |
 | Architecture deck or deck-ready outline | Supported | Diagrams and deck-ready outline align to actual source authority, APIs, and proof evidence. |
 | Product one-pager | Supported as claim-controlled material | Supported claims are mapped to evidence; client-ready publication, external communication, OMS/order/fill/settlement, and bank-specific certifications remain blocked. |
@@ -1586,7 +1586,7 @@ RFC-0028 is implemented only when:
     and proof summaries are aligned,
 13. wiki is published after merge when wiki source changes,
 14. LinkedIn post-completion draft and ledger update are complete or deliberately user-waived,
-15. no required follow-up RFC, second wave, WTBD dependency, unmerged branch, or stranded durable
+15. no required follow-up RFC, deferred implementation bucket, WTBD dependency, unmerged branch, or stranded durable
     truth remains.
 
 ---

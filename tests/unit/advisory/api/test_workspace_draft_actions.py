@@ -93,3 +93,61 @@ def test_apply_workspace_draft_action_reports_missing_rows():
         apply_workspace_draft_action_to_state(draft_state=draft_state, request=request)
 
     assert str(exc.value) == "WORKSPACE_TRADE_NOT_FOUND"
+
+
+@pytest.mark.parametrize(
+    ("draft_action_request", "expected_message"),
+    [
+        (
+            WorkspaceDraftActionRequest.model_construct(
+                actor_id="advisor_123",
+                action_type="ADD_TRADE",
+                trade=None,
+            ),
+            "WORKSPACE_DRAFT_TRADE_REQUIRED",
+        ),
+        (
+            WorkspaceDraftActionRequest.model_construct(
+                actor_id="advisor_123",
+                action_type="UPDATE_TRADE",
+                workspace_trade_id=None,
+                trade=None,
+            ),
+            "WORKSPACE_TRADE_ID_REQUIRED",
+        ),
+        (
+            WorkspaceDraftActionRequest.model_construct(
+                actor_id="advisor_123",
+                action_type="ADD_CASH_FLOW",
+                cash_flow=None,
+            ),
+            "WORKSPACE_DRAFT_CASH_FLOW_REQUIRED",
+        ),
+        (
+            WorkspaceDraftActionRequest.model_construct(
+                actor_id="advisor_123",
+                action_type="UPDATE_CASH_FLOW",
+                workspace_cash_flow_id=None,
+                cash_flow=None,
+            ),
+            "WORKSPACE_CASH_FLOW_ID_REQUIRED",
+        ),
+        (
+            WorkspaceDraftActionRequest.model_construct(
+                actor_id="advisor_123",
+                action_type="REPLACE_OPTIONS",
+                options=None,
+            ),
+            "WORKSPACE_DRAFT_OPTIONS_REQUIRED",
+        ),
+    ],
+)
+def test_apply_workspace_draft_action_uses_domain_errors_for_constructed_invalid_requests(
+    draft_action_request: WorkspaceDraftActionRequest,
+    expected_message: str,
+):
+    with pytest.raises(WorkspaceDraftActionError, match=expected_message):
+        apply_workspace_draft_action_to_state(
+            draft_state=WorkspaceDraftState(),
+            request=draft_action_request,
+        )

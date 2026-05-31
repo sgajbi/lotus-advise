@@ -91,6 +91,6 @@ def test_rfc0027_slice1_pins_later_copilot_controls_and_automation_gate() -> Non
 def test_rfc0027_slice1_keeps_canonical_seed_inside_rfc_without_day2_deferral() -> None:
     slice1 = _flat(SLICE1_PATH)
 
-    assert "That is RFC-0027 Slice 12 work, not day-2 or wave-2 deferral" in slice1
+    assert "That is RFC-0027 Slice 12 work, not deferred follow-up bucket" in slice1
     assert "canonical RFC-0027 seed data" in slice1
     assert "remain mandatory subsequent RFC-0027 work and are unpromoted in this slice" in slice1

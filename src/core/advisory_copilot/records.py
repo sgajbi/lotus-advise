@@ -67,7 +67,7 @@ class AdvisoryCopilotRunRecord(BaseModel):
     )
     client_ready_publication: CopilotClientReadyPosture = Field(
         default="BLOCKED",
-        description="Client-ready publication posture; first-wave copilot output is blocked.",
+        description="Client-ready publication posture; supported copilot output is blocked.",
         examples=["BLOCKED"],
     )
     retention_class: CopilotRetentionClass = Field(
@@ -121,7 +121,7 @@ class AdvisoryCopilotRunRecord(BaseModel):
     lotus_ai_model_version: str | None = Field(
         default=None,
         description="Model or provider version reported by lotus-ai when available.",
-        examples=["stub-advisory-copilot-v1"],
+        examples=["lotus-ai-governed-model.v1"],
     )
     workflow_pack_id: str = Field(
         description="Approved lotus-ai workflow-pack identifier used for the run.",

@@ -12,6 +12,7 @@ from src.core.advisory.narrative_models import (
     ProposalNarrativeReviewRequest,
 )
 from src.core.common.canonical import hash_canonical_payload
+from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.proposals.models import (
     ProposalNarrativeReviewResponse,
     ProposalRecord,
@@ -54,6 +55,7 @@ def record_narrative_review_event(
     idempotency_key: str | None,
     occurred_at: datetime,
 ) -> ProposalNarrativeReviewResponse:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     _require_reviewable_narrative(version)
     request_hash = build_narrative_review_request_hash(version=version, payload=payload)
     replay_event = _find_replayed_review_event(

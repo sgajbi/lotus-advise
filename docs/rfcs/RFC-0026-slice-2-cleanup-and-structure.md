@@ -64,5 +64,5 @@ Validation:
 ## Next Slice Handoff
 
 Slice 3 may add data-product posture only when it remains non-promoting until runtime behavior
-exists. Slice 4 can build on the new domain package to complete first-wave action-family
+exists. Slice 4 can build on the new domain package to complete supported action-family
 semantics, priority vocabulary, and source-backed action construction.

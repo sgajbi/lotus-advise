@@ -17,13 +17,13 @@ from src.core.advisor_cockpit.action_factory import (
     build_client_follow_up_action,
     build_execution_handoff_ready_action,
     build_execution_status_attention_action,
-    build_first_wave_cockpit_actions,
     build_house_view_impact_action,
     build_meeting_preparation_action,
     build_memo_package_blocked_action,
     build_policy_review_required_action,
     build_report_render_archive_action,
     build_source_backed_action,
+    build_source_backed_cockpit_actions,
     build_supportability_degraded_action,
     build_unsupported_capability_action,
 )
@@ -56,6 +56,7 @@ from src.core.advisor_cockpit.models import (
 from src.core.advisor_cockpit.pagination import (
     COCKPIT_ACTION_DEFAULT_PAGE_SIZE,
     COCKPIT_ACTION_MAX_PAGE_SIZE,
+    cockpit_cursor_start,
     normalize_cockpit_page_size,
 )
 from src.core.advisor_cockpit.persistence import (
@@ -148,7 +149,6 @@ __all__ = [
     "SupportabilityDegradedActionSource",
     "UnsupportedCapabilityActionSource",
     "apply_cockpit_acknowledgement_state",
-    "build_first_wave_cockpit_actions",
     "build_approval_dependency_action",
     "build_client_follow_up_action",
     "build_execution_handoff_ready_action",
@@ -160,9 +160,11 @@ __all__ = [
     "build_policy_review_required_action",
     "build_report_render_archive_action",
     "build_source_backed_action",
+    "build_source_backed_cockpit_actions",
     "build_supportability_degraded_action",
     "build_unsupported_capability_action",
     "cockpit_action_sort_key",
+    "cockpit_cursor_start",
     "derive_cockpit_sla_age_band",
     "is_cockpit_action_owner_blocking",
     "normalize_cockpit_page_size",

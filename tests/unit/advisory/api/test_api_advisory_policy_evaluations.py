@@ -265,7 +265,7 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
                 "satisfied_consent_requirements": record["consent_requirements"],
                 "reason": {"purpose": "requirements reviewed"},
             },
-            headers={"Idempotency-Key": "api-policy-signoff-approved"},
+            headers={"Idempotency-Key": "  api-policy-signoff-approved  "},
         )
         assert signed.status_code == 200
         signed_body = signed.json()
@@ -274,6 +274,7 @@ def test_policy_evaluation_workflow_and_sign_off_decision_api_enforce_requiremen
         assert signed_body["sign_off_event"]["event_type"] == (
             "POLICY_EVALUATION_SIGN_OFF_RECORDED"
         )
+        assert signed_body["sign_off_event"]["idempotency_key"] == "api-policy-signoff-approved"
         assert signed_body["replay_metadata"]["report_render_archive_realization"] == (
             "SUPPORTED_BY_RFC0025_SLICE10_SIGNED_OFF_PACKAGE_HANDOFF"
         )
@@ -355,7 +356,7 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
                 "requested_output_formats": ["pdf"],
                 "reason": {"purpose": "policy sign-off package"},
             },
-            headers={"Idempotency-Key": "api-policy-report-package"},
+            headers={"Idempotency-Key": "  api-policy-report-package  "},
         )
         assert report.status_code == 200
         body = report.json()
@@ -365,6 +366,7 @@ def test_policy_report_package_records_report_render_archive_refs_after_sign_off
         assert body["report_package_event"]["reason_json"]["report_package_id"] == (
             "rjob_policy_001"
         )
+        assert body["report_package_event"]["idempotency_key"] == "api-policy-report-package"
         assert body["report_package_event"]["reason_json"]["render"]["render_job_id"] == (
             "rdr_policy_001"
         )
@@ -477,12 +479,13 @@ def test_policy_ai_evidence_records_bounded_lineage_without_mutating_policy(
                 "requested_actions": ["SUMMARIZE_POLICY_POSTURE"],
                 "reason": {"purpose": "policy evidence explanation"},
             },
-            headers={"Idempotency-Key": "api-policy-ai-evidence-001"},
+            headers={"Idempotency-Key": "  api-policy-ai-evidence-001  "},
         )
         assert response.status_code == 200
         body = response.json()
         assert body["replayed"] is False
         assert body["ai_event"]["event_type"] == "POLICY_EVALUATION_AI_EVIDENCE_RECORDED"
+        assert body["ai_event"]["idempotency_key"] == "api-policy-ai-evidence-001"
         assert body["policy_evidence"]["status"] == "REVIEW_REQUIRED"
         assert body["policy_evidence"]["human_review_required"] is True
         assert body["policy_evidence"]["authoritative_for_policy_status"] is False

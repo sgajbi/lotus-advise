@@ -15,6 +15,8 @@ from src.core.models import (
     SecurityTradeIntent,
     ShelfEntry,
 )
+from src.core.proposals.correlation import resolve_correlation_id
+from src.integrations.base import sanitized_http_base_url
 from src.integrations.lotus_core.runtime_config import env_positive_float, env_positive_int
 
 _CONCENTRATION_PATH = "/analytics/risk/concentration"
@@ -86,9 +88,9 @@ class LotusRiskConcentrationResponse(BaseModel):
 
 
 def _resolve_base_url() -> str:
-    configured = os.getenv("LOTUS_RISK_BASE_URL")
+    configured = sanitized_http_base_url(os.getenv("LOTUS_RISK_BASE_URL"))
     if configured:
-        return configured.rstrip("/")
+        return cast(str, configured)
     raise LotusRiskEnrichmentUnavailableError("LOTUS_RISK_ENRICHMENT_UNAVAILABLE")
 
 
@@ -114,14 +116,16 @@ def _request_concentration_response(
     correlation_id: str,
 ) -> LotusRiskConcentrationResponse:
     attempts = _resolve_retry_attempts()
+    base_url = _resolve_base_url()
+    outbound_correlation_id = resolve_correlation_id(correlation_id)
     last_error: Exception | None = None
     with httpx.Client(timeout=_resolve_timeout()) as client:
         for attempt in range(1, attempts + 1):
             try:
                 response = client.post(
-                    f"{_resolve_base_url()}{_CONCENTRATION_PATH}",
+                    f"{base_url}{_CONCENTRATION_PATH}",
                     json=payload,
-                    headers={"X-Correlation-Id": correlation_id},
+                    headers={"X-Correlation-Id": outbound_correlation_id},
                 )
                 response.raise_for_status()
                 body = cast(dict[str, Any], response.json())

@@ -7,6 +7,11 @@ from typing import Any, Awaitable, Callable
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
+from src.core.proposals.correlation import (
+    MAX_CORRELATION_ID_LENGTH,
+    normalize_optional_correlation_id,
+)
+
 logger = logging.getLogger("enterprise_readiness")
 MiddlewareNext = Callable[[Request], Awaitable[Response]]
 MiddlewareCallable = Callable[[Request, MiddlewareNext], Awaitable[Response]]
@@ -23,6 +28,23 @@ _REDACT_FIELDS = {
     "account_number",
     "client_email",
 }
+_REDACT_FIELD_MARKERS = frozenset(
+    {
+        "access_key",
+        "account_number",
+        "api_key",
+        "authorization",
+        "client_email",
+        "cookie",
+        "password",
+        "private_key",
+        "secret",
+        "session",
+        "ssn",
+        "token",
+    }
+)
+_REDACTED_VALUE = "***REDACTED***"
 
 
 def _env_enabled(name: str, default: str = "true") -> bool:
@@ -36,6 +58,17 @@ def _load_json_map(name: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {}
     return parsed if isinstance(parsed, dict) else {}
+
+
+def _json_map_config_issue(name: str, issue: str) -> str | None:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return None
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return issue
+    return None if isinstance(parsed, dict) else issue
 
 
 def _env_int(name: str, default: int) -> int:
@@ -63,6 +96,18 @@ def validate_enterprise_runtime_config() -> list[str]:
         and not os.getenv("ENTERPRISE_PRIMARY_KEY_ID", "").strip()
     ):
         issues.append("missing_primary_key_id")
+    for issue in (
+        _json_map_config_issue(
+            "ENTERPRISE_FEATURE_FLAGS_JSON",
+            "invalid_feature_flags_json",
+        ),
+        _json_map_config_issue(
+            "ENTERPRISE_CAPABILITY_RULES_JSON",
+            "invalid_capability_rules_json",
+        ),
+    ):
+        if issue is not None:
+            issues.append(issue)
 
     if issues and _env_enabled("ENTERPRISE_ENFORCE_RUNTIME_CONFIG", "false"):
         raise RuntimeError(f"enterprise_runtime_config_invalid:{','.join(issues)}")
@@ -75,7 +120,15 @@ def load_feature_flags() -> dict[str, dict[str, dict[str, bool]]]:
 
 def load_capability_rules() -> dict[str, str]:
     rules = _load_json_map("ENTERPRISE_CAPABILITY_RULES_JSON")
-    return {str(key): str(value) for key, value in rules.items() if isinstance(key, str)}
+    normalized: dict[str, str] = {}
+    for key, value in rules.items():
+        if not isinstance(key, str):
+            continue
+        capability_rule = key.strip()
+        capability = str(value).strip()
+        if capability_rule and capability:
+            normalized[capability_rule] = capability
+    return normalized
 
 
 def is_feature_enabled(feature_key: str, tenant_id: str, role: str) -> bool:
@@ -96,9 +149,20 @@ def _required_capability(method: str, path: str) -> str | None:
     method = method.upper()
     for key, capability in load_capability_rules().items():
         prefix = f"{method} "
-        if key.upper().startswith(prefix) and path.startswith(key[len(prefix) :]):
+        if key.upper().startswith(prefix) and _path_matches_capability_rule(
+            request_path=path,
+            rule_path=key[len(prefix) :],
+        ):
             return capability
     return None
+
+
+def _path_matches_capability_rule(*, request_path: str, rule_path: str) -> bool:
+    normalized_rule = rule_path.rstrip("/")
+    normalized_request = request_path.rstrip("/")
+    return normalized_request == normalized_rule or normalized_request.startswith(
+        f"{normalized_rule}/"
+    )
 
 
 def authorize_write_request(
@@ -109,13 +173,20 @@ def authorize_write_request(
     ):
         return True, None
 
-    normalized = {str(k).lower(): str(v) for k, v in headers.items()}
+    normalized = {str(k).strip().lower(): str(v).strip() for k, v in headers.items()}
     missing = sorted(header for header in _REQUIRED_HEADERS if not normalized.get(header))
     if missing:
         return False, f"missing_headers:{','.join(missing)}"
 
     if not (normalized.get("x-service-identity") or normalized.get("authorization")):
         return False, "missing_service_identity"
+
+    capability_rule_issue = _json_map_config_issue(
+        "ENTERPRISE_CAPABILITY_RULES_JSON",
+        "invalid_capability_rules_json",
+    )
+    if capability_rule_issue is not None:
+        return False, capability_rule_issue
 
     required_capability = _required_capability(method, path)
     if required_capability:
@@ -132,14 +203,36 @@ def redact_sensitive(value: Any) -> Any:
     if isinstance(value, dict):
         out: dict[str, Any] = {}
         for key, item in value.items():
-            if key.lower() in _REDACT_FIELDS:
-                out[key] = "***REDACTED***"
+            if _is_sensitive_field_name(key):
+                out[key] = _REDACTED_VALUE
             else:
                 out[key] = redact_sensitive(item)
         return out
     if isinstance(value, list):
         return [redact_sensitive(item) for item in value]
     return value
+
+
+def _is_sensitive_field_name(key: Any) -> bool:
+    normalized = str(key).strip().lower().replace("-", "_")
+    if normalized in _REDACT_FIELDS:
+        return True
+    compact = normalized.replace("_", "")
+    return any(
+        marker in normalized or marker.replace("_", "") in compact
+        for marker in _REDACT_FIELD_MARKERS
+    )
+
+
+def _normalize_audit_identity(value: str, *, default: str) -> str:
+    normalized = value.strip()
+    if (
+        not normalized
+        or len(normalized) > MAX_CORRELATION_ID_LENGTH
+        or any(ord(char) < 32 or ord(char) == 127 for char in normalized)
+    ):
+        return default
+    return normalized
 
 
 def emit_audit_event(
@@ -151,22 +244,29 @@ def emit_audit_event(
     correlation_id: str | None,
     metadata: dict[str, Any],
 ) -> None:
+    normalized_correlation_id = normalize_optional_correlation_id(correlation_id)
     logger.info(
         "enterprise_audit_event",
         extra={
             "audit": {
                 "service": _SERVICE_NAME,
                 "action": action,
-                "actor_id": actor_id,
-                "tenant_id": tenant_id,
-                "role": role,
-                "correlation_id": correlation_id or "",
+                "actor_id": _normalize_audit_identity(actor_id, default="unknown"),
+                "tenant_id": _normalize_audit_identity(tenant_id, default="default"),
+                "role": _normalize_audit_identity(role, default="unknown"),
+                "correlation_id": normalized_correlation_id or "",
                 "timestamp_utc": datetime.now(timezone.utc).isoformat(),
                 "policy_version": enterprise_policy_version(),
                 "metadata": redact_sensitive(metadata),
             }
         },
     )
+
+
+def _enterprise_policy_response(*, status_code: int, content: dict[str, Any]) -> JSONResponse:
+    response = JSONResponse(status_code=status_code, content=content)
+    response.headers["X-Enterprise-Policy-Version"] = enterprise_policy_version()
+    return response
 
 
 def build_enterprise_audit_middleware() -> MiddlewareCallable:
@@ -177,7 +277,22 @@ def build_enterprise_audit_middleware() -> MiddlewareCallable:
         except ValueError:
             content_length = 0
         if request.method in _WRITE_METHODS and content_length > max_write_payload_bytes:
-            return JSONResponse(status_code=413, content={"detail": "payload_too_large"})
+            emit_audit_event(
+                action=f"DENY {request.method} {request.url.path}",
+                actor_id=request.headers.get("X-Actor-Id", "unknown"),
+                tenant_id=request.headers.get("X-Tenant-Id", "default"),
+                role=request.headers.get("X-Role", "unknown"),
+                correlation_id=request.headers.get("X-Correlation-Id"),
+                metadata={
+                    "reason": "payload_too_large",
+                    "content_length": content_length,
+                    "max_write_payload_bytes": max_write_payload_bytes,
+                },
+            )
+            return _enterprise_policy_response(
+                status_code=413,
+                content={"detail": "payload_too_large"},
+            )
 
         authorized, reason = authorize_write_request(
             request.method, request.url.path, dict(request.headers)
@@ -191,7 +306,7 @@ def build_enterprise_audit_middleware() -> MiddlewareCallable:
                 correlation_id=request.headers.get("X-Correlation-Id"),
                 metadata={"reason": reason},
             )
-            return JSONResponse(
+            return _enterprise_policy_response(
                 status_code=403, content={"detail": "authorization_policy_denied", "reason": reason}
             )
 

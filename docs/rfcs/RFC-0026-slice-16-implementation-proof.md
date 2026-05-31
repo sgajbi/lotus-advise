@@ -11,7 +11,7 @@
 
 ## Proof Scope
 
-Slice 16 proves the first-wave RFC-0026 advisor cockpit through the governed canonical
+Slice 16 proves the supported RFC-0026 advisor cockpit through the governed canonical
 front-office runtime for `PB_SG_GLOBAL_BAL_001`.
 
 The proof covers:

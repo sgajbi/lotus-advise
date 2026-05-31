@@ -12,6 +12,10 @@ from src.core.workspace.models import (
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
     WorkspaceAssistantWorkflowPackRunReviewActionResponse,
 )
+from src.integrations.lotus_ai.runtime_config import (
+    resolve_lotus_ai_base_url,
+    resolve_lotus_ai_tenant_id,
+)
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 _WORKFLOW_PACK_ID = "workspace_rationale.pack"
@@ -94,10 +98,10 @@ def apply_workspace_rationale_review_action_with_lotus_ai(
 
 
 def _resolve_base_url() -> str:
-    base_url = os.getenv("LOTUS_AI_BASE_URL", "").strip()
-    if not base_url:
-        raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
-    return base_url.rstrip("/")
+    return resolve_lotus_ai_base_url(
+        unavailable_error_type=LotusAIRationaleUnavailableError,
+        unavailable_message="LOTUS_AI_RATIONALE_UNAVAILABLE",
+    )
 
 
 def _resolve_timeout() -> httpx.Timeout:
@@ -122,7 +126,7 @@ def _build_workflow_pack_request(
                 "caller_app": "lotus-advise",
                 "correlation_id": f"workspace-rationale-{evidence.workspace_id}",
                 "requested_by": request.requested_by,
-                "tenant_id": "tenant-us-002",
+                "tenant_id": resolve_lotus_ai_tenant_id(),
             },
             "context": {
                 "summary": (

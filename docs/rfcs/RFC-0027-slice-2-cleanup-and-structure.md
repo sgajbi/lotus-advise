@@ -18,7 +18,7 @@ code, advisor-cockpit code, or Workbench UI logic.
 
 The package establishes:
 
-1. a typed first-wave action catalog for the six supported RFC-0027 action families,
+1. a typed supported action catalog for the six supported RFC-0027 action families,
 2. private-banking audience, source-dependency, evidence-access, review-posture, and client-ready
    posture vocabulary,
 3. deterministic evidence-section requirements for each action family,
@@ -52,7 +52,7 @@ The package establishes:
 | Advisor cockpit | RFC-0027 consumes RFC-0026 cockpit actions and preparation packets but does not own action priority, SLA, acknowledgement, or workflow state. |
 | `lotus-ai` | `lotus-ai` remains workflow-pack execution authority. Slice 2 defines package identifiers only; it does not call model providers or introduce prompt construction. |
 | Gateway and Workbench | No Gateway or Workbench route is introduced in this slice. Later slices must consume certified Advise APIs through Gateway only. |
-| Client-ready posture | Every first-wave action is review-required and client-ready publication is `BLOCKED`. |
+| Client-ready posture | Every supported action is review-required and client-ready publication is `BLOCKED`. |
 
 ## Tests
 

@@ -4,6 +4,10 @@ from datetime import datetime
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
+from src.core.common.idempotency import (
+    normalize_optional_idempotency_key,
+    normalize_required_idempotency_key,
+)
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
@@ -59,6 +63,10 @@ def create_or_replay_memo_response(
     event_id: str,
     occurred_at: datetime,
 ) -> ProposalMemoResponse:
+    try:
+        idempotency_key = normalize_required_idempotency_key(idempotency_key)
+    except ValueError as exc:
+        raise ProposalValidationError(str(exc)) from exc
     proposal, version = _load_proposal_version(
         repository=repository,
         proposal_id=proposal_id,
@@ -143,6 +151,7 @@ def record_memo_review_response(
     event_id: str,
     occurred_at: datetime,
 ) -> ProposalMemoReviewResponse:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     proposal, _version = _load_proposal_version(
         repository=repository,
         proposal_id=proposal_id,
@@ -197,6 +206,7 @@ def record_memo_report_package_event_response(
     event_id: str,
     occurred_at: datetime,
 ) -> ProposalMemoReportPackageEventResponse:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     proposal, _version = _load_proposal_version(
         repository=repository,
         proposal_id=proposal_id,
@@ -250,6 +260,7 @@ def request_memo_report_package_response(
     event_id: str,
     occurred_at: datetime,
 ) -> ProposalMemoReportPackageResponse:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     proposal, version = _load_proposal_version(
         repository=repository,
         proposal_id=proposal_id,
@@ -347,6 +358,7 @@ def request_memo_ai_commentary_response(
     event_id: str,
     occurred_at: datetime,
 ) -> ProposalMemoAiCommentaryResponse:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     proposal, _version = _load_proposal_version(
         repository=repository,
         proposal_id=proposal_id,

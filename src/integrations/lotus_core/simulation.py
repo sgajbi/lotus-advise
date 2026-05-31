@@ -4,6 +4,8 @@ from typing import Any, cast
 import httpx
 
 from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.core.proposals.correlation import resolve_correlation_id
+from src.integrations.base import sanitized_http_base_url
 from src.integrations.lotus_core.contracts import (
     ADVISORY_SIMULATION_CONTRACT_VERSION,
     ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER,
@@ -27,9 +29,9 @@ class LotusCoreSimulationUnavailableError(Exception):
 
 
 def _resolve_base_url() -> str:
-    configured = os.getenv("LOTUS_CORE_BASE_URL")
+    configured = sanitized_http_base_url(os.getenv("LOTUS_CORE_BASE_URL"))
     if configured:
-        return configured.rstrip("/")
+        return cast(str, configured)
     raise LotusCoreSimulationUnavailableError("LOTUS_CORE_SIMULATION_UNAVAILABLE")
 
 
@@ -67,7 +69,7 @@ def simulate_with_lotus_core(
     policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
     headers: dict[str, str] = {
-        "X-Correlation-Id": correlation_id,
+        "X-Correlation-Id": resolve_correlation_id(correlation_id),
         "X-Request-Hash": request_hash,
         ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION,
     }

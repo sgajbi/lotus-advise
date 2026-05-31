@@ -45,7 +45,7 @@ def test_rfc0026_slice5_records_non_promoting_source_aggregation_posture() -> No
         assert marker in slice5
 
     assert "source-read-model aggregation" in supported
-    assert "Implemented for the source-owned first-wave advisor cockpit" in supported
+    assert "Implemented for the source-owned advisor cockpit" in supported
 
 
 def test_rfc0026_slice5_contract_is_backed_by_code_and_behavior_tests() -> None:

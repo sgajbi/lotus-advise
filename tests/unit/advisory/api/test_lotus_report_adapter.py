@@ -37,6 +37,7 @@ class _FakeClient:
             "archive": {"document_id": "doc_memo_001"},
         }
         self.posts: list[dict] = []
+        self.gets: list[dict] = []
 
     def __enter__(self) -> "_FakeClient":
         return self
@@ -49,6 +50,7 @@ class _FakeClient:
         return self.response
 
     def get(self, url: str, *, headers: dict[str, str]) -> _FakeResponse:
+        self.gets.append({"url": url, "headers": headers})
         return _FakeResponse(200, self.status_payload)
 
 
@@ -179,10 +181,95 @@ def test_lotus_report_adapter_submits_portfolio_review_job_with_reviewed_narrati
     assert post["url"] == "http://report.dev.lotus/reports/portfolio-reviews"
     assert post["headers"]["Idempotency-Key"] == "prr_live_001"
     assert post["headers"]["X-Caller-Application"] == "lotus-advise"
+    assert post["headers"]["X-Actor-Id"] == "advisor_1"
+    assert post["headers"]["X-Tenant-Id"] == "tenant-sg-001"
     assert post["json"]["portfolio_scope"] == {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]}
     assert post["json"]["as_of_date"] == "2026-04-10"
     assert post["json"]["requested_output_formats"] == ["json"]
     assert post["json"]["proposal_narrative_package"]["narrative_id"] == "pnar_live_001"
+
+
+def test_lotus_report_adapter_sanitizes_configured_base_url(monkeypatch) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_report_001",
+                "status": "data_ready",
+                "idempotency_key": "prr_live_001",
+            },
+        )
+    )
+    monkeypatch.setenv(
+        "LOTUS_REPORT_BASE_URL",
+        "https://user:secret@report.dev.lotus:8300/api?token=should-not-leak#fragment",
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    request_proposal_report_with_lotus_report(request=_proposal_request())
+
+    [post] = fake_client.posts
+    assert post["url"] == "https://report.dev.lotus:8300/api/reports/portfolio-reviews"
+    assert "secret" not in post["url"]
+    assert "token" not in post["url"]
+
+
+def test_lotus_report_adapter_bounds_identity_headers_and_payload_actor(monkeypatch) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_report_001",
+                "status": "data_ready",
+                "idempotency_key": "prr_live_001",
+            },
+        )
+    )
+    request = _proposal_request()
+    request["requested_by"] = "advisor_1\x7f"
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", " tenant-private-bank-001 ")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    request_proposal_report_with_lotus_report(request=request)
+
+    [post] = fake_client.posts
+    assert post["headers"]["X-Actor-Id"] == "lotus-advise"
+    assert post["headers"]["X-Tenant-Id"] == "tenant-private-bank-001"
+    assert post["json"]["options"]["requested_by"] == "lotus-advise"
+
+
+def test_lotus_report_adapter_defaults_invalid_tenant_identity(monkeypatch) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_report_001",
+                "status": "data_ready",
+                "idempotency_key": "prr_live_001",
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001\x7f")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    request_proposal_report_with_lotus_report(request=_proposal_request())
+
+    [post] = fake_client.posts
+    assert post["headers"]["X-Tenant-Id"] == "tenant-sg-001"
 
 
 def test_lotus_report_adapter_normalizes_pending_status_and_lineage_dates(monkeypatch) -> None:
@@ -251,6 +338,12 @@ def test_lotus_report_adapter_submits_memo_package_for_pdf_render_archive(monkey
     assert post["json"]["requested_output_formats"] == ["pdf"]
     assert post["json"]["proposal_memo_package"]["memo_id"] == "memo_001"
     assert post["json"]["proposal_memo_package"]["client_ready_publication"] == "BLOCKED"
+    assert fake_client.gets == [
+        {
+            "url": "http://report.dev.lotus/reports/jobs/rjob_memo_001",
+            "headers": post["headers"],
+        }
+    ]
 
 
 def test_lotus_report_adapter_defaults_memo_outputs_and_tolerates_missing_status_url(
@@ -280,6 +373,35 @@ def test_lotus_report_adapter_defaults_memo_outputs_and_tolerates_missing_status
     assert response.explanation["archive"] == {}
     [post] = fake_client.posts
     assert post["json"]["requested_output_formats"] == ["json"]
+    assert fake_client.gets == []
+
+
+def test_lotus_report_adapter_ignores_untrusted_status_url(monkeypatch) -> None:
+    request = _memo_report_package_request()
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_memo_001",
+                "status": "accepted",
+                "status_url": "https://example.invalid/reports/jobs/rjob_memo_001",
+                "idempotency_key": "prr_memo_001",
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_memo_report_package_with_lotus_report(request=request)
+
+    assert response.status == "ACCEPTED"
+    assert response.explanation["render"] == {}
+    assert response.explanation["archive"] == {}
+    assert fake_client.gets == []
 
 
 def test_lotus_report_adapter_submits_policy_sign_off_package_for_render_archive(
@@ -354,6 +476,17 @@ def test_lotus_report_adapter_defaults_policy_outputs_when_formats_are_invalid(
 
 def test_lotus_report_adapter_fails_closed_when_report_base_url_is_missing(monkeypatch) -> None:
     monkeypatch.delenv("LOTUS_REPORT_BASE_URL", raising=False)
+
+    with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
+        request_proposal_report_with_lotus_report(request=_proposal_request())
+
+
+def test_lotus_report_adapter_rejects_invalid_base_url_without_http_client(monkeypatch) -> None:
+    def _unexpected_client(*args: object, **kwargs: object) -> _FakeClient:
+        raise AssertionError("invalid lotus-report base URL should fail before opening a client")
+
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "ftp://report.dev.lotus:8300")
+    monkeypatch.setattr("src.integrations.lotus_report.adapter.httpx.Client", _unexpected_client)
 
     with pytest.raises(LotusReportUnavailableError, match="LOTUS_REPORT_REQUEST_UNAVAILABLE"):
         request_proposal_report_with_lotus_report(request=_proposal_request())

@@ -234,6 +234,72 @@ def test_enrich_with_lotus_risk_maps_proposal_to_stateless_concentration(monkeyp
     )
 
 
+def test_enrich_with_lotus_risk_normalizes_invalid_outbound_correlation_id(monkeypatch):
+    request = _request()
+    result = _proposal_result(request)
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=_risk_response_payload()))
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "http://lotus-risk:8130")
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    enrich_with_lotus_risk(
+        request=request,
+        proposal_result=result,
+        correlation_id="corr-risk-client\x7f",
+    )
+
+    outbound_correlation_id = fake_client.calls[0]["headers"]["X-Correlation-Id"]
+    assert outbound_correlation_id.startswith("corr_")
+    assert outbound_correlation_id != "corr-risk-client\x7f"
+
+
+def test_enrich_with_lotus_risk_sanitizes_configured_base_url(monkeypatch):
+    request = _request()
+    result = _proposal_result(request)
+    fake_client = _FakeClient(_FakeResponse(status_code=200, payload=_risk_response_payload()))
+    monkeypatch.setenv(
+        "LOTUS_RISK_BASE_URL",
+        "https://user:secret@lotus-risk:8130/api?token=should-not-leak#fragment",
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_risk.enrichment.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    enrich_with_lotus_risk(
+        request=request,
+        proposal_result=result,
+        correlation_id="corr-risk-client",
+    )
+
+    assert fake_client.calls[0]["url"] == (
+        "https://lotus-risk:8130/api/analytics/risk/concentration"
+    )
+    assert "secret" not in fake_client.calls[0]["url"]
+    assert "token" not in fake_client.calls[0]["url"]
+
+
+def test_enrich_with_lotus_risk_rejects_invalid_base_url_without_http_client(monkeypatch):
+    def _unexpected_client(*args: object, **kwargs: object) -> _FakeClient:
+        raise AssertionError("invalid lotus-risk base URL should fail before opening a client")
+
+    request = _request()
+    monkeypatch.setenv("LOTUS_RISK_BASE_URL", "ftp://lotus-risk:8130")
+    monkeypatch.setattr("src.integrations.lotus_risk.enrichment.httpx.Client", _unexpected_client)
+
+    with pytest.raises(
+        LotusRiskEnrichmentUnavailableError,
+        match="LOTUS_RISK_ENRICHMENT_UNAVAILABLE",
+    ):
+        enrich_with_lotus_risk(
+            request=request,
+            proposal_result=_proposal_result(request),
+            correlation_id="corr-risk-client",
+        )
+
+
 def test_enrich_with_lotus_risk_requires_configured_base_url(monkeypatch):
     monkeypatch.delenv("LOTUS_RISK_BASE_URL", raising=False)
     request = _request()

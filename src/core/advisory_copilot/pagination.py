@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 from dataclasses import dataclass
 from datetime import datetime
 
 from src.core.advisory_copilot.records import AdvisoryCopilotRunRecord
+
+_INVALID_CURSOR = "COPILOT_RUN_CURSOR_INVALID"
+COPILOT_RUN_DEFAULT_PAGE_SIZE = 25
+COPILOT_RUN_MAX_PAGE_SIZE = 100
+_INVALID_PAGE_SIZE = "COPILOT_RUN_PAGE_SIZE_INVALID"
 
 
 @dataclass(frozen=True)
@@ -28,14 +34,39 @@ def decode_copilot_run_cursor(cursor: str | None) -> AdvisoryCopilotRunCursor | 
         return None
     try:
         padded = cursor + ("=" * (-len(cursor) % 4))
-        payload = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8"))
-        created_at = datetime.fromisoformat(payload["created_at"])
-        run_id = str(payload["run_id"]).strip()
-    except Exception as exc:
-        raise ValueError("COPILOT_RUN_CURSOR_INVALID") from exc
+        decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+        payload = json.loads(decoded)
+    except (binascii.Error, json.JSONDecodeError, UnicodeError) as exc:
+        raise ValueError(_INVALID_CURSOR) from exc
+
+    if not isinstance(payload, dict):
+        raise ValueError(_INVALID_CURSOR)
+
+    raw_created_at = payload.get("created_at")
+    raw_run_id = payload.get("run_id")
+    if not isinstance(raw_created_at, str) or not isinstance(raw_run_id, str):
+        raise ValueError(_INVALID_CURSOR)
+
+    try:
+        created_at = datetime.fromisoformat(raw_created_at)
+    except ValueError as exc:
+        raise ValueError(_INVALID_CURSOR) from exc
+
+    if created_at.tzinfo is None or created_at.utcoffset() is None:
+        raise ValueError(_INVALID_CURSOR)
+
+    run_id = raw_run_id.strip()
     if not run_id:
-        raise ValueError("COPILOT_RUN_CURSOR_INVALID")
+        raise ValueError(_INVALID_CURSOR)
     return AdvisoryCopilotRunCursor(created_at=created_at, run_id=run_id)
+
+
+def normalize_copilot_run_page_size(limit: int | None) -> int:
+    if limit is None:
+        return COPILOT_RUN_DEFAULT_PAGE_SIZE
+    if limit < 1:
+        raise ValueError(_INVALID_PAGE_SIZE)
+    return min(limit, COPILOT_RUN_MAX_PAGE_SIZE)
 
 
 def run_is_after_cursor(

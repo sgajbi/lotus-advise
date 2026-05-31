@@ -28,6 +28,7 @@ from src.core.advisory_copilot.workflow_pack import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
 )
+from src.core.common.idempotency import normalize_optional_idempotency_key
 
 RAW_AI_STORAGE_KEYS = frozenset(
     {
@@ -123,6 +124,7 @@ def persist_advisory_copilot_run(
     user_instruction: str = "",
     created_at: datetime | None = None,
 ) -> AdvisoryCopilotRunPersistenceResult:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     _assert_safe_structured_payload(reason)
     _assert_safe_structured_payload(lineage)
     for section in output_sections:
@@ -266,6 +268,7 @@ def record_advisory_copilot_review(
     idempotency_key: str | None = None,
     occurred_at: datetime | None = None,
 ) -> AdvisoryCopilotReviewResult:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     _assert_safe_structured_payload(reason)
     run = repository.get_run(run_id=run_id)
     if run is None:
@@ -387,16 +390,23 @@ def _can_refresh_retryable_run(
     existing_run: AdvisoryCopilotRunRecord,
     incoming_review_posture: CopilotReviewPosture,
 ) -> bool:
-    if (
-        existing_run.review_posture == "UNAVAILABLE"
-        and incoming_review_posture != "UNAVAILABLE"
-        and existing_run.lineage_json.get("fallback_reason") is not None
-    ):
+    if not can_attempt_advisory_copilot_run_refresh(existing_run):
+        return False
+    if existing_run.review_posture == "UNAVAILABLE" and incoming_review_posture != "UNAVAILABLE":
         return True
     return bool(
         existing_run.review_posture == "GUARDRAIL_REJECTED"
         and incoming_review_posture == "REVIEW_REQUIRED"
-        and existing_run.lineage_json.get("fallback_reason") == "COPILOT_OUTPUT_GUARDRAIL_REJECTED"
+    )
+
+
+def can_attempt_advisory_copilot_run_refresh(existing_run: AdvisoryCopilotRunRecord) -> bool:
+    fallback_reason = existing_run.lineage_json.get("fallback_reason")
+    if existing_run.review_posture == "UNAVAILABLE":
+        return fallback_reason is not None
+    return bool(
+        existing_run.review_posture == "GUARDRAIL_REJECTED"
+        and fallback_reason == "COPILOT_OUTPUT_GUARDRAIL_REJECTED"
     )
 
 

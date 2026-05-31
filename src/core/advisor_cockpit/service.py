@@ -22,7 +22,10 @@ from src.core.advisor_cockpit.models import (
     CockpitEvidenceRef,
     MeetingPreparationPacket,
 )
-from src.core.advisor_cockpit.pagination import normalize_cockpit_page_size
+from src.core.advisor_cockpit.pagination import (
+    cockpit_cursor_start,
+    normalize_cockpit_page_size,
+)
 from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementIdempotencyRecord,
     CockpitAcknowledgementRecord,
@@ -38,6 +41,7 @@ from src.core.advisor_cockpit.source_read_model import (
     build_advisor_cockpit_source_read_model,
 )
 from src.core.common.canonical import hash_canonical_payload
+from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
@@ -79,7 +83,12 @@ class AdvisorCockpitService:
         )
         actions = _project_actions_for_caller(actions=actions, caller_context=caller_context)
         page_size = normalize_cockpit_page_size(limit)
-        start = _cursor_start(actions=actions, cursor=cursor)
+        start = cockpit_cursor_start(
+            items=actions,
+            cursor=cursor,
+            identity=lambda action: action.action_item_id,
+            invalid_code="ADVISOR_COCKPIT_CURSOR_INVALID",
+        )
         page_items = actions[start : start + page_size]
         next_cursor = None
         if start + page_size < len(actions):
@@ -164,7 +173,12 @@ class AdvisorCockpitService:
         )
         packets = _preparation_packets(read_model)
         page_size = normalize_cockpit_page_size(limit)
-        start = _packet_cursor_start(packets=packets, cursor=cursor)
+        start = cockpit_cursor_start(
+            items=packets,
+            cursor=cursor,
+            identity=lambda packet: packet.packet_id,
+            invalid_code="ADVISOR_COCKPIT_PREPARATION_CURSOR_INVALID",
+        )
         page_items = packets[start : start + page_size]
         next_cursor = None
         if start + page_size < len(packets):
@@ -211,6 +225,10 @@ class AdvisorCockpitService:
         caller_context: CockpitCallerContext,
         portfolio_id: str | None,
     ) -> AdvisorCockpitAcknowledgeResponse:
+        try:
+            idempotency_key = normalize_required_idempotency_key(idempotency_key)
+        except ValueError as exc:
+            raise ProposalValidationError(str(exc)) from exc
         action = self.get_action(
             action_item_id=action_item_id,
             caller_context=caller_context,
@@ -367,15 +385,6 @@ class AdvisorCockpitService:
         return action
 
 
-def _cursor_start(*, actions: list[AdvisoryActionItem], cursor: str | None) -> int:
-    if cursor is None:
-        return 0
-    for index, action in enumerate(actions):
-        if action.action_item_id == cursor:
-            return index + 1
-    raise ProposalValidationError("ADVISOR_COCKPIT_CURSOR_INVALID")
-
-
 def _project_actions_for_caller(
     *,
     actions: list[AdvisoryActionItem],
@@ -445,15 +454,6 @@ def _house_view_impacts(
                 )
             )
     return impacts
-
-
-def _packet_cursor_start(*, packets: list[MeetingPreparationPacket], cursor: str | None) -> int:
-    if cursor is None:
-        return 0
-    for index, packet in enumerate(packets):
-        if packet.packet_id == cursor:
-            return index + 1
-    raise ProposalValidationError("ADVISOR_COCKPIT_PREPARATION_CURSOR_INVALID")
 
 
 def _action_counts(actions: list[AdvisoryActionItem]) -> dict[str, int]:
@@ -529,6 +529,7 @@ def _acknowledgement_response(
             "acknowledgement_id": record.acknowledgement_id,
             "correlation_id": record.correlation_id,
             "contract_version": COCKPIT_CONTRACT_VERSION,
+            "idempotency_key": record.reason_json.get("idempotency_key"),
         },
     )
 
