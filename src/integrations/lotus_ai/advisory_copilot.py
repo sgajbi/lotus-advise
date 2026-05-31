@@ -15,7 +15,10 @@ from src.core.advisory_copilot import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
 )
-from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.runtime_config import (
+    resolve_lotus_ai_base_url,
+    resolve_lotus_ai_tenant_id,
+)
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 ADAPTER_VERSION = "advisory-copilot-lotus-ai-adapter.v1"
@@ -205,7 +208,7 @@ def _build_workflow_pack_request(
                 "caller_app": "lotus-advise",
                 "correlation_id": f"advisory-copilot-{evidence_packet.evidence_packet_id}",
                 "requested_by": requested_by,
-                "tenant_id": os.getenv("LOTUS_ADVISE_TENANT_ID", "tenant-sg-001"),
+                "tenant_id": resolve_lotus_ai_tenant_id(),
             },
             "context": {
                 "summary": "Draft review-gated advisory copilot output from bounded evidence.",

@@ -12,7 +12,10 @@ from src.core.advisory.narrative_models import (
     ProposalNarrativePolicy,
     ProposalNarrativeSectionKey,
 )
-from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.runtime_config import (
+    resolve_lotus_ai_base_url,
+    resolve_lotus_ai_tenant_id,
+)
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 ADAPTER_VERSION = "proposal-narrative-lotus-ai-adapter.v1"
@@ -116,6 +119,7 @@ def _build_workflow_pack_request(
                 "caller_app": "lotus-advise",
                 "correlation_id": f"proposal-narrative-{grounding_packet.packet_id}",
                 "requested_by": requested_by,
+                "tenant_id": resolve_lotus_ai_tenant_id(),
             },
             "context": {
                 "summary": "Draft advisor-review proposal narrative from governed evidence.",

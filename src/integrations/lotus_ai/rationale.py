@@ -12,7 +12,10 @@ from src.core.workspace.models import (
     WorkspaceAssistantWorkflowPackRunReviewActionRequest,
     WorkspaceAssistantWorkflowPackRunReviewActionResponse,
 )
-from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.runtime_config import (
+    resolve_lotus_ai_base_url,
+    resolve_lotus_ai_tenant_id,
+)
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 _WORKFLOW_PACK_ID = "workspace_rationale.pack"
@@ -123,7 +126,7 @@ def _build_workflow_pack_request(
                 "caller_app": "lotus-advise",
                 "correlation_id": f"workspace-rationale-{evidence.workspace_id}",
                 "requested_by": request.requested_by,
-                "tenant_id": os.getenv("LOTUS_ADVISE_TENANT_ID", "tenant-sg-001"),
+                "tenant_id": resolve_lotus_ai_tenant_id(),
             },
             "context": {
                 "summary": (

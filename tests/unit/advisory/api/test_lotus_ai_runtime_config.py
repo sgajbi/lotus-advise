@@ -16,6 +16,7 @@ from src.integrations.lotus_ai.policy_evidence import LotusAIPolicyEvidenceUnava
 from src.integrations.lotus_ai.proposal_memo import LotusAIProposalMemoUnavailableError
 from src.integrations.lotus_ai.proposal_narrative import LotusAIProposalNarrativeUnavailableError
 from src.integrations.lotus_ai.rationale import LotusAIRationaleUnavailableError
+from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_tenant_id
 
 
 @pytest.mark.parametrize(
@@ -102,3 +103,21 @@ def test_lotus_ai_adapters_reject_invalid_configured_base_url(
 
     with pytest.raises(error_type, match=message):
         resolver()
+
+
+def test_lotus_ai_tenant_id_defaults_to_private_banking_context(monkeypatch) -> None:
+    monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID", raising=False)
+
+    assert resolve_lotus_ai_tenant_id() == "tenant-sg-001"
+
+
+def test_lotus_ai_tenant_id_uses_bounded_configured_value(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", " tenant-private-bank-001 ")
+
+    assert resolve_lotus_ai_tenant_id() == "tenant-private-bank-001"
+
+
+def test_lotus_ai_tenant_id_rejects_control_characters(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001\x7f")
+
+    assert resolve_lotus_ai_tenant_id() == "tenant-sg-001"

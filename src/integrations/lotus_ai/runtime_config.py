@@ -5,6 +5,9 @@ from typing import cast
 
 from src.integrations.base import sanitized_http_base_url
 
+_MAX_LOTUS_AI_TENANT_ID_LENGTH = 128
+_DEFAULT_LOTUS_AI_TENANT_ID = "tenant-sg-001"
+
 
 def resolve_lotus_ai_base_url(
     *,
@@ -15,3 +18,14 @@ def resolve_lotus_ai_base_url(
     if base_url is not None:
         return cast(str, base_url)
     raise unavailable_error_type(unavailable_message)
+
+
+def resolve_lotus_ai_tenant_id() -> str:
+    normalized = os.getenv("LOTUS_ADVISE_TENANT_ID", "").strip()
+    if (
+        not normalized
+        or len(normalized) > _MAX_LOTUS_AI_TENANT_ID_LENGTH
+        or any(ord(char) < 32 or ord(char) == 127 for char in normalized)
+    ):
+        return _DEFAULT_LOTUS_AI_TENANT_ID
+    return normalized

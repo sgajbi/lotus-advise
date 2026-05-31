@@ -6057,3 +6057,30 @@
   - No wiki source change is required. This is boundary hardening for an existing integration path.
 - Follow-Up:
   - None.
+
+## LA-REV-230
+
+- Scope: Lotus AI workflow-pack tenant context
+- Pattern: private-banking tenant posture, outbound integration consistency, and runtime
+  configuration hardening
+- Status: Hardened
+- Finding Class: inconsistent workflow-pack caller tenant context
+- Summary: Lotus AI advisory copilot and workspace rationale calls carried tenant context, but
+  proposal memo commentary, proposal narrative, and policy evidence workflow-pack calls did not.
+  The tenant resolution was also duplicated and not bounded for invalid environment values.
+- Evidence:
+  - `src/integrations/lotus_ai/runtime_config.py` now exposes one bounded
+    `resolve_lotus_ai_tenant_id()` helper with the governed `tenant-sg-001` default.
+  - Advisory copilot, workspace rationale, proposal memo commentary, proposal narrative, and policy
+    evidence adapters all use the shared tenant resolver in workflow-pack caller context.
+  - Lotus AI runtime-config tests prove default, override, and invalid tenant fallback behavior.
+  - Workflow-pack request tests prove memo, narrative, and policy evidence calls include the
+    private-banking tenant context.
+- Consequence:
+  - All Advise-to-Lotus-AI workflow-pack calls now carry consistent bounded private-banking tenant
+    context for downstream audit, review, and operational diagnostics.
+- Documentation:
+  - No wiki source change is required. This aligns existing AI integration calls with the already
+    documented advisory AI tenant posture.
+- Follow-Up:
+  - None.
