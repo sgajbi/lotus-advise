@@ -4,11 +4,17 @@ from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 import src.api.proposals.router as proposals_router
 import src.core.advisor_cockpit.service as cockpit_service
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.advisor_cockpit import (
+    AdvisorCockpitPreparationPacketPage,
+    AdvisorCockpitSupportabilityResponse,
+    MeetingPreparationPacket,
+)
 from src.core.policy_packs.models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord
 from src.core.tactical_house_view import clear_tactical_house_view_affected_cohorts_for_tests
@@ -20,6 +26,77 @@ NOW = datetime(2026, 5, 27, 8, 0, tzinfo=UTC)
 def setup_function() -> None:
     reset_proposal_workflow_service_for_tests()
     clear_tactical_house_view_affected_cohorts_for_tests()
+
+
+def _preparation_packet(packet_id: str = "prep_proposal_sg_001_v1") -> MeetingPreparationPacket:
+    return MeetingPreparationPacket(
+        packet_id=packet_id,
+        context_type="PROPOSAL",
+        context_ref="proposal_sg_001",
+        status="READY",
+        sections=[
+            {
+                "section_id": "advisor_meeting_context",
+                "title": "Advisor meeting context",
+                "summary": "Active advisory proposal is available for meeting preparation.",
+            }
+        ],
+    )
+
+
+def test_advisor_cockpit_api_models_reject_unbounded_preparation_pages() -> None:
+    packet = _preparation_packet()
+
+    with pytest.raises(ValidationError, match="List should have at most 64 items"):
+        AdvisorCockpitPreparationPacketPage(
+            items=[packet for _ in range(65)],
+            page_size=25,
+            total_count=65,
+        )
+
+    with pytest.raises(ValidationError, match="greater than or equal to 1"):
+        AdvisorCockpitPreparationPacketPage(
+            items=[packet],
+            page_size=0,
+            total_count=1,
+        )
+
+    with pytest.raises(ValidationError, match="less than or equal to 100"):
+        AdvisorCockpitPreparationPacketPage(
+            items=[packet],
+            page_size=101,
+            total_count=1,
+        )
+
+    with pytest.raises(ValidationError, match="greater than or equal to 0"):
+        AdvisorCockpitPreparationPacketPage(
+            items=[packet],
+            page_size=25,
+            total_count=-1,
+        )
+
+
+def test_advisor_cockpit_api_models_reject_unbounded_supportability_context() -> None:
+    with pytest.raises(ValidationError, match="String should have at most 160 characters"):
+        AdvisorCockpitSupportabilityResponse(
+            posture="X" * 161,
+            supportability={},
+            unsupported_capabilities=[],
+        )
+
+    with pytest.raises(ValidationError, match="Dictionary should have at most 64 items"):
+        AdvisorCockpitSupportabilityResponse(
+            posture="ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
+            supportability={f"key_{index}": "SUPPORTED" for index in range(65)},
+            unsupported_capabilities=[],
+        )
+
+    with pytest.raises(ValidationError, match="List should have at most 64 items"):
+        AdvisorCockpitSupportabilityResponse(
+            posture="ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
+            supportability={},
+            unsupported_capabilities=[f"UNSUPPORTED_{index}" for index in range(65)],
+        )
 
 
 @pytest.fixture()

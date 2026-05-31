@@ -6848,3 +6848,30 @@
 - Follow-Up:
   - Continue auditing supportability and acknowledgement metadata for bounded business-facing
     output.
+
+## LA-REV-262
+
+- Scope: RFC-0026 advisor cockpit API response DTOs
+- Pattern: bounded page and supportability response models
+- Status: Hardened
+- Finding Class: API contract and supportability risk
+- Summary: The service enforced bounded cockpit pagination and supportability shapes, but the
+  preparation-packet and supportability response DTOs did not encode those constraints directly.
+  Direct model construction could accept oversized pages, invalid counts, oversized posture text,
+  or unbounded supportability context.
+- Evidence:
+  - `src/core/advisor_cockpit/api_models.py` now bounds preparation packet pages, cursors,
+    page sizes, counts, supportability dictionaries, acknowledgement audit dictionaries, posture
+    identifiers, and unsupported capability lists.
+  - Advisor cockpit API model tests prove oversized preparation pages, invalid page/count values,
+    oversized supportability posture text, oversized supportability context, and oversized
+    unsupported capability lists are rejected at the DTO boundary.
+- Consequence:
+  - RFC-0026 API responses now carry service-level pagination and supportability guarantees in
+    the OpenAPI-backed DTOs themselves, improving Gateway, Workbench, and generated-client safety.
+- Documentation:
+  - No wiki source change is required. This is DTO-level contract hardening for existing
+    RFC-0026 API semantics.
+- Follow-Up:
+  - Continue auditing acknowledgement persistence metadata and idempotency records for bounded
+    support-safe fields.
