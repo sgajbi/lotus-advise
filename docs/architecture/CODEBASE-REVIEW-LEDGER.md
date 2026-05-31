@@ -6768,3 +6768,33 @@
 - Follow-Up:
   - Continue auditing cockpit construction input DTOs and source-read-model projections for the
     same direct-boundary guarantees.
+
+## LA-REV-259
+
+- Scope: RFC-0026 advisor cockpit preparation packet projection
+- Pattern: shared cockpit projection bounds and preparation packet safety
+- Status: Hardened
+- Finding Class: API stability and source-projection risk
+- Summary: Advisor cockpit action items now bounded oversized upstream identifiers through the
+  action factory, but meeting-preparation packets were built separately in the service layer. A long
+  proposal-derived preparation id or context ref could still fail the bounded packet model after
+  the read model had already accepted the source projection.
+- Evidence:
+  - `src/core/advisor_cockpit/projection_bounds.py` centralizes stable bounded reference,
+    optional-reference, content-hash, and business-summary projection helpers for cockpit outputs.
+  - `src/core/advisor_cockpit/action_factory.py` now uses the shared projection-bound helpers
+    instead of local helper copies.
+  - `src/core/advisor_cockpit/service.py` now applies the same bounded reference and summary
+    projection to meeting-preparation packet ids, context refs, evidence refs, and section
+    source refs.
+  - Advisor cockpit service tests prove preparation packets remain valid and traceable when
+    source proposals carry oversized identifiers.
+- Consequence:
+  - RFC-0026 preparation packet APIs have the same source-projection safety posture as cockpit
+    action APIs, reducing Gateway and Workbench failure risk from upstream identifier drift.
+- Documentation:
+  - No wiki source change is required. This is implementation-backed API stability hardening for
+    existing RFC-0026 semantics.
+- Follow-Up:
+  - Continue auditing source read-model collection bounds and supportability metadata for runaway
+    source batches.

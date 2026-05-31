@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Sequence
 from typing import Literal, TypeVar, cast
 
@@ -19,12 +18,15 @@ from src.core.advisor_cockpit.models import (
     CockpitLineageRef,
     CockpitSourceReadinessGap,
 )
+from src.core.advisor_cockpit.projection_bounds import (
+    bounded_content_hash,
+    bounded_optional_reference,
+    bounded_reference,
+    bounded_summary,
+)
 from src.core.advisor_cockpit.vocabulary import sort_cockpit_action_items
 
 LOTUS_ADVISE_SOURCE_SYSTEM = "lotus-advise"
-_COCKPIT_IDENTIFIER_MAX_LENGTH = 160
-_COCKPIT_SUMMARY_MAX_LENGTH = 512
-_REFERENCE_DIGEST_LENGTH = 12
 T = TypeVar("T")
 
 
@@ -310,17 +312,17 @@ def build_source_backed_action(source: CockpitActionConstructionInput) -> Adviso
         policy_evaluation_id=source_refs.policy_evaluation_id,
         report_ref=source_refs.report_ref,
         execution_ref=source_refs.execution_ref,
-        due_at=_bounded_optional_reference(source.due_at),
+        due_at=bounded_optional_reference(source.due_at),
         sla_age_band=source.sla_age_band,
         materiality_rank=source.materiality_rank,
-        source_timestamp=_bounded_optional_reference(source.source_timestamp),
+        source_timestamp=bounded_optional_reference(source.source_timestamp),
         evidence_refs=source.evidence_refs,
         source_readiness_gaps=source.source_readiness_gaps,
         dependency_readiness=source.dependency_readiness,
         lineage_refs=source.lineage_refs
         or _lineage_refs(f"{source.action_family.lower()}:{source.source_action_id}", None),
         unsupported_capabilities=_unique_ordered(source.unsupported_capabilities),
-        correlation_id=_bounded_optional_reference(source.correlation_id),
+        correlation_id=bounded_optional_reference(source.correlation_id),
     )
 
 
@@ -826,7 +828,7 @@ def build_source_backed_cockpit_actions(
 
 
 def _build_action_item_id(action_family: str, source_action_id: str) -> str:
-    return _bounded_reference(
+    return bounded_reference(
         f"aci_{_normalize_identifier(action_family)}_{_normalize_identifier(source_action_id)}"
     )
 
@@ -849,11 +851,11 @@ def _evidence_ref(
     ],
 ) -> CockpitEvidenceRef:
     return CockpitEvidenceRef(
-        evidence_id=_bounded_reference(evidence_id),
-        evidence_type=_bounded_reference(evidence_type),
+        evidence_id=bounded_reference(evidence_id),
+        evidence_type=bounded_reference(evidence_type),
         source_system=LOTUS_ADVISE_SOURCE_SYSTEM,
         access_class=access_class,
-        summary=_bounded_summary(summary),
+        summary=bounded_summary(summary),
     )
 
 
@@ -862,9 +864,9 @@ def _lineage_refs(lineage_id: str | None, content_hash: str | None) -> list[Cock
         return []
     return [
         CockpitLineageRef(
-            lineage_id=_bounded_reference(lineage_id),
+            lineage_id=bounded_reference(lineage_id),
             source_system=LOTUS_ADVISE_SOURCE_SYSTEM,
-            content_hash=_bounded_content_hash(content_hash),
+            content_hash=bounded_content_hash(content_hash),
         )
     ]
 
@@ -877,10 +879,10 @@ def _source_readiness_gap(
     message: str,
 ) -> CockpitSourceReadinessGap:
     return CockpitSourceReadinessGap(
-        source_family=_bounded_reference(source_family),
-        gap_code=_bounded_reference(gap_code),
+        source_family=bounded_reference(source_family),
+        gap_code=bounded_reference(gap_code),
         owner_role=owner_role,
-        message=_bounded_summary(message),
+        message=bounded_summary(message),
     )
 
 
@@ -892,62 +894,25 @@ def _dependency_readiness(
     summary: str,
 ) -> CockpitDependencyReadiness:
     return CockpitDependencyReadiness(
-        dependency=_bounded_reference(dependency),
+        dependency=bounded_reference(dependency),
         state=state,
-        reason_code=_bounded_reference(reason_code),
-        summary=_bounded_summary(summary),
+        reason_code=bounded_reference(reason_code),
+        summary=bounded_summary(summary),
     )
 
 
 def _bounded_source_refs(source_refs: CockpitActionSourceRefs) -> CockpitActionSourceRefs:
     return CockpitActionSourceRefs(
-        client_ref=_bounded_optional_reference(source_refs.client_ref),
-        household_ref=_bounded_optional_reference(source_refs.household_ref),
-        portfolio_id=_bounded_optional_reference(source_refs.portfolio_id),
-        proposal_id=_bounded_optional_reference(source_refs.proposal_id),
-        workspace_id=_bounded_optional_reference(source_refs.workspace_id),
-        memo_id=_bounded_optional_reference(source_refs.memo_id),
-        policy_evaluation_id=_bounded_optional_reference(source_refs.policy_evaluation_id),
-        report_ref=_bounded_optional_reference(source_refs.report_ref),
-        execution_ref=_bounded_optional_reference(source_refs.execution_ref),
+        client_ref=bounded_optional_reference(source_refs.client_ref),
+        household_ref=bounded_optional_reference(source_refs.household_ref),
+        portfolio_id=bounded_optional_reference(source_refs.portfolio_id),
+        proposal_id=bounded_optional_reference(source_refs.proposal_id),
+        workspace_id=bounded_optional_reference(source_refs.workspace_id),
+        memo_id=bounded_optional_reference(source_refs.memo_id),
+        policy_evaluation_id=bounded_optional_reference(source_refs.policy_evaluation_id),
+        report_ref=bounded_optional_reference(source_refs.report_ref),
+        execution_ref=bounded_optional_reference(source_refs.execution_ref),
     )
-
-
-def _bounded_optional_reference(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = " ".join(value.split())
-    if not normalized:
-        return None
-    return _bounded_reference(normalized)
-
-
-def _bounded_content_hash(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = " ".join(value.split())
-    if not normalized:
-        return None
-    if len(normalized) <= _COCKPIT_IDENTIFIER_MAX_LENGTH:
-        return normalized
-    return f"sha256:{hashlib.sha256(normalized.encode('utf-8')).hexdigest()}"
-
-
-def _bounded_reference(value: str) -> str:
-    normalized = " ".join(value.split())
-    if len(normalized) <= _COCKPIT_IDENTIFIER_MAX_LENGTH:
-        return normalized
-    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:_REFERENCE_DIGEST_LENGTH]
-    prefix_length = _COCKPIT_IDENTIFIER_MAX_LENGTH - _REFERENCE_DIGEST_LENGTH - 1
-    return f"{normalized[:prefix_length].rstrip('_')}_{digest}"
-
-
-def _bounded_summary(value: str) -> str:
-    normalized = " ".join(value.split())
-    if len(normalized) <= _COCKPIT_SUMMARY_MAX_LENGTH:
-        return normalized
-    suffix = "..."
-    return normalized[: _COCKPIT_SUMMARY_MAX_LENGTH - len(suffix)].rstrip() + suffix
 
 
 def _approval_owner_role(

@@ -382,6 +382,43 @@ def test_cockpit_service_lists_preparation_packets_with_cursor_and_supportabilit
         )
 
 
+def test_cockpit_service_bounds_preparation_packets_from_oversized_source_refs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    oversized_proposal_id = f"proposal_{'sg_' * 90}"
+    repository = InMemoryProposalRepository()
+    repository.create_proposal(
+        _proposal(
+            proposal_id=oversized_proposal_id,
+            current_state="EXECUTION_READY",
+        )
+    )
+    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    monkeypatch.setattr(
+        cockpit_service,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+
+    page = service.list_preparation_packets(
+        caller_context=_caller(),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id="corr-prep-bounds",
+    )
+
+    assert page.total_count == 1
+    packet = page.items[0]
+    assert len(packet.packet_id) <= 160
+    assert len(packet.context_ref) <= 160
+    assert len(packet.evidence_refs[0].evidence_id) <= 160
+    assert len(packet.sections[0]["source_ref"]) <= 160
+    assert packet.packet_id.startswith("prep_proposal_sg_")
+    assert packet.packet_id != f"prep_{oversized_proposal_id}_v1"
+
+
 def test_portfolio_scoped_cockpit_includes_preparation_created_by_automation_actor(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
