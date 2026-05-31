@@ -5527,3 +5527,28 @@
     behavior and does not change product feature posture.
 - Follow-Up:
   - None.
+
+## LA-REV-209
+
+- Scope: Advisor cockpit acknowledgement actor and note normalization
+- Pattern: idempotency, audit lineage, and API DTO validation hardening
+- Status: Hardened
+- Finding Class: API validation and replay-determinism gap
+- Summary: RFC-0026 cockpit acknowledgement normalized the idempotency key, but the request DTO did
+  not normalize `acknowledged_by` or support-safe acknowledgement notes. Padded actor values or
+  multiline notes could create dirty audit lineage and avoidable request-hash drift; blank actor
+  values were not rejected at the DTO boundary.
+- Evidence:
+  - `src/core/advisor_cockpit/api_models.py` now trims and validates `acknowledged_by`, normalizes
+    acknowledgement notes, and treats blank notes as absent.
+  - Advisor cockpit service tests now verify normalized actor/note persistence and replay.
+  - Advisor cockpit API tests now verify blank actors return HTTP 422.
+  - Focused advisor-cockpit service, API, and RFC-0026 API-contract tests passed with `17 passed`.
+- Consequence:
+  - Cockpit acknowledgement audit records are cleaner, replay hashes are less brittle, and invalid
+    business actors are blocked before persistence.
+- Documentation:
+  - No wiki source change is required. This is DTO/audit-lineage hardening with no product posture
+    change.
+- Follow-Up:
+  - None.

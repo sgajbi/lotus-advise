@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.core.advisor_cockpit.models import (
     AdvisorCockpitOperatingSnapshot,
@@ -27,6 +27,22 @@ class AdvisorCockpitAcknowledgeRequest(BaseModel):
         description="Optional support-safe acknowledgement note.",
         examples=["Advisor has reviewed the pending compliance action."],
     )
+
+    @field_validator("acknowledged_by")
+    @classmethod
+    def _normalize_acknowledged_by(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("ACKNOWLEDGED_BY_REQUIRED")
+        return normalized
+
+    @field_validator("acknowledgement_note")
+    @classmethod
+    def _normalize_acknowledgement_note(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = " ".join(value.split())
+        return normalized or None
 
 
 class AdvisorCockpitAcknowledgeResponse(BaseModel):
