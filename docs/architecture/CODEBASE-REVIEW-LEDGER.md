@@ -4568,3 +4568,34 @@
 - Follow-Up:
   - If further orchestration growth appears, add focused unit tests for
     `AdvisoryCopilotApplicationService` rather than expanding controller tests.
+
+## LA-REV-175
+
+- Scope: RFC-0027 advisory copilot application-service idempotency boundary
+- Pattern: idempotency / performance / test-quality hardening
+- Status: Hardened
+- Finding Class: reliability gap
+- Summary: Direct application-service review found that idempotent copilot action replays were
+  only resolved during run persistence, after the draft generator had already been invoked. That
+  made retried advisor actions pay unnecessary AI-workflow cost and weakened the guarantee that
+  replay handling is cheap and side-effect minimal.
+- Evidence:
+  - `src/core/advisory_copilot/application.py` now checks existing run idempotency before invoking
+    the draft generator and returns the previously persisted run for matching replay requests.
+  - `src/core/advisory_copilot/service.py` exposes the governed request-hash builder so the
+    application service and persistence service use the same canonical replay fingerprint.
+  - `tests/unit/advisory/engine/test_advisory_copilot_application.py` proves proposal-version
+    evidence projection through injected loaders, raw-instruction redaction, conflict rejection,
+    and replay short-circuiting without a second draft-generation call.
+  - `tests/unit/advisory/api/test_api_advisory_copilot.py` continues to prove the public HTTP
+    contract over the refactored service boundary.
+- Consequence:
+  - RFC-0027 copilot retries are now repeatable, cheaper, and safer: identical replays return the
+    original run before AI orchestration, while changed payloads with the same idempotency key
+    still fail with a contract-specific conflict.
+- Documentation:
+  - This ledger entry records the implementation-backed hardening; public API and wiki truth are
+    unchanged.
+- Follow-Up:
+  - Keep future copilot orchestration behavior covered at the application-service boundary before
+    adding or expanding controller-level assertions.

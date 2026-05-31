@@ -231,6 +231,30 @@ def persist_advisory_copilot_run(
     return AdvisoryCopilotRunPersistenceResult(run=saved_run, replayed=False)
 
 
+def build_advisory_copilot_run_request_hash(
+    *,
+    evidence_packet: CopilotEvidencePacket,
+    audience: CopilotAudience,
+    requested_outputs: tuple[str, ...],
+    requested_by: str,
+    reason: dict[str, Any],
+    requested_intents: tuple[str, ...],
+    user_instruction: str,
+) -> str:
+    _assert_safe_structured_payload(reason)
+    return canonical_json_hash(
+        _safe_run_request_summary(
+            evidence_packet=evidence_packet,
+            audience=audience,
+            requested_outputs=requested_outputs,
+            requested_by=requested_by,
+            reason=reason,
+            requested_intents=requested_intents,
+            user_instruction=user_instruction,
+        )
+    )
+
+
 def record_advisory_copilot_review(
     *,
     repository: AdvisoryCopilotRepository,
@@ -369,7 +393,7 @@ def _can_refresh_retryable_run(
         and existing_run.lineage_json.get("fallback_reason") is not None
     ):
         return True
-    return (
+    return bool(
         existing_run.review_posture == "GUARDRAIL_REJECTED"
         and incoming_review_posture == "REVIEW_REQUIRED"
         and existing_run.lineage_json.get("fallback_reason") == "COPILOT_OUTPUT_GUARDRAIL_REJECTED"

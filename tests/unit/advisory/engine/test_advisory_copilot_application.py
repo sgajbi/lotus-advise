@@ -1,0 +1,257 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from typing import Any
+
+import pytest
+
+from src.core.advisory_copilot.api_models import (
+    AdvisoryCopilotActionRequest,
+    AdvisoryCopilotEvidencePacketCreateRequest,
+    AdvisoryCopilotProposalVersionEvidenceRequest,
+)
+from src.core.advisory_copilot.application import AdvisoryCopilotApplicationService
+from src.core.policy_packs.models import PolicyEvaluationRecord
+from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, ProposalVersionRecord
+from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
+from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
+from src.integrations.lotus_ai import AdvisoryCopilotAiDraft
+
+NOW = datetime(2026, 5, 28, 9, 0, tzinfo=UTC)
+
+
+def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:
+    repository.create_proposal(
+        ProposalRecord(
+            proposal_id="proposal_sg_structured_note_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            created_by="advisor_123",
+            created_at=NOW,
+            last_event_at=NOW,
+            current_state="COMPLIANCE_REVIEW",
+            current_version_no=1,
+            title="Structured note proposal review",
+        )
+    )
+    repository.create_version(
+        ProposalVersionRecord(
+            proposal_version_id="version_sg_001",
+            proposal_id="proposal_sg_structured_note_001",
+            version_no=1,
+            created_at=NOW,
+            request_hash="sha256:request",
+            artifact_hash="sha256:artifact",
+            simulation_hash="sha256:simulation",
+            status_at_creation="READY",
+            proposal_result_json={"status": "READY"},
+            artifact_json={"narrative": {"status": "REVIEW_REQUIRED"}},
+            evidence_bundle_json={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+        )
+    )
+    repository.create_memo(
+        ProposalMemoRecord(
+            memo_id="memo_sg_001",
+            proposal_id="proposal_sg_structured_note_001",
+            proposal_version_no=1,
+            proposal_version_id="version_sg_001",
+            artifact_id="artifact_sg_001",
+            memo_version="advisory-proposal-memo-evidence-pack.v1",
+            memo_status="BLOCKED",
+            lifecycle_status="FINALIZED",
+            created_by="advisor_123",
+            created_at=NOW,
+            source_input_hash="sha256:memo-source",
+            memo_hash="sha256:memo",
+            memo_json={"memo_id": "memo_sg_001"},
+            report_package_events_json=[
+                {"event_id": "memo_report_pkg_001", "report_reference_id": "report_pkg_001"}
+            ],
+        )
+    )
+
+
+def _policy_evaluation() -> PolicyEvaluationRecord:
+    return PolicyEvaluationRecord(
+        evaluation_id="policy_eval_sg_001",
+        proposal_id="proposal_sg_structured_note_001",
+        proposal_version_id="version_sg_001",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        policy_pack_id="SG_PRIVATE_BANKING_REFERENCE",
+        policy_version="2026.05",
+        generated_at="2026-05-28T09:00:00+00:00",
+        created_by="advisor_123",
+        evaluation_status="PENDING_REVIEW",
+        policy_content_hash="sha256:policy-content",
+        source_evidence_hash="sha256:source-evidence",
+        evaluation_hash="sha256:policy-evaluation",
+        evaluation_json={"evaluation_status": "PENDING_REVIEW"},
+        approval_dependencies=["COMPLIANCE_REVIEW"],
+    )
+
+
+def _evidence_packet_request() -> AdvisoryCopilotEvidencePacketCreateRequest:
+    return AdvisoryCopilotEvidencePacketCreateRequest(
+        evidence_packet_id="copilot_packet_pb_sg_001",
+        action_family="PROPOSAL_EXPLANATION",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        proposal_id="proposal_sg_structured_note_001",
+        audience="ADVISOR",
+        created_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+        source_sections=(
+            {
+                "section_key": "POLICY_POSTURE",
+                "title": "Policy posture",
+                "evidence_class": "COMPLIANCE_REVIEW_EVIDENCE",
+                "source_refs": (
+                    {
+                        "source_system": "lotus-advise",
+                        "source_type": "POLICY_EVALUATION",
+                        "source_id": "policy_eval_sg_001",
+                        "content_hash": "sha256:policy-evaluation",
+                        "access_class": "COMPLIANCE_REVIEW_EVIDENCE",
+                    },
+                ),
+                "summary_items": ("Policy evaluation requires compliance review.",),
+                "allowed_audiences": ("ADVISOR", "COMPLIANCE_REVIEWER"),
+            },
+        ),
+    )
+
+
+def _draft_generator(**kwargs: Any) -> AdvisoryCopilotAiDraft:
+    lineage = {
+        "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+        "workflow_pack_version": "v1",
+        "workflow_run_id": "packrun_copilot_001",
+        "model_version": "stub-advisory-copilot-v1",
+        "proposal_version_id": "version_sg_001",
+    }
+    return AdvisoryCopilotAiDraft(
+        status="REVIEW_REQUIRED",
+        sections=(
+            {
+                "section_key": "SUMMARY",
+                "title": "Advisor summary",
+                "text": "Policy review is required before client communication.",
+            },
+        ),
+        lineage=lineage,
+        review_guidance=("Review source evidence before internal use.",),
+        guardrail_reasons=(),
+    )
+
+
+def test_application_service_projects_proposal_version_with_injected_policy_loader() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    proposal_repository = InMemoryProposalRepository()
+    _seed_proposal_version(proposal_repository)
+    loader_calls: list[dict[str, str | None]] = []
+
+    def _load_policy_evaluations(**kwargs: str | None) -> list[PolicyEvaluationRecord]:
+        loader_calls.append(dict(kwargs))
+        return [_policy_evaluation()]
+
+    service = AdvisoryCopilotApplicationService(
+        repository=copilot_repository,
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=_load_policy_evaluations,
+    )
+
+    response = service.create_proposal_version_evidence_packet(
+        payload=AdvisoryCopilotProposalVersionEvidenceRequest(
+            proposal_id="proposal_sg_structured_note_001",
+            proposal_version_no=1,
+            action_family="PROPOSAL_EXPLANATION",
+            audience="ADVISOR",
+            created_by="advisor_123",
+            reason={"business_reason": "Prepare advisor copilot review."},
+        ),
+        proposal_repository=proposal_repository,
+        correlation_id="corr_projection_001",
+    )
+
+    assert loader_calls == [{"evaluation_status": None, "portfolio_id": "PB_SG_GLOBAL_BAL_001"}]
+    assert response.evidence_packet.portfolio_id == "PB_SG_GLOBAL_BAL_001"
+    assert response.evidence_packet.client_ready_publication == "BLOCKED"
+    assert {section.section_key for section in response.evidence_packet.sections} >= {
+        "PROPOSAL_CONTEXT",
+        "NARRATIVE_POSTURE",
+        "MEMO_EVIDENCE",
+        "POLICY_POSTURE",
+    }
+    assert response.record.reason_json["source_projection"] == "PROPOSAL_VERSION"
+    assert response.record.correlation_id == "corr_projection_001"
+
+
+def test_application_service_run_action_keeps_raw_instruction_out_of_persistence() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    draft_calls: list[dict[str, Any]] = []
+
+    def _capturing_draft_generator(**kwargs: Any) -> AdvisoryCopilotAiDraft:
+        draft_calls.append(dict(kwargs))
+        return _draft_generator(**kwargs)
+
+    service = AdvisoryCopilotApplicationService(
+        repository=copilot_repository,
+        draft_generator=_capturing_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+    service.create_evidence_packet(
+        payload=_evidence_packet_request(),
+        correlation_id="corr_packet_001",
+    )
+
+    first = service.run_action(
+        payload=AdvisoryCopilotActionRequest(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            audience="ADVISOR",
+            requested_outputs=("advisor_review_summary",),
+            requested_by="advisor_123",
+            reason={"business_reason": "Prepare advisor review."},
+            requested_intents=("explain_policy_posture",),
+            user_instruction="Summarize the advisory evidence for internal review.",
+        ),
+        idempotency_key="copilot-action-idem-001",
+        correlation_id="corr_action_001",
+    )
+    replay = service.run_action(
+        payload=AdvisoryCopilotActionRequest(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            audience="ADVISOR",
+            requested_outputs=("advisor_review_summary",),
+            requested_by="advisor_123",
+            reason={"business_reason": "Prepare advisor review."},
+            requested_intents=("explain_policy_posture",),
+            user_instruction="Summarize the advisory evidence for internal review.",
+        ),
+        idempotency_key="copilot-action-idem-001",
+        correlation_id=None,
+    )
+    with pytest.raises(ValueError, match="COPILOT_RUN_IDEMPOTENCY_KEY_CONFLICT"):
+        service.run_action(
+            payload=AdvisoryCopilotActionRequest(
+                evidence_packet_id="copilot_packet_pb_sg_001",
+                audience="ADVISOR",
+                requested_outputs=("advisor_review_summary",),
+                requested_by="advisor_123",
+                reason={"business_reason": "Different advisor review."},
+                requested_intents=("explain_policy_posture",),
+                user_instruction="Summarize the advisory evidence for internal review.",
+            ),
+            idempotency_key="copilot-action-idem-001",
+            correlation_id=None,
+        )
+
+    assert draft_calls[0]["requested_intents"] == ("explain_policy_posture",)
+    assert draft_calls[0]["user_instruction"] == (
+        "Summarize the advisory evidence for internal review."
+    )
+    assert first.replayed is False
+    assert replay.replayed is True
+    assert len(draft_calls) == 1
+    assert first.run.run_id == replay.run.run_id
+    assert first.run.correlation_id == "corr_action_001"
+    assert first.run.request_summary_json["user_instruction_hash"].startswith("sha256:")
+    assert "user_instruction" not in first.run.request_summary_json
+    assert "Summarize the advisory evidence" not in str(first.run.model_dump(mode="json"))
