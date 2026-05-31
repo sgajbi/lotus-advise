@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any
 
 from src.core.proposals.async_operation_persistence import (
     persist_async_attempt_started,
@@ -14,11 +13,12 @@ from src.core.proposals.async_operations import (
     should_skip_async_operation_run,
 )
 from src.core.proposals.exceptions import ProposalLifecycleError
+from src.core.proposals.models import ProposalCreateResponse
 from src.core.proposals.repository import ProposalRepository
 
 ASYNC_OPERATION_LEASE_SECONDS = 60
 
-AsyncOperationExecutor = Callable[[], Any]
+AsyncOperationExecutor = Callable[[], ProposalCreateResponse]
 UtcNow = Callable[[], datetime]
 
 

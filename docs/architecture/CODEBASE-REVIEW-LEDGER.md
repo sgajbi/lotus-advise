@@ -5368,3 +5368,28 @@
     to product feature posture or operator workflow.
 - Follow-Up:
   - None.
+
+## LA-REV-203
+
+- Scope: Proposal async operation runner retry contract
+- Pattern: async orchestration and runtime recovery hardening
+- Status: Hardened
+- Finding Class: test gap and service-boundary typing gap
+- Summary: The async operation runner had lower-level tests for runtime exception state
+  transitions, but the runner-level retry loop was not directly pinned. Its executor contract also
+  accepted `Any`, weakening the boundary between orchestration and proposal-create result
+  persistence.
+- Evidence:
+  - `src/core/proposals/async_operation_runner.py` now types async executors as returning
+    `ProposalCreateResponse`.
+  - `tests/unit/advisory/engine/test_engine_proposal_async_operation_runner.py` now covers a
+    transient runtime exception followed by successful retry, verifying attempt count, terminal
+    success, proposal lineage, and lease/error cleanup.
+- Consequence:
+  - RFC 23/RFC 26 asynchronous proposal creation has stronger regression coverage for runtime
+    recovery behavior without relying only on lower-level state helper tests.
+- Documentation:
+  - No wiki source change is required. This is test and type-contract hardening with no change to
+    product feature posture, API shape, or operator workflow.
+- Follow-Up:
+  - None.
