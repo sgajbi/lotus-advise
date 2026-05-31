@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
+from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.api.services.workspace_service import reset_workspace_sessions_for_tests
 from src.integrations.lotus_core.context_resolution import LotusCoreContextResolutionError
@@ -48,13 +48,11 @@ def _base_create_payload(portfolio_id: str = "pf_integration_proposal_1") -> dic
 
 
 def setup_function() -> None:
-    PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
     reset_workspace_sessions_for_tests()
 
 
 def teardown_function() -> None:
-    PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
     reset_workspace_sessions_for_tests()
 

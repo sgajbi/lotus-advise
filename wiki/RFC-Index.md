@@ -105,9 +105,9 @@ unpromoted until separately implementation-backed and reviewed. Slice 11 adds
 `src/core/bank_demo_proof/runtime_posture.py`, bounded `latency_ms`, runtime base-URL
 credential/query/fragment rejection, sensitive summary redaction, and proof marker
 `RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED` so runtime proof artifacts carry sanitized
-security/latency posture without leaking secrets, prompts, raw payloads, trace IDs, or correlation
-IDs. Slice 12 updates README and wiki product truth for the source-owned proof APIs, runtime
-posture artifacts, repeatable capture commands, commercial proof-guide navigation,
+security/latency posture without leaking credential, AI-input, runtime-payload, trace, or
+correlation material. Slice 12 updates README and wiki product truth for the source-owned proof
+APIs, runtime posture artifacts, repeatable capture commands, commercial proof-guide navigation,
 HTTP 409 material-drift handling, and blocked client-ready publication plus OMS/order/fill/settlement
 boundaries. Slice 13/14 close implementation proof and final hardening through PR #213,
 `src/core/bank_demo_proof/artifact_refs.py`, local artifact-reference normalization, safe HTTP 422
@@ -177,7 +177,8 @@ RFC-0027 Slice 8 is implemented as copilot run persistence, review audit, and re
 foundation. Evidence lives in
 `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`. `lotus-advise` now has durable
 run, idempotency, review, audit, retention, legal-hold, and Postgres migration support for governed
-copilot records. The persistence layer rejects raw prompt, provider, and unsafe-output storage.
+copilot records. The persistence layer rejects unredacted AI input, provider output, and unsafe
+output storage.
 Advise copilot APIs, Gateway, Workbench, canonical proof, data-product promotion, and supported
 runtime claims remain unpromoted.
 
@@ -269,8 +270,8 @@ trust telemetry, `/platform/capabilities` advertises `advisory.advisor_cockpit` 
 Workbench canonical proof, active data-product posture, and canonical
 `RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL` validation for `PB_SG_GLOBAL_BAL_001`.
 Client-ready publication, external client communication, CRM system-of-record behavior,
-OMS order lifecycle, completed policy approval authority, and full RFC-0028 demo/RFP package claims
-remain gated.
+OMS order lifecycle, and completed policy approval authority remain gated. RFC-0028 governs broader
+bank-demo/RFP proof through supported claims.
 
 RFC-0026 Slice 16 is implemented as hardened implementation proof. Evidence lives in
 `docs/rfcs/RFC-0026-slice-16-implementation-proof.md`. The governed Workbench live validation now
@@ -494,8 +495,9 @@ RFC-0024 Slice 12 is implemented as memo-specific commercial, demo, and RFP-supp
 Evidence lives in `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md`, with the
 claim-controlled guide at `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`.
 The guide covers implementation-backed one-pager language, demo notes, API examples, architecture
-flow, operator guidance, and RFP-safe wording. Active data-product support, full RFC-0028
-bank-demo/RFP package claims, and client-ready memo publication remain gated at this slice.
+flow, operator guidance, and RFP-safe wording. Active data-product support and client-ready memo
+publication remain gated at this slice; RFC-0028 now governs broader bank-demo/RFP proof through
+supported claims.
 
 RFC-0024 Slice 13 is implemented as memo implementation proof in the live runtime evidence bundle.
 Evidence lives in `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`. The live-suite
@@ -506,22 +508,23 @@ replay hashes, degraded report posture, and stale-hash/client-ready blocked path
 RFC-0024 Slice 14 is implemented as data-product promotion and supportability hardening. Evidence
 lives in `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md`.
 `AdvisoryProposalMemoEvidencePack:v1` is now an active advisor-use data product with current trust
-telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture. Full
-RFC-0028 bank-demo/RFP package claims and client-ready memo publication remain gated.
+telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture. Client-ready
+memo publication remains gated; RFC-0028 now governs broader bank-demo/RFP proof through supported
+claims.
 
 RFC-0024 Slice 15 is implemented as final hardening and review. Evidence lives in
 `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md`. Canonical Workbench validation for
 `PB_SG_GLOBAL_BAL_001` now proves the advisor journey and `proposal.memo_evidence_pack` panel are
-ready and Gateway-backed. Client-ready memo publication, external client communication, and full
-RFC-0028 bank-demo/RFP package claims remain gated.
+ready and Gateway-backed. Client-ready memo publication and external client communication remain
+gated; RFC-0028 now governs broader bank-demo/RFP proof through supported claims.
 
 RFC-0024 Slice 16 is implemented as final closure. Evidence lives in
 `docs/rfcs/RFC-0024-slice-16-final-closure.md`. RFC-0024 is implemented for advisor-use proposal
 memo evidence with durable truth updated across README, wiki source, supported-features, RFC status,
 repo context, domain-product declaration, trust telemetry, and proof summaries. Wiki publication was
 completed after merge, and no Lotus context or skill guidance change was required. Client-ready memo
-publication, external client communication, and full RFC-0028 bank-demo/RFP package claims remain
-gated.
+publication and external client communication remain gated; RFC-0028 now governs broader
+bank-demo/RFP proof through supported claims.
 
 RFC-0024 Slice 17 is implemented as post-completion communication. Evidence lives in
 `docs/rfcs/RFC-0024-slice-17-post-completion-communication.md`. `lotus-platform` PR #357 added

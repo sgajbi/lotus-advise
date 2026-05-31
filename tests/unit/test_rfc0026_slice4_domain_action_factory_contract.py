@@ -8,6 +8,10 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 ACTION_FACTORY_PATH = Path("src/core/advisor_cockpit/action_factory.py")
+ACTION_BUILDER_PATH = Path("src/core/advisor_cockpit/action_builder.py")
+ACTION_POLICY_PATH = Path("src/core/advisor_cockpit/action_policy.py")
+ACTION_REPORTING_PATH = Path("src/core/advisor_cockpit/action_reporting.py")
+ACTION_ADVISOR_WORKFLOW_PATH = Path("src/core/advisor_cockpit/action_advisor_workflow.py")
 ACTION_SOURCES_PATH = Path("src/core/advisor_cockpit/action_sources.py")
 BEHAVIOR_TEST_PATH = Path(
     "tests/unit/advisory/engine/test_engine_advisor_cockpit_action_factory.py"
@@ -52,20 +56,21 @@ def test_rfc0026_slice4_records_non_promoting_action_factory_posture() -> None:
 
 def test_rfc0026_slice4_contract_is_backed_by_code_and_behavior_tests() -> None:
     action_factory = _read(ACTION_FACTORY_PATH)
+    implementation_by_builder = {
+        "build_source_backed_action": _read(ACTION_BUILDER_PATH),
+        "build_policy_review_required_action": _read(ACTION_POLICY_PATH),
+        "build_memo_package_blocked_action": _read(ACTION_REPORTING_PATH),
+        "build_meeting_preparation_action": _read(ACTION_ADVISOR_WORKFLOW_PATH),
+        "build_supportability_degraded_action": action_factory,
+        "build_unsupported_capability_action": action_factory,
+        "build_source_backed_cockpit_actions": action_factory,
+    }
+    implementation_text = "\n".join(implementation_by_builder.values())
     action_sources = _read(ACTION_SOURCES_PATH)
     behavior_tests = _read(BEHAVIOR_TEST_PATH)
 
-    required_builders = (
-        "build_source_backed_action",
-        "build_policy_review_required_action",
-        "build_memo_package_blocked_action",
-        "build_meeting_preparation_action",
-        "build_supportability_degraded_action",
-        "build_unsupported_capability_action",
-        "build_source_backed_cockpit_actions",
-    )
-    for builder in required_builders:
-        assert f"def {builder}" in action_factory
+    for builder, implementation in implementation_by_builder.items():
+        assert f"def {builder}" in implementation
         assert builder in behavior_tests
 
     for source_model in (
@@ -88,5 +93,5 @@ def test_rfc0026_slice4_contract_is_backed_by_code_and_behavior_tests() -> None:
         "CLIENT_READY_PUBLICATION",
         "CLIENT_READY_BLOCKED",
     ):
-        assert marker in action_factory
+        assert marker in implementation_text
         assert marker in behavior_tests

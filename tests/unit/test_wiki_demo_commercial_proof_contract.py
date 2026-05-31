@@ -4,6 +4,7 @@ WIKI_HOME = Path("wiki/Home.md")
 WIKI_SIDEBAR = Path("wiki/_Sidebar.md")
 WIKI_SUPPORTED_FEATURES = Path("wiki/Supported-Features.md")
 WIKI_DEMO_PROOF = Path("wiki/Demo-and-Commercial-Proof.md")
+WIKI_MESH_DATA_PRODUCTS = Path("wiki/Mesh-Data-Products.md")
 
 
 def _read(path: Path) -> str:
@@ -63,3 +64,13 @@ def test_demo_commercial_proof_wiki_page_contains_business_and_runtime_diagrams(
     assert "flowchart LR" in text
     assert "Audience Guide" in text
     assert "Operator Checklist" in text
+
+
+def test_mesh_data_product_wiki_keeps_advisor_use_boundary_current():
+    text = _read(WIKI_MESH_DATA_PRODUCTS)
+
+    assert "Proposal narrative evidence truth remains advisor-review only." in text
+    assert "client-ready publication, and external client communication remain unsupported" in text
+    assert "RFC-0028 governs bank-demo/RFP proof through" in text
+    assert "client-ready publication slices are implemented and proven" not in text
+    assert "full bank-demo/RFP package claims remain gated" not in text

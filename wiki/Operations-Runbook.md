@@ -60,7 +60,7 @@ python scripts/capture_rfc0028_backend_proof.py --run-live-suite --output-dir ou
 When `--output-dir` is absolute or outside the governed default path, set `--artifact-ref-prefix`
 to a relative proof-artifact reference such as `output/rfc0028/backend-proof`. The filesystem
 location may vary by operator, but proof-pack asset references must stay portable, local-relative,
-and free of URL/query/fragment/traversal or sensitive-token material.
+and free of URL/query/fragment/traversal or sensitive credential or AI-input material.
 
 Review these artifacts before reusing demo, RFP, security, or proof-guide material:
 
@@ -79,14 +79,15 @@ Operational interpretation:
 
 1. a material-review block or HTTP 409 is a defect to triage at the source layer; do not work
    around it in Workbench, Gateway, or documentation
-2. runtime posture must not contain credentials, query strings, fragments, secrets, tokens,
-   prompts, raw payloads, trace IDs, or correlation IDs
+2. runtime posture must not contain credentials, query strings, fragments, unredacted AI inputs,
+   unrestricted runtime payloads, trace identifiers, or correlation identifiers
 3. live-suite result refs, live-suite bundle refs, and output ref prefixes must be local relative
-   artifact references; URL/query/fragment/traversal and sensitive-token material is rejected
+   artifact references; URL/query/fragment/traversal and sensitive credential or AI-input material
+   is rejected
 4. HTTP 422 request-validation responses should name the invalid field and rule without echoing the
    rejected sensitive value
-5. endpoint posture should use bounded integer `latency_ms` values, not raw traces or request
-   payloads
+5. endpoint posture should use bounded integer `latency_ms` values, not unrestricted traces or
+   request payloads
 6. local `output/` artifacts are evidence, not authored documentation source; README and wiki truth
    must be updated separately when implementation posture changes
 7. client-ready publication, external client communication, bank-specific attestations,

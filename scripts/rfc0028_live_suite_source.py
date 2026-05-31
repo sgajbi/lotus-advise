@@ -19,14 +19,18 @@ def load_or_run_live_suite(
     run_live_suite: bool,
     skip_degraded: bool,
     output_dir: Path,
-) -> tuple[dict[str, Any], str, str | None]:
+) -> tuple[dict[str, Any], str | None, str | None]:
     if live_suite_json:
         result_path = Path(live_suite_json)
-        return load_result_json(result_path), display_path(result_path), None
+        return load_result_json(result_path), local_artifact_ref_for_path(result_path), None
     if live_suite_bundle:
         bundle_dir = resolve_bundle_dir(live_suite_bundle)
         result_path = bundle_dir / "result.json"
-        return load_result_json(result_path), display_path(result_path), display_path(bundle_dir)
+        return (
+            load_result_json(result_path),
+            local_artifact_ref_for_path(result_path),
+            local_artifact_ref_for_path(bundle_dir),
+        )
     if run_live_suite:
         result = validate_live_runtime_suite(include_degraded=not skip_degraded)
         live_bundle_dir = write_live_runtime_suite_bundle(result, output_dir=str(output_dir))
@@ -34,8 +38,8 @@ def load_or_run_live_suite(
             raise RuntimeError("RFC0028_LIVE_SUITE_BUNDLE_NOT_WRITTEN")
         return (
             result_to_json_dict(result),
-            display_path(live_bundle_dir / "result.json"),
-            display_path(live_bundle_dir),
+            local_artifact_ref_for_path(live_bundle_dir / "result.json"),
+            local_artifact_ref_for_path(live_bundle_dir),
         )
     raise SystemExit(
         "Provide --live-suite-json, --live-suite-bundle, or --run-live-suite for repeatable proof."
@@ -44,3 +48,12 @@ def load_or_run_live_suite(
 
 def display_path(path: Path) -> str:
     return path.as_posix()
+
+
+def local_artifact_ref_for_path(path: Path) -> str | None:
+    resolved_path = path.resolve()
+    try:
+        relative_path = resolved_path.relative_to(Path.cwd().resolve())
+    except ValueError:
+        return None
+    return display_path(relative_path)

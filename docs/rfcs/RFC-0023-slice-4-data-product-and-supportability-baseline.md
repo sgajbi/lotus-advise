@@ -24,7 +24,7 @@ or mesh-certified narrative support before the backing implementation exists.
 | Current product | Source | Current status | RFC-0023 relevance |
 | --- | --- | --- | --- |
 | `AdvisoryProposalLifecycleRecord` | `contracts/domain-data-products/lotus-advise-products.v1.json` | Active governed product | Provides lifecycle and proposal-version context that future narrative can cite, but it is not narrative text. |
-| `TacticalHouseViewAffectedCohort` | `contracts/domain-data-products/lotus-advise-products.v1.json` | Active governed product | Supports advisory-to-DPM operating evidence; not a narrative product. |
+| `TacticalHouseViewAffectedCohort` | `contracts/domain-data-products/lotus-advise-products.v1.json` | Active governed product | Supports advisory-to-portfolio-management operating evidence; not a narrative product. |
 | `AdvisoryProposalLifecycleRecord` trust telemetry | `contracts/trust-telemetry/advisory-proposal-lifecycle-record.telemetry.v1.json` | Active RFC-0087 fixture | Validates existing lifecycle product trust posture only. |
 | `/platform/capabilities` advisory supportability | `src/api/capabilities/service.py` | Active runtime posture | Publishes implemented feature/workflow readiness and must not list proposal narrative until deterministic readiness exists. |
 

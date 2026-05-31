@@ -180,12 +180,14 @@ def test_bank_demo_proof_pack_endpoint_bounds_metadata_and_correlation_header() 
     sensitive_environment = {
         **request,
         "repository_sha": "api-sha-123",
-        "environment": "prod-token",
+        "environment": "prod-token-should-not-leak",
     }
     oversized_payload = {
         **request,
         "repository_sha": "api-sha-123",
-        "live_runtime_payload": {f"top_level_{index}": {} for index in range(17)},
+        "live_runtime_payload": {
+            f"top_level_{index}": {"secret": "should-not-leak"} for index in range(17)
+        },
     }
 
     with TestClient(app) as client:
@@ -207,8 +209,10 @@ def test_bank_demo_proof_pack_endpoint_bounds_metadata_and_correlation_header() 
     assert long_sha.status_code == 422
     assert sensitive_metadata.status_code == 422
     assert "environment cannot contain sensitive material" in repr(sensitive_metadata.json())
+    assert "should-not-leak" not in repr(sensitive_metadata.json())
     assert long_correlation.status_code == 422
     assert long_live_payload.status_code == 422
+    assert "should-not-leak" not in repr(long_live_payload.json())
 
 
 def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() -> None:
@@ -216,6 +220,8 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
 
     assert operation["tags"] == ["Bank Demo Proof"]
     assert "Gateway and Workbench cannot promote stale" in operation["description"]
+    assert "Unredacted live runtime payloads are not persisted" in operation["description"]
+    assert "Raw live runtime payloads" not in operation["description"]
     parameter_by_name = {parameter["name"]: parameter for parameter in operation["parameters"]}
     assert "X-Correlation-ID" in parameter_by_name
     assert "X-Correlation-Id" not in parameter_by_name
@@ -242,6 +248,11 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     assert runtime_posture_schema["properties"]["endpoints"]["maxItems"] == 32
     request_schema = app.openapi()["components"]["schemas"]["BankDemoProofCaptureRequest"]
     assert "query strings" in request_schema["properties"]["output_ref_prefix"]["description"]
+    assert "access tokens" in request_schema["properties"]["output_ref_prefix"]["description"]
+    assert (
+        "unredacted runtime payloads"
+        in (request_schema["properties"]["live_runtime_payload"]["description"])
+    )
     assert request_schema["properties"]["live_runtime_payload"]["maxProperties"] == 16
     proof_pack_schema = app.openapi()["components"]["schemas"]["AdvisoryBankDemoProofPack"]
     assert "CLIENT_READY_PUBLICATION_BLOCKED" in repr(

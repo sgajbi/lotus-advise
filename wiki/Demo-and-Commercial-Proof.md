@@ -13,7 +13,7 @@ pack. This page explains how to navigate that evidence and where the claim bound
 | --- | --- | --- | --- |
 | Canonical private-banking advisory proof | Supported | Scenario `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`, portfolio `PB_SG_GLOBAL_BAL_001`, proof marker `BANK_DEMO_PROOF_PACK_CREATED` | Proves advisor-review and internal proof posture, not client-ready publication. |
 | Supported-claim register | Supported | `GET /advisory/bank-demo-proof/supported-claim-register`, `supported-claim-register.json` | Demo, RFP, security, ROI, and proof-guide wording must map to supported claims. |
-| Sanitized proof-pack capture | Supported | `POST /advisory/bank-demo-proof/proof-packs`, `scripts/capture_rfc0028_backend_proof.py`, `proof-pack.json` | Material drift blocks promotion; raw payloads and local-only runtime material are not shared. |
+| Sanitized proof-pack capture | Supported | `POST /advisory/bank-demo-proof/proof-packs`, `scripts/capture_rfc0028_backend_proof.py`, `proof-pack.json` | Material drift blocks promotion; unredacted implementation payloads and local-only runtime material are not shared. |
 | Gateway and Workbench proof | Supported | Gateway publication and Workbench `advisory.bank_demo_proof` canonical validation | Workbench renders source-owned proof; it does not calculate advisory, policy, memo, narrative, or AI semantics. |
 | Advisor-use document proof | Supported with boundaries | `document-proof-summary.json`, memo and policy report/render/archive lineage | Advisor-use evidence only; client-ready document publication remains blocked. |
 | AI/model-risk proof | Supported with boundaries | `journey-integration-proof-summary.json`, bounded AI lineage | AI is review-assistive and non-authoritative. It cannot approve recommendations, policy, sign-off, or client communication. |
@@ -36,7 +36,7 @@ flowchart LR
 
 The important operating rule is simple: demo and commercial material follows the supported-claim
 register and sanitized proof pack. It does not follow free-form slide language, screenshots taken
-before validation, or raw runtime logs.
+before validation, or unredacted runtime logs.
 
 ## Business Flow For Demo Leads
 
@@ -57,7 +57,7 @@ Before a client playback, operations or the demo lead should confirm:
 3. `GET /platform/capabilities` exposes the expected advisory supportability posture,
 4. the canonical front-office validation has passed for `PB_SG_GLOBAL_BAL_001`,
 5. `proof-pack.json`, `scenario-contract.json`, `supported-claim-register.json`, `runtime-posture.json`, `material-field-review.json`, `document-proof-summary.json`, `journey-integration-proof-summary.json`, and `commercial-material-pack.json` have been reviewed,
-6. no shared material contains secrets, tokens, credentials, raw prompts, raw source payloads, local runtime bundles, trace IDs, or correlation IDs,
+6. no shared material contains secrets, access tokens, credentials, unredacted AI inputs, unredacted source evidence, local runtime bundles, trace IDs, or correlation IDs,
 7. any degraded state is explained through bounded proof posture rather than hidden or overwritten.
 
 ## Audience Guide

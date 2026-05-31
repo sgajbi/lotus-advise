@@ -12,6 +12,7 @@ from src.api.routers.bank_demo_proof_request import (
     runtime_repository_sha,
     runtime_service_version,
 )
+from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.core.bank_demo_proof import (
     AdvisoryDemoScenarioContract,
     AdvisorySupportedClaimRegister,
@@ -24,21 +25,6 @@ from src.core.bank_demo_proof import (
 
 RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX = "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED"
 RFC28_PROOF_VALIDATION_FAILED = "RFC0028_PROOF_PACK_VALIDATION_FAILED"
-_SENSITIVE_ERROR_FRAGMENTS = (
-    "authorization",
-    "bearer ",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "raw prompt",
-    "raw payload",
-    "raw source",
-    "provider response",
-)
 
 router = APIRouter(prefix="/advisory/bank-demo-proof", tags=["Bank Demo Proof"])
 
@@ -80,7 +66,8 @@ def get_bank_demo_supported_claim_register() -> AdvisorySupportedClaimRegister:
     description=(
         "Builds a sanitized RFC-0028 backend proof pack from governed live runtime evidence. "
         "Material-field drift returns HTTP 409 so Gateway and Workbench cannot promote stale or "
-        "incomplete proof state. Raw live runtime payloads are not persisted by this endpoint."
+        "incomplete proof state. Unredacted live runtime payloads are not persisted by this "
+        "endpoint."
     ),
     responses={
         status.HTTP_409_CONFLICT: {
@@ -164,8 +151,4 @@ def _safe_proof_pack_error_detail(error_detail: str) -> str:
 
 
 def _contains_sensitive_error_detail(error_detail: str) -> bool:
-    normalized = error_detail.lower().replace("-", " ").replace("_", " ")
-    return any(
-        fragment.replace("-", " ").replace("_", " ") in normalized
-        for fragment in _SENSITIVE_ERROR_FRAGMENTS
-    )
+    return contains_sensitive_error_detail(error_detail)

@@ -10,7 +10,6 @@ from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_SCENARIO_ID,
 )
 from src.core.bank_demo_proof.validation import (
-    normalize_required_rfc28_text,
     normalize_rfc28_business_text,
 )
 
@@ -49,10 +48,10 @@ class AiModelRiskControlProof(BaseModel):
         description="Whether human review is required before advisor-use reliance."
     )
     raw_prompt_retained: bool = Field(
-        description="Whether raw prompt or raw model output is retained in the proof pack."
+        description="Whether unredacted AI input or output material is retained in the proof pack."
     )
     raw_source_evidence_included: bool = Field(
-        description="Whether raw source evidence is included in the AI proof payload."
+        description="Whether unredacted source evidence is included in the AI proof payload."
     )
     guardrail_status: str = Field(
         description="Bounded guardrail, unavailable, or forbidden-action posture."
@@ -74,7 +73,7 @@ class AiModelRiskControlProof(BaseModel):
         if self.authoritative_for_advice:
             raise ValueError("AI proof cannot be authoritative for advice or approval")
         if self.raw_prompt_retained or self.raw_source_evidence_included:
-            raise ValueError("AI proof summary cannot retain raw prompts or raw source evidence")
+            raise ValueError("AI proof summary cannot retain unredacted AI/source material")
         if self.proof_posture == "IMPLEMENTATION_BACKED" and not self.human_review_required:
             raise ValueError("implementation-backed AI proof requires human review posture")
         return self
@@ -211,7 +210,7 @@ class AdvisoryJourneyIntegrationProofSummary(BaseModel):
     def _unsupported_claims_must_be_business_safe(cls, value: list[str]) -> list[str]:
         normalized: list[str] = []
         for claim in value:
-            claim_text = normalize_required_rfc28_text(
+            claim_text = normalize_rfc28_business_text(
                 claim,
                 field_name="integration proof unsupported claim",
                 max_length=_RFC28_INTEGRATION_TEXT_MAX_LENGTH,
@@ -279,8 +278,8 @@ def build_journey_integration_proof_summary(
         unsupported_claims=[
             "AI is not authoritative for advice, approval, policy sign-off, or publication.",
             (
-                "Raw prompts, raw model outputs, and raw source evidence are excluded "
-                "from proof summaries."
+                "Underlying AI inputs, model outputs, and source evidence are excluded "
+                "from shared proof summaries."
             ),
             (
                 "Advisor acknowledgements do not clear policy blockers or client-ready "

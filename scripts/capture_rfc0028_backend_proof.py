@@ -6,6 +6,7 @@ import subprocess
 import sys
 import uuid
 from pathlib import Path
+from typing import cast
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -24,8 +25,9 @@ from scripts.rfc0028_runtime_probe import (  # noqa: E402
 from src.core.bank_demo_proof import (  # noqa: E402
     build_backend_proof_capture,
     default_capture_metadata,
-    normalize_output_ref_prefix,
 )
+from src.core.bank_demo_proof.artifact_refs import normalize_output_ref_prefix  # noqa: E402
+from src.core.common.sensitive_error_details import contains_sensitive_error_detail  # noqa: E402
 
 _DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
 _DEFAULT_SERVICE_VERSION = "0.1.0"
@@ -122,21 +124,24 @@ def main() -> None:
         if args.skip_runtime_probe
         else probe_runtime_posture(args.advise_base_url, args.environment)
     )
-    metadata = default_capture_metadata(
-        repository_sha=args.repository_sha or _git_sha(),
-        service_version=args.service_version,
-        environment=args.environment,
-        correlation_id=args.correlation_id or f"rfc0028-backend-proof-{uuid.uuid4().hex}",
-        live_suite_result_ref=result_ref,
-        live_suite_bundle_ref=bundle_ref,
-    )
-    bundle = build_backend_proof_capture(
-        live_payload,
-        metadata=metadata,
-        runtime_posture=runtime_posture,
-        output_ref_prefix=_artifact_ref_prefix_for(output_dir, args.artifact_ref_prefix),
-    )
-    written = write_backend_proof_capture_bundle(bundle, output_dir=output_dir)
+    try:
+        metadata = default_capture_metadata(
+            repository_sha=args.repository_sha or _git_sha(),
+            service_version=args.service_version,
+            environment=args.environment,
+            correlation_id=args.correlation_id or f"rfc0028-backend-proof-{uuid.uuid4().hex}",
+            live_suite_result_ref=result_ref,
+            live_suite_bundle_ref=bundle_ref,
+        )
+        bundle = build_backend_proof_capture(
+            live_payload,
+            metadata=metadata,
+            runtime_posture=runtime_posture,
+            output_ref_prefix=_artifact_ref_prefix_for(output_dir, args.artifact_ref_prefix),
+        )
+        written = write_backend_proof_capture_bundle(bundle, output_dir=output_dir)
+    except ValueError as exc:
+        raise SystemExit(_safe_cli_error_detail(str(exc))) from None
     print(
         "RFC-0028 backend proof pack captured "
         f"(proof_pack={written['proof_pack']}, summary={written['summary']})"
@@ -145,10 +150,10 @@ def main() -> None:
 
 def _artifact_ref_prefix_for(output_dir: Path, configured_prefix: str | None) -> str:
     if configured_prefix is not None:
-        return normalize_output_ref_prefix(configured_prefix)
+        return cast(str, normalize_output_ref_prefix(configured_prefix))
     output_ref = display_path(output_dir)
     try:
-        return normalize_output_ref_prefix(output_ref)
+        return cast(str, normalize_output_ref_prefix(output_ref))
     except ValueError:
         return _DEFAULT_OUTPUT_DIR
 
@@ -161,6 +166,12 @@ def _git_sha() -> str:
         text=True,
     )
     return completed.stdout.strip()
+
+
+def _safe_cli_error_detail(error_detail: str) -> str:
+    if contains_sensitive_error_detail(error_detail):
+        return "RFC0028_BACKEND_PROOF_CAPTURE_FAILED: source evidence failed validation"
+    return error_detail
 
 
 if __name__ == "__main__":

@@ -33,10 +33,10 @@
 | Slice 9 report, render, and archive realization | `docs/rfcs/RFC-0024-slice-9-report-render-archive-realization.md` | Implemented - advisor-reviewed memo package handoff to `lotus-report`, deterministic render-package projection, `lotus-archive` support-safe memo metadata, and Advise memo lineage refs; Gateway, Workbench, active data-product support, AI commentary, and client-ready memo claims remain unpromoted |
 | Slice 10 AI narrative and review-gated commentary | `docs/rfcs/RFC-0024-slice-10-ai-narrative-and-review-gated-commentary.md` | Implemented - review-gated advisor-use AI commentary through `proposal_memo_commentary.pack@v1`, bounded memo evidence packets, deterministic unavailable posture, and append-only AI lineage; Gateway, Workbench, active data-product support, commercial/demo claims, and client-ready memo claims remain unpromoted |
 | Slice 11 Gateway and Workbench product realization | `docs/rfcs/RFC-0024-slice-11-gateway-workbench-product-realization.md` | Implemented - Gateway routes through canonical Advise memo endpoints and Workbench consumes Gateway/BFF memo posture, projection, report-package, archive-ref, AI-commentary, lineage, and replay evidence without local memo inference; active data-product support, commercial/demo claims, and client-ready memo claims remain unpromoted |
-| Slice 12 commercial, demo, and RFP-support material | `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md` | Implemented - memo-specific product one-pager, demo notes, API examples, architecture flow, operator guidance, and RFP-safe wording in `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`; active data-product support, full RFC-0028 bank-demo/RFP package, and client-ready memo claims remain unpromoted |
-| Slice 13 implementation proof | `docs/rfcs/RFC-0024-slice-13-implementation-proof.md` | Implemented - live-suite memo proof snapshot covers Advise memo APIs, stateful source dependency path, advisor projection, review-gated report/render/archive request posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and blocked stale-hash/client-ready paths; active data-product support, full RFC-0028 bank-demo/RFP package, and client-ready memo claims remain unpromoted |
-| Slice 14 data-product promotion and supportability hardening | `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md` | Implemented - `AdvisoryProposalMemoEvidencePack:v1` active advisor-use data product, current trust telemetry, `/platform/capabilities` feature/workflow, platform SLO/access/evidence policies, and refreshed platform catalog/certification artifacts; full RFC-0028 bank-demo/RFP package and client-ready memo claims remain unpromoted |
-| Slice 15 final hardening and review | `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md` | Implemented - canonical `PB_SG_GLOBAL_BAL_001` Workbench validation now proves the advisory journey panels and memo evidence-pack panel are Gateway-backed and ready; stale gap wording and supported-feature posture refreshed; client-ready memo publication and full RFC-0028 bank-demo/RFP claims remain gated |
+| Slice 12 commercial, demo, and RFP-support material | `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md` | Implemented - memo-specific product one-pager, demo notes, API examples, architecture flow, operator guidance, and RFP-safe wording in `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`; active data-product support and client-ready memo claims remain unpromoted; RFC-0028 now governs broader bank-demo/RFP proof through supported claims |
+| Slice 13 implementation proof | `docs/rfcs/RFC-0024-slice-13-implementation-proof.md` | Implemented - live-suite memo proof snapshot covers Advise memo APIs, stateful source dependency path, advisor projection, review-gated report/render/archive request posture, review-gated AI commentary, lineage, replay hashes, degraded report posture, and blocked stale-hash/client-ready paths; active data-product support and client-ready memo claims remain unpromoted; RFC-0028 now governs broader bank-demo/RFP proof through supported claims |
+| Slice 14 data-product promotion and supportability hardening | `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md` | Implemented - `AdvisoryProposalMemoEvidencePack:v1` active advisor-use data product, current trust telemetry, `/platform/capabilities` feature/workflow, platform SLO/access/evidence policies, and refreshed platform catalog/certification artifacts; client-ready memo claims remain unpromoted; RFC-0028 now governs broader bank-demo/RFP proof through supported claims |
+| Slice 15 final hardening and review | `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md` | Implemented - canonical `PB_SG_GLOBAL_BAL_001` Workbench validation now proves the advisory journey panels and memo evidence-pack panel are Gateway-backed and ready; stale gap wording and supported-feature posture refreshed; client-ready memo publication remains blocked; RFC-0028 now governs broader bank-demo/RFP proof through supported claims |
 | Slice 16 final closure | `docs/rfcs/RFC-0024-slice-16-final-closure.md` | Implemented - README, wiki source, supported-features, RFC status, repo context, domain-product declaration, trust telemetry, and proof summaries carry closure truth; wiki publication was completed after merge; no Lotus context or skill guidance change was required |
 | Slice 17 post-completion communication | `docs/rfcs/RFC-0024-slice-17-post-completion-communication.md` | Implemented - `lotus-platform` PR #357 added `LI-2026-05-25-036-a-proposal-memo-is-an-evidence-product.md` and updated the LinkedIn content ledger; the draft is employer-safe, non-confidential, non-promotional, and does not claim client-ready memo publication |
 
@@ -182,7 +182,7 @@ RFC-0024 includes all work required to deliver a supported advisor proposal memo
 
 RFC-0024 does not own:
 
-1. discretionary portfolio-management campaigns or DPM execution orchestration, which remain
+1. discretionary portfolio-management campaigns or execution orchestration, which remain
    `lotus-manage` ownership,
 2. external OMS or broker execution as a system of record, except for memo-visible handoff and
    status boundary evidence,
@@ -248,7 +248,8 @@ Remaining unsupported boundaries after Slice 17:
    owns and proves that claim,
 2. external client communication, send-to-client workflow, and client delivery controls remain out
    of scope for the advisor-use RFC-0024 release,
-3. full RFC-0028 bank-demo/RFP package claims remain gated.
+3. RFC-0028 now governs broader bank-demo/RFP proof through supported claims without promoting
+   client-ready memo publication.
 
 ## 7. Target Product Capability
 
@@ -929,8 +930,8 @@ Acceptance gate:
 1. producer declaration, current trust telemetry, route family, SLO/access/evidence policies,
    platform catalog/certification artifacts, and `/platform/capabilities` are aligned,
 2. capability discovery degrades when report-package support is unavailable,
-3. client-ready memo publication, external client communication, and full RFC-0028 bank-demo/RFP
-   package claims remain blocked.
+3. client-ready memo publication and external client communication remain blocked, while RFC-0028
+   governs broader bank-demo/RFP proof through supported claims.
 
 ### Slice 15 - Final Hardening and Review
 
@@ -1007,7 +1008,7 @@ Acceptance gate:
 | Gateway memo API | Supported for advisor-use memo posture | Gateway routes canonical Advise memo endpoints and preserves source-owned memo truth without recomputation. |
 | Workbench memo review UX | Supported for advisor-use memo posture | Workbench browser proof covers advisor, compliance, operations, client-draft, degraded, and blocked states through Gateway/BFF only. |
 | Advisory memo data product | Supported for advisor-use memo evidence | `AdvisoryProposalMemoEvidencePack:v1` is active only for advisor-use memo evidence after producer declaration, current trust telemetry, platform catalog/certification, SLO/access/evidence policies, and capability discovery proof. |
-| Sales/demo-safe memo projection | Supported for memo-specific advisor-use walkthrough material | Claim-controlled commercial support material and canonical Workbench evidence are implementation-backed for advisor-use memo posture only; full RFC-0028 bank-demo/RFP package and client-ready claims remain gated. |
+| Sales/demo-safe memo projection | Supported for memo-specific advisor-use walkthrough material | Claim-controlled commercial support material and canonical Workbench evidence are implementation-backed for advisor-use memo posture only; client-ready claims remain gated and RFC-0028 governs broader bank-demo/RFP proof through supported claims. |
 
 ## 18. Existing WTBD Import and No-WTBD Execution Rule
 
@@ -1040,8 +1041,9 @@ Gold-pass review confirms that RFC-0024 is complete for advisor-use proposal mem
 support: deterministic memo construction, source-readiness blockers, persistence, replay,
 idempotency, report-package posture, archive-reference posture, non-authoritative AI commentary
 handoff, Gateway exposure, Workbench consumption, data-product posture, and supported-feature
-boundaries are implemented for advisor-use memo evidence. Client-ready memo publication, external
-client communication, and full RFC-0028 bank-demo/RFP claims remain gated.
+boundaries are implemented for advisor-use memo evidence. Client-ready memo publication and
+external client communication remain gated; RFC-0028 governs broader bank-demo/RFP proof through
+supported claims.
 
 Quality improvements verified during the RFC 23-25 gold pass:
 
@@ -1073,8 +1075,8 @@ Proof reviewed:
 
 Production-readiness assessment: RFC-0024 reaches the expected standard for advisor-use proposal
 memo evidence. It must not be represented as client-ready memo publication, external client
-communication, or a completed bank-demo/RFP package until a later client-ready RFC implements and
-proves those controls.
+communication, or client-ready memo authority until a later source-owned RFC implements and proves
+those controls. Broader bank-demo/RFP proof is governed by RFC-0028 supported claims.
 
 ## 19. Acceptance Criteria
 

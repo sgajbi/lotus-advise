@@ -24,10 +24,6 @@ from src.api.proposals.router import (
     router as proposal_lifecycle_router,
 )
 from src.api.routers.advisory_simulation import (
-    build_proposal_artifact_endpoint,
-    simulate_proposal,
-)
-from src.api.routers.advisory_simulation import (
     router as advisory_simulation_router,
 )
 from src.api.routers.bank_demo_proof import router as bank_demo_proof_router
@@ -36,15 +32,8 @@ from src.api.routers.integration_capabilities import (
 )
 from src.api.routers.tactical_house_view import router as tactical_house_view_router
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
-from src.api.services.advisory_simulation_service import (
-    MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
-    PROPOSAL_IDEMPOTENCY_CACHE,
-)
-from src.api.services.advisory_simulation_service import (
-    simulate_proposal_response as _simulate_proposal_response,
-)
+from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.api.workspaces.router import router as workspace_router
-from src.core.advisory_engine import run_proposal_simulation
 from src.core.workspace.models import WorkspaceStatefulInput
 from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
@@ -170,6 +159,8 @@ app = FastAPI(
 )
 
 logger = logging.getLogger(__name__)
+LOTUS_CORE_SIMULATION_UNAVAILABLE_DETAIL = "LOTUS_CORE_SIMULATION_UNAVAILABLE"
+READINESS_CHECK_FAILED_DETAIL = "READINESS_CHECK_FAILED"
 setup_observability(app)
 validate_enterprise_runtime_config()
 app.middleware("http")(build_enterprise_audit_middleware())
@@ -211,7 +202,7 @@ def _readiness_probe() -> tuple[bool, str | None]:
         validate_advisory_runtime_persistence()
         ensure_proposal_runtime_ready()
     except RuntimeError as exc:
-        return False, str(exc)
+        return False, _safe_readiness_error_detail(str(exc))
     except (TypeError, ValueError):
         return False, "PROPOSAL_POSTGRES_CONNECTION_FAILED"
     return True, None
@@ -304,22 +295,28 @@ async def lotus_core_simulation_unavailable_to_problem_details(
             if status_code != status.HTTP_503_SERVICE_UNAVAILABLE
             else "Service Unavailable",
             "status": status_code,
-            "detail": str(exc) or "LOTUS_CORE_SIMULATION_UNAVAILABLE",
+            "detail": _safe_lotus_core_simulation_error_detail(str(exc)),
             "instance": str(request.url.path),
             "correlation_id": correlation_id_var.get() or "",
         },
     )
 
 
+def _safe_lotus_core_simulation_error_detail(error_detail: str) -> str:
+    if not error_detail or contains_sensitive_error_detail(error_detail):
+        return LOTUS_CORE_SIMULATION_UNAVAILABLE_DETAIL
+    return error_detail
+
+
+def _safe_readiness_error_detail(error_detail: str) -> str:
+    if not error_detail or contains_sensitive_error_detail(error_detail):
+        return READINESS_CHECK_FAILED_DETAIL
+    return error_detail
+
+
 __all__ = [
-    "MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE",
-    "PROPOSAL_IDEMPOTENCY_CACHE",
-    "_simulate_proposal_response",
     "app",
-    "build_proposal_artifact_endpoint",
     "lotus_core_simulation_unavailable_to_problem_details",
     "request_validation_error_to_safe_response",
-    "run_proposal_simulation",
-    "simulate_proposal",
     "unhandled_exception_to_problem_details",
 ]

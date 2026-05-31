@@ -82,13 +82,14 @@ current `lotus-advise` mainline state after RFC-0023, RFC-0024, and RFC-0025 clo
 
 1. RFC-0023 is implemented for advisor-review proposal narrative evidence. Compliance-review,
    client-draft, client-ready publication, and external client communication remain gated.
-2. RFC-0024 is implemented for advisor-use proposal memo evidence. Client-ready memo publication,
-   external client communication, and full bank-demo/RFP claims remain gated.
+2. RFC-0024 is implemented for advisor-use proposal memo evidence. Client-ready memo publication
+   and external client communication remain gated; RFC-0028 governs broader bank-demo/RFP proof
+   through supported claims.
 3. RFC-0025 is implemented for advisor/compliance policy evaluation evidence, active
    `AdvisoryPolicyEvaluationRecord:v1`, Gateway/Workbench policy posture, and canonical
    `PB_SG_GLOBAL_BAL_001` live validation. Completed approval/waiver authority, completed
-   sign-off authority, client-ready policy publication, external client communication, and full
-   RFC-0028 bank-demo/RFP claims remain gated.
+   sign-off authority, client-ready policy publication, and external client communication remain
+   gated; RFC-0028 governs broader bank-demo/RFP proof through supported claims.
 4. RFC-0026 may consume those evidence products, but it must not promote them into broader claims.
    The cockpit can show policy posture, memo readiness, and narrative readiness; it cannot claim
    client-ready signoff or external client communication.
@@ -266,7 +267,7 @@ claim, RFC-0026 must implement the cockpit-critical subset or remove the unsuppo
 | Evidence issue | source readiness gap | missing field |
 | Approval dependency | approval dependency | escalation flag |
 | Aging approval | SLA aging | overdue badge without basis |
-| Relationship-manager follow-up | relationship follow-up | placeholder task |
+| Relationship-manager follow-up | relationship follow-up | generic reminder |
 | Compliance/investment desk handoff | supervisory review item | back-office ticket |
 | Book impact | affected advisory cohort | affected users |
 | Downstream boundary | ownership boundary | integration note |
@@ -1220,8 +1221,8 @@ Acceptance gate:
 2. `/platform/capabilities` advertises `advisory.advisor_cockpit` and
    `advisor_cockpit_operating_workflow`,
 3. client-ready publication, external client communication, CRM system-of-record behavior, OMS
-   order lifecycle, completed policy approval authority, and full RFC-0028 demo/RFP claims remain
-   gated.
+   order lifecycle, and completed policy approval authority remain gated. RFC-0028 governs broader
+   bank-demo/RFP proof through supported claims.
 
 Slice 13 evidence:
 

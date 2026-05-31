@@ -78,7 +78,7 @@ class AdvisoryCopilotRunRecord(BaseModel):
         max_length=_COPILOT_HASH_MAX_LENGTH,
     )
     request_hash: str = Field(
-        description="Canonical hash of the safe run request; raw prompt text is never stored.",
+        description="Canonical hash of the safe run request; unredacted AI input is never stored.",
         examples=["sha256:copilot-request"],
         min_length=1,
         max_length=_COPILOT_HASH_MAX_LENGTH,
@@ -178,7 +178,7 @@ class AdvisoryCopilotRunRecord(BaseModel):
         max_length=_COPILOT_VERSION_REF_MAX_LENGTH,
     )
     prompt_template_version: str = Field(
-        description="Approved prompt-template lineage reference; no raw prompt is stored.",
+        description="Approved prompt-template lineage reference; no unredacted AI input is stored.",
         examples=["advisory-copilot-prompt-template.v1"],
         min_length=1,
         max_length=_COPILOT_VERSION_REF_MAX_LENGTH,
@@ -200,7 +200,9 @@ class AdvisoryCopilotRunRecord(BaseModel):
         max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
     )
     request_summary_json: dict[str, Any] = Field(
-        description="Safe request summary with hashes and requested outputs; raw prompts omitted.",
+        description=(
+            "Safe request summary with hashes and requested outputs; unredacted AI inputs omitted."
+        ),
         max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
     )
     output_sections_json: list[dict[str, Any]] = Field(
@@ -414,7 +416,9 @@ class AdvisoryCopilotReviewRecord(BaseModel):
         examples=["2026-05-28T09:10:00+00:00"],
     )
     reason_json: dict[str, Any] = Field(
-        description="Structured review reason; raw prompts or unsafe output are never stored.",
+        description=(
+            "Structured review reason; unredacted AI input and unsafe output are never stored."
+        ),
         examples=[{"comment": "Reviewed against source evidence."}],
         max_length=_COPILOT_JSON_FIELD_MAX_ITEMS,
     )

@@ -14,7 +14,8 @@ The supported posture remains bounded:
 
 1. client-ready memo publication is not supported,
 2. external client communication is not supported,
-3. full RFC-0028 bank-demo/RFP package claims remain gated to RFC-0028,
+3. RFC-0028 now governs broader bank-demo/RFP proof through supported claims without promoting
+   client-ready memo publication,
 4. broader enterprise policy-pack work remains owned by RFC-0025.
 
 ## Mainline Closure Evidence
@@ -63,5 +64,5 @@ existing Lotus rules already covered the actual closure path:
 4. stranded-truth reconciliation for RFC/wiki changes,
 5. supported-feature claim boundaries for advisor-use versus client-ready posture.
 
-Future guidance should only change if RFC-0028 introduces new client-ready publication or bank-demo
-proof rules.
+Future guidance should only change if a later source-owned RFC introduces new client-ready
+publication controls or changes the RFC-0028 supported-claim proof rules.

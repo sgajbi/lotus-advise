@@ -149,6 +149,7 @@ def test_rfc0027_pins_enterprise_backend_hardening_and_business_copy_rules() -> 
         assert marker in flat_rfc
 
     assert "RFC-0027 Copilot Evidence Governance" in flat_wiki_security
+    assert "reject unredacted AI input" in flat_wiki_security
     assert "UI, API, persistence, and replay paths aligned" in flat_wiki_security
 
 

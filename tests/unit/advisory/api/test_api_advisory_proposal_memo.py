@@ -1,14 +1,13 @@
 from fastapi.testclient import TestClient
 
 import src.api.main as api_main
-from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
+from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.proposals import memo_api
 from src.integrations.lotus_ai.proposal_memo import ProposalMemoAiCommentaryDraft
 
 
 def setup_function() -> None:
-    PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
     if hasattr(api_main, "request_proposal_memo_report_package_with_lotus_report"):
         delattr(api_main, "request_proposal_memo_report_package_with_lotus_report")

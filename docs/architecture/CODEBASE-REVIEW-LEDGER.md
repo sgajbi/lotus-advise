@@ -8704,6 +8704,1112 @@
   - Remove both the alias and this compatibility assertion once Gateway and Workbench no longer
     send the legacy caller role.
 
+## LA-REV-329
+
+- Scope: RFC-0023 through RFC-0028 public documentation vocabulary
+- Pattern: Current RFC source should use private-banking portfolio-management language rather than
+  legacy abbreviations
+- Status: Hardened
+- Finding Class: Documentation quality and business vocabulary
+- Summary: Current RFC-0023/RFC-0024 source-map and handoff sections still used `DPM` wording for
+  portfolio-management boundaries. The implementation is already advisory-first and
+  `lotus-manage`-owned for discretionary portfolio-management workflows, so the public RFC wording
+  should not preserve legacy abbreviations outside explicit compatibility exceptions.
+- Evidence:
+  - Reworded RFC-0023 and RFC-0024 main/slice documentation to use advisory-to-portfolio-management
+    and discretionary portfolio-management language.
+  - Added a public documentation vocabulary contract covering RFC-0023 through RFC-0028 source files.
+  - Focused public-doc vocabulary tests pass.
+- Consequence:
+  - Business, pre-sales, and implementation readers see consistent private-banking vocabulary
+    across the implemented RFC crown-jewel sequence.
+- Documentation:
+  - RFC source changed. No wiki source change is required because wiki pages already used
+    portfolio-management wording.
+- Follow-Up:
+  - Keep explicit `DPM_OWNER` wording limited to the inbound caller-role compatibility exception
+    until Gateway/Workbench migration removes it.
+
+## LA-REV-330
+
+- Scope: Mesh data-product wiki boundary for RFC-0023/RFC-0024/RFC-0028
+- Pattern: Current wiki truth must not imply client-ready publication or stale bank-demo gating
+- Status: Hardened
+- Finding Class: Documentation truth and commercial-claim governance
+- Summary: The mesh data-product operating rule still described proposal narrative truth as
+  advisor-review only "until" client-draft and client-ready publication slices were implemented,
+  and memo truth still said full bank-demo/RFP package claims remained gated. That wording was easy
+  to misread after RFC-0028 implemented supported-claim demo/RFP proof while client-ready
+  publication remains blocked.
+- Evidence:
+  - Updated `wiki/Mesh-Data-Products.md` to state that narrative evidence remains advisor-review
+    only and that compliance-review, client-draft, client-ready publication, and external client
+    communication remain unsupported unless a later source-owned RFC proves those controls.
+  - Updated the same page to route bank-demo/RFP proof truth to RFC-0028 supported claims without
+    promoting client-ready memo publication.
+  - Added a wiki contract test that rejects the stale client-ready-publication and full-demo-gating
+    wording.
+- Consequence:
+  - Business, pre-sales, and operations readers get the current implemented proof boundary without
+    interpreting mesh data-product status as client-ready publication or obsolete RFC-0028 gating.
+- Documentation:
+  - Wiki source changed; wiki check/publish is required before/after merge.
+- Follow-Up:
+  - Continue reviewing public wiki operating rules for stale pre-RFC-0028 language before PR
+    handoff.
+
+## LA-REV-331
+
+- Scope: RFC-0023 through RFC-0026 current documentation and closure records
+- Pattern: Current RFC truth must route bank-demo/RFP proof to RFC-0028 without reviving stale
+  pre-RFC-0028 gating language
+- Status: Hardened
+- Finding Class: Documentation truth and commercial-claim governance
+- Summary: Current RFC bodies, RFC index material, and durable RFC-0024/RFC-0025 closure records
+  still contained phrasing that full RFC-0028 bank-demo/RFP claims remained gated. That was true
+  before RFC-0028 completion, but after supported-claim proof shipped it understated the supported
+  demo/RFP proof boundary and could confuse business readers.
+- Evidence:
+  - Updated current RFC-0023/RFC-0024/RFC-0025/RFC-0026 source pages, RFC index source, and wiki
+    RFC index source to route broader bank-demo/RFP proof to RFC-0028 supported claims.
+  - Removed stale RFC-0025 wording that described client-ready policy publication and external
+    client communication as blocked only until final closure, because final closure is complete and
+    those controls remain blocked unless a later source-owned RFC proves them.
+  - Preserved the stronger blocked wording for client-ready publication, external communication,
+    policy approval authority, OMS/order lifecycle, and execution/settlement claims.
+  - Updated RFC-0024/RFC-0025 final-closure contract tests and added a public-doc vocabulary
+    guard against stale RFC-0028 gating phrases in current public documentation.
+  - Full `make check` passed with 1555 unit tests after formatting.
+- Consequence:
+  - Implementation-backed commercial proof can be described accurately without promoting
+    client-ready publication or approval authority.
+- Documentation:
+  - RFC and wiki source changed; wiki check/publish is required before/after merge.
+- Follow-Up:
+  - Keep historical slice records audit-friendly, but keep current RFC and wiki summaries aligned
+    with the implemented RFC-0028 supported-claim boundary.
+
+## LA-REV-332
+
+- Scope: RFC-0028 proof-pack logical contract references
+- Pattern: Proof-pack references should be bounded Lotus logical refs, not arbitrary URL-shaped
+  strings
+- Status: Hardened
+- Finding Class: Security posture and API model validation
+- Summary: `AdvisoryBankDemoProofPack` normalized `scenario_contract_ref` and
+  `supported_claim_register_ref` as generic required text. That preserved normal output but did
+  not reject external URLs, query strings, fragments, credentials, or sensitive path fragments in
+  those contract-reference fields.
+- Evidence:
+  - Added `normalize_lotus_advise_contract_ref` for RFC-0028 Lotus Advise logical contract refs.
+  - Applied the validator to proof-pack scenario-contract and supported-claim-register refs.
+  - Added model regression tests for external URLs, query/token leakage, path traversal, and
+    sensitive contract reference fragments.
+  - Focused proof-model tests, `python -m compileall src/core/bank_demo_proof`, and full
+    `make check` passed with 1555 unit tests.
+- Consequence:
+  - Proof-pack API payloads cannot smuggle arbitrary external references or sensitive material
+    through contract-ref fields while preserving the governed `lotus-advise://...` contract ids.
+- Documentation:
+  - Review ledger updated. No public README/wiki change is required because the supported public
+    contract shape did not change.
+- Follow-Up:
+  - Keep future proof-pack reference fields wired through explicit logical-ref or artifact-ref
+    validators instead of generic string normalization.
+
+## LA-REV-333
+
+- Scope: RFC-0027 advisory copilot route error boundary
+- Pattern: Controller error mapping should preserve status semantics without leaking sensitive
+  lower-layer detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: Advisory copilot routes mapped controlled `ValueError` codes to HTTP 404/409/422, but
+  returned the raw exception text. Current domain/service paths usually emit bounded error codes,
+  yet the route boundary should still fail closed if a lower layer accidentally includes raw prompt,
+  provider, token, or credential detail in a validation error.
+- Evidence:
+  - Added route-level sensitive-detail detection for copilot error mapping.
+  - Sensitive copilot route errors now return `ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED` with
+    HTTP 422 instead of echoing raw lower-layer detail.
+  - Added API regression coverage proving raw prompt/token detail is redacted while existing route
+    status-code mapping remains intact.
+  - Focused `tests/unit/advisory/api/test_api_advisory_copilot.py` and full `make check` passed
+    with 1556 unit tests.
+- Consequence:
+  - RFC-0027 API consumers get stable error semantics without exposing sensitive AI/provider
+    details through route-level exception handling.
+- Documentation:
+  - Review ledger updated. No public README/wiki change is required because this hardens an
+    existing supported boundary without changing the documented feature posture.
+- Follow-Up:
+  - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
+    messages.
+
+## LA-REV-368
+
+- Scope: RFC-0026 slice-4 documentation contract after action-family modularization
+- Pattern: Documentation contract tests should verify the current modular implementation shape
+  instead of hard-coding an older monolithic file layout
+- Status: Hardened
+- Finding Class: Test quality and implementation-proof drift
+- Summary: Full `make check` exposed that the RFC-0026 Slice 4 contract still required every
+  action builder to be defined in `action_factory.py`. That contradicted the intentional
+  source-family modularization and would have discouraged cleaner code structure.
+- Evidence:
+  - Updated `tests/unit/test_rfc0026_slice4_domain_action_factory_contract.py` to verify each
+    action builder in its owning module: generic builder, policy, reporting, advisor workflow, and
+    aggregate factory.
+  - Kept behavior-test assertions and source-model boundary assertions intact.
+  - Focused `ruff`, format, and RFC-0026 Slice 4/action-factory tests passed with 19 tests.
+- Consequence:
+  - The RFC-0026 implementation-proof contract now enforces behavior and module ownership instead
+    of preserving a monolithic implementation shape.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is contract-test
+    alignment for internal module structure.
+- Follow-Up:
+  - Re-run full `make check` after this contract alignment before PR publication.
+
+## LA-REV-367
+
+- Scope: RFC-0026 policy-review cockpit action mapping
+- Pattern: Policy-review action construction should live beside policy-specific suitability and
+  client-ready blocking semantics, not inside a broad orchestration factory
+- Status: Hardened
+- Finding Class: Modularity and policy-boundary clarity
+- Summary: Policy review action construction was the last large source-specific branch in the
+  cockpit factory with direct suitability/client-ready language. Moving it to a focused module
+  makes the policy boundary easier to audit and keeps factory responsibility closer to aggregation.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_policy.py` for policy-review action construction.
+  - Preserved source refs, policy evidence access class, policy source-readiness gaps, lineage,
+    completed approval/sign-off blocking, and public imports.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    16 tests.
+- Consequence:
+  - RFC-0026 cockpit action construction is now organized by action source family, making future
+    policy-pack and client-ready posture reviews less error-prone.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep client-ready and completed-approval authority blocked unless policy workflow ownership
+    changes are separately implemented and proved.
+
+## LA-REV-366
+
+- Scope: RFC-0026 memo/report cockpit action mapping
+- Pattern: Memo packaging and report/render/archive readiness actions should live in a
+  reporting-focused module because they carry downstream document-boundary semantics
+- Status: Hardened
+- Finding Class: Modularity and downstream integration clarity
+- Summary: Memo package blockage and report/render/archive readiness construction remained in the
+  broad cockpit action factory after advisor, approval, and execution actions were split. These
+  actions share the report-package/document-readiness boundary and should be audited together.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_reporting.py` for memo package and
+    report/render/archive action builders.
+  - Preserved source refs, lineage refs, source-readiness gaps, client-ready blocked posture, and
+    public imports.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    16 tests.
+- Consequence:
+  - RFC-0026 report-package action behavior is easier to extend without mixing document-readiness
+    rules into generic or unrelated source-family construction.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep report/render/archive readiness actions aligned with source-owned memo/report evidence and
+    do not promote client-ready publication from cockpit action state alone.
+
+## LA-REV-365
+
+- Scope: RFC-0026 advisor cockpit initial SLA-band derivation
+- Pattern: Shared cockpit projection rules should live in named domain helpers instead of repeated
+  inline ternaries across source-family modules
+- Status: Hardened
+- Finding Class: Duplication reduction and domain readability
+- Summary: Split cockpit action modules repeated the same provisional due-date mapping:
+  source actions with `due_at` start as `DUE_SOON`; undated actions start as `NOT_APPLICABLE`
+  until the service recomputes live aging. Repeating that rule made future action families more
+  likely to drift.
+- Evidence:
+  - Added `action_components.initial_sla_age_band`.
+  - Replaced repeated inline SLA-band mappings across advisor workflow, approval, execution, and
+    remaining factory-owned action builders.
+  - Added focused action-factory regression coverage for dated and undated source actions.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    16 tests.
+- Consequence:
+  - RFC-0026 action construction now has one named rule for initial SLA projection, improving
+    readability and reducing duplication across source-family builders.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because behavior and product
+    contract are unchanged.
+- Follow-Up:
+  - Keep live SLA aging in `advisor_cockpit.rules`; this helper only owns construction-time
+    initial posture.
+
+## LA-REV-364
+
+- Scope: RFC-0026 advisor-owned meeting preparation and follow-up action mapping
+- Pattern: Advisor workflow actions should be separated from supervisory, execution, and generic
+  action construction logic
+- Status: Hardened
+- Finding Class: Modularity and private-banking workflow clarity
+- Summary: Meeting-preparation and client-follow-up action construction are advisor-owned workflow
+  concerns with a clear external-communication boundary. Keeping them in the broad action factory
+  made Workbench-facing advisor workflow behavior less explicit.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_advisor_workflow.py` for meeting-preparation and
+    client-follow-up action builders.
+  - Preserved source-backed evidence refs, portfolio fallback, external-client-communication
+    blocking, and public imports.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    15 tests.
+- Consequence:
+  - RFC-0026 advisor workflow action mapping is easier to review and extend without mixing it with
+    approval, execution, supportability, or generic action assembly.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep advisor workflow action copy private-banking oriented and avoid implying external client
+    communication has been executed.
+
+## LA-REV-363
+
+- Scope: RFC-0026 advisor cockpit approval-dependency action mapping
+- Pattern: Approval and client-consent dependency mapping should be isolated from the broad cockpit
+  factory because it owns supervisory and external-communication boundaries
+- Status: Hardened
+- Finding Class: Modularity and domain vocabulary
+- Summary: Approval dependency construction includes risk, compliance, and client-consent owner
+  routing plus unsupported-capability boundaries. Keeping that logic inside the broad
+  `action_factory.py` made the factory harder to audit and extended a module that already handled
+  many source families.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_approval.py` for approval dependency action
+    construction and owner/action wording helpers.
+  - Kept aggregate builder and public imports stable.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    15 tests.
+- Consequence:
+  - RFC-0026 supervisory approval and client-consent cockpit posture is easier to review without
+    blurring CRM/external-communication or completed-approval authority boundaries.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep future approval-state semantics out of generic action construction and covered by
+    approval-focused tests.
+
+## LA-REV-362
+
+- Scope: RFC-0026 execution cockpit action ownership boundary
+- Pattern: Execution/OMS-adjacent action construction should live in a focused module rather than
+  in the broader cockpit factory
+- Status: Hardened
+- Finding Class: Modularity and domain-boundary clarity
+- Summary: Execution handoff and execution-status cockpit actions carry a distinct ownership
+  boundary: Advise records advisory handoff/status posture while OMS/order lifecycle remains
+  unsupported. Keeping those builders inside the broad action factory made the boundary less
+  visible and added to factory size.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_execution.py` for execution handoff and execution-status
+    action builders.
+  - Kept `action_factory.py` as the aggregate source-family orchestrator with stable public
+    imports.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    15 tests.
+- Consequence:
+  - RFC-0026 execution posture is easier to review and extend without weakening the explicit
+    OMS/order lifecycle boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep any future execution-system integration evidence in execution-focused modules and tests.
+
+## LA-REV-361
+
+- Scope: RFC-0026 advisor cockpit action construction modularity
+- Pattern: Generic action-item assembly should be separated from source-specific cockpit action
+  mapping
+- Status: Hardened
+- Finding Class: Maintainability and service-boundary clarity
+- Summary: `advisor_cockpit/action_factory.py` mixed the generic source-backed action-item builder
+  with source-specific policy, memo, meeting, approval, execution, supportability, and unsupported
+  capability mappings. That made the factory harder to extend as RFC-0026 action families grew.
+- Evidence:
+  - Extracted `src/core/advisor_cockpit/action_builder.py` for the generic
+    `build_source_backed_action` path and source-ref/id/lineage normalization.
+  - Kept public imports stable through `src.core.advisor_cockpit` and `action_factory`.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    15 tests.
+- Consequence:
+  - Future cockpit action-family work can reuse the generic builder without further enlarging the
+    source-specific factory module.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no supported feature posture change.
+- Follow-Up:
+  - Continue splitting source-specific cockpit mappings if future slices materially change action
+    ownership or source-read-model behavior.
+
+## LA-REV-360
+
+- Scope: RFC-0027/RFC-0028 public wiki sensitive-data vocabulary
+- Pattern: Public wiki pages should describe proof and copilot guardrails with enterprise-safe
+  language while technical RFCs and tests retain precise blocked-term fixtures
+- Status: Hardened
+- Finding Class: Documentation quality and business-facing security posture
+- Summary: The authored wiki source for security, API, operations, and RFC index pages still used
+  low-level raw-prompt/raw-payload/provider-response language in business-facing descriptions of
+  proof and copilot controls. Those controls are correct, but the wiki should be reusable for
+  business, operations, sales, and pre-sales without exposing implementation-oriented phrasing.
+- Evidence:
+  - Reworded wiki sensitive-data controls to credential, AI-input, runtime-payload, trace, and
+    correlation material.
+  - Kept implementation RFCs and tests free to name blocked technical concepts where that precision
+    is needed for governance and regression fixtures.
+  - Added a public-wiki vocabulary contract that fails if raw-prompt/raw-payload/provider-response
+    wording returns to the public wiki surfaces.
+  - Focused `ruff`, format, and RFC-0023/RFC-0027/RFC-0028 documentation contract tests passed
+    with 25 tests.
+- Consequence:
+  - The Advise wiki remains implementation-backed while becoming cleaner for client-demo,
+    operations, sales, and RFP-adjacent use.
+- Documentation:
+  - Wiki source and review ledger updated. README and RFC source posture did not change.
+- Follow-Up:
+  - Resolve existing published-wiki drift before PR closure and publish repo wiki after merge.
+
+## LA-REV-359
+
+- Scope: RFC-0027 Advisory Copilot public API vocabulary
+- Pattern: Public OpenAPI descriptions should state AI-input controls in business-safe language
+  while runtime guardrails keep enforcing banned technical payload terms
+- Status: Hardened
+- Finding Class: API documentation quality and sensitive-data posture
+- Summary: Advisory Copilot route and schema descriptions still used raw-prompt phrasing in the
+  public OpenAPI contract. The runtime already rejects ungoverned AI/provider material, but the
+  published API vocabulary should describe that control as unredacted AI-input handling instead of
+  exposing implementation-oriented wording.
+- Evidence:
+  - Reworded copilot request, run-record, review-record, and evidence-packet route descriptions to
+    use unredacted AI-input language.
+  - Added OpenAPI regression coverage proving `/advisory/copilot` paths and `AdvisoryCopilot*`
+    schemas do not publish raw-prompt wording while still documenting unredacted-AI controls.
+  - Regenerated the API vocabulary inventory after the OpenAPI description changes.
+  - Focused `ruff`, format, and Advisory Copilot API/application tests passed with 27 tests.
+- Consequence:
+  - RFC-0027 keeps the same fail-closed guardrail behavior with cleaner external API language for
+    enterprise integrators and private-banking stakeholders.
+- Documentation:
+  - Review ledger and generated API vocabulary updated. No README/wiki source change is required
+    because the supported feature posture is unchanged.
+- Follow-Up:
+  - Keep internal guardrail fixtures explicit, but keep published Swagger vocabulary business-safe.
+
+## LA-REV-358
+
+- Scope: RFC-0028 backend proof capture CLI error boundary
+- Pattern: Operator automation should fail with bounded proof errors instead of tracebacks that can
+  echo rejected source values
+- Status: Hardened
+- Finding Class: Automation security posture and operational diagnostics
+- Summary: The RFC-0028 capture CLI used the same safe proof models as the API, but local
+  `ValueError` failures bubbled out as Python tracebacks. For material-drift or source-validation
+  failures, that can expose rejected source values in operator logs even though the API path already
+  redacts them.
+- Evidence:
+  - Wrapped proof metadata/build/write `ValueError` failures in a bounded CLI `SystemExit` message.
+  - Preserved non-sensitive controlled failure details, including material-review drift messages.
+  - Redacted sensitive CLI failure detail to
+    `RFC0028_BACKEND_PROOF_CAPTURE_FAILED: source evidence failed validation`.
+  - Added script-level regression coverage for sensitive and non-sensitive CLI error detail.
+  - Focused `ruff`, format, `mypy`, and RFC-0028 capture-script tests passed with 9 tests.
+- Consequence:
+  - RFC-0028 proof automation is safer for CI/operator logs while retaining useful non-sensitive
+    diagnostics for material drift.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the command contract is
+    unchanged and the failure mode is safer.
+- Follow-Up:
+  - Keep script-level error boundaries aligned with API redaction semantics for future proof
+    automation.
+
+## LA-REV-357
+
+- Scope: RFC-0028 backend proof capture source artifact refs
+- Pattern: Repeatable proof automation should load absolute local evidence without recording
+  absolute paths in proof metadata
+- Status: Hardened
+- Finding Class: Automation repeatability and artifact hygiene
+- Summary: `scripts/capture_rfc0028_backend_proof.py` could load a live-suite result or bundle by
+  absolute path, but `load_or_run_live_suite` returned that absolute path as the metadata
+  reference. The RFC-0028 proof metadata correctly rejects absolute artifact refs, so absolute
+  source paths caused an avoidable capture failure instead of safely omitting local-only source
+  references.
+- Evidence:
+  - Added `local_artifact_ref_for_path` to record repo-relative live-suite source refs when the
+    source is under the current workspace.
+  - External absolute source paths are still loaded but return `None` for metadata refs, avoiding
+    local path leakage and satisfying proof-model validation.
+  - Added script tests for external absolute inputs and repo-relative source refs.
+  - Focused `ruff`, format, `mypy`, and RFC-0028 capture-script tests passed with 8 tests.
+- Consequence:
+  - RFC-0028 proof capture is more repeatable for local operators and CI jobs that provide
+    absolute source paths, without weakening artifact-reference hygiene.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the documented command
+    behavior is unchanged and safer.
+- Follow-Up:
+  - Keep proof metadata refs relative and sanitized; local absolute paths should remain loader-only
+    inputs, not proof-pack output.
+
+## LA-REV-356
+
+- Scope: RFC-0028 proof-pack request validation redaction coverage
+- Pattern: Request-shape validation should not echo rejected sensitive proof inputs
+- Status: Hardened
+- Finding Class: Test quality and API security posture
+- Summary: Route-level RFC-0028 proof-capture errors already sanitize sensitive proof-capture
+  failures. FastAPI/Pydantic request-shape validation happens before route logic, so the API test
+  suite should also pin that token-like metadata and oversized live-runtime payload errors do not
+  echo rejected sensitive values.
+- Evidence:
+  - Added API assertions that sensitive `environment` metadata and oversized live-runtime payload
+    validation responses omit `should-not-leak`.
+  - Focused `ruff`, format, and bank-demo proof API tests passed with 8 tests.
+- Consequence:
+  - The RFC-0028 API suite now covers both route-level proof-capture redaction and request-shape
+    validation redaction behavior.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is test-pyramid
+    hardening for an existing API behavior.
+- Follow-Up:
+  - Keep new proof-pack request validators covered at the API boundary when adding request fields.
+
+## LA-REV-355
+
+- Scope: RFC-0028 proof-pack API/OpenAPI wording
+- Pattern: Public API descriptions should describe sanitized proof behavior without raw-material
+  phrasing
+- Status: Hardened
+- Finding Class: API documentation quality
+- Summary: RFC-0028 proof-pack request and route descriptions used raw-payload and sensitive-token
+  wording in OpenAPI. The behavior was already safe, but Swagger is an integration contract and
+  should describe the proof boundary with cleaner enterprise/business language.
+- Evidence:
+  - Reworded proof-pack route and request-model descriptions to use unredacted runtime payloads,
+    implementation payloads, and access tokens.
+  - Added OpenAPI regression assertions for the proof-pack operation and request schema so the
+    business-facing wording does not regress to raw runtime payload phrasing.
+  - Focused `ruff`, format, and bank-demo proof API/request tests passed with 12 tests.
+- Consequence:
+  - Gateway, Workbench, RFP/security, and integration consumers get clearer Swagger guidance while
+    the underlying validation and redaction behavior remains unchanged.
+- Documentation:
+  - Review ledger updated. No additional wiki source change is required for this API-description
+    hardening beyond the RFC-0028 wiki wording already changed in LA-REV-354.
+- Follow-Up:
+  - Keep OpenAPI examples and descriptions aligned with product-safe vocabulary whenever proof or
+    advisory evidence APIs are changed.
+
+## LA-REV-354
+
+- Scope: RFC-0028 commercial and wiki proof wording
+- Pattern: Client-demo/RFP material should express proof controls in business-facing language
+- Status: Hardened
+- Finding Class: Documentation/product quality
+- Summary: The RFC-0028 commercial guide and demo wiki source still used raw-material terminology
+  in customer-consumable proof and RFP wording. That language was accurate for engineering controls
+  but too implementation-facing for sales, pre-sales, RFP/security, and client-demo preparation.
+- Evidence:
+  - Reworded commercial RFP, security-posture, architecture-outline, proof-guide, and operator
+    checklist copy to use unredacted AI input, source evidence, implementation payload, access
+    token, and local-runtime language.
+  - Updated the demo/commercial wiki source with the same business-facing proof boundary.
+  - Updated README RFC-0028 proof-capture language to avoid raw payload phrasing in the product
+    overview while retaining the security control truth.
+  - Updated the RFC-0028 gold-standard documentation contract so technical governance docs still
+    assert prompt controls, while the commercial guide must assert business-facing AI-input and
+    access-token wording.
+  - Focused RFC-0028 contract, wiki, commercial-material, proof-capture, supported-claim, and
+    proof-model tests passed with 48 tests.
+- Consequence:
+  - RFC-0028 documentation remains implementation-backed while being cleaner for business users,
+    RFP/security reviewers, sales, pre-sales, operations, and demo leads.
+- Documentation:
+  - README, commercial docs, and wiki source changed; repo wiki check/publish is required before
+    and after merge under the Lotus wiki publication rule.
+- Follow-Up:
+  - Keep engineering/security controls explicit in RFCs and runbooks, but keep commercial and demo
+    copy free of avoidable raw-material phrasing.
+
+## LA-REV-353
+
+- Scope: RFC-0028 journey integration proof business wording
+- Pattern: Business-facing proof summaries should not expose raw AI/source-material terminology
+- Status: Hardened
+- Finding Class: Documentation/product quality and sensitive-data posture
+- Summary: The RFC-0028 journey integration proof summary correctly blocked retention of raw
+  AI/source material, but its default unsupported-claim wording still used raw AI/source-material
+  terms. That wording could leak into demo, RFP, or proof-pack interpretation material even though
+  the underlying controls were sound.
+- Evidence:
+  - Reworded the default unsupported claim to business-safe language: underlying AI inputs, model
+    outputs, and source evidence are excluded from shared proof summaries.
+  - Changed unsupported-claim validation to use the RFC-0028 business-text validator so sensitive
+    terms such as raw prompt or token cannot enter shared proof summaries.
+  - Updated AI proof field descriptions and validation errors away from raw prompt/raw source
+    wording while preserving the underlying boolean contract fields.
+  - Added a regression test proving sensitive unsupported-claim text is rejected.
+  - Focused `ruff`, format, and RFC-0028 proof-capture/integration tests passed with 15 tests.
+- Consequence:
+  - RFC-0028 proof material remains implementation-backed and model-risk aware while being safer
+    for business, sales, demo, and client-facing review packs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the public feature
+    posture did not change and existing wiki language already states the control boundary.
+- Follow-Up:
+  - Continue separating internal evidence field names from business-facing proof language when
+    RFC-0028 material is rendered into Workbench, wiki, or commercial artifacts.
+
+## LA-REV-352
+
+- Scope: RFC-0027 advisory copilot source projection structure
+- Pattern: Proposal-version copilot projection should separate repository orchestration from
+  evidence-section construction
+- Status: Hardened
+- Finding Class: Modularity and maintainability
+- Summary: `source_projection.py` still mixed proposal repository reads, policy evaluation
+  filtering, section construction, source-reference bounding, text bounding, and packet id
+  generation. That made the RFC-0027 proposal-version projection harder to review and extend as
+  additional governed source sections are added.
+- Evidence:
+  - Extracted proposal-version evidence-section builders, source-reference compaction, content-hash
+    bounding, default packet-id generation, report-readiness detection, and operations-handoff
+    detection into `src/core/advisory_copilot/source_projection_sections.py`.
+  - Kept `src/core/advisory_copilot/source_projection.py` focused on repository orchestration,
+    version/policy matching, packet assembly, and lineage refs.
+  - Preserved existing packet ids, source refs, unsupported-evidence behavior, and private-banking
+    business copy.
+  - Focused `ruff`, format, `mypy`, advisory copilot application tests, and advisory copilot API
+    tests passed with 27 tests.
+- Consequence:
+  - RFC-0027 copilot source projection is easier to maintain without moving business logic into API
+    routes or Gateway/Workbench consumers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    code-structure hardening with stable public API behavior.
+- Follow-Up:
+  - Keep future copilot source sections in the section projection module and keep the entry-point
+    module limited to source loading, filtering, and packet assembly.
+
+## LA-REV-351
+
+- Scope: Proposal workflow context-resolution error boundaries
+- Pattern: Proposal-domain services should not propagate sensitive source-context detail after
+  lower-layer resolution failures
+- Status: Hardened
+- Finding Class: Security posture and service-boundary consistency
+- Summary: Proposal API routes already redacted sensitive `ProposalValidationError` details, but
+  `ProposalWorkflowService` still wrapped context-resolution failures with raw `str(exc)`. A
+  sensitive lower-layer source-context message would be stopped before the HTTP response, but the
+  domain service boundary itself still carried the sensitive text farther than necessary.
+- Evidence:
+  - Moved the shared sensitive-error detector to `src/core/common/sensitive_error_details.py` and
+    kept `src/api/sensitive_error_details.py` as a compatibility re-export.
+  - Added `src/core/proposals/error_details.py` with a proposal-domain safe-detail helper and
+    `PROPOSAL_CONTEXT_RESOLUTION_FAILED` fallback.
+  - Applied the safe-detail helper to proposal create and version context-resolution failures.
+  - Added a service-level regression proving sensitive create-proposal context failures are
+    collapsed before leaving `ProposalWorkflowService`.
+  - Focused `ruff`, format check, proposal workflow, proposal HTTP error, and workspace API tests
+    passed with 103 tests.
+- Consequence:
+  - Proposal routes remain client-safe, and proposal-domain service boundaries now also fail closed
+    for sensitive context-resolution failures.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    service-boundary hardening with stable public API behavior.
+- Follow-Up:
+  - Reuse the core sensitive-detail helper for future non-API service boundaries instead of
+    duplicating route-local detectors.
+
+## LA-REV-350
+
+- Scope: Proposal-domain idempotency validation
+- Pattern: Proposal, memo, policy-pack, and cockpit write paths should share one proposal-domain
+  required-idempotency boundary
+- Status: Hardened
+- Finding Class: Duplication and service-boundary consistency
+- Summary: Several proposal-adjacent write paths locally converted
+  `normalize_required_idempotency_key(...)` failures into `ProposalValidationError`. The duplicated
+  wrappers all represented the same domain boundary and would drift if idempotency normalization or
+  error vocabulary changed.
+- Evidence:
+  - Added `src/core/proposals/idempotency_validation.py` with
+    `require_proposal_idempotency_key`.
+  - Reused the helper from proposal lifecycle creation/versioning, proposal memo creation,
+    policy-pack validation/activation, policy-evaluation finalization, and advisor-cockpit
+    acknowledgement.
+  - Added lower-level proof that the helper trims valid keys and raises
+    `ProposalValidationError("IDEMPOTENCY_KEY_REQUIRED")` for invalid required keys.
+  - Focused `ruff`, format check, and proposal/memo/policy-pack/cockpit service tests passed with
+    85 tests.
+- Consequence:
+  - Required idempotency-key validation is now a reusable proposal-domain boundary rather than
+    repeated local exception wrapping.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service-boundary cleanup with stable public behavior.
+- Follow-Up:
+  - Keep future proposal-owned write APIs on the shared idempotency helper instead of wrapping the
+    common normalizer locally.
+
+## LA-REV-349
+
+- Scope: RFC-0026 public vocabulary
+- Pattern: Active RFC and wiki-facing product language should avoid implementation-scaffolding terms
+  in business vocabulary tables
+- Status: Hardened
+- Finding Class: Documentation and private-banking vocabulary quality
+- Summary: RFC-0026's domain vocabulary table still used `placeholder task` as an avoided term for
+  relationship-manager follow-up. Even in the "Avoid" column, that phrase is implementation
+  scaffolding language and is not useful for business, sales, operations, or client-demo audiences.
+- Evidence:
+  - Replaced the avoided term with the business-facing phrase `generic reminder`.
+  - Extended the public RFC-0023 through RFC-0028 vocabulary contract to prevent `placeholder task`
+    from returning to active public surfaces.
+  - Focused `ruff`, format check, RFC-0023 through RFC-0028 public-vocabulary tests, and RFC-0026
+    implementation-readiness tests passed with 6 tests.
+- Consequence:
+  - The active cockpit RFC keeps cleaner private-banking vocabulary and avoids leaking
+    implementation-scaffolding phrasing into product-facing documentation.
+- Documentation:
+  - RFC-0026 and review ledger updated. No wiki source change is required because the stale phrase
+    was only present in the RFC source.
+- Follow-Up:
+  - Keep public RFC/wiki language business-facing even when documenting unsupported or avoided
+    concepts.
+
+## LA-REV-348
+
+- Scope: Workspace service error-detail boundaries
+- Pattern: Workspace service-layer exceptions should preserve controlled business codes without
+  propagating sensitive upstream/provider detail toward the route layer
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: Workspace routes already redacted sensitive detail at the HTTP boundary, but workspace
+  services still wrapped lower-layer exceptions with raw `str(exc)` for reevaluation, draft-action,
+  lifecycle-handoff, and AI-rationale unavailable paths. A sensitive lower-layer message would be
+  redacted before the client response, but the service boundary itself still carried the sensitive
+  text farther than necessary.
+- Evidence:
+  - Added shared workspace service error-detail sanitization in
+    `src/api/services/workspace_errors.py`.
+  - Applied the sanitizer to workspace reevaluation, draft-action mutation, lifecycle handoff, and
+    workspace AI rationale/review-action unavailable errors.
+  - Added a service-level regression proving sensitive reevaluation context detail is collapsed to
+    `WORKSPACE_EVALUATION_UNAVAILABLE` before leaving the service boundary.
+  - Focused `ruff`, format check, and workspace API tests passed with 44 tests.
+- Consequence:
+  - Workspace API routes retain stable business error semantics while sensitive upstream, AI, or
+    raw-context text is blocked one layer earlier.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    service-boundary hardening for existing workspace behavior.
+- Follow-Up:
+  - Continue moving raw lower-layer exception text behind controlled codes where service boundaries
+    wrap integration, persistence, or provider failures.
+
+## LA-REV-347
+
+- Scope: Advisor cockpit service projection structure
+- Pattern: Cockpit service orchestration should not also own caller projection, supportability
+  projection, and preparation-packet shaping
+- Status: Hardened
+- Finding Class: Modularity and maintainability
+- Summary: `src/core/advisor_cockpit/service.py` handled repository orchestration, acknowledgement
+  idempotency, caller role filtering, supportability metadata, action counts, and preparation-packet
+  projection in one module. The mixed responsibilities made the service harder to review and made
+  projection behavior less reusable for future RFC-0026 through RFC-0028 surfaces.
+- Evidence:
+  - Extracted caller action projection, owner-role visibility, action counts, supportability
+    projection, and preparation-packet shaping to
+    `src/core/advisor_cockpit/service_projection.py`.
+  - Kept `AdvisorCockpitService` focused on orchestration, pagination, repository reads, runtime
+    state attachment, and acknowledgement writes.
+  - Focused `ruff`, format check, and advisor cockpit service tests passed with 13 tests.
+- Consequence:
+  - The cockpit service is easier to scan for workflow control while reusable projection semantics
+    remain test-backed and private-banking business vocabulary is centralized.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service-boundary cleanup with stable public behavior.
+- Follow-Up:
+  - Keep future cockpit API projections in focused modules when behavior is shared across snapshot,
+    action-list, and preparation-packet endpoints.
+
+## LA-REV-346
+
+- Scope: Advisor cockpit action factory helper structure
+- Pattern: Source-backed action construction should separate reusable bounded component builders
+  from business action-family assembly
+- Status: Hardened
+- Finding Class: Modularity and maintainability
+- Summary: `src/core/advisor_cockpit/action_factory.py` assembled every cockpit action family and
+  also owned low-level identifier, evidence, lineage, readiness, source-reference, and deduplication
+  helpers. As RFC-0026 through RFC-0028 action families grow, keeping those component builders in
+  the same module makes the business flow harder to review and increases duplication risk.
+- Evidence:
+  - Extracted reusable bounded action component builders to
+    `src/core/advisor_cockpit/action_components.py`.
+  - Kept `action_factory.py` focused on source-backed business action families and approval-specific
+    vocabulary.
+  - Focused `ruff`, format check, action-factory tests, and RFC-0026 action-factory contract tests
+    passed with 18 tests.
+- Consequence:
+  - Future cockpit action families can reuse one validated component-construction layer while the
+    action factory remains easier to scan for private-banking workflow semantics.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal domain
+    structure cleanup with stable behavior.
+- Follow-Up:
+  - Continue extracting cockpit orchestration helpers when a module mixes reusable construction
+    mechanics with business workflow decisions.
+
+## LA-REV-345
+
+- Scope: API main module compatibility exports
+- Pattern: `src.api.main` should expose the FastAPI app and exception handlers, not router or
+  simulation-engine internals
+- Status: Hardened
+- Finding Class: Dead code and module boundary clarity
+- Summary: `src/api/main.py` still imported and exported simulation endpoint functions,
+  `_simulate_proposal_response`, and `run_proposal_simulation` even though the app only needs the
+  routers and tests import endpoint functions from their router module. These exports blurred app
+  assembly with domain/service internals.
+- Evidence:
+  - Removed stale simulation endpoint, service, and engine exports from `src.api.main`.
+  - Added an internal guard preventing those names from returning to `src.api.main.__all__`.
+  - Focused `ruff`, format check, internal guard tests, and health tests passed with 10 tests.
+- Consequence:
+  - The API assembly module has a clearer boundary and no longer advertises non-router internals as
+    main-module compatibility surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal module
+    boundary cleanup.
+- Follow-Up:
+  - Keep endpoint-level imports in route modules and domain execution imports in domain/service
+    modules.
+
+## LA-REV-344
+
+- Scope: Advisor cockpit model validation structure
+- Pattern: Large domain model modules should delegate reusable validation vocabulary and business
+  text normalization to focused helpers
+- Status: Hardened
+- Finding Class: Modularity and maintainability
+- Summary: `src/core/advisor_cockpit/models.py` carried owner-role labels, field length limits,
+  sensitive-term checks, and all identifier/business-text normalization helpers inline with the
+  Pydantic model definitions. That made the already large model module harder to scan and reuse.
+- Evidence:
+  - Extracted cockpit model limits, owner-role labels, and text/identifier normalization helpers to
+    `src/core/advisor_cockpit/model_validation.py`.
+  - Kept existing model public behavior stable by importing the same helper names into
+    `models.py`.
+  - Focused `ruff`, format check, advisor cockpit model tests, advisory model contract tests, and
+    RFC-0026 action-factory contract tests passed with 22 tests.
+- Consequence:
+  - Advisor cockpit model definitions are cleaner, and future cockpit DTOs can reuse one validation
+    module instead of adding more inline helper code.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    module-structure hardening.
+- Follow-Up:
+  - Continue splitting cockpit or proposal modules only where a cohesive helper boundary exists and
+    tests already cover the behavior.
+
+## LA-REV-343
+
+- Scope: Runtime readiness probe error detail
+- Pattern: Readiness probes should expose controlled operational posture without leaking
+  configuration, credential, or driver details
+- Status: Hardened
+- Finding Class: Security posture and operational diagnostics
+- Summary: `_readiness_probe` returned raw `RuntimeError` text from runtime persistence or proposal
+  repository initialization. Controlled operational codes are useful for operators, but raw driver
+  or configuration failures can include DSNs, passwords, tokens, or other sensitive detail.
+- Evidence:
+  - Added safe readiness error-detail projection in `src/api/main.py`.
+  - Controlled readiness failures still return their existing detail.
+  - Sensitive runtime failures now return `READINESS_CHECK_FAILED`.
+  - Focused `ruff`, format check, health tests, and internal guard tests passed with 9 tests.
+  - Full repository `make check` passed with 1,571 unit tests.
+- Consequence:
+  - `/health/ready` remains useful for operations while failing closed on sensitive runtime
+    initialization errors.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    runtime diagnostics hardening.
+- Follow-Up:
+  - Keep health/readiness error bodies bounded and route deeper diagnostics to logs/telemetry.
+
+## LA-REV-342
+
+- Scope: Lotus Core simulation exception handler
+- Pattern: Global exception handlers for upstream dependencies must preserve useful contract errors
+  without echoing sensitive provider or request detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: The `LotusCoreSimulationUnavailableError` exception handler returned `str(exc)` directly
+  in problem-details responses. Current Lotus Core errors are usually controlled, and contract
+  mismatch details are useful, but an upstream problem payload could include bearer tokens,
+  credentials, raw payloads, or provider response detail.
+- Evidence:
+  - Added safe Lotus Core simulation error-detail projection in `src/api/main.py`.
+  - Non-sensitive upstream contract errors still return their original status and detail.
+  - Sensitive upstream simulation details now return `LOTUS_CORE_SIMULATION_UNAVAILABLE`.
+  - Focused `ruff`, format check, core simulation error tests, and internal guard tests passed with
+    7 tests.
+- Consequence:
+  - Proposal simulation problem-details responses stay operationally useful while failing closed for
+    sensitive upstream detail.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    exception-handler hardening.
+- Follow-Up:
+  - Apply the same fail-closed rule to any new global exception handler for external dependencies.
+
+## LA-REV-341
+
+- Scope: RFC-0028 bank-demo proof API sensitive-detail detector
+- Pattern: API routes should share one sensitive-error detector instead of maintaining duplicate
+  fragment lists per route family
+- Status: Hardened
+- Finding Class: Duplication reduction and security posture
+- Summary: The bank-demo proof router carried its own sensitive-error fragment list even though the
+  API layer now has a shared detector used by proposal, workspace, report, and copilot routes.
+- Evidence:
+  - Replaced the route-local fragment list in `src/api/routers/bank_demo_proof.py` with the shared
+    `src/api/sensitive_error_details.py` detector.
+  - Existing RFC-0028 proof-pack API tests continued to cover sensitive source-evidence redaction.
+  - Focused `ruff`, format check, and bank-demo proof API tests passed with 8 tests.
+- Consequence:
+  - RFC-0028 proof-pack route behavior stays unchanged while the API layer has less duplicated
+    security-sensitive matching logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    defensive code consolidation.
+- Follow-Up:
+  - Keep domain-specific proof-field validators separate when they validate business payloads, but
+    use the shared API detector for route error-detail redaction.
+
+## LA-REV-340
+
+- Scope: Legacy proposal simulation idempotency cache export
+- Pattern: Repository-backed runtime should not retain unused in-memory idempotency cache exports or
+  tests that reset dead state
+- Status: Hardened
+- Finding Class: Dead code and test reliability
+- Summary: `src/api/services/advisory_simulation_service.py` still declared
+  `PROPOSAL_IDEMPOTENCY_CACHE` and `MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE`, and `src/api/main.py`
+  re-exported them. The simulation path now persists idempotency through the proposal repository;
+  the cache was only being cleared by tests and no longer influenced behavior.
+- Evidence:
+  - Removed the unused cache and max-size constant from the simulation service and main exports.
+  - Updated unit and integration test setup to reset the actual proposal repository/service boundary
+    instead of clearing dead state.
+  - Added an internal guard test preventing `src.api.main` from re-exporting the legacy cache.
+  - Focused `ruff`, format check, lifecycle API tests, memo API tests, and internal guard tests
+    passed with 102 tests.
+- Consequence:
+  - Proposal idempotency ownership is clearer: persistence is repository-backed, and tests no
+    longer imply a non-production in-memory cache is authoritative.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this removes stale
+    internal implementation residue.
+- Follow-Up:
+  - Continue removing test-only compatibility exports when they no longer match runtime ownership.
+
+## LA-REV-339
+
+- Scope: Proposal memo report-package OpenAPI description
+- Pattern: Public API descriptions must reflect implemented report handoff behavior and not carry
+  stale slice-history language into business-facing contracts
+- Status: Hardened
+- Finding Class: API documentation quality and implementation truth
+- Summary: The memo report-package event endpoint still described report/render/archive realization
+  as later scope. That was stale now that the adjacent memo report-package request endpoint requests
+  Lotus Report materialization and records returned report, render, and archive references.
+- Evidence:
+  - Updated the report-package event endpoint description to distinguish lineage event recording
+    from the Lotus Report materialization request endpoint.
+  - Added an OpenAPI contract assertion that the endpoint references the reporting owner, points to
+    the report-package request endpoint, and does not reintroduce `later scope` language.
+  - Focused `ruff`, format check, and OpenAPI lifecycle contract test passed.
+- Consequence:
+  - Swagger/OpenAPI now presents current memo reporting behavior without leaking implementation-slice
+    history or underclaiming the supported report-package flow.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the durable user-facing
+    API contract text is the changed truth.
+- Follow-Up:
+  - Keep stale implementation-phase phrases out of OpenAPI descriptions when RFC slices are promoted.
+
+## LA-REV-338
+
+- Scope: Lotus Report integration API error boundaries
+- Pattern: Report materialization routes should return a stable unavailable posture without
+  exposing upstream report/render/archive error detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: Delivery report requests, memo report packages, and policy evaluation report packages
+  each mapped `LotusReportUnavailableError` directly to `detail=str(exc)`. The current adapter uses
+  a controlled `LOTUS_REPORT_REQUEST_UNAVAILABLE` code, but a future integration error could carry
+  provider response, bearer token, credential, or raw payload detail.
+- Evidence:
+  - Added shared Lotus Report unavailable HTTP mapping in
+    `src/api/proposals/report_errors.py`.
+  - Delivery, memo, and policy evaluation report routes now use the shared mapper.
+  - Added a route test that proves sensitive Lotus Report unavailable detail is redacted.
+  - Confirmed no remaining `detail=str(exc)` mappings under `src/api`.
+  - Focused `ruff`, format check, lifecycle report-route tests, memo API tests, and policy
+    evaluation API tests passed with 21 tests.
+  - Full repository `make check` passed with 1,568 unit tests after the API boundary hardening
+    sequence.
+- Consequence:
+  - Report integration routes keep stable service-unavailable semantics while preventing upstream
+    report/render/archive details from leaking through Advise API responses.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    boundary hardening for existing report behavior.
+- Follow-Up:
+  - Keep future integration-unavailable mappings behind bounded-detail helpers.
+
+## LA-REV-337
+
+- Scope: Advisory copilot repository startup boundary
+- Pattern: Copilot route startup failures should preserve controlled repository posture while
+  sharing the platform API sensitive-detail detector
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: The copilot route module had its own sensitive-fragment list and returned raw
+  repository startup `RuntimeError` text through a 503 response. Controlled repository failures
+  should remain visible, but DSN, password, token, or driver detail should fail closed.
+- Evidence:
+  - Copilot route validation now uses the shared API sensitive-detail detector.
+  - Copilot repository startup failures redact sensitive detail to
+    `ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE`.
+  - Added a repository dependency test for sensitive startup failures.
+  - Focused `ruff`, format check, and copilot API tests passed with 17 tests.
+- Consequence:
+  - Copilot API diagnostics remain stable for controlled Lotus error codes while reducing the risk
+    of configuration or credential detail leaking during startup failure.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    boundary hardening for existing copilot behavior.
+- Follow-Up:
+  - Continue converging route-local error mappings onto shared bounded-detail helpers.
+
+## LA-REV-336
+
+- Scope: Advisory proposal simulation API validation boundaries
+- Pattern: Simulation validation and context-resolution errors should preserve controlled proposal
+  error codes without leaking lower-layer request, credential, or upstream context detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: `src/api/services/advisory_simulation_service.py` returned raw exception text for
+  idempotency validation, simulation-gate validation, alternatives normalization, and proposal
+  context resolution. Most present exceptions are controlled domain codes, but the service also
+  wraps lower-layer context-resolution and normalization failures where future raw payload, token,
+  or provider detail could otherwise reach the API response body.
+- Evidence:
+  - Simulation validation details now use the shared proposal error-detail redaction helper.
+  - Controlled simulation errors such as `PROPOSAL_SIMULATION_DISABLED` and
+    `IDEMPOTENCY_KEY_CONFLICT` keep their existing status and business-facing behavior.
+  - Added route tests for sensitive idempotency validation and context-resolution errors.
+  - Focused `ruff`, format check, proposal simulation API tests, and proposal HTTP error tests
+    passed with 51 tests.
+- Consequence:
+  - Proposal simulation remains operationally diagnosable through bounded Lotus error codes while
+    reducing the chance of sensitive advisory context or upstream details leaking into client HTTP
+    bodies.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    boundary hardening for existing proposal simulation behavior.
+- Follow-Up:
+  - Continue applying the same bounded-detail rule to remaining route modules that still raise
+    `HTTPException(... detail=str(exc))`.
+
+## LA-REV-335
+
+- Scope: Advisory workspace API error boundaries
+- Pattern: Workspace routes should preserve controlled business error codes without echoing
+  sensitive upstream or lower-layer exception details
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: Workspace route handlers returned `str(exc)` directly for not-found, conflict, and
+  assistant-unavailable paths. The current domain services usually raise controlled codes, but
+  several paths wrap lower-layer failures. A future upstream failure could accidentally expose
+  authorization headers, tokens, raw payloads, raw prompts, provider responses, or credentials in
+  the HTTP response body.
+- Evidence:
+  - Added shared sensitive API error-detail detection in `src/api/sensitive_error_details.py`.
+  - Moved proposal route redaction to the shared detector instead of duplicating fragment logic.
+  - Added workspace-specific bounded API details in `src/api/workspaces/errors.py`.
+  - Workspace route handlers now use the shared workspace error mapper for 404, 409, and assistant
+    unavailable paths while preserving `LOTUS_AI_RATIONALE_UNAVAILABLE` as the controlled 503
+    integration posture.
+  - Focused `ruff` and workspace/proposal API tests passed with 54 tests.
+- Consequence:
+  - Advisory workspace, proposal, and AI-assistant route families now share the same sensitive-detail
+    detection baseline while retaining private-banking business error vocabulary for supported
+    client workflows.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    boundary hardening for existing workspace behavior.
+- Follow-Up:
+  - Continue removing direct `detail=str(exc)` mappings in service-facing API helpers where a
+    controlled Lotus API error detail is more appropriate.
+
+## LA-REV-334
+
+- Scope: Shared proposal API error mapper
+- Pattern: Proposal route error mapping should preserve domain status codes without echoing
+  sensitive lower-layer detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: `raise_proposal_http_exception` was the shared mapper for proposal, memo, policy,
+  cockpit, delivery, async, and workspace API errors, but it returned `str(exc)` for every domain
+  exception. Most current domain exceptions use controlled codes, but the shared route boundary
+  should fail closed if a validation or idempotency path accidentally carries a token, raw prompt,
+  provider response, credential, or similar sensitive detail.
+- Evidence:
+  - Added shared proposal error-detail sanitization in `src/api/proposals/errors.py`.
+  - Normal controlled proposal error text is still preserved for 404, 409, and 422 mappings.
+  - Sensitive proposal error text now returns bounded details: `PROPOSAL_NOT_FOUND`,
+    `PROPOSAL_CONFLICT`, or `PROPOSAL_REQUEST_VALIDATION_FAILED`.
+  - Focused tests covering proposal HTTP errors, internal guards, advisor cockpit, and policy
+    evaluation APIs passed with 33 tests.
+  - Full repository `make check` passed with 1,561 unit tests.
+- Consequence:
+  - Broad proposal-family API routes retain stable status semantics while reducing the chance of
+    sensitive source evidence leaking through exception text.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    error-boundary hardening for existing behavior.
+- Follow-Up:
+  - Keep new proposal-family domain errors as controlled codes, and use the shared mapper rather
+    than route-local `detail=str(exc)` when adding API routes.
+
 ## LA-REV-326
 
 - Scope: OpenAPI enrichment portfolio-id example vocabulary

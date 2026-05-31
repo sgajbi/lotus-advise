@@ -40,9 +40,9 @@ approval, or OMS order/fill/settlement authority from this proof.
 | Product one-pager | `commercial_rfp_security_material_available`, `advisor_journey_backend_evidence_available`, `client_ready_publication_blocked` | Sales, pre-sales, client demo | Describe governed advisor proof, not a client-ready publication workflow. |
 | RFP response pack | `commercial_rfp_security_material_available`, `backend_proof_capture_repeatable`, `degraded_runtime_boundary_evidence_available`, `client_ready_publication_blocked` | Sales, pre-sales, RFP/security | Use implementation evidence and state blocked external attestations. |
 | Security posture pack | `commercial_rfp_security_material_available`, `degraded_runtime_boundary_evidence_available`, `client_ready_publication_blocked` | Pre-sales, RFP/security, operations | Describe platform controls and CI evidence, not bank certification. |
-| Architecture outline | `commercial_rfp_security_material_available`, `ai_policy_cockpit_proof_integrated`, `client_ready_publication_blocked` | Sales, pre-sales, developers, operations | Show source authority and boundaries without exposing raw payloads. |
+| Architecture outline | `commercial_rfp_security_material_available`, `ai_policy_cockpit_proof_integrated`, `client_ready_publication_blocked` | Sales, pre-sales, developers, operations | Show source authority and boundaries without exposing unredacted implementation payloads. |
 | Demo script | `commercial_rfp_security_material_available`, `advisor_use_document_proof_available`, `ai_policy_cockpit_proof_integrated`, `client_ready_publication_blocked` | Sales, pre-sales, client demo, operations | Keep advisor-use and blocked client-ready posture visible. |
-| Proof guide | `commercial_rfp_security_material_available`, `backend_proof_capture_repeatable`, `client_ready_publication_blocked` | Developers, operations, pre-sales | Interpret sanitized evidence only; do not use raw logs or prompts. |
+| Proof guide | `commercial_rfp_security_material_available`, `backend_proof_capture_repeatable`, `client_ready_publication_blocked` | Developers, operations, pre-sales | Interpret sanitized evidence only; do not use unredacted logs or AI inputs. |
 | ROI story | `commercial_rfp_security_material_available`, `advisor_journey_backend_evidence_available`, `client_ready_publication_blocked` | Sales, pre-sales | Use qualitative operating-value claims only; do not invent quantified savings. |
 | Feature matrix | `commercial_rfp_security_material_available`, `client_ready_publication_blocked` | Sales, pre-sales, RFP/security, operations | Mark blocked claims as blocked, not planned proof. |
 | Client-demo boundaries | `commercial_rfp_security_material_available`, `client_ready_publication_blocked` | Sales, pre-sales, client demo | State what the demo proves and what it does not prove. |
@@ -55,8 +55,9 @@ Safe RFP wording:
 1. "Lotus provides a repeatable proof pack for the governed private-banking advisory journey,
    including scenario identity, source-product references, evidence markers, material-field review,
    and blocked-claim boundaries."
-2. "The proof pack is generated from sanitized runtime evidence and excludes secrets, raw prompts,
-   raw source payloads, and local-only runtime bundles from committed or client-facing material."
+2. "The proof pack is generated from sanitized runtime evidence and excludes secrets,
+   unredacted AI inputs, unredacted source evidence, and local-only runtime bundles from committed
+   or client-facing material."
 3. "AI evidence is review-assistive and non-authoritative. It cannot approve advice, change policy
    posture, clear review blockers, or publish client-ready content."
 4. "Policy proof is framed as configurable advisory and compliance evidence support, not legal or
@@ -82,8 +83,8 @@ Implementation-backed posture:
 
 1. proof artifacts are classified as commit-safe summary, customer-consumable summary, local runtime
    evidence, operator diagnostics, or secret material,
-2. secrets, tokens, prompts, raw provider payloads, raw source evidence, and raw runtime logs are
-   blocked from committed and client-facing proof material,
+2. secrets, access tokens, unredacted AI inputs, provider payloads, source evidence, and runtime
+   logs are blocked from committed and client-facing proof material,
 3. runtime posture records health, liveness, readiness, platform-capability checks, and bounded
    probe latency,
 4. CI covers lint, typecheck, OpenAPI quality, no-alias governance, API vocabulary, data-product
@@ -91,14 +92,14 @@ Implementation-backed posture:
    production-profile smoke/guardrail checks,
 5. degraded source paths are represented as bounded proof posture rather than hidden failures,
 6. runtime proof evidence rejects probe URLs with credentials, query strings, or fragments and
-   redacts secret, token, credential, authorization, cookie, prompt, raw payload/source, trace, and
+   redacts credential, authorization, cookie, AI-input, implementation-payload, trace, and
    correlation fields from nested summaries,
 7. proof artifact refs must be local relative references and reject URL schemes, authorities,
    credentials, queries, fragments, absolute paths, traversal, control characters, and sensitive
-   token/secret/prompt/raw-payload path material,
+   access-token, credential, AI-input, or implementation-payload path material,
 8. HTTP 422 request-validation responses keep the field/rule diagnostic but do not echo rejected
    sensitive input values,
-9. evidence refs use support-safe lineage and hashes rather than raw business payload dumps.
+9. evidence refs use support-safe lineage and hashes rather than unredacted business payload dumps.
 
 Not claimed:
 
@@ -235,8 +236,8 @@ Before client playback:
 6. confirm `material-field-review.json` has no blocked rows,
 7. confirm the supported-claim register still maps every product, RFP, security, architecture, ROI,
    demo, proof-guide, feature-matrix, boundary, and operator statement,
-8. remove raw prompts, raw source evidence, local logs, tokens, and local-only runtime paths from
-   any shared artifact,
+8. remove unredacted AI inputs, unredacted source evidence, local logs, access tokens, and
+   local-only runtime paths from any shared artifact,
 9. use this guide for talk track and RFP wording,
 10. stop the demo if a blocked claim is needed to answer the question.
 

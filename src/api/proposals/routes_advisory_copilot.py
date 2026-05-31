@@ -8,6 +8,7 @@ from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals import router as shared
 from src.api.proposals.router import get_proposal_repository
 from src.api.proposals.runtime import proposal_postgres_dsn
+from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.core.advisory_copilot.api_models import (
     AdvisoryCopilotActionRequest,
     AdvisoryCopilotEvidencePacketCreateRequest,
@@ -44,6 +45,8 @@ _COPILOT_CORRELATION_ID_MAX_LENGTH = 128
 _COPILOT_IDENTIFIER_MAX_LENGTH = 160
 _COPILOT_IDEMPOTENCY_KEY_MAX_LENGTH = 128
 _COPILOT_CURSOR_MAX_LENGTH = 512
+_COPILOT_REPOSITORY_UNAVAILABLE = "ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE"
+_COPILOT_VALIDATION_FAILED = "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"
 
 _COPILOT_REPOSITORY: AdvisoryCopilotRepository | None = None
 
@@ -57,7 +60,7 @@ def get_advisory_copilot_repository() -> AdvisoryCopilotRepository:
         except RuntimeError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=str(exc),
+                detail=_safe_copilot_repository_error_detail(str(exc)),
             ) from exc
     return _COPILOT_REPOSITORY
 
@@ -89,7 +92,7 @@ def get_advisory_copilot_application_service(
     description=(
         "Builds and persists a bounded, redacted evidence packet for a governed advisory "
         "copilot action. The endpoint stores source refs, packet hash, audience projection, "
-        "unsupported-evidence posture, and audit context without accepting raw prompts."
+        "unsupported-evidence posture, and audit context without accepting unredacted AI inputs."
     ),
     responses=ADVISORY_COPILOT_RESPONSES,
 )
@@ -376,9 +379,25 @@ def _advisory_copilot_postgres_dsn() -> str:
 
 
 def _raise_copilot_http_exception(exc: ValueError) -> NoReturn:
-    detail = str(exc)
+    detail = _safe_copilot_error_detail(str(exc))
     if detail.endswith("_NOT_FOUND"):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail) from exc
     if "CONFLICT" in detail or "TERMINAL" in detail:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
     raise HTTPException(status_code=HTTP_422_UNPROCESSABLE, detail=detail) from exc
+
+
+def _safe_copilot_error_detail(error_detail: str) -> str:
+    if not _contains_sensitive_copilot_error_detail(error_detail):
+        return error_detail
+    return _COPILOT_VALIDATION_FAILED
+
+
+def _contains_sensitive_copilot_error_detail(error_detail: str) -> bool:
+    return contains_sensitive_error_detail(error_detail)
+
+
+def _safe_copilot_repository_error_detail(error_detail: str) -> str:
+    if contains_sensitive_error_detail(error_detail):
+        return _COPILOT_REPOSITORY_UNAVAILABLE
+    return error_detail

@@ -30,7 +30,7 @@ def test_rfc0024_slice16_closes_advisor_use_without_client_ready_claims() -> Non
         "RFC-0024 is implemented for the supported advisor-use proposal memo",
         "client-ready memo publication is not supported",
         "external client communication is not supported",
-        "full RFC-0028 bank-demo/RFP package claims remain gated",
+        "RFC-0028 now governs broader bank-demo/RFP proof through supported claims",
         "No Lotus agent context, skill, or procedural guidance change is required",
     ]
     for term in required_terms:
@@ -65,3 +65,4 @@ def test_rfc0024_closure_resolves_slice0_questions_with_answers() -> None:
     assert "RFC-0024 supports advisor-use memo evidence only" in rfc_text
     assert "Slice 8 implemented the memo-critical subset" in rfc_text
     assert "Canonical proof uses `PB_SG_GLOBAL_BAL_001`" in rfc_text
+    assert "full RFC-0028 bank-demo/RFP package claims remain gated" not in rfc_text

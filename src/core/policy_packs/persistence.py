@@ -5,10 +5,7 @@ from datetime import UTC, datetime
 from typing import Any, cast
 
 from src.core.common.canonical import hash_canonical_payload
-from src.core.common.idempotency import (
-    normalize_optional_idempotency_key,
-    normalize_required_idempotency_key,
-)
+from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.policy_packs.catalog import get_policy_pack_version
 from src.core.policy_packs.evaluation import evaluate_policy_pack_version
 from src.core.policy_packs.models import (
@@ -32,15 +29,9 @@ from src.core.proposals.exceptions import (
     ProposalNotFoundError,
     ProposalValidationError,
 )
+from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
 
 _PERSISTENCE_CONTRACT_VERSION = POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION
-
-
-def _required_idempotency_key(idempotency_key: str | None) -> str:
-    try:
-        return normalize_required_idempotency_key(idempotency_key)
-    except ValueError as exc:
-        raise ProposalValidationError(str(exc)) from exc
 
 
 def finalize_policy_evaluation_record(
@@ -54,7 +45,7 @@ def finalize_policy_evaluation_record(
     idempotency_key: str,
     reason: dict[str, Any] | None = None,
 ) -> PolicyEvaluationPersistenceResult:
-    idempotency_key = _required_idempotency_key(idempotency_key)
+    idempotency_key = require_proposal_idempotency_key(idempotency_key)
     return _STORE.finalize_policy_evaluation_record(
         evidence_bundle=evidence_bundle,
         policy_pack_id=policy_pack_id,

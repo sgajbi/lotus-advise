@@ -28,7 +28,7 @@
 | **Primary Business Outcome** | make advisory recommendation commentary explainable, evidence-grounded, review-gated, replayable, artifact-ready, and safe for client-facing proposal workflows |
 | **Requires Approval From** | `lotus-advise`, `lotus-ai`, `lotus-core`, `lotus-risk`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, `lotus-workbench`, `lotus-platform`, and `lotus-manage` maintainers where handoff proof is required |
 | **Depends On** | RFC-0006, RFC-0011, RFC-0013, RFC-0014, RFC-0015, RFC-0019, RFC-0020, RFC-0021, RFC-0022 |
-| **Cross-Repository Scope** | `lotus-advise`, `lotus-ai`, `lotus-core`, `lotus-risk`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, `lotus-workbench`, `lotus-platform`, and `lotus-manage` only where advisory-to-DPM handoff proof is required |
+| **Cross-Repository Scope** | `lotus-advise`, `lotus-ai`, `lotus-core`, `lotus-risk`, `lotus-report`, `lotus-render`, `lotus-archive`, `lotus-gateway`, `lotus-workbench`, `lotus-platform`, and `lotus-manage` only where advisory-to-portfolio-management handoff proof is required |
 | **Compatibility Posture** | backward compatibility is not a constraint while the app remains pre-live; breaking API/contract cleanup is allowed when it is cleaner, but all affected downstream consumers must be migrated in this RFC before closure |
 | **Tightening Branch** | `docs/rfc0023-gold-standard-tightening` |
 | **Implementation Branching Rule** | use one remote feature branch for RFC-0023 or one coherent implementation slice; all branch names, PRs, commits, checks, evidence paths, and closure state must be recorded in RFC closure evidence |
@@ -130,7 +130,7 @@ RFC-0023 must deliver these outcomes:
 | Bank demo and client-ready proof | In scope for narrative proof consumed by demo journey. | RFC-0028 owns complete bank demo journey and RFP/client-ready packaging. |
 | Report/render/archive client artifacts | In scope when client-ready narrative is included in generated artifacts. | `lotus-report`, `lotus-render`, and `lotus-archive` own document lifecycle. |
 | Gateway and Workbench consumption | In scope for any supported UI or experience API claim. | `lotus-gateway` and `lotus-workbench` own product delivery boundaries. |
-| Advisory/DPM handoff commentary | In scope only where narrative explains advisory-to-execution boundary evidence. | `lotus-manage` owns DPM campaigns, action registers, and execution supportability. |
+| Advisory/portfolio-management handoff commentary | In scope only where narrative explains advisory-to-execution boundary evidence. | `lotus-manage` owns discretionary portfolio-management campaigns, action registers, and execution supportability. |
 | Platform automation and governance | In scope when reusable gaps are discovered. | `lotus-platform` owns scaffolding, validators, standards, mesh certification, and canonical proof automation. |
 
 ## Why This RFC Exists
@@ -330,7 +330,7 @@ evidence.
 | Model execution, prompt/workflow-pack lineage, model telemetry | `lotus-ai` or governed provider adapter | Receive bounded grounding packets only; return draft text plus lineage for validation. |
 | Report, render, archive, retention, access audit | `lotus-report`, `lotus-render`, `lotus-archive` | Client-ready artifacts require review-approved narrative and returned report/archive lineage refs. |
 | Experience API and product surface | `lotus-gateway`, `lotus-workbench` | Consume canonical Advise narrative APIs through Gateway/BFF only; no UI-owned client-ready generation. |
-| Advisory-to-DPM handoff state | `lotus-advise` for advisory posture; `lotus-manage` for DPM system-of-record truth | Narrative may explain boundary evidence only when source handoff status and ownership are explicit. |
+| Advisory-to-portfolio-management handoff state | `lotus-advise` for advisory posture; `lotus-manage` for portfolio-management system-of-record truth | Narrative may explain boundary evidence only when source handoff status and ownership are explicit. |
 
 ## Data Mesh, Trust, and Supportability Baseline
 
@@ -701,7 +701,7 @@ Outcome:
 
 1. complete the pre-implementation source map for proposal, artifact, workspace, decision summary,
    alternatives, suitability/policy, risk, disclosures, AI, report, archive, Gateway, Workbench,
-   DPM handoff, data product, trust telemetry, and supportability evidence,
+   portfolio-management handoff, data product, trust telemetry, and supportability evidence,
 2. classify RFC-0023 overlap with RFC-0024 through RFC-0028,
 3. decide which narrative-critical dependencies must be implemented now, blocked explicitly, or
    removed from supported claims.
@@ -947,7 +947,7 @@ Outcome:
    claimed,
 2. expose narrative review, guardrail, disclosure, lineage, and artifact posture through Gateway and
    Workbench,
-3. preserve advisory-to-DPM boundary evidence where narrative references execution handoff.
+3. preserve advisory-to-portfolio-management boundary evidence where narrative references execution handoff.
 
 Acceptance gate:
 
@@ -1216,7 +1216,7 @@ Update or add:
 | Gateway narrative API | Supported for advisor-use reviewed narrative posture | `lotus-gateway` consumes canonical Advise review, report-request, delivery-summary, and delivery-event APIs with contract and integration proof; compliance-review, client-draft, client-ready publication, and capability promotion remain gated. |
 | Workbench narrative review UX | Supported for advisor-use proposal posture | `lotus-workbench` renders Gateway-backed proposal narrative posture and does not infer narrative facts locally; broader compliance, client-draft, blocked, degraded, and canonical demo screenshot proof remain gated. |
 | Narrative evidence data product | Supported for advisor-review evidence | `ProposalNarrativeEvidence:v1` is active with producer declaration, trust telemetry, SLO/access/evidence policy, mesh certification, catalog publication, and `/platform/capabilities` posture. |
-| Sales/demo-safe narrative proof | Supported for advisor-review walkthrough material | Canonical `PB_SG_GLOBAL_BAL_001` Workbench proof supports advisor-review narrative posture only; client-ready publication, external client communication, and bank-demo/RFP package claims remain gated. |
+| Sales/demo-safe narrative proof | Supported for advisor-review walkthrough material | Canonical `PB_SG_GLOBAL_BAL_001` Workbench proof supports advisor-review narrative posture only; client-ready publication and external client communication remain gated; broader bank-demo/RFP proof is governed by RFC-0028 supported claims rather than RFC-0023 narrative authority. |
 
 ## Existing WTBD Import and No-WTBD Execution Rule
 
@@ -1246,7 +1246,8 @@ deterministic grounding packets, bounded AI-assisted draft posture, unsupported-
 review workflow, persistence, replay, report-package posture, Gateway exposure, Workbench
 consumption, data-product posture, and supported-feature boundaries are implemented for
 advisor-use narrative review. Client-draft narrative, client-ready publication, external client
-communication, and bank-demo/RFP-ready narrative claims remain gated.
+communication, and client-ready narrative claims remain gated. RFC-0028 governs broader
+bank-demo/RFP proof through supported claims rather than RFC-0023 narrative authority.
 
 Quality improvements verified during the RFC 23-25 gold pass:
 
@@ -1276,9 +1277,9 @@ Proof reviewed:
    boundaries.
 
 Production-readiness assessment: RFC-0023 reaches the expected standard for advisor-review
-narrative evidence. It must not be represented as client-ready narrative publication, external
-communication, or a completed bank-demo/RFP claim until a later client-ready RFC implements and
-proves those controls.
+narrative evidence. It must not be represented as client-ready narrative publication or external
+communication until a later source-owned RFC implements and proves those controls. Broader
+bank-demo/RFP proof is governed by RFC-0028 supported claims.
 
 ## Naming and Vocabulary Rules
 

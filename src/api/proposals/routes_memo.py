@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 
-from fastapi import Depends, Header, HTTPException, Path, Query, status
+from fastapi import Depends, Header, Path, Query, status
 
 import src.api.proposals.router as shared
 from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
 from src.core.proposals import (
     ProposalMemoAiCommentaryRequest,
     ProposalMemoAiCommentaryResponse,
@@ -285,8 +286,10 @@ def review_proposal_memo(
     tags=["Advisory Proposal Memo"],
     summary="Record Proposal Memo Report-Package Event",
     description=(
-        "Records append-only report-package posture for the persisted memo. Slice 7 records "
-        "report-package lineage only; actual report/render/archive realization remains later scope."
+        "Records append-only report-package posture for the persisted memo, including report, "
+        "render, and archive status received from the reporting owner. This endpoint records "
+        "external lineage; use the report-package request endpoint when Advise must request "
+        "Lotus Report materialization. Client-ready document release remains blocked."
     ),
     responses={
         status.HTTP_404_NOT_FOUND: {
@@ -421,10 +424,7 @@ def request_proposal_memo_report_package(
     ) as exc:
         raise_proposal_http_exception(exc)
     except LotusReportUnavailableError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
+        raise_lotus_report_unavailable_http_exception(exc)
 
 
 @shared.router.post(

@@ -58,10 +58,12 @@ Advisory lifecycle truth remains in `lotus-advise`. Tactical house-view cohort t
 source-backed candidates and must not be replaced by decorative gateway or Workbench status.
 `lotus-manage` owns discretionary portfolio-management workflows, policies, campaigns, and
 evidence after consuming the cohort product.
-Proposal narrative evidence truth remains advisor-review only until compliance-review,
-client-draft, and client-ready publication slices are implemented and proven.
-Proposal memo evidence truth is active for advisor-use support only; client-ready memo publication,
-external client communication, and full bank-demo/RFP package claims remain gated.
+Proposal narrative evidence truth remains advisor-review only. Compliance-review, client-draft,
+client-ready publication, and external client communication remain unsupported unless a later
+source-owned RFC implements and proves those controls.
+Proposal memo evidence truth is active for advisor-use support only; client-ready memo publication
+and external client communication remain blocked. RFC-0028 governs bank-demo/RFP proof through
+supported claims without promoting client-ready memo publication.
 Advisor cockpit product truth is active for source-owned advisor operating workflow evidence only.
 Cockpit acknowledgements do not clear blockers, approve policy findings, contact clients, create
 CRM system-of-record tasks, initiate OMS order lifecycle activity, or support full RFC-0028

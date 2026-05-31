@@ -278,8 +278,8 @@ Current note:
   `docs/rfcs/RFC-0024-slice-12-commercial-demo-rfp-support.md`. Memo-specific claim-controlled
   product material lives in `docs/commercial/RFC-0024-advisor-proposal-memo-commercial-support.md`
   and covers one-pager wording, demo notes, API examples, architecture flow, operator guidance, and
-  RFP-safe wording while keeping active data-product support, full RFC-0028 bank-demo/RFP package
-  claims, and client-ready memo claims unpromoted.
+  RFP-safe wording while keeping active data-product support and client-ready memo claims
+  unpromoted; RFC-0028 now governs broader bank-demo/RFP proof through supported claims.
 - RFC-0024 Slice 13 implementation-proof evidence lives in
   `docs/rfcs/RFC-0024-slice-13-implementation-proof.md`; it adds a `proposal_memo` live-suite
   snapshot covering Advise memo APIs, the stateful source dependency path, advisor projection,
@@ -289,7 +289,8 @@ Current note:
   `docs/rfcs/RFC-0024-slice-14-data-product-promotion-and-supportability-hardening.md`; it promotes
   `AdvisoryProposalMemoEvidencePack:v1` as an active advisor-use data product with current trust
   telemetry, `/platform/capabilities`, and platform SLO/access/evidence-policy posture while keeping
-  full RFC-0028 bank-demo/RFP package claims and client-ready memo claims unpromoted.
+  client-ready memo claims unpromoted; RFC-0028 now governs broader bank-demo/RFP proof through
+  supported claims.
 - RFC-0024 Slice 15 final hardening and review evidence lives in
   `docs/rfcs/RFC-0024-slice-15-final-hardening-and-review.md`; canonical `PB_SG_GLOBAL_BAL_001`
   Workbench validation proves the advisor journey and `proposal.memo_evidence_pack` panel are ready
@@ -302,7 +303,7 @@ Current note:
 - RFC-0024 Slice 17 post-completion communication evidence lives in
   `docs/rfcs/RFC-0024-slice-17-post-completion-communication.md`; `lotus-platform` PR #357 added
   the employer-safe LinkedIn draft and content-ledger entry without client-ready memo publication,
-  external client communication, or full RFC-0028 bank-demo/RFP claims.
+  external client communication, or unsupported RFC-0028 bank-demo/RFP claims.
 - RFC-0025 Slice 1 platform-scaffolding evidence lives in
   `docs/rfcs/RFC-0025-slice-1-platform-automation-and-scaffolding-review.md`; it records that
   existing platform and repo-native controls are sufficient before policy domain work, rejects
@@ -367,7 +368,7 @@ Current note:
   `LI-2026-05-26-042-policy-evidence-should-show-its-limits.md` and content-ledger entry are
   employer-safe, non-promotional, and do not claim completed approval/waiver authority, completed
   sign-off authority, client-ready publication, external client communication, bank adoption, or
-  full RFC-0028 bank-demo/RFP support.
+  unsupported RFC-0028 bank-demo/RFP claims.
 - RFC-0026 Slice 1 platform-scaffolding evidence lives in
   `docs/rfcs/RFC-0026-slice-1-platform-automation-and-scaffolding-review.md`; it records that
   existing platform and repo-native controls are sufficient before cockpit domain work, rejects

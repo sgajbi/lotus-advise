@@ -326,11 +326,11 @@ def test_journey_integration_proof_blocks_ai_policy_and_cockpit_overclaims() -> 
     assert ai_rows["PROPOSAL_MEMO"].human_review_required is True
     assert ai_rows["POLICY_EVIDENCE"].raw_source_evidence_included is False
     assert ai_rows["ADVISORY_COPILOT"].proof_posture == "NOT_PROBED"
-    assert "Raw prompts" in summary.unsupported_claims[1]
+    assert "Underlying AI inputs" in summary.unsupported_claims[1]
 
     drifted = _live_runtime_payload()
     drifted["parity"]["proposal_policy"]["ai_raw_source_evidence_included"] = True
-    with pytest.raises(ValueError, match="raw prompts or raw source evidence"):
+    with pytest.raises(ValueError, match="unredacted AI/source material"):
         build_journey_integration_proof_summary(drifted)
 
 

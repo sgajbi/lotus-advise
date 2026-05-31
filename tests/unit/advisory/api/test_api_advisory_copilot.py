@@ -565,6 +565,22 @@ def test_advisory_copilot_openapi_is_action_specific() -> None:
     assert "/advisory/copilot/prompt" not in paths
     assert "Advisory Copilot" in {tag["name"] for tag in schema["tags"]}
 
+    copilot_contract = {
+        "paths": {
+            path: path_schema
+            for path, path_schema in paths.items()
+            if path.startswith("/advisory/copilot")
+        },
+        "schemas": {
+            name: component_schema
+            for name, component_schema in schema["components"]["schemas"].items()
+            if name.startswith("AdvisoryCopilot")
+        },
+    }
+    contract_text = json.dumps(copilot_contract).lower()
+    assert "raw prompt" not in contract_text
+    assert "unredacted ai" in contract_text
+
 
 def test_advisory_copilot_http_edge_bounds_identifiers_and_headers(
     copilot_repository: InMemoryAdvisoryCopilotRepository,
@@ -670,6 +686,31 @@ def test_advisory_copilot_repository_dependency_maps_startup_failure(
     copilot_routes.reset_advisory_copilot_repository_for_tests()
 
 
+def test_advisory_copilot_repository_dependency_redacts_sensitive_startup_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    copilot_routes.reset_advisory_copilot_repository_for_tests()
+    monkeypatch.setattr(copilot_routes, "proposal_postgres_dsn", lambda: "postgres://advise")
+
+    class _SensitiveUnavailableRepository:
+        def __init__(self, *, dsn: str) -> None:
+            assert dsn == "postgres://advise"
+            raise RuntimeError("postgres password secret leaked from driver")
+
+    monkeypatch.setattr(
+        copilot_routes,
+        "PostgresAdvisoryCopilotRepository",
+        _SensitiveUnavailableRepository,
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        copilot_routes.get_advisory_copilot_repository()
+
+    assert exc.value.status_code == 503
+    assert exc.value.detail == "ADVISORY_COPILOT_REPOSITORY_UNAVAILABLE"
+    copilot_routes.reset_advisory_copilot_repository_for_tests()
+
+
 def test_advisory_copilot_application_dependency_wires_policy_loader(
     copilot_repository: InMemoryAdvisoryCopilotRepository,
 ) -> None:
@@ -743,3 +784,20 @@ def test_advisory_copilot_route_errors_keep_contract_specific_status_codes() -> 
             route(**kwargs)
 
         assert exc.value.status_code == expected_status
+
+
+def test_advisory_copilot_route_errors_redact_sensitive_detail() -> None:
+    class _SensitiveFailingService:
+        def run_action(self, **_: Any) -> None:
+            raise ValueError("COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED raw prompt token=should-not-leak")
+
+    with pytest.raises(HTTPException) as exc:
+        copilot_routes.run_advisory_copilot_action(
+            payload=object(),
+            service=_SensitiveFailingService(),
+        )
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail == "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"
+    assert "token" not in repr(exc.value.detail).lower()
+    assert "raw prompt" not in repr(exc.value.detail).lower()

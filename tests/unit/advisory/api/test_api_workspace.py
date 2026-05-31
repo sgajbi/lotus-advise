@@ -1,3 +1,4 @@
+import importlib
 from types import SimpleNamespace
 from typing import Any
 
@@ -6,12 +7,14 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.api.services.workspace_ai_service import WorkspaceAssistantUnavailableError
 from src.api.services.workspace_service import (
     WorkspaceEvaluationUnavailableError,
     get_workspace_session,
     reevaluate_workspace_session,
     reset_workspace_sessions_for_tests,
 )
+from src.api.services.workspace_store import WorkspaceNotFoundError
 from src.integrations.lotus_core.stateful_context import reset_stateful_context_cache_for_tests
 from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.lotus_core_query_fakes import (
@@ -22,6 +25,9 @@ from tests.shared.stateful_context_builders import (
     build_resolved_stateful_context,
     build_tradeable_universe_stateful_context,
 )
+
+workspace_router = importlib.import_module("src.api.workspaces.router")
+workspace_service_module = importlib.import_module("src.api.services.workspace_service")
 
 
 @pytest.fixture(autouse=True)
@@ -762,6 +768,51 @@ def test_workspace_evaluate_rejects_missing_resolved_context() -> None:
     assert str(exc.value) == "WORKSPACE_RESOLVED_CONTEXT_MISSING"
 
 
+def test_workspace_service_redacts_sensitive_evaluation_context_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    create_payload = {
+        "workspace_name": "Sensitive context failure workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_sensitive_context",
+                    "base_currency": "USD",
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+
+    def _raise_sensitive_context_error(**_kwargs: Any) -> None:
+        raise workspace_service_module.WorkspaceReevaluationContextError(
+            "raw payload includes Authorization Bearer token material"
+        )
+
+    monkeypatch.setattr(
+        workspace_service_module,
+        "build_workspace_evaluation_context",
+        _raise_sensitive_context_error,
+    )
+
+    with pytest.raises(WorkspaceEvaluationUnavailableError) as exc:
+        reevaluate_workspace_session(workspace_id)
+
+    assert str(exc.value) == "WORKSPACE_EVALUATION_UNAVAILABLE"
+    assert "token" not in str(exc.value).lower()
+
+
 def test_workspace_endpoints_return_404_for_missing_workspace():
     with TestClient(app) as client:
         get_response = client.get("/advisory/workspaces/aws_missing")
@@ -782,6 +833,69 @@ def test_workspace_endpoints_return_404_for_missing_workspace():
     assert save_response.status_code == 404
     assert list_response.status_code == 404
     assert handoff_response.status_code == 404
+
+
+def test_workspace_not_found_route_errors_redact_sensitive_detail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _raise_sensitive_not_found(_workspace_id: str):
+        raise WorkspaceNotFoundError("Authorization Bearer token leaked from upstream")
+
+    monkeypatch.setattr(
+        workspace_router,
+        "get_workspace_session",
+        _raise_sensitive_not_found,
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/advisory/workspaces/aws_sensitive")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "WORKSPACE_NOT_FOUND"
+
+
+def test_workspace_conflict_route_errors_redact_sensitive_detail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _raise_sensitive_conflict(_workspace_id: str):
+        raise WorkspaceEvaluationUnavailableError("raw payload includes secret advisor context")
+
+    monkeypatch.setattr(
+        workspace_router,
+        "reevaluate_workspace_session",
+        _raise_sensitive_conflict,
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/advisory/workspaces/aws_sensitive/evaluate")
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "WORKSPACE_CONFLICT"
+
+
+def test_workspace_assistant_route_errors_redact_sensitive_detail(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _raise_sensitive_assistant_error(_workspace_id: str, _request):
+        raise WorkspaceAssistantUnavailableError("provider response included api_key material")
+
+    monkeypatch.setattr(
+        workspace_router,
+        "generate_workspace_rationale",
+        _raise_sensitive_assistant_error,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/advisory/workspaces/aws_sensitive/assistant/rationale",
+            json={
+                "requested_by": "advisor_123",
+                "instruction": "Summarize the workspace rationale for review.",
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "WORKSPACE_ASSISTANT_UNAVAILABLE"
 
 
 def test_workspace_draft_action_not_found_paths_return_404():

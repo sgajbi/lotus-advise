@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import Header, HTTPException, Path, Query, status
+from fastapi import Header, Path, Query, status
 
 import src.api.proposals.router as shared
 from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
 from src.core.policy_packs import (
     PolicyEvaluationAiEvidenceRequest,
     PolicyEvaluationAiEvidenceResponse,
@@ -434,10 +435,7 @@ def request_policy_report_package(
     ) as exc:
         raise_proposal_http_exception(exc)
     except LotusReportUnavailableError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
+        raise_lotus_report_unavailable_http_exception(exc)
 
 
 @shared.router.post(

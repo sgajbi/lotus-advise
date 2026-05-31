@@ -4,10 +4,12 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+import src.api.services.advisory_simulation_service as advisory_simulation_service
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory.narrative_models import ProposalNarrativeAiLineage
 from src.core.advisory_engine import run_proposal_simulation
+from src.core.proposals.context import ProposalContextResolutionError
 from src.integrations.lotus_ai.proposal_narrative import (
     LotusAIProposalNarrativeUnavailableError,
     ProposalNarrativeDraftResponse,
@@ -604,6 +606,52 @@ def test_advisory_proposal_simulate_returns_503_when_idempotency_store_write_fai
     assert response.json()["detail"] == "PROPOSAL_IDEMPOTENCY_STORE_WRITE_FAILED"
 
 
+def test_advisory_proposal_simulate_redacts_sensitive_idempotency_validation_detail(
+    client,
+    monkeypatch,
+):
+    def _raise_sensitive_idempotency_error(_idempotency_key: str) -> str:
+        raise ValueError("Authorization Bearer token leaked from upstream validation")
+
+    monkeypatch.setattr(
+        advisory_simulation_service,
+        "normalize_required_idempotency_key",
+        _raise_sensitive_idempotency_error,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=_base_simulation_payload("pf_sensitive_idempotency"),
+        headers={"Idempotency-Key": "prop-key-sensitive-idempotency"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "PROPOSAL_REQUEST_VALIDATION_FAILED"
+
+
+def test_advisory_proposal_simulate_redacts_sensitive_context_resolution_detail(
+    client,
+    monkeypatch,
+):
+    def _raise_sensitive_context_error(_request):
+        raise ProposalContextResolutionError("raw payload includes secret client context")
+
+    monkeypatch.setattr(
+        advisory_simulation_service,
+        "resolve_simulation_request",
+        _raise_sensitive_context_error,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=_base_simulation_payload("pf_sensitive_context"),
+        headers={"Idempotency-Key": "prop-key-sensitive-context"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "PROPOSAL_REQUEST_VALIDATION_FAILED"
+
+
 def test_advisory_proposal_simulate_unhandled_error_returns_problem_details(monkeypatch):
     payload = {
         "portfolio_snapshot": {"portfolio_id": "pf_prop_api_5", "base_currency": "USD"},
@@ -921,6 +969,44 @@ def test_advisory_proposal_simulate_returns_503_when_core_execution_unavailable(
     assert response.status_code == 503
     assert response.headers["content-type"].startswith("application/problem+json")
     assert response.json()["detail"].startswith("LOTUS_CORE_SIMULATION_UNAVAILABLE")
+
+
+def test_advisory_proposal_simulate_redacts_sensitive_core_execution_error_detail(
+    client,
+    monkeypatch,
+):
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_prop_api_core_sensitive",
+            "base_currency": "USD",
+        },
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    def _raise_sensitive_core_error(**kwargs):
+        raise LotusCoreSimulationUnavailableError(
+            "provider response included Authorization Bearer token material"
+        )
+
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.simulate_with_lotus_core",
+        _raise_sensitive_core_error,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-core-sensitive"},
+    )
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert response.json()["detail"] == "LOTUS_CORE_SIMULATION_UNAVAILABLE"
 
 
 def test_advisory_proposal_simulate_preserves_upstream_contract_error_status(client, monkeypatch):

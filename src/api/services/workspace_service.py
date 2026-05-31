@@ -5,8 +5,11 @@ from src.api.services.workspace_context_resolution import (
     build_workspace_simulate_request,
 )
 from src.api.services.workspace_errors import (
+    WORKSPACE_DRAFT_ACTION_INVALID_DETAIL,
+    WORKSPACE_EVALUATION_UNAVAILABLE_DETAIL,
     WorkspaceEvaluationUnavailableError,
     WorkspaceSavedVersionNotFoundError,
+    safe_workspace_error_detail,
 )
 from src.api.services.workspace_errors import (
     WorkspaceLifecycleHandoffUnavailableError as WorkspaceLifecycleHandoffUnavailableError,
@@ -97,7 +100,12 @@ def reevaluate_workspace_session(workspace_id: str) -> WorkspaceSession:
             simulate_request=simulate_request,
         )
     except WorkspaceReevaluationContextError as exc:
-        raise WorkspaceEvaluationUnavailableError(str(exc)) from exc
+        raise WorkspaceEvaluationUnavailableError(
+            safe_workspace_error_detail(
+                str(exc),
+                fallback=WORKSPACE_EVALUATION_UNAVAILABLE_DETAIL,
+            )
+        ) from exc
     correlation_id = resolve_correlation_id(None)
     result = evaluate_advisory_proposal(
         request=simulate_request,
@@ -172,7 +180,12 @@ def apply_workspace_draft_action(
             request=request,
         )
     except WorkspaceDraftActionError as exc:
-        raise WorkspaceNotFoundError(str(exc)) from exc
+        raise WorkspaceNotFoundError(
+            safe_workspace_error_detail(
+                str(exc),
+                fallback=WORKSPACE_DRAFT_ACTION_INVALID_DETAIL,
+            )
+        ) from exc
 
     _save_workspace_session(session)
     updated_session = reevaluate_workspace_session(workspace_id)
