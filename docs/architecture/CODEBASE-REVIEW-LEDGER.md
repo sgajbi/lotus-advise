@@ -5019,3 +5019,30 @@
 - Follow-Up:
   - Keep future async lifecycle identity fields normalized through shared helpers before they are
     used for idempotency, persistence lookup, or audit lineage.
+
+## LA-REV-190
+
+- Scope: Target-generation solver dependency boundary
+- Pattern: optional dependency and diagnostics hardening
+- Status: Hardened
+- Finding Class: validation and modularity gap
+- Summary: Solver dependency loading was embedded directly in target generation with broad
+  exception handling. That kept optional dependency behavior harder to test and could convert
+  unexpected implementation defects into a generic `SOLVER_ERROR` diagnostic.
+- Evidence:
+  - `src/core/target_generation.py` now isolates cvxpy/numpy loading in
+    `load_target_solver_dependencies`, catches only explicit import/runtime loader failures, and
+    keeps target generation's unavailable-solver behavior unchanged.
+  - `tests/unit/advisory/engine/test_engine_target_generation_dependencies.py` covers unavailable
+    solver fallback, successful dependency resolution, and the `SOLVER_ERROR`/`BLOCKED` target
+    generation outcome when the solver stack is not available.
+- Consequence:
+  - Optional solver availability is now a small tested boundary, while unexpected solver-path code
+    defects are less likely to be silently masked during target-generation execution.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal optional dependency behavior
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep additional optional analytics dependencies behind explicit loader boundaries with direct
+    tests for unavailable and available dependency states.

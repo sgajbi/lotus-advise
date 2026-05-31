@@ -180,12 +180,12 @@ def generate_targets_solver(
     base_ccy: str,
     diagnostics: DiagnosticsData,
 ) -> tuple[list[TargetInstrument], str]:
-    try:
-        import cvxpy as cp
-        import numpy as np
-    except Exception:
+    dependencies = load_target_solver_dependencies()
+    if dependencies is None:
         diagnostics.warnings.append("SOLVER_ERROR")
         return [], "BLOCKED"
+    cp = dependencies[0]
+    np = dependencies[1]
 
     status = "READY"
     if sell_only_excess > Decimal("0.0"):
@@ -273,3 +273,15 @@ def generate_targets_solver(
         eligible_targets[i_id] = solved_weight
 
     return build_target_trace(model, eligible_targets, buy_list, total_val, base_ccy), status
+
+
+def load_target_solver_dependencies() -> tuple[Any, Any] | None:
+    import importlib
+
+    try:
+        return (
+            importlib.import_module("cvxpy"),
+            importlib.import_module("numpy"),
+        )
+    except (ImportError, OSError):
+        return None
