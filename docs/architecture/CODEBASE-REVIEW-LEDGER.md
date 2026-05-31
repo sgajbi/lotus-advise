@@ -4728,3 +4728,40 @@
 - Follow-Up:
   - Avoid embedding RFC slice numbers or transient implementation-state wording in runtime
     messages and OpenAPI descriptions once the capability has moved past that slice.
+
+## LA-REV-180
+
+- Scope: Advisory golden-fixture regeneration and integration package import boundaries
+- Pattern: stale automation / eager package barrel imports
+- Status: Hardened
+- Finding Class: stale code and import-boundary reliability gap
+- Summary: The root `update_goldens.py` helper still targeted the pre-RFC-0014 golden fixture
+  shape, scanned `tests/golden_data`, imported the deprecated `src.core.engine` shim, and called
+  the removed `run_simulation` API. Repairing that helper exposed a second standalone reliability
+  issue: importing `src.core.advisory.artifact` from a normal Python process could fail through
+  eager `lotus_ai` and `lotus_core` package-barrel imports even though the path passed under the
+  existing pytest import order.
+- Evidence:
+  - `update_goldens.py` now uses the current `tests/unit/advisory/golden_data` directory,
+    `ProposalSimulateRequest`, `run_proposal_simulation`, artifact generation for RFC-0014E
+    fixtures, deterministic request identifiers, and a `--check` mode for CI-friendly drift
+    detection.
+  - `src/integrations/lotus_ai/__init__.py` and `src/integrations/lotus_core/__init__.py` now use
+    lazy package exports so importing a focused integration submodule does not pull unrelated
+    workspace, proposal, copilot, or stateful-context paths into a circular initialization chain.
+  - `tests/unit/scripts/test_update_goldens.py` pins proposal and artifact fixture check mode,
+    drift repair behavior, the deprecated-engine-import boundary, and standalone artifact-module
+    importability.
+  - Local proof includes `python update_goldens.py --check`; full gate evidence is recorded in the
+    PR once this slice passes repository-native validation.
+- Consequence:
+  - Advisory golden fixture automation is repeatable again, and import reliability now matches the
+    way production scripts, operators, and CI helpers execute modules outside pytest's import-order
+    side effects.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal developer automation and
+    integration import boundaries without changing supported product behavior, operator workflow,
+    or business-facing feature posture.
+- Follow-Up:
+  - Keep future script-level automation covered by direct command tests or subprocess import tests
+    when the failure mode only appears outside pytest's normal module graph.
