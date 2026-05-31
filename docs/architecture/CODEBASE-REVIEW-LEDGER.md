@@ -5812,3 +5812,27 @@
     feature posture change.
 - Follow-Up:
   - None.
+
+## LA-REV-220
+
+- Scope: Dependency health probe URL sanitization
+- Pattern: sensitive configuration handling and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: security and observability hygiene gap
+- Summary: Dependency readiness probing validated that configured service URLs were HTTP(S), but
+  still built `/health/ready` and `/health` requests from the raw configured value. A
+  credential-bearing URL, query token, or fragment could therefore leak into probe URLs even though
+  public dependency state already used sanitized values.
+- Evidence:
+  - `src/integrations/base.py` now resolves a sanitized HTTP probe base URL once and uses that
+    value for readiness checks.
+  - `tests/unit/advisory/api/test_integrations_base.py` proves probe calls strip embedded
+    credentials, query strings, and fragments while preserving scheme, host, port, and path.
+- Consequence:
+  - Operational readiness checks no longer propagate embedded URL secrets through diagnostic
+    health-probe requests.
+- Documentation:
+  - No wiki source change is required. This is internal operational hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.

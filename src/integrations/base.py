@@ -27,7 +27,8 @@ def runtime_dependency_probing_enabled() -> bool:
 
 
 def probe_dependency_health(base_url: str) -> bool:
-    if not _is_http_probe_base_url(base_url):
+    probe_base_url = sanitized_http_base_url(base_url)
+    if probe_base_url is None:
         return False
     endpoints = ["/health/ready", "/health"]
     timeout = httpx.Timeout(connect=0.5, read=0.75, write=0.75, pool=0.5)
@@ -35,7 +36,7 @@ def probe_dependency_health(base_url: str) -> bool:
         with httpx.Client(timeout=timeout, follow_redirects=False) as client:
             for endpoint in endpoints:
                 try:
-                    response = client.get(f"{base_url.rstrip('/')}{endpoint}")
+                    response = client.get(f"{probe_base_url}{endpoint}")
                 except httpx.HTTPError:
                     continue
                 if response.status_code == 200:

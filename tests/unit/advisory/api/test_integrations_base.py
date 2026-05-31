@@ -17,6 +17,7 @@ class _FakeClient:
     def __init__(self, *args, responses: dict[str, object], **kwargs) -> None:
         self._responses = responses
         self._enter_error = kwargs.get("enter_error")
+        self.calls: list[str] = []
 
     def __enter__(self) -> "_FakeClient":
         if isinstance(self._enter_error, Exception):
@@ -27,6 +28,7 @@ class _FakeClient:
         return False
 
     def get(self, url: str) -> _FakeResponse:
+        self.calls.append(url)
         response = self._responses.get(url, httpx.ConnectError("unavailable"))
         if isinstance(response, Exception):
             raise response
@@ -82,6 +84,28 @@ def test_probe_dependency_health_reports_false_for_not_ready_and_transport_error
         ),
     )
     assert probe_dependency_health(base_url) is False
+
+
+def test_probe_dependency_health_uses_sanitized_http_base_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sanitized_base_url = "https://service.dev.lotus:9443/api"
+    fake_client = _FakeClient(responses={f"{sanitized_base_url}/health/ready": _FakeResponse(200)})
+
+    monkeypatch.setattr(
+        "src.integrations.base.httpx.Client",
+        lambda *args, **kwargs: fake_client,
+    )
+
+    assert (
+        probe_dependency_health(
+            "https://user:secret@service.dev.lotus:9443/api?token=should-not-leak#fragment"
+        )
+        is True
+    )
+    assert fake_client.calls == [f"{sanitized_base_url}/health/ready"]
+    assert "secret" not in fake_client.calls[0]
+    assert "token" not in fake_client.calls[0]
 
 
 def test_probe_dependency_health_fails_closed_for_non_http_targets(
