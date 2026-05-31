@@ -37,10 +37,12 @@ _SENSITIVE_VALUE_PATTERNS = (
         re.IGNORECASE,
     ),
     re.compile(
-        r"\b(?:correlation[-_ ]?id|trace[-_ ]?id|raw[-_ ]?(?:payload|prompt|source))"
+        r"\b(?:correlation[-_ ]?id|trace[-_ ]?id|raw[-_ ]?(?:payload|prompt|source)|"
+        r"provider[-_ ]?(?:response|output))"
         r"\b\s*[:=]\s*\S+",
         re.IGNORECASE,
     ),
+    re.compile(r"\bprovider[-_ ]?(?:response|output)\b", re.IGNORECASE),
     re.compile(r"traceback \(most recent call last\)", re.IGNORECASE),
 )
 
@@ -190,7 +192,7 @@ def _sanitize_url_text(value: str) -> str:
 
 
 def _is_sensitive_key(key: str) -> bool:
-    normalized = key.lower().replace("-", "_")
+    normalized = key.lower().replace("-", "_").replace(" ", "_")
     return any(fragment in normalized for fragment in _SENSITIVE_KEY_FRAGMENTS)
 
 

@@ -19,6 +19,9 @@ RFC28_CAPTURE_SENSITIVE_TERMS = (
     "raw prompt",
     "raw payload",
     "provider response",
+    "provider output",
+    "trace id",
+    "correlation id",
 )
 
 

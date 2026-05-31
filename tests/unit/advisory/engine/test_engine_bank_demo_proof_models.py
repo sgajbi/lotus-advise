@@ -229,6 +229,18 @@ def test_supported_claim_register_requires_evidence_and_unique_claim_ids() -> No
             proof_requirements=[_proof_requirement()],
         )
 
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        SupportedClaim(
+            claim_id="unsafe_provider_output",
+            title="Unsafe provider output",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES"],
+            allowed_materials=["DEMO_SCRIPT"],
+            claim_text="Provider_output and trace_id evidence are available for review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
     with pytest.raises(ValidationError):
         SupportedClaim(
             claim_id="x" * 161,
@@ -539,6 +551,8 @@ def test_runtime_posture_blocks_secret_urls_and_sanitizes_probe_summaries() -> N
                     ],
                     "diagnostics": {
                         "trace_id": "trace-123",
+                        "trace id": "trace-456",
+                        "correlation-id": "corr-789",
                         "safe": "runtime capability summary",
                     },
                 },
@@ -551,6 +565,8 @@ def test_runtime_posture_blocks_secret_urls_and_sanitizes_probe_summaries() -> N
     assert endpoint.latency_ms == 12
     assert endpoint.summary["Authorization"] == "[REDACTED]"
     assert endpoint.summary["diagnostics"]["trace_id"] == "[REDACTED]"
+    assert endpoint.summary["diagnostics"]["trace id"] == "[REDACTED]"
+    assert endpoint.summary["diagnostics"]["correlation-id"] == "[REDACTED]"
     assert "token" not in endpoint.summary["degraded_reasons"][0]
     assert endpoint.summary["diagnostics"]["safe"] == "runtime capability summary"
 
@@ -573,6 +589,7 @@ def test_runtime_posture_redacts_sensitive_values_in_neutral_summary_fields() ->
         summary={
             "detail": "Dependency returned Authorization: Bearer should-not-leak",
             "message": "token=should-not-leak",
+            "provider": "Provider output included internal model detail.",
             "error": "Traceback (most recent call last): File C:/Users/local/app.py",
             "safe": "readiness check degraded",
         },
@@ -580,5 +597,6 @@ def test_runtime_posture_redacts_sensitive_values_in_neutral_summary_fields() ->
 
     assert endpoint.summary["detail"] == "[REDACTED]"
     assert endpoint.summary["message"] == "[REDACTED]"
+    assert endpoint.summary["provider"] == "[REDACTED]"
     assert endpoint.summary["error"] == "[REDACTED]"
     assert endpoint.summary["safe"] == "readiness check degraded"

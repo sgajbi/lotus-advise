@@ -8909,6 +8909,41 @@
     the same guard; avoid premature abstraction while the current domains still have different
     allowable identifier fields.
 
+## LA-REV-371
+
+- Scope: RFC-0028 bank-demo proof runtime and claim sanitization
+- Pattern: Proof material must sanitize technical identifiers and provider-output wording without
+  blocking controlled internal proof-review identifiers
+- Status: Hardened
+- Finding Class: Security posture and proof-artifact hygiene
+- Summary: RFC-0028 proof material validation blocked raw prompt, raw payload, and provider
+  response wording, but not provider-output or trace/correlation wording in supported-claim copy.
+  Runtime summary key sanitization also normalized hyphenated sensitive keys but not
+  space-delimited variants such as `trace id`. A first tightening attempt also showed that
+  `raw_source` is a legitimate internal material-review identifier used to prove raw-source
+  exclusion, so the final change keeps that identifier allowed in proof-review metadata while
+  still redacting raw-source runtime fields.
+- Evidence:
+  - Added `provider output`, `trace id`, and `correlation id` to RFC-0028 business-text sensitive
+    term validation.
+  - Hardened runtime summary key sanitization to normalize spaces as well as hyphens before
+    matching sensitive key fragments.
+  - Added runtime value redaction for provider response/output wording.
+  - Added model regression tests for supported-claim provider-output/trace-id wording and runtime
+    summary `trace id`/`correlation-id` key redaction.
+  - Focused bank-demo proof model and capture-writer tests passed with 18 tests after correcting
+    the internal `raw_source` proof-review identifier over-tightening.
+- Consequence:
+  - RFC-0028 sanitized proof packs and commercial-support material have stronger protection
+    against leaking observability or provider-output details while preserving implementation-backed
+    proof fields that demonstrate exclusion of raw source material.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    proof-artifact validation and sanitizer hardening for the existing RFC-0028 contract.
+- Follow-Up:
+  - Keep RFC-0028 proof-material guards split between public/business copy and internal proof
+    metadata so exclusion evidence can be recorded without becoming client-facing material.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
