@@ -289,6 +289,16 @@ def test_cockpit_service_projects_source_backed_house_view_cohorts(
     assert action.evidence_refs[0].evidence_type == "TACTICAL_HOUSE_VIEW_COHORT"
     assert action.correlation_id == "corr-cockpit-thv"
 
+    legacy_page = service.list_actions(
+        caller_context=_caller(role="DPM_OWNER", advisor_id=None),
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        limit=25,
+        cursor=None,
+        correlation_id="corr-cockpit-thv",
+    )
+    assert [action.action_family for action in legacy_page.items] == ["HOUSE_VIEW_IMPACT_REVIEW"]
+    assert legacy_page.items[0].owner_role == "PORTFOLIO_MANAGER"
+
 
 def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
     monkeypatch: pytest.MonkeyPatch,

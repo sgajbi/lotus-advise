@@ -10,7 +10,7 @@ from src.api.proposals.errors import raise_proposal_http_exception
 from src.core.advisor_cockpit import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
-    AdvisorCockpitOwnerRole,
+    AdvisorCockpitCallerRole,
     AdvisorCockpitPreparationPacketPage,
     AdvisorCockpitRepository,
     AdvisorCockpitService,
@@ -83,8 +83,14 @@ def list_advisor_cockpit_actions(
         ),
     ] = None,
     role: Annotated[
-        AdvisorCockpitOwnerRole,
-        Query(description="Caller role for server-side projection.", examples=["ADVISOR"]),
+        AdvisorCockpitCallerRole,
+        Query(
+            description=(
+                "Caller role for server-side projection. `DPM_OWNER` is accepted only as a "
+                "legacy caller alias and is projected to `PORTFOLIO_MANAGER` owned actions."
+            ),
+            examples=["ADVISOR"],
+        ),
     ] = "ADVISOR",
     limit: Annotated[
         int,
@@ -161,7 +167,14 @@ def get_advisor_cockpit_action(
         ),
     ] = None,
     role: Annotated[
-        AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
+        AdvisorCockpitCallerRole,
+        Query(
+            description=(
+                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
+                "projected to `PORTFOLIO_MANAGER` owned actions."
+            ),
+            examples=["ADVISOR"],
+        ),
     ] = "ADVISOR",
     correlation_id: Annotated[
         str | None,
@@ -214,7 +227,14 @@ def get_advisor_cockpit_snapshot(
         ),
     ] = None,
     role: Annotated[
-        AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
+        AdvisorCockpitCallerRole,
+        Query(
+            description=(
+                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
+                "projected to `PORTFOLIO_MANAGER` owned actions."
+            ),
+            examples=["ADVISOR"],
+        ),
     ] = "ADVISOR",
     correlation_id: Annotated[
         str | None,
@@ -266,7 +286,14 @@ def list_advisor_cockpit_preparation_packets(
         ),
     ] = None,
     role: Annotated[
-        AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
+        AdvisorCockpitCallerRole,
+        Query(
+            description=(
+                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
+                "projected to `PORTFOLIO_MANAGER` owned actions."
+            ),
+            examples=["ADVISOR"],
+        ),
     ] = "ADVISOR",
     limit: Annotated[
         int,
@@ -336,7 +363,14 @@ def get_advisor_cockpit_supportability(
         ),
     ] = None,
     role: Annotated[
-        AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
+        AdvisorCockpitCallerRole,
+        Query(
+            description=(
+                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
+                "projected to `PORTFOLIO_MANAGER` owned actions."
+            ),
+            examples=["ADVISOR"],
+        ),
     ] = "ADVISOR",
     correlation_id: Annotated[
         str | None,
@@ -403,7 +437,14 @@ def acknowledge_advisor_cockpit_action(
         ),
     ] = None,
     role: Annotated[
-        AdvisorCockpitOwnerRole, Query(description="Caller role.", examples=["ADVISOR"])
+        AdvisorCockpitCallerRole,
+        Query(
+            description=(
+                "Caller role. `DPM_OWNER` is accepted only as a legacy caller alias and is "
+                "projected to `PORTFOLIO_MANAGER` owned actions."
+            ),
+            examples=["ADVISOR"],
+        ),
     ] = "ADVISOR",
     correlation_id: Annotated[
         str | None,
@@ -433,7 +474,7 @@ def acknowledge_advisor_cockpit_action(
 
 
 def _caller_context(
-    *, advisor_id: str | None, role: AdvisorCockpitOwnerRole
+    *, advisor_id: str | None, role: AdvisorCockpitCallerRole
 ) -> CockpitCallerContext:
     return CockpitCallerContext(
         advisor_id=advisor_id,

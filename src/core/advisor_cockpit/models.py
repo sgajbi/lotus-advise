@@ -27,6 +27,20 @@ AdvisorCockpitOwnerRole = Literal[
     "EXECUTION_OWNER",
     "SYSTEM",
 ]
+AdvisorCockpitCallerRole = Literal[
+    "ADVISOR",
+    "DESK_HEAD",
+    "COMPLIANCE_REVIEWER",
+    "INVESTMENT_DESK",
+    "PORTFOLIO_MANAGER",
+    "OPERATIONS",
+    "CRM_OWNER",
+    "REPORTING_OWNER",
+    "ARCHIVE_OWNER",
+    "EXECUTION_OWNER",
+    "DPM_OWNER",
+    "SYSTEM",
+]
 AdvisorCockpitSlaAgeBand = Literal[
     "NOT_DUE",
     "DUE_SOON",
@@ -126,7 +140,7 @@ class CockpitCallerContext(BaseModel):
         description="Coverage-team identifier when a source-backed assignment exists.",
         examples=["coverage_team_sg_01"],
     )
-    role: AdvisorCockpitOwnerRole = Field(
+    role: AdvisorCockpitCallerRole = Field(
         description="Caller role used for server-side entitlement projection.",
         examples=["ADVISOR"],
     )

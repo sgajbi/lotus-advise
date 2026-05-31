@@ -241,6 +241,22 @@ def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
     assert action["evidence_refs"][0]["evidence_type"] == "TACTICAL_HOUSE_VIEW_COHORT"
     assert action["correlation_id"] == "corr-cockpit-house-view"
 
+    with TestClient(app) as client:
+        legacy_response = client.get(
+            "/advisory/cockpit/actions",
+            params={
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "role": "DPM_OWNER",
+            },
+            headers={"X-Correlation-ID": "corr-cockpit-house-view-legacy"},
+        )
+
+    assert legacy_response.status_code == 200
+    legacy_action = legacy_response.json()["items"][0]
+    assert legacy_action["action_family"] == "HOUSE_VIEW_IMPACT_REVIEW"
+    assert legacy_action["owner_role"] == "PORTFOLIO_MANAGER"
+    assert legacy_action["owner_role_label"] == "Portfolio manager"
+
 
 def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
     cockpit_repository: InMemoryProposalRepository,

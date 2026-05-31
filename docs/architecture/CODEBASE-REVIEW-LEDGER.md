@@ -8639,7 +8639,8 @@
   boundaries.
 - Evidence:
   - Replaced the house-view impact owner role with `PORTFOLIO_MANAGER`.
-  - Removed `DPM_OWNER` from the advisor-cockpit owner-role contract and entitlement projection.
+  - Removed `DPM_OWNER` from emitted advisor-cockpit owner roles and mapped the legacy caller
+    alias to `PORTFOLIO_MANAGER` visibility.
   - Updated API, service, action-factory, and RFC slice tests/docs to assert the private-banking
     owner role.
 - Consequence:
@@ -8651,6 +8652,32 @@
 - Follow-Up:
   - Watch adjacent Gateway/Workbench refactors for any stale copied examples; Advise remains the
     source-owned contract for the cleaned role.
+
+## LA-REV-327
+
+- Scope: RFC-0026 cockpit legacy caller-role compatibility
+- Pattern: Clean emitted domain contracts can preserve bounded inbound compatibility during
+  cross-repo refactors
+- Status: Hardened
+- Finding Class: Integration compatibility
+- Summary: Read-only Gateway and Workbench pulse showed canonical Workbench validation still sends
+  `DPM_OWNER` as a cockpit caller role while Gateway refactors are in flight. Removing that inbound
+  value from Advise would break live proof even though Advise should no longer emit it as an action
+  owner role.
+- Evidence:
+  - Split caller-role validation from emitted action-owner-role validation.
+  - Kept `DPM_OWNER` as an inbound caller alias only, projecting it to `PORTFOLIO_MANAGER` actions.
+  - Added service and API regression tests proving legacy caller compatibility returns
+    `PORTFOLIO_MANAGER` in response payloads.
+- Consequence:
+  - RFC-0026 Advise output stays clean while the current Gateway/Workbench canonical validation
+    path remains repeatable during adjacent refactors.
+- Documentation:
+  - No wiki source change is required. This is a bounded compatibility rule for the existing
+    source-owned cockpit API.
+- Follow-Up:
+  - Once Gateway and Workbench migrate their query examples and validators, remove the inbound
+    legacy caller alias in a coordinated contract-cleanup slice.
 
 ## LA-REV-326
 
