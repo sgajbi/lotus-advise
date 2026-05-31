@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any
 
@@ -25,6 +26,13 @@ from src.core.proposals.models import (
     ProposalWorkflowEventRecord,
 )
 from src.core.proposals.repository import ProposalRepository
+
+_EVIDENCE_PACKET_ID_MAX_LENGTH = 160
+_SOURCE_REF_ID_MAX_LENGTH = 160
+_LINEAGE_REF_ID_MAX_LENGTH = 160
+_CONTENT_HASH_MAX_LENGTH = 128
+_SUMMARY_ITEM_MAX_LENGTH = 1000
+_REFERENCE_DIGEST_LENGTH = 16
 
 
 def build_proposal_version_copilot_evidence_packet(
@@ -66,13 +74,17 @@ def build_proposal_version_copilot_evidence_packet(
         events=events,
         policy_evaluations=matching_policy,
     )
-    return build_copilot_evidence_packet(
-        evidence_packet_id=evidence_packet_id
-        or _default_packet_id(
+    packet_id = (
+        _bounded_reference(evidence_packet_id, max_length=_EVIDENCE_PACKET_ID_MAX_LENGTH)
+        if evidence_packet_id
+        else _default_packet_id(
             action_family=action_family,
             proposal_id=proposal_id,
             version_no=proposal_version_no,
-        ),
+        )
+    )
+    return build_copilot_evidence_packet(
+        evidence_packet_id=packet_id,
         action_family=action_family,
         portfolio_id=proposal.portfolio_id,
         proposal_id=proposal.proposal_id,
@@ -81,7 +93,10 @@ def build_proposal_version_copilot_evidence_packet(
         lineage_refs=(
             CopilotLineageRef(
                 lineage_type="PROPOSAL_VERSION",
-                lineage_id=version.proposal_version_id,
+                lineage_id=_bounded_reference(
+                    version.proposal_version_id,
+                    max_length=_LINEAGE_REF_ID_MAX_LENGTH,
+                ),
                 source_system="lotus-advise",
             ),
             CopilotLineageRef(
@@ -141,11 +156,11 @@ def _proposal_context_section(
             ),
         ),
         summary_items=(
-            (
+            _summary_item(
                 f"{proposal.title or 'Advisory proposal'} is in {proposal.current_state} "
                 f"for portfolio {proposal.portfolio_id}."
             ),
-            (
+            _summary_item(
                 f"Proposal version {version.version_no} was created with "
                 f"{version.status_at_creation} source readiness."
             ),
@@ -177,8 +192,10 @@ def _narrative_posture_section(
             ),
         ),
         summary_items=(
-            f"Advisor-use proposal narrative posture is {narrative_status}.",
-            f"Client-ready publication remains blocked for proposal {proposal.proposal_id}.",
+            _summary_item(f"Advisor-use proposal narrative posture is {narrative_status}."),
+            _summary_item(
+                f"Client-ready publication remains blocked for proposal {proposal.proposal_id}."
+            ),
         ),
         allowed_audiences=("ADVISOR", "DESK_HEAD", "COMPLIANCE_REVIEWER"),
     )
@@ -198,8 +215,8 @@ def _memo_evidence_section(*, memo: ProposalMemoRecord) -> CopilotEvidenceSectio
             ),
         ),
         summary_items=(
-            f"Proposal memo {memo.memo_id} is {memo.memo_status}.",
-            f"Memo lifecycle posture is {memo.lifecycle_status}.",
+            _summary_item(f"Proposal memo {memo.memo_id} is {memo.memo_status}."),
+            _summary_item(f"Memo lifecycle posture is {memo.lifecycle_status}."),
             (
                 "Memo evidence remains advisor-use only until source review and publication "
                 "gates pass."
@@ -222,15 +239,17 @@ def _policy_posture_section(
         )
     )
     summary_items = [
-        f"Policy evaluation {latest.evaluation_id} is {latest.evaluation_status}.",
-        (
+        _summary_item(f"Policy evaluation {latest.evaluation_id} is {latest.evaluation_status}."),
+        _summary_item(
             f"Policy pack {latest.policy_pack_id} version {latest.policy_version} is the "
             "source authority."
         ),
         "Client-ready publication remains blocked until policy and review gates are resolved.",
     ]
     if review_items:
-        summary_items.append(f"Open policy evidence items: {', '.join(review_items[:5])}.")
+        summary_items.append(
+            _summary_item(f"Open policy evidence items: {', '.join(review_items[:5])}.")
+        )
     return CopilotEvidenceSectionInput(
         section_key="POLICY_POSTURE",
         title="Policy posture",
@@ -267,7 +286,8 @@ def _cockpit_actions_section(
     )
     action_items = read_model.action_items[:5]
     summaries = [
-        f"{item.title} is {item.status}; owner is {item.owner_role}." for item in action_items
+        _summary_item(f"{item.title} is {item.status}; owner is {item.owner_role}.")
+        for item in action_items
     ] or ["No advisor cockpit action is currently open for this proposal."]
     return CopilotEvidenceSectionInput(
         section_key="COCKPIT_ACTIONS",
@@ -312,7 +332,7 @@ def _report_readiness_section(*, memo: ProposalMemoRecord) -> CopilotEvidenceSec
         ),
         summary_items=(
             "Advisor-use report package evidence is recorded for the memo.",
-            f"Latest archive reference posture: {latest_archive_ref}.",
+            _summary_item(f"Latest archive reference posture: {latest_archive_ref}."),
         ),
         allowed_audiences=("ADVISOR", "DESK_HEAD", "OPERATIONS_SUPPORT"),
     )
@@ -340,8 +360,10 @@ def _operations_handoff_section(
             ),
         ),
         summary_items=(
-            f"Latest implementation handoff posture is {latest.event_type}.",
-            f"Proposal {proposal.proposal_id} remains source-owned for lifecycle state.",
+            _summary_item(f"Latest implementation handoff posture is {latest.event_type}."),
+            _summary_item(
+                f"Proposal {proposal.proposal_id} remains source-owned for lifecycle state."
+            ),
         ),
         allowed_audiences=("ADVISOR", "DESK_HEAD", "OPERATIONS_SUPPORT"),
     )
@@ -381,8 +403,8 @@ def _source_ref(
     return CopilotSourceRef(
         source_system="lotus-advise",
         source_type=source_type,
-        source_id=source_id,
-        content_hash=content_hash,
+        source_id=_bounded_reference(source_id, max_length=_SOURCE_REF_ID_MAX_LENGTH),
+        content_hash=_bounded_content_hash(content_hash),
         access_class=access_class,  # type: ignore[arg-type]
     )
 
@@ -390,11 +412,44 @@ def _source_ref(
 def _default_packet_id(
     *, action_family: CopilotActionFamily, proposal_id: str, version_no: int
 ) -> str:
-    return _identifier(f"copilot_packet_{action_family.lower()}_{proposal_id}_v{version_no}")
+    return _bounded_reference(
+        _identifier(f"copilot_packet_{action_family.lower()}_{proposal_id}_v{version_no}"),
+        max_length=_EVIDENCE_PACKET_ID_MAX_LENGTH,
+    )
 
 
 def _identifier(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_]+", "_", value).strip("_").lower()
+
+
+def _summary_item(value: str) -> str:
+    return _bounded_text(value, max_length=_SUMMARY_ITEM_MAX_LENGTH)
+
+
+def _bounded_text(value: str, *, max_length: int) -> str:
+    normalized = " ".join(value.split())
+    if len(normalized) <= max_length:
+        return normalized
+    suffix = "..."
+    return normalized[: max_length - len(suffix)].rstrip() + suffix
+
+
+def _bounded_reference(value: str, *, max_length: int) -> str:
+    normalized = " ".join(value.split())
+    if len(normalized) <= max_length:
+        return normalized
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:_REFERENCE_DIGEST_LENGTH]
+    prefix_length = max_length - _REFERENCE_DIGEST_LENGTH - 1
+    return f"{normalized[:prefix_length].rstrip('_')}_{digest}"
+
+
+def _bounded_content_hash(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = " ".join(value.split())
+    if len(normalized) <= _CONTENT_HASH_MAX_LENGTH:
+        return normalized
+    return f"sha256:{hashlib.sha256(normalized.encode('utf-8')).hexdigest()}"
 
 
 def _safe_nested_string(payload: dict[str, Any], *path: str) -> str | None:

@@ -6414,3 +6414,29 @@
     evidence-packet semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-245
+
+- Scope: Advisory copilot proposal-version source projection
+- Pattern: source-projection hygiene, bounded generated evidence, repeatable RFC-0027 validation
+- Status: Hardened
+- Finding Class: validation and performance risk
+- Summary: RFC-0027 proposal-version source projection could assemble oversized packet ids,
+  lineage ids, source refs, hashes, and business summary strings from valid upstream proposal,
+  memo, policy, and report data before evidence-packet model validation.
+- Evidence:
+  - `src/core/advisory_copilot/source_projection.py` now compacts oversized generated packet,
+    source, lineage, and content-hash references deterministically and bounds generated business
+    summary items before packet construction.
+  - Application tests seed oversized proposal, memo, policy, report, and archive evidence and
+    prove packet creation remains bounded without relying on full live validation to catch the
+    issue.
+- Consequence:
+  - Canonical and expanded RFC-0027 validation can tolerate unusually verbose source evidence
+    while preserving bounded audit references, deterministic packet identifiers, and downstream
+    AI action safety.
+- Documentation:
+  - No wiki source change is required. This is internal source-projection hardening aligned with
+    existing copilot evidence-packet semantics.
+- Follow-Up:
+  - None.

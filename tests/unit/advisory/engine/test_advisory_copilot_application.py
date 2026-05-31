@@ -293,6 +293,120 @@ def test_application_service_projects_proposal_version_with_injected_policy_load
     assert response.record.created_by == "advisor_123"
 
 
+def test_application_service_bounds_source_projection_evidence_text() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    proposal_repository = InMemoryProposalRepository()
+    proposal_id = f"proposal_{'sg_' * 40}"
+    proposal_version_id = f"version_{'oversized_' * 24}"
+    memo_id = f"memo_{'archive_reference_' * 12}"
+    oversized_text = "source evidence item " * 160
+    proposal_repository.create_proposal(
+        ProposalRecord(
+            proposal_id=proposal_id,
+            portfolio_id=f"PB_SG_GLOBAL_BAL_{'001_' * 30}",
+            created_by="advisor_123",
+            created_at=NOW,
+            last_event_at=NOW,
+            current_state="COMPLIANCE_REVIEW",
+            current_version_no=1,
+            title=oversized_text,
+        )
+    )
+    proposal_repository.create_version(
+        ProposalVersionRecord(
+            proposal_version_id=proposal_version_id,
+            proposal_id=proposal_id,
+            version_no=1,
+            created_at=NOW,
+            request_hash="sha256:request",
+            artifact_hash=f"sha256:{'artifact' * 40}",
+            simulation_hash="sha256:simulation",
+            status_at_creation="READY",
+            proposal_result_json={"status": "READY"},
+            artifact_json={"narrative": {"status": oversized_text}},
+            evidence_bundle_json={"portfolio_id": "PB_SG_GLOBAL_BAL_001"},
+        )
+    )
+    proposal_repository.create_memo(
+        ProposalMemoRecord(
+            memo_id=memo_id,
+            proposal_id=proposal_id,
+            proposal_version_no=1,
+            proposal_version_id=proposal_version_id,
+            artifact_id="artifact_sg_001",
+            memo_version="advisory-proposal-memo-evidence-pack.v1",
+            memo_status="BLOCKED",
+            lifecycle_status="FINALIZED",
+            created_by="advisor_123",
+            created_at=NOW,
+            source_input_hash="sha256:memo-source",
+            memo_hash=f"sha256:{'memo' * 40}",
+            memo_json={"memo_id": memo_id},
+            report_package_events_json=[
+                {
+                    "event_id": f"memo_report_pkg_{'001_' * 50}",
+                    "report_reference_id": f"report_pkg_{'001_' * 50}",
+                }
+            ],
+            archive_refs_json=[{"archive_ref": f"archive_ref_{'001_' * 360}"}],
+        )
+    )
+
+    def _load_policy_evaluations(**_: str | None) -> list[PolicyEvaluationRecord]:
+        return [
+            PolicyEvaluationRecord(
+                evaluation_id=f"policy_eval_{'sg_' * 60}",
+                proposal_id=proposal_id,
+                proposal_version_id=proposal_version_id,
+                portfolio_id="PB_SG_GLOBAL_BAL_001",
+                policy_pack_id=f"SG_PRIVATE_BANKING_REFERENCE_{'A' * 200}",
+                policy_version=f"2026.05.{'1' * 200}",
+                generated_at="2026-05-28T09:00:00+00:00",
+                created_by="advisor_123",
+                evaluation_status="PENDING_REVIEW",
+                policy_content_hash="sha256:policy-content",
+                source_evidence_hash="sha256:source-evidence",
+                evaluation_hash=f"sha256:{'policy-evaluation' * 20}",
+                evaluation_json={"evaluation_status": "PENDING_REVIEW"},
+                approval_dependencies=[oversized_text],
+                disclosure_requirements=[oversized_text],
+                consent_requirements=[oversized_text],
+                source_gaps=[oversized_text],
+            )
+        ]
+
+    service = AdvisoryCopilotApplicationService(
+        repository=copilot_repository,
+        draft_generator=_draft_generator,
+        policy_evaluation_loader=_load_policy_evaluations,
+    )
+
+    response = service.create_proposal_version_evidence_packet(
+        payload=AdvisoryCopilotProposalVersionEvidenceRequest(
+            proposal_id=proposal_id,
+            proposal_version_no=1,
+            action_family="PROPOSAL_EXPLANATION",
+            audience="ADVISOR",
+            created_by="advisor_123",
+            reason={"business_reason": "Prepare advisor copilot review."},
+        ),
+        proposal_repository=proposal_repository,
+        correlation_id="corr_projection_bounds_001",
+    )
+
+    packet = response.evidence_packet
+    assert len(packet.evidence_packet_id) <= 160
+    for lineage_ref in packet.lineage_refs:
+        assert len(lineage_ref.lineage_id) <= 160
+    for section in packet.sections:
+        for source_ref in section.source_refs:
+            assert len(source_ref.source_id) <= 160
+            if source_ref.content_hash is not None:
+                assert len(source_ref.content_hash) <= 128
+        for summary in section.summary_items:
+            assert len(summary) <= 1000
+
+
 def test_application_service_run_action_keeps_raw_instruction_out_of_persistence() -> None:
     copilot_repository = InMemoryAdvisoryCopilotRepository()
     draft_calls: list[dict[str, Any]] = []
