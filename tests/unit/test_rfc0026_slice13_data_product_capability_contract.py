@@ -15,6 +15,7 @@ WIKI_MESH_PRODUCTS_PATH = Path("wiki/Mesh-Data-Products.md")
 WIKI_OPERATIONS_PATH = Path("wiki/Operations-Runbook.md")
 CAPABILITIES_PATH = Path("src/api/capabilities/service.py")
 COCKPIT_SERVICE_PATH = Path("src/core/advisor_cockpit/service.py")
+COCKPIT_SERVICE_PROJECTION_PATH = Path("src/core/advisor_cockpit/service_projection.py")
 
 
 def _read(path: Path) -> str:
@@ -85,7 +86,12 @@ def test_rfc0026_slice13_updates_operator_and_repository_truth() -> None:
 
 def test_rfc0026_slice13_code_paths_promote_capability_and_supportability() -> None:
     capabilities = _read(CAPABILITIES_PATH)
-    cockpit_service = _read(COCKPIT_SERVICE_PATH)
+    cockpit_runtime_code = "\n".join(
+        (
+            _read(COCKPIT_SERVICE_PATH),
+            _read(COCKPIT_SERVICE_PROJECTION_PATH),
+        )
+    )
 
     for marker in (
         "advisory.advisor_cockpit",
@@ -101,4 +107,4 @@ def test_rfc0026_slice13_code_paths_promote_capability_and_supportability() -> N
         "ACTIVE_ADVISOR_COCKPIT_PRODUCTS_RFC0026",
         "PB_SG_GLOBAL_BAL_001_ADVISOR_COCKPIT_VALIDATED",
     ):
-        assert marker in cockpit_service
+        assert marker in cockpit_runtime_code
