@@ -5289,3 +5289,31 @@
     change product behavior, supported feature posture, or operator workflow.
 - Follow-Up:
   - None.
+
+## LA-REV-200
+
+- Scope: Proposal simulation and workspace handoff idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: replay determinism and lineage reliability gap
+- Summary: Proposal simulation and workspace handoff entry points accepted caller-supplied
+  idempotency keys before replay lookup and downstream lineage emission. Padded keys could produce
+  duplicate simulation replay records or non-canonical proposal lineage for semantically identical
+  retries.
+- Evidence:
+  - `src/api/services/advisory_simulation_service.py` normalizes required simulation
+    idempotency keys before repository replay lookup, downstream orchestration, and persistence.
+  - `src/api/services/workspace_lifecycle_handoff.py` normalizes the first-create handoff key before
+    proposal creation.
+  - `src/core/advisory/orchestration.py` and `src/core/advisory_engine.py` normalize optional
+    idempotency keys before passing them into local fallback or result lineage.
+  - Focused API tests cover padded-key replay for proposal artifact/simulation and workspace
+    handoff lineage.
+- Consequence:
+  - Simulation, artifact, and workspace handoff lineage now carry deterministic replay identity
+    across HTTP retries and local fallback paths.
+- Documentation:
+  - No wiki source change is required. This is replay/lineage hardening; supported feature posture
+    and operator workflow are unchanged.
+- Follow-Up:
+  - None.

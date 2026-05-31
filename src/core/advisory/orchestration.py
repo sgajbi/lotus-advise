@@ -3,6 +3,7 @@ from typing import cast
 from src.core.advisory.alternatives_projection import build_proposal_alternatives
 from src.core.advisory.decision_summary import build_proposal_decision_summary
 from src.core.advisory_engine import run_proposal_simulation
+from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.models import ProposalResult, ProposalSimulateRequest
 from src.integrations.lotus_core import (
     LotusCoreSimulationUnavailableError,
@@ -28,6 +29,7 @@ def evaluate_advisory_proposal(
     input_mode: str | None = None,
     policy_context: dict[str, object] | None = None,
 ) -> ProposalResult:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     degraded_reasons: list[str] = []
 
     simulation_authority = "lotus_core"

@@ -4,6 +4,7 @@ from src.api.services.workspace_errors import (
     WorkspaceEvaluationUnavailableError,
     WorkspaceLifecycleHandoffUnavailableError,
 )
+from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.models import ProposalSimulateRequest
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.models import ProposalCreateMetadata, ProposalCreateResponse
@@ -87,10 +88,12 @@ def _create_proposal_from_workspace(
     correlation_id: str | None,
     simulate_request_builder: WorkspaceSimulateRequestBuilder,
 ) -> WorkspaceLifecycleHandoffExecution:
-    if not idempotency_key:
+    try:
+        idempotency_key = normalize_required_idempotency_key(idempotency_key)
+    except ValueError as exc:
         raise WorkspaceLifecycleHandoffUnavailableError(
             "WORKSPACE_HANDOFF_IDEMPOTENCY_KEY_REQUIRED"
-        )
+        ) from exc
     create_request = build_proposal_create_request(
         session,
         request,

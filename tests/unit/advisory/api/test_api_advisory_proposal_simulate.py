@@ -1586,10 +1586,11 @@ def test_advisory_proposal_artifact_reuses_idempotent_simulation_response(client
         "proposed_cash_flows": [],
         "proposed_trades": [],
     }
-    headers = {"Idempotency-Key": "prop-art-key-2"}
+    first_headers = {"Idempotency-Key": "  prop-art-key-2  "}
+    replay_headers = {"Idempotency-Key": "prop-art-key-2"}
 
-    first = client.post("/advisory/proposals/artifact", json=payload, headers=headers)
-    second = client.post("/advisory/proposals/artifact", json=payload, headers=headers)
+    first = client.post("/advisory/proposals/artifact", json=payload, headers=first_headers)
+    second = client.post("/advisory/proposals/artifact", json=payload, headers=replay_headers)
 
     assert first.status_code == 200
     assert second.status_code == 200
@@ -1635,7 +1636,7 @@ def test_advisory_proposal_simulate_allows_different_idempotency_keys(client):
     first = client.post(
         "/advisory/proposals/simulate",
         json=payload,
-        headers={"Idempotency-Key": "prop-cache-1"},
+        headers={"Idempotency-Key": "  prop-cache-1  "},
     )
     second = client.post(
         "/advisory/proposals/simulate",
@@ -1646,3 +1647,4 @@ def test_advisory_proposal_simulate_allows_different_idempotency_keys(client):
     assert first.status_code == 200
     assert second.status_code == 200
     assert first.json()["proposal_run_id"] == second.json()["proposal_run_id"]
+    assert first.json()["lineage"]["idempotency_key"] == "prop-cache-1"
