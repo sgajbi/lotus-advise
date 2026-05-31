@@ -163,7 +163,7 @@ copilot core now returns stable reason codes for forbidden intents, missing sour
 injection, client-ready wording, and sensitive technical leakage. Persistence, API, `lotus-ai`,
 Gateway, Workbench, canonical proof, and supported runtime claims remain unpromoted.
 
-RFC-0027 Slice 7 is implemented as a governed `lotus-ai` workflow-pack and model-risk control seam.
+RFC-0027 Slice 7 is implemented as a governed `lotus-ai` workflow-pack and model-risk control boundary.
 Evidence lives in `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`.
 `lotus-ai` now registers six review-gated advisory copilot workflow packs, and `lotus-advise`
 consumes them only through `/platform/workflow-packs/execute` with evidence-packet, source-ref,
@@ -599,7 +599,8 @@ RFC-0023 Slice 11A is implemented as reviewed narrative report-request package p
 baseline work. It adds explicit `include_reviewed_narrative` support to proposal report requests,
 requires the selected immutable proposal version to have an `APPROVED_FOR_ADVISOR_USE` narrative
 review with matching source hash, propagates a compact source-backed narrative package to the
-report seam, and persists a package summary in report-request delivery evidence.
+report-package integration boundary, and persists a package summary in report-request delivery
+evidence.
 
 RFC-0023 Slices 11B and 11C are implemented as downstream report and render realization work.
 `lotus-report` consumes and snapshots the reviewed advisory narrative package, projects an

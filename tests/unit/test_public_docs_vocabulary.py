@@ -2,12 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-PUBLIC_DOCS = [
+PUBLIC_DOCS = sorted(
+    [
+        *Path("wiki").glob("*.md"),
+        *Path("docs/commercial").glob("*.md"),
+        Path("docs/rfcs/README.md"),
+        Path("docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md"),
+    ],
+    key=lambda path: path.as_posix(),
+) + [
     Path("README.md"),
-    Path("wiki/Advisory-Workspace.md"),
-    Path("wiki/Proposal-Lifecycle.md"),
-    Path("wiki/Integrations.md"),
-    Path("wiki/Supported-Features.md"),
 ]
 
 

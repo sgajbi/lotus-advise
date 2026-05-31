@@ -14,7 +14,7 @@ Locally relevant governance includes:
 
 ## Sensitive Boundaries
 
-The highest-risk documentation and implementation drift usually appears at these seams:
+The highest-risk documentation and implementation drift usually appears at these integration boundaries:
 
 1. advisory versus management ownership
 2. local interpretation versus upstream core or risk authority

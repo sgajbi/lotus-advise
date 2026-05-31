@@ -5,7 +5,7 @@
 1. canonical source-data and simulation authority from `lotus-core`,
 2. risk-lens enrichment from `lotus-risk`,
 3. advisory-owned workflow state, approvals, and evidence continuity,
-4. optional supporting seams such as workspace rationale through `lotus-ai` and report requests through `lotus-report`.
+4. optional supporting integration boundaries such as workspace rationale through `lotus-ai` and report requests through `lotus-report`.
 
 ## Primary Responsibilities
 

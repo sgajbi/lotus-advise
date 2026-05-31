@@ -91,7 +91,7 @@ Decision:
 6. backend-owned proposal decision summaries,
 7. backend-owned proposal alternatives,
 8. tactical house-view affected-cohort evaluation,
-9. execution handoff/status and report-request seams,
+9. execution handoff/status and report-request integration boundaries,
 10. bounded workspace AI rationale through `lotus-ai`,
 11. `/platform/capabilities` supportability posture,
 12. OpenAPI, vocabulary, no-alias, domain-product, trust telemetry, Docker, dependency, security,
@@ -189,7 +189,8 @@ RFC-0028 does not own:
 2. real client data preparation,
 3. bank-specific policy content beyond reference/demo examples,
 4. external OMS/broker execution as system of record,
-5. CRM, calendar, client master, or document-management systems outside explicit handoff seams,
+5. CRM, calendar, client master, or document-management systems outside explicit handoff
+   boundaries,
 6. broad methodology implementation in `lotus-risk`, `lotus-core`, or `lotus-performance` unless
    needed for a claimed demo journey,
 7. marketing claims that are not implementation-backed.
@@ -218,7 +219,7 @@ The table below decides what this RFC owns directly and what it consumes or gate
 | Advisory workspace | Needs full advisor cockpit: meeting prep, talking points, tasks, collaboration, CRM handoff, follow-up. | RFC-0028 owns Workbench demo proof for RFC-0026 outputs; if RFC-0026 is missing, do not claim full cockpit. |
 | Workspace AI rationale | Needs grounded client-ready commentary, model governance, human review, prompt/output lineage. | RFC-0028 owns AI demo proof and model-risk package only after RFC-0027 or demo-critical subset is implemented. |
 | Execution handoff/status | Needs downstream adapters, order lifecycle reconciliation, exception management, OMS/broker integration story. | Demonstrate advisory handoff/status boundary. Do not claim OMS/broker SOR integration unless implemented by downstream owner. |
-| Report request seam | Needs polished proposal pack generation through report/render/archive stack. | Directly in RFC-0028 demo proof if the demo includes client-ready artifacts. Required report/render/archive work is an RFC-0028 slice, not WTBD. |
+| Report request boundary | Needs polished proposal pack generation through report/render/archive stack. | Directly in RFC-0028 demo proof if the demo includes client-ready artifacts. Required report/render/archive work is an RFC-0028 slice, not WTBD. |
 | Tactical house-view cohorts | Needs Workbench/Gateway/Manage productization for campaign use, advisor actioning, and evidence trail. | Include only if it strengthens the canonical demo journey. Any required Gateway/Workbench/Manage changes are explicit RFC-0028 slices. |
 | Capability discovery | Needs sales/demo surfacing and operational dashboards. | Directly in scope through supported-claim register, proof pack, Gateway/Workbench surfacing, and operator dashboards where implemented. |
 | Non-functional posture | Needs load benchmarks, SLO dashboards, tenant/legal-entity configuration, DR/RTO/RPO evidence. | Directly in scope for demo/RFP proof. Missing evidence must be marked as planned or risk-treated, not hidden. |
@@ -249,7 +250,7 @@ Implementation-backed foundations available before RFC-0028 implementation:
 3. proposal lifecycle persistence and workflow history,
 4. approval and consent posture,
 5. workspace drafting and lifecycle handoff,
-6. workspace AI rationale through a governed seam,
+6. workspace AI rationale through a governed integration boundary,
 7. proposal decision summary,
 8. proposal alternatives,
 9. tactical house-view affected cohorts,
@@ -880,7 +881,8 @@ Outcome:
 
 1. implement repo-native proof capture for advisory APIs, health/readiness, capabilities, proposal
    simulation, lifecycle, approvals, decision summary, alternatives, workspace, tactical
-   house-view, report seam, execution handoff/status, and degraded cases as applicable.
+   house-view, report-package integration boundary, execution handoff/status, and degraded cases
+   as applicable.
 
 Acceptance gate:
 
@@ -925,9 +927,9 @@ Slice 5 implementation decision and evidence:
    8. `capture-summary.md`,
    9. `manifest.json`.
 4. Material-field review currently blocks claim drift for canonical portfolio identity, synchronous
-   and asynchronous lifecycle state, workspace rationale lineage, execution handoff/status, report
-   seam, narrative review posture, memo review posture, policy evaluation posture, client-ready
-   blocked posture, and lotus-risk/lotus-core degraded paths.
+   and asynchronous lifecycle state, workspace rationale lineage, execution handoff/status,
+   report-package integration boundary, narrative review posture, memo review posture, policy
+   evaluation posture, client-ready blocked posture, and lotus-risk/lotus-core degraded paths.
 5. The proof pack emits `BANK_DEMO_PROOF_PACK_CREATED`,
    `RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED`, and
    `RFC0028_RUNTIME_POSTURE_CAPTURED`, records the `lotus-advise` commit SHA, service version,

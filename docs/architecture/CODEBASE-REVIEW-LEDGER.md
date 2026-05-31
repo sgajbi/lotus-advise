@@ -8047,3 +8047,31 @@
 - Follow-Up:
   - Continue checking generated proof artifacts for business-facing vocabulary and secret-free
     summaries during final RFC-0028 closure.
+
+## LA-REV-305
+
+- Scope: Public RFC/wiki/commercial integration-boundary vocabulary
+- Pattern: buyer-facing documentation avoids engineering shorthand for cross-service boundaries
+- Status: Hardened
+- Finding Class: documentation product quality and private-banking audience fit
+- Summary: The previous public-document vocabulary guard covered README and only selected wiki
+  pages. Additional public wiki pages, the RFC index, RFC README, and active RFC-0028 source still
+  used "seam" wording for report, AI, and handoff integration points. That shorthand weakens
+  documentation intended for business, operations, sales, pre-sales, and client-demo audiences.
+- Evidence:
+  - `wiki/Home.md`, `wiki/Overview.md`, `wiki/Security-and-Governance.md`,
+    `wiki/Architecture.md`, and `wiki/RFC-Index.md` now use integration-boundary language.
+  - `docs/rfcs/README.md` and
+    `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` now use report-package and
+    handoff boundary wording where those documents are current source truth.
+  - `tests/unit/test_public_docs_vocabulary.py` now covers all repo wiki pages, commercial
+    material, the RFC index, and active RFC-0028.
+- Consequence:
+  - Public Lotus Advise documentation is more consistent, business-facing, and less likely to leak
+    implementation shorthand into client-demo or sales-support material.
+- Documentation:
+  - Repo-local wiki source changed and must pass wiki sync check before merge, then publish after
+    merge to `main`.
+- Follow-Up:
+  - Keep future documentation edits tied to implementation-backed truth or buyer-facing clarity;
+    do not rewrite historical RFC records purely for style.

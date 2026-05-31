@@ -172,8 +172,9 @@ Current note:
 - RFC-0023 Slice 11A reviewed narrative report-request package propagation evidence lives in
   `docs/rfcs/RFC-0023-slice-11A-reviewed-narrative-report-request-package-propagation.md`; it
   adds `include_reviewed_narrative` support for report requests, requires approved narrative review
-  and matching source hash, propagates a compact package to the report seam, and persists delivery
-  evidence while downstream artifact realization remains gated outside `lotus-advise`.
+  and matching source hash, propagates a compact package to the report-package integration
+  boundary, and persists delivery evidence while downstream artifact realization remains gated
+  outside `lotus-advise`.
 - RFC-0023 Slice 11B/11C report and render realization evidence lives in
   `docs/rfcs/RFC-0023-slice-11B-11C-report-render-reviewed-narrative-realization.md`; it records
   that `lotus-report` now consumes and snapshots the reviewed advisory narrative package and
@@ -546,4 +547,3 @@ Implementation evidence:
 - `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`
 - `docs/rfcs/RFC-0027-slice-8-copilot-run-review-audit-retention.md`
 - `docs/rfcs/RFC-0027-slice-9-certified-advise-apis-openapi.md`
-

@@ -191,7 +191,7 @@ Reporting can be requested through `lotus-advise`, but report generation ownersh
 
 ### `lotus-ai`
 
-The implemented AI seams are workspace rationale generation and RFC-0023 advisor-review proposal
+The implemented AI integration boundaries are workspace rationale generation and RFC-0023 advisor-review proposal
 narrative drafting. Proposal narrative is the active source of truth only for advisor-use artifact,
 review/replay, reviewed report-request package, report/render/archive, Gateway posture, and
 Workbench posture; client-ready narrative and capability promotion remain gated.
