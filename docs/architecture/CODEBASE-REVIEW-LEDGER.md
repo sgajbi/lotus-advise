@@ -6490,3 +6490,27 @@
     existing RFC-0027 copilot audit semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-248
+
+- Scope: Advisory copilot HTTP edge parameter bounds
+- Pattern: API contract hardening, OpenAPI validation metadata, fail-fast request validation
+- Status: Hardened
+- Finding Class: validation and API quality gap
+- Summary: RFC-0027 route path, header, and cursor parameters described governed identifiers
+  but did not consistently expose or enforce the same length bounds already present in API
+  request bodies, domain models, and persistence records.
+- Evidence:
+  - `src/api/proposals/routes_advisory_copilot.py` now applies explicit bounds to copilot
+    evidence-packet ids, run ids, proposal/version path ids, idempotency headers, correlation
+    headers, and pagination cursors.
+  - API tests prove oversized path identifiers, review idempotency keys, correlation headers, and
+    cursors fail with HTTP 422 before service/repository execution.
+- Consequence:
+  - Gateway and Workbench callers receive clearer RFC-0027 HTTP contract behavior, and generated
+    OpenAPI documents now carry the same bounded-identifier posture as the backend models.
+- Documentation:
+  - No wiki source change is required. This is API contract metadata and validation hardening for
+    existing copilot endpoints.
+- Follow-Up:
+  - None.

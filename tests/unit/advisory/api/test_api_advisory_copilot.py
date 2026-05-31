@@ -559,6 +559,42 @@ def test_advisory_copilot_openapi_is_action_specific() -> None:
     assert "Advisory Copilot" in {tag["name"] for tag in schema["tags"]}
 
 
+def test_advisory_copilot_http_edge_bounds_identifiers_and_headers(
+    copilot_repository: InMemoryAdvisoryCopilotRepository,
+) -> None:
+    _ = copilot_repository
+    oversized_id = "x" * 161
+
+    with TestClient(app) as client:
+        evidence_read = client.get(f"/advisory/copilot/evidence-packets/{oversized_id}")
+        run_read = client.get(f"/advisory/copilot/actions/{oversized_id}")
+        run_review = client.post(
+            "/advisory/copilot/actions/copilot_run_001/reviews",
+            json={
+                "action": "APPROVE_FOR_INTERNAL_USE",
+                "actor_id": "supervisor_123",
+                "reason": {"decision": "Reviewed against cited source evidence."},
+            },
+            headers={"Idempotency-Key": "x" * 129},
+        )
+        long_cursor = client.get(
+            "/advisory/proposals/proposal_sg_structured_note_001/versions/"
+            "version_sg_001/copilot-runs",
+            params={"cursor": "x" * 513},
+        )
+        long_correlation = client.post(
+            "/advisory/copilot/evidence-packets",
+            json=_evidence_packet_payload(),
+            headers={"X-Correlation-ID": "x" * 129},
+        )
+
+    assert evidence_read.status_code == 422
+    assert run_read.status_code == 422
+    assert run_review.status_code == 422
+    assert long_cursor.status_code == 422
+    assert long_correlation.status_code == 422
+
+
 def test_advisory_copilot_repository_dependency_maps_startup_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
