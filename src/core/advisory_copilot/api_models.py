@@ -19,6 +19,7 @@ from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.common.actors import normalize_required_actor_id
 
 _COPILOT_ACTOR_ID_MAX_LENGTH = 128
+_COPILOT_IDENTIFIER_MAX_LENGTH = 160
 _COPILOT_REQUESTED_OUTPUT_LIMIT = 8
 _COPILOT_REQUESTED_OUTPUT_MAX_LENGTH = 96
 _COPILOT_REQUESTED_INTENT_LIMIT = 12
@@ -30,6 +31,8 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     evidence_packet_id: str = Field(
         description="Stable evidence-packet identifier supplied by the caller.",
         examples=["copilot_packet_pb_sg_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     action_family: CopilotActionFamily = Field(
         description="Governed copilot action family the packet supports.",
@@ -38,11 +41,15 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     portfolio_id: str = Field(
         description="Portfolio identifier for source-scoped advisory evidence.",
         examples=["PB_SG_GLOBAL_BAL_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     proposal_id: str | None = Field(
         default=None,
         description="Proposal identifier when the packet is proposal-scoped.",
         examples=["proposal_sg_structured_note_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     audience: CopilotAudience = Field(
         description="Audience projection used for source-section filtering.",
@@ -66,11 +73,23 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     def _normalize_created_by(cls, value: str) -> str:
         return _normalize_copilot_actor_id(value)
 
+    @field_validator("evidence_packet_id", "portfolio_id")
+    @classmethod
+    def _normalize_required_identifier(cls, value: str) -> str:
+        return _normalize_required_identifier(value, error_code="COPILOT_IDENTIFIER_REQUIRED")
+
+    @field_validator("proposal_id")
+    @classmethod
+    def _normalize_optional_identifier(cls, value: str | None) -> str | None:
+        return _normalize_optional_identifier(value)
+
 
 class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
     proposal_id: str = Field(
         description="Proposal identifier whose source-owned evidence should be projected.",
         examples=["proposal_sg_structured_note_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     proposal_version_no: int = Field(
         ge=1,
@@ -84,6 +103,8 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
             "deterministic identifier from action family, proposal, and version."
         ),
         examples=["copilot_packet_pb_sg_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     action_family: CopilotActionFamily = Field(
         description="Governed copilot action family the source projection supports.",
@@ -108,6 +129,16 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
     def _normalize_created_by(cls, value: str) -> str:
         return _normalize_copilot_actor_id(value)
 
+    @field_validator("proposal_id")
+    @classmethod
+    def _normalize_proposal_id(cls, value: str) -> str:
+        return _normalize_required_identifier(value, error_code="COPILOT_PROPOSAL_ID_REQUIRED")
+
+    @field_validator("evidence_packet_id")
+    @classmethod
+    def _normalize_evidence_packet_id(cls, value: str | None) -> str | None:
+        return _normalize_optional_identifier(value)
+
 
 class AdvisoryCopilotEvidencePacketResponse(BaseModel):
     evidence_packet: CopilotEvidencePacket = Field(
@@ -122,6 +153,8 @@ class AdvisoryCopilotActionRequest(BaseModel):
     evidence_packet_id: str = Field(
         description="Persisted evidence packet to use for copilot action execution.",
         examples=["copilot_packet_pb_sg_001"],
+        min_length=1,
+        max_length=_COPILOT_IDENTIFIER_MAX_LENGTH,
     )
     audience: CopilotAudience = Field(
         description="Audience projection requested for the action.",
@@ -165,6 +198,14 @@ class AdvisoryCopilotActionRequest(BaseModel):
             max_items=_COPILOT_REQUESTED_OUTPUT_LIMIT,
             max_item_length=_COPILOT_REQUESTED_OUTPUT_MAX_LENGTH,
             allow_empty=False,
+        )
+
+    @field_validator("evidence_packet_id")
+    @classmethod
+    def _normalize_evidence_packet_id(cls, value: str) -> str:
+        return _normalize_required_identifier(
+            value,
+            error_code="COPILOT_EVIDENCE_PACKET_ID_REQUIRED",
         )
 
     @field_validator("requested_by")
@@ -230,6 +271,21 @@ def _normalize_copilot_actor_id(value: str) -> str:
     if len(normalized) > _COPILOT_ACTOR_ID_MAX_LENGTH:
         raise ValueError("COPILOT_ACTOR_TOO_LONG")
     return cast(str, normalized)
+
+
+def _normalize_required_identifier(value: str, *, error_code: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(error_code)
+    if len(normalized) > _COPILOT_IDENTIFIER_MAX_LENGTH:
+        raise ValueError("COPILOT_IDENTIFIER_TOO_LONG")
+    return normalized
+
+
+def _normalize_optional_identifier(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return _normalize_required_identifier(value, error_code="COPILOT_IDENTIFIER_REQUIRED")
 
 
 class AdvisoryCopilotReviewResponse(BaseModel):

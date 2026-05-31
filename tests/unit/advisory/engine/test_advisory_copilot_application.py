@@ -64,6 +64,53 @@ def test_copilot_action_request_normalizes_and_bounds_advisor_input() -> None:
         )
 
 
+def test_copilot_evidence_packet_requests_normalize_and_bound_identifiers() -> None:
+    create_request = AdvisoryCopilotEvidencePacketCreateRequest(
+        evidence_packet_id="  copilot_packet_pb_sg_001  ",
+        action_family="PROPOSAL_EXPLANATION",
+        portfolio_id="  PB_SG_GLOBAL_BAL_001  ",
+        proposal_id="  proposal_sg_structured_note_001  ",
+        audience="ADVISOR",
+        source_sections=(),
+        created_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+    )
+    projection_request = AdvisoryCopilotProposalVersionEvidenceRequest(
+        proposal_id="  proposal_sg_structured_note_001  ",
+        proposal_version_no=1,
+        evidence_packet_id="  copilot_packet_pb_sg_001  ",
+        action_family="PROPOSAL_EXPLANATION",
+        audience="ADVISOR",
+        created_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+    )
+
+    assert create_request.evidence_packet_id == "copilot_packet_pb_sg_001"
+    assert create_request.portfolio_id == "PB_SG_GLOBAL_BAL_001"
+    assert create_request.proposal_id == "proposal_sg_structured_note_001"
+    assert projection_request.proposal_id == "proposal_sg_structured_note_001"
+    assert projection_request.evidence_packet_id == "copilot_packet_pb_sg_001"
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotEvidencePacketCreateRequest(
+            evidence_packet_id="x" * 161,
+            action_family="PROPOSAL_EXPLANATION",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            audience="ADVISOR",
+            source_sections=(),
+            created_by="advisor_123",
+        )
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotProposalVersionEvidenceRequest(
+            proposal_id=" ",
+            proposal_version_no=1,
+            action_family="PROPOSAL_EXPLANATION",
+            audience="ADVISOR",
+            created_by="advisor_123",
+        )
+
+
 def test_copilot_review_request_bounds_actor_id() -> None:
     request = AdvisoryCopilotReviewRequest(
         action="APPROVE_FOR_INTERNAL_USE",

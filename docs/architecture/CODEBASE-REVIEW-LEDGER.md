@@ -6347,3 +6347,25 @@
     semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-242
+
+- Scope: Advisory copilot evidence-packet request identifiers
+- Pattern: API identifier bounds, source-projection input hygiene, persistence key normalization
+- Status: Hardened
+- Finding Class: validation gap
+- Summary: RFC-0027 copilot evidence-packet request models accepted unbounded packet, portfolio,
+  and proposal identifiers before source projection and persistence.
+- Evidence:
+  - `src/core/advisory_copilot/api_models.py` now trims and bounds evidence-packet ids,
+    portfolio ids, and proposal ids across direct packet creation, proposal-version source
+    projection, and action execution requests.
+  - Application tests prove identifier normalization and oversized or blank identifier rejection.
+- Consequence:
+  - Copilot evidence-packet persistence and source-projection requests have consistent bounded
+    identifier hygiene before hashing, storage, and downstream action execution.
+- Documentation:
+  - No wiki source change is required. This is API model hardening aligned with existing copilot
+    semantics.
+- Follow-Up:
+  - None.
