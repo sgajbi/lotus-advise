@@ -8846,6 +8846,33 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-364
+
+- Scope: RFC-0026 advisor-owned meeting preparation and follow-up action mapping
+- Pattern: Advisor workflow actions should be separated from supervisory, execution, and generic
+  action construction logic
+- Status: Hardened
+- Finding Class: Modularity and private-banking workflow clarity
+- Summary: Meeting-preparation and client-follow-up action construction are advisor-owned workflow
+  concerns with a clear external-communication boundary. Keeping them in the broad action factory
+  made Workbench-facing advisor workflow behavior less explicit.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_advisor_workflow.py` for meeting-preparation and
+    client-follow-up action builders.
+  - Preserved source-backed evidence refs, portfolio fallback, external-client-communication
+    blocking, and public imports.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    15 tests.
+- Consequence:
+  - RFC-0026 advisor workflow action mapping is easier to review and extend without mixing it with
+    approval, execution, supportability, or generic action assembly.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep advisor workflow action copy private-banking oriented and avoid implying external client
+    communication has been executed.
+
 ## LA-REV-363
 
 - Scope: RFC-0026 advisor cockpit approval-dependency action mapping
