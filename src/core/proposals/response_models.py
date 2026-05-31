@@ -882,7 +882,7 @@ class ProposalReportResponse(BaseModel):
         examples=["lotus-report"],
     )
     status: str = Field(
-        description="Current report request status returned by the reporting seam.",
+        description="Current report request status returned by the reporting integration boundary.",
         examples=["READY"],
     )
     generated_at: str = Field(
@@ -1178,7 +1178,7 @@ class ProposalDeliveryReportingSummary(BaseModel):
         examples=["lotus-report"],
     )
     status: str = Field(
-        description="Current report request status returned by the reporting seam.",
+        description="Current report request status returned by the reporting integration boundary.",
         examples=["READY"],
     )
     report_reference_id: Optional[str] = Field(

@@ -7328,3 +7328,1400 @@
     before merge and publish after merge to `main`.
 - Follow-Up:
   - Run RFC-0028 closure reconciliation and repo wiki check before PR handoff.
+
+## LA-REV-280
+
+- Scope: Lotus Report integration request mapping
+- Pattern: adapter boundary separation and safe report-status follow-up URLs
+- Status: Hardened
+- Finding Class: service-boundary modularity, sensitive-data handling, and test gap
+- Summary: The Lotus Report adapter mixed HTTP transport with Advise-to-Report request/header
+  projection, output-format normalization, status-path filtering, and fail-closed source-field
+  validation. The same adapter also accepted same-path report status URLs with query material,
+  which could allow token-like data to appear in follow-up requests or response evidence.
+- Evidence:
+  - `src/integrations/lotus_report/request_mapping.py` now owns report request/header mapping,
+    source date/currency extraction, output-format normalization, bounded actor/tenant identity,
+    status-path filtering, and response-status normalization.
+  - `src/integrations/lotus_report/adapter.py` now keeps the HTTP transport and dependency
+    handling while translating mapping failures into the existing
+    `LOTUS_REPORT_REQUEST_UNAVAILABLE` fail-closed posture.
+  - `tests/unit/advisory/api/test_lotus_report_request_mapping.py` covers direct mapping,
+    boundary preservation for memo and policy packages, bounded headers, output formats, trusted
+    status paths, and missing source identity failures.
+  - `tests/unit/advisory/api/test_lotus_report_adapter.py` now proves status URLs with query
+    material are not followed and are not returned as artifact URLs.
+- Consequence:
+  - Lotus Report handoff mapping is reusable and testable outside the HTTP adapter, while
+    follow-up status evidence remains local-path-only and sanitized.
+- Documentation:
+  - No README or wiki source change is required. This is an internal service-boundary hardening
+    slice with unchanged public API semantics.
+- Follow-Up:
+  - Continue separating response projection from transport if future report-package changes add
+    more explanation or lineage mapping complexity.
+
+## LA-REV-281
+
+- Scope: Lotus Report integration response projection
+- Pattern: transport orchestration separated from advisory evidence-envelope construction
+- Status: Hardened
+- Finding Class: service-boundary modularity, lineage projection, and test gap
+- Summary: After request mapping was extracted, the Lotus Report adapter still constructed
+  portfolio-review, memo-package, and policy sign-off response explanations inline with HTTP
+  transport. That kept report/render/archive lineage projection harder to test without fake HTTP
+  clients and made future explanation changes more likely to couple to transport code.
+- Evidence:
+  - `src/integrations/lotus_report/response_projection.py` now owns
+    `ProposalReportResponse` construction for portfolio review, advisor memo report packages, and
+    policy sign-off report packages.
+  - `src/integrations/lotus_report/adapter.py` now orchestrates override handling, base URL
+    resolution, HTTP calls, status fetches, and fail-closed translation while delegating
+    evidence-envelope projection to the response projection module.
+  - `tests/unit/advisory/api/test_lotus_report_response_projection.py` proves bounded reviewed
+    narrative summaries, blocked client-ready posture for memo and policy packages, render/archive
+    refs, and fail-closed missing report-job identity behavior without HTTP fakes.
+- Consequence:
+  - Report response lineage is independently testable and the adapter is materially smaller,
+    clearer, and less coupled to business evidence projection.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing other large adapters for the same request mapping / transport / response
+    projection separation pattern.
+
+## LA-REV-282
+
+- Scope: Lotus Risk concentration request mapping
+- Pattern: risk-enrichment transport separated from concentration payload construction
+- Status: Hardened
+- Finding Class: service-boundary modularity and test gap
+- Summary: The Lotus Risk enrichment client mixed retrying HTTP transport, upstream response
+  validation, stateless concentration payload construction, stateful simulation payload
+  construction, cash-position projection, security-trade change mapping, issuer mapping, and
+  response application in one module. That made the concentration request contract harder to test
+  without fake HTTP clients and made future risk-contract changes more likely to couple to retry
+  behavior.
+- Evidence:
+  - `src/integrations/lotus_risk/concentration_request.py` now owns stateless and stateful
+    concentration request construction, including cash positions, projected positions, simulation
+    changes, issuer mappings, and enrichment-policy selection.
+  - `src/integrations/lotus_risk/enrichment.py` now keeps runtime configuration, retrying HTTP
+    transport, upstream response validation, and risk-lens application.
+  - `tests/unit/advisory/api/test_lotus_risk_concentration_request.py` proves stateless
+    position/cash projection and stateful simulation-change/issuer-mapping projection without
+    using HTTP fakes.
+- Consequence:
+  - Risk enrichment request mapping is reusable and directly testable, while transport retry
+    behavior remains isolated from concentration-payload business mapping.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing the remaining risk enrichment response-application and retry diagnostics
+    boundaries if later slices touch risk-lens behavior.
+
+## LA-REV-283
+
+- Scope: Lotus Risk concentration response projection
+- Pattern: upstream risk contract and risk-lens application separated from HTTP retry transport
+- Status: Hardened
+- Finding Class: service-boundary modularity and test gap
+- Summary: After concentration request mapping was extracted, the Lotus Risk enrichment client
+  still owned upstream response DTOs and risk-lens explanation projection alongside retrying HTTP
+  transport. That made the canonical `proposal.explanation.risk_lens` envelope harder to test
+  directly and kept upstream contract validation coupled to HTTP fakes.
+- Evidence:
+  - `src/integrations/lotus_risk/concentration_response.py` now owns the
+    `LotusRiskConcentrationResponse` DTO family and `apply_concentration_response`.
+  - `src/integrations/lotus_risk/enrichment.py` now keeps runtime configuration, retrying HTTP
+    transport, upstream JSON validation, and orchestration.
+  - `tests/unit/advisory/api/test_lotus_risk_concentration_response.py` proves canonical risk-lens
+    projection, preservation of existing explanation fields, decimal JSON projection, and
+    rejection of wrong upstream source-service identity without HTTP fakes.
+- Consequence:
+  - The risk-lens evidence envelope is independently testable and the enrichment transport module
+    is smaller, clearer, and less coupled to risk-domain projection.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing retry diagnostics and other integration adapters for similarly separable
+    request/response contracts.
+
+## LA-REV-284
+
+- Scope: Lotus AI workflow-pack response parsing
+- Pattern: duplicated provider response normalization extracted from individual adapters
+- Status: Hardened
+- Finding Class: service-boundary modularity and test gap
+- Summary: The advisory copilot, proposal narrative, proposal memo commentary, policy evidence,
+  and workspace rationale adapters each repeated defensive dict extraction, provider detail
+  handling, workflow-run id extraction, and model-version extraction. That duplication made
+  fail-closed behavior easier to drift across AI-assisted advisory surfaces and kept lineage
+  parsing tied to each adapter's transport code.
+- Evidence:
+  - `src/integrations/lotus_ai/workflow_response.py` now owns shared provider response
+    normalization for safe object extraction, workflow-run id, model version, bounded provider
+    detail, and optional bounded text.
+  - The Lotus AI adapters now delegate common response parsing while retaining domain-specific
+    output validation, lineage construction, guardrails, and review guidance.
+  - `tests/unit/advisory/api/test_lotus_ai_workflow_response.py` proves fail-closed handling for
+    malformed provider payloads, trimmed lineage values, default unavailable details, and bounded
+    provider text.
+- Consequence:
+  - Lotus AI integration behavior is more consistent and easier to harden without changing public
+    API semantics or weakening human-review gates.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue separating Lotus AI workflow-pack request construction from adapter transport where
+    future slices identify material duplication or test gaps.
+
+## LA-REV-285
+
+- Scope: Lotus AI workflow-pack execute request envelope
+- Pattern: shared governed request envelope separated from domain payload construction
+- Status: Hardened
+- Finding Class: duplication, tenant/caller consistency, and contract drift risk
+- Summary: The Lotus AI execute adapters duplicated the same pack id/version/environment,
+  caller-identity, task-request, tenant, context, source-reference, and expected-output envelope
+  construction. Domain payloads were different, but the shared wrapper was platform contract
+  plumbing that could drift across advisory copilot, proposal narrative, memo commentary, policy
+  evidence, and workspace rationale integrations.
+- Evidence:
+  - `src/integrations/lotus_ai/workflow_request.py` now owns the governed workflow-pack execute
+    envelope for Lotus Advise callers.
+  - Lotus AI adapters now retain domain-specific payload and source-reference construction while
+    delegating common caller/environment/tenant/context wrapping to the shared helper.
+  - `tests/unit/advisory/api/test_lotus_ai_workflow_request.py` proves the governed caller
+    envelope, configured environment and tenant propagation, and default local development posture.
+- Consequence:
+  - Lotus AI execute requests now use one consistent Advise-owned envelope, reducing drift risk in
+    caller identity, tenant routing, source context, and expected-output metadata.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing Lotus AI workflow-pack run review-action mapping separately because it uses a
+    different endpoint contract than execute requests.
+
+## LA-REV-286
+
+- Scope: Advisory copilot Lotus AI request safety
+- Pattern: outbound request hygiene extracted from adapter orchestration
+- Status: Hardened
+- Finding Class: module size, sensitive-data handling, and request-boundary test gap
+- Summary: `advisory_copilot.py` still mixed transport orchestration and output guardrails with
+  outbound request hygiene: caller correlation id hashing, source-reference bounding, requested
+  output de-duplication, and raw-prompt/provider-response reason redaction. Those controls are
+  security and governance boundaries, so keeping them as private helpers inside the transport
+  adapter made them harder to test directly and easier to regress during future copilot changes.
+- Evidence:
+  - `src/integrations/lotus_ai/advisory_copilot_request.py` now owns advisory-copilot workflow-pack
+    request construction, workflow surface naming, caller correlation id bounding, source refs,
+    requested outputs, and safe reason projection.
+  - `src/integrations/lotus_ai/advisory_copilot.py` now keeps orchestration, guardrail decisions,
+    Lotus AI response handling, lineage projection, and fallback behavior.
+  - `tests/unit/advisory/api/test_lotus_ai_advisory_copilot_request.py` proves source-ref bounding,
+    oversized correlation-id hashing, requested-output de-duplication, and raw prompt/provider
+    material redaction before Advise calls lotus-ai.
+- Consequence:
+  - Advisory copilot request safety is now independently testable, the adapter is materially
+    smaller, and outbound Lotus AI calls remain bounded to governed evidence rather than raw prompt
+    or provider material.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue separating advisory copilot lineage helpers only if future slices need to extend
+    proposal-version lineage behavior.
+
+## LA-REV-287
+
+- Scope: RFC-0028 backend proof runtime summary projection
+- Pattern: sanitized demo-evidence projection separated from proof-pack orchestration
+- Status: Hardened
+- Finding Class: module size, demo-proof contract clarity, and missing direct tests
+- Summary: `capture.py` owned both proof-pack orchestration and the sanitized live-runtime summary
+  projection. The summary projection is a durable RFC-0028 evidence contract used by proof-pack
+  assets, scripts, and demo material, so keeping it inside the orchestrator made it harder to test
+  missing-field behavior and safe-field selection independently.
+- Evidence:
+  - `src/core/bank_demo_proof/runtime_summary.py` now owns sanitized runtime summary projection,
+    dotted-path lookup, dictionary contract lookup, and fixed-shape field selection.
+  - `src/core/bank_demo_proof/capture.py` now composes the runtime summary instead of owning the
+    projection internals.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_runtime_summary.py` proves demo-safe field
+    projection, source-hash exclusion, fail-closed missing contract sections, dotted-path error
+    reporting, and fixed-shape selection.
+- Consequence:
+  - RFC-0028 proof capture is smaller and the sanitized runtime evidence contract is directly
+    testable without constructing a full proof pack.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-capture modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue separating proof asset construction from capture orchestration if later RFC-0028
+    slices need to add additional asset families.
+
+## LA-REV-288
+
+- Scope: RFC-0028 backend proof asset construction
+- Pattern: proof asset inventory separated from capture orchestration
+- Status: Hardened
+- Finding Class: proof-boundary clarity, commit/local evidence controls, and direct test gap
+- Summary: `capture.py` still constructed the full proof asset list inline, including commit-safe
+  summaries, local-only runtime bundle evidence, customer-consumable commercial material, and
+  canonical content hashes. That asset inventory is a durable RFC-0028 proof contract and should
+  be testable without building the full capture bundle.
+- Evidence:
+  - `src/core/bank_demo_proof/proof_assets.py` now owns backend proof asset construction, content
+    hashes, commit permissions, access classes, retention classes, and source live-runtime bundle
+    URI precedence.
+  - `src/core/bank_demo_proof/capture.py` now delegates asset construction while retaining proof
+    bundle orchestration and material review enforcement.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_proof_assets.py` proves asset inventory,
+    customer-consumable vs local-only boundaries, content hashes, and source bundle precedence.
+- Consequence:
+  - RFC-0028 proof-pack evidence boundaries are easier to audit and less likely to drift when
+    proof capture adds new assets or commercial material changes.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-capture modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing proof-pack metadata and supported-claim register construction for additional
+    separable contracts if future slices change client-demo material.
+
+## LA-REV-289
+
+- Scope: RFC-0028 material field review gate
+- Pattern: supported-claim material review separated from proof-capture orchestration
+- Status: Hardened
+- Finding Class: claim-gate modularity and validation reuse
+- Summary: Material field reviews are the lowest-layer supported-claim gate for RFC-0028, but the
+  review DTO, expected field matrix, sensitive-text validation, and review builder lived inside
+  `capture.py`. That kept a durable claim-control contract coupled to proof-pack orchestration and
+  duplicated validation concerns that metadata also needed.
+- Evidence:
+  - `src/core/bank_demo_proof/material_review.py` now owns `MaterialFieldReview`, the material
+    field matrix, and `review_material_fields`.
+  - `src/core/bank_demo_proof/validation.py` now owns shared proof-capture text normalization and
+    sensitive-term detection for metadata and material review fields.
+  - `src/core/bank_demo_proof/capture.py` now imports the material review contract and composes it
+    during proof capture.
+  - Existing RFC-0028 proof-capture tests continue to prove material review pass/block behavior,
+    sensitive observed-value rejection, and full proof-pack enforcement.
+- Consequence:
+  - Supported-claim gating is easier to audit and extend, and proof capture is further reduced to
+    orchestration rather than owning every proof sub-contract.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-capture modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing supported-claim register construction if future slices add claim families or
+    demo audiences.
+
+## LA-REV-290
+
+- Scope: RFC-0028 scenario and supported-claim contract construction
+- Pattern: durable demo contracts separated from proof-capture orchestration
+- Status: Hardened
+- Finding Class: contract modularity, claim-control drift risk, and direct test gap
+- Summary: `capture.py` still owned the RFC-0028 scenario contract, source-product inventory,
+  unsupported boundaries, and supported-claim register. Those are durable governance contracts
+  used by proof capture, commercial material, and demo documentation, so keeping them inside the
+  orchestrator made claim wording, audience posture, and Workbench panel identifiers harder to
+  review independently.
+- Evidence:
+  - `src/core/bank_demo_proof/scenario_contract.py` now owns the canonical scenario reference,
+    source products, unsupported boundaries, and ordered scenario-step construction.
+  - `src/core/bank_demo_proof/supported_claim_register.py` now owns the supported-claim register
+    reference, artifact policy, claim posture, audience mapping, and wording guardrails.
+  - `src/core/bank_demo_proof/capture.py` now composes these contracts during proof-pack
+    construction instead of owning their internals.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_scenario_contract.py` proves canonical
+    identity, source products, unsupported boundaries, and governed Workbench panel identifiers.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_supported_claim_register.py` proves claim
+    posture, UI-pending screenshot exclusion, commercial material permissions, and artifact
+    policy boundaries.
+- Consequence:
+  - RFC-0028 claim-control and scenario-governance changes are now reviewed in focused modules
+    with direct tests, while proof capture remains a smaller orchestration layer.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-contract modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing proof-capture metadata and CLI writer boundaries only where additional
+    RFC-0028 proof evidence or operator behavior changes.
+
+## LA-REV-291
+
+- Scope: RFC-0028 backend proof-pack contract construction
+- Pattern: proof-pack marker and boundary construction separated from capture orchestration
+- Status: Hardened
+- Finding Class: contract modularity, overclaim prevention, and direct test gap
+- Summary: `capture.py` still assembled the proof-pack header inline, including proof id,
+  evidence markers, scenario/register references, source products, unsupported boundaries,
+  repository SHA lineage, and blocked client-ready posture. Those values are part of the
+  machine-readable RFC-0028 proof contract and should be testable without building every source
+  proof summary first.
+- Evidence:
+  - `src/core/bank_demo_proof/proof_pack.py` now owns backend proof-pack construction and the
+    canonical RFC-0028 evidence marker inventory.
+  - `src/core/bank_demo_proof/capture.py` now builds proof assets, then delegates proof-pack
+    construction to the proof-pack contract module.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_proof_pack.py` proves canonical proof-pack
+    identifiers, contract references, evidence markers, source products, unsupported boundaries,
+    repository lineage, and client-ready blocking posture.
+- Consequence:
+  - RFC-0028 proof-pack contract changes now fail close to the contract boundary, and capture
+    orchestration no longer owns the scenario, claim-register, asset, material-review, runtime
+    summary, and proof-pack internals at once.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-contract modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing metadata and CLI writer behavior if operator-facing proof capture changes.
+
+## LA-REV-292
+
+- Scope: RFC-0028 backend proof artifact writer
+- Pattern: artifact writing and summary rendering separated from proof-capture CLI orchestration
+- Status: Hardened
+- Finding Class: operator automation modularity and evidence-output drift risk
+- Summary: `scripts/capture_rfc0028_backend_proof.py` owned CLI parsing, live-suite loading,
+  runtime probing, proof-bundle assembly, artifact writing, manifest construction, JSON encoding,
+  and Markdown summary rendering. The artifact writer is the repeatable operator evidence-output
+  contract, so keeping it inside the CLI made it harder to test and reuse without invoking the
+  runtime probe and live-suite orchestration path.
+- Evidence:
+  - `scripts/rfc0028_backend_proof_writer.py` now owns sanitized artifact paths, manifest
+    artifact references, JSON output, and business-facing capture-summary rendering.
+  - `scripts/capture_rfc0028_backend_proof.py` now delegates artifact writing while retaining CLI,
+    live-suite source selection, runtime probing, and metadata assembly.
+  - `tests/unit/scripts/test_capture_rfc0028_backend_proof.py` now imports the writer directly
+    and continues to prove sanitized artifact output, relative manifest refs, no raw source hashes,
+    runtime latency presentation, and blocked client-ready posture.
+- Consequence:
+  - RFC-0028 proof-output behavior is easier to audit independently from CLI/runtime behavior, and
+    future writer changes have a smaller blast radius.
+- Documentation:
+  - No README or wiki source change is required. The public capture command and artifact names are
+    unchanged.
+- Follow-Up:
+  - Continue auditing runtime probe orchestration only if additional endpoint families or operator
+    CLI options are added.
+
+## LA-REV-293
+
+- Scope: RFC-0028 runtime probe orchestration
+- Pattern: runtime probe collection separated from proof-capture CLI orchestration
+- Status: Hardened
+- Finding Class: operational diagnostics modularity and security-boundary clarity
+- Summary: `scripts/capture_rfc0028_backend_proof.py` still owned runtime endpoint probing,
+  latency capture, health/capability summary projection, skipped-probe posture, and base-url
+  validation alongside CLI parsing and live-suite source selection. Runtime probing is an
+  operational diagnostics boundary with sensitive URL and summary redaction expectations, so it
+  should be directly testable without executing the proof-capture CLI.
+- Evidence:
+  - `scripts/rfc0028_runtime_probe.py` now owns runtime posture probing, individual endpoint
+    probing, skipped-probe posture construction, health summaries, capability summaries, and
+    latency capture.
+  - `scripts/capture_rfc0028_backend_proof.py` delegates runtime posture collection to the runtime
+    probe module and keeps CLI/source-selection responsibilities.
+  - `tests/unit/scripts/test_capture_rfc0028_backend_proof.py` imports runtime probe functions
+    directly and continues to prove sensitive material redaction, latency capture, unsafe base-url
+    rejection, and skipped-probe normalization.
+- Consequence:
+  - RFC-0028 operator diagnostics are easier to audit and extend without coupling runtime probing
+    to live-suite execution or artifact writing.
+- Documentation:
+  - No README or wiki source change is required. The public capture command and runtime posture
+    artifact behavior are unchanged.
+- Follow-Up:
+  - Continue auditing live-suite source loading only if additional source modes or bundle layouts
+    are added.
+
+## LA-REV-294
+
+- Scope: RFC-0028 live-suite proof source loading
+- Pattern: live-suite source selection separated from proof-capture CLI orchestration
+- Status: Hardened
+- Finding Class: repeatability boundary clarity and direct test gap
+- Summary: `scripts/capture_rfc0028_backend_proof.py` still owned existing `result.json` loading,
+  bundle resolution, optional live-suite execution, bundle reference calculation, and no-source
+  failure behavior. This source-selection logic is the repeatability boundary for RFC-0028 proof
+  capture, so it should be directly testable without invoking runtime probes, metadata assembly,
+  or artifact writing.
+- Evidence:
+  - `scripts/rfc0028_live_suite_source.py` now owns existing result loading, latest bundle
+    resolution, optional live-suite execution, source artifact references, and repeatable-source
+    failure behavior.
+  - `scripts/capture_rfc0028_backend_proof.py` now delegates live-suite source selection while
+    retaining CLI parsing and proof orchestration.
+  - `tests/unit/scripts/test_capture_rfc0028_backend_proof.py` now proves existing result loading,
+    latest bundle resolution, and the explicit source-required error.
+- Consequence:
+  - RFC-0028 proof-capture repeatability is now covered at the source-selection layer, reducing
+    reliance on full live-suite execution to catch source artifact regressions.
+- Documentation:
+  - No README or wiki source change is required. The public capture command and source modes are
+    unchanged.
+- Follow-Up:
+  - Continue auditing proof-capture metadata and artifact-reference behavior only when operator
+    options or evidence artifact semantics change.
+
+## LA-REV-295
+
+- Scope: RFC-0028 bank-demo proof API request boundary
+- Pattern: API request validation and runtime metadata normalization separated from route handlers
+- Status: Hardened
+- Finding Class: controller thinness, metadata validation reuse, and direct test gap
+- Summary: `src/api/routers/bank_demo_proof.py` still owned the request DTO, artifact-reference
+  validation, runtime metadata defaults, environment fallbacks, correlation-id derivation, and
+  sensitive-fragment rejection. That kept route handlers coupled to request-normalization details
+  and made metadata behavior harder to test without driving the whole FastAPI endpoint.
+- Evidence:
+  - `src/api/routers/bank_demo_proof_request.py` now owns `BankDemoProofCaptureRequest`,
+    artifact-reference validators, runtime repository SHA/service-version/environment defaults,
+    correlation-id normalization, and sensitive metadata rejection.
+  - `src/api/routers/bank_demo_proof.py` now focuses on OpenAPI route declaration, metadata
+    composition, proof-pack invocation, and HTTP 409 material-drift mapping.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof_request.py` proves sensitive artifact ref
+    rejection, request-vs-environment metadata precedence, governed fallbacks, context correlation
+    id use, and sensitive correlation-id rejection.
+- Consequence:
+  - RFC-0028 proof API request behavior is easier to audit and less likely to accrete business
+    logic in the controller layer.
+- Documentation:
+  - No README or wiki source change is required. The public API path, request schema name, and
+    behavior are unchanged.
+- Follow-Up:
+  - Continue auditing the route only if API behavior or OpenAPI semantics change.
+
+## LA-REV-296
+
+- Scope: RFC-0028 document proof business-safe text validation
+- Pattern: shared RFC-0028 proof text normalization reused by document proof contracts
+- Status: Hardened
+- Finding Class: duplicate validation logic and sensitive-detail drift risk
+- Summary: `src/core/bank_demo_proof/document_proof.py` carried its own required-text
+  normalization and sensitive technical-term filter even though proof capture already had the same
+  guarded vocabulary. That duplication made report/document proof behavior easier to drift from the
+  canonical RFC-0028 proof-pack safety boundary.
+- Evidence:
+  - `src/core/bank_demo_proof/validation.py` now exposes shared required-text and business-safe
+    text normalization helpers while keeping the existing proof-capture helper behavior intact.
+  - `src/core/bank_demo_proof/document_proof.py` reuses the shared helpers for status, degraded
+    reason, summary identifier, and requested-output-format normalization.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_document_proof.py` now covers hyphenated
+    sensitive provider-response wording so document proof validation cannot leak technical detail
+    through presentation-safe fields.
+- Consequence:
+  - RFC-0028 document proof safety is more consistent with proof capture and easier to extend
+    across commercial/report proof modules without local sensitive-term variants.
+- Documentation:
+  - No README or wiki source change is required. The public proof API, CLI, and generated proof
+    artifact behavior are unchanged.
+- Follow-Up:
+  - Continue reducing duplicate validation in commercial-material and integration-proof modules
+    where it can be done without changing public proof contracts.
+
+## LA-REV-297
+
+- Scope: RFC-0028 commercial-material proof validation
+- Pattern: commercial material proof contracts reuse shared RFC-0028 text-safety helpers
+- Status: Hardened
+- Finding Class: duplicate sensitive-fragment handling and repository-ref safety drift
+- Summary: `src/core/bank_demo_proof/commercial_materials.py` carried a second sensitive-fragment
+  vocabulary for business titles, claim refs, pack ids, and repository source references. The list
+  used underscore variants while document/proof capture used space and hyphen normalization, making
+  the proof-pack safety boundary harder to reason about consistently.
+- Evidence:
+  - `src/core/bank_demo_proof/validation.py` now normalizes underscores, hyphens, and spaces before
+    matching RFC-0028 sensitive terms.
+  - `src/core/bank_demo_proof/commercial_materials.py` now reuses shared required-text,
+    business-safe text, and sensitive-term helpers while retaining repository-local source-ref
+    validation.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_commercial_materials.py` now covers sensitive
+    repository source fragments such as `raw_prompt`.
+- Consequence:
+  - Commercial proof materials now share the same sensitive-detail boundary as proof capture and
+    document proof, reducing the chance that RFP/demo material metadata can drift into technical
+    leakage.
+- Documentation:
+  - No README or wiki source change is required. The commercial material inventory and public proof
+    behavior are unchanged.
+- Follow-Up:
+  - Continue the same consolidation in integration-proof validation if focused tests show no public
+    contract drift.
+
+## LA-REV-298
+
+- Scope: RFC-0028 journey integration proof validation
+- Pattern: source integration proof status fields reuse shared RFC-0028 text-safety helpers
+- Status: Hardened
+- Finding Class: duplicate status validation and blocked-boundary wording risk
+- Summary: `src/core/bank_demo_proof/integration_proof.py` carried another local sensitive-term
+  tuple and status normalizer for AI, policy, panel, and proof identifiers. Reusing the shared RFC
+  28 text-safety helper reduces duplicate validation, but unsupported-claim boundary statements must
+  still be allowed to name blocked concepts such as raw prompts when explaining what is excluded.
+- Evidence:
+  - `src/core/bank_demo_proof/integration_proof.py` now delegates status and identifier validation
+    to the shared business-safe helper while using required-text normalization for unsupported-claim
+    boundary statements.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_integration_proof.py` now covers
+    underscore-form sensitive provider-response status text.
+  - Focused proof-capture tests continue to prove the canonical integration proof summary can state
+    raw-prompt exclusion without leaking raw material.
+- Consequence:
+  - RFC-0028 AI/policy/cockpit integration proof fields now share the same sensitive-detail
+    boundary as document and commercial proof fields while keeping business-facing blocked-claim
+    language truthful.
+- Documentation:
+  - No README or wiki source change is required. The integration proof contract and generated proof
+    artifact semantics are unchanged.
+- Follow-Up:
+  - Continue auditing larger proof model contracts for reusable validators only where the change
+    preserves externally visible proof wording.
+
+## LA-REV-299
+
+- Scope: RFC-0028 proof model sensitive-term vocabulary
+- Pattern: proof model contracts reuse the shared RFC-0028 sensitive-term matcher
+- Status: Hardened
+- Finding Class: duplicate sensitive-term vocabulary and underscore-drift risk
+- Summary: `src/core/bank_demo_proof/models.py` still had a model-local sensitive technical-term
+  tuple used by scenario, supported-claim, proof-asset, and proof-pack validators. That duplicated
+  the same vocabulary now shared by document, commercial, integration, and capture proof modules
+  and did not cover underscore variants consistently.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now delegates sensitive-term matching to the shared RFC-0028
+    validation helper while preserving its custom required-field error messages.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` now covers underscore-form
+    provider-response text in supported-claim wording.
+  - Focused RFC-0028 proof model, integration, commercial, document, and capture tests pass.
+- Consequence:
+  - RFC-0028 proof model contracts now use the same sensitive-detail vocabulary as the rest of the
+    proof-pack stack without widening model error-message churn.
+- Documentation:
+  - No README or wiki source change is required. Public proof models and generated proof artifacts
+    retain the same schema and business meaning.
+- Follow-Up:
+  - Continue extracting model submodules only where a complete domain boundary can be moved with
+    focused tests; avoid broad churn in the central proof contract module.
+
+## LA-REV-300
+
+- Scope: RFC-0028 supported-claim register vocabulary
+- Pattern: claim register wording avoids implementation-process language in proof material
+- Status: Hardened
+- Finding Class: business-facing language quality and commercial-proof leakage risk
+- Summary: `src/core/bank_demo_proof/supported_claim_register.py` still used implementation-process
+  terms such as "report seam" and "Slice 5" in claim text or wording rules. The supported-claim
+  register feeds RFC-0028 proof and commercial material governance, so it should use private-banking
+  and product-proof language rather than internal implementation phrasing.
+- Evidence:
+  - Supported-claim wording now uses "report-package handoff", "proof scope", and "Gateway and
+    Workbench validation" instead of seam/slice phrasing.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_supported_claim_register.py` now prevents
+    `seam` and `slice` from appearing in claim text or wording rules.
+  - Focused supported-claim, proof-capture, and RFC-0028 documentation-contract tests pass.
+- Consequence:
+  - RFC-0028 proof material is less likely to leak engineering process language into business,
+    sales, pre-sales, or client-demo audiences.
+- Documentation:
+  - No README or wiki source change is required. This is a source-of-truth claim-register wording
+    correction and does not change public behavior or commands.
+- Follow-Up:
+  - Continue scanning generated proof summaries and commercial docs for implementation-process
+    wording before final RFC-0028 closure.
+
+## LA-REV-301
+
+- Scope: README and wiki public integration vocabulary
+- Pattern: public documentation uses business-facing integration-boundary language
+- Status: Hardened
+- Finding Class: documentation polish, audience fit, and implementation-shorthand leakage
+- Summary: Public README/wiki pages still described report and AI integration points as "seams".
+  That shorthand is useful during engineering discussions but reads like implementation jargon in
+  material intended for business users, operations, sales, pre-sales, and client-demo preparation.
+- Evidence:
+  - `README.md` now describes Lotus Report, Lotus AI, and adjacent app relationships as integration
+    boundaries.
+  - `wiki/Advisory-Workspace.md`, `wiki/Proposal-Lifecycle.md`, `wiki/Integrations.md`, and
+    `wiki/Supported-Features.md` use integration-boundary terminology in prose, tables, and
+    diagrams.
+  - `tests/unit/test_public_docs_vocabulary.py` prevents `seam` wording from returning to the
+    target public docs.
+- Consequence:
+  - Public documentation better matches enterprise buyer and bank stakeholder expectations without
+    changing any API or runtime behavior.
+- Documentation:
+  - Repo-local wiki source changed and must pass wiki sync check before merge.
+- Follow-Up:
+  - Continue broader wiki/RFC vocabulary cleanup only where it changes current product truth or
+    buyer-facing clarity; avoid rewriting historical RFC implementation notes for cosmetics.
+
+## LA-REV-302
+
+- Scope: RFC-0028 proof-pack API error classification
+- Pattern: distinguish material-proof conflict from malformed source evidence
+- Status: Hardened
+- Finding Class: API error-model precision and caller remediation clarity
+- Summary: `POST /advisory/bank-demo-proof/proof-packs` mapped every proof-build `ValueError` to
+  HTTP 409. Material-field drift is a real conflict because it means the provided evidence does not
+  match the canonical proof posture, but malformed source evidence is a 422 request/source-evidence
+  validation failure. Treating both as 409 made Gateway, Workbench, and automation remediation less
+  precise.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now maps
+    `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED` to HTTP 409 and other proof-build validation
+    failures to HTTP 422.
+  - The OpenAPI 422 response description now includes source-evidence validation failure.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof.py` proves material drift remains 409 while
+    missing nested source evidence returns 422 with the bounded proof-field diagnostic.
+- Consequence:
+  - RFC-0028 proof automation and product consumers can distinguish stale/materially conflicting
+    proof state from invalid source evidence without inspecting fragile response text alone.
+- Documentation:
+  - No README or wiki source change is required. The API behavior is clarified in OpenAPI and
+    covered by endpoint tests.
+- Follow-Up:
+  - Continue tightening error models only where consumers need different remediation behavior.
+
+## LA-REV-303
+
+- Scope: RFC-0028 proof-pack OpenAPI response examples
+- Pattern: documented API error examples distinguish proof conflict from source-evidence validation
+- Status: Hardened
+- Finding Class: OpenAPI usability and integration contract clarity
+- Summary: After the RFC-0028 proof-pack endpoint started classifying material drift as 409 and
+  malformed source evidence as 422, the OpenAPI response descriptions named the statuses but did
+  not provide concrete examples. Gateway, Workbench, and automation integrators benefit from stable
+  examples for the two remediation paths.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now includes response examples for 409 material-review
+    conflict and 422 missing source-evidence diagnostics.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof.py` asserts those examples remain present in
+    the generated OpenAPI operation.
+  - Focused OpenAPI lifecycle docs tests and `scripts/openapi_quality_gate.py` pass.
+- Consequence:
+  - RFC-0028 proof API consumers can understand expected error payloads from the OpenAPI document
+    without relying only on code or test fixtures.
+- Documentation:
+  - No README or wiki source change is required. The API contract is documented in OpenAPI.
+- Follow-Up:
+  - If Gateway or Workbench needs typed problem-details bodies later, introduce that as a dedicated
+    cross-repo API-contract slice rather than a local response-description edit.
+
+## LA-REV-304
+
+- Scope: RFC-0028 runtime proof summary sanitization
+- Pattern: sanitized runtime evidence redacts sensitive values even when upstream services place
+  them in neutral summary fields
+- Status: Hardened
+- Finding Class: evidence-leakage prevention and operational diagnostics hardening
+- Summary: Runtime proof summaries already redacted sensitive keys, but a neutral health or
+  readiness field such as `detail`, `message`, or `error` could still carry bearer credentials,
+  token assignments, or traceback text returned by a dependency. RFC-0028 proof material must
+  remain useful for operational posture without carrying credentials, prompts, raw payload/source
+  markers, trace/correlation identifiers, or stack traces.
+- Evidence:
+  - `src/core/bank_demo_proof/runtime_posture.py` now redacts sensitive string values matching
+    bearer/basic credentials, token/secret/password/cookie/API-key assignments, trace/correlation
+    identifiers, raw prompt/payload/source assignments, and traceback text.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py` proves neutral runtime
+    summary fields are redacted while business-useful degraded-readiness wording remains intact.
+  - Focused proof-model tests and touched-file Ruff checks pass.
+- Consequence:
+  - Runtime evidence remains operationally meaningful while reducing the chance that upstream
+    health/readiness diagnostics leak secret or stack details into RFC-0028 proof artifacts.
+- Documentation:
+  - No README or wiki source change is required. Existing RFC-0028 public docs already state that
+    runtime proof summaries redact credentials, tokens, raw payload/prompt/source material, and
+    trace/correlation identifiers.
+- Follow-Up:
+  - Continue checking generated proof artifacts for business-facing vocabulary and secret-free
+    summaries during final RFC-0028 closure.
+
+## LA-REV-305
+
+- Scope: Public RFC/wiki/commercial integration-boundary vocabulary
+- Pattern: buyer-facing documentation avoids engineering shorthand for cross-service boundaries
+- Status: Hardened
+- Finding Class: documentation product quality and private-banking audience fit
+- Summary: The previous public-document vocabulary guard covered README and only selected wiki
+  pages. Additional public wiki pages, the RFC index, RFC README, and active RFC-0028 source still
+  used "seam" wording for report, AI, and handoff integration points. That shorthand weakens
+  documentation intended for business, operations, sales, pre-sales, and client-demo audiences.
+- Evidence:
+  - `wiki/Home.md`, `wiki/Overview.md`, `wiki/Security-and-Governance.md`,
+    `wiki/Architecture.md`, and `wiki/RFC-Index.md` now use integration-boundary language.
+  - `docs/rfcs/README.md` and
+    `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` now use report-package and
+    handoff boundary wording where those documents are current source truth.
+  - `tests/unit/test_public_docs_vocabulary.py` now covers all repo wiki pages, commercial
+    material, the RFC index, and active RFC-0028.
+- Consequence:
+  - Public Lotus Advise documentation is more consistent, business-facing, and less likely to leak
+    implementation shorthand into client-demo or sales-support material.
+- Documentation:
+  - Repo-local wiki source changed and must pass wiki sync check before merge, then publish after
+    merge to `main`.
+- Follow-Up:
+  - Keep future documentation edits tied to implementation-backed truth or buyer-facing clarity;
+    do not rewrite historical RFC records purely for style.
+
+## LA-REV-306
+
+- Scope: RFC-0028 proof-pack API validation-error redaction
+- Pattern: endpoint error details must not echo sensitive nested source-evidence values
+- Status: Hardened
+- Finding Class: API security, evidence hygiene, and consumer-safe diagnostics
+- Summary: `POST /advisory/bank-demo-proof/proof-packs` already prevented request-shape
+  validation errors from echoing sensitive artifact references, but proof-build validation errors
+  were returned with `str(exc)`. If nested live-runtime source evidence carried a sensitive value in
+  a material field, Pydantic validation text could include the rejected input. That is not suitable
+  for Gateway, Workbench, automation logs, or proof-pack diagnostics.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now classifies status from the raw proof error but returns
+    a sanitized detail when the error contains credentials, tokens, secrets, raw prompt/payload/
+    source terms, provider responses, authorization, or cookies.
+  - Material-review conflicts still preserve the 409 remediation path when details are safe.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof.py` proves sensitive nested source evidence
+    returns a bounded 422 `RFC0028_PROOF_PACK_VALIDATION_FAILED` detail without echoing the token or
+    rejected value.
+- Consequence:
+  - RFC-0028 proof API consumers keep actionable HTTP classification without exposing sensitive
+    source-evidence values in API responses or logs.
+- Documentation:
+  - No README or wiki source change is required. Existing API/wiki proof-boundary docs already
+    state that HTTP 422 validation responses must not echo rejected sensitive input.
+- Follow-Up:
+  - Consider typed problem-detail models only as a coordinated cross-repo API-contract slice if
+    Gateway or Workbench needs machine-readable remediation codes beyond current stable strings.
+
+## LA-REV-307
+
+- Scope: RFC-0028 proof-pack client-ready posture schema
+- Pattern: public API schemas must not advertise unsupported client-ready approval states
+- Status: Hardened
+- Finding Class: API contract truthfulness and overclaim prevention
+- Summary: `ClientReadyProofPosture` exposed `CLIENT_READY_APPROVED` in the model literal while a
+  later proof-pack validator rejected it. That kept runtime behavior conservative, but OpenAPI
+  could still advertise an approval posture that RFC-0028 does not currently support. Unsupported
+  client-ready approval must not appear as a valid current proof-pack API value.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now limits `ClientReadyProofPosture` to
+    `CLIENT_READY_REVIEW_REQUIRED` and `CLIENT_READY_PUBLICATION_BLOCKED`.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof.py` asserts
+    `CLIENT_READY_APPROVED` is absent from the generated `AdvisoryBankDemoProofPack` schema.
+  - `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` now states that
+    `CLIENT_READY_APPROVED` is not part of the current proof-pack API contract before publication
+    controls exist.
+- Consequence:
+  - Gateway, Workbench, and external API readers cannot infer unsupported client-ready publication
+    approval from the proof-pack schema.
+- Documentation:
+  - RFC-0028 source truth changed; no wiki change was required for this specific API enum
+    correction.
+- Follow-Up:
+  - Any future client-ready approval posture must arrive with implementation-backed publication
+    controls, API tests, OpenAPI examples, and wiki/supported-feature updates in the same slice.
+
+## LA-REV-308
+
+- Scope: RFC-0028 supported-claim taxonomy documentation
+- Pattern: RFC source truth must match the implemented supported-claim classification contract
+- Status: Hardened
+- Finding Class: RFC/API contract alignment and unsupported-state removal
+- Summary: RFC-0028 listed `REMOVED_OR_SUPERSEDED` as a supported-claim classification, but the
+  implemented `SupportedClaimClassification` contract exposes only
+  `IMPLEMENTATION_BACKED`, `BACKEND_BACKED_UI_PENDING`, `DEGRADED_SUPPORTED`, `PLANNED_RFC`, and
+  `UNSUPPORTED`. Adding an unused public state would increase API surface without a current
+  product need, so the RFC now documents removed or superseded claims as unsupported migration
+  wording rather than a separate classification.
+- Evidence:
+  - `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` no longer lists
+    `REMOVED_OR_SUPERSEDED` as a current classification.
+  - `tests/unit/test_rfc0028_gold_standard_tightening_contract.py` asserts the active RFC source
+    does not reintroduce the unsupported classification.
+  - Focused RFC contract and proof-model tests pass.
+- Consequence:
+  - The RFC, model taxonomy, and OpenAPI schema remain aligned, reducing integration ambiguity for
+    Gateway, Workbench, documentation, and proof automation.
+- Documentation:
+  - RFC-0028 source truth changed. No wiki change was required because the wiki did not advertise
+    the removed classification.
+- Follow-Up:
+  - Keep any future claim-classification addition platform-backed and schema-tested before adding
+    it to RFC, README, wiki, or commercial material.
+
+## LA-REV-309
+
+- Scope: RFC-0027 advisory copilot human-review posture documentation
+- Pattern: RFC review-state vocabulary must match the implemented copilot contract
+- Status: Hardened
+- Finding Class: RFC/API contract alignment and client-ready overclaim prevention
+- Summary: RFC-0027 still listed older human-review postures such as
+  `APPROVED_FOR_ADVISOR_USE`, `APPROVED_FOR_CLIENT_DRAFT_USE`,
+  `REJECTED_UNSUPPORTED_EVIDENCE`, and `REJECTED_POLICY_OR_GUARDRAIL`. The implemented copilot
+  contract exposes `APPROVED_FOR_INTERNAL_USE`, `REJECTED`, `UNSUPPORTED`,
+  `GUARDRAIL_REJECTED`, and `UNAVAILABLE` instead, with client-ready publication blocked. The RFC
+  now matches the shipped contract vocabulary.
+- Evidence:
+  - `docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md` now lists the implemented review
+    postures from `src/core/advisory_copilot/models.py`.
+  - `tests/unit/test_rfc0027_gold_standard_tightening_contract.py` asserts the implemented
+    postures are documented and the superseded names do not return.
+  - Focused RFC-0027 contract tests pass.
+- Consequence:
+  - Engineers, Gateway/Workbench consumers, and demo/support documentation readers see the same
+    copilot review-state vocabulary that the API and persistence layers actually use.
+- Documentation:
+  - RFC-0027 source truth changed. No wiki change was required because wiki/supported-feature truth
+    already describes governed internal advisor/reviewer copilot interactions.
+- Follow-Up:
+  - Keep any future review posture addition tied to model, API, OpenAPI, persistence, and RFC tests
+    in the same slice.
+
+## LA-REV-310
+
+- Scope: RFC-0026 cockpit business-facing vocabulary
+- Pattern: Workbench-facing action copy and public docs use private-banking boundary language
+- Status: Hardened
+- Finding Class: business-language quality and product-surface clarity
+- Summary: Advisor-cockpit action copy and public/RFC documentation still used internal shorthand
+  such as `DPM` and `seam` for portfolio-management and handoff boundaries. Those terms are
+  acceptable in engineering conversation but weaker in Workbench-facing action text, wiki, README,
+  and active RFC source truth intended for business, operations, sales, pre-sales, and client-demo
+  readers.
+- Evidence:
+  - `src/core/advisor_cockpit/action_factory.py` and `src/core/advisor_cockpit/service.py` now use
+    discretionary portfolio-management wording in tactical house-view action text and summaries.
+  - `README.md`, `wiki/Architecture.md`, `wiki/Integrations.md`, `wiki/Mesh-Data-Products.md`,
+    `wiki/RFC-Index.md`, `wiki/Supported-Features.md`, `docs/rfcs/README.md`, RFC-0026, and
+    RFC-0028 use portfolio-management and handoff-boundary wording instead of `DPM`/`seam`
+    shorthand.
+  - `tests/unit/advisory/engine/test_engine_advisor_cockpit_action_factory.py` asserts the updated
+    Workbench-facing tactical house-view action copy.
+  - `tests/unit/test_public_docs_vocabulary.py` prevents `DPM` and `seam` wording from returning
+    to public docs.
+- Consequence:
+  - The advisor cockpit reads more like a private-banking product surface while preserving the
+    source-of-record boundaries with `lotus-manage`, CRM, report, archive, and execution services.
+- Documentation:
+  - Repo-local wiki source changed and must pass wiki sync check before merge, then publish after
+    merge to `main`.
+- Follow-Up:
+  - Continue replacing implementation shorthand only where it affects product-surface, wiki, RFC,
+    README, or commercial-material clarity.
+
+## LA-REV-311
+
+- Scope: Active RFC 26-28 public-source vocabulary and closure wording
+- Pattern: Active RFC source truth must not leak placeholders or describe completed proof slices as
+  deferred work
+- Status: Hardened
+- Finding Class: RFC/product documentation quality and closure-truth alignment
+- Summary: A follow-up active-RFC scan found stale implementation shorthand in RFC-0027, a `todo`
+  cell in the RFC-0026 vocabulary table, and RFC-0028 closure wording that still referred to
+  completed Gateway, Workbench, commercial, and owner-repo slices as "later" work. The wording has
+  been tightened to business-facing integration-boundary and relationship-follow-up language while
+  preserving truthful unsupported boundaries for client-ready publication, external client
+  communication, approvals, and OMS/order/fill/settlement.
+- Evidence:
+  - RFC-0026 now avoids the placeholder `todo` vocabulary in the advisor-cockpit domain table.
+  - RFC-0027 now uses advisory-to-discretionary portfolio-management and integration-boundary
+    language instead of `DPM`/`seam` shorthand.
+  - RFC-0028 no longer describes already-completed proof gates as "later" work.
+  - `tests/unit/test_public_docs_vocabulary.py` now includes RFC-0026 and RFC-0027 in the public
+    documentation vocabulary guard.
+  - `tests/unit/test_rfc0028_gold_standard_tightening_contract.py` blocks stale "later" closure
+    phrases from returning.
+  - Focused RFC/public-doc tests passed:
+    `python -m pytest tests/unit/test_public_docs_vocabulary.py tests/unit/test_rfc0027_gold_standard_tightening_contract.py tests/unit/test_rfc0028_gold_standard_tightening_contract.py`.
+- Consequence:
+  - RFCs 26-28 are better aligned with implementation-backed closure truth and safer for
+    business, operations, sales, pre-sales, and client-demo readers.
+- Documentation:
+  - Active RFC source truth changed. Repo-local wiki source did not require a separate update in
+    this slice because wiki vocabulary had already been hardened and this change tightens RFC
+    wording plus regression coverage.
+- Follow-Up:
+  - Keep active RFC closure wording tied to current implementation evidence and avoid using
+    "later" to describe already-completed gates.
+
+## LA-REV-312
+
+- Scope: Legacy advisory simulation database dependency
+- Pattern: Delete dead infrastructure placeholders once concrete repository/runtime ownership
+  exists elsewhere
+- Status: Hardened
+- Finding Class: dead-code removal and API dependency clarity
+- Summary: `src/api/dependencies.py` still exposed a `get_db_session` generator documented as a
+  database-session stub from older RFC-0005 scaffolding. The only remaining consumers were legacy
+  simulation route parameters and test overrides; persisted proposal, cockpit, memo, policy, and
+  copilot behavior now use repository/runtime wiring instead of this dependency. Keeping the stub
+  made the API layer look less production-ready and suggested an unimplemented persistence path.
+- Evidence:
+  - Removed `src/api/dependencies.py`.
+  - Removed unused `db: Depends(get_db_session)` parameters from the advisory simulation and
+    artifact endpoints.
+  - Removed test harness overrides for the deleted dependency.
+  - `tests/unit/advisory/api/test_api_internal_guards.py` now asserts simulation endpoints do not
+    reintroduce the legacy `db` dependency.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/api/test_api_internal_guards.py tests/unit/advisory/api/test_api_advisory_proposal_simulate.py tests/e2e/demo/test_demo_scenarios.py`.
+- Consequence:
+  - API dependency flow is clearer: deterministic simulation remains stateless while persisted
+    workflow paths use the proposal/advisory repositories and runtime readiness gates.
+- Documentation:
+  - No README/wiki change is required because this removes misleading internal scaffolding without
+    changing public endpoint behavior or supported-feature truth.
+- Follow-Up:
+  - Continue removing stale scaffolding only when references prove it is no longer part of a
+    supported extension point.
+
+## LA-REV-313
+
+- Scope: RFC-0026 advisor cockpit action construction modularity
+- Pattern: Separate source DTOs from action-builder behavior in large domain modules
+- Status: Hardened
+- Finding Class: maintainability and service-boundary clarity
+- Summary: `src/core/advisor_cockpit/action_factory.py` had grown into a large mixed module that
+  defined source input DTOs, source-reference DTOs, and action-builder behavior together. The
+  source-read-model and service layers only need source DTOs in some paths, so coupling them to the
+  full action-builder module made the cockpit package harder to reason about and extend.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_sources.py` for source-backed cockpit action DTOs.
+  - Kept `src/core/advisor_cockpit/action_factory.py` focused on action construction,
+    evidence/readiness helpers, and deterministic ordering.
+  - Updated source-read-model/service imports to depend on `action_sources.py` where they only need
+    source DTOs.
+  - Kept package-level exports stable through `src/core/advisor_cockpit/__init__.py`.
+  - RFC/index source truth now names both `action_sources.py` and `action_factory.py`.
+  - `tests/unit/test_rfc0026_slice4_domain_action_factory_contract.py` now asserts source DTOs live
+    outside the action factory.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/engine/test_engine_advisor_cockpit_action_factory.py tests/unit/advisory/engine/test_engine_advisor_cockpit_source_read_model.py tests/unit/test_rfc0026_slice4_domain_action_factory_contract.py tests/unit/test_rfc0026_slice5_source_read_model_contract.py`.
+- Consequence:
+  - RFC-0026 cockpit source projection and action construction boundaries are clearer, with less
+    import coupling and a smaller action-factory behavior surface.
+- Documentation:
+  - RFC/index/wiki source truth changed because the package structure is durable implementation
+    evidence for RFC-0026 Slice 4.
+- Follow-Up:
+  - Continue splitting large cockpit modules only along domain boundaries that reduce coupling or
+    duplicate reasoning.
+
+## LA-REV-314
+
+- Scope: RFC-0023 narrative review client-ready status contract
+- Pattern: Remove unsupported client-ready approval states from API-visible enums
+- Status: Hardened
+- Finding Class: API contract overclaim prevention and OpenAPI accuracy
+- Summary: `ProposalNarrativeClientReadyStatus` still advertised
+  `APPROVED_FOR_CLIENT_READY` even though RFC-0023 only supports advisor-review narrative evidence
+  and the service deliberately returns blocked posture for client-ready release requests. Keeping
+  the enum value in the model/OpenAPI contract made the API look more capable than the
+  implementation and proof evidence support.
+- Evidence:
+  - Removed `APPROVED_FOR_CLIENT_READY` from `ProposalNarrativeClientReadyStatus`.
+  - Tightened `client_ready_release_requested` wording to separately approved publication controls
+    rather than vague future scope.
+  - Updated RFC/wiki/index wording to keep client-ready narrative and publication separately gated.
+  - `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` now asserts the
+    narrative review schema does not expose `APPROVED_FOR_CLIENT_READY`.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py tests/unit/advisory/engine/test_engine_proposal_workflow_service.py::test_narrative_client_ready_release_requires_positive_review_and_clear_policy tests/unit/advisory/engine/test_engine_proposal_workflow_service.py::test_narrative_client_ready_release_stays_gated_for_clean_advisor_review_narrative tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py::test_narrative_review_blocks_client_ready_release_without_approval tests/unit/test_rfc0023_slice13_14_closure_hardening_contract.py tests/unit/test_rfc0023_slice3_documentation_contract.py`.
+- Consequence:
+  - RFC-0023 OpenAPI and model contracts now match the proven behavior: advisor-review approval is
+    not client-ready publication approval.
+- Documentation:
+  - RFC and wiki source truth changed because an API-visible status contract was tightened.
+- Follow-Up:
+  - Any future client-ready status addition must arrive with implementation, policy/disclosure
+    gates, report/render/archive controls, OpenAPI examples, live evidence, and documentation in
+    the same implementation slice.
+
+## LA-REV-315
+
+- Scope: API-facing integration-boundary vocabulary
+- Pattern: OpenAPI and runtime supportability descriptions use business-facing boundary language
+- Status: Hardened
+- Finding Class: API documentation quality and product-language consistency
+- Summary: A source scan found `seam` terminology in API-visible descriptions for integration
+  capabilities, report delivery, advisory copilot, workspace rationale, workspace AI review, and
+  proposal report status. The wording was technically understandable but weaker for banking
+  audiences and inconsistent with the hardened RFC/wiki/commercial language.
+- Evidence:
+  - Replaced API/runtime descriptions with `integration boundary`, `boundary`, or
+    `dependency boundary` wording in capabilities, delivery, copilot, workspace, and proposal
+    response models.
+  - Updated the integration capabilities test fixture wording.
+  - Added an OpenAPI guard in
+    `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` that prevents
+    `seam` from returning to the generated OpenAPI surface.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py tests/unit/advisory/api/test_api_integration_capabilities.py tests/unit/advisory/contracts/test_contract_openapi_workspace_docs.py`.
+- Consequence:
+  - API consumers, operators, and client-facing technical readers see consistent
+    integration-boundary language across generated contracts and supportability payloads.
+- Documentation:
+  - No README/wiki update was required because this slice changes generated API contract wording
+    and the API vocabulary inventory records the updated descriptions.
+- Follow-Up:
+  - Keep OpenAPI wording business-facing and avoid engineering shorthand in generated contracts.
+
+## LA-REV-316
+
+- Scope: Tactical house-view portfolio-management API wording
+- Pattern: Public route descriptions and examples prefer private-banking terminology over internal
+  abbreviations
+- Status: Hardened
+- Finding Class: API documentation quality and private-banking vocabulary
+- Summary: The tactical house-view route and request model still used `DPM` in API descriptions and
+  examples. The source product may continue to accept source-owned portfolio type values, but the
+  public contract should explain the capability in discretionary portfolio-management language.
+- Evidence:
+  - Updated tactical house-view request model descriptions/examples to use discretionary
+    portfolio-management wording.
+  - Updated the route description to say downstream discretionary portfolio-management workflows.
+  - Updated tactical house-view API/engine tests to use `DISCRETIONARY` in example requests.
+  - Added an OpenAPI assertion that prevents the route description from returning to `DPM`
+    workflow wording.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/api/test_tactical_house_view_api.py tests/unit/advisory/engine/test_tactical_house_view.py tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py`.
+- Consequence:
+  - Tactical house-view API docs now read as a private-banking capability while preserving
+    downstream portfolio-management ownership boundaries.
+- Documentation:
+  - No README/wiki change was required because this slice changes generated API contract wording
+    and examples only.
+- Follow-Up:
+  - Keep source-owned codes compatible where needed, but prefer business-facing examples in public
+    API contracts.
+
+## LA-REV-317
+
+- Scope: Advisor cockpit owner-role vocabulary and compatibility
+- Pattern: Business-facing labels are exposed without breaking legacy cross-repo role values
+- Status: Hardened
+- Finding Class: API design, integration compatibility, and private-banking vocabulary
+- Summary: Advisor cockpit house-view actions still relied on the legacy `DPM_OWNER` role as the
+  only portfolio-management projection value. Gateway and Workbench currently consume that value,
+  so removing it would break live canonical integration. Advise now accepts the business-facing
+  `PORTFOLIO_MANAGER` caller role and emits `owner_role_label` for display while preserving the
+  legacy role value for existing consumers.
+- Evidence:
+  - Added `PORTFOLIO_MANAGER` to `AdvisorCockpitOwnerRole` and projected it to the same visible
+    action set as the legacy role.
+  - Added `owner_role_label` to `AdvisoryActionItem` so UI/reporting consumers can render
+    "Portfolio manager" instead of showing machine role codes.
+  - Updated cockpit house-view API and service tests to seed `DISCRETIONARY` portfolio examples,
+    query through `PORTFOLIO_MANAGER`, and prove legacy `DPM_OWNER` callers still see the action.
+  - Added an OpenAPI guard that requires the business-facing owner-role label contract.
+- Consequence:
+  - Advise improves private-banking vocabulary without introducing a breaking contract change for
+    Gateway or Workbench during their parallel refactors.
+- Documentation:
+  - RFC-0026 Slice 16 proof language was updated from internal abbreviated wording to
+    portfolio-manager / portfolio-management wording.
+- Follow-Up:
+  - Superseded by LA-REV-325, which removed the legacy owner-role value from the Advise source
+    contract after the surrounding RFC-0026/RFC-0028 proof boundary had stabilized.
+
+## LA-REV-318
+
+- Scope: Tactical house-view portfolio-type compatibility
+- Pattern: Canonical defaults with explicit legacy alias normalization
+- Status: Hardened
+- Finding Class: Domain modeling and API compatibility
+- Summary: The tactical house-view request default still included the legacy `DPM` source code even
+  after the public API descriptions and tests moved to discretionary portfolio-management
+  vocabulary. This kept the live source model tied to an internal abbreviation. The default now
+  uses canonical `DISCRETIONARY` and `MANAGED` values while normalizing legacy `DPM` input to
+  `DISCRETIONARY` for backward-compatible repeatability.
+- Evidence:
+  - Replaced the default eligible portfolio types with `DISCRETIONARY` and `MANAGED`.
+  - Added bounded portfolio-type alias normalization in the cohort builder.
+  - Added a regression test proving a legacy `DPM` candidate remains eligible under the canonical
+    defaults.
+- Consequence:
+  - Tactical house-view defaults now use private-banking portfolio-management language without
+    breaking existing seeded or integration payloads that still carry the legacy source code.
+- Documentation:
+  - No README/wiki update was required because this is a source-model compatibility hardening
+    change covered by generated API vocabulary and tests.
+- Follow-Up:
+  - Remove the legacy alias only through a coordinated public-contract migration after downstream
+    consumers have moved to canonical portfolio-type values.
+
+## LA-REV-319
+
+- Scope: RFC-0028 proof asset commit policy
+- Pattern: Commit-safe proof assets are enforced at the model boundary
+- Status: Hardened
+- Finding Class: Security posture and proof-artifact governance
+- Summary: `ProofAsset` blocked local-only and secret assets from being committed, but it did not
+  require committed assets to use a commit-safe/customer-consumable access class, `COMMIT_SOURCE`
+  retention, or an immutable content hash. That left room for a restricted evidence summary to be
+  accidentally marked commit-allowed even though the default supported-claim artifact policy would
+  not permit it.
+- Evidence:
+  - Added model-level validation that `commit_allowed=True` requires `COMMIT_SAFE_SUMMARY` or
+    `CUSTOMER_CONSUMABLE_SUMMARY`, `COMMIT_SOURCE` retention, and a canonical `content_hash`.
+  - Added regression tests for restricted commit attempts, local-retention commit attempts, and
+    missing content hashes.
+  - Updated RFC-0028 and wiki security-governance truth to describe the commit-allowed proof asset
+    policy.
+- Consequence:
+  - RFC-0028 proof-pack artifacts now enforce the same safety posture in code, tests, RFC truth,
+    and wiki governance material.
+- Documentation:
+  - RFC-0028 and `wiki/Security-and-Governance.md` changed because proof-artifact policy truth
+    changed.
+- Follow-Up:
+  - Keep any future proof asset access class changes synchronized with the supported-claim
+    register, proof model validation, and wiki governance text.
+
+## LA-REV-320
+
+- Scope: RFC-0024/RFC-0025 supported-feature closure truth after RFC-0028
+- Pattern: Documentation reflects current implemented owner RFC instead of stale planned wording
+- Status: Hardened
+- Finding Class: Documentation truth and commercial-claim governance
+- Summary: Supported-feature and RFC-index wording still described client-ready memo claims and
+  full bank-demo/RFP package claims as planned or gated until RFC-0028 owned them. RFC-0028 now owns
+  bank-demo/RFP proof through supported-claim governance, while client-ready memo publication and
+  external client communication remain gated. Leaving the old wording would confuse business and
+  pre-sales readers about what RFC-0028 proved versus what remains blocked.
+- Evidence:
+  - Updated `wiki/Supported-Features.md` for RFC-0024 to state that RFC-0028 governs bank-demo/RFP
+    proof through supported claims without promoting client-ready memo publication.
+  - Updated the RFC index rows for RFC-0024 and RFC-0025 to point bank-demo/RFP proof to RFC-0028
+    instead of describing it as a future/gated claim inside those RFCs.
+  - Updated RFC-0024 documentation contract tests and trust-telemetry documentation assertions to
+    pin the current gated client-ready memo publication wording.
+- Consequence:
+  - Business-facing supported-feature truth now distinguishes implemented RFC-0028 proof from
+    still-gated client-ready memo publication and external communication.
+- Documentation:
+  - Wiki supported-features source and RFC index source changed; wiki check/publish is required
+    before/after merge.
+- Follow-Up:
+  - Keep cross-RFC closure language current when a later RFC implements a previously gated package
+    while still blocking narrower client-ready publication or communication claims.
+
+## LA-REV-321
+
+- Scope: RFC-0027 copilot business-copy leakage controls
+- Pattern: Guardrail invariants must live at the model and persistence boundary, not only in the
+  packet builder
+- Status: Hardened
+- Finding Class: Security posture and test gap
+- Summary: The copilot evidence-packet builder rejected raw prompt/provider/trace/correlation
+  wording before projection, but direct evidence-section model construction and persisted
+  structured payloads did not enforce the same low-level invariant. That left API, replay, or test
+  fixture paths able to bypass the intended business-copy redaction rule.
+- Evidence:
+  - Added shared copilot business-copy technical-detail detection in the domain model.
+  - Applied the rule to business projections, unsupported-evidence messages, evidence-section
+    titles, evidence-section summaries, and persisted structured payload string values.
+  - Added regression tests for direct evidence-section construction and persisted output-section
+    leakage, plus RFC/wiki contract assertions for the governance wording.
+- Consequence:
+  - RFC-0027 copilot evidence now rejects sensitive technical copy at the lowest useful layer across
+    UI, API, persistence, and replay paths instead of depending on one builder path.
+- Documentation:
+  - RFC-0027 Slice 14 acceptance evidence and `wiki/Security-and-Governance.md` changed; wiki
+    check/publish is required before/after merge.
+- Follow-Up:
+  - Keep any future copilot projection fields wired through the shared business-copy guard before
+    they are exposed through Gateway, Workbench, or persisted replay evidence.
+
+## LA-REV-322
+
+- Scope: RFC-0027/RFC-0028 current-state documentation boundary
+- Pattern: Current feature truth must distinguish owner-RFC runtime authority from RFC-0028
+  supported-claim proof
+- Status: Hardened
+- Finding Class: Documentation drift
+- Summary: Current README, RFC index, supported-features, and wiki text still said full RFC-0028
+  demo/RFP claims were gated in RFC-0026/RFC-0027 context. RFC-0028 now owns bank-demo/RFP proof
+  through supported claims and claim-controlled commercial material, while client-ready
+  publication, external client communication, bank-specific attestations, legal advice, completed
+  sign-off/approval, and OMS/order/fill/settlement remain blocked.
+- Evidence:
+  - Updated current README wording for advisor-cockpit and bank-demo proof boundaries.
+  - Updated RFC-0027 index and RFC body wording to say RFC-0028 governs bank-demo/RFP proof through
+    supported claims rather than RFC-0027 runtime authority.
+  - Updated supported-features and wiki RFC-index current-state sections for memo, policy,
+    cockpit, and copilot boundaries.
+  - Updated documentation contract tests pinning the current supported-claim wording.
+- Consequence:
+  - Business, pre-sales, operations, and engineering readers now see RFC-0028 as the implemented
+    proof owner without interpreting RFC-0026 or RFC-0027 as granting client-ready, execution, or
+    bank-specific attestation authority.
+- Documentation:
+  - README, RFC index, RFC-0027, supported-features, and wiki RFC index changed; wiki check/publish
+    is required before/after merge.
+- Follow-Up:
+  - Keep historical slice records audit-friendly, but update current-state README/wiki/index truth
+    whenever a later RFC implements a previously gated supported-claim package.
+
+## LA-REV-323
+
+- Scope: RFC-0028 proof-pack correlation header contract
+- Pattern: RFC-0028 proof endpoints should use the same correlation-id header spelling as the
+  surrounding Advise RFC APIs
+- Status: Hardened
+- Finding Class: API contract consistency
+- Summary: The proof-pack endpoint accepted and documented `X-Correlation-Id`, while the RFC-0026
+  and RFC-0027 Advise APIs expose `X-Correlation-ID`. HTTP header matching is case-insensitive at
+  runtime, but OpenAPI consumers and generated clients should see one consistent contract.
+- Evidence:
+  - Updated the RFC-0028 proof-pack route header alias to `X-Correlation-ID`.
+  - Updated API tests to send the canonical header and assert the OpenAPI parameter name,
+    location, and max-length contract.
+- Consequence:
+  - Gateway, Workbench, automation, and client SDK consumers now see a consistent correlation-id
+    contract across the implemented RFC-0026 through RFC-0028 Advise APIs.
+- Documentation:
+  - No wiki source change is required. This is an OpenAPI contract consistency fix for an existing
+    runtime behavior boundary.
+- Follow-Up:
+  - Continue final RFC-0028 closure review across proof automation, documentation truth, and
+    branch hygiene before PR handoff.
+
+## LA-REV-324
+
+- Scope: RFC-0026 through RFC-0028 baseline-gap wording
+- Pattern: Closed RFCs should distinguish pre-implementation baseline gaps from current product
+  posture
+- Status: Hardened
+- Finding Class: Documentation truth
+- Summary: The implemented RFC-0026, RFC-0027, and RFC-0028 documents still used "Current gaps"
+  wording in baseline sections. The gap lists were historically useful, but after implementation
+  they could make readers believe supported cockpit, copilot, or bank-demo proof features were
+  still missing.
+- Evidence:
+  - Renamed the RFC-0026 baseline section to "Pre-RFC Implementation Baseline".
+  - Reworded RFC-0026, RFC-0027, and RFC-0028 gap lists as baseline gaps closed or explicitly
+    classified by the RFC.
+  - Added documentation contract assertions so the stale "Current gaps" wording cannot reappear in
+    those implemented RFCs.
+- Consequence:
+  - Business, pre-sales, operations, and engineering readers get current implementation truth
+    without losing the original baseline rationale for the work.
+- Documentation:
+  - RFC source changed. No wiki source change is required because the wiki already carries current
+    implemented support posture.
+- Follow-Up:
+  - Keep baseline/audit sections in future RFCs clearly labeled once the RFC moves from planning to
+    implemented closure.
+
+## LA-REV-325
+
+- Scope: RFC-0026 advisor cockpit owner-role vocabulary
+- Pattern: Product-facing cockpit contracts should use private-banking role language, not legacy
+  discretionary-portfolio-management abbreviations
+- Status: Hardened
+- Finding Class: Domain vocabulary and API quality
+- Summary: House-view impact actions used `DPM_OWNER` as the machine-readable owner role while
+  rendering "Portfolio manager" as the label. That leaked legacy/internal wording into the Advise
+  API contract and tests even though RFC-0026 current product language uses portfolio-management
+  boundaries.
+- Evidence:
+  - Replaced the house-view impact owner role with `PORTFOLIO_MANAGER`.
+  - Removed `DPM_OWNER` from emitted advisor-cockpit owner roles and mapped the legacy caller
+    alias to `PORTFOLIO_MANAGER` visibility.
+  - Updated API, service, action-factory, and RFC slice tests/docs to assert the private-banking
+    owner role.
+- Consequence:
+  - RFC-0026 cockpit contracts now use clean private-banking vocabulary for house-view impact
+    queues while preserving the `lotus-manage` source-of-record boundary.
+- Documentation:
+  - RFC-0026 slice docs changed. No wiki source change is required because current wiki pages
+    already use portfolio-management language rather than `DPM_OWNER`.
+- Follow-Up:
+  - Watch adjacent Gateway/Workbench refactors for any stale copied examples; Advise remains the
+    source-owned contract for the cleaned role.
+
+## LA-REV-327
+
+- Scope: RFC-0026 cockpit legacy caller-role compatibility
+- Pattern: Clean emitted domain contracts can preserve bounded inbound compatibility during
+  cross-repo refactors
+- Status: Hardened
+- Finding Class: Integration compatibility
+- Summary: Read-only Gateway and Workbench pulse showed canonical Workbench validation still sends
+  `DPM_OWNER` as a cockpit caller role while Gateway refactors are in flight. Removing that inbound
+  value from Advise would break live proof even though Advise should no longer emit it as an action
+  owner role.
+- Evidence:
+  - Split caller-role validation from emitted action-owner-role validation.
+  - Kept `DPM_OWNER` as an inbound caller alias only, projecting it to `PORTFOLIO_MANAGER` actions.
+  - Added service and API regression tests proving legacy caller compatibility returns
+    `PORTFOLIO_MANAGER` in response payloads.
+- Consequence:
+  - RFC-0026 Advise output stays clean while the current Gateway/Workbench canonical validation
+    path remains repeatable during adjacent refactors.
+- Documentation:
+  - No wiki source change is required. This is a bounded compatibility rule for the existing
+    source-owned cockpit API.
+- Follow-Up:
+  - Once Gateway and Workbench migrate their query examples and validators, remove the inbound
+    legacy caller alias in a coordinated contract-cleanup slice.
+
+## LA-REV-328
+
+- Scope: RFC-0026 cockpit caller-role OpenAPI regression coverage
+- Pattern: Compatibility exceptions need API-contract tests that prove both allowed input and clean
+  output
+- Status: Hardened
+- Finding Class: Test quality and API governance
+- Summary: The legacy caller-role compatibility fix had runtime API and service tests, but the
+  OpenAPI contract also needed an explicit assertion that `DPM_OWNER` remains input-only and does
+  not return to emitted action owner roles.
+- Evidence:
+  - Added OpenAPI assertions that action payload owner-role enums include `PORTFOLIO_MANAGER` and
+    exclude `DPM_OWNER`.
+  - Added OpenAPI assertions that the action-list query-role parameter documents the legacy alias
+    and accepts both `DPM_OWNER` and `PORTFOLIO_MANAGER`.
+- Consequence:
+  - Generated clients and cross-repo validators get a pinned compatibility contract while response
+    payloads stay on clean private-banking vocabulary.
+- Documentation:
+  - No wiki source change is required. This is test coverage for a documented API compatibility
+    exception.
+- Follow-Up:
+  - Remove both the alias and this compatibility assertion once Gateway and Workbench no longer
+    send the legacy caller role.
+
+## LA-REV-326
+
+- Scope: OpenAPI enrichment portfolio-id example vocabulary
+- Pattern: Generated API examples should use the canonical private-banking proof portfolio rather
+  than legacy demo identifiers
+- Status: Hardened
+- Finding Class: API documentation quality and private-banking vocabulary
+- Summary: The generic OpenAPI enrichment helper still emitted `DEMO_DPM_EUR_001` as the default
+  portfolio-id example. That legacy identifier could leak into generated endpoint examples even
+  though the governed RFC-0023 through RFC-0028 proof path uses `PB_SG_GLOBAL_BAL_001`.
+- Evidence:
+  - Replaced the generic portfolio-id OpenAPI example with `PB_SG_GLOBAL_BAL_001`.
+  - Updated the OpenAPI enrichment unit test to pin the canonical private-banking example.
+- Consequence:
+  - Generated Advise API examples align with the governed front-office proof dataset and avoid
+    legacy discretionary-portfolio-management abbreviations.
+- Documentation:
+  - No README/wiki source change is required. This is generated API contract example hygiene.
+- Follow-Up:
+  - Continue scanning generated docs and examples for stale non-private-banking vocabulary before
+    PR handoff.

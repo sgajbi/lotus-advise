@@ -599,7 +599,7 @@ def test_integration_capabilities_service_fails_closed_for_missing_dependency():
             {
                 "dependency_key": "lotus_report",
                 "service_name": "lotus-report",
-                "description": "Advisory proposal report-request seam.",
+                "description": "Advisory proposal report-request integration boundary.",
                 "base_url_env": "LOTUS_REPORT_BASE_URL",
                 "configured": True,
                 "operational_ready": True,

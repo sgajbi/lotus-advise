@@ -701,6 +701,27 @@ def test_copilot_persistence_rejects_raw_ai_payloads() -> None:
             correlation_id="corr_rfc0027_copilot_001",
         )
 
+    with pytest.raises(ValueError, match="COPILOT_STRUCTURED_PAYLOAD_TECHNICAL_DETAIL"):
+        persist_advisory_copilot_run(
+            repository=repository,
+            evidence_packet=_packet(),
+            audience="ADVISOR",
+            requested_outputs=("advisor_review_summary",),
+            requested_by="advisor_123",
+            reason={"business_reason": "Prepare advisor review."},
+            draft_status="REVIEW_REQUIRED",
+            output_sections=(
+                {
+                    "section_key": "SUMMARY",
+                    "text": "Provider response is available for review.",
+                },
+            ),
+            lineage={"workflow_pack_id": "advisory_copilot_proposal_explanation.pack"},
+            review_guidance=(),
+            guardrail_reasons=(),
+            correlation_id="corr_rfc0027_copilot_001",
+        )
+
 
 def test_copilot_persistence_rejects_oversized_structured_payloads() -> None:
     repository = InMemoryAdvisoryCopilotRepository()

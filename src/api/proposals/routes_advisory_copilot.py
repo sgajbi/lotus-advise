@@ -186,7 +186,7 @@ def get_advisory_copilot_evidence_packet(
     summary="Run Governed Advisory Copilot Action",
     description=(
         "Executes a governed advisory copilot action from a persisted evidence packet through "
-        "the approved lotus-ai workflow-pack seam, then persists review-gated output, hashes, "
+        "the approved lotus-ai workflow-pack boundary, then persists review-gated output, hashes, "
         "guardrail posture, lineage, and audit context."
     ),
     responses=ADVISORY_COPILOT_RESPONSES,

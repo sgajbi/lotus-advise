@@ -1,8 +1,7 @@
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Header, status
+from fastapi import APIRouter, Header, status
 
-from src.api.dependencies import get_db_session
 from src.api.services import advisory_simulation_service as service
 from src.api.simulation_examples import (
     PROPOSAL_409_EXAMPLE,
@@ -79,7 +78,6 @@ def simulate_proposal(
             examples=["corr-proposal-1234"],
         ),
     ] = None,
-    db: Annotated[None, Depends(get_db_session)] = None,
 ) -> ProposalResult:
     return service.simulate_proposal_response(
         request=request,
@@ -129,7 +127,6 @@ def build_proposal_artifact_endpoint(
             examples=["corr-proposal-artifact-1234"],
         ),
     ] = None,
-    db: Annotated[None, Depends(get_db_session)] = None,
 ) -> ProposalArtifact:
     resolved_request = service.resolve_simulation_input(request)
     proposal_result = service.simulate_proposal_response(

@@ -9,10 +9,13 @@ import pytest
 from scripts.capture_rfc0028_backend_proof import (
     _DEFAULT_OUTPUT_DIR,
     _artifact_ref_prefix_for,
-    _not_probed_runtime_posture,
-    _probe_endpoint,
-    _probe_runtime_posture,
-    write_backend_proof_capture_bundle,
+)
+from scripts.rfc0028_backend_proof_writer import write_backend_proof_capture_bundle
+from scripts.rfc0028_live_suite_source import load_or_run_live_suite
+from scripts.rfc0028_runtime_probe import (
+    not_probed_runtime_posture,
+    probe_endpoint,
+    probe_runtime_posture,
 )
 from src.core.bank_demo_proof import (
     BackendRuntimePosture,
@@ -154,7 +157,7 @@ def test_runtime_probe_redacts_sensitive_material_and_records_latency() -> None:
 
     client = httpx.Client(transport=httpx.MockTransport(handler), base_url="http://test")
 
-    evidence = _probe_endpoint(client, "https://advise.dev.lotus", "/platform/capabilities")
+    evidence = probe_endpoint(client, "https://advise.dev.lotus", "/platform/capabilities")
 
     assert evidence.posture == "READY"
     assert evidence.http_status == 200
@@ -167,12 +170,12 @@ def test_runtime_probe_redacts_sensitive_material_and_records_latency() -> None:
 
 def test_runtime_probe_rejects_unsafe_base_url_before_capture() -> None:
     with pytest.raises(ValueError, match="credentials, query, or fragment"):
-        _probe_runtime_posture("https://user:secret@advise.dev.lotus?token=abc", "local")
+        probe_runtime_posture("https://user:secret@advise.dev.lotus?token=abc", "local")
 
     with pytest.raises(ValueError, match="credentials, query, or fragment"):
-        _not_probed_runtime_posture("https://advise.dev.lotus#token=abc", "local")
+        not_probed_runtime_posture("https://advise.dev.lotus#token=abc", "local")
 
-    posture = _not_probed_runtime_posture("https://advise.dev.lotus/runtime/", "local")
+    posture = not_probed_runtime_posture("https://advise.dev.lotus/runtime/", "local")
 
     assert posture.base_url == "https://advise.dev.lotus/runtime"
 
@@ -186,3 +189,53 @@ def test_artifact_ref_prefix_remains_relative_for_absolute_output_dir(tmp_path) 
 
     with pytest.raises(ValueError, match="sensitive material"):
         _artifact_ref_prefix_for(tmp_path, "output/rfc0028/token-proof")
+
+
+def test_live_suite_source_loads_existing_result_json(tmp_path) -> None:
+    result_path = tmp_path / "result.json"
+    result_path.write_text(json.dumps({"parity": {"status": "ready"}}), encoding="utf-8")
+
+    payload, result_ref, bundle_ref = load_or_run_live_suite(
+        live_suite_json=str(result_path),
+        live_suite_bundle=None,
+        run_live_suite=False,
+        skip_degraded=False,
+        output_dir=tmp_path / "proof",
+    )
+
+    assert payload == {"parity": {"status": "ready"}}
+    assert result_ref == result_path.as_posix()
+    assert bundle_ref is None
+
+
+def test_live_suite_source_resolves_latest_existing_bundle(tmp_path) -> None:
+    parent = tmp_path / "bundles"
+    older = parent / "live-runtime-suite-20260528T090000Z"
+    newer = parent / "live-runtime-suite-20260528T100000Z"
+    older.mkdir(parents=True)
+    newer.mkdir(parents=True)
+    (older / "result.json").write_text(json.dumps({"run": "older"}), encoding="utf-8")
+    (newer / "result.json").write_text(json.dumps({"run": "newer"}), encoding="utf-8")
+
+    payload, result_ref, bundle_ref = load_or_run_live_suite(
+        live_suite_json=None,
+        live_suite_bundle=str(parent),
+        run_live_suite=False,
+        skip_degraded=False,
+        output_dir=tmp_path / "proof",
+    )
+
+    assert payload == {"run": "newer"}
+    assert result_ref == (newer / "result.json").as_posix()
+    assert bundle_ref == newer.as_posix()
+
+
+def test_live_suite_source_requires_repeatable_source(tmp_path) -> None:
+    with pytest.raises(SystemExit, match="Provide --live-suite-json"):
+        load_or_run_live_suite(
+            live_suite_json=None,
+            live_suite_bundle=None,
+            run_live_suite=False,
+            skip_degraded=False,
+            output_dir=tmp_path / "proof",
+        )

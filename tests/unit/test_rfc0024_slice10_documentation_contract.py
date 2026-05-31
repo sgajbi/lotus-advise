@@ -42,5 +42,5 @@ def test_rfc0024_slice10_supported_features_truth_does_not_overpromote() -> None
     assert "review-gated advisor-use AI commentary" in supported_features
     assert "deterministic unavailable posture" in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_features
-    assert "client-ready memo claims remain planned" in supported_features
+    assert "client-ready memo publication remains gated" in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_features

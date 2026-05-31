@@ -33,7 +33,7 @@ def _request() -> TacticalHouseViewCohortRequest:
                 {
                     "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                     "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
-                    "portfolio_type": "DPM",
+                    "portfolio_type": "DISCRETIONARY",
                     "discretionary_mandate": True,
                     "booking_center_code": "Singapore",
                     "current_exposure_weight": "0.18",
@@ -71,7 +71,7 @@ def _request() -> TacticalHouseViewCohortRequest:
                     ],
                 },
             ],
-            "eligible_portfolio_types": ["DPM"],
+            "eligible_portfolio_types": ["DISCRETIONARY"],
             "min_exposure_weight": "0.10",
             "correlation_id": "corr-thv-001",
         }
@@ -108,6 +108,22 @@ def test_tactical_house_view_cohort_preserves_source_backed_inclusions_and_exclu
         "lotus-core",
         "lotus-risk",
     }
+
+
+def test_tactical_house_view_normalizes_legacy_portfolio_type_alias() -> None:
+    payload = _request().model_dump(mode="json")
+    payload["candidate_portfolios"][0]["portfolio_type"] = "DPM"
+    payload.pop("eligible_portfolio_types")
+    request = TacticalHouseViewCohortRequest.model_validate(payload)
+
+    assert request.eligible_portfolio_types == ["DISCRETIONARY", "MANAGED"]
+
+    cohort = build_tactical_house_view_affected_cohort(
+        request,
+        generated_at=datetime(2026, 5, 14, 8, 0, tzinfo=timezone.utc),
+    )
+
+    assert cohort.affected_portfolios[0].portfolio_id == "PB_SG_GLOBAL_BAL_001"
 
 
 def test_tactical_house_view_cohort_is_empty_when_no_candidate_is_eligible() -> None:

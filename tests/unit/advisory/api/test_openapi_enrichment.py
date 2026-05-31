@@ -64,7 +64,7 @@ def test_openapi_enrichment_adds_operation_docs_tags_errors_and_schema_examples(
     assert proposal["tags"] == ["Advisory"]
     assert proposal["responses"]["default"] == {"description": "Unexpected error response."}
     assert properties["portfolioId"]["description"] == "Unique portfolio identifier."
-    assert properties["portfolioId"]["example"] == "DEMO_DPM_EUR_001"
+    assert properties["portfolioId"]["example"] == "PB_SG_GLOBAL_BAL_001"
     assert properties["status"]["example"] == "READY"
     assert properties["items"]["example"] == [10]
     assert properties["metadata"]["example"] == {"key": "sample_text"}

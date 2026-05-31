@@ -6,6 +6,7 @@ RFC27_PATH = Path("docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md")
 RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 RFC26_PATH = Path("docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
+WIKI_SECURITY_PATH = Path("wiki/Security-and-Governance.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 
 
@@ -24,6 +25,8 @@ def test_rfc0027_closure_preserves_slice_zero_decisions_and_no_open_questions() 
     assert "IMPLEMENTED for governed internal advisor/reviewer copilot interactions" in rfc
     assert "Last Tightened** | 2026-05-31" in rfc
     assert "rfc0027-governed-advisory-ai-copilot" in rfc
+    assert "Baseline gaps RFC-0027 closed or explicitly classified" in rfc
+    assert "Current gaps that RFC-0027 must close" not in rfc
     assert "## 26. Slice 0 Pre-Implementation Decisions" in rfc
     assert "## 26. Open Questions" not in rfc
     assert "No open question may remain at final closure" in rfc
@@ -72,6 +75,32 @@ def test_rfc0027_commits_all_action_families_and_selected_api_surface() -> None:
     assert "`lotus-advise` never calls model providers directly" in flat_rfc
 
 
+def test_rfc0027_human_review_statuses_match_implemented_contract() -> None:
+    flat_rfc = _flat(RFC27_PATH)
+
+    implemented_statuses = (
+        "REVIEW_REQUIRED",
+        "APPROVED_FOR_INTERNAL_USE",
+        "REJECTED",
+        "SUPERSEDED",
+        "EXPIRED",
+        "UNSUPPORTED",
+        "GUARDRAIL_REJECTED",
+        "UNAVAILABLE",
+    )
+    for status in implemented_statuses:
+        assert f"`{status}`" in flat_rfc
+
+    unsupported_statuses = (
+        "APPROVED_FOR_ADVISOR_USE",
+        "APPROVED_FOR_CLIENT_DRAFT_USE",
+        "REJECTED_UNSUPPORTED_EVIDENCE",
+        "REJECTED_POLICY_OR_GUARDRAIL",
+    )
+    for status in unsupported_statuses:
+        assert status not in flat_rfc
+
+
 def test_rfc0027_requires_repeatable_seed_automation_and_lowest_layer_regression_tests() -> None:
     flat_rfc = _flat(RFC27_PATH)
 
@@ -95,6 +124,7 @@ def test_rfc0027_requires_repeatable_seed_automation_and_lowest_layer_regression
 
 def test_rfc0027_pins_enterprise_backend_hardening_and_business_copy_rules() -> None:
     flat_rfc = _flat(RFC27_PATH)
+    flat_wiki_security = _flat(WIKI_SECURITY_PATH)
 
     backend_quality_markers = (
         "remove dead code and unused paths",
@@ -104,6 +134,7 @@ def test_rfc0027_pins_enterprise_backend_hardening_and_business_copy_rules() -> 
         "improve batching, pagination, caching, and database access",
         "API design, versioning, idempotency, correlation IDs, auditability, lineage",
         "Swagger/OpenAPI examples, logging, metrics, tracing, operational diagnostics",
+        "Evidence-section models and copilot structured-payload persistence reject raw prompt",
     )
     for marker in backend_quality_markers:
         assert marker in flat_rfc
@@ -116,6 +147,9 @@ def test_rfc0027_pins_enterprise_backend_hardening_and_business_copy_rules() -> 
     )
     for marker in copy_markers:
         assert marker in flat_rfc
+
+    assert "RFC-0027 Copilot Evidence Governance" in flat_wiki_security
+    assert "UI, API, persistence, and replay paths aligned" in flat_wiki_security
 
 
 def test_rfc0027_indexes_and_supported_features_promote_only_proven_internal_copilot() -> None:

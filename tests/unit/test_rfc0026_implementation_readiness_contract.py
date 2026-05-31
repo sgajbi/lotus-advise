@@ -24,6 +24,8 @@ def test_rfc0026_records_current_prerequisites_and_readiness_boundary() -> None:
         "Last Tightened** | 2026-05-31",
         "rfc0026-advisor-cockpit-gold-standard",
         "2026-05-27 Implementation Readiness Decision",
+        "## 7. Pre-RFC Implementation Baseline",
+        "Baseline gaps RFC-0026 closed or explicitly classified",
         "RFC-0023 is implemented for advisor-review proposal narrative evidence",
         "RFC-0024 is implemented for advisor-use proposal memo evidence",
         "RFC-0025 is implemented for advisor/compliance policy evaluation evidence",
@@ -34,6 +36,8 @@ def test_rfc0026_records_current_prerequisites_and_readiness_boundary() -> None:
     )
     for marker in required_markers:
         assert marker in rfc
+    assert "Current gaps:" not in _read(RFC26_PATH)
+    assert "lists RFC-0026 as a planned runtime capability" not in rfc
 
 
 def test_rfc0026_requires_repeatable_front_office_cockpit_automation() -> None:

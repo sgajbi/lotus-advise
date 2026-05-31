@@ -10,6 +10,32 @@ def _assert_property_has_docs(schema: dict, property_name: str) -> None:
     assert ("example" in prop) or ("examples" in prop)
 
 
+def test_openapi_uses_business_facing_integration_boundary_language():
+    openapi_text = repr(app.openapi()).lower()
+
+    assert " seam" not in openapi_text
+    assert "seam " not in openapi_text
+
+
+def test_tactical_house_view_openapi_uses_private_banking_portfolio_management_language():
+    operation = app.openapi()["paths"]["/advisory/tactical-house-view/cohorts/evaluate"]["post"]
+    description = operation["description"]
+
+    assert "DPM workflows" not in description
+    assert "discretionary portfolio-management workflows" in description
+
+
+def test_advisor_cockpit_openapi_exposes_business_owner_role_label():
+    schemas = app.openapi()["components"]["schemas"]
+    action_schema = schemas["AdvisoryActionItem"]
+    owner_role = action_schema["properties"]["owner_role"]
+    owner_role_label = action_schema["properties"]["owner_role_label"]
+
+    assert "PORTFOLIO_MANAGER" in repr(schemas)
+    assert "Use owner_role_label for business-facing display." in owner_role["description"]
+    assert "Business-facing owner label" in owner_role_label["description"]
+
+
 def test_idempotency_header_openapi_contract_is_bounded_and_business_clear():
     with TestClient(app) as client:
         openapi = client.get("/openapi.json").json()
@@ -164,8 +190,10 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(narrative_review_schema, "proposal_id")
     _assert_property_has_docs(narrative_review_schema, "proposal_version_no")
     _assert_property_has_docs(narrative_review_schema, "narrative_id")
+    _assert_property_has_docs(narrative_review_schema, "client_ready_status")
     _assert_property_has_docs(narrative_review_schema, "source_narrative_hash")
     _assert_property_has_docs(narrative_review_schema, "replayed")
+    assert "APPROVED_FOR_CLIENT_READY" not in repr(narrative_review_schema)
 
     narrative_review_response_schema = schemas["ProposalNarrativeReviewResponse"]
     _assert_property_has_docs(narrative_review_response_schema, "proposal")

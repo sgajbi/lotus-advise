@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+from src.integrations.lotus_ai.workflow_response import (
+    extract_error_detail,
+    extract_model_version,
+    extract_workflow_run_id,
+    optional_text,
+    safe_dict,
+)
+
+
+def test_safe_dict_rejects_untrusted_non_object_payloads() -> None:
+    assert safe_dict({"execution": {"status": "COMPLETED"}}) == {
+        "execution": {"status": "COMPLETED"}
+    }
+    assert safe_dict(["not", "an", "object"]) == {}
+    assert safe_dict(None) == {}
+
+
+def test_extract_workflow_run_id_and_model_version_trim_optional_lineage_values() -> None:
+    payload = {"workflow_pack_run": {"run_id": "  packrun_advisory_001  "}}
+    result = {"model_version": "  lotus-ai-governed-model.v1  "}
+
+    assert extract_workflow_run_id(payload) == "packrun_advisory_001"
+    assert extract_model_version(result) == "lotus-ai-governed-model.v1"
+    assert extract_workflow_run_id({"workflow_pack_run": {"run_id": " "}}) is None
+    assert extract_model_version({"model_version": 42}) is None
+
+
+def test_extract_error_detail_uses_default_for_blank_or_structured_details() -> None:
+    assert (
+        extract_error_detail({"detail": "  WORKFLOW_PACK_DISABLED  "}, default="UNAVAILABLE")
+        == "WORKFLOW_PACK_DISABLED"
+    )
+    assert extract_error_detail({"detail": {"message": "ignored"}}, default="UNAVAILABLE") == (
+        "UNAVAILABLE"
+    )
+    assert extract_error_detail({}, default="UNAVAILABLE") == "UNAVAILABLE"
+
+
+def test_optional_text_can_bound_copilot_lineage_without_leaking_long_provider_text() -> None:
+    assert optional_text("  line \n break  ", max_length=160) == "line break"
+
+    bounded = optional_text("x" * 200, max_length=12)
+
+    assert bounded == "xxxxxxxxx..."
+    assert len(bounded) == 12

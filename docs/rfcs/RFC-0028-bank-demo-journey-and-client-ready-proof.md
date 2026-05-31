@@ -91,7 +91,7 @@ Decision:
 6. backend-owned proposal decision summaries,
 7. backend-owned proposal alternatives,
 8. tactical house-view affected-cohort evaluation,
-9. execution handoff/status and report-request seams,
+9. execution handoff/status and report-request integration boundaries,
 10. bounded workspace AI rationale through `lotus-ai`,
 11. `/platform/capabilities` supportability posture,
 12. OpenAPI, vocabulary, no-alias, domain-product, trust telemetry, Docker, dependency, security,
@@ -170,8 +170,9 @@ outcome:
 7. `lotus-workbench` changes needed to expose the end-to-end advisor/demo journey, cockpit,
    proposal pack, policy posture, AI review posture, supportability, and screenshots through
    Gateway/BFF only.
-8. `lotus-manage` changes only when the demo includes tactical house-view campaign or DPM handoff
-   actioning; Manage remains owner of discretionary management and campaign operations.
+8. `lotus-manage` changes only when the demo includes tactical house-view campaign or
+   discretionary portfolio-management handoff actioning; Manage remains owner of discretionary
+   management and campaign operations.
 9. `lotus-platform` automation/scaffolding improvements when reusable gaps are discovered in
    scenario contracts, proof capture, API certification, Swagger, observability, health/readiness,
    structured logging, error handling, test scaffolding, CI defaults, documentation scaffolding,
@@ -189,7 +190,8 @@ RFC-0028 does not own:
 2. real client data preparation,
 3. bank-specific policy content beyond reference/demo examples,
 4. external OMS/broker execution as system of record,
-5. CRM, calendar, client master, or document-management systems outside explicit handoff seams,
+5. CRM, calendar, client master, or document-management systems outside explicit handoff
+   boundaries,
 6. broad methodology implementation in `lotus-risk`, `lotus-core`, or `lotus-performance` unless
    needed for a claimed demo journey,
 7. marketing claims that are not implementation-backed.
@@ -218,7 +220,7 @@ The table below decides what this RFC owns directly and what it consumes or gate
 | Advisory workspace | Needs full advisor cockpit: meeting prep, talking points, tasks, collaboration, CRM handoff, follow-up. | RFC-0028 owns Workbench demo proof for RFC-0026 outputs; if RFC-0026 is missing, do not claim full cockpit. |
 | Workspace AI rationale | Needs grounded client-ready commentary, model governance, human review, prompt/output lineage. | RFC-0028 owns AI demo proof and model-risk package only after RFC-0027 or demo-critical subset is implemented. |
 | Execution handoff/status | Needs downstream adapters, order lifecycle reconciliation, exception management, OMS/broker integration story. | Demonstrate advisory handoff/status boundary. Do not claim OMS/broker SOR integration unless implemented by downstream owner. |
-| Report request seam | Needs polished proposal pack generation through report/render/archive stack. | Directly in RFC-0028 demo proof if the demo includes client-ready artifacts. Required report/render/archive work is an RFC-0028 slice, not WTBD. |
+| Report request boundary | Needs polished proposal pack generation through report/render/archive stack. | Directly in RFC-0028 demo proof if the demo includes client-ready artifacts. Required report/render/archive work is an RFC-0028 slice, not WTBD. |
 | Tactical house-view cohorts | Needs Workbench/Gateway/Manage productization for campaign use, advisor actioning, and evidence trail. | Include only if it strengthens the canonical demo journey. Any required Gateway/Workbench/Manage changes are explicit RFC-0028 slices. |
 | Capability discovery | Needs sales/demo surfacing and operational dashboards. | Directly in scope through supported-claim register, proof pack, Gateway/Workbench surfacing, and operator dashboards where implemented. |
 | Non-functional posture | Needs load benchmarks, SLO dashboards, tenant/legal-entity configuration, DR/RTO/RPO evidence. | Directly in scope for demo/RFP proof. Missing evidence must be marked as planned or risk-treated, not hidden. |
@@ -249,7 +251,7 @@ Implementation-backed foundations available before RFC-0028 implementation:
 3. proposal lifecycle persistence and workflow history,
 4. approval and consent posture,
 5. workspace drafting and lifecycle handoff,
-6. workspace AI rationale through a governed seam,
+6. workspace AI rationale through a governed integration boundary,
 7. proposal decision summary,
 8. proposal alternatives,
 9. tactical house-view affected cohorts,
@@ -259,7 +261,7 @@ Implementation-backed foundations available before RFC-0028 implementation:
 13. OpenAPI, vocabulary, no-alias, data-product, trust telemetry, Docker, dependency, security,
     runtime-smoke, and production-profile guardrails.
 
-Current gaps RFC-0028 must close or classify:
+Baseline gaps RFC-0028 closed or explicitly classified:
 
 1. no canonical bank demo journey contract,
 2. no machine-readable supported-claim register,
@@ -358,16 +360,16 @@ The `AdvisorySupportedClaimRegister:v1` must classify product claims:
 | Classification | Meaning | Allowed in client demo material |
 | --- | --- | --- |
 | `IMPLEMENTATION_BACKED` | Code, tests, contract, docs, and live or canonical proof exist. | Yes. |
-| `CLIENT_READY_APPROVED` | Implementation-backed and reviewed for privacy, wording, screenshots, evidence, and sales/RFP use. | Yes, preferred for client-facing material. |
 | `BACKEND_BACKED_UI_PENDING` | Backend exists, but Gateway/Workbench proof is missing. | Engineering/pre-sales internal only; not as a full product journey. |
 | `DEGRADED_SUPPORTED` | Behavior is implemented and can explain missing/degraded dependencies safely. | Yes, only with explicit degraded explanation. |
 | `PLANNED_RFC` | Documented target-state work but not implemented. | No, except roadmap sections clearly marked planned. |
 | `UNSUPPORTED` | Not implemented or not allowed. | No. |
-| `REMOVED_OR_SUPERSEDED` | Older claim or route retired by better design. | No, except migration notes. |
 
 No README, wiki, supported-features page, demo script, screenshot caption, RFP answer, security
 pack, architecture deck, or LinkedIn post may present `PLANNED_RFC`,
-`BACKEND_BACKED_UI_PENDING`, `UNSUPPORTED`, or `REMOVED_OR_SUPERSEDED` as supported product truth.
+`BACKEND_BACKED_UI_PENDING`, or `UNSUPPORTED` as supported product truth. Older claims or routes
+that are removed or superseded must be documented as unsupported with explicit migration wording,
+not as a separate public claim classification.
 
 ---
 
@@ -382,7 +384,7 @@ flowchart LR
     Report[lotus-report<br/>proposal/report requests] --> Advise
     Render[lotus-render<br/>deterministic documents] --> Report
     Archive[lotus-archive<br/>retention and retrieval refs] --> Report
-    Manage[lotus-manage<br/>DPM and campaign boundary where used] --> Advise
+    Manage[lotus-manage<br/>Portfolio-management and campaign boundary where used] --> Advise
     Advise --> Gateway[lotus-gateway<br/>experience API and supportability]
     Gateway --> Workbench[lotus-workbench<br/>advisor/demo surface]
     Advise --> Proof[AdvisoryBankDemoProofPack]
@@ -405,8 +407,8 @@ Ownership rules:
    claimed.
 7. AI proof must preserve `lotus-ai` workflow-pack ownership and `lotus-advise` advisory evidence
    ownership.
-8. Manage remains DPM/campaign owner and participates only when the scenario includes tactical
-   house-view or discretionary-management handoff proof.
+8. Manage remains discretionary portfolio-management/campaign owner and participates only when
+   the scenario includes tactical house-view or discretionary-management handoff proof.
 
 ---
 
@@ -424,7 +426,7 @@ Ownership rules:
 | Report/render/archive | `lotus-report`, `lotus-render`, `lotus-archive` | Prove deterministic artifact, archive refs, retention, and retrieval if claimed. |
 | Gateway contracts | `lotus-gateway` | Route and preserve Advise truth; do not reconstruct supportability or advisory state. |
 | Workbench surfaces | `lotus-workbench` | Use Gateway/BFF only and validate browser states before screenshots are demo-ready. |
-| DPM/campaign boundary | `lotus-manage` | Participate only for tactical house-view/campaign handoff proof. |
+| Portfolio-management campaign boundary | `lotus-manage` | Participate only for tactical house-view/campaign handoff proof. |
 | Automation, CI, docs scaffolding, canonical validation | `lotus-platform` | Reuse or improve platform automation when the gap is repeatable. |
 
 ---
@@ -742,9 +744,10 @@ Acceptance gate:
 
 Slice 1 implementation decision and evidence:
 
-1. A reusable platform gap exists: Lotus had front-office contracts and DPM proof-pack vocabulary,
-   but no platform-owned supported-claim register contract or validator that could prevent demo,
-   wiki, screenshot, RFP, security, and one-pager claims from outrunning implementation evidence.
+1. A reusable platform gap exists: Lotus had front-office contracts and portfolio-management
+   proof-pack vocabulary, but no platform-owned supported-claim register contract or validator
+   that could prevent demo, wiki, screenshot, RFP, security, and one-pager claims from outrunning
+   implementation evidence.
 2. The reusable platform fix was merged through `lotus-platform` PR #366 at merge commit
    `1f46cd764b1e8437091c6d5e567403053b899313`. The implementation commit
    `ea6e8151d253f5d738dfb5902d8193238b946bba` adds:
@@ -827,7 +830,7 @@ Slice 3 implementation decision and evidence:
    `AdvisoryPolicyEvaluationRecord`, `AdvisorCockpitOperatingSnapshot`,
    `AdvisoryActionItemRegister`, and `AdvisoryCopilotInteractionRecord`.
 4. `/platform/capabilities` must not advertise bank-demo proof or supported-claim support until
-   Slice 5 and the later Gateway/Workbench proof slices promote the capability with evidence.
+   Slice 5 plus the Gateway and Workbench proof slices promote the capability with evidence.
 5. No `contracts/domain-data-products/`, `contracts/trust-telemetry/`, or capabilities code change
    is made in Slice 3 because the correct hardening is a regression guard against premature
    promotion.
@@ -870,7 +873,10 @@ Slice 4 implementation decision and evidence:
    5. claim IDs are unique inside a register,
    6. artifact policy names secrets, tokens, and prompts,
    7. local-only or secret runtime assets cannot be commit-allowed,
-   8. `CLIENT_READY_APPROVED` remains blocked before publication controls exist.
+   8. commit-allowed proof assets must use commit-safe or customer-consumable access classes,
+      `COMMIT_SOURCE` retention, and a canonical content hash,
+   9. `CLIENT_READY_APPROVED` is not part of the current proof-pack API contract before
+      publication controls exist.
 5. Test evidence lives in
    `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py`.
 
@@ -880,7 +886,8 @@ Outcome:
 
 1. implement repo-native proof capture for advisory APIs, health/readiness, capabilities, proposal
    simulation, lifecycle, approvals, decision summary, alternatives, workspace, tactical
-   house-view, report seam, execution handoff/status, and degraded cases as applicable.
+   house-view, report-package integration boundary, execution handoff/status, and degraded cases
+   as applicable.
 
 Acceptance gate:
 
@@ -925,9 +932,9 @@ Slice 5 implementation decision and evidence:
    8. `capture-summary.md`,
    9. `manifest.json`.
 4. Material-field review currently blocks claim drift for canonical portfolio identity, synchronous
-   and asynchronous lifecycle state, workspace rationale lineage, execution handoff/status, report
-   seam, narrative review posture, memo review posture, policy evaluation posture, client-ready
-   blocked posture, and lotus-risk/lotus-core degraded paths.
+   and asynchronous lifecycle state, workspace rationale lineage, execution handoff/status,
+   report-package integration boundary, narrative review posture, memo review posture, policy
+   evaluation posture, client-ready blocked posture, and lotus-risk/lotus-core degraded paths.
 5. The proof pack emits `BANK_DEMO_PROOF_PACK_CREATED`,
    `RFC0028_BACKEND_MATERIAL_FIELD_REVIEW_PASSED`, and
    `RFC0028_RUNTIME_POSTURE_CAPTURED`, records the `lotus-advise` commit SHA, service version,
@@ -937,7 +944,7 @@ Slice 5 implementation decision and evidence:
    evidence and is indexed as non-committable.
 7. Slice 5 does not promote Gateway, Workbench, screenshot, RFP/security, product one-pager, or
    client-ready publication claims. The backend-supported advisor-journey claim remains
-   `BACKEND_BACKED_UI_PENDING` until the later Gateway and Workbench slices pass.
+   `BACKEND_BACKED_UI_PENDING` until the Gateway and Workbench proof slices pass.
 8. Lowest-layer test coverage:
    1. `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` covers sanitized
       summary projection, material-field drift blocking, claim classifications, evidence markers,
@@ -1108,8 +1115,8 @@ Implementation evidence:
 4. The Workbench proof surface consumes Gateway contracts only and does not create local advisory
    suitability, policy, memo, proof, or AI semantics.
 5. Client-ready publication, external client communication, OMS/order/fill/settlement, approval
-   authority, and full RFP/demo collateral readiness remain blocked or unsupported unless a later
-   owner-repo implementation provides evidence.
+   authority, and full RFP/demo collateral readiness remain blocked or unsupported unless a
+   separately approved owner-repo implementation provides evidence.
 
 ### Slice 9 - AI, Model-Risk, Policy, and Cockpit Proof Integration
 
@@ -1512,7 +1519,7 @@ Current implementation note:
    `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`.
 3. Slice 9 adds `journey-integration-proof-summary.json` and
    `ai_policy_cockpit_proof_integrated` for backend proof material. This evidence supports the
-   claim-controlled commercial pack only when combined with the later commercial, security/runtime,
+   claim-controlled commercial pack only when combined with the commercial, security/runtime,
    artifact-reference, closure, and post-completion review gates. Client-ready publication,
    external client communication, OMS/order/fill/settlement, approval authority, and
    bank-specific attestations remain blocked.

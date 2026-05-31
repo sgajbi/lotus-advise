@@ -19,6 +19,20 @@ AdvisorCockpitOwnerRole = Literal[
     "DESK_HEAD",
     "COMPLIANCE_REVIEWER",
     "INVESTMENT_DESK",
+    "PORTFOLIO_MANAGER",
+    "OPERATIONS",
+    "CRM_OWNER",
+    "REPORTING_OWNER",
+    "ARCHIVE_OWNER",
+    "EXECUTION_OWNER",
+    "SYSTEM",
+]
+AdvisorCockpitCallerRole = Literal[
+    "ADVISOR",
+    "DESK_HEAD",
+    "COMPLIANCE_REVIEWER",
+    "INVESTMENT_DESK",
+    "PORTFOLIO_MANAGER",
     "OPERATIONS",
     "CRM_OWNER",
     "REPORTING_OWNER",
@@ -88,6 +102,23 @@ _COCKPIT_SENSITIVE_TERMS = (
     "raw payload",
     "provider response",
 )
+_COCKPIT_OWNER_ROLE_LABELS = {
+    "ADVISOR": "Advisor",
+    "DESK_HEAD": "Desk head",
+    "COMPLIANCE_REVIEWER": "Compliance reviewer",
+    "INVESTMENT_DESK": "Investment desk",
+    "PORTFOLIO_MANAGER": "Portfolio manager",
+    "OPERATIONS": "Operations",
+    "CRM_OWNER": "Client-relationship owner",
+    "REPORTING_OWNER": "Reporting owner",
+    "ARCHIVE_OWNER": "Archive owner",
+    "EXECUTION_OWNER": "Execution owner",
+    "SYSTEM": "System",
+}
+
+
+def cockpit_owner_role_label(role: str) -> str:
+    return _COCKPIT_OWNER_ROLE_LABELS.get(role, role.replace("_", " ").title())
 
 
 class CockpitCallerContext(BaseModel):
@@ -109,7 +140,7 @@ class CockpitCallerContext(BaseModel):
         description="Coverage-team identifier when a source-backed assignment exists.",
         examples=["coverage_team_sg_01"],
     )
-    role: AdvisorCockpitOwnerRole = Field(
+    role: AdvisorCockpitCallerRole = Field(
         description="Caller role used for server-side entitlement projection.",
         examples=["ADVISOR"],
     )
@@ -331,8 +362,17 @@ class AdvisoryActionItem(BaseModel):
         examples=["HIGH"],
     )
     owner_role: AdvisorCockpitOwnerRole = Field(
-        description="Role that owns the next step or external handoff.",
+        description=(
+            "Machine-readable role that owns the next step or external handoff. "
+            "Use owner_role_label for business-facing display."
+        ),
         examples=["COMPLIANCE_REVIEWER"],
+    )
+    owner_role_label: str = Field(
+        default="",
+        max_length=_COCKPIT_SUMMARY_MAX_LENGTH,
+        description="Business-facing owner label for advisor cockpit display.",
+        examples=["Compliance reviewer"],
     )
     owning_system: str = Field(
         max_length=_COCKPIT_IDENTIFIER_MAX_LENGTH,
@@ -490,10 +530,21 @@ class AdvisoryActionItem(BaseModel):
     def _action_copy_must_be_business_safe(cls, value: str) -> str:
         return _normalize_business_text(value, field_name="cockpit action copy")
 
+    @field_validator("owner_role_label")
+    @classmethod
+    def _owner_role_label_must_be_business_safe(cls, value: str) -> str:
+        return _normalize_business_text(value, field_name="cockpit owner role label")
+
     @field_validator("reason_codes")
     @classmethod
     def _reason_codes_must_be_bounded(cls, value: list[str]) -> list[str]:
         return _normalize_identifier_list(value, field_name="cockpit reason code")
+
+    @model_validator(mode="after")
+    def _owner_role_label_defaults_to_business_label(self) -> AdvisoryActionItem:
+        if not self.owner_role_label:
+            self.owner_role_label = cockpit_owner_role_label(self.owner_role)
+        return self
 
 
 class AdvisoryActionItemPage(BaseModel):

@@ -217,6 +217,18 @@ def test_supported_claim_register_requires_evidence_and_unique_claim_ids() -> No
             proof_requirements=[_proof_requirement()],
         )
 
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        SupportedClaim(
+            claim_id="unsafe_provider_response",
+            title="Unsafe provider response",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES"],
+            allowed_materials=["DEMO_SCRIPT"],
+            claim_text="Provider_response evidence is available for client review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
     with pytest.raises(ValidationError):
         SupportedClaim(
             claim_id="x" * 161,
@@ -355,6 +367,41 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
             commit_allowed=True,
         )
 
+    with pytest.raises(ValidationError, match="commit-safe access class"):
+        ProofAsset(
+            asset_id="restricted_summary",
+            asset_type="API_RESPONSE_SUMMARY",
+            source_repository="lotus-advise",
+            uri="output/rfc0028/restricted-summary.json",
+            access_class="RESTRICTED_CUSTOMER_EVIDENCE",
+            retention_class="COMMIT_SOURCE",
+            content_hash=hash_canonical_payload({"asset": "restricted"}),
+            commit_allowed=True,
+        )
+
+    with pytest.raises(ValidationError, match="COMMIT_SOURCE retention"):
+        ProofAsset(
+            asset_id="local_retention_summary",
+            asset_type="API_RESPONSE_SUMMARY",
+            source_repository="lotus-advise",
+            uri="output/rfc0028/local-retention-summary.json",
+            access_class="COMMIT_SAFE_SUMMARY",
+            retention_class="LOCAL_EVIDENCE_BUNDLE",
+            content_hash=hash_canonical_payload({"asset": "local-retention"}),
+            commit_allowed=True,
+        )
+
+    with pytest.raises(ValidationError, match="require a content_hash"):
+        ProofAsset(
+            asset_id="unhashed_summary",
+            asset_type="API_RESPONSE_SUMMARY",
+            source_repository="lotus-advise",
+            uri="output/rfc0028/unhashed-summary.json",
+            access_class="COMMIT_SAFE_SUMMARY",
+            retention_class="COMMIT_SOURCE",
+            commit_allowed=True,
+        )
+
     with pytest.raises(ValidationError, match="must not include URL"):
         ProofAsset(
             asset_id="unsafe_uri",
@@ -386,7 +433,7 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
             }
         )
 
-    with pytest.raises(ValidationError, match="CLIENT_READY_APPROVED"):
+    with pytest.raises(ValidationError):
         AdvisoryBankDemoProofPack(
             **{
                 **proof_pack.model_dump(),
@@ -480,3 +527,22 @@ def test_runtime_posture_blocks_secret_urls_and_sanitizes_probe_summaries() -> N
 
     with pytest.raises(ValidationError, match="path without query or fragment"):
         RuntimeEndpointEvidence(endpoint="/health?token=abc", posture="READY", summary={})
+
+
+def test_runtime_posture_redacts_sensitive_values_in_neutral_summary_fields() -> None:
+    endpoint = RuntimeEndpointEvidence(
+        endpoint="/health/ready",
+        http_status=503,
+        posture="DEGRADED",
+        summary={
+            "detail": "Dependency returned Authorization: Bearer should-not-leak",
+            "message": "token=should-not-leak",
+            "error": "Traceback (most recent call last): File C:/Users/local/app.py",
+            "safe": "readiness check degraded",
+        },
+    )
+
+    assert endpoint.summary["detail"] == "[REDACTED]"
+    assert endpoint.summary["message"] == "[REDACTED]"
+    assert endpoint.summary["error"] == "[REDACTED]"
+    assert endpoint.summary["safe"] == "readiness check degraded"

@@ -6,13 +6,8 @@ from src.core.bank_demo_proof.artifact_refs import (
 from src.core.bank_demo_proof.capture import (
     BackendProofCaptureBundle,
     BackendProofCaptureMetadata,
-    MaterialFieldReview,
     build_backend_proof_capture,
-    build_default_scenario_contract,
-    build_default_supported_claim_register,
     default_capture_metadata,
-    review_material_fields,
-    sanitize_live_runtime_summary,
 )
 from src.core.bank_demo_proof.commercial_materials import (
     CommercialMaterial,
@@ -35,6 +30,7 @@ from src.core.bank_demo_proof.integration_proof import (
     PolicyEvidenceProof,
     build_journey_integration_proof_summary,
 )
+from src.core.bank_demo_proof.material_review import MaterialFieldReview, review_material_fields
 from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
@@ -56,10 +52,16 @@ from src.core.bank_demo_proof.models import (
     SupportedClaimMaterial,
     SupportedClaimProofRequirement,
 )
+from src.core.bank_demo_proof.proof_pack import build_backend_proof_pack
 from src.core.bank_demo_proof.runtime_posture import (
     BackendRuntimePosture,
     RuntimeEndpointEvidence,
     normalize_runtime_base_url,
+)
+from src.core.bank_demo_proof.runtime_summary import sanitize_live_runtime_summary
+from src.core.bank_demo_proof.scenario_contract import build_default_scenario_contract
+from src.core.bank_demo_proof.supported_claim_register import (
+    build_default_supported_claim_register,
 )
 
 __all__ = [
@@ -100,6 +102,7 @@ __all__ = [
     "SupportedClaimMaterial",
     "SupportedClaimProofRequirement",
     "build_backend_proof_capture",
+    "build_backend_proof_pack",
     "build_default_scenario_contract",
     "build_default_supported_claim_register",
     "build_commercial_material_pack",

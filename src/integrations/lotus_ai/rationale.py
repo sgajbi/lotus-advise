@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import Any, cast
 
 import httpx
@@ -20,10 +19,9 @@ from src.integrations.lotus_ai.output_safety import (
     map_bounded_string_list,
     map_bounded_text,
 )
-from src.integrations.lotus_ai.runtime_config import (
-    resolve_lotus_ai_base_url,
-    resolve_lotus_ai_tenant_id,
-)
+from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
+from src.integrations.lotus_ai.workflow_response import extract_error_detail, safe_dict
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 _WORKFLOW_PACK_ID = "workspace_rationale.pack"
@@ -63,8 +61,8 @@ def generate_workspace_rationale_with_lotus_ai(
         raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE") from exc
 
     if response.status_code == 200:
-        execution = _safe_dict(payload.get("execution"))
-        result = _safe_dict(execution.get("result"))
+        execution = safe_dict(payload.get("execution"))
+        result = safe_dict(execution.get("result"))
         assistant_output = map_bounded_text(
             result.get("message"),
             max_length=_MAX_ASSISTANT_OUTPUT_LENGTH,
@@ -77,7 +75,7 @@ def generate_workspace_rationale_with_lotus_ai(
             assistant_output=assistant_output,
             generated_by="lotus-ai",
             evidence=evidence.model_copy(deep=True),
-            workflow_pack_run=_map_workflow_pack_run(_safe_dict(payload.get("workflow_pack_run"))),
+            workflow_pack_run=_map_workflow_pack_run(safe_dict(payload.get("workflow_pack_run"))),
         )
 
     detail = _extract_detail(payload)
@@ -103,7 +101,7 @@ def apply_workspace_rationale_review_action_with_lotus_ai(
         raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE") from exc
 
     if response.status_code == 200:
-        workflow_pack_run = _map_workflow_pack_run(_safe_dict(payload.get("run")))
+        workflow_pack_run = _map_workflow_pack_run(safe_dict(payload.get("run")))
         if workflow_pack_run is None:
             raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
         return WorkspaceAssistantWorkflowPackRunReviewActionResponse(
@@ -142,32 +140,21 @@ def _build_workflow_pack_request(
     request: WorkspaceAssistantRequest,
     evidence: WorkspaceAssistantEvidence,
 ) -> dict[str, object]:
-    return {
-        "pack_id": _WORKFLOW_PACK_ID,
-        "version": _WORKFLOW_PACK_VERSION,
-        "environment": os.getenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", "DEVELOPMENT"),
-        "caller_identity_class": "INTERNAL_SERVICE",
-        "workflow_surface": _WORKFLOW_SURFACE,
-        "task_request": {
-            "task_id": "explain.v1",
-            "input_mode": "STRUCTURED_CONTEXT",
-            "caller": {
-                "caller_app": "lotus-advise",
-                "correlation_id": f"workspace-rationale-{evidence.workspace_id}",
-                "requested_by": request.requested_by,
-                "tenant_id": resolve_lotus_ai_tenant_id(),
-            },
-            "context": {
-                "summary": (
-                    f"Advisory workspace rationale for {evidence.workspace_id} with proposal "
-                    f"status {evidence.proposal_status}."
-                ),
-                "payload": _build_task_payload(request=request, evidence=evidence),
-                "source_refs": _build_source_refs(evidence=evidence),
-            },
-            "expected_output_label": "EXPLANATION_ONLY",
-        },
-    }
+    return build_workflow_pack_execute_request(
+        pack_id=_WORKFLOW_PACK_ID,
+        version=_WORKFLOW_PACK_VERSION,
+        workflow_surface=_WORKFLOW_SURFACE,
+        task_id="explain.v1",
+        correlation_id=f"workspace-rationale-{evidence.workspace_id}",
+        requested_by=request.requested_by,
+        context_summary=(
+            f"Advisory workspace rationale for {evidence.workspace_id} with proposal "
+            f"status {evidence.proposal_status}."
+        ),
+        context_payload=_build_task_payload(request=request, evidence=evidence),
+        source_refs=_build_source_refs(evidence=evidence),
+        expected_output_label="EXPLANATION_ONLY",
+    )
 
 
 def _build_task_payload(
@@ -228,14 +215,7 @@ def _build_source_refs(*, evidence: WorkspaceAssistantEvidence) -> list[str]:
 
 
 def _extract_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail")
-    if isinstance(detail, str) and detail.strip():
-        return detail.strip()
-    return "LOTUS_AI_RATIONALE_UNAVAILABLE"
-
-
-def _safe_dict(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}
+    return extract_error_detail(payload, default="LOTUS_AI_RATIONALE_UNAVAILABLE")
 
 
 def _normalize_optional_text(value: Any) -> str | None:

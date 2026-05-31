@@ -25,7 +25,7 @@ The workspace keeps exploratory drafting separate from formal proposal persisten
 
 ## AI Support
 
-The implemented AI-facing workspace seam is:
+The implemented AI-facing workspace integration boundary is:
 
 - `POST /advisory/workspaces/{workspace_id}/assistant/rationale`
 

@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.bank_demo_proof.artifact_refs import normalize_local_artifact_ref
+from src.core.bank_demo_proof.validation import contains_sensitive_rfc28_term
 
 SupportedClaimClassification = Literal[
     "IMPLEMENTATION_BACKED",
@@ -67,7 +68,6 @@ ProofRetentionClass = Literal[
 ClientReadyProofPosture = Literal[
     "CLIENT_READY_REVIEW_REQUIRED",
     "CLIENT_READY_PUBLICATION_BLOCKED",
-    "CLIENT_READY_APPROVED",
 ]
 
 SUPPORTED_CLAIM_CLASSIFICATIONS: tuple[str, ...] = (
@@ -89,19 +89,10 @@ _RFC28_MAX_PROOF_ASSETS = 32
 _RFC28_MAX_REPOSITORY_SHAS = 16
 _RFC28_MAX_REF_LIST_ITEMS = 64
 _RFC28_SHA256_HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
-_RFC28_TECHNICAL_COPY_TERMS = (
-    "raw prompt",
-    "provider response",
-    "raw payload",
-    "authorization",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api key",
-    "apikey",
-)
+_RFC28_COMMIT_ALLOWED_ACCESS_CLASSES = {
+    "COMMIT_SAFE_SUMMARY",
+    "CUSTOMER_CONSUMABLE_SUMMARY",
+}
 
 
 class DemoScenarioStep(BaseModel):
@@ -286,8 +277,7 @@ class SupportedClaim(BaseModel):
     @classmethod
     def _claim_copy_must_be_business_safe(cls, value: str) -> str:
         normalized = _normalize_required_text(value, error_code="supported claim text is required")
-        lowered = normalized.lower().replace("-", " ")
-        if any(term in lowered for term in _RFC28_TECHNICAL_COPY_TERMS):
+        if _contains_sensitive_technical_term(normalized):
             raise ValueError("supported claim text cannot contain sensitive technical detail")
         return normalized
 
@@ -355,8 +345,7 @@ def _normalize_ref_list(
 
 
 def _contains_sensitive_technical_term(value: str) -> bool:
-    lowered = value.lower().replace("-", " ")
-    return any(term in lowered for term in _RFC28_TECHNICAL_COPY_TERMS)
+    return contains_sensitive_rfc28_term(value)
 
 
 class ArtifactPolicy(BaseModel):
@@ -510,6 +499,13 @@ class ProofAsset(BaseModel):
             raise ValueError("local-only or secret proof assets cannot be commit_allowed")
         if self.access_class == "SECRET_MATERIAL" and self.retention_class != "DO_NOT_RETAIN":
             raise ValueError("secret proof assets must use DO_NOT_RETAIN")
+        if self.commit_allowed:
+            if self.access_class not in _RFC28_COMMIT_ALLOWED_ACCESS_CLASSES:
+                raise ValueError("commit_allowed proof assets must use a commit-safe access class")
+            if self.retention_class != "COMMIT_SOURCE":
+                raise ValueError("commit_allowed proof assets must use COMMIT_SOURCE retention")
+            if self.content_hash is None:
+                raise ValueError("commit_allowed proof assets require a content_hash")
         return self
 
 
@@ -641,8 +637,6 @@ class AdvisoryBankDemoProofPack(BaseModel):
     def _proof_pack_must_include_marker_and_block_unsafe_assets(self) -> AdvisoryBankDemoProofPack:
         if self.proof_marker not in self.evidence_markers:
             raise ValueError("proof_marker must be present in evidence_markers")
-        if self.client_ready_posture == "CLIENT_READY_APPROVED":
-            raise ValueError("CLIENT_READY_APPROVED is not supported before publication controls")
         asset_ids = [asset.asset_id for asset in self.assets]
         if len(set(asset_ids)) != len(asset_ids):
             raise ValueError("proof-pack asset ids must be unique")

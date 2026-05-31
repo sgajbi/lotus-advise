@@ -39,7 +39,7 @@ def test_rfc0024_slice4_keeps_memo_support_unpromoted() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
     assert "No memo routes" in slice4_text
-    assert "client-ready memo claims remain planned" in supported_features
+    assert "client-ready memo publication remains gated" in supported_features
     assert "Slices 0-4 are complete" in supported_features
     assert "rfc0024.memo-source-readiness.v1" in supported_features
     assert "Advisor proposal memo | Supported" not in supported_features

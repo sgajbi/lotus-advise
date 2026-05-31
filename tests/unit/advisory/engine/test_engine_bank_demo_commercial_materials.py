@@ -72,6 +72,17 @@ def test_commercial_material_rejects_unsafe_source_refs_and_technical_copy() -> 
             excluded_claims=["client_ready_publication"],
         )
 
+    with pytest.raises(ValidationError, match="source_ref cannot contain sensitive material"):
+        CommercialMaterial(
+            material_id="unsafe_source_fragment",
+            title="Unsafe source fragment",
+            material_type="DEMO_SCRIPT",
+            source_ref="docs/commercial/raw_prompt/material.md",
+            mapped_claim_ids=["commercial_rfp_security_material_available"],
+            allowed_audiences=["SALES"],
+            excluded_claims=["client_ready_publication"],
+        )
+
     with pytest.raises(ValidationError):
         CommercialMaterial(
             material_id="unsafe_audience",

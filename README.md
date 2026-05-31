@@ -44,9 +44,9 @@ It depends on:
 - `lotus-risk`
   risk-lens enrichment and concentration authority
 - `lotus-report`
-  report-request seam
+  report-request integration boundary
 - `lotus-ai`
-  workspace rationale seam
+  workspace-rationale integration boundary
 - `lotus-gateway`
   primary integrated product-facing consumer
 
@@ -70,7 +70,8 @@ Boundary rules that matter:
 3. Runtime smoke and production-profile guardrail validation are part of the actual CI contract.
 4. Live operator evidence covers canonical and degraded decision-summary and alternatives posture.
 5. `TacticalHouseViewAffectedCohort:v1` is a governed source-owned cohort product for downstream
-   DPM workflows in `lotus-manage`, bounded to supplied eligible candidates and preserved lineage.
+   discretionary portfolio-management workflows in `lotus-manage`, bounded to supplied eligible
+   candidates and preserved lineage.
 6. `AdvisoryPolicyEvaluationRecord:v1` is an active advisor/compliance policy evidence product for
    RFC-0025. Completed approval/waiver authority, completed sign-off authority, client-ready
    policy publication, and external client communication remain gated.
@@ -78,14 +79,15 @@ Boundary rules that matter:
    source-owned RFC-0026 advisor operating workflow products. They cover Advise action items,
    snapshot, supportability, acknowledgements, Gateway/Workbench consumption, and canonical
    `PB_SG_GLOBAL_BAL_001` proof while client-ready publication, external client communication,
-   CRM system-of-record behavior, OMS lifecycle, completed policy approval authority, and full
-   RFC-0028 demo/RFP claims remain gated.
+   CRM system-of-record behavior, OMS lifecycle, and completed policy approval authority remain
+   gated. RFC-0028 bank-demo/RFP proof is governed separately through supported claims.
 8. RFC-0028 bank-demo proof is implemented through the Advise scenario contract, supported-claim
    register, sanitized proof-pack capture, Gateway publication, Platform canonical contract
    registration, and Workbench `advisory.bank_demo_proof` surface. Canonical validation for
    `PB_SG_GLOBAL_BAL_001` records `BANK_DEMO_PROOF_PACK_CREATED` and keeps client-ready
-   publication, external client communication, OMS/order/fill/settlement, and full RFP/demo
-   collateral claims blocked until separately implementation-backed. Slice 9 adds
+   publication, external client communication, OMS/order/fill/settlement, and unsupported
+   RFP/demo collateral claims blocked. Claim-controlled commercial material is governed by the
+   supported-claim register. Slice 9 adds
    `AdvisoryJourneyIntegrationProofSummary:v1` and
    `journey-integration-proof-summary.json` so the backend proof pack now carries sanitized
    AI/model-risk, policy, and advisor-cockpit boundary evidence without promoting AI authority,
@@ -150,7 +152,7 @@ Key code areas:
   RFC-0026 advisor cockpit action construction, source read model, SLA/acknowledgement policy, and
   supportability projection
 - `src/integrations/`
-  Lotus Core, Risk, AI, Report, and Performance seams
+  Lotus Core, Risk, AI, Report, and Performance integration boundaries
 - `docs/`
   repo-local architecture, RFCs, demo payloads, and runbooks
 
@@ -274,10 +276,11 @@ Contract rules that are easy to get wrong:
 1. proposal simulation and artifact flows require `Idempotency-Key`
 2. lifecycle persistence is immutable-by-version
 3. support and delivery posture derive from append-only workflow history
-4. workspace rationale and RFC-0023 advisor-review proposal narrative are separate governed AI seams;
-   advisor-review narrative is implemented for proposal artifact, review/replay, reviewed
-   report-request package, report/render/archive, Gateway posture, Workbench posture, standalone
-   read, and non-persistent regeneration, while client-ready narrative remains gated
+4. workspace rationale and RFC-0023 advisor-review proposal narrative are separate governed AI
+   integration boundaries; advisor-review narrative is implemented for proposal artifact,
+   review/replay, reviewed report-request package, report/render/archive, Gateway posture,
+   Workbench posture, standalone read, and non-persistent regeneration, while client-ready
+   narrative remains gated
 5. tactical house-view cohort responses must preserve upstream source refs and supportability posture
    instead of recomputing portfolio source facts locally
 6. policy evaluation endpoints preserve source/policy/evaluation/replay hashes and must not imply
@@ -309,7 +312,7 @@ Contract rules that are easy to get wrong:
   `lotus-manage`
 - key upstreams:
   `lotus-core`, `lotus-risk`
-- bounded adjacent seams:
+- bounded adjacent integration boundaries:
   `lotus-report`, `lotus-ai`
 
 Contract rule:

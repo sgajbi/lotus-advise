@@ -13,7 +13,8 @@
 ## Decision
 
 RFC-0026 needs backend-owned action semantics before any API, Gateway, or Workbench surface is
-safe to expose. Slice 4 adds that foundation in `src/core/advisor_cockpit/action_factory.py`.
+safe to expose. Slice 4 adds that foundation in `src/core/advisor_cockpit/action_sources.py`
+and `src/core/advisor_cockpit/action_factory.py`.
 
 The factory is intentionally pure core code:
 

@@ -14,7 +14,7 @@ Locally relevant governance includes:
 
 ## Sensitive Boundaries
 
-The highest-risk documentation and implementation drift usually appears at these seams:
+The highest-risk documentation and implementation drift usually appears at these integration boundaries:
 
 1. advisory versus management ownership
 2. local interpretation versus upstream core or risk authority
@@ -46,9 +46,19 @@ Runtime proof artifacts are sanitized before they become commit-safe or demo-sup
 4. summaries redact secrets, tokens, prompts, raw payloads, trace IDs, and correlation IDs
 5. endpoint posture records bounded integer `latency_ms` values only
 6. local-only runtime outputs under `output/` must not be treated as wiki or README source truth
+7. committed proof assets must use commit-safe or customer-consumable access classes,
+   `COMMIT_SOURCE` retention, and a canonical content hash
 
 The proof boundary remains deliberately conservative. RFC-0028 does not certify bank-specific
 attestations, legal/regulatory advice, completed policy sign-off/approval, external client
 communication, client-ready publication, or OMS/order/fill/settlement. Any future promotion of
 those claims requires implementation evidence, tests at the owning layer, and updated API/wiki/RFC
 truth in the same slice.
+
+## RFC-0027 Copilot Evidence Governance
+
+Governed advisory copilot output is internal advisor/reviewer evidence, not client-ready advice or
+model authority. Evidence-section models, unsupported-evidence messages, action projections, and
+copilot structured-payload persistence reject raw prompt, provider-response, trace/correlation,
+run-ledger, and raw-payload wording at the lowest boundary. This keeps UI, API, persistence, and
+replay paths aligned with the same business-copy redaction rule.

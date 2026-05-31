@@ -14,6 +14,7 @@ from src.core.advisory_copilot.models import (
     CopilotLineageRef,
     CopilotSourceDependency,
     CopilotUnsupportedEvidence,
+    assert_copilot_business_safe_text,
 )
 
 CopilotEvidenceSectionKey = Literal[
@@ -57,15 +58,6 @@ _ACTION_REQUIRED_SECTIONS: dict[CopilotActionFamily, tuple[CopilotEvidenceSectio
 
 SOURCE_EVIDENCE_SECTIONS = MappingProxyType(_SOURCE_SECTIONS)
 ACTION_REQUIRED_EVIDENCE_SECTIONS = MappingProxyType(_ACTION_REQUIRED_SECTIONS)
-
-_TECHNICAL_LEAK_TERMS = (
-    "raw prompt",
-    "provider response",
-    "trace id",
-    "correlation id",
-    "run ledger",
-    "raw payload",
-)
 
 
 def required_evidence_sections(
@@ -158,10 +150,10 @@ def build_copilot_evidence_packet(
 
 
 def _assert_business_safe_text(*values: str) -> None:
-    text = " ".join(values).lower()
-    for term in _TECHNICAL_LEAK_TERMS:
-        if term in text:
-            raise CopilotEvidencePacketBuildError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
+    try:
+        assert_copilot_business_safe_text(*values)
+    except ValueError as exc:
+        raise CopilotEvidencePacketBuildError(str(exc)) from exc
 
 
 def _packet_hash(

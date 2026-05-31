@@ -5,7 +5,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from src.core.advisor_cockpit.action_factory import HouseViewImpactActionSource
+from src.core.advisor_cockpit.action_sources import HouseViewImpactActionSource
 from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,
@@ -417,8 +417,8 @@ def _visible_owner_roles(role: str) -> set[str] | None:
         return {"INVESTMENT_DESK"}
     if role == "OPERATIONS":
         return {"REPORTING_OWNER", "ARCHIVE_OWNER", "EXECUTION_OWNER", "OPERATIONS"}
-    if role == "DPM_OWNER":
-        return {"DPM_OWNER"}
+    if role in {"PORTFOLIO_MANAGER", "DPM_OWNER"}:
+        return {"PORTFOLIO_MANAGER"}
     if role == "CRM_OWNER":
         return {"CRM_OWNER", "ADVISOR"}
     return {role}
@@ -452,7 +452,7 @@ def _house_view_impacts(
                     impact_code=impact_code,
                     summary=(
                         "Portfolio is included in a source-backed tactical house-view affected "
-                        "cohort for DPM review."
+                        "cohort for discretionary portfolio-management review."
                     ),
                     lineage_id=f"tactical_house_view_cohort:{cohort.cohort_id}",
                     content_hash=cohort.content_hash,

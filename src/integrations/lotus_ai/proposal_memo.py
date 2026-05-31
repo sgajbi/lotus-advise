@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -16,9 +15,13 @@ from src.integrations.lotus_ai.output_safety import (
     map_bounded_string_list,
     map_review_required_sections,
 )
-from src.integrations.lotus_ai.runtime_config import (
-    resolve_lotus_ai_base_url,
-    resolve_lotus_ai_tenant_id,
+from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
+from src.integrations.lotus_ai.workflow_response import (
+    extract_error_detail,
+    extract_model_version,
+    extract_workflow_run_id,
+    safe_dict,
 )
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
@@ -70,11 +73,11 @@ def generate_proposal_memo_commentary_with_lotus_ai(
         raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE") from exc
 
     if response.status_code == 200:
-        execution = _safe_dict(payload.get("execution"))
+        execution = safe_dict(payload.get("execution"))
         if execution.get("status") != "COMPLETED":
             raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
-        result = _safe_dict(execution.get("result"))
-        structured_output = _safe_dict(result.get("structured_output"))
+        result = safe_dict(execution.get("result"))
+        structured_output = safe_dict(result.get("structured_output"))
         return ProposalMemoAiCommentaryDraft(
             status=str(structured_output.get("state") or "REVIEW_REQUIRED"),
             sections=_map_sections(structured_output.get("sections")),
@@ -83,8 +86,8 @@ def generate_proposal_memo_commentary_with_lotus_ai(
                 "workflow_pack_id": WORKFLOW_PACK_ID,
                 "workflow_pack_version": WORKFLOW_PACK_VERSION,
                 "workflow_surface": WORKFLOW_SURFACE,
-                "workflow_run_id": _extract_workflow_run_id(payload),
-                "model_version": _extract_model_version(result),
+                "workflow_run_id": extract_workflow_run_id(payload),
+                "model_version": extract_model_version(result),
                 "fallback_reason": None,
             },
             review_guidance=_map_string_list(structured_output.get("review_guidance")),
@@ -92,7 +95,9 @@ def generate_proposal_memo_commentary_with_lotus_ai(
 
     if response.status_code >= 500:
         raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
-    raise LotusAIProposalMemoUnavailableError(_extract_detail(payload))
+    raise LotusAIProposalMemoUnavailableError(
+        extract_error_detail(payload, default="LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
+    )
 
 
 def build_proposal_memo_ai_unavailable_commentary(reason: str) -> ProposalMemoAiCommentaryDraft:
@@ -124,46 +129,35 @@ def _build_workflow_pack_request(
     requested_by: str,
     reason: dict[str, Any],
 ) -> dict[str, object]:
-    return {
-        "pack_id": WORKFLOW_PACK_ID,
-        "version": WORKFLOW_PACK_VERSION,
-        "environment": os.getenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", "DEVELOPMENT"),
-        "caller_identity_class": "INTERNAL_SERVICE",
-        "workflow_surface": WORKFLOW_SURFACE,
-        "task_request": {
-            "task_id": "explain.v1",
-            "input_mode": "STRUCTURED_CONTEXT",
-            "caller": {
-                "caller_app": "lotus-advise",
-                "correlation_id": f"proposal-memo-commentary-{memo_evidence.get('memo_id')}",
+    return build_workflow_pack_execute_request(
+        pack_id=WORKFLOW_PACK_ID,
+        version=WORKFLOW_PACK_VERSION,
+        workflow_surface=WORKFLOW_SURFACE,
+        task_id="explain.v1",
+        correlation_id=f"proposal-memo-commentary-{memo_evidence.get('memo_id')}",
+        requested_by=requested_by,
+        context_summary="Draft review-gated advisor-use proposal memo commentary.",
+        context_payload={
+            "memo_evidence": memo_evidence,
+            "commentary_request": {
+                "requested_sections": requested_sections,
                 "requested_by": requested_by,
-                "tenant_id": resolve_lotus_ai_tenant_id(),
+                "reason": reason,
             },
-            "context": {
-                "summary": "Draft review-gated advisor-use proposal memo commentary.",
-                "payload": {
-                    "memo_evidence": memo_evidence,
-                    "commentary_request": {
-                        "requested_sections": requested_sections,
-                        "requested_by": requested_by,
-                        "reason": reason,
-                    },
-                    "supportability": {
-                        "scope": "advisor_use_only",
-                        "review_required": True,
-                        "client_ready_publication": "BLOCKED",
-                        "unsupported_claims": [
-                            "client_ready_memo_publication",
-                            "suitability_or_approval_mutation",
-                            "missing_evidence_inference",
-                        ],
-                    },
-                },
-                "source_refs": _source_refs(memo_evidence),
+            "supportability": {
+                "scope": "advisor_use_only",
+                "review_required": True,
+                "client_ready_publication": "BLOCKED",
+                "unsupported_claims": [
+                    "client_ready_memo_publication",
+                    "suitability_or_approval_mutation",
+                    "missing_evidence_inference",
+                ],
             },
-            "expected_output_label": "EXPLANATION_ONLY",
         },
-    }
+        source_refs=_source_refs(memo_evidence),
+        expected_output_label="EXPLANATION_ONLY",
+    )
 
 
 def _resolve_base_url() -> str:
@@ -211,25 +205,3 @@ def _map_string_list(value: Any) -> tuple[str, ...]:
         max_items=MAX_MEMO_AI_REVIEW_GUIDANCE_ITEMS,
         max_item_length=MAX_MEMO_AI_REVIEW_GUIDANCE_LENGTH,
     )
-
-
-def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:
-    workflow_pack_run = _safe_dict(payload.get("workflow_pack_run"))
-    run_id = workflow_pack_run.get("run_id")
-    return run_id.strip() if isinstance(run_id, str) and run_id.strip() else None
-
-
-def _extract_model_version(result: dict[str, Any]) -> str | None:
-    value = result.get("model_version")
-    return value.strip() if isinstance(value, str) and value.strip() else None
-
-
-def _extract_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail")
-    if isinstance(detail, str) and detail.strip():
-        return detail.strip()
-    return "LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE"
-
-
-def _safe_dict(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}

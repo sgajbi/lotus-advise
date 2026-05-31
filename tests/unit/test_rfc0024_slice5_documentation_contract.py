@@ -41,7 +41,7 @@ def test_rfc0024_slice5_keeps_product_support_unpromoted() -> None:
 
     assert "No API routes" in slice5_text
     assert "Slices 0-5 are complete" in supported_features
-    assert "client-ready memo claims remain planned" in supported_features
+    assert "client-ready memo publication remains gated" in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_features
     assert "Advisor proposal memo | Supported" not in supported_features
     assert "Client-ready memo publication | Supported" not in supported_features

@@ -6,7 +6,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import app, get_db_session
+from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 
 DEMO_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "demo")
@@ -16,10 +16,6 @@ def load_demo_scenario(filename: str) -> dict:
     path = os.path.join(DEMO_DIR, filename)
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-
-
-async def _override_get_db_session():
-    yield None
 
 
 def _proposal_create_payload(portfolio_id: str) -> dict:
@@ -59,7 +55,6 @@ def _proposal_create_payload(portfolio_id: str) -> dict:
 def test_demo_advisory_async_create_and_lookup_via_api():
     with TestClient(app) as client:
         original_overrides = dict(app.dependency_overrides)
-        app.dependency_overrides[get_db_session] = _override_get_db_session
         reset_proposal_workflow_service_for_tests()
         try:
             accepted = client.post(
@@ -87,7 +82,6 @@ def test_demo_advisory_async_create_and_lookup_via_api():
 def test_demo_advisory_async_version_via_api():
     with TestClient(app) as client:
         original_overrides = dict(app.dependency_overrides)
-        app.dependency_overrides[get_db_session] = _override_get_db_session
         reset_proposal_workflow_service_for_tests()
         try:
             created = client.post(
@@ -137,7 +131,6 @@ def test_demo_advisory_scenarios_via_api(filename: str, expected_status: str):
     data = load_demo_scenario(filename)
     with TestClient(app) as client:
         original_overrides = dict(app.dependency_overrides)
-        app.dependency_overrides[get_db_session] = _override_get_db_session
         reset_proposal_workflow_service_for_tests()
         try:
             response = client.post(
@@ -157,7 +150,6 @@ def test_demo_advisory_artifact_scenario_via_api():
     data = load_demo_scenario("19_advisory_proposal_artifact.json")
     with TestClient(app) as client:
         original_overrides = dict(app.dependency_overrides)
-        app.dependency_overrides[get_db_session] = _override_get_db_session
         reset_proposal_workflow_service_for_tests()
         try:
             response = client.post(

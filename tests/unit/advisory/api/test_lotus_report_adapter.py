@@ -408,6 +408,34 @@ def test_lotus_report_adapter_ignores_untrusted_status_url(monkeypatch) -> None:
     assert fake_client.gets == []
 
 
+def test_lotus_report_adapter_ignores_status_url_with_query_material(monkeypatch) -> None:
+    request = _memo_report_package_request()
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_memo_001",
+                "status": "accepted",
+                "status_url": "/reports/jobs/rjob_memo_001?token=secret",
+                "idempotency_key": "prr_memo_001",
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    response = request_proposal_memo_report_package_with_lotus_report(request=request)
+
+    assert response.status == "ACCEPTED"
+    assert response.artifact_url is None
+    assert response.explanation["report_job_status_url"] is None
+    assert fake_client.gets == []
+
+
 def test_lotus_report_adapter_submits_policy_sign_off_package_for_render_archive(
     monkeypatch,
 ) -> None:

@@ -170,8 +170,8 @@ lifecycle, completed policy approval authority, or full RFC-0028 demo/RFP readin
 ### `lotus-manage`
 
 `lotus-advise` can produce `TacticalHouseViewAffectedCohort:v1` as source-owned cohort evidence.
-`lotus-manage` remains responsible for DPM campaign workflows, policy application, evidence
-packaging, rebalance waves, and downstream execution posture.
+`lotus-manage` remains responsible for discretionary portfolio-management campaign workflows,
+policy application, evidence packaging, rebalance waves, and downstream execution posture.
 
 Advisory execution handoff/status routes may reference `lotus-manage` or another downstream
 provider as the execution venue. Those routes expose `execution_ownership` evidence and do not make
@@ -191,7 +191,7 @@ Reporting can be requested through `lotus-advise`, but report generation ownersh
 
 ### `lotus-ai`
 
-The implemented AI seams are workspace rationale generation and RFC-0023 advisor-review proposal
+The implemented AI integration boundaries are workspace rationale generation and RFC-0023 advisor-review proposal
 narrative drafting. Proposal narrative is the active source of truth only for advisor-use artifact,
 review/replay, reviewed report-request package, report/render/archive, Gateway posture, and
 Workbench posture; client-ready narrative and capability promotion remain gated.

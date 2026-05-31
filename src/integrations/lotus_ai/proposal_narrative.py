@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -18,9 +17,13 @@ from src.integrations.lotus_ai.output_safety import (
     DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH,
     map_review_required_sections,
 )
-from src.integrations.lotus_ai.runtime_config import (
-    resolve_lotus_ai_base_url,
-    resolve_lotus_ai_tenant_id,
+from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
+from src.integrations.lotus_ai.workflow_response import (
+    extract_error_detail,
+    extract_model_version,
+    extract_workflow_run_id,
+    safe_dict,
 )
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
@@ -75,22 +78,24 @@ def generate_proposal_narrative_draft_with_lotus_ai(
         raise LotusAIProposalNarrativeUnavailableError("LOTUS_AI_NARRATIVE_UNAVAILABLE") from exc
 
     if response.status_code == 200:
-        execution = _safe_dict(payload.get("execution"))
+        execution = safe_dict(payload.get("execution"))
         if execution.get("status") != "COMPLETED":
             raise LotusAIProposalNarrativeUnavailableError("LOTUS_AI_NARRATIVE_UNAVAILABLE")
-        result = _safe_dict(execution.get("result"))
+        result = safe_dict(execution.get("result"))
         return ProposalNarrativeDraftResponse(
             sections=_map_sections(result.get("sections")),
             lineage=_build_lineage(
-                workflow_run_id=_extract_workflow_run_id(payload),
-                model_version=_extract_model_version(result),
+                workflow_run_id=extract_workflow_run_id(payload),
+                model_version=extract_model_version(result),
                 fallback_reason=None,
             ),
         )
 
     if response.status_code >= 500:
         raise LotusAIProposalNarrativeUnavailableError("LOTUS_AI_NARRATIVE_UNAVAILABLE")
-    raise LotusAIProposalNarrativeUnavailableError(_extract_detail(payload))
+    raise LotusAIProposalNarrativeUnavailableError(
+        extract_error_detail(payload, default="LOTUS_AI_NARRATIVE_UNAVAILABLE")
+    )
 
 
 def build_ai_fallback_lineage(reason: str) -> ProposalNarrativeAiLineage:
@@ -118,37 +123,26 @@ def _build_workflow_pack_request(
     requested_sections: list[ProposalNarrativeSectionKey],
     requested_by: str | None,
 ) -> dict[str, object]:
-    return {
-        "pack_id": WORKFLOW_PACK_ID,
-        "version": WORKFLOW_PACK_VERSION,
-        "environment": os.getenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", "DEVELOPMENT"),
-        "caller_identity_class": "INTERNAL_SERVICE",
-        "workflow_surface": WORKFLOW_SURFACE,
-        "task_request": {
-            "task_id": "proposal_narrative_draft.v1",
-            "input_mode": "STRUCTURED_CONTEXT",
-            "caller": {
-                "caller_app": "lotus-advise",
-                "correlation_id": f"proposal-narrative-{grounding_packet.packet_id}",
-                "requested_by": requested_by,
-                "tenant_id": resolve_lotus_ai_tenant_id(),
-            },
-            "context": {
-                "summary": "Draft advisor-review proposal narrative from governed evidence.",
-                "payload": {
-                    "grounding_packet": grounding_packet.model_dump(mode="json"),
-                    "narrative_policy": narrative_policy.model_dump(mode="json"),
-                    "requested_sections": requested_sections,
-                    "approved_instructions": _approved_instructions(),
-                },
-                "source_refs": [
-                    f"{item.ref_type}:{item.ref_id}:{item.field_path}"
-                    for item in grounding_packet.source_refs
-                ],
-            },
-            "expected_output_label": "ADVISOR_REVIEW_DRAFT_SECTIONS",
+    return build_workflow_pack_execute_request(
+        pack_id=WORKFLOW_PACK_ID,
+        version=WORKFLOW_PACK_VERSION,
+        workflow_surface=WORKFLOW_SURFACE,
+        task_id="proposal_narrative_draft.v1",
+        correlation_id=f"proposal-narrative-{grounding_packet.packet_id}",
+        requested_by=requested_by,
+        context_summary="Draft advisor-review proposal narrative from governed evidence.",
+        context_payload={
+            "grounding_packet": grounding_packet.model_dump(mode="json"),
+            "narrative_policy": narrative_policy.model_dump(mode="json"),
+            "requested_sections": requested_sections,
+            "approved_instructions": _approved_instructions(),
         },
-    }
+        source_refs=[
+            f"{item.ref_type}:{item.ref_id}:{item.field_path}"
+            for item in grounding_packet.source_refs
+        ],
+        expected_output_label="ADVISOR_REVIEW_DRAFT_SECTIONS",
+    )
 
 
 def _approved_instructions() -> list[dict[str, str]]:
@@ -220,27 +214,3 @@ def _build_lineage(
         workflow_run_id=workflow_run_id,
         fallback_reason=fallback_reason,
     )
-
-
-def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:
-    workflow_pack_run = _safe_dict(payload.get("workflow_pack_run"))
-    run_id = workflow_pack_run.get("run_id")
-    return run_id.strip() if isinstance(run_id, str) and run_id.strip() else None
-
-
-def _extract_model_version(result: dict[str, Any]) -> str | None:
-    model_version = result.get("model_version")
-    if isinstance(model_version, str) and model_version.strip():
-        return model_version.strip()
-    return None
-
-
-def _extract_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail")
-    if isinstance(detail, str) and detail.strip():
-        return detail.strip()
-    return "LOTUS_AI_NARRATIVE_UNAVAILABLE"
-
-
-def _safe_dict(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}

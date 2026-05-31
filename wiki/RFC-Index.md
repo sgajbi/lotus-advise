@@ -41,21 +41,22 @@ RFC-0023 through RFC-0028 are the crown-jewel advisory roadmap. RFC-0023 is impl
 governed advisor-review proposal narrative evidence and defines the grounded narrative prerequisite
 consumed by proposal memo, policy, cockpit, copilot, and demo work. RFC-0024 is implemented for
 advisor-use proposal memo evidence and remains the bounded memo source of truth; client-ready memo
-publication, external client communication, and full bank-demo/RFP claims remain gated. RFC-0025 is
+publication and external client communication remain gated; RFC-0028 governs bank-demo/RFP proof
+through supported claims. RFC-0025 is
 implemented for advisor/compliance policy evaluation evidence and remains bounded to policy
 evidence, review posture, report-package lineage, bounded AI evidence, Gateway/Workbench exposure,
 and active `AdvisoryPolicyEvaluationRecord:v1` data-product support. Completed approval/waiver
 authority, completed sign-off authority, client-ready policy publication, external client
-communication, and full RFC-0028 bank-demo/RFP claims remain gated.
+communication remain gated; RFC-0028 governs bank-demo/RFP proof through supported claims.
 
 RFC-0026 is implemented for the source-owned advisor cockpit operating workflow. Advise
 owns action, snapshot, supportability, preparation-packet, supervisory queue, report/readiness,
 execution-status attention, house-view impact, and acknowledgement truth; Gateway and Workbench
 consume the canonical contract; active cockpit data products, trust telemetry, and
 `/platform/capabilities` are promoted. Slice 16 adds hardened live canonical proof for action
-detail, cursor pagination, invalid-cursor rejection, compliance and DPM role projection,
-preparation packets, house-view impact, acknowledgement idempotency, supportability posture, and
-action evidence/lineage.
+detail, cursor pagination, invalid-cursor rejection, compliance and discretionary
+portfolio-management role projection, preparation packets, house-view impact, acknowledgement
+idempotency, supportability posture, and action evidence/lineage.
 
 RFC-0027 is implemented for governed internal advisor/reviewer copilot interactions. It supports
 all six supported action families through Advise-owned source evidence, governed `lotus-ai`
@@ -64,7 +65,8 @@ workflow-pack execution, Gateway publication, Workbench Gateway-first rendering,
 `AdvisoryCopilotInteractionRecord:v1` data-product posture. Evidence packets and review events are
 audit records inside the interaction product boundary rather than standalone promoted data
 products. Client-ready publication, external client communication, policy approval/sign-off
-authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
+authority, OMS order lifecycle, fills, and settlement remain gated. RFC-0028 governs bank-demo/RFP
+proof through supported claims rather than RFC-0027 runtime authority.
 
 RFC-0028 is implemented for repeatable bank-demo proof and claim-controlled commercial material.
 Slice 0 locks the
@@ -163,7 +165,7 @@ copilot core now returns stable reason codes for forbidden intents, missing sour
 injection, client-ready wording, and sensitive technical leakage. Persistence, API, `lotus-ai`,
 Gateway, Workbench, canonical proof, and supported runtime claims remain unpromoted.
 
-RFC-0027 Slice 7 is implemented as a governed `lotus-ai` workflow-pack and model-risk control seam.
+RFC-0027 Slice 7 is implemented as a governed `lotus-ai` workflow-pack and model-risk control boundary.
 Evidence lives in `docs/rfcs/RFC-0027-slice-7-lotus-ai-workflow-pack-model-risk-controls.md`.
 `lotus-ai` now registers six review-gated advisory copilot workflow packs, and `lotus-advise`
 consumes them only through `/platform/workflow-packs/execute` with evidence-packet, source-ref,
@@ -215,7 +217,8 @@ consumption, mesh posture, and canonical proof exist.
 
 RFC-0026 Slice 4 is implemented as source-backed cockpit action construction. Evidence lives in
 `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`.
-`src/core/advisor_cockpit/action_factory.py` now centralizes Advise-owned action construction for
+`src/core/advisor_cockpit/action_sources.py` owns the source DTOs and
+`src/core/advisor_cockpit/action_factory.py` centralizes Advise-owned action construction for
 policy review, memo blockers, meeting preparation, source supportability, and unsupported
 capabilities, with behavior tests that keep source refs, evidence refs, lineage, reason codes,
 owner roles, and client-ready blocked posture explicit. Runtime APIs, persistence, data-product
@@ -256,7 +259,7 @@ RFC-0026 Slice 10 is implemented as source-backed readiness, execution, and hous
 support. Evidence lives in `docs/rfcs/RFC-0026-slice-10-readiness-execution-house-view.md`.
 `lotus-advise` now projects report/archive readiness, execution handoff/status attention, and
 explicit source-batched tactical house-view impact actions without claiming report/archive, OMS, or
-DPM system-of-record ownership.
+discretionary portfolio-management system-of-record ownership.
 
 RFC-0026 Slice 13 is implemented as data-product and capability promotion. Evidence lives in
 `docs/rfcs/RFC-0026-slice-13-data-product-capability-promotion.md`.
@@ -400,7 +403,7 @@ RFC-0025 Slice 16 is implemented as final closure. Evidence lives in
 advisor/compliance policy evidence with current trust telemetry, `/platform/capabilities`, platform
 SLO/access/evidence-policy posture, Gateway/Workbench visibility, and live-suite proof. Completed
 approval/waiver authority, completed sign-off authority, client-ready policy publication, external
-client communication and full RFC-0028 bank-demo/RFP claims remain gated.
+client communication remain gated; RFC-0028 governs bank-demo/RFP proof through supported claims.
 
 RFC-0025 Slice 17 is implemented as post-completion communication. Evidence lives in
 `docs/rfcs/RFC-0025-slice-17-post-completion-communication.md`. The `lotus-platform` LinkedIn draft
@@ -599,7 +602,8 @@ RFC-0023 Slice 11A is implemented as reviewed narrative report-request package p
 baseline work. It adds explicit `include_reviewed_narrative` support to proposal report requests,
 requires the selected immutable proposal version to have an `APPROVED_FOR_ADVISOR_USE` narrative
 review with matching source hash, propagates a compact source-backed narrative package to the
-report seam, and persists a package summary in report-request delivery evidence.
+report-package integration boundary, and persists a package summary in report-request delivery
+evidence.
 
 RFC-0023 Slices 11B and 11C are implemented as downstream report and render realization work.
 `lotus-report` consumes and snapshots the reviewed advisory narrative package, projects an

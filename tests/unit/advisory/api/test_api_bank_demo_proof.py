@@ -53,7 +53,7 @@ def test_bank_demo_proof_pack_endpoint_returns_sanitized_gateway_consumable_bund
         response = client.post(
             "/advisory/bank-demo-proof/proof-packs",
             json=request,
-            headers={"X-Correlation-Id": "corr-rfc0028-api-proof"},
+            headers={"X-Correlation-ID": "corr-rfc0028-api-proof"},
         )
 
     assert response.status_code == 200
@@ -114,6 +114,42 @@ def test_bank_demo_proof_pack_endpoint_blocks_material_drift() -> None:
     assert "policy_evaluation='APPROVED'" in response.json()["detail"]
 
 
+def test_bank_demo_proof_pack_endpoint_rejects_malformed_source_evidence_as_422() -> None:
+    live_runtime_payload = _live_runtime_payload()
+    del live_runtime_payload["parity"]["proposal_policy"]["policy_pack_id"]
+    request = {
+        "live_runtime_payload": live_runtime_payload,
+        "runtime_posture": _runtime_posture().model_dump(mode="json"),
+        "repository_sha": "api-sha-123",
+    }
+
+    with TestClient(app) as client:
+        response = client.post("/advisory/bank-demo-proof/proof-packs", json=request)
+
+    assert response.status_code == 422
+    assert "RFC0028_INTEGRATION_PROOF_FIELD_MISSING" in response.json()["detail"]
+    assert "policy_pack_id" in response.json()["detail"]
+
+
+def test_bank_demo_proof_pack_endpoint_redacts_sensitive_source_evidence_errors() -> None:
+    live_runtime_payload = _live_runtime_payload()
+    live_runtime_payload["parity"]["proposal_policy"]["evaluation_status"] = "token=should-not-leak"
+    request = {
+        "live_runtime_payload": live_runtime_payload,
+        "runtime_posture": _runtime_posture().model_dump(mode="json"),
+        "repository_sha": "api-sha-123",
+    }
+
+    with TestClient(app) as client:
+        response = client.post("/advisory/bank-demo-proof/proof-packs", json=request)
+
+    assert response.status_code == 422
+    detail = repr(response.json()["detail"])
+    assert "RFC0028_PROOF_PACK_VALIDATION_FAILED" in detail
+    assert "token" not in detail
+    assert "should-not-leak" not in detail
+
+
 def test_bank_demo_proof_pack_endpoint_rejects_sensitive_artifact_refs_as_request_shape() -> None:
     request = {
         "live_runtime_payload": _live_runtime_payload(),
@@ -161,7 +197,7 @@ def test_bank_demo_proof_pack_endpoint_bounds_metadata_and_correlation_header() 
         long_correlation = client.post(
             "/advisory/bank-demo-proof/proof-packs",
             json={**request, "repository_sha": "api-sha-123"},
-            headers={"X-Correlation-Id": "x" * 129},
+            headers={"X-Correlation-ID": "x" * 129},
         )
         long_live_payload = client.post(
             "/advisory/bank-demo-proof/proof-packs",
@@ -180,8 +216,24 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
 
     assert operation["tags"] == ["Bank Demo Proof"]
     assert "Gateway and Workbench cannot promote stale" in operation["description"]
+    parameter_by_name = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert "X-Correlation-ID" in parameter_by_name
+    assert "X-Correlation-Id" not in parameter_by_name
+    assert parameter_by_name["X-Correlation-ID"]["in"] == "header"
+    correlation_header_schema = parameter_by_name["X-Correlation-ID"]["schema"]
+    assert correlation_header_schema["title"] == "X-Correlation-ID"
+    assert {"type": "string", "maxLength": 128} in correlation_header_schema["anyOf"]
     assert "409" in operation["responses"]
     assert "422" in operation["responses"]
+    assert "source evidence validation failed" in operation["responses"]["422"]["description"]
+    assert (
+        "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED"
+        in (operation["responses"]["409"]["content"]["application/json"]["example"]["detail"])
+    )
+    assert (
+        "RFC0028_INTEGRATION_PROOF_FIELD_MISSING"
+        in (operation["responses"]["422"]["content"]["application/json"]["example"]["detail"])
+    )
     runtime_endpoint_schema = app.openapi()["components"]["schemas"]["RuntimeEndpointEvidence"]
     assert "latency_ms" in runtime_endpoint_schema["properties"]
     assert runtime_endpoint_schema["properties"]["endpoint"]["maxLength"] == 160
@@ -191,3 +243,8 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     request_schema = app.openapi()["components"]["schemas"]["BankDemoProofCaptureRequest"]
     assert "query strings" in request_schema["properties"]["output_ref_prefix"]["description"]
     assert request_schema["properties"]["live_runtime_payload"]["maxProperties"] == 16
+    proof_pack_schema = app.openapi()["components"]["schemas"]["AdvisoryBankDemoProofPack"]
+    assert "CLIENT_READY_PUBLICATION_BLOCKED" in repr(
+        proof_pack_schema["properties"]["client_ready_posture"]
+    )
+    assert "CLIENT_READY_APPROVED" not in repr(proof_pack_schema)

@@ -164,9 +164,10 @@ RFC-0027 includes all work required to deliver a supported governed advisory AI 
 7. `lotus-report`, `lotus-render`, and `lotus-archive` changes required when proposal pack,
    rendered memo, archive, retention, or retrieval evidence is included in copilot handoff or
    explanation outputs.
-8. `lotus-manage` changes required only where the copilot must explain advisory-to-DPM ownership
-   boundaries for tactical house-view cohorts, campaign handoffs, or discretionary management
-   status. The copilot must not move management ownership into `lotus-advise`.
+8. `lotus-manage` changes required only where the copilot must explain advisory-to-discretionary
+   portfolio-management ownership boundaries for tactical house-view cohorts, campaign handoffs,
+   or discretionary management status. The copilot must not move management ownership into
+   `lotus-advise`.
 9. `lotus-platform` automation/scaffolding changes for repeatable AI workflow-pack governance,
    API certification, Swagger quality, observability, structured logging, problem details,
    security baseline, docs scaffolding, data-product onboarding, evidence capture, and CI defaults.
@@ -207,9 +208,9 @@ unsupported claim before closure.
 | Proposal alternatives need cost-aware, tax-aware, liquidity-aware, risk-budget-aware, private-assets-aware strategies | Copilot explains alternatives only when implementation-backed comparison evidence exists. It must not construct, rank, optimize, or select alternatives. | RFC-0022, RFC-0016, `lotus-core`, `lotus-risk` |
 | Risk lens needs stress, VaR/drawdown, issuer/country/sector, liquidity, private assets, climate/geopolitical scenarios | Copilot can explain implemented `lotus-risk` evidence and degraded posture. Missing risk lenses produce unsupported-evidence responses. | `lotus-risk` |
 | Advisory workspace needs full advisor cockpit | Copilot consumes cockpit actions and meeting-preparation evidence; it does not own action priority or workflow state. | RFC-0026 |
-| Workspace AI rationale needs grounded client-ready commentary, model governance, human review, prompt/output lineage | Directly in scope. RFC-0027 upgrades the existing workspace rationale seam into a governed copilot operating model with workflow-pack governance, human review, and prompt/output lineage. | `lotus-advise`, `lotus-ai`, Gateway, Workbench |
+| Workspace AI rationale needs grounded client-ready commentary, model governance, human review, prompt/output lineage | Directly in scope. RFC-0027 upgrades the existing workspace rationale integration boundary into a governed copilot operating model with workflow-pack governance, human review, and prompt/output lineage. | `lotus-advise`, `lotus-ai`, Gateway, Workbench |
 | Execution handoff/status needs adapters, order lifecycle reconciliation, exception management, OMS/broker story | Copilot explains handoff and status evidence while preserving downstream system-of-record boundaries. It must not claim execution authority. | RFC-0017 and downstream execution owners |
-| Report request seam needs polished proposal pack generation | Copilot explains report/readiness/handoff evidence only when implemented; required report/render/archive changes are included as RFC-0027 slices if needed. | RFC-0024, RFC-0028 |
+| Report request integration boundary needs polished proposal pack generation | Copilot explains report/readiness/handoff evidence only when implemented; required report/render/archive changes are included as RFC-0027 slices if needed. | RFC-0024, RFC-0028 |
 | Tactical house-view cohorts need productization | Copilot may explain advisory impact, source refs, and Manage boundary when evidence exists. | `lotus-manage`, Gateway, Workbench |
 | Capability discovery needs sales/demo surfacing and operational dashboards | Copilot supportability and enabled pack posture must appear through capabilities and operations diagnostics; broader demo surfacing belongs to RFC-0028. | RFC-0028, Gateway, Workbench |
 | Non-functional posture needs load benchmarks, SLO dashboards, tenant/legal-entity configuration, DR/RTO/RPO evidence | In scope for copilot APIs, run persistence, evidence packets, workflow-pack calls, model telemetry, and data products. | `lotus-platform` for reusable standards |
@@ -246,7 +247,7 @@ Implementation-backed foundations as of the 2026-05-28 tightening:
    history,
 4. approval and consent workflow posture is supported,
 5. workspaces can draft, evaluate, compare, replay, save, and hand off to proposal lifecycle,
-6. workspace AI rationale already uses a governed `lotus-ai` workflow-pack seam for
+6. workspace AI rationale already uses a governed `lotus-ai` workflow-pack integration boundary for
    `workspace_rationale.pack`,
 7. workspace AI rationale review actions preserve bounded workflow-pack posture and Lotus AI
    lineage truth,
@@ -265,7 +266,7 @@ Implementation-backed foundations as of the 2026-05-28 tightening:
     idempotency, supportability, and lineage,
 13. WTBD is a closed historical ledger and is not a future execution mechanism.
 
-Current gaps that RFC-0027 must close:
+Baseline gaps RFC-0027 closed or explicitly classified:
 
 1. no complete copilot use-case catalog and action registry,
 2. no first-class copilot evidence-packet lifecycle,
@@ -285,7 +286,7 @@ flowchart LR
     Core[lotus-core source facts] --> AdviseEvidence[lotus-advise evidence packet]
     Risk[lotus-risk risk evidence] --> AdviseEvidence
     Report[lotus-report/render/archive proposal-pack evidence] --> AdviseEvidence
-    Manage[lotus-manage DPM boundary evidence] --> AdviseEvidence
+    Manage[lotus-manage discretionary portfolio-management boundary evidence] --> AdviseEvidence
     AdviseEvidence --> AdviseValidation[lotus-advise projection, redaction, and guardrails]
     AdviseValidation --> AI[lotus-ai workflow-pack execution]
     AI --> AdvisePost[lotus-advise output validation and review posture]
@@ -454,14 +455,14 @@ RFC-0027 must provide:
 
 Review statuses:
 
-1. `DRAFT`,
-2. `REVIEW_REQUIRED`,
-3. `APPROVED_FOR_ADVISOR_USE`,
-4. `APPROVED_FOR_CLIENT_DRAFT_USE`,
-5. `REJECTED_UNSUPPORTED_EVIDENCE`,
-6. `REJECTED_POLICY_OR_GUARDRAIL`,
-7. `SUPERSEDED`,
-8. `EXPIRED`.
+1. `REVIEW_REQUIRED`,
+2. `APPROVED_FOR_INTERNAL_USE`,
+3. `REJECTED`,
+4. `SUPERSEDED`,
+5. `EXPIRED`,
+6. `UNSUPPORTED`,
+7. `GUARDRAIL_REJECTED`,
+8. `UNAVAILABLE`.
 
 Rules:
 
@@ -729,7 +730,8 @@ Outcome:
 
 1. resolve the exact supported action families, endpoints, source dependencies, audiences,
    canonical proof scenario, and owner repositories,
-2. map current code, tests, docs, contracts, OpenAPI, `lotus-ai` workflow-pack seams, Gateway,
+2. map current code, tests, docs, contracts, OpenAPI, `lotus-ai` workflow-pack integration
+   boundaries, Gateway,
    Workbench, and platform evidence,
 3. classify any missing upstream/downstream fields as RFC-0027 slices, not WTBD.
 
@@ -758,7 +760,7 @@ Acceptance gate:
 1. reusable platform gaps are fixed in `lotus-platform` or a deliberate no-change decision is
    recorded with evidence,
 2. platform changes are tested, merged, and referenced in RFC-0027 closure evidence,
-3. future apps benefit from the improvement.
+3. reusable Lotus application scaffolding benefits from the improvement.
 
 Slice 1 evidence:
 
@@ -1016,6 +1018,9 @@ Acceptance gate:
 6. API design, versioning, idempotency, correlation IDs, auditability, lineage, error handling,
    Swagger/OpenAPI examples, logging, metrics, tracing, operational diagnostics, and tests meet
    Lotus enterprise governance before implementation proof.
+7. Evidence-section models and copilot structured-payload persistence reject raw prompt, provider
+   response, trace/correlation, run-ledger, and raw-payload wording at the lowest boundary so UI,
+   API, persistence, and replay paths cannot bypass business-copy redaction.
 
 ### Slice 15 - Implementation Proof
 
@@ -1141,7 +1146,7 @@ Still gated outside RFC-0027 support:
 2. external client communication delivery,
 3. completed policy approval or sign-off authority,
 4. OMS order lifecycle, fills, settlement, and execution,
-5. full RFC-0028 bank-demo/RFP package claims.
+5. bank-demo/RFP proof, which is governed separately by RFC-0028 supported claims.
 
 ## 22. Acceptance Criteria
 
@@ -1251,7 +1256,7 @@ These decisions replace the earlier open-question list and are closure gates for
    evidence, RFC-0025 policy evidence, and RFC-0026 cockpit evidence. It does not implement or
    claim client-ready narrative, client-ready memo publication, completed policy approval,
    external client communication, CRM system-of-record behavior, OMS activity, fill/settlement
-   lifecycle, or full RFC-0028 demo/RFP readiness.
+   lifecycle, or RFC-0028 bank-demo/RFP proof authority.
 3. `lotus-ai` integration uses governed workflow-pack execution and run/review posture only. Any
    missing `lotus-ai` workflow-pack registry, schema, model-risk, disabled-pack, or unavailable
    behavior required by the copilot is implemented inside RFC-0027 before promotion.

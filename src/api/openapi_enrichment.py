@@ -14,7 +14,7 @@ _IDEMPOTENCY_HEADER_DESCRIPTION = (
 )
 
 _EXAMPLE_BY_KEY = {
-    "portfolio_id": "DEMO_DPM_EUR_001",
+    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
     "proposal_id": "pp_001",
     "proposal_run_id": "pr_001",
     "operation_id": "pop_001",

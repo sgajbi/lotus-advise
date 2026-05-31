@@ -40,7 +40,7 @@ def test_rfc0024_slice13_pins_live_suite_memo_proof_without_client_ready_promoti
 
     assert "Slice 13 is complete for memo implementation proof" in supported_features
     assert "live-suite implementation proof" in repo_context
-    assert "client-ready memo claims remain planned" in supported_features
+    assert "client-ready memo publication remains gated" in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_features
 
 

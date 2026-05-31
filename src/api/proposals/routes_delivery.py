@@ -32,7 +32,8 @@ from src.integrations.lotus_report import LotusReportUnavailableError
     tags=["Advisory Proposal Lifecycle"],
     summary="Request Advisory Proposal Report",
     description=(
-        "Requests a Lotus-branded advisory report payload through the lotus-report seam without "
+        "Requests a Lotus-branded advisory report payload through the lotus-report integration "
+        "boundary without "
         "moving reporting ownership into lotus-advise."
     ),
 )

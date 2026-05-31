@@ -2,7 +2,7 @@
 
 `lotus-advise` is the Lotus advisory workflow service. It owns advisor-led proposal simulation orchestration, proposal lifecycle state, approvals and consent workflow behavior, advisory workspace drafting, execution readiness posture, and bounded tactical house-view affected-cohort evaluation.
 
-It does not own canonical portfolio source data, risk methodology, performance methodology, or downstream execution. Those responsibilities stay with upstream or adjacent Lotus services and are consumed through governed seams.
+It does not own canonical portfolio source data, risk methodology, performance methodology, or downstream execution. Those responsibilities stay with upstream or adjacent Lotus services and are consumed through governed integration boundaries.
 
 ## Start Here
 

@@ -32,7 +32,7 @@ from src.core.advisor_cockpit import (
     build_unsupported_capability_action,
 )
 
-FIRST_WAVE_ACTION_FAMILIES = (
+CANONICAL_COCKPIT_ACTION_FAMILIES = (
     "CLIENT_MEETING_PREPARATION",
     "PROPOSAL_READY_FOR_REVIEW",
     "PROPOSAL_BLOCKED_BY_SOURCE_GAP",
@@ -308,7 +308,11 @@ def test_house_view_impact_action_requires_source_backed_cohort() -> None:
 
     assert action.action_family == "HOUSE_VIEW_IMPACT_REVIEW"
     assert action.status == "PENDING_REVIEW"
-    assert action.owner_role == "DPM_OWNER"
+    assert action.owner_role == "PORTFOLIO_MANAGER"
+    assert action.next_required_action == (
+        "Review the source-backed tactical house-view cohort before discretionary "
+        "portfolio-management actioning."
+    )
     assert action.evidence_refs[0].evidence_type == "TACTICAL_HOUSE_VIEW_COHORT"
     assert action.lineage_refs[0].lineage_id == "tactical_house_view_cohort:thv_cohort_sg_001"
     assert action.lineage_refs[0].content_hash == "sha256:house-view-cohort"
@@ -366,10 +370,10 @@ def test_source_backed_action_builder_constructs_each_cockpit_family_with_eviden
                 evidence_refs=[_evidence(f"evidence_{family}")],
             )
         )
-        for family in FIRST_WAVE_ACTION_FAMILIES
+        for family in CANONICAL_COCKPIT_ACTION_FAMILIES
     ]
 
-    assert [action.action_family for action in actions] == list(FIRST_WAVE_ACTION_FAMILIES)
+    assert [action.action_family for action in actions] == list(CANONICAL_COCKPIT_ACTION_FAMILIES)
     assert all(action.owning_system == "lotus-advise" for action in actions)
     assert all(action.portfolio_id == "PB_SG_GLOBAL_BAL_001" for action in actions)
     assert all(action.evidence_refs for action in actions)

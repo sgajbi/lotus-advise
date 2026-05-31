@@ -29,6 +29,8 @@ def test_rfc0028_locks_slice_zero_decisions_before_implementation() -> None:
 
     assert "Last Tightened** | 2026-05-31" in rfc
     assert "rfc0028-gold-standard-implementation" in rfc
+    assert "Baseline gaps RFC-0028 closed or explicitly classified" in rfc
+    assert "Current gaps RFC-0028 must close or classify" not in rfc
     assert "## 22. Slice 0 Pre-Implementation Decisions" in rfc
     assert "## 22. Open Questions" not in rfc
     assert "No open implementation question remains for RFC-0028 Slice 1" in rfc
@@ -166,11 +168,14 @@ def test_rfc0028_records_slice_four_proof_model_implementation() -> None:
         "No controller, API route, persistence table, data-product declaration",
         "IMPLEMENTATION_BACKED` claims require evidence refs and proof requirements",
         "local-only or secret runtime assets cannot be commit-allowed",
-        "CLIENT_READY_APPROVED` remains blocked",
+        "commit-allowed proof assets must use commit-safe or customer-consumable access classes",
+        "`COMMIT_SOURCE` retention, and a canonical content hash",
+        "CLIENT_READY_APPROVED` is not part of the current proof-pack API contract",
         "tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py",
     )
     for marker in markers:
         assert marker in flat
+    assert "REMOVED_OR_SUPERSEDED" not in flat
 
 
 def test_rfc0028_records_slice_five_backend_proof_capture() -> None:
@@ -443,6 +448,8 @@ def test_rfc0028_records_slice_twelve_documentation_product_truth() -> None:
         "RFC-0028 Proof Artifact Governance",
         "credentials, query strings, or fragments",
         "secrets, tokens, prompts",
+        "committed proof assets must use commit-safe or customer-consumable access classes",
+        "`COMMIT_SOURCE` retention, and a canonical content hash",
         "bank-specific attestations",
         "OMS/order/fill/settlement",
     )
@@ -568,3 +575,16 @@ def test_rfc0028_supported_features_ledger_reflects_implemented_closure_truth() 
     )
     assert "bank-specific attestations remain blocked" in flat_ledger
     assert "| Proposed |" not in ledger
+
+
+def test_rfc0028_closure_language_does_not_describe_completed_slices_as_later_work() -> None:
+    flat = _flat(RFC28_PATH)
+
+    stale_closure_phrases = (
+        "later Gateway/Workbench",
+        "later Gateway and Workbench",
+        "unless a later owner-repo implementation",
+        "combined with the later commercial",
+    )
+    for phrase in stale_closure_phrases:
+        assert phrase not in flat

@@ -435,7 +435,7 @@ def compare_workspace(
     tags=["Advisory Workspace"],
     summary="Generate an Advisory Workspace Rationale",
     description=(
-        "Builds an evidence-grounded workspace rationale through the Lotus AI seam using the "
+        "Builds an evidence-grounded workspace rationale through the Lotus AI boundary using the "
         "current evaluated workspace state. The returned output always includes the deterministic "
         "evidence bundle that was supplied to the AI workflow."
     ),

@@ -25,7 +25,7 @@ The proof covers:
 6. source-backed meeting-preparation packets,
 7. source-backed tactical house-view impact action projection,
 8. cursor pagination and invalid-cursor rejection,
-9. compliance and DPM owner-role projection,
+9. compliance and portfolio-manager owner-role projection,
 10. acknowledgement idempotency and replay-safe validation,
 11. evidence refs, lineage refs, reason codes, priority, owner role, source scope, and supportability
     posture on returned actions.
@@ -79,7 +79,7 @@ the owning layer and pinned by a lower-level automated test before live validati
 4. cursor pagination returns a stable `next_cursor` and does not repeat the first item,
 5. invalid cursors return the expected validation error,
 6. compliance projection does not leak non-compliance owner roles,
-7. DPM projection exposes `HOUSE_VIEW_IMPACT_REVIEW` when the canonical scenario seeds a
+7. Portfolio-manager projection exposes `HOUSE_VIEW_IMPACT_REVIEW` when the canonical scenario seeds a
    source-backed house-view cohort,
 8. preparation packets exist through both snapshot and preparation-packet route,
 9. supportability and Workbench posture match the canonical contract,
@@ -95,7 +95,7 @@ This proof does not claim:
 3. CRM system-of-record behavior,
 4. external client communication,
 5. OMS orders, fills, settlement, or execution SOR behavior,
-6. DPM campaign creation or portfolio-management ownership,
+6. portfolio-management campaign creation or portfolio-management ownership,
 7. full RFC-0028 demo/RFP package readiness.
 
 ## Local Validation Evidence

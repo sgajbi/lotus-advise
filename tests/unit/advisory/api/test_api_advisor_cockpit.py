@@ -225,7 +225,7 @@ def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
             "/advisory/cockpit/actions",
             params={
                 "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "role": "DPM_OWNER",
+                "role": "PORTFOLIO_MANAGER",
             },
             headers={"X-Correlation-ID": "corr-cockpit-house-view"},
         )
@@ -236,9 +236,26 @@ def test_advisor_cockpit_api_projects_source_backed_house_view_queue(
     assert payload["total_count"] == 1
     action = payload["items"][0]
     assert action["action_family"] == "HOUSE_VIEW_IMPACT_REVIEW"
-    assert action["owner_role"] == "DPM_OWNER"
+    assert action["owner_role"] == "PORTFOLIO_MANAGER"
+    assert action["owner_role_label"] == "Portfolio manager"
     assert action["evidence_refs"][0]["evidence_type"] == "TACTICAL_HOUSE_VIEW_COHORT"
     assert action["correlation_id"] == "corr-cockpit-house-view"
+
+    with TestClient(app) as client:
+        legacy_response = client.get(
+            "/advisory/cockpit/actions",
+            params={
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "role": "DPM_OWNER",
+            },
+            headers={"X-Correlation-ID": "corr-cockpit-house-view-legacy"},
+        )
+
+    assert legacy_response.status_code == 200
+    legacy_action = legacy_response.json()["items"][0]
+    assert legacy_action["action_family"] == "HOUSE_VIEW_IMPACT_REVIEW"
+    assert legacy_action["owner_role"] == "PORTFOLIO_MANAGER"
+    assert legacy_action["owner_role_label"] == "Portfolio manager"
 
 
 def test_advisor_cockpit_api_acknowledgement_is_replay_safe(
@@ -343,6 +360,16 @@ def test_advisor_cockpit_openapi_documents_runtime_boundary() -> None:
     assert action_operation["responses"]["422"]["description"] == (
         "Advisor cockpit request failed validation, including invalid cursors."
     )
+    action_schema = schema["components"]["schemas"]["AdvisoryActionItem"]
+    emitted_owner_values = action_schema["properties"]["owner_role"]["enum"]
+    assert "PORTFOLIO_MANAGER" in emitted_owner_values
+    assert "DPM_OWNER" not in emitted_owner_values
+    role_parameter = next(
+        parameter for parameter in action_operation["parameters"] if parameter["name"] == "role"
+    )
+    assert "legacy caller alias" in role_parameter["description"]
+    assert "DPM_OWNER" in role_parameter["schema"]["enum"]
+    assert "PORTFOLIO_MANAGER" in role_parameter["schema"]["enum"]
     assert preparation_operation["summary"] == "List Advisor Cockpit Preparation Packets"
     assert "Gateway and Workbench must render these packets" in preparation_operation["description"]
     assert "calendar" in preparation_operation["description"]
@@ -412,7 +439,7 @@ def _house_view_payload() -> dict:
             {
                 "portfolio_id": "PB_SG_GLOBAL_BAL_001",
                 "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
-                "portfolio_type": "DPM",
+                "portfolio_type": "DISCRETIONARY",
                 "discretionary_mandate": True,
                 "booking_center_code": "Singapore",
                 "current_exposure_weight": "0.18",
@@ -428,6 +455,6 @@ def _house_view_payload() -> dict:
                 ],
             }
         ],
-        "eligible_portfolio_types": ["DPM"],
+        "eligible_portfolio_types": ["DISCRETIONARY"],
         "correlation_id": "corr-thv-001",
     }
