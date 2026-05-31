@@ -425,7 +425,7 @@ def _assert_safe_structured_payload(value: Any, *, depth: int = 0) -> None:
         if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_ITEMS:
             raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
         for key, nested in value.items():
-            if str(key).strip().lower() in RAW_AI_STORAGE_KEYS:
+            if _normalize_structured_payload_key(key) in RAW_AI_STORAGE_KEYS:
                 raise ValueError("COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED")
             _assert_safe_structured_payload(nested, depth=depth + 1)
     elif isinstance(value, list | tuple):
@@ -442,6 +442,10 @@ def _assert_safe_structured_payload(value: Any, *, depth: int = 0) -> None:
 
 def _optional_str(value: Any) -> str | None:
     return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+def _normalize_structured_payload_key(value: Any) -> str:
+    return str(value).strip().lower().replace("-", "_").replace(" ", "_")
 
 
 def _stable_id(*, prefix: str, value: str) -> str:

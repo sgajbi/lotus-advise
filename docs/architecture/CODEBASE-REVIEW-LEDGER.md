@@ -8876,6 +8876,39 @@
   - Continue aligning RFC-0026 and RFC-0027 leakage guards so business-facing payloads reject both
     natural-language and identifier-shaped technical details.
 
+## LA-REV-370
+
+- Scope: RFC-0027 advisory copilot evidence and persistence leakage guards
+- Pattern: Copilot evidence packets and persisted structured payloads should reject sensitive AI
+  and operational material in both text values and key names
+- Status: Hardened
+- Finding Class: Security posture and sensitive-data handling
+- Summary: RFC-0027 copilot business-copy validation blocked some technical phrases, but it did
+  not reject common sensitive terms such as `token`, `secret`, `credential`, or
+  `provider output`. The persistence structured-payload guard also checked raw AI key names by
+  exact lower-case match, so hyphenated or space-delimited variants such as `raw-payload` and
+  `raw payload` could bypass the raw-payload key guard.
+- Evidence:
+  - Expanded `src/core/advisory_copilot/models.py` business-copy technical terms to cover
+    credentials, tokens, provider output, and raw source wording.
+  - Normalized structured payload keys in `src/core/advisory_copilot/service.py` so
+    hyphen-delimited and space-delimited raw AI key variants are blocked before persistence.
+  - Added evidence-packet and persistence regression tests for `raw_payload`, `raw-payload`,
+    `raw payload`, `token`, and `secret` leakage attempts.
+  - Focused copilot foundation and persistence tests passed with 30 tests; focused `ruff` and
+    format checks also passed.
+- Consequence:
+  - RFC-0027 copilot payloads and persisted audit records are less likely to retain or project raw
+    AI/provider material or secret-bearing operational detail while preserving source-backed
+    advisor/reviewer business evidence.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    model and persistence hardening for an existing supported contract.
+- Follow-Up:
+  - Consider extracting a shared advisory safe-copy vocabulary only if another RFC surface needs
+    the same guard; avoid premature abstraction while the current domains still have different
+    allowable identifier fields.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

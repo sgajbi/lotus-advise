@@ -550,3 +550,13 @@ def test_copilot_evidence_section_input_rejects_technical_copy_leakage() -> None
             summary_items=("This raw prompt must not appear in advisor evidence.",),
             allowed_audiences=("ADVISOR",),
         )
+
+    with pytest.raises(ValidationError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=("raw_payload and token detail must not appear in advisor evidence.",),
+            allowed_audiences=("COMPLIANCE_REVIEWER",),
+        )
