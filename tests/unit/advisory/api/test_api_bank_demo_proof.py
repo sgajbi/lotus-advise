@@ -114,6 +114,23 @@ def test_bank_demo_proof_pack_endpoint_blocks_material_drift() -> None:
     assert "policy_evaluation='APPROVED'" in response.json()["detail"]
 
 
+def test_bank_demo_proof_pack_endpoint_rejects_malformed_source_evidence_as_422() -> None:
+    live_runtime_payload = _live_runtime_payload()
+    del live_runtime_payload["parity"]["proposal_policy"]["policy_pack_id"]
+    request = {
+        "live_runtime_payload": live_runtime_payload,
+        "runtime_posture": _runtime_posture().model_dump(mode="json"),
+        "repository_sha": "api-sha-123",
+    }
+
+    with TestClient(app) as client:
+        response = client.post("/advisory/bank-demo-proof/proof-packs", json=request)
+
+    assert response.status_code == 422
+    assert "RFC0028_INTEGRATION_PROOF_FIELD_MISSING" in response.json()["detail"]
+    assert "policy_pack_id" in response.json()["detail"]
+
+
 def test_bank_demo_proof_pack_endpoint_rejects_sensitive_artifact_refs_as_request_shape() -> None:
     request = {
         "live_runtime_payload": _live_runtime_payload(),
@@ -182,6 +199,7 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     assert "Gateway and Workbench cannot promote stale" in operation["description"]
     assert "409" in operation["responses"]
     assert "422" in operation["responses"]
+    assert "source evidence validation failed" in operation["responses"]["422"]["description"]
     runtime_endpoint_schema = app.openapi()["components"]["schemas"]["RuntimeEndpointEvidence"]
     assert "latency_ms" in runtime_endpoint_schema["properties"]
     assert runtime_endpoint_schema["properties"]["endpoint"]["maxLength"] == 160

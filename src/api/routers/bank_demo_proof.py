@@ -22,6 +22,8 @@ from src.core.bank_demo_proof import (
     default_capture_metadata,
 )
 
+RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX = "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED"
+
 router = APIRouter(prefix="/advisory/bank-demo-proof", tags=["Bank Demo Proof"])
 
 
@@ -70,7 +72,9 @@ def get_bank_demo_supported_claim_register() -> AdvisorySupportedClaimRegister:
                 "Material proof evidence is missing or does not match the canonical scenario."
             )
         },
-        422: {"description": "Request shape or proof metadata validation failed."},
+        422: {
+            "description": ("Request shape, proof metadata, or source evidence validation failed.")
+        },
     },
 )
 def build_bank_demo_proof_pack(
@@ -102,6 +106,12 @@ def build_bank_demo_proof_pack(
         )
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=_proof_pack_error_status(str(exc)),
             detail=str(exc),
         ) from exc
+
+
+def _proof_pack_error_status(error_detail: str) -> int:
+    if error_detail.startswith(RFC28_MATERIAL_REVIEW_BLOCKED_PREFIX):
+        return 409
+    return 422

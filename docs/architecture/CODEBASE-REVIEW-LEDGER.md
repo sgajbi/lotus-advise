@@ -7965,3 +7965,30 @@
 - Follow-Up:
   - Continue broader wiki/RFC vocabulary cleanup only where it changes current product truth or
     buyer-facing clarity; avoid rewriting historical RFC implementation notes for cosmetics.
+
+## LA-REV-302
+
+- Scope: RFC-0028 proof-pack API error classification
+- Pattern: distinguish material-proof conflict from malformed source evidence
+- Status: Hardened
+- Finding Class: API error-model precision and caller remediation clarity
+- Summary: `POST /advisory/bank-demo-proof/proof-packs` mapped every proof-build `ValueError` to
+  HTTP 409. Material-field drift is a real conflict because it means the provided evidence does not
+  match the canonical proof posture, but malformed source evidence is a 422 request/source-evidence
+  validation failure. Treating both as 409 made Gateway, Workbench, and automation remediation less
+  precise.
+- Evidence:
+  - `src/api/routers/bank_demo_proof.py` now maps
+    `RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED` to HTTP 409 and other proof-build validation
+    failures to HTTP 422.
+  - The OpenAPI 422 response description now includes source-evidence validation failure.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof.py` proves material drift remains 409 while
+    missing nested source evidence returns 422 with the bounded proof-field diagnostic.
+- Consequence:
+  - RFC-0028 proof automation and product consumers can distinguish stale/materially conflicting
+    proof state from invalid source evidence without inspecting fragile response text alone.
+- Documentation:
+  - No README or wiki source change is required. The API behavior is clarified in OpenAPI and
+    covered by endpoint tests.
+- Follow-Up:
+  - Continue tightening error models only where consumers need different remediation behavior.
