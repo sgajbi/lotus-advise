@@ -115,7 +115,15 @@ def load_feature_flags() -> dict[str, dict[str, dict[str, bool]]]:
 
 def load_capability_rules() -> dict[str, str]:
     rules = _load_json_map("ENTERPRISE_CAPABILITY_RULES_JSON")
-    return {str(key): str(value) for key, value in rules.items() if isinstance(key, str)}
+    normalized: dict[str, str] = {}
+    for key, value in rules.items():
+        if not isinstance(key, str):
+            continue
+        capability_rule = key.strip()
+        capability = str(value).strip()
+        if capability_rule and capability:
+            normalized[capability_rule] = capability
+    return normalized
 
 
 def is_feature_enabled(feature_key: str, tenant_id: str, role: str) -> bool:

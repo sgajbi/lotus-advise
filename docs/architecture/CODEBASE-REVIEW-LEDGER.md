@@ -5509,18 +5509,19 @@
 - Summary: Runtime configuration validation reported malformed
   `ENTERPRISE_CAPABILITY_RULES_JSON`, but write authorization could still treat malformed
   capability rules as an empty rule map when `ENTERPRISE_ENFORCE_AUTHZ=true` and startup
-  fail-fast was not enabled. That created a fail-open posture for capability-specific write
+  fail-fast was not enabled. Whitespace-padded capability-rule keys could also fail to match and
+  behave like no rule. Those paths created fail-open posture for capability-specific write
   authorization.
 - Evidence:
   - `src/api/enterprise_readiness.py` now rejects write authorization with
     `invalid_capability_rules_json` when capability rules are malformed.
+  - Capability-rule keys and capability values are normalized before request matching.
   - `tests/unit/advisory/api/test_enterprise_readiness.py` now covers the fail-closed behavior.
-  - Focused enterprise-readiness, internal guard, and observability header tests passed with
-    `15 passed`.
+  - Focused enterprise-readiness tests passed with `9 passed`.
 - Consequence:
-  - Enterprise write authorization no longer silently drops malformed capability policy, improving
-    bank-grade configuration safety without changing default non-enforcing local development
-    behavior.
+  - Enterprise write authorization no longer silently drops malformed or padded capability policy,
+    improving bank-grade configuration safety without changing default non-enforcing local
+    development behavior.
 - Documentation:
   - No wiki source change is required. This is security posture hardening of existing middleware
     behavior and does not change product feature posture.

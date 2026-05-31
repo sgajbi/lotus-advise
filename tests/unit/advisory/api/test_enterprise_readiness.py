@@ -65,7 +65,7 @@ def test_authorize_write_request_trims_headers_and_capabilities(monkeypatch) -> 
     monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
     monkeypatch.setenv(
         "ENTERPRISE_CAPABILITY_RULES_JSON",
-        '{"POST /advisory/proposals": "advisory.proposals.write"}',
+        '{" POST /advisory/proposals ": " advisory.proposals.write "}',
     )
 
     authorized, reason = authorize_write_request(
@@ -83,6 +83,31 @@ def test_authorize_write_request_trims_headers_and_capabilities(monkeypatch) -> 
 
     assert authorized is True
     assert reason is None
+
+
+def test_authorize_write_request_rejects_when_padded_rule_capability_is_missing(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
+    monkeypatch.setenv(
+        "ENTERPRISE_CAPABILITY_RULES_JSON",
+        '{" POST /advisory/proposals ": " advisory.proposals.write "}',
+    )
+
+    authorized, reason = authorize_write_request(
+        "POST",
+        "/advisory/proposals",
+        {
+            "X-Actor-Id": "advisor-sg-001",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Role": "ADVISOR",
+            "X-Correlation-Id": "corr-001",
+            "X-Service-Identity": "lotus-workbench",
+        },
+    )
+
+    assert authorized is False
+    assert reason == "missing_capability:advisory.proposals.write"
 
 
 def test_authorize_write_request_fails_closed_for_invalid_capability_rules(monkeypatch) -> None:
