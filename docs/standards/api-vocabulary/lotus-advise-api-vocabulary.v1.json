@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-31T20:33:14.101478+00:00",
+  "generatedAt": "2026-05-31T22:21:44.169610+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -5759,7 +5759,7 @@
       "semanticId": "lotus.live_runtime_payload",
       "canonicalTerm": "live_runtime_payload",
       "preferredName": "live_runtime_payload",
-      "description": "Governed live runtime suite result used as source evidence for RFC-0028 proof capture. The API returns sanitized proof output and does not persist raw payloads.",
+      "description": "Governed live runtime suite result used as source evidence for RFC-0028 proof capture. The API returns sanitized proof output and does not persist unredacted runtime payloads.",
       "example": {
         "key": "sample_text"
       },
@@ -5775,7 +5775,7 @@
       "semanticId": "lotus.live_suite_bundle_ref",
       "canonicalTerm": "live_suite_bundle_ref",
       "preferredName": "live_suite_bundle_ref",
-      "description": "Optional local-only relative reference to the source live runtime evidence bundle. URL schemes, credentials, query strings, fragments, traversal, and sensitive tokens are rejected.",
+      "description": "Optional local-only relative reference to the source live runtime evidence bundle. URL schemes, credentials, query strings, fragments, traversal, and access tokens are rejected.",
       "example": "live_suite_bundle_ref_example",
       "type": "object",
       "locations": [
@@ -5789,7 +5789,7 @@
       "semanticId": "lotus.live_suite_result_ref",
       "canonicalTerm": "live_suite_result_ref",
       "preferredName": "live_suite_result_ref",
-      "description": "Optional local-only relative reference to the source live runtime result. URL schemes, credentials, query strings, fragments, traversal, and sensitive tokens are rejected.",
+      "description": "Optional local-only relative reference to the source live runtime result. URL schemes, credentials, query strings, fragments, traversal, and access tokens are rejected.",
       "example": "live_suite_result_ref_example",
       "type": "object",
       "locations": [
@@ -6687,7 +6687,7 @@
       "semanticId": "lotus.output_ref_prefix",
       "canonicalTerm": "output_ref_prefix",
       "preferredName": "output_ref_prefix",
-      "description": "Sanitized relative proof artifact reference prefix used inside the returned proof pack. It must not contain URL schemes, credentials, query strings, fragments, traversal, or sensitive tokens.",
+      "description": "Sanitized relative proof artifact reference prefix used inside the returned proof pack. It must not contain URL schemes, credentials, query strings, fragments, traversal, or access tokens.",
       "example": "example_output_ref_prefix",
       "type": "string",
       "locations": [
@@ -7807,7 +7807,7 @@
       "semanticId": "lotus.raw_prompt_retained",
       "canonicalTerm": "raw_prompt_retained",
       "preferredName": "raw_prompt_retained",
-      "description": "Whether raw prompt or raw model output is retained in the proof pack.",
+      "description": "Whether unredacted AI input or output material is retained in the proof pack.",
       "example": true,
       "type": "boolean",
       "locations": [
@@ -7821,7 +7821,7 @@
       "semanticId": "lotus.raw_source_evidence_included",
       "canonicalTerm": "raw_source_evidence_included",
       "preferredName": "raw_source_evidence_included",
-      "description": "Whether raw source evidence is included in the AI proof payload.",
+      "description": "Whether unredacted source evidence is included in the AI proof payload.",
       "example": true,
       "type": "boolean",
       "locations": [
