@@ -8846,6 +8846,33 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-363
+
+- Scope: RFC-0026 advisor cockpit approval-dependency action mapping
+- Pattern: Approval and client-consent dependency mapping should be isolated from the broad cockpit
+  factory because it owns supervisory and external-communication boundaries
+- Status: Hardened
+- Finding Class: Modularity and domain vocabulary
+- Summary: Approval dependency construction includes risk, compliance, and client-consent owner
+  routing plus unsupported-capability boundaries. Keeping that logic inside the broad
+  `action_factory.py` made the factory harder to audit and extended a module that already handled
+  many source families.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_approval.py` for approval dependency action
+    construction and owner/action wording helpers.
+  - Kept aggregate builder and public imports stable.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    15 tests.
+- Consequence:
+  - RFC-0026 supervisory approval and client-consent cockpit posture is easier to review without
+    blurring CRM/external-communication or completed-approval authority boundaries.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep future approval-state semantics out of generic action construction and covered by
+    approval-focused tests.
+
 ## LA-REV-362
 
 - Scope: RFC-0026 execution cockpit action ownership boundary
