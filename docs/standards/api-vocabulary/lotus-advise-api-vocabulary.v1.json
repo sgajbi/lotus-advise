@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-31T20:27:22.184326+00:00",
+  "generatedAt": "2026-05-31T20:29:44.274056+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -7027,7 +7027,7 @@
       "canonicalTerm": "portfolio_id",
       "preferredName": "portfolio_id",
       "description": "Portfolio identifier.",
-      "example": "DEMO_DPM_EUR_001",
+      "example": "PB_SG_GLOBAL_BAL_001",
       "type": "string",
       "locations": [
         "body",

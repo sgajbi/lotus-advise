@@ -8651,3 +8651,25 @@
 - Follow-Up:
   - Watch adjacent Gateway/Workbench refactors for any stale copied examples; Advise remains the
     source-owned contract for the cleaned role.
+
+## LA-REV-326
+
+- Scope: OpenAPI enrichment portfolio-id example vocabulary
+- Pattern: Generated API examples should use the canonical private-banking proof portfolio rather
+  than legacy demo identifiers
+- Status: Hardened
+- Finding Class: API documentation quality and private-banking vocabulary
+- Summary: The generic OpenAPI enrichment helper still emitted `DEMO_DPM_EUR_001` as the default
+  portfolio-id example. That legacy identifier could leak into generated endpoint examples even
+  though the governed RFC-0023 through RFC-0028 proof path uses `PB_SG_GLOBAL_BAL_001`.
+- Evidence:
+  - Replaced the generic portfolio-id OpenAPI example with `PB_SG_GLOBAL_BAL_001`.
+  - Updated the OpenAPI enrichment unit test to pin the canonical private-banking example.
+- Consequence:
+  - Generated Advise API examples align with the governed front-office proof dataset and avoid
+    legacy discretionary-portfolio-management abbreviations.
+- Documentation:
+  - No README/wiki source change is required. This is generated API contract example hygiene.
+- Follow-Up:
+  - Continue scanning generated docs and examples for stale non-private-banking vocabulary before
+    PR handoff.
