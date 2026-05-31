@@ -8846,6 +8846,33 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-362
+
+- Scope: RFC-0026 execution cockpit action ownership boundary
+- Pattern: Execution/OMS-adjacent action construction should live in a focused module rather than
+  in the broader cockpit factory
+- Status: Hardened
+- Finding Class: Modularity and domain-boundary clarity
+- Summary: Execution handoff and execution-status cockpit actions carry a distinct ownership
+  boundary: Advise records advisory handoff/status posture while OMS/order lifecycle remains
+  unsupported. Keeping those builders inside the broad action factory made the boundary less
+  visible and added to factory size.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_execution.py` for execution handoff and execution-status
+    action builders.
+  - Kept `action_factory.py` as the aggregate source-family orchestrator with stable public
+    imports.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    15 tests.
+- Consequence:
+  - RFC-0026 execution posture is easier to review and extend without weakening the explicit
+    OMS/order lifecycle boundary.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    modularity hardening with no product-contract change.
+- Follow-Up:
+  - Keep any future execution-system integration evidence in execution-focused modules and tests.
+
 ## LA-REV-361
 
 - Scope: RFC-0026 advisor cockpit action construction modularity
