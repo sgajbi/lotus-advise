@@ -38,9 +38,8 @@ def test_rfc0024_slice14_promotes_only_advisor_use_data_product() -> None:
     assert "Slice 14 is complete for active advisor-use memo data-product support" in (
         supported_features
     )
-    assert "full bank-demo/RFP claims and client-ready memo claims remain planned" in (
-        supported_features
-    )
+    assert "RFC-0028 now governs bank-demo/RFP proof through supported claims" in supported_features
+    assert "without promoting client-ready memo publication" in supported_features
     assert "active governed advisor-use data product" in commercial_text
     assert "client-ready memo publication remains gated" in repo_context
 

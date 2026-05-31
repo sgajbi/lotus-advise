@@ -8489,3 +8489,31 @@
 - Follow-Up:
   - Keep any future proof asset access class changes synchronized with the supported-claim
     register, proof model validation, and wiki governance text.
+
+## LA-REV-320
+
+- Scope: RFC-0024/RFC-0025 supported-feature closure truth after RFC-0028
+- Pattern: Documentation reflects current implemented owner RFC instead of stale planned wording
+- Status: Hardened
+- Finding Class: Documentation truth and commercial-claim governance
+- Summary: Supported-feature and RFC-index wording still described client-ready memo claims and
+  full bank-demo/RFP package claims as planned or gated until RFC-0028 owned them. RFC-0028 now owns
+  bank-demo/RFP proof through supported-claim governance, while client-ready memo publication and
+  external client communication remain gated. Leaving the old wording would confuse business and
+  pre-sales readers about what RFC-0028 proved versus what remains blocked.
+- Evidence:
+  - Updated `wiki/Supported-Features.md` for RFC-0024 to state that RFC-0028 governs bank-demo/RFP
+    proof through supported claims without promoting client-ready memo publication.
+  - Updated the RFC index rows for RFC-0024 and RFC-0025 to point bank-demo/RFP proof to RFC-0028
+    instead of describing it as a future/gated claim inside those RFCs.
+  - Updated RFC-0024 documentation contract tests and trust-telemetry documentation assertions to
+    pin the current gated client-ready memo publication wording.
+- Consequence:
+  - Business-facing supported-feature truth now distinguishes implemented RFC-0028 proof from
+    still-gated client-ready memo publication and external communication.
+- Documentation:
+  - Wiki supported-features source and RFC index source changed; wiki check/publish is required
+    before/after merge.
+- Follow-Up:
+  - Keep cross-RFC closure language current when a later RFC implements a previously gated package
+    while still blocking narrower client-ready publication or communication claims.

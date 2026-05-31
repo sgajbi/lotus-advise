@@ -43,5 +43,5 @@ def test_rfc0024_slice7_supported_features_truth_does_not_overpromote() -> None:
     assert "canonical `lotus-advise` memo create/read/projection/review" in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_features
     assert "Gateway, Workbench, report/render/archive realization" in supported_features
-    assert "client-ready memo claims remain planned" in supported_features
+    assert "client-ready memo publication remains gated" in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_features
