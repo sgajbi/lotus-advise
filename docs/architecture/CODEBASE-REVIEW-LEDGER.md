@@ -5261,3 +5261,31 @@
     alignment; supported product behavior and operator workflow are unchanged.
 - Follow-Up:
   - None.
+
+## LA-REV-199
+
+- Scope: Policy-pack and policy-evaluation idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: replay determinism and policy audit reliability gap
+- Summary: RFC 25 policy-pack validation/activation, policy-evaluation finalization, workflow
+  sign-off, report-package, and AI-evidence commands used caller-supplied idempotency keys without
+  consistent normalization. Padded keys could create separate policy audit events for the same
+  client retry, weakening replay determinism and audit supportability.
+- Evidence:
+  - `src/core/policy_packs/catalog.py` and `src/core/policy_packs/persistence.py` normalize
+    required idempotency keys before validation, activation, and evaluation finalization.
+  - `src/core/policy_packs/workflow.py`, `src/core/policy_packs/reporting.py`, and
+    `src/core/policy_packs/ai.py` normalize optional idempotency keys before sign-off,
+    report-package, and AI-evidence replay lookup.
+  - Focused engine and API tests cover padded-key normalization across policy-pack validation,
+    activation, evaluation finalization, append-only review events, sign-off, report-package, and
+    AI-evidence paths.
+- Consequence:
+  - Policy audit lineage now records deterministic idempotency identity across RFC 25 and RFC 27
+    policy evidence flows, reducing duplicate audit events and replay ambiguity.
+- Documentation:
+  - No wiki source change is required. This is policy command-boundary hardening and does not
+    change product behavior, supported feature posture, or operator workflow.
+- Follow-Up:
+  - None.

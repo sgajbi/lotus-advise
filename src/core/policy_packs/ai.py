@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
+from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.policy_packs.models import (
     PolicyEvaluationAiEvidenceRequest,
     PolicyEvaluationAiEvidenceResponse,
@@ -54,6 +55,7 @@ def request_policy_evaluation_ai_evidence(
     payload: PolicyEvaluationAiEvidenceRequest,
     idempotency_key: str | None = None,
 ) -> PolicyEvaluationAiEvidenceResponse:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     record = get_policy_evaluation_record(evaluation_id=evaluation_id)
     _validate_ai_request(record=record, payload=payload)
     requested_actions = _normalize_requested_actions(payload.requested_actions)

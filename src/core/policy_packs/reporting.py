@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import Any, cast
 
 from src.core.common.canonical import hash_canonical_payload
+from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.policy_packs.models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationRecord,
@@ -36,6 +37,7 @@ def request_policy_evaluation_report_package(
     report_request_id: str,
     idempotency_key: str | None = None,
 ) -> PolicyEvaluationReportPackageResponse:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     record = get_policy_evaluation_record(evaluation_id=evaluation_id)
     _validate_report_request(record=record, payload=payload)
 

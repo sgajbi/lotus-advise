@@ -5,6 +5,10 @@ from datetime import UTC, datetime
 from typing import Any, cast
 
 from src.core.common.canonical import hash_canonical_payload
+from src.core.common.idempotency import (
+    normalize_optional_idempotency_key,
+    normalize_required_idempotency_key,
+)
 from src.core.policy_packs.catalog import get_policy_pack_version
 from src.core.policy_packs.evaluation import evaluate_policy_pack_version
 from src.core.policy_packs.models import (
@@ -32,6 +36,13 @@ from src.core.proposals.exceptions import (
 _PERSISTENCE_CONTRACT_VERSION = POLICY_EVALUATION_PERSISTENCE_CONTRACT_VERSION
 
 
+def _required_idempotency_key(idempotency_key: str | None) -> str:
+    try:
+        return normalize_required_idempotency_key(idempotency_key)
+    except ValueError as exc:
+        raise ProposalValidationError(str(exc)) from exc
+
+
 def finalize_policy_evaluation_record(
     *,
     evidence_bundle: dict[str, Any],
@@ -43,6 +54,7 @@ def finalize_policy_evaluation_record(
     idempotency_key: str,
     reason: dict[str, Any] | None = None,
 ) -> PolicyEvaluationPersistenceResult:
+    idempotency_key = _required_idempotency_key(idempotency_key)
     return _STORE.finalize_policy_evaluation_record(
         evidence_bundle=evidence_bundle,
         policy_pack_id=policy_pack_id,
@@ -99,6 +111,7 @@ def append_policy_evaluation_event(
     reason: dict[str, Any],
     idempotency_key: str | None = None,
 ) -> PolicyEvaluationAuditEvent:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     return _STORE.append_policy_evaluation_event(
         evaluation_id=evaluation_id,
         event_type=event_type,

@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from src.core.common.idempotency import normalize_optional_idempotency_key
 from src.core.policy_packs.models import (
     PolicyEvaluationAuditEvent,
     PolicyEvaluationEventType,
@@ -43,6 +44,7 @@ def record_policy_evaluation_sign_off_decision(
     idempotency_key: str | None = None,
     now: datetime | None = None,
 ) -> PolicyEvaluationSignOffDecisionResponse:
+    idempotency_key = normalize_optional_idempotency_key(idempotency_key)
     decision_time = now or datetime.now(UTC)
     record = get_policy_evaluation_record(evaluation_id=evaluation_id)
     if payload.source_evaluation_hash != record.evaluation_hash:

@@ -116,7 +116,7 @@ def test_policy_evaluation_record_is_immutable_hash_backed_and_idempotent() -> N
         proposal_id="pp_policy_persist_001",
         proposal_version_id="ppv_policy_persist_001",
         created_by="advisor_1",
-        idempotency_key="policy-eval-finalize-001",
+        idempotency_key="  policy-eval-finalize-001  ",
         reason={"purpose": "advisor policy review"},
     )
     replayed = finalize_policy_evaluation_record(
@@ -144,6 +144,8 @@ def test_policy_evaluation_record_is_immutable_hash_backed_and_idempotent() -> N
     assert created.replayed is False
     assert created.audit_event is not None
     assert created.audit_event.event_type == "POLICY_EVALUATION_FINALIZED"
+    assert created.audit_event.idempotency_key == "policy-eval-finalize-001"
+    assert created.record.replay_metadata_json["idempotency_key"] == "policy-eval-finalize-001"
     assert created.record.evaluation_hash.startswith("sha256:")
     assert (
         created.record.policy_content_hash
@@ -204,7 +206,7 @@ def test_policy_evaluation_events_are_append_only_without_mutating_final_hash() 
         evaluation_id=persisted.record.evaluation_id,
         event_type="POLICY_EVALUATION_REVIEW_RECORDED",
         actor_id="compliance_1",
-        idempotency_key="policy-eval-review-event",
+        idempotency_key="  policy-eval-review-event  ",
         reason={"review_action": "REQUEST_MORE_EVIDENCE"},
     )
     review_replay = append_policy_evaluation_event(
