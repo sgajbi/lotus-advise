@@ -7,6 +7,7 @@ from typing import Any, cast
 import httpx
 
 from src.core.proposals.contract_types import ProposalReportType
+from src.core.proposals.correlation import MAX_CORRELATION_ID_LENGTH
 from src.core.proposals.models import ProposalReportResponse
 from src.integrations.base import (
     IntegrationDependencyState,
@@ -17,6 +18,8 @@ from src.integrations.lotus_core.runtime_config import env_positive_float
 
 _PORTFOLIO_REVIEW_PATH = "/reports/portfolio-reviews"
 _SNAPSHOT_DATE_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}")
+_DEFAULT_ACTOR_ID = "lotus-advise"
+_DEFAULT_TENANT_ID = "tenant-sg-001"
 
 
 class LotusReportUnavailableError(Exception):
@@ -43,15 +46,7 @@ def request_proposal_report_with_lotus_report(*, request: dict[str, Any]) -> Pro
     request_id = _required_string(request, "report_request_id")
     report_type = cast(ProposalReportType, _required_string(request, "report_type"))
     payload = _build_portfolio_review_job_request(request)
-    headers = {
-        "Idempotency-Key": request_id,
-        "X-Actor-Id": _optional_string(request.get("requested_by")) or "lotus-advise",
-        "X-Caller-Application": "lotus-advise",
-        "X-Tenant-Id": "default",
-        "X-Region": _proposal_region(request),
-        "X-Booking-Center-Code": _proposal_region(request),
-        "X-Role": "advisor",
-    }
+    headers = _report_headers(request=request, request_id=request_id)
 
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
@@ -123,15 +118,7 @@ def request_proposal_memo_report_package_with_lotus_report(
     base_url = _resolve_base_url()
     request_id = _required_string(request, "report_request_id")
     payload = _build_memo_report_package_job_request(request)
-    headers = {
-        "Idempotency-Key": request_id,
-        "X-Actor-Id": _optional_string(request.get("requested_by")) or "lotus-advise",
-        "X-Caller-Application": "lotus-advise",
-        "X-Tenant-Id": "default",
-        "X-Region": _proposal_region(request),
-        "X-Booking-Center-Code": _proposal_region(request),
-        "X-Role": "advisor",
-    }
+    headers = _report_headers(request=request, request_id=request_id)
 
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
@@ -205,15 +192,7 @@ def request_policy_sign_off_report_package_with_lotus_report(
     base_url = _resolve_base_url()
     request_id = _required_string(request, "report_request_id")
     payload = _build_policy_sign_off_package_job_request(request)
-    headers = {
-        "Idempotency-Key": request_id,
-        "X-Actor-Id": _optional_string(request.get("requested_by")) or "lotus-advise",
-        "X-Caller-Application": "lotus-advise",
-        "X-Tenant-Id": "default",
-        "X-Region": _proposal_region(request),
-        "X-Booking-Center-Code": _proposal_region(request),
-        "X-Role": "advisor",
-    }
+    headers = _report_headers(request=request, request_id=request_id)
 
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
@@ -300,6 +279,27 @@ def _resolve_timeout() -> httpx.Timeout:
     return httpx.Timeout(timeout_seconds)
 
 
+def _report_headers(*, request: dict[str, Any], request_id: str) -> dict[str, str]:
+    region = _proposal_region(request)
+    return {
+        "Idempotency-Key": request_id,
+        "X-Actor-Id": _report_actor_id(request),
+        "X-Caller-Application": "lotus-advise",
+        "X-Tenant-Id": _report_tenant_id(),
+        "X-Region": region,
+        "X-Booking-Center-Code": region,
+        "X-Role": "advisor",
+    }
+
+
+def _report_actor_id(request: dict[str, Any]) -> str:
+    return _bounded_identity(request.get("requested_by"), default=_DEFAULT_ACTOR_ID)
+
+
+def _report_tenant_id() -> str:
+    return _bounded_identity(os.getenv("LOTUS_ADVISE_TENANT_ID"), default=_DEFAULT_TENANT_ID)
+
+
 def _build_portfolio_review_job_request(request: dict[str, Any]) -> dict[str, Any]:
     proposal = cast(dict[str, Any], request.get("proposal") or {})
     portfolio_id = _required_string(proposal, "portfolio_id")
@@ -314,7 +314,7 @@ def _build_portfolio_review_job_request(request: dict[str, Any]) -> dict[str, An
             "source_system": "lotus-advise",
             "source_proposal_id": proposal.get("proposal_id"),
             "source_report_type": request.get("report_type"),
-            "requested_by": request.get("requested_by"),
+            "requested_by": _report_actor_id(request),
             "related_version_no": related_version_no,
             "include_execution_summary": request.get("include_execution_summary"),
             "include_reviewed_narrative": request.get("include_reviewed_narrative"),
@@ -345,7 +345,7 @@ def _build_memo_report_package_job_request(request: dict[str, Any]) -> dict[str,
             "source_system": "lotus-advise",
             "source_proposal_id": proposal.get("proposal_id"),
             "source_report_type": "ADVISORY_PROPOSAL_MEMO",
-            "requested_by": request.get("requested_by"),
+            "requested_by": _report_actor_id(request),
             "related_version_no": request.get("related_version_no"),
             "retention_policy_id": _as_mapping(request.get("reason")).get("retention_policy_id"),
         },
@@ -374,7 +374,7 @@ def _build_policy_sign_off_package_job_request(request: dict[str, Any]) -> dict[
             "source_system": "lotus-advise",
             "source_proposal_id": proposal.get("proposal_id"),
             "source_report_type": "ADVISORY_POLICY_SIGN_OFF_PACKAGE",
-            "requested_by": request.get("requested_by"),
+            "requested_by": _report_actor_id(request),
             "related_policy_evaluation_id": request.get("related_policy_evaluation_id"),
             "retention_policy_id": _as_mapping(request.get("reason")).get("retention_policy_id"),
         },
@@ -469,3 +469,14 @@ def _optional_string(value: Any) -> str | None:
     if isinstance(value, str) and value.strip():
         return value.strip()
     return None
+
+
+def _bounded_identity(value: Any, *, default: str) -> str:
+    normalized = _optional_string(value)
+    if (
+        normalized is None
+        or len(normalized) > MAX_CORRELATION_ID_LENGTH
+        or any(ord(char) < 32 or ord(char) == 127 for char in normalized)
+    ):
+        return default
+    return normalized

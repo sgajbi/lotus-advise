@@ -5983,3 +5983,29 @@
     without changing supported feature scope.
 - Follow-Up:
   - None.
+
+## LA-REV-227
+
+- Scope: Lotus Report outbound identity headers
+- Pattern: outbound integration hardening, private-banking tenant posture, and duplication removal
+- Status: Hardened
+- Finding Class: duplicated and weakly bounded downstream identity context
+- Summary: Lotus Report adapter calls built outbound identity headers separately in each report
+  path, defaulted tenant context to `default`, and passed raw `requested_by` values through
+  headers and report options. This created inconsistent private-banking tenant posture and avoidable
+  downstream header hygiene risk.
+- Evidence:
+  - `src/integrations/lotus_report/adapter.py` now uses one shared report-header builder across
+    portfolio review, memo package, and policy sign-off package calls.
+  - Outbound report calls use the governed `LOTUS_ADVISE_TENANT_ID` setting with `tenant-sg-001`
+    default and bounded actor identity values for headers and report options.
+  - Lotus Report adapter tests prove default tenant context, tenant override, invalid tenant
+    fallback, and malformed actor fallback without opening new downstream contracts.
+- Consequence:
+  - Reporting integration calls carry consistent private-banking context and avoid propagating
+    malformed actor identifiers into downstream report audit or render/archive jobs.
+- Documentation:
+  - No wiki source change is required. This tightens existing integration behavior without changing
+    supported feature scope.
+- Follow-Up:
+  - None.

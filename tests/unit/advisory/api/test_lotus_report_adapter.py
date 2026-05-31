@@ -179,6 +179,8 @@ def test_lotus_report_adapter_submits_portfolio_review_job_with_reviewed_narrati
     assert post["url"] == "http://report.dev.lotus/reports/portfolio-reviews"
     assert post["headers"]["Idempotency-Key"] == "prr_live_001"
     assert post["headers"]["X-Caller-Application"] == "lotus-advise"
+    assert post["headers"]["X-Actor-Id"] == "advisor_1"
+    assert post["headers"]["X-Tenant-Id"] == "tenant-sg-001"
     assert post["json"]["portfolio_scope"] == {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]}
     assert post["json"]["as_of_date"] == "2026-04-10"
     assert post["json"]["requested_output_formats"] == ["json"]
@@ -212,6 +214,60 @@ def test_lotus_report_adapter_sanitizes_configured_base_url(monkeypatch) -> None
     assert post["url"] == "https://report.dev.lotus:8300/api/reports/portfolio-reviews"
     assert "secret" not in post["url"]
     assert "token" not in post["url"]
+
+
+def test_lotus_report_adapter_bounds_identity_headers_and_payload_actor(monkeypatch) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_report_001",
+                "status": "data_ready",
+                "idempotency_key": "prr_live_001",
+            },
+        )
+    )
+    request = _proposal_request()
+    request["requested_by"] = "advisor_1\x7f"
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", " tenant-private-bank-001 ")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    request_proposal_report_with_lotus_report(request=request)
+
+    [post] = fake_client.posts
+    assert post["headers"]["X-Actor-Id"] == "lotus-advise"
+    assert post["headers"]["X-Tenant-Id"] == "tenant-private-bank-001"
+    assert post["json"]["options"]["requested_by"] == "lotus-advise"
+
+
+def test_lotus_report_adapter_defaults_invalid_tenant_identity(monkeypatch) -> None:
+    fake_client = _FakeClient(
+        _FakeResponse(
+            202,
+            {
+                "report_request_id": "rrq_report_001",
+                "report_job_id": "rjob_report_001",
+                "status": "data_ready",
+                "idempotency_key": "prr_live_001",
+            },
+        )
+    )
+    monkeypatch.setenv("LOTUS_REPORT_BASE_URL", "http://report.dev.lotus/")
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001\x7f")
+    monkeypatch.setattr(
+        "src.integrations.lotus_report.adapter.httpx.Client",
+        lambda timeout: fake_client,
+    )
+
+    request_proposal_report_with_lotus_report(request=_proposal_request())
+
+    [post] = fake_client.posts
+    assert post["headers"]["X-Tenant-Id"] == "tenant-sg-001"
 
 
 def test_lotus_report_adapter_normalizes_pending_status_and_lineage_dates(monkeypatch) -> None:
