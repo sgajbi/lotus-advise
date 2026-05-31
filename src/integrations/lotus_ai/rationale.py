@@ -88,13 +88,15 @@ def generate_workspace_rationale_with_lotus_ai(
 
 def apply_workspace_rationale_review_action_with_lotus_ai(
     request: WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    *,
+    workspace_id: str | None = None,
 ) -> WorkspaceAssistantWorkflowPackRunReviewActionResponse:
     base_url = _resolve_base_url()
     try:
         with httpx.Client(timeout=_resolve_timeout()) as client:
             response = client.post(
                 f"{base_url}/platform/workflow-packs/runs/{request.run_id}/review-actions",
-                json=_build_review_action_request(request),
+                json=_build_review_action_request(request, workspace_id=workspace_id),
             )
             payload = response.json()
     except (httpx.HTTPError, ValueError) as exc:
@@ -190,15 +192,27 @@ def _build_task_payload(
 
 def _build_review_action_request(
     request: WorkspaceAssistantWorkflowPackRunReviewActionRequest,
+    *,
+    workspace_id: str | None = None,
 ) -> dict[str, object]:
     payload: dict[str, object] = {
         "action_type": request.action_type,
         "caller_app": "lotus-advise",
+        "workflow_surface": _WORKFLOW_SURFACE,
+        "pack_id": _WORKFLOW_PACK_ID,
+        "version": _WORKFLOW_PACK_VERSION,
         "reviewed_by": request.reviewed_by,
         "reason": request.reason,
     }
     if request.replacement_run_id is not None:
         payload["replacement_run_id"] = request.replacement_run_id
+    normalized_workspace_id = _normalize_optional_text(workspace_id)
+    if normalized_workspace_id is not None:
+        payload["correlation_id"] = f"workspace-rationale-review-{normalized_workspace_id}"
+        payload["review_context"] = {
+            "workspace_id": normalized_workspace_id,
+            "source_refs": [f"lotus-advise:workspace:{normalized_workspace_id}"],
+        }
     return payload
 
 
@@ -222,6 +236,13 @@ def _extract_detail(payload: dict[str, Any]) -> str:
 
 def _safe_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
+
+
+def _normalize_optional_text(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
 
 
 def _normalize_input_mode(value: Any) -> str:

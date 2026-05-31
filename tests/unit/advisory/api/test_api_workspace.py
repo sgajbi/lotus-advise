@@ -2225,9 +2225,17 @@ def test_workspace_ai_rationale_review_action_preserves_replacement_lineage(monk
     assert recorded["json"] == {
         "action_type": "SUPERSEDE",
         "caller_app": "lotus-advise",
+        "workflow_surface": "advisory-workspace-assistant",
+        "pack_id": "workspace_rationale.pack",
+        "version": "v1",
         "reviewed_by": "advisor_123",
         "reason": "A refreshed rationale run supersedes this earlier draft.",
         "replacement_run_id": "packrun_workspace_rationale_req_002",
+        "correlation_id": f"workspace-rationale-review-{workspace_id}",
+        "review_context": {
+            "workspace_id": workspace_id,
+            "source_refs": [f"lotus-advise:workspace:{workspace_id}"],
+        },
     }
 
 

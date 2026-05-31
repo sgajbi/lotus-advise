@@ -6297,3 +6297,28 @@
     endpoint semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-240
+
+- Scope: Workspace rationale review-action lineage forwarding
+- Pattern: cross-service lineage, review-action correlation, workspace-scoped AI handoff
+- Status: Hardened
+- Finding Class: auditability gap
+- Summary: The workspace rationale review-action route was workspace-scoped in Advise, but the
+  forwarded Lotus AI review-action request did not carry workspace context, source refs, or an
+  Advise correlation id.
+- Evidence:
+  - `src/api/services/workspace_ai_service.py` passes the path workspace id into the Lotus AI
+    review-action adapter.
+  - `src/integrations/lotus_ai/rationale.py` forwards workflow-pack identity, workflow surface,
+    workspace review context, workspace source refs, and a deterministic Advise correlation id.
+  - API tests prove the workspace-scoped review action forwards the context and preserves
+    replacement lineage.
+- Consequence:
+  - RFC-0026/RFC-0027 workspace AI review actions now retain clearer cross-service audit and
+    lineage context at the Lotus AI boundary.
+- Documentation:
+  - No wiki source change is required. This strengthens existing internal review-action handoff
+    evidence without changing the user-facing capability.
+- Follow-Up:
+  - None.
