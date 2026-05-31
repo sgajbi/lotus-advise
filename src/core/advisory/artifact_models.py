@@ -36,7 +36,7 @@ class ProposalArtifactSummary(BaseModel):
     )
     advisor_notes: List[ProposalArtifactSummaryNote] = Field(
         default_factory=list,
-        description="Structured advisor note placeholders.",
+        description="Structured advisor notes derived from proposal evidence.",
     )
     recommended_next_step: Literal[
         "CLIENT_CONSENT",
@@ -303,14 +303,14 @@ class ProposalArtifactAssumptionsAndLimits(BaseModel):
 class ProposalArtifactProductDoc(BaseModel):
     instrument_id: str = Field(description="Instrument identifier.", examples=["US_EQ_ETF"])
     doc_ref: str = Field(
-        description="Product-document placeholder reference.",
-        examples=["KID/FactSheet placeholder"],
+        description="Product-document reference for advisor review.",
+        examples=["KID/FactSheet reference pending source confirmation"],
     )
 
 
 class ProposalArtifactDisclosures(BaseModel):
     risk_disclaimer: str = Field(
-        description="Deterministic generic risk disclaimer placeholder.",
+        description="Standard deterministic risk disclaimer.",
         examples=[
             "This proposal is based on market-data snapshots and does not guarantee "
             "future performance."
@@ -318,7 +318,7 @@ class ProposalArtifactDisclosures(BaseModel):
     )
     product_docs: List[ProposalArtifactProductDoc] = Field(
         default_factory=list,
-        description="Product-document placeholder references for traded instruments.",
+        description="Product-document references for traded instruments.",
     )
 
 
@@ -424,7 +424,9 @@ class ProposalArtifact(BaseModel):
     assumptions_and_limits: ProposalArtifactAssumptionsAndLimits = Field(
         description="Assumptions and model limits section."
     )
-    disclosures: ProposalArtifactDisclosures = Field(description="Disclosure placeholders section.")
+    disclosures: ProposalArtifactDisclosures = Field(
+        description="Disclosure section for advisor review."
+    )
     evidence_bundle: ProposalArtifactEvidenceBundle = Field(
         description="Evidence payload section for reproducibility."
     )

@@ -5441,3 +5441,31 @@
   - No wiki source change is required. This slice improves API/model example vocabulary only.
 - Follow-Up:
   - None.
+
+## LA-REV-206
+
+- Scope: Proposal artifact placeholder vocabulary
+- Pattern: private-banking API copy and proposal artifact polish
+- Status: Hardened
+- Finding Class: API/documentation vocabulary quality gap
+- Summary: Proposal artifact models and deterministic disclosure output still used "placeholder"
+  and "later slices" language for advisor notes, product-document references, risk disclaimers, and
+  generated intents. That wording made supported artifact evidence read like scaffolding instead
+  of implementation-backed advisor material.
+- Evidence:
+  - `src/core/advisory/artifact_models.py` now describes advisor notes, disclosures, and product
+    document references with business-facing terminology.
+  - `src/core/advisory/artifact.py` now emits
+    `KID/FactSheet reference pending source confirmation` instead of a placeholder label.
+  - `src/core/advisory/alternatives_models.py` no longer describes generated intents as a later
+    slice placeholder.
+  - Focused proposal artifact and memo-builder tests, ruff, and mypy passed.
+- Consequence:
+  - RFC 23/24 proposal artifact evidence is cleaner for demos, API consumers, and downstream memo
+    material without changing supported capability boundaries or overclaiming client-ready
+    publication.
+- Documentation:
+  - No wiki source change is required. This slice improves API/model copy and deterministic
+    artifact wording only.
+- Follow-Up:
+  - None.

@@ -317,11 +317,11 @@ class AlternativeCandidateSeed(BaseModel):
     )
     generated_intents: list[dict[str, Any]] = Field(
         default_factory=list,
-        description="Deterministic generated intents placeholder for later slices.",
+        description="Deterministic generated proposal intents prepared for downstream simulation.",
     )
     metadata: dict[str, Any] = Field(
         default_factory=dict,
-        description="Strategy metadata required for later simulation and ranking slices.",
+        description="Strategy metadata required for downstream simulation and ranking.",
     )
 
 

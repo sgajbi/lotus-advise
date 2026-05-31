@@ -111,7 +111,10 @@ def _artifact() -> dict:
         "disclosures": {
             "risk_disclaimer": "This proposal is based on market-data snapshots.",
             "product_docs": [
-                {"instrument_id": "US_EQ_ETF", "doc_ref": "KID/FactSheet placeholder"}
+                {
+                    "instrument_id": "US_EQ_ETF",
+                    "doc_ref": "KID/FactSheet reference pending source confirmation",
+                }
             ],
         },
         "gate_decision": {"gate": "CLIENT_CONSENT_REQUIRED"},
