@@ -6929,3 +6929,31 @@
 - Follow-Up:
   - Continue auditing RFC-0027/RFC-0028 route contracts for the same boundary consistency where
     implementation-backed APIs already exist.
+
+## LA-REV-265
+
+- Scope: RFC-0027 governed advisory copilot response DTOs
+- Pattern: bounded run-page and supportability response contracts
+- Status: Hardened
+- Finding Class: API contract and generated-client safety risk
+- Summary: The copilot list route bounded page size to 100 and supportability was static, but the
+  response DTOs did not encode the same bounds directly. Direct model construction and generated
+  client schemas could therefore miss page-size, cursor, support-status, and unsupported-boundary
+  limits already expected by the service contract.
+- Evidence:
+  - `src/core/advisory_copilot/api_models.py` now bounds copilot run pages, cursors,
+    supportability status text, client-ready publication posture, action-family lists, and
+    unsupported-boundary messages.
+  - Advisory copilot API tests prove boundary-size run pages and cursors are accepted while
+    oversized pages, oversized cursors, oversized support statuses, and oversized boundary lists
+    are rejected at the DTO boundary.
+- Consequence:
+  - RFC-0027 response contracts now publish service-level limits through OpenAPI-backed models,
+    improving Gateway, Workbench, and generated-client safety without changing supported
+    business behavior.
+- Documentation:
+  - No wiki source change is required. This is DTO-level contract hardening for existing
+    RFC-0027 API semantics.
+- Follow-Up:
+  - Continue auditing RFC-0027 persistence and source-projection boundaries before moving to
+    RFC-0028 route and report-proof contracts.

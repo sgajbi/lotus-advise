@@ -8,11 +8,17 @@ from typing import Any
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 import src.api.proposals.router as proposals_router
 import src.api.proposals.routes_advisory_copilot as copilot_routes
 from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
+from src.core.advisory_copilot.api_models import (
+    AdvisoryCopilotRunPage,
+    AdvisoryCopilotSupportabilityResponse,
+)
+from src.core.advisory_copilot.records import AdvisoryCopilotRunRecord
 from src.core.policy_packs.models import PolicyEvaluationRecord
 from src.core.proposals.models import ProposalMemoRecord, ProposalRecord, ProposalVersionRecord
 from src.infrastructure.advisory_copilot import InMemoryAdvisoryCopilotRepository
@@ -593,6 +599,39 @@ def test_advisory_copilot_http_edge_bounds_identifiers_and_headers(
     assert run_review.status_code == 422
     assert long_cursor.status_code == 422
     assert long_correlation.status_code == 422
+
+
+def test_advisory_copilot_response_models_bound_pages_and_supportability() -> None:
+    run = AdvisoryCopilotRunRecord.model_construct(run_id="copilot_run_001")
+    AdvisoryCopilotRunPage(items=tuple([run] * 100), next_cursor="x" * 512)
+    AdvisoryCopilotSupportabilityResponse(
+        support_status="ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
+        client_ready_publication="BLOCKED",
+        supported_action_families=("PROPOSAL_EXPLANATION",),
+        boundaries=("Policy approval is not delegated to copilot.",),
+    )
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunPage(items=tuple([run] * 101))
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotRunPage(items=(), next_cursor="x" * 513)
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotSupportabilityResponse(
+            support_status="x" * 161,
+            client_ready_publication="BLOCKED",
+            supported_action_families=("PROPOSAL_EXPLANATION",),
+            boundaries=("Policy approval is not delegated to copilot.",),
+        )
+
+    with pytest.raises(ValidationError):
+        AdvisoryCopilotSupportabilityResponse(
+            support_status="ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
+            client_ready_publication="BLOCKED",
+            supported_action_families=("PROPOSAL_EXPLANATION",),
+            boundaries=tuple(f"Boundary {index}" for index in range(13)),
+        )
 
 
 def test_advisory_copilot_repository_dependency_maps_startup_failure(

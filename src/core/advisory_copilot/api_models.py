@@ -10,6 +10,7 @@ from src.core.advisory_copilot.models import (
     CopilotEvidencePacket,
     CopilotEvidenceSectionInput,
 )
+from src.core.advisory_copilot.pagination import COPILOT_RUN_MAX_PAGE_SIZE
 from src.core.advisory_copilot.records import (
     AdvisoryCopilotEvidencePacketRecord,
     AdvisoryCopilotReviewRecord,
@@ -19,11 +20,15 @@ from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.common.actors import normalize_required_actor_id
 
 _COPILOT_ACTOR_ID_MAX_LENGTH = 128
+_COPILOT_CURSOR_MAX_LENGTH = 512
 _COPILOT_IDENTIFIER_MAX_LENGTH = 160
 _COPILOT_REQUESTED_OUTPUT_LIMIT = 8
 _COPILOT_REQUESTED_OUTPUT_MAX_LENGTH = 96
 _COPILOT_REQUESTED_INTENT_LIMIT = 12
 _COPILOT_REQUESTED_INTENT_MAX_LENGTH = 96
+_COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT = 12
+_COPILOT_SUPPORTABILITY_BOUNDARY_MAX_LENGTH = 160
+_COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH = 160
 _COPILOT_USER_INSTRUCTION_MAX_LENGTH = 1000
 
 
@@ -298,17 +303,34 @@ class AdvisoryCopilotSupportabilityResponse(BaseModel):
     support_status: str = Field(
         description="Current support posture for the Advise copilot API surface.",
         examples=["ADVISE_COPILOT_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"],
+        min_length=1,
+        max_length=_COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH,
     )
     client_ready_publication: str = Field(
         description="Client-ready publication posture for supported copilot output.",
         examples=["BLOCKED"],
+        min_length=1,
+        max_length=_COPILOT_SUPPORTABILITY_STATUS_MAX_LENGTH,
     )
     supported_action_families: tuple[CopilotActionFamily, ...] = Field(
         description="Action families exposed by the Advise copilot API.",
+        max_length=_COPILOT_REQUESTED_INTENT_LIMIT,
     )
     boundaries: tuple[str, ...] = Field(
         description="Unsupported claims and system-of-record boundaries.",
+        max_length=_COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
     )
+
+    @field_validator("boundaries", mode="before")
+    @classmethod
+    def _normalize_boundaries(cls, value: Any) -> tuple[str, ...]:
+        return _normalize_bounded_string_tuple(
+            value,
+            error_code="COPILOT_SUPPORTABILITY_BOUNDARY_INVALID",
+            max_items=_COPILOT_SUPPORTABILITY_BOUNDARY_LIMIT,
+            max_item_length=_COPILOT_SUPPORTABILITY_BOUNDARY_MAX_LENGTH,
+            allow_empty=True,
+        )
 
 
 class AdvisoryCopilotRunPage(BaseModel):
@@ -316,11 +338,13 @@ class AdvisoryCopilotRunPage(BaseModel):
         description=(
             "Newest-first copilot runs for the requested proposal version scope, bounded by "
             "the requested page size."
-        )
+        ),
+        max_length=COPILOT_RUN_MAX_PAGE_SIZE,
     )
     next_cursor: str | None = Field(
         default=None,
         description="Opaque cursor to request the next page, or null when the page is complete.",
+        max_length=_COPILOT_CURSOR_MAX_LENGTH,
     )
 
 
