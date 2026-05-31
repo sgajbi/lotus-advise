@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -60,6 +62,11 @@ def _evidence_packet_payload() -> dict[str, Any]:
             }
         ],
     }
+
+
+def _opaque_cursor_payload(**payload: object) -> str:
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(encoded).decode("ascii").rstrip("=")
 
 
 def _seed_proposal_version(repository: InMemoryProposalRepository) -> None:
@@ -430,10 +437,22 @@ def test_proposal_version_copilot_runs_are_paginated(
             "version_sg_001/copilot-runs",
             params={"cursor": "not-a-valid-cursor"},
         )
+        naive_timestamp_cursor = client.get(
+            "/advisory/proposals/proposal_sg_structured_note_001/versions/"
+            "version_sg_001/copilot-runs",
+            params={
+                "cursor": _opaque_cursor_payload(
+                    created_at="2026-05-28T09:00:00",
+                    run_id="copilot_run_001",
+                )
+            },
+        )
 
     assert first_page.status_code == 200
     assert second_page.status_code == 200
     assert invalid_cursor.status_code == 422
+    assert naive_timestamp_cursor.status_code == 422
+    assert naive_timestamp_cursor.json()["detail"] == "COPILOT_RUN_CURSOR_INVALID"
     assert len(first_page.json()["items"]) == 2
     assert first_page.json()["next_cursor"] is not None
     assert len(second_page.json()["items"]) == 1

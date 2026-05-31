@@ -4798,3 +4798,34 @@
   - Keep future demo-oriented wiki additions as navigation and interpretation layers over
     implementation-backed proof artifacts; do not duplicate long-form RFC or commercial-guide
     content.
+
+## LA-REV-182
+
+- Scope: Advisory copilot run pagination cursor validation
+- Pattern: API validation boundary / keyset pagination hardening
+- Status: Hardened
+- Finding Class: validation and error-handling gap
+- Summary: The advisory copilot run cursor decoder accepted decoded payloads without confirming the
+  payload shape, typed fields, or timezone-aware `created_at` value. A client-supplied cursor with a
+  naive timestamp could reach repository keyset comparison against timezone-aware run records and
+  risk a runtime failure instead of the governed `COPILOT_RUN_CURSOR_INVALID` API response.
+- Evidence:
+  - `src/core/advisory_copilot/pagination.py` now validates opaque cursor JSON shape, string
+    fields, non-empty run identifiers, and timezone-aware timestamps before repository filtering.
+  - `tests/unit/advisory/engine/test_advisory_copilot_pagination.py` covers round-trip encoding,
+    non-UTC aware offsets, invalid payload shapes, naive timestamps, and stable descending keyset
+    ordering.
+  - `tests/unit/advisory/api/test_api_advisory_copilot.py` now proves the API returns HTTP 422 with
+    `COPILOT_RUN_CURSOR_INVALID` for naive timestamp cursors, matching the existing malformed-cursor
+    contract.
+- Consequence:
+  - Invalid client cursors are rejected at the domain pagination boundary before in-memory or
+    Postgres repositories evaluate the keyset predicate, preserving predictable API behavior and
+    avoiding infrastructure-layer runtime failures.
+- Documentation:
+  - No wiki source change is required. This slice hardens an existing opaque cursor validation
+    boundary without changing supported product behavior, operator workflow, or business-facing
+    feature posture.
+- Follow-Up:
+  - Keep future keyset pagination helpers covered by direct decoder tests and at least one API-level
+    malformed-cursor contract test.
