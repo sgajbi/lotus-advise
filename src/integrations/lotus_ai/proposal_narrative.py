@@ -12,6 +12,12 @@ from src.core.advisory.narrative_models import (
     ProposalNarrativePolicy,
     ProposalNarrativeSectionKey,
 )
+from src.integrations.lotus_ai.output_safety import (
+    DEFAULT_AI_OUTPUT_SECTION_LIMIT,
+    DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH,
+    DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH,
+    map_review_required_sections,
+)
 from src.integrations.lotus_ai.runtime_config import (
     resolve_lotus_ai_base_url,
     resolve_lotus_ai_tenant_id,
@@ -23,9 +29,9 @@ PROMPT_TEMPLATE_VERSION = "proposal-narrative-instructions.v1"
 WORKFLOW_PACK_ID = "proposal_narrative_draft.pack"
 WORKFLOW_PACK_VERSION = "v1"
 WORKFLOW_SURFACE = "advisory-proposal-narrative"
-MAX_NARRATIVE_AI_OUTPUT_SECTIONS = 8
-MAX_NARRATIVE_AI_SECTION_TITLE_LENGTH = 160
-MAX_NARRATIVE_AI_SECTION_TEXT_LENGTH = 4000
+MAX_NARRATIVE_AI_OUTPUT_SECTIONS = DEFAULT_AI_OUTPUT_SECTION_LIMIT
+MAX_NARRATIVE_AI_SECTION_TITLE_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH
+MAX_NARRATIVE_AI_SECTION_TEXT_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH
 
 
 class LotusAIProposalNarrativeUnavailableError(Exception):
@@ -163,35 +169,21 @@ def _approved_instructions() -> list[dict[str, str]]:
 
 
 def _map_sections(value: Any) -> tuple[ProposalNarrativeDraftSection, ...]:
-    if not isinstance(value, list):
-        raise LotusAIProposalNarrativeUnavailableError("LOTUS_AI_NARRATIVE_UNAVAILABLE")
     sections: list[ProposalNarrativeDraftSection] = []
-    for item in value:
-        if not isinstance(item, dict):
-            continue
-        if len(sections) >= MAX_NARRATIVE_AI_OUTPUT_SECTIONS:
-            break
-        section_key = item.get("section_key")
-        title = item.get("title")
-        text = item.get("text")
-        if (
-            not isinstance(section_key, str)
-            or not isinstance(title, str)
-            or not isinstance(text, str)
-        ):
-            continue
-        if section_key not in _allowed_section_keys() or not title.strip() or not text.strip():
-            continue
-        if (
-            len(title.strip()) > MAX_NARRATIVE_AI_SECTION_TITLE_LENGTH
-            or len(text.strip()) > MAX_NARRATIVE_AI_SECTION_TEXT_LENGTH
-        ):
+    for item in map_review_required_sections(
+        value,
+        max_sections=MAX_NARRATIVE_AI_OUTPUT_SECTIONS,
+        max_title_length=MAX_NARRATIVE_AI_SECTION_TITLE_LENGTH,
+        max_text_length=MAX_NARRATIVE_AI_SECTION_TEXT_LENGTH,
+    ):
+        section_key = item["section_key"]
+        if section_key not in _allowed_section_keys():
             continue
         sections.append(
             ProposalNarrativeDraftSection(
                 section_key=cast(ProposalNarrativeSectionKey, section_key),
-                title=title.strip(),
-                text=text.strip(),
+                title=item["title"],
+                text=item["text"],
             )
         )
     if not sections:

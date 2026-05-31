@@ -15,6 +15,16 @@ from src.core.advisory_copilot import (
     workflow_pack_id_for_action,
     workflow_pack_version_for_action,
 )
+from src.integrations.lotus_ai.output_safety import (
+    DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH,
+    DEFAULT_AI_OUTPUT_SECTION_LIMIT,
+    DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH,
+    DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH,
+    DEFAULT_AI_REVIEW_GUIDANCE_LENGTH,
+    DEFAULT_AI_REVIEW_GUIDANCE_LIMIT,
+    map_bounded_string_list,
+    map_review_required_sections,
+)
 from src.integrations.lotus_ai.runtime_config import (
     resolve_lotus_ai_base_url,
     resolve_lotus_ai_tenant_id,
@@ -27,12 +37,12 @@ PROMPT_TEMPLATE_VERSION = "advisory-copilot-prompt-template.v1"
 OUTPUT_SCHEMA_VERSION = "advisory-copilot-output-schema.v1"
 EVALUATION_PACK_REF = "advisory-copilot-eval-pack.v1"
 WORKFLOW_SURFACE_PREFIX = "advisory-copilot"
-MAX_COPILOT_OUTPUT_SECTIONS = 8
-MAX_COPILOT_SECTION_KEY_LENGTH = 96
-MAX_COPILOT_SECTION_TITLE_LENGTH = 160
-MAX_COPILOT_SECTION_TEXT_LENGTH = 4000
-MAX_COPILOT_REVIEW_GUIDANCE_ITEMS = 8
-MAX_COPILOT_REVIEW_GUIDANCE_LENGTH = 1000
+MAX_COPILOT_OUTPUT_SECTIONS = DEFAULT_AI_OUTPUT_SECTION_LIMIT
+MAX_COPILOT_SECTION_KEY_LENGTH = DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH
+MAX_COPILOT_SECTION_TITLE_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH
+MAX_COPILOT_SECTION_TEXT_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH
+MAX_COPILOT_REVIEW_GUIDANCE_ITEMS = DEFAULT_AI_REVIEW_GUIDANCE_LIMIT
+MAX_COPILOT_REVIEW_GUIDANCE_LENGTH = DEFAULT_AI_REVIEW_GUIDANCE_LENGTH
 
 
 @dataclass(frozen=True)
@@ -301,57 +311,21 @@ def _has_source_refs(evidence_packet: CopilotEvidencePacket) -> bool:
 
 
 def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
-    if not isinstance(value, list):
-        return ()
-    sections: list[dict[str, Any]] = []
-    for item in value:
-        if not isinstance(item, dict):
-            continue
-        if len(sections) >= MAX_COPILOT_OUTPUT_SECTIONS:
-            break
-        section_key = item.get("section_key")
-        title = item.get("title")
-        text = item.get("text")
-        if not (
-            isinstance(section_key, str)
-            and isinstance(title, str)
-            and isinstance(text, str)
-            and section_key.strip()
-            and title.strip()
-            and text.strip()
-        ):
-            continue
-        if (
-            len(section_key.strip()) > MAX_COPILOT_SECTION_KEY_LENGTH
-            or len(title.strip()) > MAX_COPILOT_SECTION_TITLE_LENGTH
-            or len(text.strip()) > MAX_COPILOT_SECTION_TEXT_LENGTH
-        ):
-            continue
-        sections.append(
-            {
-                "section_key": section_key.strip(),
-                "title": title.strip(),
-                "text": text.strip(),
-                "review_state": "REVIEW_REQUIRED",
-            }
-        )
-    return tuple(sections)
+    return map_review_required_sections(
+        value,
+        max_sections=MAX_COPILOT_OUTPUT_SECTIONS,
+        max_section_key_length=MAX_COPILOT_SECTION_KEY_LENGTH,
+        max_title_length=MAX_COPILOT_SECTION_TITLE_LENGTH,
+        max_text_length=MAX_COPILOT_SECTION_TEXT_LENGTH,
+    )
 
 
 def _map_string_list(value: Any) -> tuple[str, ...]:
-    if not isinstance(value, list):
-        return ()
-    items: list[str] = []
-    for item in value:
-        if len(items) >= MAX_COPILOT_REVIEW_GUIDANCE_ITEMS:
-            break
-        if not isinstance(item, str):
-            continue
-        stripped = item.strip()
-        if not stripped or len(stripped) > MAX_COPILOT_REVIEW_GUIDANCE_LENGTH:
-            continue
-        items.append(stripped)
-    return tuple(items)
+    return map_bounded_string_list(
+        value,
+        max_items=MAX_COPILOT_REVIEW_GUIDANCE_ITEMS,
+        max_item_length=MAX_COPILOT_REVIEW_GUIDANCE_LENGTH,
+    )
 
 
 def _build_lineage(

@@ -6225,3 +6225,27 @@
   - No wiki source change is required. This hardens existing proposal narrative AI draft semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-237
+
+- Scope: Lotus AI output-safety reuse and policy evidence hardening
+- Pattern: duplicate adapter parsing removal, bounded AI output mapping, policy-evidence safety
+- Status: Hardened
+- Finding Class: duplicated unbounded AI output handling
+- Summary: Copilot, memo commentary, and narrative adapters duplicated bounded section parsing
+  after recent hardening, while the policy-evidence adapter still used its older unbounded
+  section and review-guidance mapping.
+- Evidence:
+  - `src/integrations/lotus_ai/output_safety.py` now owns reusable bounded review-section and
+    guidance mapping.
+  - Copilot, memo commentary, proposal narrative, and policy-evidence adapters consume the shared
+    helper while preserving their domain-specific fail-closed behavior.
+  - Policy-evidence tests now prove oversized AI evidence sections are rejected and valid output is
+    capped deterministically; helper tests cover invalid item filtering and guidance bounds.
+- Consequence:
+  - Lotus AI adapters share one bounded output policy, reducing drift and making future RFC AI
+    surfaces easier to harden consistently.
+- Documentation:
+  - No wiki source change is required. This is internal adapter modularity and safety hardening.
+- Follow-Up:
+  - None.

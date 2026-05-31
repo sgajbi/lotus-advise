@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from src.integrations.lotus_ai.policy_evidence import (
+    MAX_POLICY_AI_OUTPUT_SECTIONS,
     LotusAIPolicyEvidenceUnavailableError,
     _build_workflow_pack_request,
     build_policy_ai_unavailable_evidence,
@@ -158,6 +159,106 @@ def test_generate_policy_evidence_summary_returns_review_required_sections(
     assert response.lineage["workflow_run_id"] == "packrun_policy_ai_001"
     assert response.lineage["model_version"] == "lotus-ai-governed-model.v1"
     assert response.lineage["fallback_reason"] is None
+
+
+def test_generate_policy_evidence_rejects_oversized_ai_sections(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.policy_evidence.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "sections": [
+                                        {
+                                            "section_key": "POLICY_POSTURE",
+                                            "title": "Policy Posture",
+                                            "text": "x" * 4001,
+                                        }
+                                    ]
+                                }
+                            },
+                        }
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    with pytest.raises(LotusAIPolicyEvidenceUnavailableError) as exc:
+        generate_policy_evidence_summary_with_lotus_ai(
+            policy_evidence=_policy_evidence(),
+            requested_actions=["SUMMARIZE_POLICY_POSTURE"],
+            requested_by="policy_checker_1",
+            reason={"purpose": "compliance explanation"},
+        )
+
+    assert str(exc.value) == "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
+
+
+def test_generate_policy_evidence_bounds_sections_and_review_guidance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "http://lotus-ai.dev.lotus"
+    monkeypatch.setenv("LOTUS_AI_BASE_URL", base_url)
+    monkeypatch.setattr(
+        "src.integrations.lotus_ai.policy_evidence.httpx.Client",
+        lambda *args, **kwargs: _FakeClient(
+            *args,
+            responses={
+                f"{base_url}/platform/workflow-packs/execute": _FakeResponse(
+                    200,
+                    {
+                        "execution": {
+                            "status": "COMPLETED",
+                            "result": {
+                                "structured_output": {
+                                    "sections": [
+                                        {
+                                            "section_key": f"SECTION_{index}",
+                                            "title": f"Section {index}",
+                                            "text": "Policy evidence summary.",
+                                        }
+                                        for index in range(MAX_POLICY_AI_OUTPUT_SECTIONS + 2)
+                                    ],
+                                    "review_guidance": [
+                                        "Review immutable policy hash.",
+                                        "x" * 1001,
+                                        "Check sign-off posture.",
+                                    ],
+                                }
+                            },
+                        }
+                    },
+                )
+            },
+            **kwargs,
+        ),
+    )
+
+    response = generate_policy_evidence_summary_with_lotus_ai(
+        policy_evidence=_policy_evidence(),
+        requested_actions=["SUMMARIZE_POLICY_POSTURE"],
+        requested_by="policy_checker_1",
+        reason={"purpose": "compliance explanation"},
+    )
+
+    assert len(response.sections) == MAX_POLICY_AI_OUTPUT_SECTIONS
+    assert response.sections[-1]["section_key"] == "SECTION_7"
+    assert response.review_guidance == (
+        "Review immutable policy hash.",
+        "Check sign-off posture.",
+    )
 
 
 def test_generate_policy_evidence_masks_transport_failure(

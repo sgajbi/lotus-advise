@@ -6,6 +6,16 @@ from typing import Any, cast
 
 import httpx
 
+from src.integrations.lotus_ai.output_safety import (
+    DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH,
+    DEFAULT_AI_OUTPUT_SECTION_LIMIT,
+    DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH,
+    DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH,
+    DEFAULT_AI_REVIEW_GUIDANCE_LENGTH,
+    DEFAULT_AI_REVIEW_GUIDANCE_LIMIT,
+    map_bounded_string_list,
+    map_review_required_sections,
+)
 from src.integrations.lotus_ai.runtime_config import (
     resolve_lotus_ai_base_url,
     resolve_lotus_ai_tenant_id,
@@ -16,12 +26,12 @@ ADAPTER_VERSION = "proposal-memo-commentary-lotus-ai-adapter.v1"
 WORKFLOW_PACK_ID = "proposal_memo_commentary.pack"
 WORKFLOW_PACK_VERSION = "v1"
 WORKFLOW_SURFACE = "advisor-proposal-memo-commentary"
-MAX_MEMO_AI_OUTPUT_SECTIONS = 8
-MAX_MEMO_AI_SECTION_KEY_LENGTH = 96
-MAX_MEMO_AI_SECTION_TITLE_LENGTH = 160
-MAX_MEMO_AI_SECTION_TEXT_LENGTH = 4000
-MAX_MEMO_AI_REVIEW_GUIDANCE_ITEMS = 8
-MAX_MEMO_AI_REVIEW_GUIDANCE_LENGTH = 1000
+MAX_MEMO_AI_OUTPUT_SECTIONS = DEFAULT_AI_OUTPUT_SECTION_LIMIT
+MAX_MEMO_AI_SECTION_KEY_LENGTH = DEFAULT_AI_OUTPUT_SECTION_KEY_LENGTH
+MAX_MEMO_AI_SECTION_TITLE_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TITLE_LENGTH
+MAX_MEMO_AI_SECTION_TEXT_LENGTH = DEFAULT_AI_OUTPUT_SECTION_TEXT_LENGTH
+MAX_MEMO_AI_REVIEW_GUIDANCE_ITEMS = DEFAULT_AI_REVIEW_GUIDANCE_LIMIT
+MAX_MEMO_AI_REVIEW_GUIDANCE_LENGTH = DEFAULT_AI_REVIEW_GUIDANCE_LENGTH
 
 
 class LotusAIProposalMemoUnavailableError(Exception):
@@ -183,59 +193,24 @@ def _source_refs(memo_evidence: dict[str, Any]) -> list[str]:
 
 
 def _map_sections(value: Any) -> tuple[dict[str, Any], ...]:
-    if not isinstance(value, list):
-        raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
-    sections: list[dict[str, Any]] = []
-    for item in value:
-        if not isinstance(item, dict):
-            continue
-        if len(sections) >= MAX_MEMO_AI_OUTPUT_SECTIONS:
-            break
-        section_key_value = item.get("section_key")
-        title_value = item.get("title")
-        text_value = item.get("text")
-        if not (
-            isinstance(section_key_value, str)
-            and isinstance(title_value, str)
-            and isinstance(text_value, str)
-            and section_key_value.strip()
-            and title_value.strip()
-            and text_value.strip()
-        ):
-            continue
-        if (
-            len(section_key_value.strip()) > MAX_MEMO_AI_SECTION_KEY_LENGTH
-            or len(title_value.strip()) > MAX_MEMO_AI_SECTION_TITLE_LENGTH
-            or len(text_value.strip()) > MAX_MEMO_AI_SECTION_TEXT_LENGTH
-        ):
-            continue
-        sections.append(
-            {
-                "section_key": section_key_value.strip(),
-                "title": title_value.strip(),
-                "text": text_value.strip(),
-                "review_state": "REVIEW_REQUIRED",
-            }
-        )
+    sections = map_review_required_sections(
+        value,
+        max_sections=MAX_MEMO_AI_OUTPUT_SECTIONS,
+        max_section_key_length=MAX_MEMO_AI_SECTION_KEY_LENGTH,
+        max_title_length=MAX_MEMO_AI_SECTION_TITLE_LENGTH,
+        max_text_length=MAX_MEMO_AI_SECTION_TEXT_LENGTH,
+    )
     if not sections:
         raise LotusAIProposalMemoUnavailableError("LOTUS_AI_MEMO_COMMENTARY_UNAVAILABLE")
-    return tuple(sections)
+    return sections
 
 
 def _map_string_list(value: Any) -> tuple[str, ...]:
-    if not isinstance(value, list):
-        return ()
-    items: list[str] = []
-    for item in value:
-        if len(items) >= MAX_MEMO_AI_REVIEW_GUIDANCE_ITEMS:
-            break
-        if not isinstance(item, str):
-            continue
-        stripped = item.strip()
-        if not stripped or len(stripped) > MAX_MEMO_AI_REVIEW_GUIDANCE_LENGTH:
-            continue
-        items.append(stripped)
-    return tuple(items)
+    return map_bounded_string_list(
+        value,
+        max_items=MAX_MEMO_AI_REVIEW_GUIDANCE_ITEMS,
+        max_item_length=MAX_MEMO_AI_REVIEW_GUIDANCE_LENGTH,
+    )
 
 
 def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:
