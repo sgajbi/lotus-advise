@@ -8846,6 +8846,37 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-335
+
+- Scope: Advisory workspace API error boundaries
+- Pattern: Workspace routes should preserve controlled business error codes without echoing
+  sensitive upstream or lower-layer exception details
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: Workspace route handlers returned `str(exc)` directly for not-found, conflict, and
+  assistant-unavailable paths. The current domain services usually raise controlled codes, but
+  several paths wrap lower-layer failures. A future upstream failure could accidentally expose
+  authorization headers, tokens, raw payloads, raw prompts, provider responses, or credentials in
+  the HTTP response body.
+- Evidence:
+  - Added shared sensitive API error-detail detection in `src/api/sensitive_error_details.py`.
+  - Moved proposal route redaction to the shared detector instead of duplicating fragment logic.
+  - Added workspace-specific bounded API details in `src/api/workspaces/errors.py`.
+  - Workspace route handlers now use the shared workspace error mapper for 404, 409, and assistant
+    unavailable paths while preserving `LOTUS_AI_RATIONALE_UNAVAILABLE` as the controlled 503
+    integration posture.
+  - Focused `ruff` and workspace/proposal API tests passed with 54 tests.
+- Consequence:
+  - Advisory workspace, proposal, and AI-assistant route families now share the same sensitive-detail
+    detection baseline while retaining private-banking business error vocabulary for supported
+    client workflows.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    boundary hardening for existing workspace behavior.
+- Follow-Up:
+  - Continue removing direct `detail=str(exc)` mappings in service-facing API helpers where a
+    controlled Lotus API error detail is more appropriate.
+
 ## LA-REV-334
 
 - Scope: Shared proposal API error mapper

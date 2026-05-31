@@ -25,6 +25,11 @@ from src.api.services.workspace_service import (
     resume_workspace_version,
     save_workspace_version,
 )
+from src.api.workspaces.errors import (
+    workspace_assistant_unavailable_exception,
+    workspace_conflict_exception,
+    workspace_not_found_exception,
+)
 from src.core.proposals import ProposalWorkflowService
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
@@ -143,11 +148,11 @@ def _resolve_workspace_or_404(workspace_id: str) -> WorkspaceSession:
     try:
         return get_workspace_session(workspace_id)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
 
 
 def _raise_saved_version_not_found(exc: WorkspaceSavedVersionNotFoundError) -> HTTPException:
-    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return workspace_not_found_exception(exc)
 
 
 @router.post(
@@ -242,9 +247,9 @@ def apply_draft_action(
     try:
         return apply_workspace_draft_action(workspace_id, request)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
     except WorkspaceEvaluationUnavailableError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        raise workspace_conflict_exception(exc) from exc
 
 
 @router.post(
@@ -273,9 +278,9 @@ def evaluate_workspace(
     try:
         return reevaluate_workspace_session(workspace_id)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
     except WorkspaceEvaluationUnavailableError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        raise workspace_conflict_exception(exc) from exc
 
 
 @router.post(
@@ -307,7 +312,7 @@ def save_workspace(
     try:
         return save_workspace_version(workspace_id, request)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
 
 
 @router.get(
@@ -330,7 +335,7 @@ def list_saved_workspace_versions(
     try:
         return list_workspace_saved_versions(workspace_id)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
 
 
 @router.get(
@@ -357,7 +362,7 @@ def get_saved_workspace_version_replay_evidence(
     try:
         return get_workspace_saved_version_replay(workspace_id, workspace_version_id)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
     except WorkspaceSavedVersionNotFoundError as exc:
         raise _raise_saved_version_not_found(exc)
 
@@ -390,7 +395,7 @@ def resume_workspace(
     try:
         return resume_workspace_version(workspace_id, request)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
     except WorkspaceSavedVersionNotFoundError as exc:
         raise _raise_saved_version_not_found(exc)
 
@@ -424,7 +429,7 @@ def compare_workspace(
     try:
         return compare_workspace_to_saved_version(workspace_id, request)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
     except WorkspaceSavedVersionNotFoundError as exc:
         raise _raise_saved_version_not_found(exc)
 
@@ -463,15 +468,9 @@ def generate_workspace_rationale_endpoint(
     try:
         return generate_workspace_rationale(workspace_id, request)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
     except WorkspaceAssistantUnavailableError as exc:
-        detail = str(exc)
-        if detail == "LOTUS_AI_RATIONALE_UNAVAILABLE":
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=detail,
-            ) from exc
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
+        raise workspace_assistant_unavailable_exception(exc) from exc
 
 
 @router.post(
@@ -509,15 +508,9 @@ def apply_workspace_rationale_review_action_endpoint(
     try:
         return apply_workspace_rationale_review_action(workspace_id, request)
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
     except WorkspaceAssistantUnavailableError as exc:
-        detail = str(exc)
-        if detail == "LOTUS_AI_RATIONALE_UNAVAILABLE":
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=detail,
-            ) from exc
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
+        raise workspace_assistant_unavailable_exception(exc) from exc
 
 
 @router.post(
@@ -579,9 +572,9 @@ def handoff_workspace(
             correlation_id=correlation_id,
         )
     except WorkspaceNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+        raise workspace_not_found_exception(exc) from exc
     except WorkspaceLifecycleHandoffUnavailableError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        raise workspace_conflict_exception(exc) from exc
     except (
         ProposalIdempotencyConflictError,
         ProposalNotFoundError,

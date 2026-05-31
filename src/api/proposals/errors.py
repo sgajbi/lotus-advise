@@ -3,6 +3,7 @@ from typing import NoReturn
 from fastapi import HTTPException, status
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
+from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
@@ -14,21 +15,6 @@ from src.core.proposals.exceptions import (
 PROPOSAL_NOT_FOUND_DETAIL = "PROPOSAL_NOT_FOUND"
 PROPOSAL_CONFLICT_DETAIL = "PROPOSAL_CONFLICT"
 PROPOSAL_REQUEST_VALIDATION_FAILED_DETAIL = "PROPOSAL_REQUEST_VALIDATION_FAILED"
-_PROPOSAL_SENSITIVE_ERROR_FRAGMENTS = (
-    "authorization",
-    "bearer ",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "raw prompt",
-    "raw payload",
-    "raw source",
-    "provider response",
-)
 
 
 def raise_proposal_http_exception(exc: Exception) -> NoReturn:
@@ -66,8 +52,4 @@ def safe_proposal_error_detail(error_detail: str, *, redacted_detail: str) -> st
 
 
 def contains_sensitive_proposal_error_detail(error_detail: str) -> bool:
-    normalized = error_detail.lower().replace("-", " ").replace("_", " ")
-    return any(
-        fragment.replace("-", " ").replace("_", " ") in normalized
-        for fragment in _PROPOSAL_SENSITIVE_ERROR_FRAGMENTS
-    )
+    return contains_sensitive_error_detail(error_detail)
