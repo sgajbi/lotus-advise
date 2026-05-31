@@ -254,10 +254,12 @@ class SupportedClaim(BaseModel):
     )
     audiences: list[SupportedClaimAudience] = Field(
         min_length=1,
+        max_length=_RFC28_MAX_REF_LIST_ITEMS,
         description="Audiences allowed to consume this claim.",
     )
     allowed_materials: list[SupportedClaimMaterial] = Field(
         default_factory=list,
+        max_length=_RFC28_MAX_REF_LIST_ITEMS,
         description="Documentation or demo material where this claim may appear.",
     )
     claim_text: str = Field(
@@ -266,14 +268,17 @@ class SupportedClaim(BaseModel):
     )
     evidence_refs: list[str] = Field(
         default_factory=list,
+        max_length=_RFC28_MAX_REF_LIST_ITEMS,
         description="Concrete implementation, validation, or proof references backing the claim.",
     )
     proof_requirements: list[SupportedClaimProofRequirement] = Field(
         default_factory=list,
+        max_length=_RFC28_MAX_REF_LIST_ITEMS,
         description="Proof requirements that must be satisfied before promotion.",
     )
     wording_rules: list[str] = Field(
         default_factory=list,
+        max_length=_RFC28_MAX_REF_LIST_ITEMS,
         description="Required wording guardrails for this claim.",
     )
 
@@ -285,6 +290,22 @@ class SupportedClaim(BaseModel):
         if any(term in lowered for term in _RFC28_TECHNICAL_COPY_TERMS):
             raise ValueError("supported claim text cannot contain sensitive technical detail")
         return normalized
+
+    @field_validator("audiences", "allowed_materials")
+    @classmethod
+    def _claim_taxonomy_lists_must_be_unique(cls, value: list[str]) -> list[str]:
+        if len(set(value)) != len(value):
+            raise ValueError("supported claim taxonomy lists must be unique")
+        return value
+
+    @field_validator("evidence_refs", "wording_rules")
+    @classmethod
+    def _claim_ref_lists_must_be_bounded(cls, value: list[str]) -> list[str]:
+        return _normalize_ref_list(
+            value,
+            field_name="supported claim refs",
+            max_item_length=_RFC28_CLAIM_TEXT_MAX_LENGTH,
+        )
 
     @model_validator(mode="after")
     def _classification_matches_evidence_and_materials(self) -> SupportedClaim:
@@ -340,15 +361,41 @@ def _contains_sensitive_technical_term(value: str) -> bool:
 
 class ArtifactPolicy(BaseModel):
     commit_allowed_access_classes: list[ProofAssetAccessClass] = Field(
-        description="Access classes allowed in committed proof summaries."
+        max_length=_RFC28_MAX_REF_LIST_ITEMS,
+        description="Access classes allowed in committed proof summaries.",
     )
     local_only_access_classes: list[ProofAssetAccessClass] = Field(
-        description="Access classes that must remain under output/ or equivalent local evidence."
+        max_length=_RFC28_MAX_REF_LIST_ITEMS,
+        description="Access classes that must remain under output/ or equivalent local evidence.",
     )
     sensitive_material_rules: list[str] = Field(
         min_length=1,
+        max_length=_RFC28_MAX_REF_LIST_ITEMS,
         description="Rules for secrets, tokens, prompts, provider payloads, and raw runtime logs.",
     )
+
+    @field_validator("commit_allowed_access_classes", "local_only_access_classes")
+    @classmethod
+    def _access_classes_must_be_unique(cls, value: list[str]) -> list[str]:
+        if len(set(value)) != len(value):
+            raise ValueError("artifact policy access classes must be unique")
+        return value
+
+    @field_validator("sensitive_material_rules")
+    @classmethod
+    def _sensitive_material_rules_must_be_bounded(cls, value: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for rule in value:
+            normalized_rule = _normalize_required_text(
+                rule,
+                error_code="sensitive material rule is required",
+            )
+            if len(normalized_rule) > _RFC28_CLAIM_TEXT_MAX_LENGTH:
+                raise ValueError("sensitive material rule is too long")
+            normalized.append(normalized_rule)
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("sensitive material rules must be unique")
+        return normalized
 
     @model_validator(mode="after")
     def _sensitive_rules_must_name_forbidden_materials(self) -> ArtifactPolicy:
@@ -363,13 +410,34 @@ class AdvisorySupportedClaimRegister(BaseModel):
         default="AdvisorySupportedClaimRegister"
     )
     contract_version: Literal["v1"] = Field(default="v1")
-    scenario_id: str = Field(description="Scenario governed by this supported-claim register.")
-    primary_portfolio_id: str = Field(description="Canonical portfolio governed by the register.")
-    proof_marker: str = Field(description="Required proof marker for implementation-backed claims.")
-    claims: list[SupportedClaim] = Field(min_length=1, description="Governed claim inventory.")
+    scenario_id: str = Field(
+        description="Scenario governed by this supported-claim register.",
+        max_length=_RFC28_IDENTIFIER_MAX_LENGTH,
+    )
+    primary_portfolio_id: str = Field(
+        description="Canonical portfolio governed by the register.",
+        max_length=_RFC28_IDENTIFIER_MAX_LENGTH,
+    )
+    proof_marker: str = Field(
+        description="Required proof marker for implementation-backed claims.",
+        max_length=_RFC28_IDENTIFIER_MAX_LENGTH,
+    )
+    claims: list[SupportedClaim] = Field(
+        min_length=1,
+        max_length=_RFC28_MAX_REF_LIST_ITEMS,
+        description="Governed claim inventory.",
+    )
     artifact_policy: ArtifactPolicy = Field(
         description="Commit/local/sensitive artifact handling policy."
     )
+
+    @field_validator("scenario_id", "primary_portfolio_id", "proof_marker")
+    @classmethod
+    def _register_identifiers_must_be_bounded(cls, value: str) -> str:
+        return _normalize_required_text(
+            value,
+            error_code="supported-claim register identifier is required",
+        )
 
     @model_validator(mode="after")
     def _claim_ids_must_be_unique(self) -> AdvisorySupportedClaimRegister:

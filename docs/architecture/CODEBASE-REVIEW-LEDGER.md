@@ -7175,3 +7175,32 @@
 - Follow-Up:
   - Continue auditing supported-claim register list bounds and wording rules before RFC-0028
     closure review.
+
+## LA-REV-274
+
+- Scope: RFC-0028 supported-claim register
+- Pattern: bounded claim taxonomy, wording, and artifact policy lists
+- Status: Hardened
+- Finding Class: supported-claim governance and generated-schema risk
+- Summary: The supported-claim register enforced classification/evidence rules, but claim
+  audience/material/reference lists, wording guardrails, claim inventories, and artifact policy
+  access-class lists did not consistently encode size and uniqueness constraints. This left room
+  for duplicated or oversized claim governance data to flow into demo, RFP, and proof material.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now bounds claim audiences, allowed materials,
+    evidence refs, proof requirements, wording rules, claim inventories, artifact policy classes,
+    sensitive-material rules, and register identifiers.
+  - Claim and artifact policy validators now reject duplicated taxonomy lists, duplicated wording
+    rules, duplicated access classes, duplicated sensitive-material rules, and sensitive claim refs.
+  - RFC-0028 proof model tests cover duplicate audiences, duplicate wording, duplicate access
+    classes, and duplicate sensitive-material policy rules.
+- Consequence:
+  - RFC-0028 supported claims now have a tighter machine-readable governance envelope for
+    commercial material generation and front-office canonical proof, reducing wording drift and
+    generated-client ambiguity.
+- Documentation:
+  - No wiki source change is required. This strengthens the existing supported-claim contract
+    without changing documented supported-feature truth.
+- Follow-Up:
+  - Continue auditing proof-pack asset uniqueness and repository-SHA metadata before RFC-0028
+    closure review.

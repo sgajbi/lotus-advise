@@ -230,6 +230,58 @@ def test_supported_claim_register_requires_evidence_and_unique_claim_ids() -> No
         )
 
 
+def test_supported_claim_register_bounds_taxonomy_and_policy_lists() -> None:
+    with pytest.raises(ValidationError, match="taxonomy lists must be unique"):
+        SupportedClaim(
+            claim_id="duplicate_audience",
+            title="Duplicate audience",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES", "SALES"],
+            allowed_materials=["DEMO_SCRIPT"],
+            claim_text="Advisor proof evidence is available for review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
+    with pytest.raises(ValidationError, match="entries must be unique"):
+        SupportedClaim(
+            claim_id="duplicate_wording",
+            title="Duplicate wording",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES"],
+            allowed_materials=["DEMO_SCRIPT"],
+            claim_text="Advisor proof evidence is available for review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+            wording_rules=[
+                "Do not claim external client communication.",
+                "Do not claim external client communication.",
+            ],
+        )
+
+    with pytest.raises(ValidationError, match="access classes must be unique"):
+        ArtifactPolicy(
+            commit_allowed_access_classes=[
+                "COMMIT_SAFE_SUMMARY",
+                "COMMIT_SAFE_SUMMARY",
+            ],
+            local_only_access_classes=["LOCAL_ONLY_RUNTIME_EVIDENCE"],
+            sensitive_material_rules=[
+                "Secrets, tokens, prompts, raw provider payloads, and raw runtime logs stay local.",
+            ],
+        )
+
+    with pytest.raises(ValidationError, match="sensitive material rules must be unique"):
+        ArtifactPolicy(
+            commit_allowed_access_classes=["COMMIT_SAFE_SUMMARY"],
+            local_only_access_classes=["LOCAL_ONLY_RUNTIME_EVIDENCE"],
+            sensitive_material_rules=[
+                "Secrets, tokens, prompts, raw provider payloads, and raw runtime logs stay local.",
+                "Secrets, tokens, prompts, raw provider payloads, and raw runtime logs stay local.",
+            ],
+        )
+
+
 def test_planned_unsupported_and_ui_pending_claims_cannot_use_client_materials() -> None:
     with pytest.raises(ValidationError, match="cannot be client-facing"):
         SupportedClaim(
