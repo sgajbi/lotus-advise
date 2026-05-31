@@ -32,7 +32,7 @@ def test_rfc0026_slice2_evidence_is_indexed_and_non_claiming() -> None:
     assert "No existing proposal, memo, policy, workspace, Gateway, or Workbench behavior" in slice2
     assert "Slices 1-7 add platform-scaffolding review" in supported
     assert "the dedicated `src/core/advisor_cockpit/` package" in supported
-    assert "Implemented for the source-owned first-wave advisor cockpit" in supported
+    assert "Implemented for the source-owned advisor cockpit" in supported
 
 
 def test_rfc0026_slice2_pins_domain_structure_and_boundaries() -> None:

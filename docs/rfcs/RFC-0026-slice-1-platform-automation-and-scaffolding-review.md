@@ -89,7 +89,7 @@ unsupported without UI-local inference or unsupported client-ready wording.
 | Cleanup and structure | Dedicated cockpit domain, source-read-model, priority, SLA, acknowledgement, API, supportability, and evidence modules; no controller or UI-local business logic. |
 | Cockpit domain model and vocabulary | Unit tests for action families, statuses, priority values, owner roles, reason codes, source readiness, evidence refs, lineage refs, and private-banking terminology. |
 | Source read models and performance | Repository-native list/read methods, no N+1 reads, degraded-source tests, realistic advisor-book benchmark, and deterministic pagination tests. |
-| Priority, next action, and SLA aging | Pure unit tests for all first-wave action families, tie-breakers, blocked posture, acknowledgement boundaries, and unsupported capability posture. |
+| Priority, next action, and SLA aging | Pure unit tests for all supported action families, tie-breakers, blocked posture, acknowledgement boundaries, and unsupported capability posture. |
 | Snapshot and action APIs | OpenAPI field descriptions and examples, problem-details examples, API vocabulary/no-alias gates, route inventory tests, idempotency/correlation tests, and stale endpoint absence checks. |
 | Meeting preparation and follow-up | Source-backed preparation packet tests, owner-boundary tests, acknowledgement audit/replay tests, and no CRM/calendar ownership overclaim. |
 | Supervisory queues | Entitlement-projected queue tests, SLA aging tests, advisor/supervisor view tests, and no UI-local review-state inference. |

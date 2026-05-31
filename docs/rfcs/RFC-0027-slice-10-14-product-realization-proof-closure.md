@@ -13,7 +13,7 @@ Implemented scope:
    APIs and do not call `lotus-ai` directly.
 2. Workbench renders `/recommendations?mode=copilot` through the Gateway BFF only.
 3. Canonical automation proves `RFC27_ADVISORY_COPILOT_CANONICAL` for `PB_SG_GLOBAL_BAL_001`.
-4. The proof creates source-backed proposal-version evidence packets for all six first-wave action
+4. The proof creates source-backed proposal-version evidence packets for all six supported action
    families, executes governed copilot actions, records internal review, proves client-ready
    guardrail rejection, and verifies proposal-version run lineage.
 5. `AdvisoryCopilotInteractionRecord:v1` is promoted as an active data product for reviewed

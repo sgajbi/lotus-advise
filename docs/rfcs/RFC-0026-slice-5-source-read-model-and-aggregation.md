@@ -34,7 +34,7 @@ added:
 | --- | --- |
 | `AdvisorCockpitSourceBatch` | Preloaded bounded source set for proposals, policy evaluations, memos, supportability events, and unsupported capabilities. |
 | `AdvisorCockpitSourceReadModel` | Aggregated source posture plus sorted cockpit action items derived from the batch. |
-| `build_advisor_cockpit_source_read_model` | Pure aggregation helper that maps source records to action sources and first-wave action items. |
+| `build_advisor_cockpit_source_read_model` | Pure aggregation helper that maps source records to action sources and supported action items. |
 | `ACTIVE_PROPOSAL_STATES` | Workflow states that can contribute meeting-preparation actions. |
 | `COCKPIT_POLICY_REVIEW_STATUSES` | Policy postures that can contribute policy-review actions. |
 
@@ -74,7 +74,7 @@ projection, OpenAPI certification, and live proof.
 | Preloaded aggregation | Tests build a bounded source batch with proposals, policy evaluations, memos, supportability, and unsupported capabilities. |
 | Source filtering | Tests prove ready/completed sources do not create cockpit actions. |
 | Lineage preservation | Tests prove policy evaluation hashes and memo hashes are preserved in generated actions. |
-| Sorted first-wave actions | Tests prove the read model returns deterministic action ordering through the Slice 4 factory. |
+| Sorted supported actions | Tests prove the read model returns deterministic action ordering through the Slice 4 factory. |
 | Non-promoting posture | RFC/wiki tests assert Slice 5 is indexed without advertising runtime cockpit support. |
 
 Validation:

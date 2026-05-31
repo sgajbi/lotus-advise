@@ -20,7 +20,7 @@ def test_rfc0026_records_current_prerequisites_and_readiness_boundary() -> None:
     rfc = _flat(RFC26_PATH)
 
     required_markers = (
-        "IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow",
+        "IMPLEMENTED for source-owned advisor cockpit operating workflow",
         "Last Tightened** | 2026-05-31",
         "rfc0026-advisor-cockpit-gold-standard",
         "2026-05-27 Implementation Readiness Decision",
@@ -66,7 +66,7 @@ def test_rfc0026_slice_zero_decisions_are_closed_before_implementation() -> None
     required_decisions = (
         "Support advisor, desk head, compliance reviewer, operations reviewer, and demo/read-only",
         "SOURCE_READINESS_GAP",
-        "First wave supports portfolio and proposal contexts",
+        "Supported implementation covers portfolio and proposal contexts",
         "Default page size is 25, maximum page size is 100",
         (
             "advisor book with at least 100 portfolios, 250 proposals or proposal-like "
@@ -85,10 +85,10 @@ def test_rfc_index_and_wiki_reflect_rfc0026_closure_and_rfc0027_completion() -> 
 
     assert (
         "RFC-0026 | Advisor Cockpit Operating Workflow | "
-        "IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow" in rfc_index
+        "IMPLEMENTED for source-owned advisor cockpit operating workflow" in rfc_index
     )
     assert "- `RFC-0025` advisor/compliance policy evidence" in rfc_index
-    assert "- `RFC-0026` source-owned first-wave advisor cockpit operating workflow" in rfc_index
+    assert "- `RFC-0026` source-owned advisor cockpit operating workflow" in rfc_index
 
     not_yet_implemented = rfc_index.split("## Not Yet Implemented", maxsplit=1)[1].split(
         "Recommended near-term implementation order", maxsplit=1
@@ -110,7 +110,7 @@ def test_rfc_index_and_wiki_reflect_rfc0026_closure_and_rfc0027_completion() -> 
     assert expected_rfc27_wiki_status in wiki_index
     assert "RFC-0028 is implemented for repeatable bank-demo proof" in wiki_index
     assert "RFC26_ADVISOR_COCKPIT_POLICY_ACTION_CANONICAL" in wiki_index
-    assert "Implemented for the source-owned first-wave advisor cockpit" in supported_features
+    assert "Implemented for the source-owned advisor cockpit" in supported_features
     assert "AdvisorCockpitOperatingSnapshot:v1" in supported_features
 
 
@@ -123,11 +123,10 @@ def test_rfc0026_supported_features_ledger_reflects_implemented_closure_truth() 
 
     assert "Current support posture" in ledger
     assert "Initial RFC state" not in ledger
-    assert "| Advisor cockpit snapshot | Supported for source-owned first-wave" in ledger
+    assert "| Advisor cockpit snapshot | Supported for source-owned" in ledger
     assert "| Advisory action item register | Supported |" in ledger
-    gateway_surface_marker = (
-        "| Gateway/Workbench advisor cockpit | Supported for the canonical first-wave surface |"
-    )
+    gateway_surface_marker = "| Gateway/Workbench advisor cockpit | Supported for the canonical "
+    gateway_surface_marker += "advisor cockpit surface |"
     assert gateway_surface_marker in ledger
     assert "| Cockpit data products | Supported |" in ledger
     assert "Client-ready publication and external client communication remain blocked" in (

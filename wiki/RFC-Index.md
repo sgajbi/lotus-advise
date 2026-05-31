@@ -48,7 +48,7 @@ and active `AdvisoryPolicyEvaluationRecord:v1` data-product support. Completed a
 authority, completed sign-off authority, client-ready policy publication, external client
 communication, and full RFC-0028 bank-demo/RFP claims remain gated.
 
-RFC-0026 is implemented for the source-owned first-wave advisor cockpit operating workflow. Advise
+RFC-0026 is implemented for the source-owned advisor cockpit operating workflow. Advise
 owns action, snapshot, supportability, preparation-packet, supervisory queue, report/readiness,
 execution-status attention, house-view impact, and acknowledgement truth; Gateway and Workbench
 consume the canonical contract; active cockpit data products, trust telemetry, and
@@ -58,7 +58,7 @@ preparation packets, house-view impact, acknowledgement idempotency, supportabil
 action evidence/lineage.
 
 RFC-0027 is implemented for governed internal advisor/reviewer copilot interactions. It supports
-all six first-wave action families through Advise-owned source evidence, governed `lotus-ai`
+all six supported action families through Advise-owned source evidence, governed `lotus-ai`
 workflow-pack execution, Gateway publication, Workbench Gateway-first rendering, canonical
 `RFC27_ADVISORY_COPILOT_CANONICAL` proof, and active
 `AdvisoryCopilotInteractionRecord:v1` data-product posture. Evidence packets and review events are
@@ -130,7 +130,7 @@ work and are unpromoted in this slice.
 
 RFC-0027 Slice 2 is implemented as cleanup and structure. Evidence lives in
 `docs/rfcs/RFC-0027-slice-2-cleanup-and-structure.md`. `lotus-advise` now has a dedicated
-`src/core/advisory_copilot/` package for first-wave copilot action catalog, source/evidence
+`src/core/advisory_copilot/` package for supported copilot action catalog, source/evidence
 vocabulary, guardrail reason-code foundation, review posture mapping, workflow-pack boundary
 metadata, and business-facing projection labels. No copilot API, persistence, `lotus-ai`
 invocation, data product, Gateway route, Workbench surface, canonical seed, or supported runtime
@@ -189,7 +189,7 @@ claim boundary is historical and closed by the final RFC-0027 slices.
 RFC-0027 Slices 10-14 are implemented as Gateway/Workbench product realization, canonical proof,
 data-mesh promotion, repeatability hardening, and closure. Evidence lives in
 `docs/rfcs/RFC-0027-slice-10-14-product-realization-proof-closure.md`. Canonical validation records
-`ADVISORY_COPILOT_CANONICAL_PROOF_CREATED`, proves all six first-wave action families, internal
+`ADVISORY_COPILOT_CANONICAL_PROOF_CREATED`, proves all six supported action families, internal
 review, client-ready guardrail rejection, proposal-version run lineage, and the
 `advisory.advisory_copilot` Workbench panel. `AdvisoryCopilotInteractionRecord:v1` is active with
 trust telemetry; standalone evidence-packet and review-record products are not promoted.

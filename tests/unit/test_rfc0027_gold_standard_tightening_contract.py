@@ -34,7 +34,7 @@ def test_rfc0027_closure_preserves_slice_zero_decisions_and_no_open_questions() 
         "It does not implement or claim client-ready narrative",
         "Raw prompt text, unrestricted source payloads, raw provider responses, and unsafe output",
         "Gateway must expose `/api/v1/advisory-copilot/*` without calling `lotus-ai` directly",
-        "There is no day-2 or wave-2 deferral for data needed to prove the supported copilot",
+        "There is no deferred follow-up bucket for data needed to prove the supported copilot",
         "Business-facing UI, report, wiki, and commercial material must use clean private-banking",
     )
     for decision in required_decisions:
@@ -78,7 +78,7 @@ def test_rfc0027_requires_repeatable_seed_automation_and_lowest_layer_regression
     required_markers = (
         "RFC27_ADVISORY_COPILOT_CANONICAL",
         "PB_SG_GLOBAL_BAL_001",
-        "seed and automation changes are RFC-0027 scope, not day-2 work",
+        "seed and automation changes are RFC-0027 scope, not deferred work",
         "all six copilot action families return source-backed or explicitly unsupported posture",
         (
             "unsupported evidence, guardrail rejection, disabled or unavailable `lotus-ai`, "
@@ -124,7 +124,7 @@ def test_rfc0027_indexes_and_supported_features_promote_only_proven_internal_cop
     supported_features = _flat(WIKI_SUPPORTED_FEATURES_PATH)
     rfc26 = _flat(RFC26_PATH)
 
-    assert "IMPLEMENTED for source-owned first-wave advisor cockpit operating workflow" in rfc26
+    assert "IMPLEMENTED for source-owned advisor cockpit operating workflow" in rfc26
     assert (
         "RFC-0028 | Bank Demo Journey and Client-Ready Proof | "
         "IMPLEMENTED - bank-demo proof and claim-controlled commercial material complete"
@@ -166,7 +166,7 @@ def test_rfc0027_supported_features_ledger_reflects_implemented_closure_truth() 
     assert "Current support posture" in ledger
     assert "Initial RFC state" not in ledger
     assert (
-        "| Governed advisory copilot action catalog | Supported for first-wave internal "
+        "| Governed advisory copilot action catalog | Supported for supported internal "
         "advisor/reviewer actions |"
     ) in ledger
     assert "| Copilot evidence packet | Supported |" in ledger

@@ -136,7 +136,7 @@ than reconstructing advisory suitability, memo, narrative, policy, or proof sema
   client-ready memo publication, external client communication, or full bank-demo/RFP package
   claims.
 - `GET /platform/capabilities` includes `advisory.advisor_cockpit` and
-  `advisor_cockpit_operating_workflow` for RFC-0026 first-wave advisor cockpit evidence after
+  `advisor_cockpit_operating_workflow` for RFC-0026 advisor cockpit evidence after
   Advise, Gateway, Workbench, and canonical `PB_SG_GLOBAL_BAL_001` proof. The wording remains
   bounded to advisor operating workflow evidence and does not promote client-ready publication,
   external client communication, CRM system-of-record behavior, OMS lifecycle, completed policy

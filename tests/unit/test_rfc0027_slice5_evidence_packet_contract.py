@@ -68,5 +68,5 @@ def test_rfc0027_slice5_records_tests_and_no_day2_deferral() -> None:
     for test_name in tests:
         assert test_name in flat_slice5
 
-    assert "This is not day-2 or wave-2 deferral" in flat_slice5
+    assert "This is not deferred follow-up bucket" in flat_slice5
     assert "Slice 6 guardrail and unsupported-evidence engine" in flat_slice5

@@ -5393,3 +5393,28 @@
     product feature posture, API shape, or operator workflow.
 - Follow-Up:
   - None.
+
+## LA-REV-204
+
+- Scope: RFC 26-28 no-deferred-wave documentation posture
+- Pattern: documentation truth and supported-feature governance
+- Status: Hardened
+- Finding Class: documentation drift and product-claim clarity gap
+- Summary: RFC 26/27 closure and wiki/index material still used "first-wave", "day-2", or
+  "wave-2" phrasing in several places. That wording conflicted with the governed expectation that
+  required implementation must be completed inside the RFC scope rather than implied as a later
+  wave.
+- Evidence:
+  - RFC 26/27/28, relevant slice docs, `docs/rfcs/README.md`, and wiki source now use
+    supported/implemented-scope language instead of deferred-wave terminology.
+  - Contract tests for RFC 26 and RFC 27 documentation were updated to pin the no-deferred-wave
+    posture.
+  - Targeted documentation contract suite passed for RFC 26 and RFC 27 after the wording update.
+- Consequence:
+  - Product documentation is cleaner for enterprise review and no longer suggests staged deferral
+    for requirements that are part of the implemented RFC business value.
+- Documentation:
+  - Wiki source changed and requires `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise`
+    before merge and `-Publish` after merge to `main`.
+- Follow-Up:
+  - None.

@@ -35,7 +35,7 @@ response, correlation, trace, transaction, security, or payload identifiers to t
 ## Advisor Cockpit Operations
 
 RFC-0026 cockpit supportability is exposed through `GET /advisory/cockpit/supportability` and
-`GET /platform/capabilities`. The supported first-wave posture is source-owned advisor workflow
+`GET /platform/capabilities`. The supported posture is source-owned advisor workflow
 evidence: action items, snapshot posture, acknowledgement replay, active data products, Gateway
 publication, Workbench rendering, and canonical `PB_SG_GLOBAL_BAL_001` proof.
 

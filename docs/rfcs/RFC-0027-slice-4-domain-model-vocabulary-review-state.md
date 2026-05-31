@@ -45,7 +45,7 @@ client communication, create CRM tasks, or initiate OMS order lifecycle activity
 
 ## Unsupported-Evidence Boundary
 
-Unsupported-evidence posture is explicit and typed. The first-wave reasons are:
+Unsupported-evidence posture is explicit and typed. The supported reasons are:
 
 1. `SOURCE_NOT_IMPLEMENTED`,
 2. `SOURCE_NOT_AVAILABLE`,

@@ -22,7 +22,7 @@ The factory is intentionally pure core code:
 3. it preserves source refs, evidence refs, lineage refs, dependency readiness, source-readiness
    gaps, reason codes, owner roles, SLA posture, and correlation ids,
 4. it keeps unsupported capabilities visible instead of silently omitting them,
-5. it returns stable sorted first-wave actions using the existing cockpit ordering helper.
+5. it returns stable sorted supported actions using the existing cockpit ordering helper.
 
 This prevents Workbench or Gateway from reconstructing advisory suitability, memo, narrative,
 policy, supportability, or priority semantics locally.
@@ -60,7 +60,7 @@ consumption path:
 4. degraded or unavailable source systems produce `SUPPORTABILITY_DEGRADED`,
 5. unsupported claims produce `UNSUPPORTED_CAPABILITY`.
 
-The generic construction helper can construct every first-wave action family only when the caller
+The generic construction helper can construct every supported action family only when the caller
 supplies reason codes plus evidence, readiness, dependency, or unsupported-capability context. This
 keeps the vocabulary complete while avoiding fabricated action items.
 
@@ -89,8 +89,8 @@ snapshot/action APIs and downstream product surfaces can be implemented truthful
 | Meeting-preparation action | Tests prove preparation packet evidence produces an advisor-owned ready action without UI inference. |
 | Supportability action | Tests prove unavailable dependencies become blocking supportability actions. |
 | Unsupported capabilities | Tests prove unsupported client-ready publication is visible as a blocked action. |
-| First-wave vocabulary coverage | Tests prove the generic source-backed builder can construct every first-wave action family only with source evidence and reason codes. |
-| Stable ordering | Tests prove first-wave aggregation returns deterministic cockpit priority order. |
+| Supported vocabulary coverage | Tests prove the generic source-backed builder can construct every supported action family only with source evidence and reason codes. |
+| Stable ordering | Tests prove supported aggregation returns deterministic cockpit priority order. |
 
 Validation:
 
