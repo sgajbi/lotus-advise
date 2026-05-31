@@ -8,6 +8,15 @@ class ProposalReplayHashConflictError(ValueError):
     pass
 
 
+def normalize_required_idempotency_key(idempotency_key: str | None) -> str:
+    if idempotency_key is None:
+        raise ValueError("IDEMPOTENCY_KEY_REQUIRED")
+    normalized = idempotency_key.strip()
+    if not normalized:
+        raise ValueError("IDEMPOTENCY_KEY_REQUIRED")
+    return normalized
+
+
 def find_replayed_event(
     *,
     events: Sequence[ProposalWorkflowEventRecord],

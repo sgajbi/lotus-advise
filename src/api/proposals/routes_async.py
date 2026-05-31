@@ -14,6 +14,7 @@ from src.core.proposals import (
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
+    ProposalValidationError,
 )
 
 
@@ -59,7 +60,7 @@ def create_proposal_async(
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
-    except ProposalIdempotencyConflictError as exc:
+    except (ProposalIdempotencyConflictError, ProposalValidationError) as exc:
         raise_proposal_http_exception(exc)
     if should_schedule:
         background_tasks.add_task(

@@ -5202,3 +5202,33 @@
 - Follow-Up:
   - Keep new externally supplied lineage headers normalized before they enter logs, workflow
     records, persistence, or downstream service calls.
+
+## LA-REV-197
+
+- Scope: Proposal create idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: validation and operational reliability gap
+- Summary: Proposal create and async-create commands accepted padded or whitespace-only
+  idempotency keys. That could create distinct replay records for semantically identical client
+  keys or allow blank replay identity to enter persistence.
+- Evidence:
+  - `src/core/proposals/idempotency.py` now exposes a required idempotency-key normalizer that
+    trims meaningful values and rejects missing or blank keys.
+  - `src/core/proposals/service.py` applies the normalizer before sync and async proposal-create
+    persistence, mapping invalid keys to `ProposalValidationError`.
+  - `src/api/proposals/routes_async.py` now maps async create idempotency-key validation failures
+    through the standard proposal HTTP error model.
+  - `tests/unit/advisory/engine/test_engine_proposal_idempotency.py` and
+    `tests/unit/advisory/engine/test_engine_proposal_workflow_service.py` cover trimming,
+    rejection, and repository lookup behavior.
+- Consequence:
+  - Proposal create replay identity is deterministic and cannot persist blank or padded
+    idempotency keys as distinct lifecycle records.
+- Documentation:
+  - No wiki source change is required. This slice hardens API-adjacent idempotency behavior
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Extend the same idempotency-key normalization to optional transition, approval, memo, and
+    cockpit idempotency scopes where those commands accept caller-supplied keys.

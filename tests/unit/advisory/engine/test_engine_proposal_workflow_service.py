@@ -175,6 +175,28 @@ def test_service_version_payload_is_immutable_from_caller_mutation():
     assert version_again.evidence_bundle["hashes"]["artifact_hash"].startswith("sha256:")
 
 
+def test_service_create_proposal_normalizes_required_idempotency_key():
+    repository = InMemoryProposalRepository()
+    service = ProposalWorkflowService(repository=repository)
+
+    created = service.create_proposal(
+        payload=_create_payload(),
+        idempotency_key="  service-idem-normalized  ",
+        correlation_id="corr-service-normalized",
+    )
+
+    assert repository.get_idempotency(idempotency_key="service-idem-normalized") is not None
+    assert repository.get_idempotency(idempotency_key="  service-idem-normalized  ") is None
+    assert created.proposal.proposal_id.startswith("pp_")
+
+    with pytest.raises(ProposalValidationError, match="IDEMPOTENCY_KEY_REQUIRED"):
+        service.create_proposal(
+            payload=_create_payload(),
+            idempotency_key="   ",
+            correlation_id="corr-service-blank-idem",
+        )
+
+
 def test_service_create_proposal_uses_upstream_simulation_authority_when_available(
     monkeypatch,
 ):
