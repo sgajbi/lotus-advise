@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
-from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
 from src.core.proposals.async_operation_persistence import persist_async_operation_failed
@@ -68,6 +67,7 @@ from src.core.proposals.execution_handoff_command import request_proposal_execut
 from src.core.proposals.execution_status import build_execution_status_response
 from src.core.proposals.execution_update_command import record_proposal_execution_update
 from src.core.proposals.idempotency_read_model import load_proposal_idempotency_read_model
+from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
 from src.core.proposals.identifiers import (
     new_async_operation_id,
     new_proposal_id,
@@ -201,10 +201,7 @@ class ProposalWorkflowService:
         replay_lineage: Optional[dict[str, Any]] = None,
         context_resolution_override: Optional[dict[str, Any]] = None,
     ) -> ProposalCreateResponse:
-        try:
-            idempotency_key = normalize_required_idempotency_key(idempotency_key)
-        except ValueError as exc:
-            raise ProposalValidationError(str(exc)) from exc
+        idempotency_key = require_proposal_idempotency_key(idempotency_key)
         self._validate_lifecycle_origin(
             lifecycle_origin=lifecycle_origin,
             source_workspace_id=source_workspace_id,
@@ -302,10 +299,7 @@ class ProposalWorkflowService:
         idempotency_key: str,
         correlation_id: Optional[str],
     ) -> tuple[ProposalAsyncAcceptedResponse, bool]:
-        try:
-            idempotency_key = normalize_required_idempotency_key(idempotency_key)
-        except ValueError as exc:
-            raise ProposalValidationError(str(exc)) from exc
+        idempotency_key = require_proposal_idempotency_key(idempotency_key)
         submission_hash = hash_async_create_submission(payload)
         resolved_correlation_id = resolve_correlation_id(correlation_id)
         operation = build_create_proposal_async_operation(

@@ -6,6 +6,7 @@ from src.core.common.idempotency import (
     normalize_optional_idempotency_key,
     normalize_required_idempotency_key,
 )
+from src.core.proposals.exceptions import ProposalValidationError
 from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
     find_replayed_approval,
@@ -13,6 +14,7 @@ from src.core.proposals.idempotency import (
     load_replayed_approval,
     load_replayed_event,
 )
+from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
 from src.core.proposals.models import ProposalApprovalRecordData, ProposalWorkflowEventRecord
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
 
@@ -98,6 +100,15 @@ def test_normalize_idempotency_key_rejects_control_characters_and_oversized_valu
         normalize_required_idempotency_key("idem-target\x7f")
     with pytest.raises(ValueError, match="IDEMPOTENCY_KEY_REQUIRED"):
         normalize_required_idempotency_key("i" * 129)
+
+
+def test_require_proposal_idempotency_key_raises_domain_validation_error():
+    assert require_proposal_idempotency_key("  idem_domain  ") == "idem_domain"
+
+    with pytest.raises(ProposalValidationError) as exc:
+        require_proposal_idempotency_key(" ")
+
+    assert str(exc.value) == "IDEMPOTENCY_KEY_REQUIRED"
 
 
 def test_find_replayed_event_raises_on_hash_conflict():

@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from src.core.common.canonical import hash_canonical_payload
-from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.policy_packs.models import (
     PolicyPackActivationResponse,
     PolicyPackAuditEvent,
@@ -24,16 +23,14 @@ from src.core.proposals.exceptions import (
     ProposalNotFoundError,
     ProposalValidationError,
 )
+from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
 
 _CATALOG_CONTRACT_VERSION = POLICY_CATALOG_CONTRACT_VERSION
 _REFERENCE_POSTURE = REFERENCE_POLICY_PACK_POSTURE
 
 
 def _required_idempotency_key(idempotency_key: str | None) -> str:
-    try:
-        return normalize_required_idempotency_key(idempotency_key)
-    except ValueError as exc:
-        raise ProposalValidationError(str(exc)) from exc
+    return require_proposal_idempotency_key(idempotency_key)
 
 
 def list_policy_pack_versions() -> PolicyPackListResponse:

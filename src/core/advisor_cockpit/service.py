@@ -48,13 +48,13 @@ from src.core.advisor_cockpit.source_read_model import (
     build_advisor_cockpit_source_read_model,
 )
 from src.core.common.canonical import hash_canonical_payload
-from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
     ProposalNotFoundError,
     ProposalValidationError,
 )
+from src.core.proposals.idempotency_validation import require_proposal_idempotency_key
 from src.core.tactical_house_view import (
     TacticalHouseViewAffectedCohort,
     list_tactical_house_view_affected_cohorts,
@@ -243,10 +243,7 @@ class AdvisorCockpitService:
         caller_context: CockpitCallerContext,
         portfolio_id: str | None,
     ) -> AdvisorCockpitAcknowledgeResponse:
-        try:
-            idempotency_key = normalize_required_idempotency_key(idempotency_key)
-        except ValueError as exc:
-            raise ProposalValidationError(str(exc)) from exc
+        idempotency_key = require_proposal_idempotency_key(idempotency_key)
         action = self.get_action(
             action_item_id=action_item_id,
             caller_context=caller_context,

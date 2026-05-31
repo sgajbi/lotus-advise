@@ -8846,6 +8846,37 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-350
+
+- Scope: Proposal-domain idempotency validation
+- Pattern: Proposal, memo, policy-pack, and cockpit write paths should share one proposal-domain
+  required-idempotency boundary
+- Status: Hardened
+- Finding Class: Duplication and service-boundary consistency
+- Summary: Several proposal-adjacent write paths locally converted
+  `normalize_required_idempotency_key(...)` failures into `ProposalValidationError`. The duplicated
+  wrappers all represented the same domain boundary and would drift if idempotency normalization or
+  error vocabulary changed.
+- Evidence:
+  - Added `src/core/proposals/idempotency_validation.py` with
+    `require_proposal_idempotency_key`.
+  - Reused the helper from proposal lifecycle creation/versioning, proposal memo creation,
+    policy-pack validation/activation, policy-evaluation finalization, and advisor-cockpit
+    acknowledgement.
+  - Added lower-level proof that the helper trims valid keys and raises
+    `ProposalValidationError("IDEMPOTENCY_KEY_REQUIRED")` for invalid required keys.
+  - Focused `ruff`, format check, and proposal/memo/policy-pack/cockpit service tests passed with
+    85 tests.
+- Consequence:
+  - Required idempotency-key validation is now a reusable proposal-domain boundary rather than
+    repeated local exception wrapping.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service-boundary cleanup with stable public behavior.
+- Follow-Up:
+  - Keep future proposal-owned write APIs on the shared idempotency helper instead of wrapping the
+    common normalizer locally.
+
 ## LA-REV-349
 
 - Scope: RFC-0026 public vocabulary
