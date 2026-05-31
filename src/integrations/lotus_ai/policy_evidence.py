@@ -20,6 +20,12 @@ from src.integrations.lotus_ai.runtime_config import (
     resolve_lotus_ai_base_url,
     resolve_lotus_ai_tenant_id,
 )
+from src.integrations.lotus_ai.workflow_response import (
+    extract_error_detail,
+    extract_model_version,
+    extract_workflow_run_id,
+    safe_dict,
+)
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 ADAPTER_VERSION = "policy-evidence-lotus-ai-adapter.v1"
@@ -70,11 +76,11 @@ def generate_policy_evidence_summary_with_lotus_ai(
         raise LotusAIPolicyEvidenceUnavailableError("LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE") from exc
 
     if response.status_code == 200:
-        execution = _safe_dict(payload.get("execution"))
+        execution = safe_dict(payload.get("execution"))
         if execution.get("status") != "COMPLETED":
             raise LotusAIPolicyEvidenceUnavailableError("LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE")
-        result = _safe_dict(execution.get("result"))
-        structured_output = _safe_dict(result.get("structured_output"))
+        result = safe_dict(execution.get("result"))
+        structured_output = safe_dict(result.get("structured_output"))
         return PolicyAiEvidenceDraft(
             status=str(structured_output.get("state") or "REVIEW_REQUIRED"),
             sections=_map_sections(structured_output.get("sections")),
@@ -83,8 +89,8 @@ def generate_policy_evidence_summary_with_lotus_ai(
                 "workflow_pack_id": WORKFLOW_PACK_ID,
                 "workflow_pack_version": WORKFLOW_PACK_VERSION,
                 "workflow_surface": WORKFLOW_SURFACE,
-                "workflow_run_id": _extract_workflow_run_id(payload),
-                "model_version": _extract_model_version(result),
+                "workflow_run_id": extract_workflow_run_id(payload),
+                "model_version": extract_model_version(result),
                 "fallback_reason": None,
             },
             review_guidance=_map_string_list(structured_output.get("review_guidance")),
@@ -92,7 +98,9 @@ def generate_policy_evidence_summary_with_lotus_ai(
 
     if response.status_code >= 500:
         raise LotusAIPolicyEvidenceUnavailableError("LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE")
-    raise LotusAIPolicyEvidenceUnavailableError(_extract_detail(payload))
+    raise LotusAIPolicyEvidenceUnavailableError(
+        extract_error_detail(payload, default="LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE")
+    )
 
 
 def build_policy_ai_unavailable_evidence(reason: str) -> PolicyAiEvidenceDraft:
@@ -215,25 +223,3 @@ def _map_string_list(value: Any) -> tuple[str, ...]:
         max_items=MAX_POLICY_AI_REVIEW_GUIDANCE_ITEMS,
         max_item_length=MAX_POLICY_AI_REVIEW_GUIDANCE_LENGTH,
     )
-
-
-def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:
-    workflow_pack_run = _safe_dict(payload.get("workflow_pack_run"))
-    run_id = workflow_pack_run.get("run_id")
-    return run_id.strip() if isinstance(run_id, str) and run_id.strip() else None
-
-
-def _extract_model_version(result: dict[str, Any]) -> str | None:
-    value = result.get("model_version")
-    return value.strip() if isinstance(value, str) and value.strip() else None
-
-
-def _extract_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail")
-    if isinstance(detail, str) and detail.strip():
-        return detail.strip()
-    return "LOTUS_AI_POLICY_EVIDENCE_UNAVAILABLE"
-
-
-def _safe_dict(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}

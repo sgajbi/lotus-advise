@@ -24,6 +24,7 @@ from src.integrations.lotus_ai.runtime_config import (
     resolve_lotus_ai_base_url,
     resolve_lotus_ai_tenant_id,
 )
+from src.integrations.lotus_ai.workflow_response import extract_error_detail, safe_dict
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 _WORKFLOW_PACK_ID = "workspace_rationale.pack"
@@ -63,8 +64,8 @@ def generate_workspace_rationale_with_lotus_ai(
         raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE") from exc
 
     if response.status_code == 200:
-        execution = _safe_dict(payload.get("execution"))
-        result = _safe_dict(execution.get("result"))
+        execution = safe_dict(payload.get("execution"))
+        result = safe_dict(execution.get("result"))
         assistant_output = map_bounded_text(
             result.get("message"),
             max_length=_MAX_ASSISTANT_OUTPUT_LENGTH,
@@ -77,7 +78,7 @@ def generate_workspace_rationale_with_lotus_ai(
             assistant_output=assistant_output,
             generated_by="lotus-ai",
             evidence=evidence.model_copy(deep=True),
-            workflow_pack_run=_map_workflow_pack_run(_safe_dict(payload.get("workflow_pack_run"))),
+            workflow_pack_run=_map_workflow_pack_run(safe_dict(payload.get("workflow_pack_run"))),
         )
 
     detail = _extract_detail(payload)
@@ -103,7 +104,7 @@ def apply_workspace_rationale_review_action_with_lotus_ai(
         raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE") from exc
 
     if response.status_code == 200:
-        workflow_pack_run = _map_workflow_pack_run(_safe_dict(payload.get("run")))
+        workflow_pack_run = _map_workflow_pack_run(safe_dict(payload.get("run")))
         if workflow_pack_run is None:
             raise LotusAIRationaleUnavailableError("LOTUS_AI_RATIONALE_UNAVAILABLE")
         return WorkspaceAssistantWorkflowPackRunReviewActionResponse(
@@ -228,14 +229,7 @@ def _build_source_refs(*, evidence: WorkspaceAssistantEvidence) -> list[str]:
 
 
 def _extract_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail")
-    if isinstance(detail, str) and detail.strip():
-        return detail.strip()
-    return "LOTUS_AI_RATIONALE_UNAVAILABLE"
-
-
-def _safe_dict(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}
+    return extract_error_detail(payload, default="LOTUS_AI_RATIONALE_UNAVAILABLE")
 
 
 def _normalize_optional_text(value: Any) -> str | None:

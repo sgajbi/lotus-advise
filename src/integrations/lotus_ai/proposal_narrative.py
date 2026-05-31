@@ -22,6 +22,12 @@ from src.integrations.lotus_ai.runtime_config import (
     resolve_lotus_ai_base_url,
     resolve_lotus_ai_tenant_id,
 )
+from src.integrations.lotus_ai.workflow_response import (
+    extract_error_detail,
+    extract_model_version,
+    extract_workflow_run_id,
+    safe_dict,
+)
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 ADAPTER_VERSION = "proposal-narrative-lotus-ai-adapter.v1"
@@ -75,22 +81,24 @@ def generate_proposal_narrative_draft_with_lotus_ai(
         raise LotusAIProposalNarrativeUnavailableError("LOTUS_AI_NARRATIVE_UNAVAILABLE") from exc
 
     if response.status_code == 200:
-        execution = _safe_dict(payload.get("execution"))
+        execution = safe_dict(payload.get("execution"))
         if execution.get("status") != "COMPLETED":
             raise LotusAIProposalNarrativeUnavailableError("LOTUS_AI_NARRATIVE_UNAVAILABLE")
-        result = _safe_dict(execution.get("result"))
+        result = safe_dict(execution.get("result"))
         return ProposalNarrativeDraftResponse(
             sections=_map_sections(result.get("sections")),
             lineage=_build_lineage(
-                workflow_run_id=_extract_workflow_run_id(payload),
-                model_version=_extract_model_version(result),
+                workflow_run_id=extract_workflow_run_id(payload),
+                model_version=extract_model_version(result),
                 fallback_reason=None,
             ),
         )
 
     if response.status_code >= 500:
         raise LotusAIProposalNarrativeUnavailableError("LOTUS_AI_NARRATIVE_UNAVAILABLE")
-    raise LotusAIProposalNarrativeUnavailableError(_extract_detail(payload))
+    raise LotusAIProposalNarrativeUnavailableError(
+        extract_error_detail(payload, default="LOTUS_AI_NARRATIVE_UNAVAILABLE")
+    )
 
 
 def build_ai_fallback_lineage(reason: str) -> ProposalNarrativeAiLineage:
@@ -220,27 +228,3 @@ def _build_lineage(
         workflow_run_id=workflow_run_id,
         fallback_reason=fallback_reason,
     )
-
-
-def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:
-    workflow_pack_run = _safe_dict(payload.get("workflow_pack_run"))
-    run_id = workflow_pack_run.get("run_id")
-    return run_id.strip() if isinstance(run_id, str) and run_id.strip() else None
-
-
-def _extract_model_version(result: dict[str, Any]) -> str | None:
-    model_version = result.get("model_version")
-    if isinstance(model_version, str) and model_version.strip():
-        return model_version.strip()
-    return None
-
-
-def _extract_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail")
-    if isinstance(detail, str) and detail.strip():
-        return detail.strip()
-    return "LOTUS_AI_NARRATIVE_UNAVAILABLE"
-
-
-def _safe_dict(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}

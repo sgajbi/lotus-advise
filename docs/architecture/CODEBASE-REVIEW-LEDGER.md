@@ -7449,3 +7449,33 @@
 - Follow-Up:
   - Continue auditing retry diagnostics and other integration adapters for similarly separable
     request/response contracts.
+
+## LA-REV-284
+
+- Scope: Lotus AI workflow-pack response parsing
+- Pattern: duplicated provider response normalization extracted from individual adapters
+- Status: Hardened
+- Finding Class: service-boundary modularity and test gap
+- Summary: The advisory copilot, proposal narrative, proposal memo commentary, policy evidence,
+  and workspace rationale adapters each repeated defensive dict extraction, provider detail
+  handling, workflow-run id extraction, and model-version extraction. That duplication made
+  fail-closed behavior easier to drift across AI-assisted advisory surfaces and kept lineage
+  parsing tied to each adapter's transport code.
+- Evidence:
+  - `src/integrations/lotus_ai/workflow_response.py` now owns shared provider response
+    normalization for safe object extraction, workflow-run id, model version, bounded provider
+    detail, and optional bounded text.
+  - The Lotus AI adapters now delegate common response parsing while retaining domain-specific
+    output validation, lineage construction, guardrails, and review guidance.
+  - `tests/unit/advisory/api/test_lotus_ai_workflow_response.py` proves fail-closed handling for
+    malformed provider payloads, trimmed lineage values, default unavailable details, and bounded
+    provider text.
+- Consequence:
+  - Lotus AI integration behavior is more consistent and easier to harden without changing public
+    API semantics or weakening human-review gates.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue separating Lotus AI workflow-pack request construction from adapter transport where
+    future slices identify material duplication or test gaps.

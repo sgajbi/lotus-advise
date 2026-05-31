@@ -30,6 +30,12 @@ from src.integrations.lotus_ai.runtime_config import (
     resolve_lotus_ai_base_url,
     resolve_lotus_ai_tenant_id,
 )
+from src.integrations.lotus_ai.workflow_response import (
+    extract_error_detail,
+    extract_model_version,
+    extract_workflow_run_id,
+    safe_dict,
+)
 from src.integrations.lotus_core.runtime_config import env_positive_float
 
 ADAPTER_VERSION = "advisory-copilot-lotus-ai-adapter.v1"
@@ -125,11 +131,15 @@ def generate_advisory_copilot_draft_with_lotus_ai(
     if response.status_code != 200:
         return build_advisory_copilot_unavailable_draft(
             evidence_packet=evidence_packet,
-            fallback_reason=_extract_detail(payload),
+            fallback_reason=extract_error_detail(
+                payload,
+                default="LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
+                max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
+            ),
             caused_by=None,
         )
 
-    execution = _safe_dict(payload.get("execution"))
+    execution = safe_dict(payload.get("execution"))
     if execution.get("status") != "COMPLETED":
         return build_advisory_copilot_unavailable_draft(
             evidence_packet=evidence_packet,
@@ -137,8 +147,8 @@ def generate_advisory_copilot_draft_with_lotus_ai(
             caused_by=None,
         )
 
-    result = _safe_dict(execution.get("result"))
-    structured_output = _safe_dict(result.get("structured_output"))
+    result = safe_dict(execution.get("result"))
+    structured_output = safe_dict(result.get("structured_output"))
     sections = _map_sections(structured_output.get("sections"))
     if not sections:
         return build_advisory_copilot_unavailable_draft(
@@ -157,8 +167,14 @@ def generate_advisory_copilot_draft_with_lotus_ai(
             evidence_packet=evidence_packet,
             guardrail_reasons=output_reasons,
             fallback_reason="COPILOT_OUTPUT_GUARDRAIL_REJECTED",
-            workflow_run_id=_extract_workflow_run_id(payload),
-            model_version=_extract_model_version(result),
+            workflow_run_id=extract_workflow_run_id(
+                payload,
+                max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
+            ),
+            model_version=extract_model_version(
+                result,
+                max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
+            ),
         )
 
     return AdvisoryCopilotAiDraft(
@@ -166,8 +182,14 @@ def generate_advisory_copilot_draft_with_lotus_ai(
         sections=sections,
         lineage=_build_lineage(
             evidence_packet=evidence_packet,
-            workflow_run_id=_extract_workflow_run_id(payload),
-            model_version=_extract_model_version(result),
+            workflow_run_id=extract_workflow_run_id(
+                payload,
+                max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
+            ),
+            model_version=extract_model_version(
+                result,
+                max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
+            ),
             fallback_reason=None,
         ),
         review_guidance=_map_string_list(structured_output.get("review_guidance")),
@@ -425,32 +447,6 @@ def _proposal_version_no(evidence_packet: CopilotEvidencePacket) -> int | None:
     return None
 
 
-def _extract_workflow_run_id(payload: dict[str, Any]) -> str | None:
-    workflow_pack_run = _safe_dict(payload.get("workflow_pack_run"))
-    return _optional_bounded_text(
-        workflow_pack_run.get("run_id"),
-        max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
-    )
-
-
-def _extract_model_version(result: dict[str, Any]) -> str | None:
-    return _optional_bounded_text(
-        result.get("model_version"),
-        max_length=MAX_COPILOT_LINEAGE_REF_LENGTH,
-    )
-
-
-def _extract_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail")
-    if isinstance(detail, str) and detail.strip():
-        return _bounded_text(detail, max_length=MAX_COPILOT_LINEAGE_REF_LENGTH)
-    return "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE"
-
-
-def _safe_dict(value: Any) -> dict[str, Any]:
-    return value if isinstance(value, dict) else {}
-
-
 def _caller_correlation_id(evidence_packet: CopilotEvidencePacket) -> str:
     candidate = f"advisory-copilot-{evidence_packet.evidence_packet_id}"
     if len(candidate) <= MAX_COPILOT_CALLER_CORRELATION_ID_LENGTH:
@@ -500,12 +496,6 @@ def _safe_reason_value(value: Any) -> str | int | bool | None | list[str]:
         ]
         return [item for item in items if item][:MAX_COPILOT_REASON_LIST_ITEMS] or None
     return _bounded_text(str(value), max_length=MAX_COPILOT_REASON_TEXT_LENGTH) or None
-
-
-def _optional_bounded_text(value: Any, *, max_length: int) -> str | None:
-    if not isinstance(value, str):
-        return None
-    return _bounded_text(value, max_length=max_length) or None
 
 
 def _bounded_text(value: str, *, max_length: int) -> str:
