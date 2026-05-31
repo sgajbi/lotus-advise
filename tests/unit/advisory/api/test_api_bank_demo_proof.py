@@ -216,6 +216,8 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
 
     assert operation["tags"] == ["Bank Demo Proof"]
     assert "Gateway and Workbench cannot promote stale" in operation["description"]
+    assert "Unredacted live runtime payloads are not persisted" in operation["description"]
+    assert "Raw live runtime payloads" not in operation["description"]
     parameter_by_name = {parameter["name"]: parameter for parameter in operation["parameters"]}
     assert "X-Correlation-ID" in parameter_by_name
     assert "X-Correlation-Id" not in parameter_by_name
@@ -242,6 +244,11 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     assert runtime_posture_schema["properties"]["endpoints"]["maxItems"] == 32
     request_schema = app.openapi()["components"]["schemas"]["BankDemoProofCaptureRequest"]
     assert "query strings" in request_schema["properties"]["output_ref_prefix"]["description"]
+    assert "access tokens" in request_schema["properties"]["output_ref_prefix"]["description"]
+    assert (
+        "unredacted runtime payloads"
+        in (request_schema["properties"]["live_runtime_payload"]["description"])
+    )
     assert request_schema["properties"]["live_runtime_payload"]["maxProperties"] == 16
     proof_pack_schema = app.openapi()["components"]["schemas"]["AdvisoryBankDemoProofPack"]
     assert "CLIENT_READY_PUBLICATION_BLOCKED" in repr(

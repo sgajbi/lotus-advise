@@ -8846,6 +8846,32 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-355
+
+- Scope: RFC-0028 proof-pack API/OpenAPI wording
+- Pattern: Public API descriptions should describe sanitized proof behavior without raw-material
+  phrasing
+- Status: Hardened
+- Finding Class: API documentation quality
+- Summary: RFC-0028 proof-pack request and route descriptions used raw-payload and sensitive-token
+  wording in OpenAPI. The behavior was already safe, but Swagger is an integration contract and
+  should describe the proof boundary with cleaner enterprise/business language.
+- Evidence:
+  - Reworded proof-pack route and request-model descriptions to use unredacted runtime payloads,
+    implementation payloads, and access tokens.
+  - Added OpenAPI regression assertions for the proof-pack operation and request schema so the
+    business-facing wording does not regress to raw runtime payload phrasing.
+  - Focused `ruff`, format, and bank-demo proof API/request tests passed with 12 tests.
+- Consequence:
+  - Gateway, Workbench, RFP/security, and integration consumers get clearer Swagger guidance while
+    the underlying validation and redaction behavior remains unchanged.
+- Documentation:
+  - Review ledger updated. No additional wiki source change is required for this API-description
+    hardening beyond the RFC-0028 wiki wording already changed in LA-REV-354.
+- Follow-Up:
+  - Keep OpenAPI examples and descriptions aligned with product-safe vocabulary whenever proof or
+    advisory evidence APIs are changed.
+
 ## LA-REV-354
 
 - Scope: RFC-0028 commercial and wiki proof wording

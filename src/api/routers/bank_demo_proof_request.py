@@ -37,7 +37,8 @@ class BankDemoProofCaptureRequest(BaseModel):
     live_runtime_payload: dict[str, Any] = Field(
         description=(
             "Governed live runtime suite result used as source evidence for RFC-0028 proof "
-            "capture. The API returns sanitized proof output and does not persist raw payloads."
+            "capture. The API returns sanitized proof output and does not persist unredacted "
+            "runtime payloads."
         ),
         max_length=RFC28_LIVE_PAYLOAD_TOP_LEVEL_MAX_KEYS,
     )
@@ -69,7 +70,7 @@ class BankDemoProofCaptureRequest(BaseModel):
         default=None,
         description=(
             "Optional local-only relative reference to the source live runtime result. URL "
-            "schemes, credentials, query strings, fragments, traversal, and sensitive tokens are "
+            "schemes, credentials, query strings, fragments, traversal, and access tokens are "
             "rejected."
         ),
         examples=["output/live-runtime-suite/result.json"],
@@ -78,8 +79,8 @@ class BankDemoProofCaptureRequest(BaseModel):
         default=None,
         description=(
             "Optional local-only relative reference to the source live runtime evidence bundle. "
-            "URL schemes, credentials, query strings, fragments, traversal, and sensitive tokens "
-            "are rejected."
+            "URL schemes, credentials, query strings, fragments, traversal, and access tokens are "
+            "rejected."
         ),
         examples=["output/live-runtime-suite"],
     )
@@ -88,7 +89,7 @@ class BankDemoProofCaptureRequest(BaseModel):
         description=(
             "Sanitized relative proof artifact reference prefix used inside the returned proof "
             "pack. It must not contain URL schemes, credentials, query strings, fragments, "
-            "traversal, or sensitive tokens."
+            "traversal, or access tokens."
         ),
         examples=[RFC28_DEFAULT_OUTPUT_REF_PREFIX],
     )
