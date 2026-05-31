@@ -59,3 +59,16 @@ def test_api_main_does_not_export_legacy_proposal_idempotency_cache():
     assert not hasattr(api_main, "MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE")
     assert "PROPOSAL_IDEMPOTENCY_CACHE" not in api_main.__all__
     assert "MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE" not in api_main.__all__
+
+
+def test_api_main_does_not_export_router_or_engine_internals():
+    stale_exports = {
+        "_simulate_proposal_response",
+        "build_proposal_artifact_endpoint",
+        "run_proposal_simulation",
+        "simulate_proposal",
+    }
+
+    assert stale_exports.isdisjoint(api_main.__all__)
+    for export_name in stale_exports:
+        assert not hasattr(api_main, export_name)

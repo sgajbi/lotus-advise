@@ -24,10 +24,6 @@ from src.api.proposals.router import (
     router as proposal_lifecycle_router,
 )
 from src.api.routers.advisory_simulation import (
-    build_proposal_artifact_endpoint,
-    simulate_proposal,
-)
-from src.api.routers.advisory_simulation import (
     router as advisory_simulation_router,
 )
 from src.api.routers.bank_demo_proof import router as bank_demo_proof_router
@@ -37,11 +33,7 @@ from src.api.routers.integration_capabilities import (
 from src.api.routers.tactical_house_view import router as tactical_house_view_router
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
 from src.api.sensitive_error_details import contains_sensitive_error_detail
-from src.api.services.advisory_simulation_service import (
-    simulate_proposal_response as _simulate_proposal_response,
-)
 from src.api.workspaces.router import router as workspace_router
-from src.core.advisory_engine import run_proposal_simulation
 from src.core.workspace.models import WorkspaceStatefulInput
 from src.integrations.lotus_core import LotusCoreSimulationUnavailableError
 from src.integrations.lotus_core.context_resolution import LotusCoreResolvedAdvisoryContext
@@ -323,12 +315,8 @@ def _safe_readiness_error_detail(error_detail: str) -> str:
 
 
 __all__ = [
-    "_simulate_proposal_response",
     "app",
-    "build_proposal_artifact_endpoint",
     "lotus_core_simulation_unavailable_to_problem_details",
     "request_validation_error_to_safe_response",
-    "run_proposal_simulation",
-    "simulate_proposal",
     "unhandled_exception_to_problem_details",
 ]

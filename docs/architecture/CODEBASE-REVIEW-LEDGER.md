@@ -8846,6 +8846,31 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-345
+
+- Scope: API main module compatibility exports
+- Pattern: `src.api.main` should expose the FastAPI app and exception handlers, not router or
+  simulation-engine internals
+- Status: Hardened
+- Finding Class: Dead code and module boundary clarity
+- Summary: `src/api/main.py` still imported and exported simulation endpoint functions,
+  `_simulate_proposal_response`, and `run_proposal_simulation` even though the app only needs the
+  routers and tests import endpoint functions from their router module. These exports blurred app
+  assembly with domain/service internals.
+- Evidence:
+  - Removed stale simulation endpoint, service, and engine exports from `src.api.main`.
+  - Added an internal guard preventing those names from returning to `src.api.main.__all__`.
+  - Focused `ruff`, format check, internal guard tests, and health tests passed with 10 tests.
+- Consequence:
+  - The API assembly module has a clearer boundary and no longer advertises non-router internals as
+    main-module compatibility surface.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal module
+    boundary cleanup.
+- Follow-Up:
+  - Keep endpoint-level imports in route modules and domain execution imports in domain/service
+    modules.
+
 ## LA-REV-344
 
 - Scope: Advisor cockpit model validation structure
