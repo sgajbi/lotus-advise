@@ -6134,3 +6134,26 @@
     existing contracts.
 - Follow-Up:
   - None.
+
+## LA-REV-233
+
+- Scope: OpenAPI idempotency header contract
+- Pattern: API documentation consistency, shared header governance, Swagger accuracy
+- Status: Hardened
+- Finding Class: API documentation drift
+- Summary: Idempotency key handling is now bounded in shared runtime normalization, but OpenAPI
+  parameter documentation still described replay keys only generically. That left Swagger weaker
+  than the implemented API boundary and forced each route family to remember the same wording.
+- Evidence:
+  - `src/api/openapi_enrichment.py` centrally enriches every `Idempotency-Key` header with the
+    shared 128-character boundary and business-clear replay-key wording.
+  - OpenAPI contract tests assert every documented `Idempotency-Key` header carries the bounded
+    schema and non-technical replay-key description.
+- Consequence:
+  - Swagger consumers see one consistent idempotency-key contract across RFC 23-28 proposal,
+    memo, policy, cockpit, and copilot write paths.
+- Documentation:
+  - No wiki source change is required. This updates generated API contract truth for existing
+    endpoints.
+- Follow-Up:
+  - None.

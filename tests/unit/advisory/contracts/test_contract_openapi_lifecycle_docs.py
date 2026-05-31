@@ -1,12 +1,36 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.core.common.idempotency import MAX_IDEMPOTENCY_KEY_LENGTH
 
 
 def _assert_property_has_docs(schema: dict, property_name: str) -> None:
     prop = schema["properties"][property_name]
     assert "description" in prop and prop["description"]
     assert ("example" in prop) or ("examples" in prop)
+
+
+def test_idempotency_header_openapi_contract_is_bounded_and_business_clear():
+    with TestClient(app) as client:
+        openapi = client.get("/openapi.json").json()
+
+    idempotency_headers = []
+    for methods in openapi["paths"].values():
+        for operation in methods.values():
+            if not isinstance(operation, dict):
+                continue
+            idempotency_headers.extend(
+                parameter
+                for parameter in operation.get("parameters", [])
+                if parameter.get("name") == "Idempotency-Key" and parameter.get("in") == "header"
+            )
+
+    assert idempotency_headers
+    for header in idempotency_headers:
+        assert header["schema"]["maxLength"] == MAX_IDEMPOTENCY_KEY_LENGTH
+        assert "replay-safe client request identifiers" in header["description"]
+        assert "visible characters" in header["description"]
+        assert "control characters" in header["description"]
 
 
 def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
