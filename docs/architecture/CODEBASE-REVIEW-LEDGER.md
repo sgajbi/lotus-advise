@@ -5499,3 +5499,30 @@
     before merge, followed by wiki publication after merge to `main`.
 - Follow-Up:
   - None.
+
+## LA-REV-208
+
+- Scope: Enterprise write-authorization capability-rule configuration
+- Pattern: security posture and fail-closed authorization hardening
+- Status: Hardened
+- Finding Class: security configuration gap
+- Summary: Runtime configuration validation reported malformed
+  `ENTERPRISE_CAPABILITY_RULES_JSON`, but write authorization could still treat malformed
+  capability rules as an empty rule map when `ENTERPRISE_ENFORCE_AUTHZ=true` and startup
+  fail-fast was not enabled. That created a fail-open posture for capability-specific write
+  authorization.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now rejects write authorization with
+    `invalid_capability_rules_json` when capability rules are malformed.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now covers the fail-closed behavior.
+  - Focused enterprise-readiness, internal guard, and observability header tests passed with
+    `15 passed`.
+- Consequence:
+  - Enterprise write authorization no longer silently drops malformed capability policy, improving
+    bank-grade configuration safety without changing default non-enforcing local development
+    behavior.
+- Documentation:
+  - No wiki source change is required. This is security posture hardening of existing middleware
+    behavior and does not change product feature posture.
+- Follow-Up:
+  - None.

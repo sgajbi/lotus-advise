@@ -85,6 +85,26 @@ def test_authorize_write_request_trims_headers_and_capabilities(monkeypatch) -> 
     assert reason is None
 
 
+def test_authorize_write_request_fails_closed_for_invalid_capability_rules(monkeypatch) -> None:
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
+    monkeypatch.setenv("ENTERPRISE_CAPABILITY_RULES_JSON", "not-json")
+
+    authorized, reason = authorize_write_request(
+        "POST",
+        "/advisory/proposals",
+        {
+            "X-Actor-Id": "advisor-sg-001",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Role": "ADVISOR",
+            "X-Correlation-Id": "corr-001",
+            "X-Service-Identity": "lotus-workbench",
+        },
+    )
+
+    assert authorized is False
+    assert reason == "invalid_capability_rules_json"
+
+
 def test_authorize_write_request_does_not_match_sibling_capability_paths(monkeypatch) -> None:
     monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
     monkeypatch.setenv(

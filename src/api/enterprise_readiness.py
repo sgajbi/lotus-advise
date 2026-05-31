@@ -168,6 +168,13 @@ def authorize_write_request(
     if not (normalized.get("x-service-identity") or normalized.get("authorization")):
         return False, "missing_service_identity"
 
+    capability_rule_issue = _json_map_config_issue(
+        "ENTERPRISE_CAPABILITY_RULES_JSON",
+        "invalid_capability_rules_json",
+    )
+    if capability_rule_issue is not None:
+        return False, capability_rule_issue
+
     required_capability = _required_capability(method, path)
     if required_capability:
         capabilities = {
