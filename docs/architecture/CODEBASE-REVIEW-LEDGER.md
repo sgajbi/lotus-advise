@@ -7744,3 +7744,32 @@
 - Follow-Up:
   - Continue auditing live-suite source loading only if additional source modes or bundle layouts
     are added.
+
+## LA-REV-294
+
+- Scope: RFC-0028 live-suite proof source loading
+- Pattern: live-suite source selection separated from proof-capture CLI orchestration
+- Status: Hardened
+- Finding Class: repeatability boundary clarity and direct test gap
+- Summary: `scripts/capture_rfc0028_backend_proof.py` still owned existing `result.json` loading,
+  bundle resolution, optional live-suite execution, bundle reference calculation, and no-source
+  failure behavior. This source-selection logic is the repeatability boundary for RFC-0028 proof
+  capture, so it should be directly testable without invoking runtime probes, metadata assembly,
+  or artifact writing.
+- Evidence:
+  - `scripts/rfc0028_live_suite_source.py` now owns existing result loading, latest bundle
+    resolution, optional live-suite execution, source artifact references, and repeatable-source
+    failure behavior.
+  - `scripts/capture_rfc0028_backend_proof.py` now delegates live-suite source selection while
+    retaining CLI parsing and proof orchestration.
+  - `tests/unit/scripts/test_capture_rfc0028_backend_proof.py` now proves existing result loading,
+    latest bundle resolution, and the explicit source-required error.
+- Consequence:
+  - RFC-0028 proof-capture repeatability is now covered at the source-selection layer, reducing
+    reliance on full live-suite execution to catch source artifact regressions.
+- Documentation:
+  - No README or wiki source change is required. The public capture command and source modes are
+    unchanged.
+- Follow-Up:
+  - Continue auditing proof-capture metadata and artifact-reference behavior only when operator
+    options or evidence artifact semantics change.

@@ -6,25 +6,21 @@ import subprocess
 import sys
 import uuid
 from pathlib import Path
-from typing import Any
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.live_runtime_suite_artifacts import (  # noqa: E402
-    load_result_json,
-    resolve_bundle_dir,
-    result_to_json_dict,
-    write_live_runtime_suite_bundle,
-)
 from scripts.rfc0028_backend_proof_writer import (  # noqa: E402
     write_backend_proof_capture_bundle,
+)
+from scripts.rfc0028_live_suite_source import (  # noqa: E402
+    display_path,
+    load_or_run_live_suite,
 )
 from scripts.rfc0028_runtime_probe import (  # noqa: E402
     not_probed_runtime_posture,
     probe_runtime_posture,
 )
-from scripts.validate_live_runtime_suite import validate_live_runtime_suite  # noqa: E402
 from src.core.bank_demo_proof import (  # noqa: E402
     build_backend_proof_capture,
     default_capture_metadata,
@@ -114,7 +110,13 @@ def main() -> None:
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    live_payload, result_ref, bundle_ref = _load_or_run_live_suite(args, output_dir)
+    live_payload, result_ref, bundle_ref = load_or_run_live_suite(
+        live_suite_json=args.live_suite_json,
+        live_suite_bundle=args.live_suite_bundle,
+        run_live_suite=args.run_live_suite,
+        skip_degraded=args.skip_degraded,
+        output_dir=output_dir,
+    )
     runtime_posture = (
         not_probed_runtime_posture(args.advise_base_url, args.environment)
         if args.skip_runtime_probe
@@ -144,37 +146,11 @@ def main() -> None:
 def _artifact_ref_prefix_for(output_dir: Path, configured_prefix: str | None) -> str:
     if configured_prefix is not None:
         return normalize_output_ref_prefix(configured_prefix)
-    output_ref = _display_path(output_dir)
+    output_ref = display_path(output_dir)
     try:
         return normalize_output_ref_prefix(output_ref)
     except ValueError:
         return _DEFAULT_OUTPUT_DIR
-
-
-def _load_or_run_live_suite(
-    args: argparse.Namespace,
-    output_dir: Path,
-) -> tuple[dict[str, Any], str, str | None]:
-    if args.live_suite_json:
-        result_path = Path(args.live_suite_json)
-        return load_result_json(result_path), _display_path(result_path), None
-    if args.live_suite_bundle:
-        bundle_dir = resolve_bundle_dir(args.live_suite_bundle)
-        result_path = bundle_dir / "result.json"
-        return load_result_json(result_path), _display_path(result_path), _display_path(bundle_dir)
-    if args.run_live_suite:
-        result = validate_live_runtime_suite(include_degraded=not args.skip_degraded)
-        live_bundle_dir = write_live_runtime_suite_bundle(result, output_dir=str(output_dir))
-        if live_bundle_dir is None:
-            raise RuntimeError("RFC0028_LIVE_SUITE_BUNDLE_NOT_WRITTEN")
-        return (
-            result_to_json_dict(result),
-            _display_path(live_bundle_dir / "result.json"),
-            _display_path(live_bundle_dir),
-        )
-    raise SystemExit(
-        "Provide --live-suite-json, --live-suite-bundle, or --run-live-suite for repeatable proof."
-    )
 
 
 def _git_sha() -> str:
@@ -185,10 +161,6 @@ def _git_sha() -> str:
         text=True,
     )
     return completed.stdout.strip()
-
-
-def _display_path(path: Path) -> str:
-    return path.as_posix()
 
 
 if __name__ == "__main__":
