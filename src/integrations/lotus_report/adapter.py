@@ -258,13 +258,22 @@ def _load_report_status(
     status_url: Any,
     headers: dict[str, str],
 ) -> dict[str, Any]:
-    normalized_status_url = _optional_string(status_url)
-    if not normalized_status_url:
+    status_path = _report_status_path(status_url)
+    if status_path is None:
         return {}
-    status_response = client.get(f"{base_url}{normalized_status_url}", headers=headers)
+    status_response = client.get(f"{base_url}{status_path}", headers=headers)
     status_response.raise_for_status()
     payload = status_response.json()
     return payload if isinstance(payload, dict) else {}
+
+
+def _report_status_path(status_url: Any) -> str | None:
+    normalized = _optional_string(status_url)
+    if normalized is None or any(ord(char) < 32 or ord(char) == 127 for char in normalized):
+        return None
+    if not normalized.startswith("/reports/jobs/"):
+        return None
+    return normalized
 
 
 def _resolve_base_url() -> str:

@@ -6034,3 +6034,26 @@
     changing supported feature scope.
 - Follow-Up:
   - None.
+
+## LA-REV-229
+
+- Scope: Lotus Report status retrieval path
+- Pattern: outbound integration hardening and downstream URL trust boundary
+- Status: Hardened
+- Finding Class: weak downstream status-url constraint
+- Summary: Lotus Report memo and policy package flows consumed the downstream `status_url`
+  response value directly when retrieving render/archive status. The call still used the configured
+  Lotus Report base URL, but the adapter did not explicitly constrain the response path to the
+  expected report-job route.
+- Evidence:
+  - `src/integrations/lotus_report/adapter.py` now retrieves status only for clean relative
+    `/reports/jobs/...` paths.
+  - Lotus Report adapter tests prove valid status paths are fetched and untrusted absolute status
+    URLs are ignored without losing the accepted report job posture.
+- Consequence:
+  - Advise no longer follows unexpected report status paths from downstream response payloads,
+    keeping render/archive polling inside the documented Lotus Report job route.
+- Documentation:
+  - No wiki source change is required. This is boundary hardening for an existing integration path.
+- Follow-Up:
+  - None.
