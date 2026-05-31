@@ -83,6 +83,11 @@ def normalize_lotus_advise_contract_ref(value: str, *, field_name: str) -> str:
         raise ValueError(f"{field_name} must be a lotus-advise logical contract reference")
     if parsed.query or parsed.fragment or "@" in parsed.netloc:
         raise ValueError(f"{field_name} must not include credentials, query, or fragment")
+    path_parts = [part for part in parsed.path.split("/") if part]
+    if not path_parts:
+        raise ValueError(f"{field_name} must include a contract path")
+    if any(part == ".." for part in path_parts):
+        raise ValueError(f"{field_name} cannot contain parent-directory traversal")
     if contains_sensitive_rfc28_term(normalized):
         raise ValueError(f"{field_name} cannot contain sensitive technical detail")
     return normalized

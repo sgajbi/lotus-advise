@@ -439,6 +439,16 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
             }
         )
 
+    with pytest.raises(ValidationError, match="parent-directory traversal"):
+        AdvisoryBankDemoProofPack(
+            **{
+                **proof_pack.model_dump(),
+                "supported_claim_register_ref": (
+                    "lotus-advise://rfc0028/../supported-claim-register.v1.json"
+                ),
+            }
+        )
+
     with pytest.raises(ValidationError, match="canonical sha256 digest"):
         ProofAsset(
             asset_id="bad_hash",

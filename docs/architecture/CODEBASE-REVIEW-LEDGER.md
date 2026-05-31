@@ -8800,8 +8800,8 @@
 - Evidence:
   - Added `normalize_lotus_advise_contract_ref` for RFC-0028 Lotus Advise logical contract refs.
   - Applied the validator to proof-pack scenario-contract and supported-claim-register refs.
-  - Added model regression tests for external URLs, query/token leakage, and sensitive contract
-    reference fragments.
+  - Added model regression tests for external URLs, query/token leakage, path traversal, and
+    sensitive contract reference fragments.
   - Focused proof-model tests, `python -m compileall src/core/bank_demo_proof`, and full
     `make check` passed with 1555 unit tests.
 - Consequence:
