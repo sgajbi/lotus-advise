@@ -444,13 +444,16 @@ def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_postu
         action_item_id=action.action_item_id,
         payload=payload,
         idempotency_key="ack-policy-001",
-        correlation_id="corr-ack-001",
+        correlation_id="corr-ack-retry-002",
         caller_context=_caller(),
         portfolio_id="PB_SG_GLOBAL_BAL_001",
     )
 
     assert response.replayed is False
     assert replay.replayed is True
+    assert response.audit["correlation_id"] == "corr-ack-001"
+    assert replay.audit["correlation_id"] == "corr-ack-001"
+    assert replay.action_item.correlation_id == "corr-ack-retry-002"
     assert replay.action_item.status == "PENDING_REVIEW"
     assert replay.action_item.acknowledgement_state.acknowledged is True
 
@@ -482,7 +485,11 @@ def test_cockpit_acknowledgement_rejects_conflict_and_stale_version(
     with pytest.raises(ProposalIdempotencyConflictError):
         service.acknowledge_action(
             action_item_id=action.action_item_id,
-            payload=payload,
+            payload=AdvisorCockpitAcknowledgeRequest(
+                action_item_version=action.action_item_version,
+                acknowledged_by="advisor_sg_001",
+                acknowledgement_note="Different acknowledgement business note.",
+            ),
             idempotency_key="ack-conflict-001",
             correlation_id="corr-ack-different",
             caller_context=_caller(),
