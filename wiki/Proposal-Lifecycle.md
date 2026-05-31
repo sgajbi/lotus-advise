@@ -46,7 +46,7 @@ Approval and consent are structured workflow actions, not ad hoc annotations. Th
 
 It can:
 
-- request a report payload through the `lotus-report` seam
+- request a report payload through the `lotus-report` integration boundary
 - record an execution handoff
 - ingest vendor-neutral execution updates
 - expose delivery summary, delivery history, and execution status

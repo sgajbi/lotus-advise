@@ -43,7 +43,10 @@ def test_rfc0023_slice0_source_map_is_indexed_without_promoting_capability() -> 
 def test_supported_features_keep_rfc0023_current_state_conservative() -> None:
     supported_features = WIKI_SUPPORTED_FEATURES_PATH.read_text(encoding="utf-8")
 
-    assert "Workspace AI rationale | Supported through governed seam" in supported_features
+    assert (
+        "Workspace AI rationale | Supported through governed integration boundary"
+        in supported_features
+    )
     assert "RFC-0023" in supported_features
     assert "Advisor-review proposal narrative" in supported_features
     assert "optional `AI_ASSISTED_DRAFT`" in supported_features

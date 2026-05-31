@@ -44,9 +44,9 @@ It depends on:
 - `lotus-risk`
   risk-lens enrichment and concentration authority
 - `lotus-report`
-  report-request seam
+  report-request integration boundary
 - `lotus-ai`
-  workspace rationale seam
+  workspace-rationale integration boundary
 - `lotus-gateway`
   primary integrated product-facing consumer
 
@@ -150,7 +150,7 @@ Key code areas:
   RFC-0026 advisor cockpit action construction, source read model, SLA/acknowledgement policy, and
   supportability projection
 - `src/integrations/`
-  Lotus Core, Risk, AI, Report, and Performance seams
+  Lotus Core, Risk, AI, Report, and Performance integration boundaries
 - `docs/`
   repo-local architecture, RFCs, demo payloads, and runbooks
 
@@ -274,10 +274,11 @@ Contract rules that are easy to get wrong:
 1. proposal simulation and artifact flows require `Idempotency-Key`
 2. lifecycle persistence is immutable-by-version
 3. support and delivery posture derive from append-only workflow history
-4. workspace rationale and RFC-0023 advisor-review proposal narrative are separate governed AI seams;
-   advisor-review narrative is implemented for proposal artifact, review/replay, reviewed
-   report-request package, report/render/archive, Gateway posture, Workbench posture, standalone
-   read, and non-persistent regeneration, while client-ready narrative remains gated
+4. workspace rationale and RFC-0023 advisor-review proposal narrative are separate governed AI
+   integration boundaries; advisor-review narrative is implemented for proposal artifact,
+   review/replay, reviewed report-request package, report/render/archive, Gateway posture,
+   Workbench posture, standalone read, and non-persistent regeneration, while client-ready
+   narrative remains gated
 5. tactical house-view cohort responses must preserve upstream source refs and supportability posture
    instead of recomputing portfolio source facts locally
 6. policy evaluation endpoints preserve source/policy/evaluation/replay hashes and must not imply
@@ -309,7 +310,7 @@ Contract rules that are easy to get wrong:
   `lotus-manage`
 - key upstreams:
   `lotus-core`, `lotus-risk`
-- bounded adjacent seams:
+- bounded adjacent integration boundaries:
   `lotus-report`, `lotus-ai`
 
 Contract rule:

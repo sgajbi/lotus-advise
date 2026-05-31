@@ -72,7 +72,7 @@ Boundary rule:
 
 Current usage:
 
-- report request seam for Lotus-branded advisory outputs
+- report-request integration boundary for Lotus-branded advisory outputs
 
 Boundary rule:
 
@@ -82,7 +82,7 @@ Boundary rule:
 
 Current implemented usage:
 
-- workspace rationale seam
+- workspace-rationale integration boundary
 
 Boundary rule:
 

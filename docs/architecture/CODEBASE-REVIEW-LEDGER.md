@@ -7939,3 +7939,29 @@
 - Follow-Up:
   - Continue scanning generated proof summaries and commercial docs for implementation-process
     wording before final RFC-0028 closure.
+
+## LA-REV-301
+
+- Scope: README and wiki public integration vocabulary
+- Pattern: public documentation uses business-facing integration-boundary language
+- Status: Hardened
+- Finding Class: documentation polish, audience fit, and implementation-shorthand leakage
+- Summary: Public README/wiki pages still described report and AI integration points as "seams".
+  That shorthand is useful during engineering discussions but reads like implementation jargon in
+  material intended for business users, operations, sales, pre-sales, and client-demo preparation.
+- Evidence:
+  - `README.md` now describes Lotus Report, Lotus AI, and adjacent app relationships as integration
+    boundaries.
+  - `wiki/Advisory-Workspace.md`, `wiki/Proposal-Lifecycle.md`, `wiki/Integrations.md`, and
+    `wiki/Supported-Features.md` use integration-boundary terminology in prose, tables, and
+    diagrams.
+  - `tests/unit/test_public_docs_vocabulary.py` prevents `seam` wording from returning to the
+    target public docs.
+- Consequence:
+  - Public documentation better matches enterprise buyer and bank stakeholder expectations without
+    changing any API or runtime behavior.
+- Documentation:
+  - Repo-local wiki source changed and must pass wiki sync check before merge.
+- Follow-Up:
+  - Continue broader wiki/RFC vocabulary cleanup only where it changes current product truth or
+    buyer-facing clarity; avoid rewriting historical RFC implementation notes for cosmetics.
