@@ -7566,3 +7566,31 @@
 - Follow-Up:
   - Continue separating proof asset construction from capture orchestration if later RFC-0028
     slices need to add additional asset families.
+
+## LA-REV-288
+
+- Scope: RFC-0028 backend proof asset construction
+- Pattern: proof asset inventory separated from capture orchestration
+- Status: Hardened
+- Finding Class: proof-boundary clarity, commit/local evidence controls, and direct test gap
+- Summary: `capture.py` still constructed the full proof asset list inline, including commit-safe
+  summaries, local-only runtime bundle evidence, customer-consumable commercial material, and
+  canonical content hashes. That asset inventory is a durable RFC-0028 proof contract and should
+  be testable without building the full capture bundle.
+- Evidence:
+  - `src/core/bank_demo_proof/proof_assets.py` now owns backend proof asset construction, content
+    hashes, commit permissions, access classes, retention classes, and source live-runtime bundle
+    URI precedence.
+  - `src/core/bank_demo_proof/capture.py` now delegates asset construction while retaining proof
+    bundle orchestration and material review enforcement.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_proof_assets.py` proves asset inventory,
+    customer-consumable vs local-only boundaries, content hashes, and source bundle precedence.
+- Consequence:
+  - RFC-0028 proof-pack evidence boundaries are easier to audit and less likely to drift when
+    proof capture adds new assets or commercial material changes.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-capture modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing proof-pack metadata and supported-claim register construction for additional
+    separable contracts if future slices change client-demo material.
