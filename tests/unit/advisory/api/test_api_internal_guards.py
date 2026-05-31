@@ -1,6 +1,12 @@
+import inspect
+
 import pytest
 
 from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.routers.advisory_simulation import (
+    build_proposal_artifact_endpoint,
+    simulate_proposal,
+)
 from src.integrations.lotus_core.simulation import (
     LotusCoreSimulationUnavailableError,
     simulate_with_lotus_core,
@@ -40,3 +46,8 @@ def test_lotus_core_simulation_does_not_use_query_base_url(monkeypatch):
             idempotency_key=None,
             correlation_id="corr-test",
         )
+
+
+def test_advisory_simulation_routes_do_not_depend_on_legacy_db_session():
+    for endpoint in (simulate_proposal, build_proposal_artifact_endpoint):
+        assert "db" not in inspect.signature(endpoint).parameters

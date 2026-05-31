@@ -4,7 +4,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import app, get_db_session
+from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory.narrative_models import ProposalNarrativeAiLineage
 from src.core.advisory_engine import run_proposal_simulation
@@ -27,14 +27,9 @@ from tests.shared.stateful_context_assertions import assert_core_context_fetch_c
 from tests.shared.stateful_context_builders import build_resolved_stateful_context
 
 
-async def override_get_db_session():
-    yield None
-
-
 @pytest.fixture(autouse=True)
 def override_db_dependency():
     original_overrides = dict(app.dependency_overrides)
-    app.dependency_overrides[get_db_session] = override_get_db_session
     reset_proposal_workflow_service_for_tests()
     reset_stateful_context_cache_for_tests()
     yield

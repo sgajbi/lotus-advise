@@ -9,7 +9,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import get_db_session
 from src.api.enterprise_readiness import (
     build_enterprise_audit_middleware,
     validate_enterprise_runtime_config,
@@ -318,7 +317,6 @@ __all__ = [
     "_simulate_proposal_response",
     "app",
     "build_proposal_artifact_endpoint",
-    "get_db_session",
     "lotus_core_simulation_unavailable_to_problem_details",
     "request_validation_error_to_safe_response",
     "run_proposal_simulation",

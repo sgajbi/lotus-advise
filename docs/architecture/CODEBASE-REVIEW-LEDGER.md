@@ -8255,3 +8255,34 @@
 - Follow-Up:
   - Keep active RFC closure wording tied to current implementation evidence and avoid using
     "later" to describe already-completed gates.
+
+## LA-REV-312
+
+- Scope: Legacy advisory simulation database dependency
+- Pattern: Delete dead infrastructure placeholders once concrete repository/runtime ownership
+  exists elsewhere
+- Status: Hardened
+- Finding Class: dead-code removal and API dependency clarity
+- Summary: `src/api/dependencies.py` still exposed a `get_db_session` generator documented as a
+  database-session stub from older RFC-0005 scaffolding. The only remaining consumers were legacy
+  simulation route parameters and test overrides; persisted proposal, cockpit, memo, policy, and
+  copilot behavior now use repository/runtime wiring instead of this dependency. Keeping the stub
+  made the API layer look less production-ready and suggested an unimplemented persistence path.
+- Evidence:
+  - Removed `src/api/dependencies.py`.
+  - Removed unused `db: Depends(get_db_session)` parameters from the advisory simulation and
+    artifact endpoints.
+  - Removed test harness overrides for the deleted dependency.
+  - `tests/unit/advisory/api/test_api_internal_guards.py` now asserts simulation endpoints do not
+    reintroduce the legacy `db` dependency.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/api/test_api_internal_guards.py tests/unit/advisory/api/test_api_advisory_proposal_simulate.py tests/e2e/demo/test_demo_scenarios.py`.
+- Consequence:
+  - API dependency flow is clearer: deterministic simulation remains stateless while persisted
+    workflow paths use the proposal/advisory repositories and runtime readiness gates.
+- Documentation:
+  - No README/wiki change is required because this removes misleading internal scaffolding without
+    changing public endpoint behavior or supported-feature truth.
+- Follow-Up:
+  - Continue removing stale scaffolding only when references prove it is no longer part of a
+    supported extension point.

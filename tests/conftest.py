@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 
-from src.api.main import app, get_db_session
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.advisory_engine import run_proposal_simulation
 from src.core.models import CashBalance, EngineOptions, PortfolioSnapshot
@@ -68,9 +67,6 @@ def postgres_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
 
 @pytest.fixture(autouse=True)
 def advisory_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
-    async def _override_get_db_session():
-        yield None
-
     def _simulate_with_lotus_core(**kwargs):
         request = kwargs["request"]
         return run_proposal_simulation(
@@ -93,8 +89,6 @@ def advisory_runtime_test_harness(monkeypatch: pytest.MonkeyPatch):
         "src.core.advisory.orchestration.simulate_with_lotus_core",
         _simulate_with_lotus_core,
     )
-    monkeypatch.setitem(app.dependency_overrides, get_db_session, _override_get_db_session)
     reset_proposal_workflow_service_for_tests()
     yield
-    app.dependency_overrides.pop(get_db_session, None)
     reset_proposal_workflow_service_for_tests()
