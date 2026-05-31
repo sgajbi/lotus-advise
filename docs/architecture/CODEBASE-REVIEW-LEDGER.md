@@ -8846,6 +8846,34 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-365
+
+- Scope: RFC-0026 advisor cockpit initial SLA-band derivation
+- Pattern: Shared cockpit projection rules should live in named domain helpers instead of repeated
+  inline ternaries across source-family modules
+- Status: Hardened
+- Finding Class: Duplication reduction and domain readability
+- Summary: Split cockpit action modules repeated the same provisional due-date mapping:
+  source actions with `due_at` start as `DUE_SOON`; undated actions start as `NOT_APPLICABLE`
+  until the service recomputes live aging. Repeating that rule made future action families more
+  likely to drift.
+- Evidence:
+  - Added `action_components.initial_sla_age_band`.
+  - Replaced repeated inline SLA-band mappings across advisor workflow, approval, execution, and
+    remaining factory-owned action builders.
+  - Added focused action-factory regression coverage for dated and undated source actions.
+  - Focused `ruff`, format, `mypy`, and advisor-cockpit action-factory tests passed with
+    16 tests.
+- Consequence:
+  - RFC-0026 action construction now has one named rule for initial SLA projection, improving
+    readability and reducing duplication across source-family builders.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because behavior and product
+    contract are unchanged.
+- Follow-Up:
+  - Keep live SLA aging in `advisor_cockpit.rules`; this helper only owns construction-time
+    initial posture.
+
 ## LA-REV-364
 
 - Scope: RFC-0026 advisor-owned meeting preparation and follow-up action mapping

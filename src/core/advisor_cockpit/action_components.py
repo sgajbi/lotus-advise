@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal, TypeVar
+from typing import Literal, TypeVar, cast
 
 from src.core.advisor_cockpit.action_sources import CockpitActionSourceRefs
 from src.core.advisor_cockpit.models import (
     AdvisorCockpitOwnerRole,
+    AdvisorCockpitSlaAgeBand,
     CockpitDependencyReadiness,
     CockpitEvidenceRef,
     CockpitLineageRef,
@@ -23,9 +24,12 @@ T = TypeVar("T")
 
 
 def build_action_item_id(action_family: str, source_action_id: str) -> str:
-    return bounded_reference(
-        f"aci_{normalize_action_identifier(action_family)}_"
-        f"{normalize_action_identifier(source_action_id)}"
+    return cast(
+        str,
+        bounded_reference(
+            f"aci_{normalize_action_identifier(action_family)}_"
+            f"{normalize_action_identifier(source_action_id)}"
+        ),
     )
 
 
@@ -95,6 +99,10 @@ def dependency_readiness(
         reason_code=bounded_reference(reason_code),
         summary=bounded_summary(summary),
     )
+
+
+def initial_sla_age_band(due_at: str | None) -> AdvisorCockpitSlaAgeBand:
+    return "DUE_SOON" if due_at else "NOT_APPLICABLE"
 
 
 def bounded_source_refs(source_refs: CockpitActionSourceRefs) -> CockpitActionSourceRefs:

@@ -32,7 +32,7 @@ def build_execution_handoff_ready_action(
                 execution_ref=source.handoff_id,
             ),
             due_at=source.due_at,
-            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            sla_age_band=action_components.initial_sla_age_band(source.due_at),
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             evidence_refs=[
@@ -74,7 +74,7 @@ def build_execution_status_attention_action(
                 execution_ref=source.execution_ref,
             ),
             due_at=source.due_at,
-            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            sla_age_band=action_components.initial_sla_age_band(source.due_at),
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             evidence_refs=[

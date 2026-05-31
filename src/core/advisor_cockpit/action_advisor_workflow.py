@@ -41,7 +41,7 @@ def build_meeting_preparation_action(
                 proposal_id=source.proposal_id,
             ),
             due_at=source.due_at,
-            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            sla_age_band=action_components.initial_sla_age_band(source.due_at),
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             evidence_refs=evidence_refs,
@@ -70,7 +70,7 @@ def build_client_follow_up_action(
                 proposal_id=source.proposal_id,
             ),
             due_at=source.due_at,
-            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            sla_age_band=action_components.initial_sla_age_band(source.due_at),
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             evidence_refs=[

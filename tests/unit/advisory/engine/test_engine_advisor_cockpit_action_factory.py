@@ -167,6 +167,29 @@ def test_meeting_preparation_action_defaults_portfolio_context_to_portfolio_ref(
     assert action.evidence_refs[0].access_class == "CUSTOMER_CONSUMABLE_SUMMARY"
 
 
+def test_source_actions_use_initial_sla_band_when_due_at_is_present() -> None:
+    due_action = build_client_follow_up_action(
+        ClientFollowUpActionSource(
+            follow_up_id="follow_up_due_sg_001",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            follow_up_code="CLIENT_CONSENT_FOLLOW_UP_REQUIRED",
+            due_at="2026-05-28T08:00:00+00:00",
+        )
+    )
+    undated_action = build_client_follow_up_action(
+        ClientFollowUpActionSource(
+            follow_up_id="follow_up_not_due_sg_001",
+            proposal_id="proposal_sg_001",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            follow_up_code="CLIENT_CONSENT_FOLLOW_UP_REQUIRED",
+        )
+    )
+
+    assert due_action.sla_age_band == "DUE_SOON"
+    assert undated_action.sla_age_band == "NOT_APPLICABLE"
+
+
 def test_client_follow_up_action_preserves_external_communication_boundary() -> None:
     action = build_client_follow_up_action(
         ClientFollowUpActionSource(

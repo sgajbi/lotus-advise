@@ -71,7 +71,7 @@ def build_policy_review_required_action(
                 policy_evaluation_id=source.policy_evaluation_id,
             ),
             due_at=source.due_at,
-            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            sla_age_band=action_components.initial_sla_age_band(source.due_at),
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             evidence_refs=[
@@ -123,7 +123,7 @@ def build_memo_package_blocked_action(
                 memo_id=source.memo_id,
             ),
             due_at=source.due_at,
-            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            sla_age_band=action_components.initial_sla_age_band(source.due_at),
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             evidence_refs=[
@@ -171,7 +171,7 @@ def build_report_render_archive_action(
                 report_ref=source.readiness_id,
             ),
             due_at=source.due_at,
-            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            sla_age_band=action_components.initial_sla_age_band(source.due_at),
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             evidence_refs=[
@@ -213,7 +213,7 @@ def build_house_view_impact_action(source: HouseViewImpactActionSource) -> Advis
             reason_codes=[source.impact_code, "TACTICAL_HOUSE_VIEW_REVIEW_REQUIRED"],
             source_refs=CockpitActionSourceRefs(portfolio_id=source.portfolio_id),
             due_at=source.due_at,
-            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            sla_age_band=action_components.initial_sla_age_band(source.due_at),
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             evidence_refs=[
@@ -249,7 +249,7 @@ def build_supportability_degraded_action(
             reason_codes=[source.reason_code, f"DEPENDENCY_{source.state}"],
             source_refs=CockpitActionSourceRefs(portfolio_id=source.portfolio_id),
             due_at=source.due_at,
-            sla_age_band="DUE_SOON" if source.due_at else "NOT_APPLICABLE",
+            sla_age_band=action_components.initial_sla_age_band(source.due_at),
             materiality_rank=source.materiality_rank,
             source_timestamp=source.source_timestamp,
             dependency_readiness=[
