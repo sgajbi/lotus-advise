@@ -331,6 +331,30 @@ def test_cockpit_service_snapshot_preserves_supported_downstream_posture(
     assert supportability.posture == "ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED"
 
 
+def test_cockpit_service_bounds_snapshot_identity_from_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = InMemoryProposalRepository()
+    oversized_portfolio_id = f"PB_SG_GLOBAL_BAL_{'001_' * 80}"
+    monkeypatch.setattr(cockpit_service, "list_policy_evaluation_records", lambda **_: [])
+    monkeypatch.setattr(
+        cockpit_service,
+        "list_tactical_house_view_affected_cohorts",
+        lambda **_: [],
+    )
+    service = AdvisorCockpitService(repository=repository, now_fn=lambda: NOW)
+
+    snapshot = service.get_snapshot(
+        caller_context=_caller(),
+        portfolio_id=oversized_portfolio_id,
+        correlation_id="corr-snapshot-bounds",
+    )
+
+    assert len(snapshot.snapshot_id) <= 160
+    assert snapshot.snapshot_id.startswith("cockpit_snapshot_PB_SG_GLOBAL_BAL_")
+    assert snapshot.snapshot_id != f"cockpit_snapshot_{oversized_portfolio_id}"
+
+
 def test_cockpit_service_lists_preparation_packets_with_cursor_and_supportability(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

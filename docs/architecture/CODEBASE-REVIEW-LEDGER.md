@@ -6824,3 +6824,27 @@
     RFC-0026 behavior.
 - Follow-Up:
   - Continue auditing cockpit supportability metadata for bounded, business-facing output.
+
+## LA-REV-261
+
+- Scope: RFC-0026 advisor cockpit snapshot identity projection
+- Pattern: bounded snapshot identifiers
+- Status: Hardened
+- Finding Class: API stability risk
+- Summary: Cockpit action items and preparation packets were protected against oversized source
+  references, but snapshot ids were still assembled directly from caller scope. A long portfolio or
+  advisor scope could exceed the bounded snapshot model and fail an otherwise valid empty snapshot.
+- Evidence:
+  - `src/core/advisor_cockpit/service.py` now applies shared cockpit projection bounds when
+    constructing `AdvisorCockpitOperatingSnapshot.snapshot_id`.
+  - Advisor cockpit service tests prove oversized portfolio scopes produce stable bounded snapshot
+    identifiers instead of failing model validation.
+- Consequence:
+  - RFC-0026 snapshot APIs remain stable for Gateway and Workbench even when upstream route or
+    caller scope identifiers are unusually long.
+- Documentation:
+  - No wiki source change is required. This is source-level API stability hardening for existing
+    RFC-0026 behavior.
+- Follow-Up:
+  - Continue auditing supportability and acknowledgement metadata for bounded business-facing
+    output.

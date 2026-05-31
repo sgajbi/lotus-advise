@@ -147,7 +147,9 @@ class AdvisorCockpitService:
         counts = _action_counts(actions)
         supportability = _supportability(actions=actions, source_limit=COCKPIT_SOURCE_LIMIT)
         snapshot = AdvisorCockpitOperatingSnapshot(
-            snapshot_id=f"cockpit_snapshot_{portfolio_id or caller_context.advisor_id or 'all'}",
+            snapshot_id=bounded_reference(
+                f"cockpit_snapshot_{portfolio_id or caller_context.advisor_id or 'all'}"
+            ),
             caller_context=caller_context,
             as_of=self._now_fn().isoformat(),
             action_counts=counts,
