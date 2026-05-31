@@ -5958,3 +5958,28 @@
     advisory AI tenant posture and does not change supported feature scope.
 - Follow-Up:
   - None.
+
+## LA-REV-226
+
+- Scope: Enterprise write-denial audit middleware
+- Pattern: auditability, operational diagnostics, and security posture
+- Status: Hardened
+- Finding Class: unaudited payload-size denial gap
+- Summary: Oversized write requests were denied with `413 payload_too_large` before the normal
+  response path, which meant the denial did not emit an enterprise audit event and did not include
+  the enterprise policy-version response header. This weakened supportability for blocked write
+  attempts on advisory RFC 23-28 APIs.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now emits a structured `DENY <method> <path>` audit event
+    for payload-size denials with bounded metadata for content length and configured maximum.
+  - Enterprise middleware tests prove the 413 denial audit payload and policy-version header.
+  - Authorization-denial middleware tests prove the 403 path also carries the policy-version
+    header.
+- Consequence:
+  - Security, compliance, and operations can correlate rejected write attempts without inspecting
+    request bodies or relying on infrastructure-only logs.
+- Documentation:
+  - No wiki source change is required. This tightens existing enterprise middleware behavior
+    without changing supported feature scope.
+- Follow-Up:
+  - None.

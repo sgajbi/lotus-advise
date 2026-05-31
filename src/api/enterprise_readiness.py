@@ -263,6 +263,12 @@ def emit_audit_event(
     )
 
 
+def _enterprise_policy_response(*, status_code: int, content: dict[str, Any]) -> JSONResponse:
+    response = JSONResponse(status_code=status_code, content=content)
+    response.headers["X-Enterprise-Policy-Version"] = enterprise_policy_version()
+    return response
+
+
 def build_enterprise_audit_middleware() -> MiddlewareCallable:
     async def middleware(request: Request, call_next: MiddlewareNext) -> Response:
         max_write_payload_bytes = _env_int("ENTERPRISE_MAX_WRITE_PAYLOAD_BYTES", 1_048_576)
@@ -271,7 +277,22 @@ def build_enterprise_audit_middleware() -> MiddlewareCallable:
         except ValueError:
             content_length = 0
         if request.method in _WRITE_METHODS and content_length > max_write_payload_bytes:
-            return JSONResponse(status_code=413, content={"detail": "payload_too_large"})
+            emit_audit_event(
+                action=f"DENY {request.method} {request.url.path}",
+                actor_id=request.headers.get("X-Actor-Id", "unknown"),
+                tenant_id=request.headers.get("X-Tenant-Id", "default"),
+                role=request.headers.get("X-Role", "unknown"),
+                correlation_id=request.headers.get("X-Correlation-Id"),
+                metadata={
+                    "reason": "payload_too_large",
+                    "content_length": content_length,
+                    "max_write_payload_bytes": max_write_payload_bytes,
+                },
+            )
+            return _enterprise_policy_response(
+                status_code=413,
+                content={"detail": "payload_too_large"},
+            )
 
         authorized, reason = authorize_write_request(
             request.method, request.url.path, dict(request.headers)
@@ -285,7 +306,7 @@ def build_enterprise_audit_middleware() -> MiddlewareCallable:
                 correlation_id=request.headers.get("X-Correlation-Id"),
                 metadata={"reason": reason},
             )
-            return JSONResponse(
+            return _enterprise_policy_response(
                 status_code=403, content={"detail": "authorization_policy_denied", "reason": reason}
             )
 

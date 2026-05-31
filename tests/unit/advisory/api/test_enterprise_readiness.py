@@ -4,9 +4,12 @@ import json
 import logging
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from src.api.enterprise_readiness import (
     authorize_write_request,
+    build_enterprise_audit_middleware,
     emit_audit_event,
     redact_sensitive,
     validate_enterprise_runtime_config,
@@ -242,7 +245,7 @@ def test_emit_audit_event_normalizes_actor_tenant_and_role(
         metadata={},
     )
 
-    audit = caplog.records[-1].audit
+    audit = _last_enterprise_audit(caplog)
     assert audit["actor_id"] == "advisor-sg-001"
     assert audit["tenant_id"] == "default"
     assert audit["role"] == "ADVISOR"
@@ -270,3 +273,80 @@ def test_json_formatter_emits_enterprise_audit_payload(
     assert payload["audit"]["correlation_id"] == "corr-audit-001"
     assert payload["audit"]["metadata"]["business_reason"] == "Prepare advisor review."
     assert payload["audit"]["metadata"]["api_token"] == "***REDACTED***"
+
+
+def test_enterprise_middleware_audits_payload_too_large_denial(
+    monkeypatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("ENTERPRISE_MAX_WRITE_PAYLOAD_BYTES", "8")
+    caplog.set_level(logging.INFO, logger="enterprise_readiness")
+
+    response = _enterprise_test_client().post(
+        "/advisory/proposals",
+        content=b"012345678",
+        headers={
+            "X-Actor-Id": " advisor-sg-001 ",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Role": "ADVISOR",
+            "X-Correlation-Id": " corr-payload-001 ",
+        },
+    )
+
+    assert response.status_code == 413
+    assert response.json() == {"detail": "payload_too_large"}
+    assert response.headers["X-Enterprise-Policy-Version"] == "1.0.0"
+
+    audit = _last_enterprise_audit(caplog)
+    assert audit["action"] == "DENY POST /advisory/proposals"
+    assert audit["actor_id"] == "advisor-sg-001"
+    assert audit["tenant_id"] == "tenant-sg-001"
+    assert audit["correlation_id"] == "corr-payload-001"
+    assert audit["metadata"] == {
+        "reason": "payload_too_large",
+        "content_length": 9,
+        "max_write_payload_bytes": 8,
+    }
+
+
+def test_enterprise_middleware_adds_policy_version_on_authorization_denial(
+    monkeypatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
+    caplog.set_level(logging.INFO, logger="enterprise_readiness")
+
+    response = _enterprise_test_client().post(
+        "/advisory/proposals",
+        json={"request": "blocked"},
+        headers={
+            "X-Actor-Id": "advisor-sg-001",
+            "X-Tenant-Id": "tenant-sg-001",
+            "X-Role": "ADVISOR",
+            "X-Correlation-Id": "corr-deny-001",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.headers["X-Enterprise-Policy-Version"] == "1.0.0"
+    assert response.json()["reason"] == "missing_service_identity"
+    assert _last_enterprise_audit(caplog)["metadata"] == {"reason": "missing_service_identity"}
+
+
+def _enterprise_test_client() -> TestClient:
+    app = FastAPI()
+    app.middleware("http")(build_enterprise_audit_middleware())
+
+    @app.post("/advisory/proposals")
+    def _write_endpoint() -> dict[str, bool]:
+        return {"ok": True}
+
+    return TestClient(app)
+
+
+def _last_enterprise_audit(caplog: pytest.LogCaptureFixture) -> dict[str, object]:
+    for record in reversed(caplog.records):
+        audit = getattr(record, "audit", None)
+        if isinstance(audit, dict):
+            return audit
+    raise AssertionError("enterprise audit event was not emitted")
