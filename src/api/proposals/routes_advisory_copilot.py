@@ -44,6 +44,22 @@ _COPILOT_CORRELATION_ID_MAX_LENGTH = 128
 _COPILOT_IDENTIFIER_MAX_LENGTH = 160
 _COPILOT_IDEMPOTENCY_KEY_MAX_LENGTH = 128
 _COPILOT_CURSOR_MAX_LENGTH = 512
+_COPILOT_VALIDATION_FAILED = "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"
+_COPILOT_SENSITIVE_ERROR_FRAGMENTS = (
+    "authorization",
+    "bearer ",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "raw prompt",
+    "raw payload",
+    "raw source",
+    "provider response",
+)
 
 _COPILOT_REPOSITORY: AdvisoryCopilotRepository | None = None
 
@@ -376,9 +392,23 @@ def _advisory_copilot_postgres_dsn() -> str:
 
 
 def _raise_copilot_http_exception(exc: ValueError) -> NoReturn:
-    detail = str(exc)
+    detail = _safe_copilot_error_detail(str(exc))
     if detail.endswith("_NOT_FOUND"):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail) from exc
     if "CONFLICT" in detail or "TERMINAL" in detail:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
     raise HTTPException(status_code=HTTP_422_UNPROCESSABLE, detail=detail) from exc
+
+
+def _safe_copilot_error_detail(error_detail: str) -> str:
+    if not _contains_sensitive_copilot_error_detail(error_detail):
+        return error_detail
+    return _COPILOT_VALIDATION_FAILED
+
+
+def _contains_sensitive_copilot_error_detail(error_detail: str) -> bool:
+    normalized = error_detail.lower().replace("-", " ").replace("_", " ")
+    return any(
+        fragment.replace("-", " ").replace("_", " ") in normalized
+        for fragment in _COPILOT_SENSITIVE_ERROR_FRAGMENTS
+    )

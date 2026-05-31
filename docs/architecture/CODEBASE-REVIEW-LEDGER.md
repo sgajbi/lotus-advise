@@ -8817,6 +8817,34 @@
   - Keep future proof-pack reference fields wired through explicit logical-ref or artifact-ref
     validators instead of generic string normalization.
 
+## LA-REV-333
+
+- Scope: RFC-0027 advisory copilot route error boundary
+- Pattern: Controller error mapping should preserve status semantics without leaking sensitive
+  lower-layer detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: Advisory copilot routes mapped controlled `ValueError` codes to HTTP 404/409/422, but
+  returned the raw exception text. Current domain/service paths usually emit bounded error codes,
+  yet the route boundary should still fail closed if a lower layer accidentally includes raw prompt,
+  provider, token, or credential detail in a validation error.
+- Evidence:
+  - Added route-level sensitive-detail detection for copilot error mapping.
+  - Sensitive copilot route errors now return `ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED` with
+    HTTP 422 instead of echoing raw lower-layer detail.
+  - Added API regression coverage proving raw prompt/token detail is redacted while existing route
+    status-code mapping remains intact.
+  - Focused `tests/unit/advisory/api/test_api_advisory_copilot.py` passed.
+- Consequence:
+  - RFC-0027 API consumers get stable error semantics without exposing sensitive AI/provider
+    details through route-level exception handling.
+- Documentation:
+  - Review ledger updated. No public README/wiki change is required because this hardens an
+    existing supported boundary without changing the documented feature posture.
+- Follow-Up:
+  - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
+    messages.
+
 ## LA-REV-326
 
 - Scope: OpenAPI enrichment portfolio-id example vocabulary

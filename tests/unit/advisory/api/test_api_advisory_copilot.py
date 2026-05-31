@@ -743,3 +743,20 @@ def test_advisory_copilot_route_errors_keep_contract_specific_status_codes() -> 
             route(**kwargs)
 
         assert exc.value.status_code == expected_status
+
+
+def test_advisory_copilot_route_errors_redact_sensitive_detail() -> None:
+    class _SensitiveFailingService:
+        def run_action(self, **_: Any) -> None:
+            raise ValueError("COPILOT_RAW_AI_PAYLOAD_NOT_ALLOWED raw prompt token=should-not-leak")
+
+    with pytest.raises(HTTPException) as exc:
+        copilot_routes.run_advisory_copilot_action(
+            payload=object(),
+            service=_SensitiveFailingService(),
+        )
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail == "ADVISORY_COPILOT_REQUEST_VALIDATION_FAILED"
+    assert "token" not in repr(exc.value.detail).lower()
+    assert "raw prompt" not in repr(exc.value.detail).lower()
