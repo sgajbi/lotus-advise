@@ -9,6 +9,7 @@ import pytest
 from scripts.capture_rfc0028_backend_proof import (
     _DEFAULT_OUTPUT_DIR,
     _artifact_ref_prefix_for,
+    _safe_cli_error_detail,
 )
 from scripts.rfc0028_backend_proof_writer import write_backend_proof_capture_bundle
 from scripts.rfc0028_live_suite_source import load_or_run_live_suite
@@ -189,6 +190,16 @@ def test_artifact_ref_prefix_remains_relative_for_absolute_output_dir(tmp_path) 
 
     with pytest.raises(ValueError, match="sensitive material"):
         _artifact_ref_prefix_for(tmp_path, "output/rfc0028/token-proof")
+
+
+def test_backend_proof_capture_cli_redacts_sensitive_validation_detail() -> None:
+    non_sensitive_detail = "RFC0028_MATERIAL_REVIEW_BLOCKED: policy_evaluation='APPROVED'"
+
+    assert _safe_cli_error_detail(non_sensitive_detail) == non_sensitive_detail
+    assert (
+        _safe_cli_error_detail("RFC0028_MATERIAL_REVIEW_BLOCKED: token=should-not-leak")
+        == "RFC0028_BACKEND_PROOF_CAPTURE_FAILED: source evidence failed validation"
+    )
 
 
 def test_live_suite_source_loads_existing_result_json(tmp_path) -> None:

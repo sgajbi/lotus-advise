@@ -8846,6 +8846,34 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-358
+
+- Scope: RFC-0028 backend proof capture CLI error boundary
+- Pattern: Operator automation should fail with bounded proof errors instead of tracebacks that can
+  echo rejected source values
+- Status: Hardened
+- Finding Class: Automation security posture and operational diagnostics
+- Summary: The RFC-0028 capture CLI used the same safe proof models as the API, but local
+  `ValueError` failures bubbled out as Python tracebacks. For material-drift or source-validation
+  failures, that can expose rejected source values in operator logs even though the API path already
+  redacts them.
+- Evidence:
+  - Wrapped proof metadata/build/write `ValueError` failures in a bounded CLI `SystemExit` message.
+  - Preserved non-sensitive controlled failure details, including material-review drift messages.
+  - Redacted sensitive CLI failure detail to
+    `RFC0028_BACKEND_PROOF_CAPTURE_FAILED: source evidence failed validation`.
+  - Added script-level regression coverage for sensitive and non-sensitive CLI error detail.
+  - Focused `ruff`, format, `mypy`, and RFC-0028 capture-script tests passed with 9 tests.
+- Consequence:
+  - RFC-0028 proof automation is safer for CI/operator logs while retaining useful non-sensitive
+    diagnostics for material drift.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because the command contract is
+    unchanged and the failure mode is safer.
+- Follow-Up:
+  - Keep script-level error boundaries aligned with API redaction semantics for future proof
+    automation.
+
 ## LA-REV-357
 
 - Scope: RFC-0028 backend proof capture source artifact refs
