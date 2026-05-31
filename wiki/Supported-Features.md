@@ -35,11 +35,13 @@ written for business, engineering, operations, sales, pre-sales, and demo prepar
 | Supportability metrics and readiness evidence | Supported | `GET /platform/capabilities` documents bounded labels for `lotus_advise_advisory_supportability_total` and bounded dependency readiness basis fields. |
 | Live cross-service evidence | Supported when the local stack is configured | Live validation scripts prove canonical and degraded proposal behavior. |
 
-## Active Roadmap RFCs
+## RFC Delivery Status And Guarded Boundaries
 
-These items are documented as future work and must not be presented as currently supported until
-their implementation, tests, live proof, README/wiki updates, and `/platform/capabilities` posture
-are complete.
+This table records current RFC delivery truth. Rows marked implemented may be presented only within
+the support boundaries, evidence links, and gated exclusions stated in the row. Rows or row details
+that remain planned, unsupported, backend-only, or degraded must not be presented as supported
+product capability until implementation, tests, live proof, README/wiki updates, and
+`/platform/capabilities` posture are complete.
 
 | RFC | Feature | Product value | Current support |
 | --- | --- | --- | --- |

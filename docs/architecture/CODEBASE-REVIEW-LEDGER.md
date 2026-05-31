@@ -9187,6 +9187,33 @@
   - Treat `response_models.py` as a compatibility facade; add new DTOs to owning modules first and
     re-export them only when backwards compatibility requires it.
 
+## LA-REV-380
+
+- Scope: Supported-features RFC delivery wording
+- Pattern: Wiki source-of-truth pages should distinguish implemented RFC support from gated or
+  planned claims without leaving implemented capabilities under a future-work banner
+- Status: Hardened
+- Finding Class: Documentation truth and product-claim governance
+- Summary: `wiki/Supported-Features.md` listed RFC-0023 through RFC-0028 under an "Active Roadmap
+  RFCs" heading with future-work wording even though the table rows now record implemented support
+  for RFC-0023 through RFC-0028 and explicit gated boundaries. That made the page harder for
+  business, pre-sales, operations, and engineering users to interpret accurately.
+- Evidence:
+  - Reworded the heading to `RFC Delivery Status And Guarded Boundaries`.
+  - Replaced the future-work lead-in with claim-control wording that allows implemented rows to be
+    presented only within their stated evidence and gated exclusions.
+  - Ran `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise`; it correctly reported
+    `Supported-Features.md` drift because repo-authored wiki source now intentionally differs from
+    the published wiki pending merge and post-merge publication.
+- Consequence:
+  - Supported-features wiki truth is now aligned with the implemented RFC 23-28 posture while still
+    blocking unsupported client-ready publication, external communication, completed sign-off,
+    bank-specific attestation, and OMS/order/fill/settlement claims.
+- Documentation:
+  - Wiki source updated. Post-merge wiki publication is required for `lotus-advise`.
+- Follow-Up:
+  - Publish the `lotus-advise` wiki after this branch merges to `main`.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
