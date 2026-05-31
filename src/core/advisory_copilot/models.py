@@ -80,8 +80,17 @@ _COPILOT_IDENTIFIER_MAX_LENGTH = 160
 _COPILOT_HASH_MAX_LENGTH = 128
 _COPILOT_LINEAGE_TYPE_MAX_LENGTH = 96
 _COPILOT_LINEAGE_REF_LIMIT = 16
+_COPILOT_PACKET_SECTION_LIMIT = 12
 _COPILOT_UNSUPPORTED_EVIDENCE_LIMIT = 12
 _COPILOT_UNSUPPORTED_MESSAGE_MAX_LENGTH = 500
+_COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_TERMS = (
+    "raw prompt",
+    "provider response",
+    "trace id",
+    "correlation id",
+    "run ledger",
+    "raw payload",
+)
 
 
 class CopilotActionDefinition(BaseModel):
@@ -245,7 +254,14 @@ class CopilotUnsupportedEvidence(BaseModel):
     @field_validator("advisor_message")
     @classmethod
     def _normalize_advisor_message(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_UNSUPPORTED_MESSAGE_REQUIRED")
+        normalized = _normalize_required_text(
+            value,
+            error_code="COPILOT_UNSUPPORTED_MESSAGE_REQUIRED",
+        )
+        message = normalized.lower()
+        if any(term in message for term in _COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_TERMS):
+            raise ValueError("COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_DETAIL")
+        return normalized
 
 
 class CopilotEvidencePacketSection(BaseModel):
@@ -364,6 +380,7 @@ class CopilotEvidencePacket(BaseModel):
     )
     sections: tuple[CopilotEvidencePacketSection, ...] = Field(
         description="Redacted, source-backed evidence sections allowed for the action.",
+        max_length=_COPILOT_PACKET_SECTION_LIMIT,
     )
     unsupported_evidence: tuple[CopilotUnsupportedEvidence, ...] = Field(
         default=(),

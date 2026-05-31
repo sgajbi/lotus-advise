@@ -273,6 +273,12 @@ def test_copilot_evidence_packet_model_normalizes_and_bounds_audit_fields() -> N
             source_dependency="RFC0025_POLICY_EVALUATION",
             advisor_message="x" * 501,
         )
+    with pytest.raises(ValidationError):
+        CopilotUnsupportedEvidence(
+            reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
+            source_dependency="RFC0025_POLICY_EVALUATION",
+            advisor_message="Raw prompt is missing from the review evidence.",
+        )
 
     unsupported = CopilotUnsupportedEvidence(
         reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
@@ -305,6 +311,31 @@ def test_copilot_evidence_packet_model_normalizes_and_bounds_audit_fields() -> N
             proposal_id="proposal_sg_structured_note_001",
             sections=(),
             lineage_refs=tuple(lineage_ref for _ in range(17)),
+            retention_class="ADVISORY_REVIEW_RECORD",
+        )
+
+    source_ref = CopilotSourceRef(
+        source_system="lotus-advise",
+        source_type="POLICY_EVALUATION",
+        source_id="policy_eval_sg_001",
+        content_hash="sha256:policy-evaluation",
+        access_class="COMPLIANCE_REVIEW_EVIDENCE",
+    )
+    section = CopilotEvidencePacketSection(
+        section_key="POLICY_POSTURE",
+        title="Policy posture",
+        evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+        source_refs=(source_ref,),
+        summary_items=("Policy evaluation requires compliance review.",),
+    )
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacket(
+            evidence_packet_id="copilot_packet_pb_sg_001",
+            evidence_packet_hash="sha256:copilot-packet",
+            action_family="COMPLIANCE_REVIEW_SUMMARY",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            proposal_id="proposal_sg_structured_note_001",
+            sections=tuple(section for _ in range(13)),
             retention_class="ADVISORY_REVIEW_RECORD",
         )
 

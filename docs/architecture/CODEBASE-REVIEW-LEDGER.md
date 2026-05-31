@@ -6540,3 +6540,26 @@
     existing governed copilot semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-250
+
+- Scope: Advisory copilot evidence-packet business-safe unsupported evidence
+- Pattern: domain-model business-language guardrails, packet-size bounds, direct model safety
+- Status: Hardened
+- Finding Class: validation and documentation-quality risk
+- Summary: RFC-0027 evidence-packet section text was checked for technical-copy leakage, but
+  direct unsupported-evidence advisor messages and direct packet section collections were not
+  explicitly bounded at the packet model boundary.
+- Evidence:
+  - `src/core/advisory_copilot/models.py` now rejects technical terms in unsupported-evidence
+    advisor messages and caps direct evidence-packet section collections.
+  - Foundation tests prove technical unsupported-evidence messages and oversized packet section
+    collections are rejected before persistence or API serialization.
+- Consequence:
+  - Advisor-facing unsupported-evidence posture stays business-facing, and direct packet creation
+    cannot create oversized evidence packets that bypass source-projection limits.
+- Documentation:
+  - No wiki source change is required. This is domain-model hardening for existing RFC-0027 packet
+    semantics.
+- Follow-Up:
+  - None.
