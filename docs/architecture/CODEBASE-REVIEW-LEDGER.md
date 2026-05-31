@@ -6084,3 +6084,27 @@
     documented advisory AI tenant posture.
 - Follow-Up:
   - None.
+
+## LA-REV-231
+
+- Scope: Lotus Report returned artifact URL boundary
+- Pattern: output sanitization, downstream URL trust boundary, and client-safe metadata
+- Status: Hardened
+- Finding Class: untrusted downstream status URL echo
+- Summary: After constraining report status polling to `/reports/jobs/...`, Advise still returned
+  the raw downstream `status_url` as report `artifact_url` and explanation metadata. A malformed
+  downstream value would not be fetched, but it could still leak into caller-visible report
+  metadata.
+- Evidence:
+  - `src/integrations/lotus_report/adapter.py` now derives returned report status URLs from the
+    same constrained report-job path helper used for polling.
+  - Lotus Report adapter tests prove valid report-job paths are returned and untrusted absolute
+    status URLs are omitted from `artifact_url` and explanation metadata.
+- Consequence:
+  - Advise callers only receive clean Lotus Report job paths for report artifacts and do not see
+    malformed downstream status URLs.
+- Documentation:
+  - No wiki source change is required. This is integration output hardening for the existing report
+    package path.
+- Follow-Up:
+  - None.

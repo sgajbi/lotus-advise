@@ -62,12 +62,13 @@ def request_proposal_report_with_lotus_report(*, request: dict[str, Any]) -> Pro
 
     now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     proposal = cast(dict[str, Any], request.get("proposal") or {})
+    report_status_path = _report_status_path(response_payload.get("status_url"))
     explanation = {
         "ownership": "REPORTING_OWNED_BY_LOTUS_REPORT",
         "related_version_no": request.get("related_version_no"),
         "include_execution_summary": request.get("include_execution_summary"),
         "include_reviewed_narrative": request.get("include_reviewed_narrative"),
-        "report_job_status_url": response_payload.get("status_url"),
+        "report_job_status_url": report_status_path,
         "report_job_idempotency_key": response_payload.get("idempotency_key"),
         "report_job_request": {
             "portfolio_scope": payload["portfolio_scope"],
@@ -101,7 +102,7 @@ def request_proposal_report_with_lotus_report(*, request: dict[str, Any]) -> Pro
         status=_normalize_report_job_status(response_payload.get("status")),
         generated_at=now,
         report_reference_id=_required_string(response_payload, "report_job_id"),
-        artifact_url=response_payload.get("status_url"),
+        artifact_url=report_status_path,
         explanation=explanation,
     )
 
@@ -142,6 +143,7 @@ def request_proposal_memo_report_package_with_lotus_report(
     proposal = cast(dict[str, Any], request.get("proposal") or {})
     memo_package = cast(dict[str, Any], request.get("proposal_memo_package") or {})
     report_job_id = _required_string(response_payload, "report_job_id")
+    report_status_path = _report_status_path(response_payload.get("status_url"))
     status = _normalize_memo_report_job_status(
         status_payload.get("status") or response_payload.get("status")
     )
@@ -155,7 +157,7 @@ def request_proposal_memo_report_package_with_lotus_report(
             "review_action": _as_mapping(memo_package.get("review")).get("review_action"),
             "client_ready_publication": "BLOCKED",
         },
-        "report_job_status_url": response_payload.get("status_url"),
+        "report_job_status_url": report_status_path,
         "report_job_idempotency_key": response_payload.get("idempotency_key"),
         "render": _as_mapping(status_payload.get("render")),
         "archive": _as_mapping(status_payload.get("archive")),
@@ -173,7 +175,7 @@ def request_proposal_memo_report_package_with_lotus_report(
         status=status,
         generated_at=now,
         report_reference_id=report_job_id,
-        artifact_url=response_payload.get("status_url"),
+        artifact_url=report_status_path,
         explanation=explanation,
     )
 
@@ -216,6 +218,7 @@ def request_policy_sign_off_report_package_with_lotus_report(
     proposal = cast(dict[str, Any], request.get("proposal") or {})
     package = cast(dict[str, Any], request.get("policy_sign_off_package") or {})
     report_job_id = _required_string(response_payload, "report_job_id")
+    report_status_path = _report_status_path(response_payload.get("status_url"))
     status = _normalize_memo_report_job_status(
         status_payload.get("status") or response_payload.get("status")
     )
@@ -228,7 +231,7 @@ def request_policy_sign_off_report_package_with_lotus_report(
             "evaluation_hash": _as_mapping(package.get("evaluation")).get("evaluation_hash"),
             "client_ready_publication": "BLOCKED",
         },
-        "report_job_status_url": response_payload.get("status_url"),
+        "report_job_status_url": report_status_path,
         "report_job_idempotency_key": response_payload.get("idempotency_key"),
         "render": _as_mapping(status_payload.get("render")),
         "archive": _as_mapping(status_payload.get("archive")),
@@ -246,7 +249,7 @@ def request_policy_sign_off_report_package_with_lotus_report(
         status=status,
         generated_at=now,
         report_reference_id=report_job_id,
-        artifact_url=response_payload.get("status_url"),
+        artifact_url=report_status_path,
         explanation=explanation,
     )
 
