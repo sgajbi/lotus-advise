@@ -16,6 +16,10 @@ PUBLIC_DOCS = sorted(
 ) + [
     Path("README.md"),
 ]
+RFC_23_28_DOCS = sorted(
+    Path("docs/rfcs").glob("RFC-002[3-8]*.md"),
+    key=lambda path: path.as_posix(),
+)
 
 
 def test_public_docs_use_business_facing_integration_vocabulary() -> None:
@@ -25,3 +29,9 @@ def test_public_docs_use_business_facing_integration_vocabulary() -> None:
         assert "seam " not in text
         assert re.search(r"\bdpm\b", text) is None
         assert "| todo |" not in text
+
+
+def test_rfc23_28_docs_use_private_banking_portfolio_management_language() -> None:
+    for path in RFC_23_28_DOCS:
+        text = path.read_text(encoding="utf-8").lower()
+        assert re.search(r"\bdpm\b", text) is None, path.as_posix()

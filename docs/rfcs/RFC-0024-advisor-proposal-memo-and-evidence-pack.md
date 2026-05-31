@@ -182,7 +182,7 @@ RFC-0024 includes all work required to deliver a supported advisor proposal memo
 
 RFC-0024 does not own:
 
-1. discretionary portfolio-management campaigns or DPM execution orchestration, which remain
+1. discretionary portfolio-management campaigns or execution orchestration, which remain
    `lotus-manage` ownership,
 2. external OMS or broker execution as a system of record, except for memo-visible handoff and
    status boundary evidence,

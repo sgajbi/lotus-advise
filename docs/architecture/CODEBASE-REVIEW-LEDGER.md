@@ -8704,6 +8704,32 @@
   - Remove both the alias and this compatibility assertion once Gateway and Workbench no longer
     send the legacy caller role.
 
+## LA-REV-329
+
+- Scope: RFC-0023 through RFC-0028 public documentation vocabulary
+- Pattern: Current RFC source should use private-banking portfolio-management language rather than
+  legacy abbreviations
+- Status: Hardened
+- Finding Class: Documentation quality and business vocabulary
+- Summary: Current RFC-0023/RFC-0024 source-map and handoff sections still used `DPM` wording for
+  portfolio-management boundaries. The implementation is already advisory-first and
+  `lotus-manage`-owned for discretionary portfolio-management workflows, so the public RFC wording
+  should not preserve legacy abbreviations outside explicit compatibility exceptions.
+- Evidence:
+  - Reworded RFC-0023 and RFC-0024 main/slice documentation to use advisory-to-portfolio-management
+    and discretionary portfolio-management language.
+  - Added a public documentation vocabulary contract covering RFC-0023 through RFC-0028 source files.
+  - Focused public-doc vocabulary tests pass.
+- Consequence:
+  - Business, pre-sales, and implementation readers see consistent private-banking vocabulary
+    across the implemented RFC crown-jewel sequence.
+- Documentation:
+  - RFC source changed. No wiki source change is required because wiki pages already used
+    portfolio-management wording.
+- Follow-Up:
+  - Keep explicit `DPM_OWNER` wording limited to the inbound caller-role compatibility exception
+    until Gateway/Workbench migration removes it.
+
 ## LA-REV-326
 
 - Scope: OpenAPI enrichment portfolio-id example vocabulary

@@ -46,7 +46,7 @@ boundary instead of extending UI copy, report copy, or workspace rationale seman
 | Suitability, best-interest, product eligibility, costs, fees, conflicts, and disclosures | Existing advisory evidence where present; full enterprise policy packs remain RFC-0025/RFC-0015/RFC-0016 scope | Client-draft/client-ready sections are blocked until policy/disclosure evidence exists. |
 | Report, render, archive, and client-delivery artifact state | `lotus-report`, `lotus-render`, and `lotus-archive` | Later RFC-0023 slices may hand approved narrative into these services; `lotus-advise` must not claim document lifecycle ownership. |
 | Product-facing composition and UI state | `lotus-gateway` and `lotus-workbench` | Downstream surfaces must consume backend-owned narrative state and must not generate proposal text locally. |
-| DPM execution, campaigns, action registers, outcome reviews, and operations workflow | `lotus-manage` | Advisory/DPM handoff narrative may explain boundary evidence only; DPM truth remains manage-owned. |
+| Discretionary portfolio-management execution, campaigns, action registers, outcome reviews, and operations workflow | `lotus-manage` | Advisory/portfolio-management handoff narrative may explain boundary evidence only; portfolio-management truth remains manage-owned. |
 | AI workflow execution, model posture, run ledger, supportability findings, and guardrail telemetry | `lotus-ai` | Proposal narrative must use a bounded workflow-pack or adapter seam with explicit caller, pack, lineage, and supportability evidence. |
 
 ## Product-Gap Allocation
@@ -77,7 +77,7 @@ flowchart LR
     Archive[lotus-archive<br/>generated-document archive]
     Gateway[lotus-gateway<br/>product-facing composition]
     Workbench[lotus-workbench<br/>advisor UI]
-    Manage[lotus-manage<br/>DPM execution and operations truth]
+    Manage[lotus-manage<br/>portfolio-management execution and operations truth]
 
     Core --> Advise
     Risk --> Advise
@@ -104,7 +104,7 @@ production-grade narrative scope:
 7. meaningful unit and API tests proving AI does not own decisions, suitability, risk, rankings, or source metrics,
 8. capability publication that remains conservative until the route is implemented and tested.
 
-Client-draft, client-ready, report/archive, Gateway, Workbench, and DPM handoff proof must remain
+Client-draft, client-ready, report/archive, Gateway, Workbench, and portfolio-management handoff proof must remain
 later slices, each closed only after implementation-backed validation.
 
 ## No WTBD Execution Decision

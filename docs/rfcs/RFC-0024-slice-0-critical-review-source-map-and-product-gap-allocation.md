@@ -53,7 +53,7 @@ RFC-0024 slices implement and prove them.
 | Report, render, archive, retention, legal-hold, and retrieval | `lotus-report`, `lotus-render`, and `lotus-archive` | RFC-0024 must introduce typed memo package handoff before claiming report/archive memo support. Existing portfolio-review narrative handling is an input precedent, not memo support. |
 | Product-facing composition and UI state | `lotus-gateway` and `lotus-workbench` | Downstream surfaces must consume canonical Advise memo endpoints and must not reconstruct memo facts locally. |
 | AI workflow execution, prompt/output lineage, guardrails, model supportability, and unavailable posture | `lotus-ai` | AI may draft bounded language from memo evidence only after deterministic memo truth exists. AI output must not alter memo status or source evidence. |
-| DPM campaigns, execution operations, action registers, and outcome reviews | `lotus-manage` | Memo may show advisory/DPM boundary posture only when source-backed. DPM operational truth remains manage-owned. |
+| Discretionary portfolio-management campaigns, execution operations, action registers, and outcome reviews | `lotus-manage` | Memo may show advisory/portfolio-management boundary posture only when source-backed. Portfolio-management operational truth remains manage-owned. |
 
 ## Product-Gap Allocation
 
@@ -83,7 +83,7 @@ flowchart LR
     Archive[lotus-archive<br/>retention, legal-hold, archive refs]
     Gateway[lotus-gateway<br/>experience API composition]
     Workbench[lotus-workbench<br/>advisor, compliance, operations memo UX]
-    Manage[lotus-manage<br/>DPM operations and outcome truth]
+    Manage[lotus-manage<br/>portfolio-management operations and outcome truth]
 
     Core --> Advise
     Risk --> Advise

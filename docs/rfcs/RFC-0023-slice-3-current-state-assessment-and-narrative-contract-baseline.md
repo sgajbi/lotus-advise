@@ -51,7 +51,7 @@ Future narrative must not infer:
 1. suitability, mandate fit, best-interest posture, disclosures, fees, conflicts, or client consent
    beyond available deterministic evidence,
 2. report/render/archive readiness before downstream proof exists,
-3. DPM campaign or execution truth owned by `lotus-manage`,
+3. portfolio-management campaign or execution truth owned by `lotus-manage`,
 4. client-ready approval where human review and disclosure posture are missing,
 5. AI run posture where a proposal-narrative workflow pack has not executed.
 
