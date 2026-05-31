@@ -7,8 +7,6 @@ from src.core.bank_demo_proof.capture import (
     BackendProofCaptureBundle,
     BackendProofCaptureMetadata,
     build_backend_proof_capture,
-    build_default_scenario_contract,
-    build_default_supported_claim_register,
     default_capture_metadata,
 )
 from src.core.bank_demo_proof.commercial_materials import (
@@ -60,6 +58,10 @@ from src.core.bank_demo_proof.runtime_posture import (
     normalize_runtime_base_url,
 )
 from src.core.bank_demo_proof.runtime_summary import sanitize_live_runtime_summary
+from src.core.bank_demo_proof.scenario_contract import build_default_scenario_contract
+from src.core.bank_demo_proof.supported_claim_register import (
+    build_default_supported_claim_register,
+)
 
 __all__ = [
     "AdvisoryBankDemoProofPack",

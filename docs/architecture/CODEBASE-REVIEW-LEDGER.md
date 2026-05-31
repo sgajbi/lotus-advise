@@ -7623,3 +7623,36 @@
 - Follow-Up:
   - Continue auditing supported-claim register construction if future slices add claim families or
     demo audiences.
+
+## LA-REV-290
+
+- Scope: RFC-0028 scenario and supported-claim contract construction
+- Pattern: durable demo contracts separated from proof-capture orchestration
+- Status: Hardened
+- Finding Class: contract modularity, claim-control drift risk, and direct test gap
+- Summary: `capture.py` still owned the RFC-0028 scenario contract, source-product inventory,
+  unsupported boundaries, and supported-claim register. Those are durable governance contracts
+  used by proof capture, commercial material, and demo documentation, so keeping them inside the
+  orchestrator made claim wording, audience posture, and Workbench panel identifiers harder to
+  review independently.
+- Evidence:
+  - `src/core/bank_demo_proof/scenario_contract.py` now owns the canonical scenario reference,
+    source products, unsupported boundaries, and ordered scenario-step construction.
+  - `src/core/bank_demo_proof/supported_claim_register.py` now owns the supported-claim register
+    reference, artifact policy, claim posture, audience mapping, and wording guardrails.
+  - `src/core/bank_demo_proof/capture.py` now composes these contracts during proof-pack
+    construction instead of owning their internals.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_scenario_contract.py` proves canonical
+    identity, source products, unsupported boundaries, and governed Workbench panel identifiers.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_supported_claim_register.py` proves claim
+    posture, UI-pending screenshot exclusion, commercial material permissions, and artifact
+    policy boundaries.
+- Consequence:
+  - RFC-0028 claim-control and scenario-governance changes are now reviewed in focused modules
+    with direct tests, while proof capture remains a smaller orchestration layer.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-contract modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing proof-capture metadata and CLI writer boundaries only where additional
+    RFC-0028 proof evidence or operator behavior changes.
