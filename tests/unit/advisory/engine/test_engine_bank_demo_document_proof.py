@@ -101,6 +101,21 @@ def test_document_proof_rejects_unsafe_output_formats_and_degraded_reasons() -> 
             degraded_reason="Raw prompt material was not available.",
         )
 
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        AdvisoryDocumentProof(
+            document_family="POLICY_SIGN_OFF",
+            claim_posture="CLIENT_READY_BLOCKED",
+            report_status="Provider-response was not retained.",
+            report_package_status="BLOCKED",
+            requested_output_formats=["pdf"],
+            render_ref_status="NOT_RETURNED",
+            archive_ref_status="NOT_RETURNED",
+            archive_retention_posture="NOT_RETURNED",
+            archive_legal_hold_posture="NOT_RETURNED",
+            archive_access_audit_ref_status="NOT_RETURNED",
+            client_ready_document_status="POLICY_CLIENT_READY_DOCUMENT_NOT_SUPPORTED",
+        )
+
 
 def test_document_proof_builder_rejects_malformed_source_payloads() -> None:
     missing_field_payload = deepcopy(_live_runtime_payload())

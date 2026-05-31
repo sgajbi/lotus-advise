@@ -7801,3 +7801,31 @@
     behavior are unchanged.
 - Follow-Up:
   - Continue auditing the route only if API behavior or OpenAPI semantics change.
+
+## LA-REV-296
+
+- Scope: RFC-0028 document proof business-safe text validation
+- Pattern: shared RFC-0028 proof text normalization reused by document proof contracts
+- Status: Hardened
+- Finding Class: duplicate validation logic and sensitive-detail drift risk
+- Summary: `src/core/bank_demo_proof/document_proof.py` carried its own required-text
+  normalization and sensitive technical-term filter even though proof capture already had the same
+  guarded vocabulary. That duplication made report/document proof behavior easier to drift from the
+  canonical RFC-0028 proof-pack safety boundary.
+- Evidence:
+  - `src/core/bank_demo_proof/validation.py` now exposes shared required-text and business-safe
+    text normalization helpers while keeping the existing proof-capture helper behavior intact.
+  - `src/core/bank_demo_proof/document_proof.py` reuses the shared helpers for status, degraded
+    reason, summary identifier, and requested-output-format normalization.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_document_proof.py` now covers hyphenated
+    sensitive provider-response wording so document proof validation cannot leak technical detail
+    through presentation-safe fields.
+- Consequence:
+  - RFC-0028 document proof safety is more consistent with proof capture and easier to extend
+    across commercial/report proof modules without local sensitive-term variants.
+- Documentation:
+  - No README or wiki source change is required. The public proof API, CLI, and generated proof
+    artifact behavior are unchanged.
+- Follow-Up:
+  - Continue reducing duplicate validation in commercial-material and integration-proof modules
+    where it can be done without changing public proof contracts.

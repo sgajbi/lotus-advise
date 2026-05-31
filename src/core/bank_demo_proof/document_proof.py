@@ -9,6 +9,10 @@ from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PROOF_MARKER,
     RFC28_CANONICAL_SCENARIO_ID,
 )
+from src.core.bank_demo_proof.validation import (
+    normalize_required_rfc28_text,
+    normalize_rfc28_business_text,
+)
 
 DocumentProofFamily = Literal["PROPOSAL_MEMO", "POLICY_SIGN_OFF"]
 DocumentProofClaimPosture = Literal["ADVISOR_USE_SUPPORTED", "CLIENT_READY_BLOCKED"]
@@ -16,19 +20,6 @@ _RFC28_DOCUMENT_STATUS_MAX_LENGTH = 120
 _RFC28_DOCUMENT_DEGRADED_REASON_MAX_LENGTH = 512
 _RFC28_DOCUMENT_FORMAT_MAX_ITEMS = 8
 _RFC28_SUPPORTED_DOCUMENT_FORMATS = {"pdf", "docx", "html"}
-_RFC28_SENSITIVE_DOCUMENT_TERMS = (
-    "authorization",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api key",
-    "apikey",
-    "raw prompt",
-    "raw payload",
-    "provider response",
-)
 
 
 class AdvisoryDocumentProof(BaseModel):
@@ -71,19 +62,18 @@ class AdvisoryDocumentProof(BaseModel):
     )
     @classmethod
     def _status_fields_must_be_bounded(cls, value: str) -> str:
-        normalized = _normalize_required_text(value, field_name="document proof status")
-        if len(normalized) > _RFC28_DOCUMENT_STATUS_MAX_LENGTH:
-            raise ValueError("document proof status is too long")
-        if _contains_sensitive_document_term(normalized):
-            raise ValueError("document proof status cannot contain sensitive technical detail")
-        return normalized
+        return normalize_rfc28_business_text(
+            value,
+            field_name="document proof status",
+            max_length=_RFC28_DOCUMENT_STATUS_MAX_LENGTH,
+        )
 
     @field_validator("requested_output_formats")
     @classmethod
     def _requested_formats_must_be_supported(cls, value: list[str]) -> list[str]:
         normalized: list[str] = []
         for item in value:
-            output_format = _normalize_required_text(
+            output_format = normalize_required_rfc28_text(
                 str(item),
                 field_name="requested output format",
             ).lower()
@@ -99,10 +89,11 @@ class AdvisoryDocumentProof(BaseModel):
     def _degraded_reason_must_be_business_safe(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        normalized = _normalize_required_text(value, field_name="document degraded reason")
-        if _contains_sensitive_document_term(normalized):
-            raise ValueError("document degraded reason cannot contain sensitive technical detail")
-        return normalized
+        return normalize_rfc28_business_text(
+            value,
+            field_name="document degraded reason",
+            max_length=_RFC28_DOCUMENT_DEGRADED_REASON_MAX_LENGTH,
+        )
 
     @model_validator(mode="after")
     def _client_ready_and_archive_posture_must_be_truthful(self) -> AdvisoryDocumentProof:
@@ -144,10 +135,11 @@ class AdvisoryDocumentProofSummary(BaseModel):
     @field_validator("scenario_id", "primary_portfolio_id", "proof_marker")
     @classmethod
     def _summary_identifiers_must_be_bounded(cls, value: str) -> str:
-        normalized = _normalize_required_text(value, field_name="document proof summary field")
-        if len(normalized) > _RFC28_DOCUMENT_STATUS_MAX_LENGTH:
-            raise ValueError("document proof summary field is too long")
-        return normalized
+        return normalize_rfc28_business_text(
+            value,
+            field_name="document proof summary field",
+            max_length=_RFC28_DOCUMENT_STATUS_MAX_LENGTH,
+        )
 
     @model_validator(mode="after")
     def _document_families_must_be_unique(self) -> AdvisoryDocumentProofSummary:
@@ -223,15 +215,3 @@ def _requested_output_formats_from_snapshot(snapshot: dict[str, Any]) -> list[st
     if not isinstance(value, list):
         raise ValueError("RFC0028_DOCUMENT_PROOF_FIELD_INVALID: requested_output_formats")
     return [str(item) for item in value]
-
-
-def _normalize_required_text(value: str, *, field_name: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(f"{field_name} is required")
-    return normalized
-
-
-def _contains_sensitive_document_term(value: str) -> bool:
-    lowered = value.lower().replace("-", " ")
-    return any(term in lowered for term in _RFC28_SENSITIVE_DOCUMENT_TERMS)
