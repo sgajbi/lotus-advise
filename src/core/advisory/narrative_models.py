@@ -36,7 +36,6 @@ ProposalNarrativeClientReadyStatus = Literal[
     "NOT_REQUESTED",
     "BLOCKED_REVIEW_REQUIRED",
     "BLOCKED_POLICY_OR_GUARDRAIL",
-    "APPROVED_FOR_CLIENT_READY",
 ]
 
 
@@ -365,8 +364,8 @@ class ProposalNarrativeReviewRequest(BaseModel):
         description=(
             "Whether the reviewer requested client-ready release posture. Current RFC-0023 "
             "support records the request for audit but keeps client-ready release blocked until "
-            "future client-ready policy, disclosure, report/render/archive, and publication "
-            "controls are implemented."
+            "separately approved client-ready policy, disclosure, report/render/archive, and "
+            "publication controls are implemented."
         ),
         examples=[False],
     )

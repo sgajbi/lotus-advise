@@ -164,8 +164,10 @@ def test_lifecycle_async_and_support_schemas_have_descriptions_and_examples():
     _assert_property_has_docs(narrative_review_schema, "proposal_id")
     _assert_property_has_docs(narrative_review_schema, "proposal_version_no")
     _assert_property_has_docs(narrative_review_schema, "narrative_id")
+    _assert_property_has_docs(narrative_review_schema, "client_ready_status")
     _assert_property_has_docs(narrative_review_schema, "source_narrative_hash")
     _assert_property_has_docs(narrative_review_schema, "replayed")
+    assert "APPROVED_FOR_CLIENT_READY" not in repr(narrative_review_schema)
 
     narrative_review_response_schema = schemas["ProposalNarrativeReviewResponse"]
     _assert_property_has_docs(narrative_review_response_schema, "proposal")

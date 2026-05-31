@@ -1931,7 +1931,7 @@
       "semanticId": "lotus.client_ready_release_requested",
       "canonicalTerm": "client_ready_release_requested",
       "preferredName": "client_ready_release_requested",
-      "description": "Whether the reviewer requested client-ready release posture. Current RFC-0023 support records the request for audit but keeps client-ready release blocked until future client-ready policy, disclosure, report/render/archive, and publication controls are implemented.",
+      "description": "Whether the reviewer requested client-ready release posture. Current RFC-0023 support records the request for audit but keeps client-ready release blocked until separately approved client-ready policy, disclosure, report/render/archive, and publication controls are implemented.",
       "example": true,
       "type": "boolean",
       "locations": [

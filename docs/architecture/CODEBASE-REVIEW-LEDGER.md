@@ -8318,3 +8318,33 @@
 - Follow-Up:
   - Continue splitting large cockpit modules only along domain boundaries that reduce coupling or
     duplicate reasoning.
+
+## LA-REV-314
+
+- Scope: RFC-0023 narrative review client-ready status contract
+- Pattern: Remove unsupported client-ready approval states from API-visible enums
+- Status: Hardened
+- Finding Class: API contract overclaim prevention and OpenAPI accuracy
+- Summary: `ProposalNarrativeClientReadyStatus` still advertised
+  `APPROVED_FOR_CLIENT_READY` even though RFC-0023 only supports advisor-review narrative evidence
+  and the service deliberately returns blocked posture for client-ready release requests. Keeping
+  the enum value in the model/OpenAPI contract made the API look more capable than the
+  implementation and proof evidence support.
+- Evidence:
+  - Removed `APPROVED_FOR_CLIENT_READY` from `ProposalNarrativeClientReadyStatus`.
+  - Tightened `client_ready_release_requested` wording to separately approved publication controls
+    rather than vague future scope.
+  - Updated RFC/wiki/index wording to keep client-ready narrative and publication separately gated.
+  - `tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py` now asserts the
+    narrative review schema does not expose `APPROVED_FOR_CLIENT_READY`.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/contracts/test_contract_openapi_lifecycle_docs.py tests/unit/advisory/engine/test_engine_proposal_workflow_service.py::test_narrative_client_ready_release_requires_positive_review_and_clear_policy tests/unit/advisory/engine/test_engine_proposal_workflow_service.py::test_narrative_client_ready_release_stays_gated_for_clean_advisor_review_narrative tests/unit/advisory/api/test_api_advisory_proposal_lifecycle.py::test_narrative_review_blocks_client_ready_release_without_approval tests/unit/test_rfc0023_slice13_14_closure_hardening_contract.py tests/unit/test_rfc0023_slice3_documentation_contract.py`.
+- Consequence:
+  - RFC-0023 OpenAPI and model contracts now match the proven behavior: advisor-review approval is
+    not client-ready publication approval.
+- Documentation:
+  - RFC and wiki source truth changed because an API-visible status contract was tightened.
+- Follow-Up:
+  - Any future client-ready status addition must arrive with implementation, policy/disclosure
+    gates, report/render/archive controls, OpenAPI examples, live evidence, and documentation in
+    the same implementation slice.

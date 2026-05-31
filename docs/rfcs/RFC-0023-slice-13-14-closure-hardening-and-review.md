@@ -63,5 +63,5 @@ sales, demo, RFP, client-ready, or external communication claim is supported by 
 3. PR checks, merge to `main`, wiki publication after merge, Main Releasability Gate verification,
    branch deletion, and clean-state proof.
 4. Client-ready narrative, client-ready publication, and external client communication remain
-   future gated scope for RFC-0024 through RFC-0028 or another explicitly approved implementation
-   RFC.
+   separately gated scope for RFC-0024 through RFC-0028 or another explicitly approved
+   implementation RFC.

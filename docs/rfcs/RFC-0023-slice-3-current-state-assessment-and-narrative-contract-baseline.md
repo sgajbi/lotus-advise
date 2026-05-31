@@ -151,7 +151,7 @@ Review states:
 | `AWAITING_COMPLIANCE_REVIEW` | Compliance review is required. |
 | `APPROVED_FOR_INTERNAL_USE` | Approved for internal advisor/compliance workflows only. |
 | `APPROVED_FOR_CLIENT_DRAFT` | Approved for client draft only; not client-ready. |
-| `APPROVED_FOR_CLIENT_READY` | Gated future state; requires later report/render/archive and approval proof. |
+| `APPROVED_FOR_CLIENT_READY` | Not part of the current supported API enum; client-ready release requires separately approved report/render/archive, policy, and publication controls. |
 | `REJECTED` | Review rejected the narrative. |
 | `SUPERSEDED` | A newer narrative replaces this version. |
 
