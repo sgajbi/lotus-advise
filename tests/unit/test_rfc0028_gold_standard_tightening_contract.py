@@ -171,6 +171,7 @@ def test_rfc0028_records_slice_four_proof_model_implementation() -> None:
     )
     for marker in markers:
         assert marker in flat
+    assert "REMOVED_OR_SUPERSEDED" not in flat
 
 
 def test_rfc0028_records_slice_five_backend_proof_capture() -> None:

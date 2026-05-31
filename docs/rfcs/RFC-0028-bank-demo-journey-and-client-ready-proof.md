@@ -363,11 +363,12 @@ The `AdvisorySupportedClaimRegister:v1` must classify product claims:
 | `DEGRADED_SUPPORTED` | Behavior is implemented and can explain missing/degraded dependencies safely. | Yes, only with explicit degraded explanation. |
 | `PLANNED_RFC` | Documented target-state work but not implemented. | No, except roadmap sections clearly marked planned. |
 | `UNSUPPORTED` | Not implemented or not allowed. | No. |
-| `REMOVED_OR_SUPERSEDED` | Older claim or route retired by better design. | No, except migration notes. |
 
 No README, wiki, supported-features page, demo script, screenshot caption, RFP answer, security
 pack, architecture deck, or LinkedIn post may present `PLANNED_RFC`,
-`BACKEND_BACKED_UI_PENDING`, `UNSUPPORTED`, or `REMOVED_OR_SUPERSEDED` as supported product truth.
+`BACKEND_BACKED_UI_PENDING`, or `UNSUPPORTED` as supported product truth. Older claims or routes
+that are removed or superseded must be documented as unsupported with explicit migration wording,
+not as a separate public claim classification.
 
 ---
 

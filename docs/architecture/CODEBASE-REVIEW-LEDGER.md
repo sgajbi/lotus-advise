@@ -8132,3 +8132,31 @@
 - Follow-Up:
   - Any future client-ready approval posture must arrive with implementation-backed publication
     controls, API tests, OpenAPI examples, and wiki/supported-feature updates in the same slice.
+
+## LA-REV-308
+
+- Scope: RFC-0028 supported-claim taxonomy documentation
+- Pattern: RFC source truth must match the implemented supported-claim classification contract
+- Status: Hardened
+- Finding Class: RFC/API contract alignment and unsupported-state removal
+- Summary: RFC-0028 listed `REMOVED_OR_SUPERSEDED` as a supported-claim classification, but the
+  implemented `SupportedClaimClassification` contract exposes only
+  `IMPLEMENTATION_BACKED`, `BACKEND_BACKED_UI_PENDING`, `DEGRADED_SUPPORTED`, `PLANNED_RFC`, and
+  `UNSUPPORTED`. Adding an unused public state would increase API surface without a current
+  product need, so the RFC now documents removed or superseded claims as unsupported migration
+  wording rather than a separate classification.
+- Evidence:
+  - `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` no longer lists
+    `REMOVED_OR_SUPERSEDED` as a current classification.
+  - `tests/unit/test_rfc0028_gold_standard_tightening_contract.py` asserts the active RFC source
+    does not reintroduce the unsupported classification.
+  - Focused RFC contract and proof-model tests pass.
+- Consequence:
+  - The RFC, model taxonomy, and OpenAPI schema remain aligned, reducing integration ambiguity for
+    Gateway, Workbench, documentation, and proof automation.
+- Documentation:
+  - RFC-0028 source truth changed. No wiki change was required because the wiki did not advertise
+    the removed classification.
+- Follow-Up:
+  - Keep any future claim-classification addition platform-backed and schema-tested before adding
+    it to RFC, README, wiki, or commercial material.
