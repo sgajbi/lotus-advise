@@ -8834,7 +8834,8 @@
     HTTP 422 instead of echoing raw lower-layer detail.
   - Added API regression coverage proving raw prompt/token detail is redacted while existing route
     status-code mapping remains intact.
-  - Focused `tests/unit/advisory/api/test_api_advisory_copilot.py` passed.
+  - Focused `tests/unit/advisory/api/test_api_advisory_copilot.py` and full `make check` passed
+    with 1556 unit tests.
 - Consequence:
   - RFC-0027 API consumers get stable error semantics without exposing sensitive AI/provider
     details through route-level exception handling.
