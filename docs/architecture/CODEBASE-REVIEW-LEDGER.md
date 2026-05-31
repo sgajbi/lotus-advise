@@ -8461,3 +8461,31 @@
 - Follow-Up:
   - Remove the legacy alias only through a coordinated public-contract migration after downstream
     consumers have moved to canonical portfolio-type values.
+
+## LA-REV-319
+
+- Scope: RFC-0028 proof asset commit policy
+- Pattern: Commit-safe proof assets are enforced at the model boundary
+- Status: Hardened
+- Finding Class: Security posture and proof-artifact governance
+- Summary: `ProofAsset` blocked local-only and secret assets from being committed, but it did not
+  require committed assets to use a commit-safe/customer-consumable access class, `COMMIT_SOURCE`
+  retention, or an immutable content hash. That left room for a restricted evidence summary to be
+  accidentally marked commit-allowed even though the default supported-claim artifact policy would
+  not permit it.
+- Evidence:
+  - Added model-level validation that `commit_allowed=True` requires `COMMIT_SAFE_SUMMARY` or
+    `CUSTOMER_CONSUMABLE_SUMMARY`, `COMMIT_SOURCE` retention, and a canonical `content_hash`.
+  - Added regression tests for restricted commit attempts, local-retention commit attempts, and
+    missing content hashes.
+  - Updated RFC-0028 and wiki security-governance truth to describe the commit-allowed proof asset
+    policy.
+- Consequence:
+  - RFC-0028 proof-pack artifacts now enforce the same safety posture in code, tests, RFC truth,
+    and wiki governance material.
+- Documentation:
+  - RFC-0028 and `wiki/Security-and-Governance.md` changed because proof-artifact policy truth
+    changed.
+- Follow-Up:
+  - Keep any future proof asset access class changes synchronized with the supported-claim
+    register, proof model validation, and wiki governance text.

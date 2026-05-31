@@ -166,6 +166,8 @@ def test_rfc0028_records_slice_four_proof_model_implementation() -> None:
         "No controller, API route, persistence table, data-product declaration",
         "IMPLEMENTATION_BACKED` claims require evidence refs and proof requirements",
         "local-only or secret runtime assets cannot be commit-allowed",
+        "commit-allowed proof assets must use commit-safe or customer-consumable access classes",
+        "`COMMIT_SOURCE` retention, and a canonical content hash",
         "CLIENT_READY_APPROVED` is not part of the current proof-pack API contract",
         "tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py",
     )
@@ -444,6 +446,8 @@ def test_rfc0028_records_slice_twelve_documentation_product_truth() -> None:
         "RFC-0028 Proof Artifact Governance",
         "credentials, query strings, or fragments",
         "secrets, tokens, prompts",
+        "committed proof assets must use commit-safe or customer-consumable access classes",
+        "`COMMIT_SOURCE` retention, and a canonical content hash",
         "bank-specific attestations",
         "OMS/order/fill/settlement",
     )

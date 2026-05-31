@@ -873,7 +873,9 @@ Slice 4 implementation decision and evidence:
    5. claim IDs are unique inside a register,
    6. artifact policy names secrets, tokens, and prompts,
    7. local-only or secret runtime assets cannot be commit-allowed,
-   8. `CLIENT_READY_APPROVED` is not part of the current proof-pack API contract before
+   8. commit-allowed proof assets must use commit-safe or customer-consumable access classes,
+      `COMMIT_SOURCE` retention, and a canonical content hash,
+   9. `CLIENT_READY_APPROVED` is not part of the current proof-pack API contract before
       publication controls exist.
 5. Test evidence lives in
    `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py`.

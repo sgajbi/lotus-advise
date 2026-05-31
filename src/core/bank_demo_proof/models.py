@@ -89,6 +89,10 @@ _RFC28_MAX_PROOF_ASSETS = 32
 _RFC28_MAX_REPOSITORY_SHAS = 16
 _RFC28_MAX_REF_LIST_ITEMS = 64
 _RFC28_SHA256_HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
+_RFC28_COMMIT_ALLOWED_ACCESS_CLASSES = {
+    "COMMIT_SAFE_SUMMARY",
+    "CUSTOMER_CONSUMABLE_SUMMARY",
+}
 
 
 class DemoScenarioStep(BaseModel):
@@ -495,6 +499,13 @@ class ProofAsset(BaseModel):
             raise ValueError("local-only or secret proof assets cannot be commit_allowed")
         if self.access_class == "SECRET_MATERIAL" and self.retention_class != "DO_NOT_RETAIN":
             raise ValueError("secret proof assets must use DO_NOT_RETAIN")
+        if self.commit_allowed:
+            if self.access_class not in _RFC28_COMMIT_ALLOWED_ACCESS_CLASSES:
+                raise ValueError("commit_allowed proof assets must use a commit-safe access class")
+            if self.retention_class != "COMMIT_SOURCE":
+                raise ValueError("commit_allowed proof assets must use COMMIT_SOURCE retention")
+            if self.content_hash is None:
+                raise ValueError("commit_allowed proof assets require a content_hash")
         return self
 
 

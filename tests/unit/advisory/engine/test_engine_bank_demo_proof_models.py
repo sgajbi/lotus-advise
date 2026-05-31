@@ -367,6 +367,41 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
             commit_allowed=True,
         )
 
+    with pytest.raises(ValidationError, match="commit-safe access class"):
+        ProofAsset(
+            asset_id="restricted_summary",
+            asset_type="API_RESPONSE_SUMMARY",
+            source_repository="lotus-advise",
+            uri="output/rfc0028/restricted-summary.json",
+            access_class="RESTRICTED_CUSTOMER_EVIDENCE",
+            retention_class="COMMIT_SOURCE",
+            content_hash=hash_canonical_payload({"asset": "restricted"}),
+            commit_allowed=True,
+        )
+
+    with pytest.raises(ValidationError, match="COMMIT_SOURCE retention"):
+        ProofAsset(
+            asset_id="local_retention_summary",
+            asset_type="API_RESPONSE_SUMMARY",
+            source_repository="lotus-advise",
+            uri="output/rfc0028/local-retention-summary.json",
+            access_class="COMMIT_SAFE_SUMMARY",
+            retention_class="LOCAL_EVIDENCE_BUNDLE",
+            content_hash=hash_canonical_payload({"asset": "local-retention"}),
+            commit_allowed=True,
+        )
+
+    with pytest.raises(ValidationError, match="require a content_hash"):
+        ProofAsset(
+            asset_id="unhashed_summary",
+            asset_type="API_RESPONSE_SUMMARY",
+            source_repository="lotus-advise",
+            uri="output/rfc0028/unhashed-summary.json",
+            access_class="COMMIT_SAFE_SUMMARY",
+            retention_class="COMMIT_SOURCE",
+            commit_allowed=True,
+        )
+
     with pytest.raises(ValidationError, match="must not include URL"):
         ProofAsset(
             asset_id="unsafe_uri",
