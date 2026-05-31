@@ -8,6 +8,7 @@ RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 ACTION_FACTORY_PATH = Path("src/core/advisor_cockpit/action_factory.py")
+ACTION_SOURCES_PATH = Path("src/core/advisor_cockpit/action_sources.py")
 BEHAVIOR_TEST_PATH = Path(
     "tests/unit/advisory/engine/test_engine_advisor_cockpit_action_factory.py"
 )
@@ -51,6 +52,7 @@ def test_rfc0026_slice4_records_non_promoting_action_factory_posture() -> None:
 
 def test_rfc0026_slice4_contract_is_backed_by_code_and_behavior_tests() -> None:
     action_factory = _read(ACTION_FACTORY_PATH)
+    action_sources = _read(ACTION_SOURCES_PATH)
     behavior_tests = _read(BEHAVIOR_TEST_PATH)
 
     required_builders = (
@@ -65,6 +67,17 @@ def test_rfc0026_slice4_contract_is_backed_by_code_and_behavior_tests() -> None:
     for builder in required_builders:
         assert f"def {builder}" in action_factory
         assert builder in behavior_tests
+
+    for source_model in (
+        "CockpitActionSourceRefs",
+        "PolicyReviewActionSource",
+        "MemoPackageBlockedActionSource",
+        "MeetingPreparationActionSource",
+        "SupportabilityDegradedActionSource",
+        "UnsupportedCapabilityActionSource",
+    ):
+        assert f"class {source_model}" in action_sources
+        assert f"class {source_model}" not in action_factory
 
     for marker in (
         "POLICY_REVIEW_REQUIRED",

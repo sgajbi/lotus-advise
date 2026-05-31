@@ -387,6 +387,7 @@ Current note:
   and canonical proof exist.
 - RFC-0026 Slice 4 cockpit domain evidence lives in
   `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`; it adds the pure core
+  `src/core/advisor_cockpit/action_sources.py` source DTOs and
   `src/core/advisor_cockpit/action_factory.py` source-backed action construction layer, covers
   policy-review, memo-blocked, meeting-preparation, supportability, and unsupported-capability
   actions with behavior tests, and keeps APIs, persistence, data products, Gateway, Workbench, and

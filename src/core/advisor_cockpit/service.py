@@ -5,7 +5,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from src.core.advisor_cockpit.action_factory import HouseViewImpactActionSource
+from src.core.advisor_cockpit.action_sources import HouseViewImpactActionSource
 from src.core.advisor_cockpit.api_models import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitAcknowledgeResponse,

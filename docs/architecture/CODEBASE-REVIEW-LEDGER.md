@@ -8286,3 +8286,35 @@
 - Follow-Up:
   - Continue removing stale scaffolding only when references prove it is no longer part of a
     supported extension point.
+
+## LA-REV-313
+
+- Scope: RFC-0026 advisor cockpit action construction modularity
+- Pattern: Separate source DTOs from action-builder behavior in large domain modules
+- Status: Hardened
+- Finding Class: maintainability and service-boundary clarity
+- Summary: `src/core/advisor_cockpit/action_factory.py` had grown into a large mixed module that
+  defined source input DTOs, source-reference DTOs, and action-builder behavior together. The
+  source-read-model and service layers only need source DTOs in some paths, so coupling them to the
+  full action-builder module made the cockpit package harder to reason about and extend.
+- Evidence:
+  - Added `src/core/advisor_cockpit/action_sources.py` for source-backed cockpit action DTOs.
+  - Kept `src/core/advisor_cockpit/action_factory.py` focused on action construction,
+    evidence/readiness helpers, and deterministic ordering.
+  - Updated source-read-model/service imports to depend on `action_sources.py` where they only need
+    source DTOs.
+  - Kept package-level exports stable through `src/core/advisor_cockpit/__init__.py`.
+  - RFC/index source truth now names both `action_sources.py` and `action_factory.py`.
+  - `tests/unit/test_rfc0026_slice4_domain_action_factory_contract.py` now asserts source DTOs live
+    outside the action factory.
+  - Focused regression proof passed:
+    `python -m pytest tests/unit/advisory/engine/test_engine_advisor_cockpit_action_factory.py tests/unit/advisory/engine/test_engine_advisor_cockpit_source_read_model.py tests/unit/test_rfc0026_slice4_domain_action_factory_contract.py tests/unit/test_rfc0026_slice5_source_read_model_contract.py`.
+- Consequence:
+  - RFC-0026 cockpit source projection and action construction boundaries are clearer, with less
+    import coupling and a smaller action-factory behavior surface.
+- Documentation:
+  - RFC/index/wiki source truth changed because the package structure is durable implementation
+    evidence for RFC-0026 Slice 4.
+- Follow-Up:
+  - Continue splitting large cockpit modules only along domain boundaries that reduce coupling or
+    duplicate reasoning.

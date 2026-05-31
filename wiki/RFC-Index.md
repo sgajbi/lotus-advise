@@ -215,7 +215,8 @@ consumption, mesh posture, and canonical proof exist.
 
 RFC-0026 Slice 4 is implemented as source-backed cockpit action construction. Evidence lives in
 `docs/rfcs/RFC-0026-slice-4-cockpit-domain-model-and-vocabulary.md`.
-`src/core/advisor_cockpit/action_factory.py` now centralizes Advise-owned action construction for
+`src/core/advisor_cockpit/action_sources.py` owns the source DTOs and
+`src/core/advisor_cockpit/action_factory.py` centralizes Advise-owned action construction for
 policy review, memo blockers, meeting preparation, source supportability, and unsupported
 capabilities, with behavior tests that keep source refs, evidence refs, lineage, reason codes,
 owner roles, and client-ready blocked posture explicit. Runtime APIs, persistence, data-product
