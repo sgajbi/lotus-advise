@@ -8846,6 +8846,35 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-334
+
+- Scope: Shared proposal API error mapper
+- Pattern: Proposal route error mapping should preserve domain status codes without echoing
+  sensitive lower-layer detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: `raise_proposal_http_exception` was the shared mapper for proposal, memo, policy,
+  cockpit, delivery, async, and workspace API errors, but it returned `str(exc)` for every domain
+  exception. Most current domain exceptions use controlled codes, but the shared route boundary
+  should fail closed if a validation or idempotency path accidentally carries a token, raw prompt,
+  provider response, credential, or similar sensitive detail.
+- Evidence:
+  - Added shared proposal error-detail sanitization in `src/api/proposals/errors.py`.
+  - Normal controlled proposal error text is still preserved for 404, 409, and 422 mappings.
+  - Sensitive proposal error text now returns bounded details: `PROPOSAL_NOT_FOUND`,
+    `PROPOSAL_CONFLICT`, or `PROPOSAL_REQUEST_VALIDATION_FAILED`.
+  - Focused tests covering proposal HTTP errors, internal guards, advisor cockpit, and policy
+    evaluation APIs passed with 33 tests.
+- Consequence:
+  - Broad proposal-family API routes retain stable status semantics while reducing the chance of
+    sensitive source evidence leaking through exception text.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    error-boundary hardening for existing behavior.
+- Follow-Up:
+  - Keep new proposal-family domain errors as controlled codes, and use the shared mapper rather
+    than route-local `detail=str(exc)` when adding API routes.
+
 ## LA-REV-326
 
 - Scope: OpenAPI enrichment portfolio-id example vocabulary
