@@ -7255,3 +7255,29 @@
     document proof semantics.
 - Follow-Up:
   - Continue auditing integration proof source-field validation before RFC-0028 closure review.
+
+## LA-REV-277
+
+- Scope: RFC-0028 journey integration proof source projection
+- Pattern: governed missing/invalid AI and policy source-field failures
+- Status: Hardened
+- Finding Class: source-payload coercion and live-validation diagnosability risk
+- Summary: Journey integration proof projection used direct dictionary indexing and Python truthy
+  coercion for AI, policy, and copilot source fields. Malformed live-runtime payloads could surface
+  raw `KeyError` failures, treat string booleans as true, or accept boolean rule counts before the
+  proof model had enough context to reject the source shape.
+- Evidence:
+  - `src/core/bank_demo_proof/integration_proof.py` now uses governed required-value, boolean, and
+    integer source helpers that emit `RFC0028_INTEGRATION_PROOF_FIELD_MISSING` and
+    `RFC0028_INTEGRATION_PROOF_FIELD_INVALID` diagnostics.
+  - Integration proof tests cover missing policy-pack ids, invalid string boolean fields, invalid
+    boolean rule counts, and normal proof-capture behavior.
+- Consequence:
+  - RFC-0028 integration proof capture now rejects malformed AI/policy/cockpit source payloads at
+    the projection boundary with repeatable diagnostics instead of relying on Python coercion or
+    ungoverned exceptions.
+- Documentation:
+  - No wiki source change is required. This is source-payload validation hardening for existing
+    integration proof semantics.
+- Follow-Up:
+  - Continue auditing script CLI/output handling and then run RFC-0028 closure reconciliation.

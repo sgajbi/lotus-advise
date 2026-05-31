@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 import pytest
 from pydantic import ValidationError
 
@@ -122,3 +124,23 @@ def test_integration_summary_rejects_duplicate_required_panels() -> None:
                 "advisory.bank_demo_proof",
             ]
         )
+
+
+def test_journey_integration_builder_rejects_malformed_source_payloads() -> None:
+    missing_policy_field = deepcopy(_live_runtime_payload())
+    del missing_policy_field["parity"]["proposal_policy"]["policy_pack_id"]
+
+    with pytest.raises(ValueError, match="RFC0028_INTEGRATION_PROOF_FIELD_MISSING"):
+        build_journey_integration_proof_summary(missing_policy_field)
+
+    invalid_boolean = deepcopy(_live_runtime_payload())
+    invalid_boolean["parity"]["proposal_memo"]["ai_review_required"] = "false"
+
+    with pytest.raises(ValueError, match="RFC0028_INTEGRATION_PROOF_FIELD_INVALID"):
+        build_journey_integration_proof_summary(invalid_boolean)
+
+    invalid_integer = deepcopy(_live_runtime_payload())
+    invalid_integer["parity"]["proposal_policy"]["material_rule_count"] = True
+
+    with pytest.raises(ValueError, match="RFC0028_INTEGRATION_PROOF_FIELD_INVALID"):
+        build_journey_integration_proof_summary(invalid_integer)
