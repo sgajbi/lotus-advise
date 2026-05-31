@@ -8846,6 +8846,32 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-349
+
+- Scope: RFC-0026 public vocabulary
+- Pattern: Active RFC and wiki-facing product language should avoid implementation-scaffolding terms
+  in business vocabulary tables
+- Status: Hardened
+- Finding Class: Documentation and private-banking vocabulary quality
+- Summary: RFC-0026's domain vocabulary table still used `placeholder task` as an avoided term for
+  relationship-manager follow-up. Even in the "Avoid" column, that phrase is implementation
+  scaffolding language and is not useful for business, sales, operations, or client-demo audiences.
+- Evidence:
+  - Replaced the avoided term with the business-facing phrase `generic reminder`.
+  - Extended the public RFC-0023 through RFC-0028 vocabulary contract to prevent `placeholder task`
+    from returning to active public surfaces.
+  - Focused `ruff`, format check, RFC-0023 through RFC-0028 public-vocabulary tests, and RFC-0026
+    implementation-readiness tests passed with 6 tests.
+- Consequence:
+  - The active cockpit RFC keeps cleaner private-banking vocabulary and avoids leaking
+    implementation-scaffolding phrasing into product-facing documentation.
+- Documentation:
+  - RFC-0026 and review ledger updated. No wiki source change is required because the stale phrase
+    was only present in the RFC source.
+- Follow-Up:
+  - Keep public RFC/wiki language business-facing even when documenting unsupported or avoided
+    concepts.
+
 ## LA-REV-348
 
 - Scope: Workspace service error-detail boundaries

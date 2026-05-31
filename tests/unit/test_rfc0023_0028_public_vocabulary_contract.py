@@ -32,6 +32,7 @@ BANNED_CURRENT_STATE_PHRASES = (
     "second wave",
     "day-2",
     "wave-2",
+    "placeholder task",
 )
 
 
