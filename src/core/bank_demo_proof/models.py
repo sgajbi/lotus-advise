@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 SupportedClaimClassification = Literal[
     "IMPLEMENTATION_BACKED",
@@ -77,6 +77,22 @@ SUPPORTED_CLAIM_CLASSIFICATIONS: tuple[str, ...] = (
 RFC28_CANONICAL_SCENARIO_ID = "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL"
 RFC28_CANONICAL_PROOF_MARKER = "BANK_DEMO_PROOF_PACK_CREATED"
 RFC28_CANONICAL_PORTFOLIO_ID = "PB_SG_GLOBAL_BAL_001"
+_RFC28_IDENTIFIER_MAX_LENGTH = 160
+_RFC28_BUSINESS_TITLE_MAX_LENGTH = 160
+_RFC28_CLAIM_TEXT_MAX_LENGTH = 1000
+_RFC28_TECHNICAL_COPY_TERMS = (
+    "raw prompt",
+    "provider response",
+    "raw payload",
+    "authorization",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+    "api key",
+    "apikey",
+)
 
 
 class DemoScenarioStep(BaseModel):
@@ -132,8 +148,14 @@ class AdvisoryDemoScenarioContract(BaseModel):
 
 
 class SupportedClaimProofRequirement(BaseModel):
-    requirement_id: str = Field(description="Stable proof requirement identifier.")
-    evidence_ref: str = Field(description="Evidence reference required for this claim.")
+    requirement_id: str = Field(
+        description="Stable proof requirement identifier.",
+        max_length=_RFC28_IDENTIFIER_MAX_LENGTH,
+    )
+    evidence_ref: str = Field(
+        description="Evidence reference required for this claim.",
+        max_length=_RFC28_IDENTIFIER_MAX_LENGTH,
+    )
     blocking: bool = Field(
         default=True,
         description="Whether missing evidence blocks claim promotion.",
@@ -141,8 +163,14 @@ class SupportedClaimProofRequirement(BaseModel):
 
 
 class SupportedClaim(BaseModel):
-    claim_id: str = Field(description="Stable snake_case supported-claim identifier.")
-    title: str = Field(description="Business-facing claim title.")
+    claim_id: str = Field(
+        description="Stable snake_case supported-claim identifier.",
+        max_length=_RFC28_IDENTIFIER_MAX_LENGTH,
+    )
+    title: str = Field(
+        description="Business-facing claim title.",
+        max_length=_RFC28_BUSINESS_TITLE_MAX_LENGTH,
+    )
     classification: SupportedClaimClassification = Field(
         description="Implementation-backed, degraded, planned, or unsupported claim posture."
     )
@@ -154,7 +182,10 @@ class SupportedClaim(BaseModel):
         default_factory=list,
         description="Documentation or demo material where this claim may appear.",
     )
-    claim_text: str = Field(description="Approved business-facing claim wording.")
+    claim_text: str = Field(
+        description="Approved business-facing claim wording.",
+        max_length=_RFC28_CLAIM_TEXT_MAX_LENGTH,
+    )
     evidence_refs: list[str] = Field(
         default_factory=list,
         description="Concrete implementation, validation, or proof references backing the claim.",
@@ -167,6 +198,15 @@ class SupportedClaim(BaseModel):
         default_factory=list,
         description="Required wording guardrails for this claim.",
     )
+
+    @field_validator("claim_id", "title", "claim_text")
+    @classmethod
+    def _claim_copy_must_be_business_safe(cls, value: str) -> str:
+        normalized = _normalize_required_text(value, error_code="supported claim text is required")
+        lowered = normalized.lower().replace("-", " ")
+        if any(term in lowered for term in _RFC28_TECHNICAL_COPY_TERMS):
+            raise ValueError("supported claim text cannot contain sensitive technical detail")
+        return normalized
 
     @model_validator(mode="after")
     def _classification_matches_evidence_and_materials(self) -> SupportedClaim:
@@ -184,6 +224,13 @@ class SupportedClaim(BaseModel):
         ):
             raise ValueError("BACKEND_BACKED_UI_PENDING claims cannot use screenshots")
         return self
+
+
+def _normalize_required_text(value: str, *, error_code: str) -> str:
+    normalized = " ".join(value.split())
+    if not normalized:
+        raise ValueError(error_code)
+    return normalized
 
 
 class ArtifactPolicy(BaseModel):

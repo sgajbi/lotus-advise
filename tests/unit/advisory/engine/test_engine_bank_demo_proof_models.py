@@ -146,6 +146,30 @@ def test_supported_claim_register_requires_evidence_and_unique_claim_ids() -> No
             artifact_policy=_artifact_policy(),
         )
 
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        SupportedClaim(
+            claim_id="unsafe_claim_text",
+            title="Unsafe claim text",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES"],
+            allowed_materials=["DEMO_SCRIPT"],
+            claim_text="Raw prompt evidence is available for client review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
+    with pytest.raises(ValidationError):
+        SupportedClaim(
+            claim_id="x" * 161,
+            title="Oversized claim id",
+            classification="IMPLEMENTATION_BACKED",
+            audiences=["SALES"],
+            allowed_materials=["DEMO_SCRIPT"],
+            claim_text="Advisor proof evidence is available for review.",
+            evidence_refs=["proof.assets.backend_summary"],
+            proof_requirements=[_proof_requirement()],
+        )
+
 
 def test_planned_unsupported_and_ui_pending_claims_cannot_use_client_materials() -> None:
     with pytest.raises(ValidationError, match="cannot be client-facing"):

@@ -6587,3 +6587,27 @@
     RFC-0028 proof-pack semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-252
+
+- Scope: RFC-0028 supported-claim wording model
+- Pattern: business-facing documentation governance, claim-copy bounds, sensitive-term rejection
+- Status: Hardened
+- Finding Class: documentation-quality and security risk
+- Summary: RFC-0028 supported-claim copy feeds README, wiki, demo, RFP, and commercial material,
+  but the model did not enforce bounded claim identifiers or reject technical/sensitive terms in
+  business-facing claim wording.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now bounds supported-claim ids, proof requirement refs,
+    titles, and claim text, normalizes claim copy, and rejects sensitive technical terms such as
+    raw prompts, provider responses, credentials, secrets, and tokens.
+  - Model tests prove unsafe claim wording and oversized claim identifiers are rejected before
+    supported-claim registers can be used by documentation or proof-pack generation.
+- Consequence:
+  - RFC-0028 commercial and documentation outputs have stronger source-level controls over what
+    can be promoted into business, sales, pre-sales, RFP, and client-demo material.
+- Documentation:
+  - No wiki source change is required. This is model-level governance for existing supported-claim
+    semantics.
+- Follow-Up:
+  - None.
