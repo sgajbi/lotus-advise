@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 
 import pytest
@@ -10,6 +11,7 @@ from src.api.enterprise_readiness import (
     redact_sensitive,
     validate_enterprise_runtime_config,
 )
+from src.api.observability import JsonFormatter
 
 
 def test_enterprise_runtime_config_reports_invalid_json_maps(monkeypatch) -> None:
@@ -224,3 +226,27 @@ def test_emit_audit_event_normalizes_correlation_id(caplog: pytest.LogCaptureFix
     )
 
     assert caplog.records[-1].audit["correlation_id"] == "corr-001"
+
+
+def test_json_formatter_emits_enterprise_audit_payload(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.INFO, logger="enterprise_readiness")
+
+    emit_audit_event(
+        action="POST /advisory/proposals",
+        actor_id="advisor-sg-001",
+        tenant_id="tenant-sg-001",
+        role="ADVISOR",
+        correlation_id=" corr-audit-001 ",
+        metadata={"business_reason": "Prepare advisor review.", "api_token": "secret-token"},
+    )
+
+    payload = json.loads(JsonFormatter().format(caplog.records[-1]))
+
+    assert payload["message"] == "enterprise_audit_event"
+    assert payload["audit"]["action"] == "POST /advisory/proposals"
+    assert payload["audit"]["actor_id"] == "advisor-sg-001"
+    assert payload["audit"]["correlation_id"] == "corr-audit-001"
+    assert payload["audit"]["metadata"]["business_reason"] == "Prepare advisor review."
+    assert payload["audit"]["metadata"]["api_token"] == "***REDACTED***"

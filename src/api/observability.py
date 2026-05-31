@@ -39,7 +39,7 @@ def _resolve_request_id(request_id: str | None) -> str:
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        payload = {
+        payload: dict[str, object] = {
             "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "service": os.getenv("SERVICE_NAME", "lotus-advise"),
@@ -52,6 +52,8 @@ class JsonFormatter(logging.Formatter):
         }
         if hasattr(record, "extra_fields") and isinstance(record.extra_fields, dict):
             payload.update(record.extra_fields)
+        if hasattr(record, "audit") and isinstance(record.audit, dict):
+            payload["audit"] = record.audit
         return json.dumps({k: v for k, v in payload.items() if v is not None})
 
 

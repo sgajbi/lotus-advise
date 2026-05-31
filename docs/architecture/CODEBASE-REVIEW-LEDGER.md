@@ -5862,3 +5862,28 @@
     response model carries the implementation-backed contract truth.
 - Follow-Up:
   - None.
+
+## LA-REV-222
+
+- Scope: Enterprise audit structured log serialization
+- Pattern: auditability and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: audit evidence serialization gap
+- Summary: Enterprise audit events attached audit details to log records through
+  `extra={"audit": ...}`, but the JSON log formatter only serialized `extra_fields`. This left
+  audit details visible to in-process `caplog` assertions while risking loss from actual structured
+  JSON log output.
+- Evidence:
+  - `src/api/observability.py` now emits an `audit` object when a log record carries structured
+    audit data.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now formats an emitted enterprise audit
+    event through the production JSON formatter and proves normalized correlation IDs plus redacted
+    sensitive metadata are present in the JSON payload.
+- Consequence:
+  - Enterprise authorization and write-path audit events remain machine-readable in production log
+    pipelines instead of only being available inside Python log records.
+- Documentation:
+  - No wiki source change is required. This is observability serialization hardening with no
+    supported feature posture change.
+- Follow-Up:
+  - None.
