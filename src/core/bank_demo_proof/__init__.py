@@ -52,6 +52,7 @@ from src.core.bank_demo_proof.models import (
     SupportedClaimMaterial,
     SupportedClaimProofRequirement,
 )
+from src.core.bank_demo_proof.proof_pack import build_backend_proof_pack
 from src.core.bank_demo_proof.runtime_posture import (
     BackendRuntimePosture,
     RuntimeEndpointEvidence,
@@ -101,6 +102,7 @@ __all__ = [
     "SupportedClaimMaterial",
     "SupportedClaimProofRequirement",
     "build_backend_proof_capture",
+    "build_backend_proof_pack",
     "build_default_scenario_contract",
     "build_default_supported_claim_register",
     "build_commercial_material_pack",

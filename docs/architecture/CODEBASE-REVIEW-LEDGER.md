@@ -7656,3 +7656,32 @@
 - Follow-Up:
   - Continue auditing proof-capture metadata and CLI writer boundaries only where additional
     RFC-0028 proof evidence or operator behavior changes.
+
+## LA-REV-291
+
+- Scope: RFC-0028 backend proof-pack contract construction
+- Pattern: proof-pack marker and boundary construction separated from capture orchestration
+- Status: Hardened
+- Finding Class: contract modularity, overclaim prevention, and direct test gap
+- Summary: `capture.py` still assembled the proof-pack header inline, including proof id,
+  evidence markers, scenario/register references, source products, unsupported boundaries,
+  repository SHA lineage, and blocked client-ready posture. Those values are part of the
+  machine-readable RFC-0028 proof contract and should be testable without building every source
+  proof summary first.
+- Evidence:
+  - `src/core/bank_demo_proof/proof_pack.py` now owns backend proof-pack construction and the
+    canonical RFC-0028 evidence marker inventory.
+  - `src/core/bank_demo_proof/capture.py` now builds proof assets, then delegates proof-pack
+    construction to the proof-pack contract module.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_proof_pack.py` proves canonical proof-pack
+    identifiers, contract references, evidence markers, source products, unsupported boundaries,
+    repository lineage, and client-ready blocking posture.
+- Consequence:
+  - RFC-0028 proof-pack contract changes now fail close to the contract boundary, and capture
+    orchestration no longer owns the scenario, claim-register, asset, material-review, runtime
+    summary, and proof-pack internals at once.
+- Documentation:
+  - No README or wiki source change is required. This is internal proof-contract modularity
+    hardening with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing metadata and CLI writer behavior if operator-facing proof capture changes.
