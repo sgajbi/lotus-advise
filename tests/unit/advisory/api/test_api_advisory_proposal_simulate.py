@@ -971,6 +971,44 @@ def test_advisory_proposal_simulate_returns_503_when_core_execution_unavailable(
     assert response.json()["detail"].startswith("LOTUS_CORE_SIMULATION_UNAVAILABLE")
 
 
+def test_advisory_proposal_simulate_redacts_sensitive_core_execution_error_detail(
+    client,
+    monkeypatch,
+):
+    payload = {
+        "portfolio_snapshot": {
+            "portfolio_id": "pf_prop_api_core_sensitive",
+            "base_currency": "USD",
+        },
+        "market_data_snapshot": {"prices": [], "fx_rates": []},
+        "shelf_entries": [],
+        "options": {"enable_proposal_simulation": True},
+        "proposed_cash_flows": [],
+        "proposed_trades": [],
+    }
+
+    def _raise_sensitive_core_error(**kwargs):
+        raise LotusCoreSimulationUnavailableError(
+            "provider response included Authorization Bearer token material"
+        )
+
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "http://lotus-core:8201")
+    monkeypatch.setattr(
+        "src.core.advisory.orchestration.simulate_with_lotus_core",
+        _raise_sensitive_core_error,
+    )
+
+    response = client.post(
+        "/advisory/proposals/simulate",
+        json=payload,
+        headers={"Idempotency-Key": "prop-key-core-sensitive"},
+    )
+
+    assert response.status_code == 503
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert response.json()["detail"] == "LOTUS_CORE_SIMULATION_UNAVAILABLE"
+
+
 def test_advisory_proposal_simulate_preserves_upstream_contract_error_status(client, monkeypatch):
     payload = {
         "portfolio_snapshot": {"portfolio_id": "pf_prop_api_contract", "base_currency": "USD"},

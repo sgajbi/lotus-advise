@@ -36,6 +36,7 @@ from src.api.routers.integration_capabilities import (
 )
 from src.api.routers.tactical_house_view import router as tactical_house_view_router
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
+from src.api.sensitive_error_details import contains_sensitive_error_detail
 from src.api.services.advisory_simulation_service import (
     simulate_proposal_response as _simulate_proposal_response,
 )
@@ -166,6 +167,7 @@ app = FastAPI(
 )
 
 logger = logging.getLogger(__name__)
+LOTUS_CORE_SIMULATION_UNAVAILABLE_DETAIL = "LOTUS_CORE_SIMULATION_UNAVAILABLE"
 setup_observability(app)
 validate_enterprise_runtime_config()
 app.middleware("http")(build_enterprise_audit_middleware())
@@ -300,11 +302,17 @@ async def lotus_core_simulation_unavailable_to_problem_details(
             if status_code != status.HTTP_503_SERVICE_UNAVAILABLE
             else "Service Unavailable",
             "status": status_code,
-            "detail": str(exc) or "LOTUS_CORE_SIMULATION_UNAVAILABLE",
+            "detail": _safe_lotus_core_simulation_error_detail(str(exc)),
             "instance": str(request.url.path),
             "correlation_id": correlation_id_var.get() or "",
         },
     )
+
+
+def _safe_lotus_core_simulation_error_detail(error_detail: str) -> str:
+    if not error_detail or contains_sensitive_error_detail(error_detail):
+        return LOTUS_CORE_SIMULATION_UNAVAILABLE_DETAIL
+    return error_detail
 
 
 __all__ = [

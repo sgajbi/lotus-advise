@@ -8846,6 +8846,32 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-342
+
+- Scope: Lotus Core simulation exception handler
+- Pattern: Global exception handlers for upstream dependencies must preserve useful contract errors
+  without echoing sensitive provider or request detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: The `LotusCoreSimulationUnavailableError` exception handler returned `str(exc)` directly
+  in problem-details responses. Current Lotus Core errors are usually controlled, and contract
+  mismatch details are useful, but an upstream problem payload could include bearer tokens,
+  credentials, raw payloads, or provider response detail.
+- Evidence:
+  - Added safe Lotus Core simulation error-detail projection in `src/api/main.py`.
+  - Non-sensitive upstream contract errors still return their original status and detail.
+  - Sensitive upstream simulation details now return `LOTUS_CORE_SIMULATION_UNAVAILABLE`.
+  - Focused `ruff`, format check, core simulation error tests, and internal guard tests passed with
+    7 tests.
+- Consequence:
+  - Proposal simulation problem-details responses stay operationally useful while failing closed for
+    sensitive upstream detail.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    exception-handler hardening.
+- Follow-Up:
+  - Apply the same fail-closed rule to any new global exception handler for external dependencies.
+
 ## LA-REV-341
 
 - Scope: RFC-0028 bank-demo proof API sensitive-detail detector
