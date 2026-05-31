@@ -9001,6 +9001,40 @@
   - Keep historical RFC/demo fixtures separate from active API source examples; update generated
     vocabulary whenever source examples change.
 
+## LA-REV-374
+
+- Scope: Proposal lifecycle response model modularity and API error-code precision
+- Pattern: Lifecycle DTOs should be isolated from memo/report/delivery DTOs, and shared
+  sensitive-error detection should not redact stable Lotus domain codes
+- Status: Hardened
+- Finding Class: Modularity problem and API error handling
+- Summary: `src/core/proposals/response_models.py` still mixed lifecycle aggregate DTOs with
+  narrative, memo, policy, report, execution, and delivery response models. During the lifecycle
+  route validation for the split, the broader test pack also exposed an over-tightened
+  sensitive-error detector that redacted `CORRELATION_ID_CONFLICT` even though it is a stable
+  domain conflict code and does not expose an identifier value.
+- Evidence:
+  - Extracted lifecycle response DTOs into
+    `src/core/proposals/lifecycle_response_models.py` while keeping the existing
+    `response_models.py` import surface as a compatibility facade.
+  - Refined shared API sensitive-error detection so actual `trace_id=<value>` and
+    `correlation-id=<value>` details redact, while stable error codes such as
+    `CORRELATION_ID_CONFLICT` and `TRACE_ID_REQUIRED` remain visible.
+  - Added focused shared-detector tests for identifier-value redaction and stable-code
+    preservation.
+  - Focused lifecycle boundary/API tests, proposal HTTP error tests, shared-detector tests,
+    `ruff`, format check, and `mypy` passed with 106 behavior tests.
+- Consequence:
+  - Proposal lifecycle API contracts are easier to maintain independently from other proposal
+    surfaces, and API consumers retain useful idempotency/correlation conflict diagnostics without
+    leaking observability identifiers.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization plus defensive API-boundary precision for existing contracts.
+- Follow-Up:
+  - Continue splitting `response_models.py` only along stable API surface boundaries, preserving
+    backwards-compatible imports until route modules are intentionally migrated.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
