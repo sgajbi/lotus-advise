@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 import pytest
 from pydantic import ValidationError
 
@@ -98,6 +100,20 @@ def test_document_proof_rejects_unsafe_output_formats_and_degraded_reasons() -> 
             client_ready_document_status="MEMO_CLIENT_READY_DOCUMENT_NOT_SUPPORTED",
             degraded_reason="Raw prompt material was not available.",
         )
+
+
+def test_document_proof_builder_rejects_malformed_source_payloads() -> None:
+    missing_field_payload = deepcopy(_live_runtime_payload())
+    del missing_field_payload["parity"]["proposal_memo"]["render_ref_status"]
+
+    with pytest.raises(ValueError, match="RFC0028_DOCUMENT_PROOF_FIELD_MISSING"):
+        build_document_proof_summary(missing_field_payload)
+
+    invalid_formats_payload = deepcopy(_live_runtime_payload())
+    invalid_formats_payload["parity"]["proposal_policy"]["requested_output_formats"] = "pdf"
+
+    with pytest.raises(ValueError, match="RFC0028_DOCUMENT_PROOF_FIELD_INVALID"):
+        build_document_proof_summary(invalid_formats_payload)
 
 
 def test_document_proof_summary_rejects_duplicate_document_families() -> None:

@@ -137,6 +137,7 @@ class AdvisoryDocumentProofSummary(BaseModel):
     client_ready_publication: Literal["BLOCKED"] = Field(default="BLOCKED")
     documents: list[AdvisoryDocumentProof] = Field(
         min_length=1,
+        max_length=_RFC28_DOCUMENT_FORMAT_MAX_ITEMS,
         description="Document proof rows included in the RFC-0028 proof pack.",
     )
 
@@ -185,20 +186,20 @@ def _document_from_snapshot(
     document_family: DocumentProofFamily,
     client_ready_key: str,
 ) -> AdvisoryDocumentProof:
-    client_ready_status = str(snapshot[client_ready_key])
+    client_ready_status = str(_required_value_at(snapshot, client_ready_key))
     return AdvisoryDocumentProof(
         document_family=document_family,
         claim_posture="CLIENT_READY_BLOCKED",
-        report_status=str(snapshot["report_status"]),
-        report_package_status=str(snapshot["report_package_status"]),
-        requested_output_formats=[
-            str(item) for item in snapshot.get("requested_output_formats", [])
-        ],
-        render_ref_status=str(snapshot["render_ref_status"]),
-        archive_ref_status=str(snapshot["archive_ref_status"]),
-        archive_retention_posture=str(snapshot["archive_retention_posture"]),
-        archive_legal_hold_posture=str(snapshot["archive_legal_hold_posture"]),
-        archive_access_audit_ref_status=str(snapshot["archive_access_audit_ref_status"]),
+        report_status=str(_required_value_at(snapshot, "report_status")),
+        report_package_status=str(_required_value_at(snapshot, "report_package_status")),
+        requested_output_formats=_requested_output_formats_from_snapshot(snapshot),
+        render_ref_status=str(_required_value_at(snapshot, "render_ref_status")),
+        archive_ref_status=str(_required_value_at(snapshot, "archive_ref_status")),
+        archive_retention_posture=str(_required_value_at(snapshot, "archive_retention_posture")),
+        archive_legal_hold_posture=str(_required_value_at(snapshot, "archive_legal_hold_posture")),
+        archive_access_audit_ref_status=str(
+            _required_value_at(snapshot, "archive_access_audit_ref_status")
+        ),
         client_ready_document_status=client_ready_status,
         degraded_reason=snapshot.get("report_degraded_reason"),
     )
@@ -209,6 +210,19 @@ def _dict_at(payload: dict[str, Any], key: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"RFC0028_DOCUMENT_PROOF_FIELD_MISSING: {key}")
     return value
+
+
+def _required_value_at(payload: dict[str, Any], key: str) -> Any:
+    if key not in payload:
+        raise ValueError(f"RFC0028_DOCUMENT_PROOF_FIELD_MISSING: {key}")
+    return payload[key]
+
+
+def _requested_output_formats_from_snapshot(snapshot: dict[str, Any]) -> list[str]:
+    value = _required_value_at(snapshot, "requested_output_formats")
+    if not isinstance(value, list):
+        raise ValueError("RFC0028_DOCUMENT_PROOF_FIELD_INVALID: requested_output_formats")
+    return [str(item) for item in value]
 
 
 def _normalize_required_text(value: str, *, field_name: str) -> str:

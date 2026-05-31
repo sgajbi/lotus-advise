@@ -7229,3 +7229,29 @@
 - Follow-Up:
   - Continue auditing document and integration proof source-payload validation before RFC-0028
     closure review.
+
+## LA-REV-276
+
+- Scope: RFC-0028 document proof source projection
+- Pattern: governed missing/invalid source-field failures
+- Status: Hardened
+- Finding Class: live-validation diagnosability and source-payload safety risk
+- Summary: Document proof projection relied on direct dictionary indexing for required report,
+  render, archive, and client-ready fields, and treated `requested_output_formats` as iterable
+  without first proving it was a list. Malformed live-runtime payloads could therefore surface raw
+  `KeyError` failures or character-by-character format validation instead of governed RFC-0028
+  source-field errors.
+- Evidence:
+  - `src/core/bank_demo_proof/document_proof.py` now validates required source fields through
+    governed `RFC0028_DOCUMENT_PROOF_FIELD_MISSING` errors and rejects non-list output format
+    payloads through `RFC0028_DOCUMENT_PROOF_FIELD_INVALID`.
+  - Document proof tests cover missing render-reference source fields and invalid scalar output
+    format payloads while preserving normal proof-capture behavior.
+- Consequence:
+  - RFC-0028 live validation and proof capture now fail malformed document source payloads at the
+    document-proof boundary with repeatable, test-covered diagnostics.
+- Documentation:
+  - No wiki source change is required. This is source-payload validation hardening for existing
+    document proof semantics.
+- Follow-Up:
+  - Continue auditing integration proof source-field validation before RFC-0028 closure review.
