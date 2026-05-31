@@ -7773,3 +7773,31 @@
 - Follow-Up:
   - Continue auditing proof-capture metadata and artifact-reference behavior only when operator
     options or evidence artifact semantics change.
+
+## LA-REV-295
+
+- Scope: RFC-0028 bank-demo proof API request boundary
+- Pattern: API request validation and runtime metadata normalization separated from route handlers
+- Status: Hardened
+- Finding Class: controller thinness, metadata validation reuse, and direct test gap
+- Summary: `src/api/routers/bank_demo_proof.py` still owned the request DTO, artifact-reference
+  validation, runtime metadata defaults, environment fallbacks, correlation-id derivation, and
+  sensitive-fragment rejection. That kept route handlers coupled to request-normalization details
+  and made metadata behavior harder to test without driving the whole FastAPI endpoint.
+- Evidence:
+  - `src/api/routers/bank_demo_proof_request.py` now owns `BankDemoProofCaptureRequest`,
+    artifact-reference validators, runtime repository SHA/service-version/environment defaults,
+    correlation-id normalization, and sensitive metadata rejection.
+  - `src/api/routers/bank_demo_proof.py` now focuses on OpenAPI route declaration, metadata
+    composition, proof-pack invocation, and HTTP 409 material-drift mapping.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof_request.py` proves sensitive artifact ref
+    rejection, request-vs-environment metadata precedence, governed fallbacks, context correlation
+    id use, and sensitive correlation-id rejection.
+- Consequence:
+  - RFC-0028 proof API request behavior is easier to audit and less likely to accrete business
+    logic in the controller layer.
+- Documentation:
+  - No README or wiki source change is required. The public API path, request schema name, and
+    behavior are unchanged.
+- Follow-Up:
+  - Continue auditing the route only if API behavior or OpenAPI semantics change.
