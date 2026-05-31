@@ -5173,3 +5173,32 @@
 - Follow-Up:
   - Keep delivery projection tests focused on partial histories because report, execution, and
     archive events can arrive from independent downstream services.
+
+## LA-REV-196
+
+- Scope: Correlation and observability header normalization
+- Pattern: audit lineage and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: observability and lineage gap
+- Summary: Correlation ID resolution and HTTP observability middleware accepted whitespace-only or
+  padded correlation/request/trace headers as meaningful values. That could propagate low-quality
+  lineage identifiers into logs, response headers, proposal workflow records, and downstream
+  diagnostics.
+- Evidence:
+  - `src/core/proposals/correlation.py` now trims supplied correlation IDs and generates governed
+    fallback IDs for blank values.
+  - `src/api/observability.py` now trims inbound correlation, request, and traceparent headers,
+    generates request IDs for blank values, and normalizes response correlation headers.
+  - `tests/unit/advisory/engine/test_engine_proposal_correlation.py` and
+    `tests/unit/advisory/api/test_api_observability_headers.py` cover trimmed and blank inbound
+    identifiers.
+- Consequence:
+  - Advisory workflow and HTTP request lineage now carry meaningful identifiers, improving audit
+    replay, support diagnostics, and cross-service trace consistency.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal and API observability behavior
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Keep new externally supplied lineage headers normalized before they enter logs, workflow
+    records, persistence, or downstream service calls.
