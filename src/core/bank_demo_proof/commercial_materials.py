@@ -12,6 +12,11 @@ from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_SCENARIO_ID,
     SupportedClaimAudience,
 )
+from src.core.bank_demo_proof.validation import (
+    contains_sensitive_rfc28_term,
+    normalize_required_rfc28_text,
+    normalize_rfc28_business_text,
+)
 
 RFC28_COMMERCIAL_MATERIAL_REFS: tuple[str, ...] = (
     "docs/commercial/RFC-0028-bank-demo-client-proof-materials.md",
@@ -23,19 +28,6 @@ _RFC28_MATERIAL_TITLE_MAX_LENGTH = 160
 _RFC28_MATERIAL_SOURCE_REF_MAX_LENGTH = 512
 _RFC28_MATERIAL_LIST_MAX_ITEMS = 64
 _RFC28_WINDOWS_DRIVE_REF = re.compile(r"^[A-Za-z]:")
-_RFC28_SENSITIVE_MATERIAL_FRAGMENTS = (
-    "authorization",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "raw_payload",
-    "raw_prompt",
-    "provider_response",
-)
 
 
 class CommercialMaterial(BaseModel):
@@ -82,10 +74,10 @@ class CommercialMaterial(BaseModel):
     @field_validator("material_id", "title")
     @classmethod
     def _business_fields_must_be_safe(cls, value: str) -> str:
-        normalized = _normalize_required_text(value, field_name="commercial material field")
-        if _contains_sensitive_fragment(normalized):
-            raise ValueError("commercial material field cannot contain sensitive technical detail")
-        return normalized
+        return normalize_rfc28_business_text(
+            value,
+            field_name="commercial material field",
+        )
 
     @field_validator("source_ref")
     @classmethod
@@ -147,7 +139,10 @@ class CommercialMaterialPack(BaseModel):
     @field_validator("scenario_id", "primary_portfolio_id", "proof_marker")
     @classmethod
     def _pack_identifiers_must_be_bounded(cls, value: str) -> str:
-        return _normalize_required_text(value, field_name="commercial material pack field")
+        return normalize_rfc28_business_text(
+            value,
+            field_name="commercial material pack field",
+        )
 
     @field_validator("required_claim_ids", "blocked_claims")
     @classmethod
@@ -168,20 +163,13 @@ class CommercialMaterialPack(BaseModel):
         return self
 
 
-def _normalize_required_text(value: str, *, field_name: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(f"{field_name} is required")
-    return normalized
-
-
 def _normalize_ref_list(value: list[str], *, field_name: str) -> list[str]:
     normalized: list[str] = []
     for item in value:
-        normalized_item = _normalize_required_text(str(item), field_name=field_name)
+        normalized_item = normalize_required_rfc28_text(str(item), field_name=field_name)
         if len(normalized_item) > _RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH:
             raise ValueError(f"{field_name} entry is too long")
-        if _contains_sensitive_fragment(normalized_item):
+        if contains_sensitive_rfc28_term(normalized_item):
             raise ValueError(f"{field_name} cannot contain sensitive technical detail")
         normalized.append(normalized_item)
     if len(set(normalized)) != len(normalized):
@@ -203,22 +191,17 @@ def _normalize_repository_source_ref(value: str) -> str:
     path_parts = [part for part in parsed.path.split("/") if part]
     if any(part == ".." for part in path_parts):
         raise ValueError("commercial material source_ref cannot contain parent-directory traversal")
-    if any(_contains_sensitive_fragment(part) for part in path_parts):
+    if any(contains_sensitive_rfc28_term(part) for part in path_parts):
         raise ValueError("commercial material source_ref cannot contain sensitive material")
     fragment = parsed.fragment.strip()
     if len(fragment) > _RFC28_MATERIAL_IDENTIFIER_MAX_LENGTH:
         raise ValueError("commercial material source_ref fragment is too long")
-    if fragment and _contains_sensitive_fragment(fragment):
+    if fragment and contains_sensitive_rfc28_term(fragment):
         raise ValueError(
             "commercial material source_ref fragment cannot contain sensitive material"
         )
     path = "/".join(path_parts)
     return urlunsplit(("", "", path, "", fragment))
-
-
-def _contains_sensitive_fragment(value: str) -> bool:
-    normalized = value.lower().replace("-", "_").replace(" ", "_")
-    return any(fragment in normalized for fragment in _RFC28_SENSITIVE_MATERIAL_FRAGMENTS)
 
 
 def build_commercial_material_pack() -> CommercialMaterialPack:

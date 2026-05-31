@@ -7829,3 +7829,32 @@
 - Follow-Up:
   - Continue reducing duplicate validation in commercial-material and integration-proof modules
     where it can be done without changing public proof contracts.
+
+## LA-REV-297
+
+- Scope: RFC-0028 commercial-material proof validation
+- Pattern: commercial material proof contracts reuse shared RFC-0028 text-safety helpers
+- Status: Hardened
+- Finding Class: duplicate sensitive-fragment handling and repository-ref safety drift
+- Summary: `src/core/bank_demo_proof/commercial_materials.py` carried a second sensitive-fragment
+  vocabulary for business titles, claim refs, pack ids, and repository source references. The list
+  used underscore variants while document/proof capture used space and hyphen normalization, making
+  the proof-pack safety boundary harder to reason about consistently.
+- Evidence:
+  - `src/core/bank_demo_proof/validation.py` now normalizes underscores, hyphens, and spaces before
+    matching RFC-0028 sensitive terms.
+  - `src/core/bank_demo_proof/commercial_materials.py` now reuses shared required-text,
+    business-safe text, and sensitive-term helpers while retaining repository-local source-ref
+    validation.
+  - `tests/unit/advisory/engine/test_engine_bank_demo_commercial_materials.py` now covers sensitive
+    repository source fragments such as `raw_prompt`.
+- Consequence:
+  - Commercial proof materials now share the same sensitive-detail boundary as proof capture and
+    document proof, reducing the chance that RFP/demo material metadata can drift into technical
+    leakage.
+- Documentation:
+  - No README or wiki source change is required. The commercial material inventory and public proof
+    behavior are unchanged.
+- Follow-Up:
+  - Continue the same consolidation in integration-proof validation if focused tests show no public
+    contract drift.

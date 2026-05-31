@@ -68,5 +68,5 @@ def contains_sensitive_capture_term(value: str) -> bool:
 
 
 def contains_sensitive_rfc28_term(value: str) -> bool:
-    lowered = value.lower().replace("-", " ")
+    lowered = value.lower().replace("-", " ").replace("_", " ")
     return any(term in lowered for term in RFC28_CAPTURE_SENSITIVE_TERMS)
