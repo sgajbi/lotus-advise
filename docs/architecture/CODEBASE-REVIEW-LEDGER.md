@@ -5658,3 +5658,27 @@
     service-boundary enforcement.
 - Follow-Up:
   - None.
+
+## LA-REV-214
+
+- Scope: Integration dependency readiness URL sanitization
+- Pattern: sensitive-data handling and operational diagnostics hardening
+- Status: Hardened
+- Finding Class: security and observability hygiene gap
+- Summary: Dependency readiness state exposed configured base URLs directly. A misconfigured
+  runtime URL containing credentials, query tokens, or fragments could therefore leak sensitive
+  material through readiness/capability diagnostics even when runtime probing legitimately needed
+  the configured URL.
+- Evidence:
+  - `src/integrations/base.py` now sanitizes the public dependency `base_url` returned in
+    readiness state while preserving the configured URL for runtime probes.
+  - Integration dependency tests now verify credentials, query strings, and fragments are stripped
+    from public state and invalid URL ports are not surfaced.
+- Consequence:
+  - Operational readiness APIs remain useful for support and pre-sales diagnostics without
+    exposing credential-bearing dependency URLs.
+- Documentation:
+  - No wiki source change is required. This strengthens existing sensitive-data handling without
+    changing supported product capabilities.
+- Follow-Up:
+  - None.

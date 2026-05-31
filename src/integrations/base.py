@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
@@ -44,6 +45,27 @@ def probe_dependency_health(base_url: str) -> bool:
     return False
 
 
+def public_dependency_base_url(base_url: str | None) -> str | None:
+    if base_url is None:
+        return None
+    trimmed = base_url.strip().rstrip("/")
+    if not trimmed:
+        return None
+    split = urlsplit(trimmed)
+    if not split.scheme or not split.netloc:
+        return trimmed
+    if split.hostname is None:
+        return None
+    try:
+        port = split.port
+    except ValueError:
+        return None
+    netloc = split.hostname
+    if port is not None:
+        netloc = f"{netloc}:{port}"
+    return urlunsplit((split.scheme, netloc, split.path.rstrip("/"), "", ""))
+
+
 def build_dependency_state(
     *,
     key: str,
@@ -51,8 +73,9 @@ def build_dependency_state(
     description: str,
     base_url_env: str,
 ) -> IntegrationDependencyState:
-    base_url = os.getenv(base_url_env, "").strip() or None
-    configured = bool(base_url)
+    configured_base_url = os.getenv(base_url_env, "").strip() or None
+    public_base_url = public_dependency_base_url(configured_base_url)
+    configured = bool(configured_base_url)
     probe_enabled = configured and runtime_dependency_probing_enabled()
     reason_key = key.upper().replace("-", "_")
     degraded_reason: str | None = f"{reason_key}_DEPENDENCY_UNAVAILABLE"
@@ -65,8 +88,8 @@ def build_dependency_state(
         readiness_basis = "configuration_only"
         degraded_reason = None
     else:
-        assert base_url is not None
-        operational_ready = probe_dependency_health(base_url)
+        assert configured_base_url is not None
+        operational_ready = probe_dependency_health(configured_base_url)
         readiness_basis = "probe_succeeded" if operational_ready else "probe_failed"
         if operational_ready:
             degraded_reason = None
@@ -76,7 +99,7 @@ def build_dependency_state(
         service_name=service_name,
         description=description,
         base_url_env=base_url_env,
-        base_url=base_url,
+        base_url=public_base_url,
         configured=configured,
         operational_ready=operational_ready,
         runtime_probe_enabled=probe_enabled,
