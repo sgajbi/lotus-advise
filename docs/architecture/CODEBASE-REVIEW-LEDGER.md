@@ -6686,3 +6686,28 @@
     document-proof semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-256
+
+- Scope: RFC-0028 journey integration proof model
+- Pattern: AI/policy proof status bounds, panel uniqueness, rule-count consistency
+- Status: Hardened
+- Finding Class: validation and overclaim risk
+- Summary: RFC-0028 journey integration proof rows establish that AI, policy, and cockpit evidence
+  remain advisor-assistive and source-owned, but several status fields, required-panel lists, and
+  policy rule counts were still loosely validated at direct model construction.
+- Evidence:
+  - `src/core/bank_demo_proof/integration_proof.py` now bounds AI, policy, and summary status
+    fields, rejects sensitive technical status text, caps panel/AI-row/unsupported-claim lists,
+    requires unique Workbench panel ids, and prevents pending policy rule counts from exceeding
+    material policy rule counts.
+  - Integration proof tests prove canonical evidence still builds while provider-response status
+    leakage, impossible rule counts, and duplicate panel requirements are rejected at model level.
+- Consequence:
+  - RFC-0028 proof material can rely on stronger source-level controls before journey evidence is
+    used by Gateway, Workbench, commercial material, or wiki/demo proof packs.
+- Documentation:
+  - No wiki source change is required. This is source-level hardening for existing RFC-0028
+    integration-proof semantics.
+- Follow-Up:
+  - None.

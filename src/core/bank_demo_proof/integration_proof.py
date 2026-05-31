@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.bank_demo_proof.models import (
     RFC28_CANONICAL_PORTFOLIO_ID,
@@ -22,6 +22,24 @@ AiEvidenceFamily = Literal[
     "POLICY_EVIDENCE",
     "ADVISORY_COPILOT",
 ]
+_RFC28_INTEGRATION_IDENTIFIER_MAX_LENGTH = 160
+_RFC28_INTEGRATION_TEXT_MAX_LENGTH = 1000
+_RFC28_INTEGRATION_PANEL_MAX_ITEMS = 16
+_RFC28_INTEGRATION_AI_ROW_MAX_ITEMS = 16
+_RFC28_INTEGRATION_UNSUPPORTED_MAX_ITEMS = 32
+_RFC28_POLICY_RULE_COUNT_MAX = 100_000
+_RFC28_SENSITIVE_INTEGRATION_TERMS = (
+    "authorization",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+    "api key",
+    "apikey",
+    "raw payload",
+    "provider response",
+)
 
 
 class AiModelRiskControlProof(BaseModel):
@@ -52,6 +70,11 @@ class AiModelRiskControlProof(BaseModel):
         description="Whether source-owned AI lineage is complete when the source exposes it.",
     )
 
+    @field_validator("ai_status", "guardrail_status")
+    @classmethod
+    def _ai_status_fields_must_be_bounded(cls, value: str) -> str:
+        return _normalize_status_text(value, field_name="AI proof status")
+
     @model_validator(mode="after")
     def _ai_cannot_be_authoritative_or_leak_raw_material(
         self,
@@ -72,9 +95,15 @@ class PolicyEvidenceProof(BaseModel):
     policy_pack_id: str = Field(description="Source-owned policy pack identifier.")
     policy_version: str = Field(description="Source-owned policy pack version.")
     evaluation_status: str = Field(description="Source-owned policy evaluation status.")
-    material_rule_count: int = Field(description="Number of material rules evaluated.")
+    material_rule_count: int = Field(
+        ge=0,
+        le=_RFC28_POLICY_RULE_COUNT_MAX,
+        description="Number of material rules evaluated.",
+    )
     pending_rule_count: int = Field(
-        description="Rules still requiring advisor or compliance review."
+        ge=0,
+        le=_RFC28_POLICY_RULE_COUNT_MAX,
+        description="Rules still requiring advisor or compliance review.",
     )
     workflow_sign_off_status: str = Field(description="Source-owned sign-off workflow posture.")
     client_ready_publication: Literal["BLOCKED"] = Field(
@@ -85,8 +114,20 @@ class PolicyEvidenceProof(BaseModel):
         description="Whether the proof row claims legal or regulatory advice.",
     )
 
+    @field_validator(
+        "policy_pack_id",
+        "policy_version",
+        "evaluation_status",
+        "workflow_sign_off_status",
+    )
+    @classmethod
+    def _policy_status_fields_must_be_bounded(cls, value: str) -> str:
+        return _normalize_status_text(value, field_name="policy proof status")
+
     @model_validator(mode="after")
     def _policy_proof_cannot_overclaim(self) -> PolicyEvidenceProof:
+        if self.pending_rule_count > self.material_rule_count:
+            raise ValueError("policy proof pending rule count cannot exceed material rule count")
         if self.client_ready_publication != "BLOCKED":
             raise ValueError("policy proof must keep client-ready publication blocked")
         if self.legal_advice_claimed:
@@ -136,12 +177,14 @@ class AdvisoryJourneyIntegrationProofSummary(BaseModel):
     proof_marker: str = Field(description="RFC-0028 proof marker.")
     required_workbench_panels: list[str] = Field(
         min_length=1,
+        max_length=_RFC28_INTEGRATION_PANEL_MAX_ITEMS,
         description=(
             "Governed Workbench panels required before product-surface claims are promoted."
         ),
     )
     ai_model_risk_controls: list[AiModelRiskControlProof] = Field(
         min_length=1,
+        max_length=_RFC28_INTEGRATION_AI_ROW_MAX_ITEMS,
         description="AI and model-risk control proof rows for the shown advisory evidence.",
     )
     policy_evidence: PolicyEvidenceProof = Field(
@@ -152,8 +195,37 @@ class AdvisoryJourneyIntegrationProofSummary(BaseModel):
     )
     unsupported_claims: list[str] = Field(
         min_length=1,
+        max_length=_RFC28_INTEGRATION_UNSUPPORTED_MAX_ITEMS,
         description="Claims blocked by the integration proof summary.",
     )
+
+    @field_validator("scenario_id", "primary_portfolio_id", "proof_marker")
+    @classmethod
+    def _summary_identifiers_must_be_bounded(cls, value: str) -> str:
+        return _normalize_status_text(value, field_name="integration proof identifier")
+
+    @field_validator("required_workbench_panels")
+    @classmethod
+    def _required_panels_must_be_bounded(cls, value: list[str]) -> list[str]:
+        normalized = [
+            _normalize_status_text(panel, field_name="required workbench panel") for panel in value
+        ]
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("integration proof required Workbench panels must be unique")
+        return normalized
+
+    @field_validator("unsupported_claims")
+    @classmethod
+    def _unsupported_claims_must_be_business_safe(cls, value: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for claim in value:
+            claim_text = _normalize_status_text(
+                claim,
+                field_name="integration proof unsupported claim",
+                max_length=_RFC28_INTEGRATION_TEXT_MAX_LENGTH,
+            )
+            normalized.append(claim_text)
+        return normalized
 
     @model_validator(mode="after")
     def _integration_summary_must_include_governed_panels(
@@ -308,3 +380,24 @@ def _optional_dict_at(payload: dict[str, Any], key: str) -> dict[str, Any] | Non
     if not isinstance(value, dict):
         raise ValueError(f"RFC0028_INTEGRATION_PROOF_FIELD_INVALID: {key}")
     return value
+
+
+def _normalize_status_text(
+    value: str,
+    *,
+    field_name: str,
+    max_length: int = _RFC28_INTEGRATION_IDENTIFIER_MAX_LENGTH,
+) -> str:
+    normalized = " ".join(value.split())
+    if not normalized:
+        raise ValueError(f"{field_name} is required")
+    if len(normalized) > max_length:
+        raise ValueError(f"{field_name} is too long")
+    if _contains_sensitive_integration_term(normalized):
+        raise ValueError(f"{field_name} cannot contain sensitive technical detail")
+    return normalized
+
+
+def _contains_sensitive_integration_term(value: str) -> bool:
+    lowered = value.lower().replace("-", " ")
+    return any(term in lowered for term in _RFC28_SENSITIVE_INTEGRATION_TERMS)
