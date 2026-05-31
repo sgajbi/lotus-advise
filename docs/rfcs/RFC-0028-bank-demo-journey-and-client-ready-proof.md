@@ -911,7 +911,9 @@ Slice 5 implementation decision and evidence:
    ```
 
    The same command can use `--live-suite-json <path>` for an existing `result.json` or
-   `--run-live-suite` when the local canonical runtime is already up.
+   `--run-live-suite` when the local canonical runtime is already up. If an operator writes to an
+   absolute filesystem `--output-dir`, pass a relative `--artifact-ref-prefix` so proof-pack asset
+   references remain portable and do not expose workstation paths.
 3. The generated non-git-tracked artifact set is:
    1. `metadata.json`,
    2. `scenario-contract.json`,

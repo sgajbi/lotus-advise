@@ -57,6 +57,11 @@ python scripts/capture_rfc0028_backend_proof.py --live-suite-json <path> --outpu
 python scripts/capture_rfc0028_backend_proof.py --run-live-suite --output-dir output/rfc0028/backend-proof
 ```
 
+When `--output-dir` is absolute or outside the governed default path, set `--artifact-ref-prefix`
+to a relative proof-artifact reference such as `output/rfc0028/backend-proof`. The filesystem
+location may vary by operator, but proof-pack asset references must stay portable, local-relative,
+and free of URL/query/fragment/traversal or sensitive-token material.
+
 Review these artifacts before reusing demo, RFP, security, or proof-guide material:
 
 1. `proof-pack.json`

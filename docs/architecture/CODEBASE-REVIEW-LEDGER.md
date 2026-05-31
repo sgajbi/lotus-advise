@@ -7306,3 +7306,25 @@
 - Follow-Up:
   - Run RFC-0028 closure reconciliation and decide whether this branch is ready for the next PR
     checkpoint.
+
+## LA-REV-279
+
+- Scope: RFC-0028 proof-capture operator documentation
+- Pattern: implementation-backed CLI/runbook alignment
+- Status: Hardened
+- Finding Class: documentation drift and operator misuse risk
+- Summary: The proof-capture CLI gained `--artifact-ref-prefix` so operators can write evidence to
+  absolute filesystem locations while keeping proof-pack asset references portable, but README,
+  RFC, and wiki runbook text still described only `--output-dir`.
+- Evidence:
+  - `README.md`, `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md`, and
+    `wiki/Operations-Runbook.md` now explain when to use `--artifact-ref-prefix` and why proof-pack
+    references must remain local-relative and sanitized.
+- Consequence:
+  - Operators, reviewers, and demo-prep users have implementation-backed instructions that prevent
+    local path leakage and artifact-reference drift in RFC-0028 proof packs.
+- Documentation:
+  - Wiki source changed in this slice; run `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-advise`
+    before merge and publish after merge to `main`.
+- Follow-Up:
+  - Run RFC-0028 closure reconciliation and repo wiki check before PR handoff.
