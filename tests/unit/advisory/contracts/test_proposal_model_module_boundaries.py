@@ -28,6 +28,12 @@ from src.core.proposals.response_models import (
 from src.core.proposals.response_models import (
     ProposalReportResponse as ResponseProposalReportResponse,
 )
+from src.core.proposals.response_models import (
+    ProposalWorkflowTimelineResponse as ResponseProposalWorkflowTimelineResponse,
+)
+from src.core.proposals.workflow_response_models import (
+    ProposalWorkflowTimelineResponse as WorkflowProposalWorkflowTimelineResponse,
+)
 
 
 def test_proposal_models_module_preserves_public_contract_imports() -> None:
@@ -46,6 +52,8 @@ def test_proposal_models_module_preserves_public_contract_imports() -> None:
         ResponseProposalAsyncOperationStatusResponse
         is OperationProposalAsyncOperationStatusResponse
     )
+    assert models.ProposalWorkflowTimelineResponse is ResponseProposalWorkflowTimelineResponse
+    assert ResponseProposalWorkflowTimelineResponse is WorkflowProposalWorkflowTimelineResponse
     assert models.ProposalRecord is PersistenceProposalRecord
 
 

@@ -9156,6 +9156,37 @@
 - Follow-Up:
   - Keep async/idempotency model changes aligned with operation persistence and recovery tests.
 
+## LA-REV-379
+
+- Scope: Proposal workflow response model modularity and facade completion
+- Pattern: Workflow read/command DTOs should live with workflow response models, leaving
+  `response_models.py` as a compatibility facade rather than a renewed monolith
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: After extracting lifecycle, delivery, memo, narrative, and operation DTOs, the remaining
+  `response_models.py` still owned workflow lineage, timeline, approval-read, transition, and
+  approval command DTOs. Keeping those classes in the facade would preserve a smaller but still
+  mixed-purpose module.
+- Evidence:
+  - Extracted workflow lineage, timeline, approvals, transition, and approval request/response DTOs
+    into `src/core/proposals/workflow_response_models.py`.
+  - Converted `src/core/proposals/response_models.py` into a compatibility facade that re-exports
+    the focused response-model modules.
+  - Added a module-boundary contract assertion proving `models.ProposalWorkflowTimelineResponse`
+    still resolves through the existing facade while the implementation lives in the workflow
+    module.
+  - Focused lifecycle API, OpenAPI lifecycle docs, proposal workflow service, module-boundary
+    tests, `ruff`, format check, and `mypy` passed with 151 behavior tests.
+- Consequence:
+  - The proposal response-model surface now has clear ownership modules while preserving
+    downstream route, service, Gateway, and OpenAPI import compatibility.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing workflow API contracts.
+- Follow-Up:
+  - Treat `response_models.py` as a compatibility facade; add new DTOs to owning modules first and
+    re-export them only when backwards compatibility requires it.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
