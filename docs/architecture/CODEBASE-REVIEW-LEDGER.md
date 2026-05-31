@@ -8846,6 +8846,29 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-356
+
+- Scope: RFC-0028 proof-pack request validation redaction coverage
+- Pattern: Request-shape validation should not echo rejected sensitive proof inputs
+- Status: Hardened
+- Finding Class: Test quality and API security posture
+- Summary: Route-level RFC-0028 proof-capture errors already sanitize sensitive proof-capture
+  failures. FastAPI/Pydantic request-shape validation happens before route logic, so the API test
+  suite should also pin that token-like metadata and oversized live-runtime payload errors do not
+  echo rejected sensitive values.
+- Evidence:
+  - Added API assertions that sensitive `environment` metadata and oversized live-runtime payload
+    validation responses omit `should-not-leak`.
+  - Focused `ruff`, format, and bank-demo proof API tests passed with 8 tests.
+- Consequence:
+  - The RFC-0028 API suite now covers both route-level proof-capture redaction and request-shape
+    validation redaction behavior.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is test-pyramid
+    hardening for an existing API behavior.
+- Follow-Up:
+  - Keep new proof-pack request validators covered at the API boundary when adding request fields.
+
 ## LA-REV-355
 
 - Scope: RFC-0028 proof-pack API/OpenAPI wording
