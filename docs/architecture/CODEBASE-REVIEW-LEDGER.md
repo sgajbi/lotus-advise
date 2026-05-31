@@ -8846,6 +8846,31 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-368
+
+- Scope: RFC-0026 slice-4 documentation contract after action-family modularization
+- Pattern: Documentation contract tests should verify the current modular implementation shape
+  instead of hard-coding an older monolithic file layout
+- Status: Hardened
+- Finding Class: Test quality and implementation-proof drift
+- Summary: Full `make check` exposed that the RFC-0026 Slice 4 contract still required every
+  action builder to be defined in `action_factory.py`. That contradicted the intentional
+  source-family modularization and would have discouraged cleaner code structure.
+- Evidence:
+  - Updated `tests/unit/test_rfc0026_slice4_domain_action_factory_contract.py` to verify each
+    action builder in its owning module: generic builder, policy, reporting, advisor workflow, and
+    aggregate factory.
+  - Kept behavior-test assertions and source-model boundary assertions intact.
+  - Focused `ruff`, format, and RFC-0026 Slice 4/action-factory tests passed with 19 tests.
+- Consequence:
+  - The RFC-0026 implementation-proof contract now enforces behavior and module ownership instead
+    of preserving a monolithic implementation shape.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is contract-test
+    alignment for internal module structure.
+- Follow-Up:
+  - Re-run full `make check` after this contract alignment before PR publication.
+
 ## LA-REV-367
 
 - Scope: RFC-0026 policy-review cockpit action mapping
