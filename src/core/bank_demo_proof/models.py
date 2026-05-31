@@ -68,7 +68,6 @@ ProofRetentionClass = Literal[
 ClientReadyProofPosture = Literal[
     "CLIENT_READY_REVIEW_REQUIRED",
     "CLIENT_READY_PUBLICATION_BLOCKED",
-    "CLIENT_READY_APPROVED",
 ]
 
 SUPPORTED_CLAIM_CLASSIFICATIONS: tuple[str, ...] = (
@@ -627,8 +626,6 @@ class AdvisoryBankDemoProofPack(BaseModel):
     def _proof_pack_must_include_marker_and_block_unsafe_assets(self) -> AdvisoryBankDemoProofPack:
         if self.proof_marker not in self.evidence_markers:
             raise ValueError("proof_marker must be present in evidence_markers")
-        if self.client_ready_posture == "CLIENT_READY_APPROVED":
-            raise ValueError("CLIENT_READY_APPROVED is not supported before publication controls")
         asset_ids = [asset.asset_id for asset in self.assets]
         if len(set(asset_ids)) != len(asset_ids):
             raise ValueError("proof-pack asset ids must be unique")

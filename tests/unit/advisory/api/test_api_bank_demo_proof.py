@@ -236,3 +236,8 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     request_schema = app.openapi()["components"]["schemas"]["BankDemoProofCaptureRequest"]
     assert "query strings" in request_schema["properties"]["output_ref_prefix"]["description"]
     assert request_schema["properties"]["live_runtime_payload"]["maxProperties"] == 16
+    proof_pack_schema = app.openapi()["components"]["schemas"]["AdvisoryBankDemoProofPack"]
+    assert "CLIENT_READY_PUBLICATION_BLOCKED" in repr(
+        proof_pack_schema["properties"]["client_ready_posture"]
+    )
+    assert "CLIENT_READY_APPROVED" not in repr(proof_pack_schema)

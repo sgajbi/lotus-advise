@@ -8104,3 +8104,31 @@
 - Follow-Up:
   - Consider typed problem-detail models only as a coordinated cross-repo API-contract slice if
     Gateway or Workbench needs machine-readable remediation codes beyond current stable strings.
+
+## LA-REV-307
+
+- Scope: RFC-0028 proof-pack client-ready posture schema
+- Pattern: public API schemas must not advertise unsupported client-ready approval states
+- Status: Hardened
+- Finding Class: API contract truthfulness and overclaim prevention
+- Summary: `ClientReadyProofPosture` exposed `CLIENT_READY_APPROVED` in the model literal while a
+  later proof-pack validator rejected it. That kept runtime behavior conservative, but OpenAPI
+  could still advertise an approval posture that RFC-0028 does not currently support. Unsupported
+  client-ready approval must not appear as a valid current proof-pack API value.
+- Evidence:
+  - `src/core/bank_demo_proof/models.py` now limits `ClientReadyProofPosture` to
+    `CLIENT_READY_REVIEW_REQUIRED` and `CLIENT_READY_PUBLICATION_BLOCKED`.
+  - `tests/unit/advisory/api/test_api_bank_demo_proof.py` asserts
+    `CLIENT_READY_APPROVED` is absent from the generated `AdvisoryBankDemoProofPack` schema.
+  - `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` now states that
+    `CLIENT_READY_APPROVED` is not part of the current proof-pack API contract before publication
+    controls exist.
+- Consequence:
+  - Gateway, Workbench, and external API readers cannot infer unsupported client-ready publication
+    approval from the proof-pack schema.
+- Documentation:
+  - RFC-0028 source truth changed; no wiki change was required for this specific API enum
+    correction.
+- Follow-Up:
+  - Any future client-ready approval posture must arrive with implementation-backed publication
+    controls, API tests, OpenAPI examples, and wiki/supported-feature updates in the same slice.

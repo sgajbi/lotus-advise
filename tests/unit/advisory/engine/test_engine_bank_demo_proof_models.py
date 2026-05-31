@@ -398,7 +398,7 @@ def test_proof_pack_indexes_assets_and_blocks_sensitive_committed_material() -> 
             }
         )
 
-    with pytest.raises(ValidationError, match="CLIENT_READY_APPROVED"):
+    with pytest.raises(ValidationError):
         AdvisoryBankDemoProofPack(
             **{
                 **proof_pack.model_dump(),

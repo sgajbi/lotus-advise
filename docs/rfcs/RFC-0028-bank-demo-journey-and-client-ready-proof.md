@@ -359,7 +359,6 @@ The `AdvisorySupportedClaimRegister:v1` must classify product claims:
 | Classification | Meaning | Allowed in client demo material |
 | --- | --- | --- |
 | `IMPLEMENTATION_BACKED` | Code, tests, contract, docs, and live or canonical proof exist. | Yes. |
-| `CLIENT_READY_APPROVED` | Implementation-backed and reviewed for privacy, wording, screenshots, evidence, and sales/RFP use. | Yes, preferred for client-facing material. |
 | `BACKEND_BACKED_UI_PENDING` | Backend exists, but Gateway/Workbench proof is missing. | Engineering/pre-sales internal only; not as a full product journey. |
 | `DEGRADED_SUPPORTED` | Behavior is implemented and can explain missing/degraded dependencies safely. | Yes, only with explicit degraded explanation. |
 | `PLANNED_RFC` | Documented target-state work but not implemented. | No, except roadmap sections clearly marked planned. |
@@ -871,7 +870,8 @@ Slice 4 implementation decision and evidence:
    5. claim IDs are unique inside a register,
    6. artifact policy names secrets, tokens, and prompts,
    7. local-only or secret runtime assets cannot be commit-allowed,
-   8. `CLIENT_READY_APPROVED` remains blocked before publication controls exist.
+   8. `CLIENT_READY_APPROVED` is not part of the current proof-pack API contract before
+      publication controls exist.
 5. Test evidence lives in
    `tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py`.
 

@@ -166,7 +166,7 @@ def test_rfc0028_records_slice_four_proof_model_implementation() -> None:
         "No controller, API route, persistence table, data-product declaration",
         "IMPLEMENTATION_BACKED` claims require evidence refs and proof requirements",
         "local-only or secret runtime assets cannot be commit-allowed",
-        "CLIENT_READY_APPROVED` remains blocked",
+        "CLIENT_READY_APPROVED` is not part of the current proof-pack API contract",
         "tests/unit/advisory/engine/test_engine_bank_demo_proof_models.py",
     )
     for marker in markers:
