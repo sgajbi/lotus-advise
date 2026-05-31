@@ -7714,3 +7714,33 @@
 - Follow-Up:
   - Continue auditing runtime probe orchestration only if additional endpoint families or operator
     CLI options are added.
+
+## LA-REV-293
+
+- Scope: RFC-0028 runtime probe orchestration
+- Pattern: runtime probe collection separated from proof-capture CLI orchestration
+- Status: Hardened
+- Finding Class: operational diagnostics modularity and security-boundary clarity
+- Summary: `scripts/capture_rfc0028_backend_proof.py` still owned runtime endpoint probing,
+  latency capture, health/capability summary projection, skipped-probe posture, and base-url
+  validation alongside CLI parsing and live-suite source selection. Runtime probing is an
+  operational diagnostics boundary with sensitive URL and summary redaction expectations, so it
+  should be directly testable without executing the proof-capture CLI.
+- Evidence:
+  - `scripts/rfc0028_runtime_probe.py` now owns runtime posture probing, individual endpoint
+    probing, skipped-probe posture construction, health summaries, capability summaries, and
+    latency capture.
+  - `scripts/capture_rfc0028_backend_proof.py` delegates runtime posture collection to the runtime
+    probe module and keeps CLI/source-selection responsibilities.
+  - `tests/unit/scripts/test_capture_rfc0028_backend_proof.py` imports runtime probe functions
+    directly and continues to prove sensitive material redaction, latency capture, unsafe base-url
+    rejection, and skipped-probe normalization.
+- Consequence:
+  - RFC-0028 operator diagnostics are easier to audit and extend without coupling runtime probing
+    to live-suite execution or artifact writing.
+- Documentation:
+  - No README or wiki source change is required. The public capture command and runtime posture
+    artifact behavior are unchanged.
+- Follow-Up:
+  - Continue auditing live-suite source loading only if additional source modes or bundle layouts
+    are added.

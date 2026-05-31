@@ -4,12 +4,9 @@ import argparse
 import os
 import subprocess
 import sys
-import time
 import uuid
 from pathlib import Path
 from typing import Any
-
-import httpx
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -23,14 +20,15 @@ from scripts.live_runtime_suite_artifacts import (  # noqa: E402
 from scripts.rfc0028_backend_proof_writer import (  # noqa: E402
     write_backend_proof_capture_bundle,
 )
+from scripts.rfc0028_runtime_probe import (  # noqa: E402
+    not_probed_runtime_posture,
+    probe_runtime_posture,
+)
 from scripts.validate_live_runtime_suite import validate_live_runtime_suite  # noqa: E402
 from src.core.bank_demo_proof import (  # noqa: E402
-    BackendRuntimePosture,
-    RuntimeEndpointEvidence,
     build_backend_proof_capture,
     default_capture_metadata,
     normalize_output_ref_prefix,
-    normalize_runtime_base_url,
 )
 
 _DEFAULT_ADVISE_BASE_URL = "http://advise.dev.lotus"
@@ -118,9 +116,9 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     live_payload, result_ref, bundle_ref = _load_or_run_live_suite(args, output_dir)
     runtime_posture = (
-        _not_probed_runtime_posture(args.advise_base_url, args.environment)
+        not_probed_runtime_posture(args.advise_base_url, args.environment)
         if args.skip_runtime_probe
-        else _probe_runtime_posture(args.advise_base_url, args.environment)
+        else probe_runtime_posture(args.advise_base_url, args.environment)
     )
     metadata = default_capture_metadata(
         repository_sha=args.repository_sha or _git_sha(),
@@ -177,107 +175,6 @@ def _load_or_run_live_suite(
     raise SystemExit(
         "Provide --live-suite-json, --live-suite-bundle, or --run-live-suite for repeatable proof."
     )
-
-
-def _probe_runtime_posture(base_url: str, environment: str) -> BackendRuntimePosture:
-    normalized_base_url = normalize_runtime_base_url(base_url)
-    endpoints: list[RuntimeEndpointEvidence] = []
-    with httpx.Client(timeout=10.0) as client:
-        endpoints.append(_probe_endpoint(client, normalized_base_url, "/health"))
-        endpoints.append(_probe_endpoint(client, normalized_base_url, "/health/live"))
-        endpoints.append(_probe_endpoint(client, normalized_base_url, "/health/ready"))
-        endpoints.append(_probe_endpoint(client, normalized_base_url, "/platform/capabilities"))
-    return BackendRuntimePosture(
-        base_url=normalized_base_url,
-        environment=environment,
-        endpoints=endpoints,
-    )
-
-
-def _probe_endpoint(
-    client: httpx.Client,
-    base_url: str,
-    endpoint: str,
-) -> RuntimeEndpointEvidence:
-    started_at = time.perf_counter()
-    try:
-        response = client.get(f"{base_url.rstrip('/')}{endpoint}")
-    except httpx.HTTPError as exc:
-        return RuntimeEndpointEvidence(
-            endpoint=endpoint,
-            http_status=None,
-            posture="UNAVAILABLE",
-            latency_ms=_elapsed_ms(started_at),
-            summary={"error_type": type(exc).__name__},
-        )
-    summary = (
-        _capability_summary(_json_body(response))
-        if endpoint == "/platform/capabilities"
-        else _health_summary(response)
-    )
-    posture = "READY" if 200 <= response.status_code < 300 else "DEGRADED"
-    return RuntimeEndpointEvidence(
-        endpoint=endpoint,
-        http_status=response.status_code,
-        posture=posture,
-        latency_ms=_elapsed_ms(started_at),
-        summary=summary,
-    )
-
-
-def _not_probed_runtime_posture(base_url: str, environment: str) -> BackendRuntimePosture:
-    normalized_base_url = normalize_runtime_base_url(base_url)
-    return BackendRuntimePosture(
-        base_url=normalized_base_url,
-        environment=environment,
-        endpoints=[
-            RuntimeEndpointEvidence(
-                endpoint=endpoint,
-                posture="NOT_PROBED",
-                summary={"reason": "runtime probe skipped by operator"},
-            )
-            for endpoint in ("/health", "/health/live", "/health/ready", "/platform/capabilities")
-        ],
-    )
-
-
-def _health_summary(response: httpx.Response) -> dict[str, Any]:
-    payload = _json_body(response)
-    if not isinstance(payload, dict):
-        return {"body_type": "non_json"}
-    return {key: payload.get(key) for key in ("status", "title", "detail") if key in payload}
-
-
-def _json_body(response: httpx.Response) -> Any:
-    try:
-        return response.json()
-    except ValueError:
-        return None
-
-
-def _elapsed_ms(started_at) -> int:
-    return int(round((time.perf_counter() - started_at) * 1000))
-
-
-def _capability_summary(payload: Any) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        return {"body_type": type(payload).__name__}
-    readiness = payload.get("readiness") if isinstance(payload.get("readiness"), dict) else {}
-    return {
-        "feature_keys": [
-            item.get("key")
-            for item in payload.get("features", [])
-            if isinstance(item, dict) and item.get("key")
-        ],
-        "workflow_keys": [
-            item.get("workflow_key")
-            for item in payload.get("workflows", [])
-            if isinstance(item, dict) and item.get("workflow_key")
-        ],
-        "operational_ready": readiness.get("operational_ready"),
-        "degraded": readiness.get("degraded"),
-        "degraded_reasons": readiness.get("degraded_reasons", []),
-    }
 
 
 def _git_sha() -> str:

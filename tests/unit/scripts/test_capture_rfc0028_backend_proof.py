@@ -9,11 +9,13 @@ import pytest
 from scripts.capture_rfc0028_backend_proof import (
     _DEFAULT_OUTPUT_DIR,
     _artifact_ref_prefix_for,
-    _not_probed_runtime_posture,
-    _probe_endpoint,
-    _probe_runtime_posture,
 )
 from scripts.rfc0028_backend_proof_writer import write_backend_proof_capture_bundle
+from scripts.rfc0028_runtime_probe import (
+    not_probed_runtime_posture,
+    probe_endpoint,
+    probe_runtime_posture,
+)
 from src.core.bank_demo_proof import (
     BackendRuntimePosture,
     RuntimeEndpointEvidence,
@@ -154,7 +156,7 @@ def test_runtime_probe_redacts_sensitive_material_and_records_latency() -> None:
 
     client = httpx.Client(transport=httpx.MockTransport(handler), base_url="http://test")
 
-    evidence = _probe_endpoint(client, "https://advise.dev.lotus", "/platform/capabilities")
+    evidence = probe_endpoint(client, "https://advise.dev.lotus", "/platform/capabilities")
 
     assert evidence.posture == "READY"
     assert evidence.http_status == 200
@@ -167,12 +169,12 @@ def test_runtime_probe_redacts_sensitive_material_and_records_latency() -> None:
 
 def test_runtime_probe_rejects_unsafe_base_url_before_capture() -> None:
     with pytest.raises(ValueError, match="credentials, query, or fragment"):
-        _probe_runtime_posture("https://user:secret@advise.dev.lotus?token=abc", "local")
+        probe_runtime_posture("https://user:secret@advise.dev.lotus?token=abc", "local")
 
     with pytest.raises(ValueError, match="credentials, query, or fragment"):
-        _not_probed_runtime_posture("https://advise.dev.lotus#token=abc", "local")
+        not_probed_runtime_posture("https://advise.dev.lotus#token=abc", "local")
 
-    posture = _not_probed_runtime_posture("https://advise.dev.lotus/runtime/", "local")
+    posture = not_probed_runtime_posture("https://advise.dev.lotus/runtime/", "local")
 
     assert posture.base_url == "https://advise.dev.lotus/runtime"
 
