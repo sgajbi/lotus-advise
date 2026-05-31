@@ -8865,6 +8865,7 @@
     `PROPOSAL_CONFLICT`, or `PROPOSAL_REQUEST_VALIDATION_FAILED`.
   - Focused tests covering proposal HTTP errors, internal guards, advisor cockpit, and policy
     evaluation APIs passed with 33 tests.
+  - Full repository `make check` passed with 1,561 unit tests.
 - Consequence:
   - Broad proposal-family API routes retain stable status semantics while reducing the chance of
     sensitive source evidence leaking through exception text.
