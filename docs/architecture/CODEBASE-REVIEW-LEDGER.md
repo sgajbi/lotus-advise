@@ -8160,3 +8160,31 @@
 - Follow-Up:
   - Keep any future claim-classification addition platform-backed and schema-tested before adding
     it to RFC, README, wiki, or commercial material.
+
+## LA-REV-309
+
+- Scope: RFC-0027 advisory copilot human-review posture documentation
+- Pattern: RFC review-state vocabulary must match the implemented copilot contract
+- Status: Hardened
+- Finding Class: RFC/API contract alignment and client-ready overclaim prevention
+- Summary: RFC-0027 still listed older human-review postures such as
+  `APPROVED_FOR_ADVISOR_USE`, `APPROVED_FOR_CLIENT_DRAFT_USE`,
+  `REJECTED_UNSUPPORTED_EVIDENCE`, and `REJECTED_POLICY_OR_GUARDRAIL`. The implemented copilot
+  contract exposes `APPROVED_FOR_INTERNAL_USE`, `REJECTED`, `UNSUPPORTED`,
+  `GUARDRAIL_REJECTED`, and `UNAVAILABLE` instead, with client-ready publication blocked. The RFC
+  now matches the shipped contract vocabulary.
+- Evidence:
+  - `docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md` now lists the implemented review
+    postures from `src/core/advisory_copilot/models.py`.
+  - `tests/unit/test_rfc0027_gold_standard_tightening_contract.py` asserts the implemented
+    postures are documented and the superseded names do not return.
+  - Focused RFC-0027 contract tests pass.
+- Consequence:
+  - Engineers, Gateway/Workbench consumers, and demo/support documentation readers see the same
+    copilot review-state vocabulary that the API and persistence layers actually use.
+- Documentation:
+  - RFC-0027 source truth changed. No wiki change was required because wiki/supported-feature truth
+    already describes governed internal advisor/reviewer copilot interactions.
+- Follow-Up:
+  - Keep any future review posture addition tied to model, API, OpenAPI, persistence, and RFC tests
+    in the same slice.

@@ -72,6 +72,32 @@ def test_rfc0027_commits_all_action_families_and_selected_api_surface() -> None:
     assert "`lotus-advise` never calls model providers directly" in flat_rfc
 
 
+def test_rfc0027_human_review_statuses_match_implemented_contract() -> None:
+    flat_rfc = _flat(RFC27_PATH)
+
+    implemented_statuses = (
+        "REVIEW_REQUIRED",
+        "APPROVED_FOR_INTERNAL_USE",
+        "REJECTED",
+        "SUPERSEDED",
+        "EXPIRED",
+        "UNSUPPORTED",
+        "GUARDRAIL_REJECTED",
+        "UNAVAILABLE",
+    )
+    for status in implemented_statuses:
+        assert f"`{status}`" in flat_rfc
+
+    unsupported_statuses = (
+        "APPROVED_FOR_ADVISOR_USE",
+        "APPROVED_FOR_CLIENT_DRAFT_USE",
+        "REJECTED_UNSUPPORTED_EVIDENCE",
+        "REJECTED_POLICY_OR_GUARDRAIL",
+    )
+    for status in unsupported_statuses:
+        assert status not in flat_rfc
+
+
 def test_rfc0027_requires_repeatable_seed_automation_and_lowest_layer_regression_tests() -> None:
     flat_rfc = _flat(RFC27_PATH)
 
