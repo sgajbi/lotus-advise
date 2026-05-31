@@ -5071,3 +5071,28 @@
 - Follow-Up:
   - Keep future in-memory fallback stores explicit about bounded capacity and deterministic
     validation before runtime traffic reaches them.
+
+## LA-REV-192
+
+- Scope: Workspace draft-action domain guards
+- Pattern: domain validation and optimized-runtime safety
+- Status: Hardened
+- Finding Class: validation and reliability gap
+- Summary: Workspace draft-action application relied on `assert` statements after request model
+  validation. Optimized Python can remove asserts, and tests or internal callers can construct
+  malformed request objects directly, turning domain validation failures into less predictable
+  attribute errors or missing-state behavior.
+- Evidence:
+  - `src/core/workspace/draft_actions.py` now uses explicit domain guard helpers for required
+    trade, cash-flow, row identifier, and replacement-option fields.
+  - `tests/unit/advisory/api/test_workspace_draft_actions.py` covers malformed constructed draft
+    action requests and verifies deterministic `WorkspaceDraftActionError` messages.
+- Consequence:
+  - Workspace draft mutation behavior no longer depends on Python assertion settings and remains
+    deterministic even when internal callers bypass Pydantic construction.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal workspace domain validation
+    without changing supported product behavior, operator workflow, or business-facing feature
+    posture.
+- Follow-Up:
+  - Avoid using `assert` for business or request-shape invariants in runtime domain mutation paths.
