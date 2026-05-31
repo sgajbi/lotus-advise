@@ -9,6 +9,7 @@ from src.core.bank_demo_proof import (
     RFC28_CANONICAL_PORTFOLIO_ID,
     RFC28_CANONICAL_PROOF_MARKER,
     BackendRuntimePosture,
+    MaterialFieldReview,
     RuntimeEndpointEvidence,
     build_backend_proof_capture,
     build_default_scenario_contract,
@@ -283,6 +284,28 @@ def test_material_field_review_blocks_claim_drift_at_lowest_layer() -> None:
             drifted,
             metadata=_metadata(),
             runtime_posture=_runtime_posture(),
+        )
+
+
+def test_material_field_review_rejects_sensitive_or_structured_observed_values() -> None:
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        MaterialFieldReview(
+            review_id="unsafe_observed_value",
+            source_path="parity.proposal_policy.evaluation_status",
+            observed_value="raw prompt was retained",
+            expected_posture="PENDING_REVIEW",
+            review_posture="BLOCKED",
+            claim_refs=["advisor_journey_backend_evidence_available"],
+        )
+
+    with pytest.raises(ValidationError, match="bounded scalar"):
+        MaterialFieldReview(
+            review_id="structured_observed_value",
+            source_path="parity.proposal_policy.evaluation_status",
+            observed_value={"status": "PENDING_REVIEW"},
+            expected_posture="PENDING_REVIEW",
+            review_posture="BLOCKED",
+            claim_refs=["advisor_journey_backend_evidence_available"],
         )
 
 

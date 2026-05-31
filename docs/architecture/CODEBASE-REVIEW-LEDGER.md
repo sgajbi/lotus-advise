@@ -6711,3 +6711,27 @@
     integration-proof semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-257
+
+- Scope: RFC-0028 material field review model
+- Pattern: live-proof review sanitization, scalar observed-value validation, claim-ref bounds
+- Status: Hardened
+- Finding Class: validation and proof-quality risk
+- Summary: RFC-0028 material field reviews are the lowest-level bridge from live runtime payloads
+  to supported-claim promotion, but direct review construction still accepted structured observed
+  payloads, sensitive observed text, and loose claim reference lists.
+- Evidence:
+  - `src/core/bank_demo_proof/capture.py` now bounds material review identifiers/source paths,
+    expected posture text, observed scalar values, and claim refs while rejecting sensitive runtime
+    fragments and structured observed payloads.
+  - Capture tests prove raw-prompt observed values and structured observed payloads are rejected at
+    the material-review boundary, while the canonical review path still passes.
+- Consequence:
+  - RFC-0028 proof automation has stronger lower-level protection before live evidence can be used
+    to promote claims into proof packs, commercial material, or documentation.
+- Documentation:
+  - No wiki source change is required. This is source-level hardening for existing RFC-0028 proof
+    capture semantics.
+- Follow-Up:
+  - None.
