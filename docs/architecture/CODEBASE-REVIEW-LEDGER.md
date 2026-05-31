@@ -5934,3 +5934,27 @@
     feature posture change.
 - Follow-Up:
   - None.
+
+## LA-REV-225
+
+- Scope: Workspace rationale Lotus AI tenant context
+- Pattern: domain vocabulary, private-banking tenant posture, and configuration consistency
+- Status: Hardened
+- Finding Class: stale hardcoded tenant context gap
+- Summary: The workspace rationale Lotus AI adapter still sent a hardcoded `tenant-us-002`
+  workflow caller context while the rest of the advisory AI integration used the Singapore private
+  banking default or the `LOTUS_ADVISE_TENANT_ID` runtime setting. This created inconsistent
+  tenant context for RFC 27 workspace rationale flows.
+- Evidence:
+  - `src/integrations/lotus_ai/rationale.py` now uses `LOTUS_ADVISE_TENANT_ID` with the governed
+    `tenant-sg-001` default.
+  - Lotus AI rationale tests prove both the default private-banking tenant context and runtime
+    tenant override behavior.
+- Consequence:
+  - Workspace rationale workflow-pack calls now carry consistent private-banking tenant context
+    across advisory AI paths.
+- Documentation:
+  - No wiki source change is required. This aligns runtime configuration behavior with existing
+    advisory AI tenant posture and does not change supported feature scope.
+- Follow-Up:
+  - None.

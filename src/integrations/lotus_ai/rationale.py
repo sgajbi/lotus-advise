@@ -123,7 +123,7 @@ def _build_workflow_pack_request(
                 "caller_app": "lotus-advise",
                 "correlation_id": f"workspace-rationale-{evidence.workspace_id}",
                 "requested_by": request.requested_by,
-                "tenant_id": "tenant-us-002",
+                "tenant_id": os.getenv("LOTUS_ADVISE_TENANT_ID", "tenant-sg-001"),
             },
             "context": {
                 "summary": (

@@ -481,15 +481,32 @@ def test_map_workflow_pack_run_sets_summary_notes_for_key_states() -> None:
     assert historical.replacement_run_id == "packrun_workspace_rationale_req_004"
 
 
-def test_workflow_pack_request_includes_resolved_context_and_portfolio_source_ref() -> None:
+def test_workflow_pack_request_includes_resolved_context_and_portfolio_source_ref(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID", raising=False)
+
     request_payload = _build_workflow_pack_request(
         request=_build_request(),
         evidence=_build_stateful_evidence(),
     )
 
+    task_request = request_payload["task_request"]
+    assert task_request["caller"]["tenant_id"] == "tenant-sg-001"
     task_context = request_payload["task_request"]["context"]
     assert task_context["payload"]["resolved_context"]["portfolio_id"] == "pf_001"
     assert "lotus-advise:portfolio:pf_001" in task_context["source_refs"]
+
+
+def test_workflow_pack_request_uses_configured_tenant_id(monkeypatch) -> None:
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001")
+
+    request_payload = _build_workflow_pack_request(
+        request=_build_request(),
+        evidence=_build_stateful_evidence(),
+    )
+
+    assert request_payload["task_request"]["caller"]["tenant_id"] == "tenant-private-bank-001"
 
 
 def test_build_source_refs_ignores_missing_portfolio_id() -> None:
