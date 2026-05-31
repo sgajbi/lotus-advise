@@ -193,6 +193,30 @@ def test_advisor_cockpit_models_reject_sensitive_or_oversized_business_copy() ->
             summary="Raw prompt material is available for advisor review.",
         )
 
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        CockpitEvidenceRef(
+            evidence_id="policy_eval_sg_001",
+            evidence_type="POLICY_EVALUATION",
+            source_system="lotus-advise",
+            access_class="RESTRICTED_CUSTOMER_EVIDENCE",
+            summary="raw_payload retained with trace_id for operator diagnosis.",
+        )
+
+    with pytest.raises(ValidationError, match="sensitive technical detail"):
+        AdvisoryActionItem(
+            action_item_id="aci_meeting_001",
+            action_item_version=1,
+            action_family="CLIENT_MEETING_PREPARATION",
+            status="READY",
+            priority="MEDIUM",
+            owner_role="ADVISOR",
+            owning_system="lotus-advise",
+            title="Trace_id retained for follow up",
+            next_required_action="Review the source-backed advisory evidence.",
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            sla_age_band="NOT_APPLICABLE",
+        )
+
     with pytest.raises(ValidationError):
         _action("x" * 161)
 

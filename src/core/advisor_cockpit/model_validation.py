@@ -19,6 +19,9 @@ _COCKPIT_SENSITIVE_TERMS = (
     "raw prompt",
     "raw payload",
     "provider response",
+    "provider output",
+    "trace id",
+    "correlation id",
 )
 _COCKPIT_OWNER_ROLE_LABELS = {
     "ADVISOR": "Advisor",
@@ -84,5 +87,5 @@ def normalize_identifier_list(value: list[str], *, field_name: str) -> list[str]
 
 
 def contains_sensitive_term(value: str) -> bool:
-    lowered = value.lower().replace("-", " ")
+    lowered = value.lower().replace("-", " ").replace("_", " ")
     return any(term in lowered for term in _COCKPIT_SENSITIVE_TERMS)

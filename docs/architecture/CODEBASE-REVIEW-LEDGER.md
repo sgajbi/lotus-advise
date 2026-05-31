@@ -8846,6 +8846,36 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-369
+
+- Scope: RFC-0026 advisor cockpit business-copy leakage guard
+- Pattern: Advisor-facing cockpit models should reject sensitive operational terminology even when
+  it appears in underscore-delimited form
+- Status: Hardened
+- Finding Class: Security posture and sensitive-data handling
+- Summary: The cockpit model validator blocked sensitive terms such as `raw prompt` and
+  `raw payload` when written with spaces or hyphens, but underscore-delimited forms such as
+  `raw_payload`, `trace_id`, or `correlation_id` could still pass into business-facing evidence
+  summaries, action titles, and next-action copy. That is an avoidable leakage risk for Gateway and
+  Workbench consumers of RFC-0026 cockpit payloads.
+- Evidence:
+  - Hardened `src/core/advisor_cockpit/model_validation.py` to normalize underscores before
+    sensitive-term matching.
+  - Added `provider output`, `trace id`, and `correlation id` to the cockpit sensitive-term guard.
+  - Added model-boundary regression tests proving `raw_payload`, `trace_id`, and related technical
+    copy are rejected before API or UI projection.
+  - Focused advisor-cockpit model tests passed with 9 tests.
+- Consequence:
+  - RFC-0026 cockpit payloads fail closed if source-readiness, acknowledgement, or action-building
+    paths accidentally try to expose raw runtime or observability identifiers in advisor-facing
+    copy.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    model-boundary hardening for an existing supported contract.
+- Follow-Up:
+  - Continue aligning RFC-0026 and RFC-0027 leakage guards so business-facing payloads reject both
+    natural-language and identifier-shaped technical details.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
