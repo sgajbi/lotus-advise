@@ -211,6 +211,57 @@ def test_simulate_with_lotus_core_sends_contract_header_and_validates_response(m
     )
 
 
+def test_simulate_with_lotus_core_sanitizes_configured_base_url(monkeypatch):
+    fake_client = _FakeClient(
+        _FakeResponse(
+            status_code=200,
+            payload=_result_payload(),
+            headers={
+                ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER: ADVISORY_SIMULATION_CONTRACT_VERSION
+            },
+        )
+    )
+    monkeypatch.setenv(
+        "LOTUS_CORE_BASE_URL",
+        "https://user:secret@lotus-core:8201/api?token=should-not-leak#fragment",
+    )
+    monkeypatch.setattr(
+        "src.integrations.lotus_core.simulation.httpx.Client", lambda timeout: fake_client
+    )
+
+    simulate_with_lotus_core(
+        request=_request(),
+        request_hash="sha256:test-hash",
+        idempotency_key="idem-1",
+        correlation_id="corr-1",
+    )
+
+    assert fake_client.calls[0]["url"] == (
+        "https://lotus-core:8201/api/integration/advisory/proposals/simulate-execution"
+    )
+    assert "secret" not in fake_client.calls[0]["url"]
+    assert "token" not in fake_client.calls[0]["url"]
+
+
+def test_simulate_with_lotus_core_rejects_invalid_base_url_without_http_client(monkeypatch):
+    def _unexpected_client(*args: object, **kwargs: object) -> _FakeClient:
+        raise AssertionError("invalid lotus-core base URL should fail before opening a client")
+
+    monkeypatch.setenv("LOTUS_CORE_BASE_URL", "ftp://lotus-core:8201")
+    monkeypatch.setattr("src.integrations.lotus_core.simulation.httpx.Client", _unexpected_client)
+
+    with pytest.raises(
+        LotusCoreSimulationUnavailableError,
+        match="LOTUS_CORE_SIMULATION_UNAVAILABLE",
+    ):
+        simulate_with_lotus_core(
+            request=_request(),
+            request_hash="sha256:test-hash",
+            idempotency_key="idem-1",
+            correlation_id="corr-1",
+        )
+
+
 def test_simulate_with_lotus_core_rejects_response_header_contract_mismatch(monkeypatch):
     fake_client = _FakeClient(
         _FakeResponse(

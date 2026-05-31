@@ -48,14 +48,26 @@ def probe_dependency_health(base_url: str) -> bool:
 
 
 def _is_http_probe_base_url(base_url: str) -> bool:
+    return sanitized_http_base_url(base_url) is not None
+
+
+def sanitized_http_base_url(base_url: str | None) -> str | None:
+    if base_url is None:
+        return None
+    trimmed = base_url.strip().rstrip("/")
+    if not trimmed:
+        return None
     split = urlsplit(base_url.strip())
     if split.scheme not in {"http", "https"} or split.hostname is None:
-        return False
+        return None
     try:
-        _ = split.port
+        port = split.port
     except ValueError:
-        return False
-    return True
+        return None
+    netloc = split.hostname
+    if port is not None:
+        netloc = f"{netloc}:{port}"
+    return urlunsplit((split.scheme, netloc, split.path.rstrip("/"), "", ""))
 
 
 def public_dependency_base_url(base_url: str | None) -> str | None:
@@ -67,16 +79,7 @@ def public_dependency_base_url(base_url: str | None) -> str | None:
     split = urlsplit(trimmed)
     if not split.scheme or not split.netloc:
         return trimmed
-    if split.hostname is None:
-        return None
-    try:
-        port = split.port
-    except ValueError:
-        return None
-    netloc = split.hostname
-    if port is not None:
-        netloc = f"{netloc}:{port}"
-    return urlunsplit((split.scheme, netloc, split.path.rstrip("/"), "", ""))
+    return sanitized_http_base_url(trimmed)
 
 
 def build_dependency_state(

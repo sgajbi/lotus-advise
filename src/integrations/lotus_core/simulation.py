@@ -4,6 +4,7 @@ from typing import Any, cast
 import httpx
 
 from src.core.models import ProposalResult, ProposalSimulateRequest
+from src.integrations.base import sanitized_http_base_url
 from src.integrations.lotus_core.contracts import (
     ADVISORY_SIMULATION_CONTRACT_VERSION,
     ADVISORY_SIMULATION_CONTRACT_VERSION_HEADER,
@@ -27,9 +28,9 @@ class LotusCoreSimulationUnavailableError(Exception):
 
 
 def _resolve_base_url() -> str:
-    configured = os.getenv("LOTUS_CORE_BASE_URL")
+    configured = sanitized_http_base_url(os.getenv("LOTUS_CORE_BASE_URL"))
     if configured:
-        return configured.rstrip("/")
+        return configured
     raise LotusCoreSimulationUnavailableError("LOTUS_CORE_SIMULATION_UNAVAILABLE")
 
 

@@ -5731,3 +5731,29 @@
     feature posture change.
 - Follow-Up:
   - None.
+
+## LA-REV-217
+
+- Scope: Lotus-core simulation base URL sanitization
+- Pattern: sensitive configuration handling and upstream integration hardening
+- Status: Hardened
+- Finding Class: security and configuration hygiene gap
+- Summary: The direct lotus-core simulation adapter still constructed upstream request URLs from
+  raw `LOTUS_CORE_BASE_URL` even after stateful-context routing was hardened. Credential-bearing
+  URLs, query tokens, fragments, or non-http schemes could therefore reach the simulation call
+  path.
+- Evidence:
+  - `src/integrations/base.py` now provides reusable `sanitized_http_base_url` for integration
+    runtime URL handling.
+  - `src/integrations/lotus_core/simulation.py` now strips credentials, query strings, and
+    fragments from the configured base URL and rejects non-http(s) values before opening a client.
+  - Lotus-core simulation tests now prove sanitized request URL construction and fail-closed
+    behavior for invalid configured schemes.
+- Consequence:
+  - Advise no longer propagates embedded URL credentials through the direct lotus-core simulation
+    execution path, and invalid schemes fail before network activity.
+- Documentation:
+  - No wiki source change is required. This is runtime configuration hardening with no supported
+    feature posture change.
+- Follow-Up:
+  - None.
