@@ -7685,3 +7685,32 @@
     hardening with unchanged public API semantics.
 - Follow-Up:
   - Continue auditing metadata and CLI writer behavior if operator-facing proof capture changes.
+
+## LA-REV-292
+
+- Scope: RFC-0028 backend proof artifact writer
+- Pattern: artifact writing and summary rendering separated from proof-capture CLI orchestration
+- Status: Hardened
+- Finding Class: operator automation modularity and evidence-output drift risk
+- Summary: `scripts/capture_rfc0028_backend_proof.py` owned CLI parsing, live-suite loading,
+  runtime probing, proof-bundle assembly, artifact writing, manifest construction, JSON encoding,
+  and Markdown summary rendering. The artifact writer is the repeatable operator evidence-output
+  contract, so keeping it inside the CLI made it harder to test and reuse without invoking the
+  runtime probe and live-suite orchestration path.
+- Evidence:
+  - `scripts/rfc0028_backend_proof_writer.py` now owns sanitized artifact paths, manifest
+    artifact references, JSON output, and business-facing capture-summary rendering.
+  - `scripts/capture_rfc0028_backend_proof.py` now delegates artifact writing while retaining CLI,
+    live-suite source selection, runtime probing, and metadata assembly.
+  - `tests/unit/scripts/test_capture_rfc0028_backend_proof.py` now imports the writer directly
+    and continues to prove sanitized artifact output, relative manifest refs, no raw source hashes,
+    runtime latency presentation, and blocked client-ready posture.
+- Consequence:
+  - RFC-0028 proof-output behavior is easier to audit independently from CLI/runtime behavior, and
+    future writer changes have a smaller blast radius.
+- Documentation:
+  - No README or wiki source change is required. The public capture command and artifact names are
+    unchanged.
+- Follow-Up:
+  - Continue auditing runtime probe orchestration only if additional endpoint families or operator
+    CLI options are added.

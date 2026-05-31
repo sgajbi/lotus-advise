@@ -12,8 +12,8 @@ from scripts.capture_rfc0028_backend_proof import (
     _not_probed_runtime_posture,
     _probe_endpoint,
     _probe_runtime_posture,
-    write_backend_proof_capture_bundle,
 )
+from scripts.rfc0028_backend_proof_writer import write_backend_proof_capture_bundle
 from src.core.bank_demo_proof import (
     BackendRuntimePosture,
     RuntimeEndpointEvidence,
