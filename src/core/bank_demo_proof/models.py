@@ -7,7 +7,10 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from src.core.bank_demo_proof.artifact_refs import normalize_local_artifact_ref
-from src.core.bank_demo_proof.validation import contains_sensitive_rfc28_term
+from src.core.bank_demo_proof.validation import (
+    contains_sensitive_rfc28_term,
+    normalize_lotus_advise_contract_ref,
+)
 
 SupportedClaimClassification = Literal[
     "IMPLEMENTATION_BACKED",
@@ -575,12 +578,15 @@ class AdvisoryBankDemoProofPack(BaseModel):
         "primary_portfolio_id",
         "proof_marker",
         "correlation_id",
-        "scenario_contract_ref",
-        "supported_claim_register_ref",
     )
     @classmethod
     def _proof_pack_identifiers_must_be_bounded(cls, value: str) -> str:
         return _normalize_required_text(value, error_code="proof-pack identifier is required")
+
+    @field_validator("scenario_contract_ref", "supported_claim_register_ref")
+    @classmethod
+    def _proof_pack_contract_refs_must_be_safe(cls, value: str) -> str:
+        return normalize_lotus_advise_contract_ref(value, field_name="proof-pack contract ref")
 
     @field_validator("generated_at")
     @classmethod

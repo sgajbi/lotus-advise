@@ -8785,6 +8785,33 @@
   - Keep historical slice records audit-friendly, but keep current RFC and wiki summaries aligned
     with the implemented RFC-0028 supported-claim boundary.
 
+## LA-REV-332
+
+- Scope: RFC-0028 proof-pack logical contract references
+- Pattern: Proof-pack references should be bounded Lotus logical refs, not arbitrary URL-shaped
+  strings
+- Status: Hardened
+- Finding Class: Security posture and API model validation
+- Summary: `AdvisoryBankDemoProofPack` normalized `scenario_contract_ref` and
+  `supported_claim_register_ref` as generic required text. That preserved normal output but did
+  not reject external URLs, query strings, fragments, credentials, or sensitive path fragments in
+  those contract-reference fields.
+- Evidence:
+  - Added `normalize_lotus_advise_contract_ref` for RFC-0028 Lotus Advise logical contract refs.
+  - Applied the validator to proof-pack scenario-contract and supported-claim-register refs.
+  - Added model regression tests for external URLs, query/token leakage, and sensitive contract
+    reference fragments.
+  - Focused proof-model tests and `python -m compileall src/core/bank_demo_proof` passed.
+- Consequence:
+  - Proof-pack API payloads cannot smuggle arbitrary external references or sensitive material
+    through contract-ref fields while preserving the governed `lotus-advise://...` contract ids.
+- Documentation:
+  - Review ledger updated. No public README/wiki change is required because the supported public
+    contract shape did not change.
+- Follow-Up:
+  - Keep future proof-pack reference fields wired through explicit logical-ref or artifact-ref
+    validators instead of generic string normalization.
+
 ## LA-REV-326
 
 - Scope: OpenAPI enrichment portfolio-id example vocabulary
