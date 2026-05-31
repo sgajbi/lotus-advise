@@ -41,6 +41,7 @@ from src.core.advisor_cockpit.rules import (
     with_cockpit_sla_age_band,
 )
 from src.core.advisor_cockpit.source_read_model import (
+    COCKPIT_SOURCE_BATCH_MAX_ITEMS,
     AdvisorCockpitSourceBatch,
     AdvisorCockpitSourceReadModel,
     build_advisor_cockpit_source_read_model,
@@ -58,7 +59,7 @@ from src.core.tactical_house_view import (
     list_tactical_house_view_affected_cohorts,
 )
 
-COCKPIT_SOURCE_LIMIT = 100
+COCKPIT_SOURCE_LIMIT = COCKPIT_SOURCE_BATCH_MAX_ITEMS
 COCKPIT_CONTRACT_VERSION = "rfc0026.advisor-cockpit-api.v1"
 
 

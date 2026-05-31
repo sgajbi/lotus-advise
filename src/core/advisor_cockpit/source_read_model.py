@@ -43,39 +43,48 @@ APPROVAL_DEPENDENCY_STATES: dict[str, ProposalApprovalType] = {
     "COMPLIANCE_REVIEW": "COMPLIANCE",
     "AWAITING_CLIENT_CONSENT": "CLIENT_CONSENT",
 }
+COCKPIT_SOURCE_BATCH_MAX_ITEMS = 100
 
 
 class AdvisorCockpitSourceBatch(BaseModel):
     proposals: list[ProposalRecord] = Field(
         default_factory=list,
+        max_length=COCKPIT_SOURCE_BATCH_MAX_ITEMS,
         description="Preloaded proposal records in the bounded cockpit scope.",
     )
     policy_evaluations: list[PolicyEvaluationRecord] = Field(
         default_factory=list,
+        max_length=COCKPIT_SOURCE_BATCH_MAX_ITEMS,
         description="Preloaded policy evaluation records in the bounded cockpit scope.",
     )
     memos: list[ProposalMemoRecord] = Field(
         default_factory=list,
+        max_length=COCKPIT_SOURCE_BATCH_MAX_ITEMS,
         description="Preloaded proposal memo records in the bounded cockpit scope.",
     )
     approvals: list[ProposalApprovalRecordData] = Field(
         default_factory=list,
+        max_length=COCKPIT_SOURCE_BATCH_MAX_ITEMS,
         description="Preloaded proposal approval records in the bounded cockpit scope.",
     )
     workflow_events: list[ProposalWorkflowEventRecord] = Field(
         default_factory=list,
+        max_length=COCKPIT_SOURCE_BATCH_MAX_ITEMS,
         description="Preloaded proposal workflow events in the bounded cockpit scope.",
     )
     house_view_impacts: list[HouseViewImpactActionSource] = Field(
         default_factory=list,
+        max_length=COCKPIT_SOURCE_BATCH_MAX_ITEMS,
         description="Source-backed tactical house-view impacts supplied by the source authority.",
     )
     supportability_events: list[SupportabilityDegradedActionSource] = Field(
         default_factory=list,
+        max_length=COCKPIT_SOURCE_BATCH_MAX_ITEMS,
         description="Preloaded source dependency readiness events.",
     )
     unsupported_capabilities: list[UnsupportedCapabilityActionSource] = Field(
         default_factory=list,
+        max_length=COCKPIT_SOURCE_BATCH_MAX_ITEMS,
         description="Explicit unsupported capability markers for the bounded scope.",
     )
 

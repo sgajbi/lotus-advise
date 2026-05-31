@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import pytest
+from pydantic import ValidationError
+
 from src.core.advisor_cockpit import (
     ACTIVE_PROPOSAL_STATES,
     APPROVAL_DEPENDENCY_STATES,
     COCKPIT_POLICY_REVIEW_STATUSES,
+    COCKPIT_SOURCE_BATCH_MAX_ITEMS,
     FOLLOW_UP_PROPOSAL_STATES,
     AdvisorCockpitSourceBatch,
     AdvisorCockpitSourceReadModel,
@@ -35,6 +39,17 @@ def test_source_read_model_exports_cockpit_source_filters() -> None:
         "AWAITING_CLIENT_CONSENT": "CLIENT_CONSENT",
     }
     assert COCKPIT_POLICY_REVIEW_STATUSES == frozenset({"PENDING_REVIEW", "BLOCKED"})
+    assert COCKPIT_SOURCE_BATCH_MAX_ITEMS == 100
+
+
+def test_source_read_model_rejects_unbounded_source_batches() -> None:
+    with pytest.raises(ValidationError, match="List should have at most 100 items"):
+        AdvisorCockpitSourceBatch(
+            proposals=[
+                _proposal("COMPLIANCE_REVIEW", proposal_id=f"proposal_sg_{index:03d}")
+                for index in range(COCKPIT_SOURCE_BATCH_MAX_ITEMS + 1)
+            ]
+        )
 
 
 def _proposal(state: str, proposal_id: str = "proposal_sg_001") -> ProposalRecord:

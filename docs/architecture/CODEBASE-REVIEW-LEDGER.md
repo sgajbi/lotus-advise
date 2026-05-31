@@ -6798,3 +6798,29 @@
 - Follow-Up:
   - Continue auditing source read-model collection bounds and supportability metadata for runaway
     source batches.
+
+## LA-REV-260
+
+- Scope: RFC-0026 advisor cockpit source read-model batch boundary
+- Pattern: governed source batch limit alignment
+- Status: Hardened
+- Finding Class: performance and direct-boundary risk
+- Summary: `AdvisorCockpitService` loaded source records with a 100-record governed limit, but
+  direct `AdvisorCockpitSourceBatch` construction did not encode that same boundary. Tests and
+  internal callers could bypass the service limit and build runaway read-model batches.
+- Evidence:
+  - `src/core/advisor_cockpit/source_read_model.py` now owns
+    `COCKPIT_SOURCE_BATCH_MAX_ITEMS` and applies it to every preloaded source collection in
+    `AdvisorCockpitSourceBatch`.
+  - `src/core/advisor_cockpit/service.py` now derives `COCKPIT_SOURCE_LIMIT` from the read-model
+    batch contract rather than duplicating the numeric limit.
+  - Source read-model tests prove oversized source batches are rejected at construction time and
+    the exported limit remains the governed 100-record boundary.
+- Consequence:
+  - RFC-0026 cockpit read-model construction is consistent across service and direct usage,
+    reducing runaway memory, latency, and unbounded-source risk before Gateway or Workbench reads.
+- Documentation:
+  - No wiki source change is required. This is a source-level operational hardening of existing
+    RFC-0026 behavior.
+- Follow-Up:
+  - Continue auditing cockpit supportability metadata for bounded, business-facing output.
