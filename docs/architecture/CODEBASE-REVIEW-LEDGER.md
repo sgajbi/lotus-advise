@@ -8846,6 +8846,36 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-348
+
+- Scope: Workspace service error-detail boundaries
+- Pattern: Workspace service-layer exceptions should preserve controlled business codes without
+  propagating sensitive upstream/provider detail toward the route layer
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: Workspace routes already redacted sensitive detail at the HTTP boundary, but workspace
+  services still wrapped lower-layer exceptions with raw `str(exc)` for reevaluation, draft-action,
+  lifecycle-handoff, and AI-rationale unavailable paths. A sensitive lower-layer message would be
+  redacted before the client response, but the service boundary itself still carried the sensitive
+  text farther than necessary.
+- Evidence:
+  - Added shared workspace service error-detail sanitization in
+    `src/api/services/workspace_errors.py`.
+  - Applied the sanitizer to workspace reevaluation, draft-action mutation, lifecycle handoff, and
+    workspace AI rationale/review-action unavailable errors.
+  - Added a service-level regression proving sensitive reevaluation context detail is collapsed to
+    `WORKSPACE_EVALUATION_UNAVAILABLE` before leaving the service boundary.
+  - Focused `ruff`, format check, and workspace API tests passed with 44 tests.
+- Consequence:
+  - Workspace API routes retain stable business error semantics while sensitive upstream, AI, or
+    raw-context text is blocked one layer earlier.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    service-boundary hardening for existing workspace behavior.
+- Follow-Up:
+  - Continue moving raw lower-layer exception text behind controlled codes where service boundaries
+    wrap integration, persistence, or provider failures.
+
 ## LA-REV-347
 
 - Scope: Advisor cockpit service projection structure

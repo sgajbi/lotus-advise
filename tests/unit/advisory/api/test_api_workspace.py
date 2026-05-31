@@ -27,6 +27,7 @@ from tests.shared.stateful_context_builders import (
 )
 
 workspace_router = importlib.import_module("src.api.workspaces.router")
+workspace_service_module = importlib.import_module("src.api.services.workspace_service")
 
 
 @pytest.fixture(autouse=True)
@@ -765,6 +766,51 @@ def test_workspace_evaluate_rejects_missing_resolved_context() -> None:
         reevaluate_workspace_session(workspace_id)
 
     assert str(exc.value) == "WORKSPACE_RESOLVED_CONTEXT_MISSING"
+
+
+def test_workspace_service_redacts_sensitive_evaluation_context_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    create_payload = {
+        "workspace_name": "Sensitive context failure workspace",
+        "created_by": "advisor_123",
+        "input_mode": "stateless",
+        "stateless_input": {
+            "simulate_request": {
+                "portfolio_snapshot": {
+                    "portfolio_id": "pf_sensitive_context",
+                    "base_currency": "USD",
+                },
+                "market_data_snapshot": {"prices": [], "fx_rates": []},
+                "shelf_entries": [],
+                "options": {"enable_proposal_simulation": True},
+                "proposed_cash_flows": [],
+                "proposed_trades": [],
+            }
+        },
+    }
+
+    with TestClient(app) as client:
+        workspace_id = client.post("/advisory/workspaces", json=create_payload).json()["workspace"][
+            "workspace_id"
+        ]
+
+    def _raise_sensitive_context_error(**_kwargs: Any) -> None:
+        raise workspace_service_module.WorkspaceReevaluationContextError(
+            "raw payload includes Authorization Bearer token material"
+        )
+
+    monkeypatch.setattr(
+        workspace_service_module,
+        "build_workspace_evaluation_context",
+        _raise_sensitive_context_error,
+    )
+
+    with pytest.raises(WorkspaceEvaluationUnavailableError) as exc:
+        reevaluate_workspace_session(workspace_id)
+
+    assert str(exc.value) == "WORKSPACE_EVALUATION_UNAVAILABLE"
+    assert "token" not in str(exc.value).lower()
 
 
 def test_workspace_endpoints_return_404_for_missing_workspace():

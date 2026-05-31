@@ -1,3 +1,7 @@
+from src.api.services.workspace_errors import (
+    WORKSPACE_AI_UNAVAILABLE_DETAIL,
+    safe_workspace_error_detail,
+)
 from src.api.services.workspace_service import get_workspace_session
 from src.core.workspace.assistant_evidence import build_workspace_assistant_evidence
 from src.core.workspace.models import (
@@ -32,7 +36,9 @@ def generate_workspace_rationale(
             evidence=evidence,
         )
     except LotusAIRationaleUnavailableError as exc:
-        raise WorkspaceAssistantUnavailableError(str(exc)) from exc
+        raise WorkspaceAssistantUnavailableError(
+            safe_workspace_error_detail(str(exc), fallback=WORKSPACE_AI_UNAVAILABLE_DETAIL)
+        ) from exc
 
 
 def apply_workspace_rationale_review_action(
@@ -47,4 +53,6 @@ def apply_workspace_rationale_review_action(
             workspace_id=workspace_id,
         )
     except LotusAIRationaleUnavailableError as exc:
-        raise WorkspaceAssistantUnavailableError(str(exc)) from exc
+        raise WorkspaceAssistantUnavailableError(
+            safe_workspace_error_detail(str(exc), fallback=WORKSPACE_AI_UNAVAILABLE_DETAIL)
+        ) from exc

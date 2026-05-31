@@ -1,8 +1,10 @@
 from collections.abc import Callable
 
 from src.api.services.workspace_errors import (
+    WORKSPACE_LIFECYCLE_HANDOFF_UNAVAILABLE_DETAIL,
     WorkspaceEvaluationUnavailableError,
     WorkspaceLifecycleHandoffUnavailableError,
+    safe_workspace_error_detail,
 )
 from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.models import ProposalSimulateRequest
@@ -66,7 +68,12 @@ def execute_workspace_lifecycle_handoff(
                 simulate_request_builder=simulate_request_builder,
             )
     except (ValueError, WorkspaceEvaluationUnavailableError, WorkspaceHandoffError) as exc:
-        raise WorkspaceLifecycleHandoffUnavailableError(str(exc)) from exc
+        raise WorkspaceLifecycleHandoffUnavailableError(
+            safe_workspace_error_detail(
+                str(exc),
+                fallback=WORKSPACE_LIFECYCLE_HANDOFF_UNAVAILABLE_DETAIL,
+            )
+        ) from exc
 
     return complete_workspace_lifecycle_handoff(
         session=session,
