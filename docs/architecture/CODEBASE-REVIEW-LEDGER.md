@@ -8574,3 +8574,27 @@
 - Follow-Up:
   - Keep historical slice records audit-friendly, but update current-state README/wiki/index truth
     whenever a later RFC implements a previously gated supported-claim package.
+
+## LA-REV-323
+
+- Scope: RFC-0028 proof-pack correlation header contract
+- Pattern: RFC-0028 proof endpoints should use the same correlation-id header spelling as the
+  surrounding Advise RFC APIs
+- Status: Hardened
+- Finding Class: API contract consistency
+- Summary: The proof-pack endpoint accepted and documented `X-Correlation-Id`, while the RFC-0026
+  and RFC-0027 Advise APIs expose `X-Correlation-ID`. HTTP header matching is case-insensitive at
+  runtime, but OpenAPI consumers and generated clients should see one consistent contract.
+- Evidence:
+  - Updated the RFC-0028 proof-pack route header alias to `X-Correlation-ID`.
+  - Updated API tests to send the canonical header and assert the OpenAPI parameter name,
+    location, and max-length contract.
+- Consequence:
+  - Gateway, Workbench, automation, and client SDK consumers now see a consistent correlation-id
+    contract across the implemented RFC-0026 through RFC-0028 Advise APIs.
+- Documentation:
+  - No wiki source change is required. This is an OpenAPI contract consistency fix for an existing
+    runtime behavior boundary.
+- Follow-Up:
+  - Continue final RFC-0028 closure review across proof automation, documentation truth, and
+    branch hygiene before PR handoff.

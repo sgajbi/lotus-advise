@@ -53,7 +53,7 @@ def test_bank_demo_proof_pack_endpoint_returns_sanitized_gateway_consumable_bund
         response = client.post(
             "/advisory/bank-demo-proof/proof-packs",
             json=request,
-            headers={"X-Correlation-Id": "corr-rfc0028-api-proof"},
+            headers={"X-Correlation-ID": "corr-rfc0028-api-proof"},
         )
 
     assert response.status_code == 200
@@ -197,7 +197,7 @@ def test_bank_demo_proof_pack_endpoint_bounds_metadata_and_correlation_header() 
         long_correlation = client.post(
             "/advisory/bank-demo-proof/proof-packs",
             json={**request, "repository_sha": "api-sha-123"},
-            headers={"X-Correlation-Id": "x" * 129},
+            headers={"X-Correlation-ID": "x" * 129},
         )
         long_live_payload = client.post(
             "/advisory/bank-demo-proof/proof-packs",
@@ -216,6 +216,13 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
 
     assert operation["tags"] == ["Bank Demo Proof"]
     assert "Gateway and Workbench cannot promote stale" in operation["description"]
+    parameter_by_name = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert "X-Correlation-ID" in parameter_by_name
+    assert "X-Correlation-Id" not in parameter_by_name
+    assert parameter_by_name["X-Correlation-ID"]["in"] == "header"
+    correlation_header_schema = parameter_by_name["X-Correlation-ID"]["schema"]
+    assert correlation_header_schema["title"] == "X-Correlation-ID"
+    assert {"type": "string", "maxLength": 128} in correlation_header_schema["anyOf"]
     assert "409" in operation["responses"]
     assert "422" in operation["responses"]
     assert "source evidence validation failed" in operation["responses"]["422"]["description"]

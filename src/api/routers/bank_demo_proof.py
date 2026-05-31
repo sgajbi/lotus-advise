@@ -115,7 +115,8 @@ def build_bank_demo_proof_pack(
     x_correlation_id: Annotated[
         str | None,
         Header(
-            alias="X-Correlation-Id",
+            alias="X-Correlation-ID",
+            title="X-Correlation-ID",
             description="Optional caller correlation id propagated into proof metadata.",
             max_length=RFC28_CORRELATION_ID_MAX_LENGTH,
         ),

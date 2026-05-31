@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-31T13:08:02.284041+00:00",
+  "generatedAt": "2026-05-31T20:19:22.730245+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -47477,7 +47477,7 @@
       "request": {
         "fields": [
           {
-            "name": "X-Correlation-Id",
+            "name": "X-Correlation-ID",
             "location": "header",
             "required": false,
             "type": "object",
