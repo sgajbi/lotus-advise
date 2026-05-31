@@ -8776,6 +8776,7 @@
     policy approval authority, OMS/order lifecycle, and execution/settlement claims.
   - Updated RFC-0024/RFC-0025 final-closure contract tests and added a public-doc vocabulary
     guard against stale RFC-0028 gating phrases in current public documentation.
+  - Full `make check` passed with 1555 unit tests after formatting.
 - Consequence:
   - Implementation-backed commercial proof can be described accurately without promoting
     client-ready publication or approval authority.
@@ -8801,7 +8802,8 @@
   - Applied the validator to proof-pack scenario-contract and supported-claim-register refs.
   - Added model regression tests for external URLs, query/token leakage, and sensitive contract
     reference fragments.
-  - Focused proof-model tests and `python -m compileall src/core/bank_demo_proof` passed.
+  - Focused proof-model tests, `python -m compileall src/core/bank_demo_proof`, and full
+    `make check` passed with 1555 unit tests.
 - Consequence:
   - Proof-pack API payloads cannot smuggle arbitrary external references or sensitive material
     through contract-ref fields while preserving the governed `lotus-advise://...` contract ids.

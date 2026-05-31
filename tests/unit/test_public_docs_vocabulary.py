@@ -46,7 +46,9 @@ def test_current_public_docs_do_not_preserve_stale_rfc0028_gating_language() -> 
         "bank-demo/rfp package claims remain gated",
     )
     current_docs = PUBLIC_DOCS + [
-        Path("docs/rfcs/RFC-0023-grounded-advisory-ai-narrative-and-client-ready-proposal-commentary.md"),
+        Path(
+            "docs/rfcs/RFC-0023-grounded-advisory-ai-narrative-and-client-ready-proposal-commentary.md"
+        ),
         Path("docs/rfcs/RFC-0024-advisor-proposal-memo-and-evidence-pack.md"),
         Path("docs/rfcs/RFC-0025-enterprise-suitability-and-best-interest-policy-packs.md"),
         Path("docs/rfcs/README.md"),
