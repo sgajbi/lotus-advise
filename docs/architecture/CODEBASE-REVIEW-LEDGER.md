@@ -9035,6 +9035,37 @@
   - Continue splitting `response_models.py` only along stable API surface boundaries, preserving
     backwards-compatible imports until route modules are intentionally migrated.
 
+## LA-REV-375
+
+- Scope: Proposal report, execution, and delivery response model modularity
+- Pattern: Downstream delivery-boundary DTOs should be isolated from lifecycle, memo, timeline,
+  approval, and async DTOs without breaking existing public imports
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: After lifecycle DTO extraction, `src/core/proposals/response_models.py` still mixed
+  report-request, execution-handoff, execution-status, and delivery-summary contracts with memo
+  and workflow operations. Those contracts represent the downstream delivery boundary with
+  lotus-report and execution providers, and they have different ownership and supportability
+  semantics from memo and lifecycle DTOs.
+- Evidence:
+  - Extracted report, execution, and delivery response DTOs into
+    `src/core/proposals/delivery_response_models.py`.
+  - Kept `src/core/proposals/response_models.py` as a backwards-compatible facade for existing
+    route, service, and integration imports.
+  - Added a module-boundary contract assertion proving `models.ProposalReportResponse` still
+    resolves through the existing facade while the implementation lives in the delivery module.
+  - Focused lifecycle API, OpenAPI lifecycle docs, report projection, reporting engine, execution
+    handoff, `ruff`, format check, and `mypy` passed with 120 behavior tests.
+- Consequence:
+  - Report/execution/delivery API contracts are easier to review and evolve without coupling them
+    to memo or workflow DTOs, while Gateway and downstream integration imports remain stable.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing contracts.
+- Follow-Up:
+  - Continue modularizing the remaining response facade around memo and operational-read surfaces,
+    and migrate direct imports only when a full route-module slice makes that change worthwhile.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization

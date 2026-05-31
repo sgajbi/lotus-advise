@@ -1,14 +1,22 @@
 from src.core.proposals import models
+from src.core.proposals.delivery_response_models import (
+    ProposalReportResponse as DeliveryProposalReportResponse,
+)
 from src.core.proposals.input_models import ProposalCreateRequest as InputProposalCreateRequest
 from src.core.proposals.persistence_models import ProposalRecord as PersistenceProposalRecord
 from src.core.proposals.response_models import (
     ProposalCreateResponse as ResponseProposalCreateResponse,
+)
+from src.core.proposals.response_models import (
+    ProposalReportResponse as ResponseProposalReportResponse,
 )
 
 
 def test_proposal_models_module_preserves_public_contract_imports() -> None:
     assert models.ProposalCreateRequest is InputProposalCreateRequest
     assert models.ProposalCreateResponse is ResponseProposalCreateResponse
+    assert models.ProposalReportResponse is ResponseProposalReportResponse
+    assert ResponseProposalReportResponse is DeliveryProposalReportResponse
     assert models.ProposalRecord is PersistenceProposalRecord
 
 
