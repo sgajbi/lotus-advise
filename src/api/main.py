@@ -168,6 +168,7 @@ app = FastAPI(
 
 logger = logging.getLogger(__name__)
 LOTUS_CORE_SIMULATION_UNAVAILABLE_DETAIL = "LOTUS_CORE_SIMULATION_UNAVAILABLE"
+READINESS_CHECK_FAILED_DETAIL = "READINESS_CHECK_FAILED"
 setup_observability(app)
 validate_enterprise_runtime_config()
 app.middleware("http")(build_enterprise_audit_middleware())
@@ -209,7 +210,7 @@ def _readiness_probe() -> tuple[bool, str | None]:
         validate_advisory_runtime_persistence()
         ensure_proposal_runtime_ready()
     except RuntimeError as exc:
-        return False, str(exc)
+        return False, _safe_readiness_error_detail(str(exc))
     except (TypeError, ValueError):
         return False, "PROPOSAL_POSTGRES_CONNECTION_FAILED"
     return True, None
@@ -312,6 +313,12 @@ async def lotus_core_simulation_unavailable_to_problem_details(
 def _safe_lotus_core_simulation_error_detail(error_detail: str) -> str:
     if not error_detail or contains_sensitive_error_detail(error_detail):
         return LOTUS_CORE_SIMULATION_UNAVAILABLE_DETAIL
+    return error_detail
+
+
+def _safe_readiness_error_detail(error_detail: str) -> str:
+    if not error_detail or contains_sensitive_error_detail(error_detail):
+        return READINESS_CHECK_FAILED_DETAIL
     return error_detail
 
 

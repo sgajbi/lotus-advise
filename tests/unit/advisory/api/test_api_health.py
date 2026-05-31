@@ -30,3 +30,19 @@ def test_health_ready_returns_503_when_runtime_probe_fails(monkeypatch):
 
     assert response.status_code == 503
     assert response.json()["detail"] == "PROPOSAL_POSTGRES_CONNECTION_FAILED"
+
+
+def test_readiness_probe_redacts_sensitive_runtime_failure(monkeypatch):
+    def _raise_sensitive_runtime_error() -> None:
+        raise RuntimeError("postgres password secret leaked from driver")
+
+    monkeypatch.setattr(
+        main_module,
+        "validate_advisory_runtime_persistence",
+        _raise_sensitive_runtime_error,
+    )
+
+    ready, detail = main_module._readiness_probe()
+
+    assert ready is False
+    assert detail == "READINESS_CHECK_FAILED"

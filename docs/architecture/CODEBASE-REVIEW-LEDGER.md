@@ -8846,6 +8846,30 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-343
+
+- Scope: Runtime readiness probe error detail
+- Pattern: Readiness probes should expose controlled operational posture without leaking
+  configuration, credential, or driver details
+- Status: Hardened
+- Finding Class: Security posture and operational diagnostics
+- Summary: `_readiness_probe` returned raw `RuntimeError` text from runtime persistence or proposal
+  repository initialization. Controlled operational codes are useful for operators, but raw driver
+  or configuration failures can include DSNs, passwords, tokens, or other sensitive detail.
+- Evidence:
+  - Added safe readiness error-detail projection in `src/api/main.py`.
+  - Controlled readiness failures still return their existing detail.
+  - Sensitive runtime failures now return `READINESS_CHECK_FAILED`.
+  - Focused `ruff`, format check, health tests, and internal guard tests passed with 9 tests.
+- Consequence:
+  - `/health/ready` remains useful for operations while failing closed on sensitive runtime
+    initialization errors.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive
+    runtime diagnostics hardening.
+- Follow-Up:
+  - Keep health/readiness error bodies bounded and route deeper diagnostics to logs/telemetry.
+
 ## LA-REV-342
 
 - Scope: Lotus Core simulation exception handler
