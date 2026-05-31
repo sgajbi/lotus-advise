@@ -6369,3 +6369,25 @@
     semantics.
 - Follow-Up:
   - None.
+
+## LA-REV-243
+
+- Scope: Advisory copilot structured payload safety
+- Pattern: persistence payload bounds, recursive guardrail hardening, direct service-call safety
+- Status: Hardened
+- Finding Class: validation and performance risk
+- Summary: The RFC-0027 copilot service rejected raw AI storage keys in structured reason,
+  lineage, and output payloads, but the recursive safety check did not bound depth, item count, or
+  string length.
+- Evidence:
+  - `src/core/advisory_copilot/service.py` now enforces maximum structured payload depth, item
+    count, and string length while preserving raw prompt key rejection.
+  - Persistence tests prove oversized strings and oversized nested collections are rejected before
+    run persistence.
+- Consequence:
+  - Direct service callers cannot bypass API model limits to persist arbitrarily large copilot
+    reason, lineage, or output-section structures.
+- Documentation:
+  - No wiki source change is required. This is internal persistence safety hardening.
+- Follow-Up:
+  - None.
