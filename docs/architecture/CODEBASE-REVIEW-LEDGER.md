@@ -8846,6 +8846,34 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-347
+
+- Scope: Advisor cockpit service projection structure
+- Pattern: Cockpit service orchestration should not also own caller projection, supportability
+  projection, and preparation-packet shaping
+- Status: Hardened
+- Finding Class: Modularity and maintainability
+- Summary: `src/core/advisor_cockpit/service.py` handled repository orchestration, acknowledgement
+  idempotency, caller role filtering, supportability metadata, action counts, and preparation-packet
+  projection in one module. The mixed responsibilities made the service harder to review and made
+  projection behavior less reusable for future RFC-0026 through RFC-0028 surfaces.
+- Evidence:
+  - Extracted caller action projection, owner-role visibility, action counts, supportability
+    projection, and preparation-packet shaping to
+    `src/core/advisor_cockpit/service_projection.py`.
+  - Kept `AdvisorCockpitService` focused on orchestration, pagination, repository reads, runtime
+    state attachment, and acknowledgement writes.
+  - Focused `ruff`, format check, and advisor cockpit service tests passed with 13 tests.
+- Consequence:
+  - The cockpit service is easier to scan for workflow control while reusable projection semantics
+    remain test-backed and private-banking business vocabulary is centralized.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    service-boundary cleanup with stable public behavior.
+- Follow-Up:
+  - Keep future cockpit API projections in focused modules when behavior is shared across snapshot,
+    action-list, and preparation-packet endpoints.
+
 ## LA-REV-346
 
 - Scope: Advisor cockpit action factory helper structure

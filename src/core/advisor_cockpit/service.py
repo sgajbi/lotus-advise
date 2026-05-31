@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections import Counter
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import cast
 
 from src.core.advisor_cockpit.action_sources import HouseViewImpactActionSource
 from src.core.advisor_cockpit.api_models import (
@@ -19,8 +18,6 @@ from src.core.advisor_cockpit.models import (
     AdvisoryActionItemPage,
     CockpitAcknowledgementState,
     CockpitCallerContext,
-    CockpitEvidenceRef,
-    MeetingPreparationPacket,
 )
 from src.core.advisor_cockpit.pagination import (
     cockpit_cursor_start,
@@ -31,14 +28,18 @@ from src.core.advisor_cockpit.persistence import (
     CockpitAcknowledgementRecord,
 )
 from src.core.advisor_cockpit.projection_bounds import (
-    bounded_optional_reference,
     bounded_reference,
-    bounded_summary,
 )
 from src.core.advisor_cockpit.repository import AdvisorCockpitRepository
 from src.core.advisor_cockpit.rules import (
     apply_cockpit_acknowledgement_state,
     with_cockpit_sla_age_band,
+)
+from src.core.advisor_cockpit.service_projection import (
+    action_counts,
+    preparation_packets,
+    project_actions_for_caller,
+    supportability,
 )
 from src.core.advisor_cockpit.source_read_model import (
     COCKPIT_SOURCE_BATCH_MAX_ITEMS,
@@ -87,7 +88,7 @@ class AdvisorCockpitService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
-        actions = _project_actions_for_caller(actions=actions, caller_context=caller_context)
+        actions = project_actions_for_caller(actions=actions, caller_context=caller_context)
         page_size = normalize_cockpit_page_size(limit)
         start = cockpit_cursor_start(
             items=actions,
@@ -116,7 +117,7 @@ class AdvisorCockpitService:
         portfolio_id: str | None,
         correlation_id: str | None,
     ) -> AdvisoryActionItem:
-        for action in _project_actions_for_caller(
+        for action in project_actions_for_caller(
             actions=self._build_actions(
                 caller_context=caller_context,
                 portfolio_id=portfolio_id,
@@ -140,12 +141,16 @@ class AdvisorCockpitService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
-        actions = _project_actions_for_caller(
+        actions = project_actions_for_caller(
             actions=read_model.action_items,
             caller_context=caller_context,
         )
-        counts = _action_counts(actions)
-        supportability = _supportability(actions=actions, source_limit=COCKPIT_SOURCE_LIMIT)
+        counts = action_counts(actions)
+        cockpit_supportability = supportability(
+            actions=actions,
+            source_limit=COCKPIT_SOURCE_LIMIT,
+            contract_version=COCKPIT_CONTRACT_VERSION,
+        )
         snapshot = AdvisorCockpitOperatingSnapshot(
             snapshot_id=bounded_reference(
                 f"cockpit_snapshot_{portfolio_id or caller_context.advisor_id or 'all'}"
@@ -154,11 +159,11 @@ class AdvisorCockpitService:
             as_of=self._now_fn().isoformat(),
             action_counts=counts,
             top_priority_actions=actions[:10],
-            preparation_packets=_preparation_packets(read_model),
+            preparation_packets=preparation_packets(read_model),
             unsupported_capabilities=sorted(
                 {capability for action in actions for capability in action.unsupported_capabilities}
             ),
-            supportability=supportability,
+            supportability=cockpit_supportability,
         )
         return cast(
             AdvisorCockpitSnapshotResponse,
@@ -179,7 +184,7 @@ class AdvisorCockpitService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
-        packets = _preparation_packets(read_model)
+        packets = preparation_packets(read_model)
         page_size = normalize_cockpit_page_size(limit)
         start = cockpit_cursor_start(
             items=packets,
@@ -196,9 +201,10 @@ class AdvisorCockpitService:
             next_cursor=next_cursor,
             page_size=page_size,
             total_count=len(packets),
-            supportability=_supportability(
+            supportability=supportability(
                 actions=read_model.action_items,
                 source_limit=COCKPIT_SOURCE_LIMIT,
+                contract_version=COCKPIT_CONTRACT_VERSION,
             ),
         )
 
@@ -214,10 +220,14 @@ class AdvisorCockpitService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
-        actions = _project_actions_for_caller(actions=actions, caller_context=caller_context)
+        actions = project_actions_for_caller(actions=actions, caller_context=caller_context)
         return AdvisorCockpitSupportabilityResponse(
             posture="ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
-            supportability=_supportability(actions=actions, source_limit=COCKPIT_SOURCE_LIMIT),
+            supportability=supportability(
+                actions=actions,
+                source_limit=COCKPIT_SOURCE_LIMIT,
+                contract_version=COCKPIT_CONTRACT_VERSION,
+            ),
             unsupported_capabilities=sorted(
                 {capability for action in actions for capability in action.unsupported_capabilities}
             ),
@@ -393,37 +403,6 @@ class AdvisorCockpitService:
         return action
 
 
-def _project_actions_for_caller(
-    *,
-    actions: list[AdvisoryActionItem],
-    caller_context: CockpitCallerContext,
-) -> list[AdvisoryActionItem]:
-    visible_owner_roles = _visible_owner_roles(caller_context.role)
-    if visible_owner_roles is None:
-        return actions
-    return [
-        action
-        for action in actions
-        if action.owner_role in visible_owner_roles or action.owner_role == "SYSTEM"
-    ]
-
-
-def _visible_owner_roles(role: str) -> set[str] | None:
-    if role in {"ADVISOR", "DESK_HEAD"}:
-        return None
-    if role == "COMPLIANCE_REVIEWER":
-        return {"COMPLIANCE_REVIEWER"}
-    if role == "INVESTMENT_DESK":
-        return {"INVESTMENT_DESK"}
-    if role == "OPERATIONS":
-        return {"REPORTING_OWNER", "ARCHIVE_OWNER", "EXECUTION_OWNER", "OPERATIONS"}
-    if role in {"PORTFOLIO_MANAGER", "DPM_OWNER"}:
-        return {"PORTFOLIO_MANAGER"}
-    if role == "CRM_OWNER":
-        return {"CRM_OWNER", "ADVISOR"}
-    return {role}
-
-
 def _house_view_impacts(
     cohorts: list[TacticalHouseViewAffectedCohort],
     *,
@@ -462,71 +441,6 @@ def _house_view_impacts(
                 )
             )
     return impacts
-
-
-def _action_counts(actions: list[AdvisoryActionItem]) -> dict[str, int]:
-    counts: Counter[str] = Counter()
-    for action in actions:
-        counts[f"family.{action.action_family}"] += 1
-        counts[f"status.{action.status}"] += 1
-        counts[f"priority.{action.priority}"] += 1
-        counts[f"owner.{action.owner_role}"] += 1
-        counts[f"sla.{action.sla_age_band}"] += 1
-    return dict(sorted(counts.items()))
-
-
-def _supportability(*, actions: list[AdvisoryActionItem], source_limit: int) -> dict[str, Any]:
-    return {
-        "contract_version": COCKPIT_CONTRACT_VERSION,
-        "source_limit": source_limit,
-        "action_count": len(actions),
-        "api_posture": "SUPPORTED_BY_LOTUS_ADVISE_RFC0026",
-        "gateway_posture": "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026",
-        "workbench_posture": "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026",
-        "data_product_posture": "ACTIVE_ADVISOR_COCKPIT_PRODUCTS_RFC0026",
-        "canonical_proof": "PB_SG_GLOBAL_BAL_001_ADVISOR_COCKPIT_VALIDATED",
-        "client_ready_publication": "BLOCKED",
-        "external_client_communication": "BLOCKED",
-    }
-
-
-def _preparation_packets(
-    read_model: AdvisorCockpitSourceReadModel,
-) -> list[MeetingPreparationPacket]:
-    packets: list[MeetingPreparationPacket] = []
-    for source in read_model.meeting_preparations:
-        packet_id = bounded_reference(source.preparation_id)
-        summary = bounded_summary(source.summary)
-        source_ref = bounded_optional_reference(
-            source.proposal_id or source.portfolio_id or source.context_ref
-        )
-        packets.append(
-            MeetingPreparationPacket(
-                packet_id=packet_id,
-                context_type=source.context_type,
-                context_ref=bounded_reference(source.context_ref),
-                status="READY",
-                evidence_refs=source.evidence_refs
-                or [
-                    CockpitEvidenceRef(
-                        evidence_id=packet_id,
-                        evidence_type="MEETING_PREPARATION_PACKET",
-                        source_system="lotus-advise",
-                        access_class="CUSTOMER_CONSUMABLE_SUMMARY",
-                        summary=summary,
-                    )
-                ],
-                sections=[
-                    {
-                        "section_id": "advisor_meeting_context",
-                        "title": "Advisor meeting context",
-                        "summary": summary,
-                        "source_ref": source_ref,
-                    }
-                ],
-            )
-        )
-    return packets
 
 
 def _acknowledgement_response(
