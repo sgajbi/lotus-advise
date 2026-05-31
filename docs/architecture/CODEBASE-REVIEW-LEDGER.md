@@ -8846,6 +8846,36 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-336
+
+- Scope: Advisory proposal simulation API validation boundaries
+- Pattern: Simulation validation and context-resolution errors should preserve controlled proposal
+  error codes without leaking lower-layer request, credential, or upstream context detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: `src/api/services/advisory_simulation_service.py` returned raw exception text for
+  idempotency validation, simulation-gate validation, alternatives normalization, and proposal
+  context resolution. Most present exceptions are controlled domain codes, but the service also
+  wraps lower-layer context-resolution and normalization failures where future raw payload, token,
+  or provider detail could otherwise reach the API response body.
+- Evidence:
+  - Simulation validation details now use the shared proposal error-detail redaction helper.
+  - Controlled simulation errors such as `PROPOSAL_SIMULATION_DISABLED` and
+    `IDEMPOTENCY_KEY_CONFLICT` keep their existing status and business-facing behavior.
+  - Added route tests for sensitive idempotency validation and context-resolution errors.
+  - Focused `ruff`, format check, proposal simulation API tests, and proposal HTTP error tests
+    passed with 51 tests.
+- Consequence:
+  - Proposal simulation remains operationally diagnosable through bounded Lotus error codes while
+    reducing the chance of sensitive advisory context or upstream details leaking into client HTTP
+    bodies.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    boundary hardening for existing proposal simulation behavior.
+- Follow-Up:
+  - Continue applying the same bounded-detail rule to remaining route modules that still raise
+    `HTTPException(... detail=str(exc))`.
+
 ## LA-REV-335
 
 - Scope: Advisory workspace API error boundaries

@@ -5,6 +5,10 @@ from typing import Dict, Optional, cast
 from fastapi import HTTPException, status
 
 from src.api.http_status import HTTP_422_UNPROCESSABLE
+from src.api.proposals.errors import (
+    PROPOSAL_REQUEST_VALIDATION_FAILED_DETAIL,
+    safe_proposal_error_detail,
+)
 from src.api.proposals.router import get_proposal_repository
 from src.core.advisory.alternatives_normalizer import AlternativesRequestNormalizationError
 from src.core.advisory.orchestration import evaluate_advisory_proposal
@@ -32,6 +36,13 @@ PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, object]]" = OrderedDict(
 MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
 
 
+def _safe_simulation_validation_detail(error_detail: str) -> str:
+    return safe_proposal_error_detail(
+        error_detail,
+        redacted_detail=PROPOSAL_REQUEST_VALIDATION_FAILED_DETAIL,
+    )
+
+
 def simulate_proposal_response(
     *,
     request: ProposalSimulationRequest,
@@ -42,7 +53,10 @@ def simulate_proposal_response(
     try:
         idempotency_key = normalize_required_idempotency_key(idempotency_key)
     except ValueError as exc:
-        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE,
+            detail=_safe_simulation_validation_detail(str(exc)),
+        ) from exc
     resolved_request = resolved_request or resolve_simulation_input(request)
 
     try:
@@ -50,7 +64,7 @@ def simulate_proposal_response(
     except ProposalSimulationGateError as exc:
         raise HTTPException(
             status_code=HTTP_422_UNPROCESSABLE,
-            detail=str(exc),
+            detail=_safe_simulation_validation_detail(str(exc)),
         ) from exc
 
     request_payload = canonicalize_simulation_request_payload(
@@ -83,7 +97,7 @@ def simulate_proposal_response(
     except AlternativesRequestNormalizationError as exc:
         raise HTTPException(
             status_code=HTTP_422_UNPROCESSABLE,
-            detail=f"{exc.reason_code}: {exc}",
+            detail=_safe_simulation_validation_detail(f"{exc.reason_code}: {exc}"),
         ) from exc
     result.explanation["context_resolution"] = context_resolution
 
@@ -110,4 +124,7 @@ def resolve_simulation_input(
     try:
         return resolve_simulation_request(request)
     except ProposalContextResolutionError as exc:
-        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=HTTP_422_UNPROCESSABLE,
+            detail=_safe_simulation_validation_detail(str(exc)),
+        ) from exc
