@@ -273,7 +273,7 @@ class AdvisorCockpitService:
 
         acknowledged_at = self._now_fn()
         record = CockpitAcknowledgementRecord(
-            acknowledgement_id=f"ack_{action_item_id}",
+            acknowledgement_id=bounded_reference(f"ack_{action_item_id}"),
             action_item_id=action_item_id,
             action_item_version=payload.action_item_version,
             acknowledged_by=payload.acknowledged_by,

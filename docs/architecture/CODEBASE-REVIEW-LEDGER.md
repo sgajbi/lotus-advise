@@ -6875,3 +6875,29 @@
 - Follow-Up:
   - Continue auditing acknowledgement persistence metadata and idempotency records for bounded
     support-safe fields.
+
+## LA-REV-263
+
+- Scope: RFC-0026 advisor cockpit acknowledgement persistence
+- Pattern: bounded acknowledgement and idempotency metadata
+- Status: Hardened
+- Finding Class: persistence and API stability risk
+- Summary: Cockpit action ids are bounded, but acknowledgement ids were derived as `ack_` plus the
+  action id. Boundary-length action ids could therefore create acknowledgement ids that later fail
+  API-facing acknowledgement-state validation. Persistence records also lacked direct bounds for
+  acknowledgement, idempotency, correlation, and support-note metadata.
+- Evidence:
+  - `src/core/advisor_cockpit/persistence.py` now bounds acknowledgement records, idempotency
+    records, request hashes, correlation ids, reason metadata, actor ids, and support-safe notes.
+  - `src/core/advisor_cockpit/service.py` now derives acknowledgement ids through the shared
+    cockpit projection-bound helper.
+  - Advisor cockpit service tests prove direct persistence records bound oversized metadata and
+    service acknowledgements remain valid when action ids are already at the model boundary.
+- Consequence:
+  - RFC-0026 acknowledgement replay and audit paths remain stable for Gateway and Workbench without
+    relying on shorter canonical action ids.
+- Documentation:
+  - No wiki source change is required. This is persistence/API stability hardening for existing
+    RFC-0026 acknowledgement semantics.
+- Follow-Up:
+  - Continue auditing route-level path/query inputs for bounded, support-safe service entry.
