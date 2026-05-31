@@ -54,3 +54,11 @@ attestations, legal/regulatory advice, completed policy sign-off/approval, exter
 communication, client-ready publication, or OMS/order/fill/settlement. Any future promotion of
 those claims requires implementation evidence, tests at the owning layer, and updated API/wiki/RFC
 truth in the same slice.
+
+## RFC-0027 Copilot Evidence Governance
+
+Governed advisory copilot output is internal advisor/reviewer evidence, not client-ready advice or
+model authority. Evidence-section models, unsupported-evidence messages, action projections, and
+copilot structured-payload persistence reject raw prompt, provider-response, trace/correlation,
+run-ledger, and raw-payload wording at the lowest boundary. This keeps UI, API, persistence, and
+replay paths aligned with the same business-copy redaction rule.

@@ -82,7 +82,7 @@ _COPILOT_LINEAGE_TYPE_MAX_LENGTH = 96
 _COPILOT_LINEAGE_REF_LIMIT = 16
 _COPILOT_UNSUPPORTED_EVIDENCE_LIMIT = 12
 _COPILOT_UNSUPPORTED_MESSAGE_MAX_LENGTH = 500
-_COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_TERMS = (
+_COPILOT_BUSINESS_COPY_TECHNICAL_TERMS = (
     "raw prompt",
     "provider response",
     "trace id",
@@ -165,6 +165,16 @@ class CopilotBusinessProjection(BaseModel):
         description="Business-facing next action label that does not expose technical internals.",
         examples=["Review draft"],
     )
+
+    @field_validator("label", "summary", "next_action_label")
+    @classmethod
+    def _business_copy_must_be_safe(cls, value: str) -> str:
+        normalized = _normalize_required_text(
+            value,
+            error_code="COPILOT_BUSINESS_PROJECTION_REQUIRED",
+        )
+        assert_copilot_business_safe_text(normalized)
+        return normalized
 
 
 class CopilotSourceRef(BaseModel):
@@ -261,8 +271,7 @@ class CopilotUnsupportedEvidence(BaseModel):
             value,
             error_code="COPILOT_UNSUPPORTED_MESSAGE_REQUIRED",
         )
-        message = normalized.lower()
-        if any(term in message for term in _COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_TERMS):
+        if contains_copilot_business_technical_detail(normalized):
             raise ValueError("COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_DETAIL")
         return normalized
 
@@ -299,7 +308,13 @@ class CopilotEvidencePacketSection(BaseModel):
     @field_validator("section_key", "title")
     @classmethod
     def _normalize_required_section_text(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_EVIDENCE_SECTION_REQUIRED")
+        normalized = _normalize_required_text(
+            value,
+            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        )
+        if contains_copilot_business_technical_detail(normalized):
+            raise ValueError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
+        return normalized
 
     @field_validator("summary_items", mode="before")
     @classmethod
@@ -345,7 +360,13 @@ class CopilotEvidenceSectionInput(BaseModel):
     @field_validator("section_key", "title")
     @classmethod
     def _normalize_required_section_text(cls, value: str) -> str:
-        return _normalize_required_text(value, error_code="COPILOT_EVIDENCE_SECTION_REQUIRED")
+        normalized = _normalize_required_text(
+            value,
+            error_code="COPILOT_EVIDENCE_SECTION_REQUIRED",
+        )
+        if contains_copilot_business_technical_detail(normalized):
+            raise ValueError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
+        return normalized
 
     @field_validator("summary_items", mode="before")
     @classmethod
@@ -448,6 +469,8 @@ def _normalize_summary_tuple(value: Any, *, allow_empty: bool) -> tuple[str, ...
         )
         if len(summary) > _COPILOT_SUMMARY_ITEM_MAX_LENGTH:
             raise ValueError("COPILOT_EVIDENCE_SUMMARY_TOO_LARGE")
+        if contains_copilot_business_technical_detail(summary):
+            raise ValueError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
         normalized.append(summary)
 
     if not normalized and not allow_empty:
@@ -481,3 +504,13 @@ def _normalize_audience_tuple(value: Any) -> tuple[CopilotAudience, ...]:
     if not normalized:
         raise ValueError("COPILOT_AUDIENCE_REQUIRED")
     return tuple(normalized)
+
+
+def assert_copilot_business_safe_text(*values: str) -> None:
+    if contains_copilot_business_technical_detail(" ".join(values)):
+        raise ValueError("COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL")
+
+
+def contains_copilot_business_technical_detail(value: str) -> bool:
+    normalized = value.lower().replace("-", " ").replace("_", " ")
+    return any(term in normalized for term in _COPILOT_BUSINESS_COPY_TECHNICAL_TERMS)

@@ -7,7 +7,6 @@ from src.core.advisory_copilot import (
     WORKFLOW_PACK_CALLER_APP,
     WORKFLOW_PACK_EXECUTION_AUTHORITY,
     CopilotEvidencePacket,
-    CopilotEvidencePacketBuildError,
     CopilotEvidencePacketSection,
     CopilotEvidenceSectionInput,
     CopilotLineageRef,
@@ -279,6 +278,38 @@ def test_copilot_evidence_packet_model_normalizes_and_bounds_audit_fields() -> N
             source_dependency="RFC0025_POLICY_EVALUATION",
             advisor_message="Raw prompt is missing from the review evidence.",
         )
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacketSection(
+            section_key="POLICY_POSTURE",
+            title="Provider response detail",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(
+                CopilotSourceRef(
+                    source_system="lotus-advise",
+                    source_type="POLICY_EVALUATION",
+                    source_id="policy_eval_sg_001",
+                    content_hash="sha256:policy-evaluation",
+                    access_class="COMPLIANCE_REVIEW_EVIDENCE",
+                ),
+            ),
+            summary_items=("Policy evaluation requires compliance review.",),
+        )
+    with pytest.raises(ValidationError):
+        CopilotEvidencePacketSection(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(
+                CopilotSourceRef(
+                    source_system="lotus-advise",
+                    source_type="POLICY_EVALUATION",
+                    source_id="policy_eval_sg_001",
+                    content_hash="sha256:policy-evaluation",
+                    access_class="COMPLIANCE_REVIEW_EVIDENCE",
+                ),
+            ),
+            summary_items=("This raw-payload detail must not appear in advisor evidence.",),
+        )
 
     unsupported = CopilotUnsupportedEvidence(
         reason_code="CLIENT_READY_PUBLICATION_BLOCKED",
@@ -501,7 +532,7 @@ def test_copilot_evidence_packet_builder_restricts_sections_by_audience() -> Non
     assert "SOURCE_NOT_AVAILABLE" in {item.reason_code for item in packet.unsupported_evidence}
 
 
-def test_copilot_evidence_packet_builder_rejects_technical_copy_leakage() -> None:
+def test_copilot_evidence_section_input_rejects_technical_copy_leakage() -> None:
     source_ref = CopilotSourceRef(
         source_system="lotus-advise",
         source_type="MEMO_EVIDENCE",
@@ -510,25 +541,12 @@ def test_copilot_evidence_packet_builder_rejects_technical_copy_leakage() -> Non
         access_class="ADVISOR_USE_SUMMARY",
     )
 
-    try:
-        build_copilot_evidence_packet(
-            evidence_packet_id="copilot_packet_leak_001",
-            action_family="CLIENT_FOLLOW_UP_DRAFT",
-            portfolio_id="PB_SG_GLOBAL_BAL_001",
-            proposal_id="proposal_sg_structured_note_001",
-            audience="ADVISOR",
-            source_sections=(
-                CopilotEvidenceSectionInput(
-                    section_key="MEMO_EVIDENCE",
-                    title="Memo evidence",
-                    evidence_class="ADVISOR_USE_SUMMARY",
-                    source_refs=(source_ref,),
-                    summary_items=("This raw prompt must not appear in advisor evidence.",),
-                    allowed_audiences=("ADVISOR",),
-                ),
-            ),
+    with pytest.raises(ValidationError, match="COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"):
+        CopilotEvidenceSectionInput(
+            section_key="MEMO_EVIDENCE",
+            title="Memo evidence",
+            evidence_class="ADVISOR_USE_SUMMARY",
+            source_refs=(source_ref,),
+            summary_items=("This raw prompt must not appear in advisor evidence.",),
+            allowed_audiences=("ADVISOR",),
         )
-    except CopilotEvidencePacketBuildError as exc:
-        assert str(exc) == "COPILOT_EVIDENCE_TEXT_LEAKS_TECHNICAL_DETAIL"
-    else:
-        raise AssertionError("expected technical leakage to be rejected")

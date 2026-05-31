@@ -11,6 +11,7 @@ from src.core.advisory_copilot.models import (
     CopilotAudience,
     CopilotEvidencePacket,
     CopilotReviewPosture,
+    contains_copilot_business_technical_detail,
 )
 from src.core.advisory_copilot.records import (
     AdvisoryCopilotEvidencePacketRecord,
@@ -38,8 +39,12 @@ RAW_AI_STORAGE_KEYS = frozenset(
         "unsafe_output",
         "provider_response",
         "model_response",
+        "provider_payload",
         "instruction",
+        "raw_payload",
+        "raw_source",
         "system_instruction",
+        "trace_id",
     }
 )
 
@@ -428,8 +433,11 @@ def _assert_safe_structured_payload(value: Any, *, depth: int = 0) -> None:
             raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
         for item in value:
             _assert_safe_structured_payload(item, depth=depth + 1)
-    elif isinstance(value, str) and len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_TEXT_LENGTH:
-        raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
+    elif isinstance(value, str):
+        if len(value) > MAX_SAFE_STRUCTURED_PAYLOAD_TEXT_LENGTH:
+            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TOO_LARGE")
+        if contains_copilot_business_technical_detail(value):
+            raise ValueError("COPILOT_STRUCTURED_PAYLOAD_TECHNICAL_DETAIL")
 
 
 def _optional_str(value: Any) -> str | None:

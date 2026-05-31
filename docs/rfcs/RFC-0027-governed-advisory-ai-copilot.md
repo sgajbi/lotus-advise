@@ -1018,6 +1018,9 @@ Acceptance gate:
 6. API design, versioning, idempotency, correlation IDs, auditability, lineage, error handling,
    Swagger/OpenAPI examples, logging, metrics, tracing, operational diagnostics, and tests meet
    Lotus enterprise governance before implementation proof.
+7. Evidence-section models and copilot structured-payload persistence reject raw prompt, provider
+   response, trace/correlation, run-ledger, and raw-payload wording at the lowest boundary so UI,
+   API, persistence, and replay paths cannot bypass business-copy redaction.
 
 ### Slice 15 - Implementation Proof
 

@@ -6,6 +6,7 @@ RFC27_PATH = Path("docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md")
 RFC_INDEX_PATH = Path("docs/rfcs/README.md")
 RFC26_PATH = Path("docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md")
 WIKI_RFC_INDEX_PATH = Path("wiki/RFC-Index.md")
+WIKI_SECURITY_PATH = Path("wiki/Security-and-Governance.md")
 WIKI_SUPPORTED_FEATURES_PATH = Path("wiki/Supported-Features.md")
 
 
@@ -121,6 +122,7 @@ def test_rfc0027_requires_repeatable_seed_automation_and_lowest_layer_regression
 
 def test_rfc0027_pins_enterprise_backend_hardening_and_business_copy_rules() -> None:
     flat_rfc = _flat(RFC27_PATH)
+    flat_wiki_security = _flat(WIKI_SECURITY_PATH)
 
     backend_quality_markers = (
         "remove dead code and unused paths",
@@ -130,6 +132,7 @@ def test_rfc0027_pins_enterprise_backend_hardening_and_business_copy_rules() -> 
         "improve batching, pagination, caching, and database access",
         "API design, versioning, idempotency, correlation IDs, auditability, lineage",
         "Swagger/OpenAPI examples, logging, metrics, tracing, operational diagnostics",
+        "Evidence-section models and copilot structured-payload persistence reject raw prompt",
     )
     for marker in backend_quality_markers:
         assert marker in flat_rfc
@@ -142,6 +145,9 @@ def test_rfc0027_pins_enterprise_backend_hardening_and_business_copy_rules() -> 
     )
     for marker in copy_markers:
         assert marker in flat_rfc
+
+    assert "RFC-0027 Copilot Evidence Governance" in flat_wiki_security
+    assert "UI, API, persistence, and replay paths aligned" in flat_wiki_security
 
 
 def test_rfc0027_indexes_and_supported_features_promote_only_proven_internal_copilot() -> None:

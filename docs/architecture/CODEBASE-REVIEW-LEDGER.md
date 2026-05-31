@@ -8517,3 +8517,30 @@
 - Follow-Up:
   - Keep cross-RFC closure language current when a later RFC implements a previously gated package
     while still blocking narrower client-ready publication or communication claims.
+
+## LA-REV-321
+
+- Scope: RFC-0027 copilot business-copy leakage controls
+- Pattern: Guardrail invariants must live at the model and persistence boundary, not only in the
+  packet builder
+- Status: Hardened
+- Finding Class: Security posture and test gap
+- Summary: The copilot evidence-packet builder rejected raw prompt/provider/trace/correlation
+  wording before projection, but direct evidence-section model construction and persisted
+  structured payloads did not enforce the same low-level invariant. That left API, replay, or test
+  fixture paths able to bypass the intended business-copy redaction rule.
+- Evidence:
+  - Added shared copilot business-copy technical-detail detection in the domain model.
+  - Applied the rule to business projections, unsupported-evidence messages, evidence-section
+    titles, evidence-section summaries, and persisted structured payload string values.
+  - Added regression tests for direct evidence-section construction and persisted output-section
+    leakage, plus RFC/wiki contract assertions for the governance wording.
+- Consequence:
+  - RFC-0027 copilot evidence now rejects sensitive technical copy at the lowest useful layer across
+    UI, API, persistence, and replay paths instead of depending on one builder path.
+- Documentation:
+  - RFC-0027 Slice 14 acceptance evidence and `wiki/Security-and-Governance.md` changed; wiki
+    check/publish is required before/after merge.
+- Follow-Up:
+  - Keep any future copilot projection fields wired through the shared business-copy guard before
+    they are exposed through Gateway, Workbench, or persisted replay evidence.
