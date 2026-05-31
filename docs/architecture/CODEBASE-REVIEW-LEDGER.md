@@ -6661,3 +6661,28 @@
     commercial documentation and proof-pack output.
 - Follow-Up:
   - None.
+
+## LA-REV-255
+
+- Scope: RFC-0028 document proof model
+- Pattern: document-proof status bounds, output-format validation, duplicate-proof prevention
+- Status: Hardened
+- Finding Class: validation and documentation-quality risk
+- Summary: RFC-0028 document proof rows demonstrate advisor-use memo and policy report posture,
+  archive controls, and blocked client-ready publication, but the row model still accepted loose
+  status strings, unsafe output-format values, sensitive degraded reasons, and duplicate document
+  family rows.
+- Evidence:
+  - `src/core/bank_demo_proof/document_proof.py` now bounds document statuses, validates
+    deterministic output formats, rejects sensitive degraded reason text, and requires unique
+    document proof families in the summary.
+  - Document proof tests prove unsafe output formats, raw-prompt degraded reasons, and duplicate
+    document-family rows are rejected while the canonical proof summary remains valid.
+- Consequence:
+  - RFC-0028 document evidence is safer to promote into proof packs, commercial material, wiki
+    content, and demo scripts without implying unsupported client-ready document release.
+- Documentation:
+  - No wiki source change is required. This is source-level validation for existing RFC-0028
+    document-proof semantics.
+- Follow-Up:
+  - None.
