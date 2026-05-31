@@ -830,7 +830,7 @@ Slice 3 implementation decision and evidence:
    `AdvisoryPolicyEvaluationRecord`, `AdvisorCockpitOperatingSnapshot`,
    `AdvisoryActionItemRegister`, and `AdvisoryCopilotInteractionRecord`.
 4. `/platform/capabilities` must not advertise bank-demo proof or supported-claim support until
-   Slice 5 and the later Gateway/Workbench proof slices promote the capability with evidence.
+   Slice 5 plus the Gateway and Workbench proof slices promote the capability with evidence.
 5. No `contracts/domain-data-products/`, `contracts/trust-telemetry/`, or capabilities code change
    is made in Slice 3 because the correct hardening is a regression guard against premature
    promotion.
@@ -942,7 +942,7 @@ Slice 5 implementation decision and evidence:
    evidence and is indexed as non-committable.
 7. Slice 5 does not promote Gateway, Workbench, screenshot, RFP/security, product one-pager, or
    client-ready publication claims. The backend-supported advisor-journey claim remains
-   `BACKEND_BACKED_UI_PENDING` until the later Gateway and Workbench slices pass.
+   `BACKEND_BACKED_UI_PENDING` until the Gateway and Workbench proof slices pass.
 8. Lowest-layer test coverage:
    1. `tests/unit/advisory/engine/test_engine_bank_demo_proof_capture.py` covers sanitized
       summary projection, material-field drift blocking, claim classifications, evidence markers,
@@ -1113,8 +1113,8 @@ Implementation evidence:
 4. The Workbench proof surface consumes Gateway contracts only and does not create local advisory
    suitability, policy, memo, proof, or AI semantics.
 5. Client-ready publication, external client communication, OMS/order/fill/settlement, approval
-   authority, and full RFP/demo collateral readiness remain blocked or unsupported unless a later
-   owner-repo implementation provides evidence.
+   authority, and full RFP/demo collateral readiness remain blocked or unsupported unless a
+   separately approved owner-repo implementation provides evidence.
 
 ### Slice 9 - AI, Model-Risk, Policy, and Cockpit Proof Integration
 
@@ -1517,7 +1517,7 @@ Current implementation note:
    `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`.
 3. Slice 9 adds `journey-integration-proof-summary.json` and
    `ai_policy_cockpit_proof_integrated` for backend proof material. This evidence supports the
-   claim-controlled commercial pack only when combined with the later commercial, security/runtime,
+   claim-controlled commercial pack only when combined with the commercial, security/runtime,
    artifact-reference, closure, and post-completion review gates. Client-ready publication,
    external client communication, OMS/order/fill/settlement, approval authority, and
    bank-specific attestations remain blocked.

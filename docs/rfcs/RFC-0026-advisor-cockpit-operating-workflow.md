@@ -266,7 +266,7 @@ claim, RFC-0026 must implement the cockpit-critical subset or remove the unsuppo
 | Evidence issue | source readiness gap | missing field |
 | Approval dependency | approval dependency | escalation flag |
 | Aging approval | SLA aging | overdue badge without basis |
-| Relationship-manager follow-up | client follow-up | todo |
+| Relationship-manager follow-up | relationship follow-up | placeholder task |
 | Compliance/investment desk handoff | supervisory review item | back-office ticket |
 | Book impact | affected advisory cohort | affected users |
 | Downstream boundary | ownership boundary | integration note |

@@ -8220,3 +8220,38 @@
 - Follow-Up:
   - Continue replacing implementation shorthand only where it affects product-surface, wiki, RFC,
     README, or commercial-material clarity.
+
+## LA-REV-311
+
+- Scope: Active RFC 26-28 public-source vocabulary and closure wording
+- Pattern: Active RFC source truth must not leak placeholders or describe completed proof slices as
+  deferred work
+- Status: Hardened
+- Finding Class: RFC/product documentation quality and closure-truth alignment
+- Summary: A follow-up active-RFC scan found stale implementation shorthand in RFC-0027, a `todo`
+  cell in the RFC-0026 vocabulary table, and RFC-0028 closure wording that still referred to
+  completed Gateway, Workbench, commercial, and owner-repo slices as "later" work. The wording has
+  been tightened to business-facing integration-boundary and relationship-follow-up language while
+  preserving truthful unsupported boundaries for client-ready publication, external client
+  communication, approvals, and OMS/order/fill/settlement.
+- Evidence:
+  - RFC-0026 now avoids the placeholder `todo` vocabulary in the advisor-cockpit domain table.
+  - RFC-0027 now uses advisory-to-discretionary portfolio-management and integration-boundary
+    language instead of `DPM`/`seam` shorthand.
+  - RFC-0028 no longer describes already-completed proof gates as "later" work.
+  - `tests/unit/test_public_docs_vocabulary.py` now includes RFC-0026 and RFC-0027 in the public
+    documentation vocabulary guard.
+  - `tests/unit/test_rfc0028_gold_standard_tightening_contract.py` blocks stale "later" closure
+    phrases from returning.
+  - Focused RFC/public-doc tests passed:
+    `python -m pytest tests/unit/test_public_docs_vocabulary.py tests/unit/test_rfc0027_gold_standard_tightening_contract.py tests/unit/test_rfc0028_gold_standard_tightening_contract.py`.
+- Consequence:
+  - RFCs 26-28 are better aligned with implementation-backed closure truth and safer for
+    business, operations, sales, pre-sales, and client-demo readers.
+- Documentation:
+  - Active RFC source truth changed. Repo-local wiki source did not require a separate update in
+    this slice because wiki vocabulary had already been hardened and this change tightens RFC
+    wording plus regression coverage.
+- Follow-Up:
+  - Keep active RFC closure wording tied to current implementation evidence and avoid using
+    "later" to describe already-completed gates.

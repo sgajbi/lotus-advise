@@ -569,3 +569,16 @@ def test_rfc0028_supported_features_ledger_reflects_implemented_closure_truth() 
     )
     assert "bank-specific attestations remain blocked" in flat_ledger
     assert "| Proposed |" not in ledger
+
+
+def test_rfc0028_closure_language_does_not_describe_completed_slices_as_later_work() -> None:
+    flat = _flat(RFC28_PATH)
+
+    stale_closure_phrases = (
+        "later Gateway/Workbench",
+        "later Gateway and Workbench",
+        "unless a later owner-repo implementation",
+        "combined with the later commercial",
+    )
+    for phrase in stale_closure_phrases:
+        assert phrase not in flat

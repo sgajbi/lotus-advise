@@ -8,6 +8,8 @@ PUBLIC_DOCS = sorted(
         *Path("wiki").glob("*.md"),
         *Path("docs/commercial").glob("*.md"),
         Path("docs/rfcs/README.md"),
+        Path("docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md"),
+        Path("docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md"),
         Path("docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md"),
     ],
     key=lambda path: path.as_posix(),
@@ -22,3 +24,4 @@ def test_public_docs_use_business_facing_integration_vocabulary() -> None:
         assert " seam" not in text
         assert "seam " not in text
         assert re.search(r"\bdpm\b", text) is None
+        assert "| todo |" not in text
