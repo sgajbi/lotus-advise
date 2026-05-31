@@ -8846,6 +8846,33 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-344
+
+- Scope: Advisor cockpit model validation structure
+- Pattern: Large domain model modules should delegate reusable validation vocabulary and business
+  text normalization to focused helpers
+- Status: Hardened
+- Finding Class: Modularity and maintainability
+- Summary: `src/core/advisor_cockpit/models.py` carried owner-role labels, field length limits,
+  sensitive-term checks, and all identifier/business-text normalization helpers inline with the
+  Pydantic model definitions. That made the already large model module harder to scan and reuse.
+- Evidence:
+  - Extracted cockpit model limits, owner-role labels, and text/identifier normalization helpers to
+    `src/core/advisor_cockpit/model_validation.py`.
+  - Kept existing model public behavior stable by importing the same helper names into
+    `models.py`.
+  - Focused `ruff`, format check, advisor cockpit model tests, advisory model contract tests, and
+    RFC-0026 action-factory contract tests passed with 22 tests.
+- Consequence:
+  - Advisor cockpit model definitions are cleaner, and future cockpit DTOs can reuse one validation
+    module instead of adding more inline helper code.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    module-structure hardening.
+- Follow-Up:
+  - Continue splitting cockpit or proposal modules only where a cohesive helper boundary exists and
+    tests already cover the behavior.
+
 ## LA-REV-343
 
 - Scope: Runtime readiness probe error detail

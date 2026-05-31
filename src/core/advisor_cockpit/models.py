@@ -4,6 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from src.core.advisor_cockpit import model_validation as cockpit_validation
+
 AdvisorCockpitActionStatus = Literal[
     "READY",
     "PENDING_REVIEW",
@@ -83,42 +85,18 @@ AdvisorCockpitUnsupportedCapability = Literal[
     "COMPLETED_POLICY_SIGN_OFF_AUTHORITY",
     "FULL_RFC0028_DEMO_RFP_PACKAGE",
 ]
-_COCKPIT_IDENTIFIER_MAX_LENGTH = 160
-_COCKPIT_TEXT_MAX_LENGTH = 1000
-_COCKPIT_SUMMARY_MAX_LENGTH = 512
-_COCKPIT_LIST_MAX_ITEMS = 64
-_COCKPIT_PREPARATION_SECTIONS_MAX_ITEMS = 32
-_COCKPIT_SUPPORTABILITY_KEYS_MAX_ITEMS = 64
-_COCKPIT_SENSITIVE_TERMS = (
-    "authorization",
-    "cookie",
-    "credential",
-    "password",
-    "secret",
-    "token",
-    "api key",
-    "apikey",
-    "raw prompt",
-    "raw payload",
-    "provider response",
-)
-_COCKPIT_OWNER_ROLE_LABELS = {
-    "ADVISOR": "Advisor",
-    "DESK_HEAD": "Desk head",
-    "COMPLIANCE_REVIEWER": "Compliance reviewer",
-    "INVESTMENT_DESK": "Investment desk",
-    "PORTFOLIO_MANAGER": "Portfolio manager",
-    "OPERATIONS": "Operations",
-    "CRM_OWNER": "Client-relationship owner",
-    "REPORTING_OWNER": "Reporting owner",
-    "ARCHIVE_OWNER": "Archive owner",
-    "EXECUTION_OWNER": "Execution owner",
-    "SYSTEM": "System",
-}
-
-
-def cockpit_owner_role_label(role: str) -> str:
-    return _COCKPIT_OWNER_ROLE_LABELS.get(role, role.replace("_", " ").title())
+_COCKPIT_IDENTIFIER_MAX_LENGTH = cockpit_validation.COCKPIT_IDENTIFIER_MAX_LENGTH
+_COCKPIT_TEXT_MAX_LENGTH = cockpit_validation.COCKPIT_TEXT_MAX_LENGTH
+_COCKPIT_SUMMARY_MAX_LENGTH = cockpit_validation.COCKPIT_SUMMARY_MAX_LENGTH
+_COCKPIT_LIST_MAX_ITEMS = cockpit_validation.COCKPIT_LIST_MAX_ITEMS
+_COCKPIT_PREPARATION_SECTIONS_MAX_ITEMS = cockpit_validation.COCKPIT_PREPARATION_SECTIONS_MAX_ITEMS
+_COCKPIT_SUPPORTABILITY_KEYS_MAX_ITEMS = cockpit_validation.COCKPIT_SUPPORTABILITY_KEYS_MAX_ITEMS
+cockpit_owner_role_label = cockpit_validation.cockpit_owner_role_label
+_normalize_required_identifier = cockpit_validation.normalize_required_identifier
+_normalize_optional_identifier = cockpit_validation.normalize_optional_identifier
+_normalize_business_text = cockpit_validation.normalize_business_text
+_normalize_optional_business_text = cockpit_validation.normalize_optional_business_text
+_normalize_identifier_list = cockpit_validation.normalize_identifier_list
 
 
 class CockpitCallerContext(BaseModel):
@@ -682,52 +660,3 @@ class AdvisorCockpitOperatingSnapshot(BaseModel):
                 raise ValueError("cockpit action counts cannot be negative")
             normalized[normalized_key] = count
         return normalized
-
-
-def _normalize_required_identifier(value: str, *, field_name: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(f"{field_name} is required")
-    if len(normalized) > _COCKPIT_IDENTIFIER_MAX_LENGTH:
-        raise ValueError(f"{field_name} is too long")
-    if _contains_sensitive_term(normalized):
-        raise ValueError(f"{field_name} cannot contain sensitive technical detail")
-    return normalized
-
-
-def _normalize_optional_identifier(value: str | None, *, field_name: str) -> str | None:
-    if value is None:
-        return None
-    normalized = " ".join(value.split())
-    if not normalized:
-        return None
-    return _normalize_required_identifier(normalized, field_name=field_name)
-
-
-def _normalize_business_text(value: str, *, field_name: str) -> str:
-    normalized = " ".join(value.split())
-    if not normalized:
-        raise ValueError(f"{field_name} is required")
-    if len(normalized) > _COCKPIT_TEXT_MAX_LENGTH:
-        raise ValueError(f"{field_name} is too long")
-    if _contains_sensitive_term(normalized):
-        raise ValueError(f"{field_name} cannot contain sensitive technical detail")
-    return normalized
-
-
-def _normalize_optional_business_text(value: str | None, *, field_name: str) -> str | None:
-    if value is None:
-        return None
-    normalized = " ".join(value.split())
-    if not normalized:
-        return None
-    return _normalize_business_text(normalized, field_name=field_name)
-
-
-def _normalize_identifier_list(value: list[str], *, field_name: str) -> list[str]:
-    return [_normalize_required_identifier(str(item), field_name=field_name) for item in value]
-
-
-def _contains_sensitive_term(value: str) -> bool:
-    lowered = value.lower().replace("-", " ")
-    return any(term in lowered for term in _COCKPIT_SENSITIVE_TERMS)
