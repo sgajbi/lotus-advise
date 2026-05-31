@@ -4599,3 +4599,30 @@
 - Follow-Up:
   - Keep future copilot orchestration behavior covered at the application-service boundary before
     adding or expanding controller-level assertions.
+
+## LA-REV-176
+
+- Scope: RFC-0024 through RFC-0027 proposal-route validation response constants
+- Pattern: API compatibility / warning-free validation / regression guard
+- Status: Hardened
+- Finding Class: API quality gap
+- Summary: RFC-focused validation exposed repeated `HTTP_422_UNPROCESSABLE_ENTITY` deprecation
+  warnings from proposal-route OpenAPI response metadata and copilot validation error mapping. The
+  repository already had a compatibility constant for modern FastAPI/Starlette versions, but the
+  route modules bypassed it.
+- Evidence:
+  - `src/api/proposals/routes_lifecycle.py`, `routes_memo.py`,
+    `routes_policy_evaluations.py`, `routes_policy_packs.py`, `routes_advisor_cockpit.py`, and
+    `routes_advisory_copilot.py` now use `src.api.http_status.HTTP_422_UNPROCESSABLE`.
+  - `tests/unit/advisory/api/test_http_status_compatibility.py` prevents proposal route modules
+    from reintroducing the deprecated FastAPI constant outside the compatibility shim.
+  - Targeted advisor-cockpit and advisory-copilot API tests pass after the route cleanup.
+- Consequence:
+  - RFC-0024 through RFC-0027 proposal APIs keep the same HTTP 422 behavior while avoiding
+    framework-version deprecation noise in validation, OpenAPI generation, and CI logs.
+- Documentation:
+  - Public API semantics are unchanged; this ledger entry records the implementation-backed API
+    compatibility hardening.
+- Follow-Up:
+  - Keep future route modules on shared status/error helpers rather than importing deprecated
+    framework aliases directly.

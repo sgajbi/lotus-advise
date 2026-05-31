@@ -4,6 +4,7 @@ from typing import Annotated, NoReturn, cast
 
 from fastapi import Depends, Header, HTTPException, Path, Query, status
 
+from src.api.http_status import HTTP_422_UNPROCESSABLE
 from src.api.proposals import router as shared
 from src.api.proposals.router import get_proposal_repository
 from src.api.proposals.runtime import proposal_postgres_dsn
@@ -34,7 +35,7 @@ ADVISORY_COPILOT_RESPONSES = {
     status.HTTP_409_CONFLICT: {
         "description": "Idempotency key or evidence-packet identifier conflicts with prior data."
     },
-    status.HTTP_422_UNPROCESSABLE_ENTITY: {
+    HTTP_422_UNPROCESSABLE: {
         "description": "Copilot request failed validation or guardrail-safe persistence checks."
     },
 }
@@ -312,4 +313,4 @@ def _raise_copilot_http_exception(exc: ValueError) -> NoReturn:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail) from exc
     if "CONFLICT" in detail or "TERMINAL" in detail:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail) from exc
-    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail) from exc
+    raise HTTPException(status_code=HTTP_422_UNPROCESSABLE, detail=detail) from exc
