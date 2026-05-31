@@ -113,9 +113,20 @@ def _required_capability(method: str, path: str) -> str | None:
     method = method.upper()
     for key, capability in load_capability_rules().items():
         prefix = f"{method} "
-        if key.upper().startswith(prefix) and path.startswith(key[len(prefix) :]):
+        if key.upper().startswith(prefix) and _path_matches_capability_rule(
+            request_path=path,
+            rule_path=key[len(prefix) :],
+        ):
             return capability
     return None
+
+
+def _path_matches_capability_rule(*, request_path: str, rule_path: str) -> bool:
+    normalized_rule = rule_path.rstrip("/")
+    normalized_request = request_path.rstrip("/")
+    return normalized_request == normalized_rule or normalized_request.startswith(
+        f"{normalized_rule}/"
+    )
 
 
 def authorize_write_request(

@@ -4913,3 +4913,27 @@
 - Follow-Up:
   - Keep authorization-policy normalization covered when new enterprise headers or capability rules
     are added.
+
+## LA-REV-186
+
+- Scope: Enterprise capability-rule path matching
+- Pattern: authorization boundary hardening
+- Status: Hardened
+- Finding Class: security and validation gap
+- Summary: Enterprise capability rules used raw prefix matching for route paths. A configured rule
+  for `/advisory/proposals` could also match sibling paths such as `/advisory/proposals-extra`,
+  making capability requirements broader than intended.
+- Evidence:
+  - `src/api/enterprise_readiness.py` now matches capability rules only for the exact configured
+    route path or a child path below it.
+  - `tests/unit/advisory/api/test_enterprise_readiness.py` now proves child paths inherit the rule
+    while sibling paths do not.
+- Consequence:
+  - Capability enforcement is now aligned to route boundaries instead of accidental string-prefix
+    overlap, reducing over-broad authorization policy application.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal authorization matching without
+    changing supported product behavior, operator workflow, or business-facing feature posture.
+- Follow-Up:
+  - Keep capability-rule matching tests in place when wildcard or templated route policies are
+    introduced.
