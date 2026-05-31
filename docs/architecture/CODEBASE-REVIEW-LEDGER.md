@@ -6957,3 +6957,31 @@
 - Follow-Up:
   - Continue auditing RFC-0027 persistence and source-projection boundaries before moving to
     RFC-0028 route and report-proof contracts.
+
+## LA-REV-266
+
+- Scope: RFC-0027 governed advisory copilot evidence source inputs
+- Pattern: bounded source-section and audience projection contracts
+- Status: Hardened
+- Finding Class: API validation, performance, and projection safety risk
+- Summary: Evidence-packet output models bounded projected packet sections, but the create-request
+  DTO did not directly bound inbound source sections and source-section audience lists were not
+  normalized or deduplicated at the domain boundary. Oversized source projections could therefore
+  be accepted before being narrowed by the packet builder.
+- Evidence:
+  - `src/core/advisory_copilot/models.py` now publishes the packet-section limit, bounds supported
+    and allowed audience lists, and normalizes source-section audiences with duplicate removal.
+  - `src/core/advisory_copilot/api_models.py` now bounds inbound evidence-packet source sections
+    to the same domain packet-section limit.
+  - Advisory copilot API and domain tests prove valid boundary inputs pass while oversized source
+    sections, empty audiences, and oversized/invalid audience lists fail at the correct boundary.
+- Consequence:
+  - RFC-0027 evidence packet creation now fails invalid or excessive source projections before
+    service execution, reducing avoidable runtime work and keeping Gateway/Workbench contracts
+    aligned with the domain projection model.
+- Documentation:
+  - No wiki source change is required. This is input-boundary hardening for existing RFC-0027
+    evidence-packet semantics.
+- Follow-Up:
+  - Continue auditing RFC-0027 persistence JSON payload sizing and source-projection reference
+    helpers for any remaining duplicated or weak boundary rules.

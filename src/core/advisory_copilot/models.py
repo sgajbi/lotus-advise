@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -80,7 +80,6 @@ _COPILOT_IDENTIFIER_MAX_LENGTH = 160
 _COPILOT_HASH_MAX_LENGTH = 128
 _COPILOT_LINEAGE_TYPE_MAX_LENGTH = 96
 _COPILOT_LINEAGE_REF_LIMIT = 16
-_COPILOT_PACKET_SECTION_LIMIT = 12
 _COPILOT_UNSUPPORTED_EVIDENCE_LIMIT = 12
 _COPILOT_UNSUPPORTED_MESSAGE_MAX_LENGTH = 500
 _COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_TERMS = (
@@ -91,6 +90,8 @@ _COPILOT_UNSUPPORTED_MESSAGE_TECHNICAL_TERMS = (
     "run ledger",
     "raw payload",
 )
+COPILOT_AUDIENCE_LIMIT = 5
+COPILOT_PACKET_SECTION_LIMIT = 12
 
 
 class CopilotActionDefinition(BaseModel):
@@ -109,6 +110,8 @@ class CopilotActionDefinition(BaseModel):
     supported_audiences: tuple[CopilotAudience, ...] = Field(
         description="Audiences allowed to request or review the action.",
         examples=[["ADVISOR", "DESK_HEAD"]],
+        min_length=1,
+        max_length=COPILOT_AUDIENCE_LIMIT,
     )
     required_source_dependencies: tuple[CopilotSourceDependency, ...] = Field(
         description="Implementation-backed sources required before the action can be supported.",
@@ -335,6 +338,8 @@ class CopilotEvidenceSectionInput(BaseModel):
     allowed_audiences: tuple[CopilotAudience, ...] = Field(
         description="Audiences allowed to receive this evidence section.",
         examples=[["ADVISOR", "COMPLIANCE_REVIEWER"]],
+        min_length=1,
+        max_length=COPILOT_AUDIENCE_LIMIT,
     )
 
     @field_validator("section_key", "title")
@@ -346,6 +351,11 @@ class CopilotEvidenceSectionInput(BaseModel):
     @classmethod
     def _normalize_summary_items(cls, value: Any) -> tuple[str, ...]:
         return _normalize_summary_tuple(value, allow_empty=False)
+
+    @field_validator("allowed_audiences", mode="before")
+    @classmethod
+    def _normalize_allowed_audiences(cls, value: Any) -> tuple[CopilotAudience, ...]:
+        return _normalize_audience_tuple(value)
 
 
 class CopilotEvidencePacket(BaseModel):
@@ -380,7 +390,7 @@ class CopilotEvidencePacket(BaseModel):
     )
     sections: tuple[CopilotEvidencePacketSection, ...] = Field(
         description="Redacted, source-backed evidence sections allowed for the action.",
-        max_length=_COPILOT_PACKET_SECTION_LIMIT,
+        max_length=COPILOT_PACKET_SECTION_LIMIT,
     )
     unsupported_evidence: tuple[CopilotUnsupportedEvidence, ...] = Field(
         default=(),
@@ -442,4 +452,32 @@ def _normalize_summary_tuple(value: Any, *, allow_empty: bool) -> tuple[str, ...
 
     if not normalized and not allow_empty:
         raise ValueError("COPILOT_EVIDENCE_SUMMARY_REQUIRED")
+    return tuple(normalized)
+
+
+def _normalize_audience_tuple(value: Any) -> tuple[CopilotAudience, ...]:
+    if not isinstance(value, (list, tuple)):
+        raise ValueError("COPILOT_AUDIENCE_INVALID")
+
+    allowed = {
+        "ADVISOR",
+        "DESK_HEAD",
+        "COMPLIANCE_REVIEWER",
+        "OPERATIONS_SUPPORT",
+        "MODEL_RISK_OPERATOR",
+    }
+    normalized: list[CopilotAudience] = []
+    for item in value:
+        if len(normalized) >= COPILOT_AUDIENCE_LIMIT:
+            raise ValueError("COPILOT_AUDIENCE_TOO_LARGE")
+        if not isinstance(item, str):
+            raise ValueError("COPILOT_AUDIENCE_INVALID")
+        audience = item.strip()
+        if audience not in allowed:
+            raise ValueError("COPILOT_AUDIENCE_INVALID")
+        if audience not in normalized:
+            normalized.append(cast(CopilotAudience, audience))
+
+    if not normalized:
+        raise ValueError("COPILOT_AUDIENCE_REQUIRED")
     return tuple(normalized)

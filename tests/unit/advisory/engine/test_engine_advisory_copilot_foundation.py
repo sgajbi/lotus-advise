@@ -354,7 +354,7 @@ def test_copilot_evidence_section_input_normalizes_and_bounds_source_evidence() 
         evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
         source_refs=(source_ref,),
         summary_items=(" Policy evaluation\nrequires compliance review. ",),
-        allowed_audiences=("ADVISOR", "COMPLIANCE_REVIEWER"),
+        allowed_audiences=(" ADVISOR ", "ADVISOR", "COMPLIANCE_REVIEWER"),
     )
 
     assert source_ref.source_system == "lotus-advise"
@@ -364,6 +364,7 @@ def test_copilot_evidence_section_input_normalizes_and_bounds_source_evidence() 
     assert section.section_key == "POLICY_POSTURE"
     assert section.title == "Policy posture"
     assert section.summary_items == ("Policy evaluation requires compliance review.",)
+    assert section.allowed_audiences == ("ADVISOR", "COMPLIANCE_REVIEWER")
 
     with pytest.raises(ValidationError):
         CopilotEvidenceSectionInput(
@@ -393,6 +394,33 @@ def test_copilot_evidence_section_input_normalizes_and_bounds_source_evidence() 
             source_refs=(source_ref,),
             summary_items=tuple(f"Summary {index}." for index in range(9)),
             allowed_audiences=("ADVISOR",),
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=("Policy evaluation requires compliance review.",),
+            allowed_audiences=(),
+        )
+
+    with pytest.raises(ValidationError):
+        CopilotEvidenceSectionInput(
+            section_key="POLICY_POSTURE",
+            title="Policy posture",
+            evidence_class="COMPLIANCE_REVIEW_EVIDENCE",
+            source_refs=(source_ref,),
+            summary_items=("Policy evaluation requires compliance review.",),
+            allowed_audiences=(
+                "ADVISOR",
+                "DESK_HEAD",
+                "COMPLIANCE_REVIEWER",
+                "OPERATIONS_SUPPORT",
+                "MODEL_RISK_OPERATOR",
+                "UNKNOWN_ROLE",
+            ),
         )
 
 

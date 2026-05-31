@@ -5,6 +5,7 @@ from typing import Any, cast
 from pydantic import BaseModel, Field, field_validator
 
 from src.core.advisory_copilot.models import (
+    COPILOT_PACKET_SECTION_LIMIT,
     CopilotActionFamily,
     CopilotAudience,
     CopilotEvidencePacket,
@@ -62,6 +63,7 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     )
     source_sections: tuple[CopilotEvidenceSectionInput, ...] = Field(
         description="Bounded source-backed evidence sections to project into the packet.",
+        max_length=COPILOT_PACKET_SECTION_LIMIT,
     )
     created_by: str = Field(
         description="Actor creating or rebuilding the packet.",
