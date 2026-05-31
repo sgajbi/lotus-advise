@@ -9066,6 +9066,36 @@
   - Continue modularizing the remaining response facade around memo and operational-read surfaces,
     and migrate direct imports only when a full route-module slice makes that change worthwhile.
 
+## LA-REV-376
+
+- Scope: Proposal memo response model modularity
+- Pattern: Memo DTOs should be owned by the memo surface instead of sharing a monolithic proposal
+  response module with lifecycle, delivery, timeline, approval, and async DTOs
+- Status: Hardened
+- Finding Class: Modularity problem and API contract quality
+- Summary: RFC-0024 memo DTOs remained embedded in `response_models.py`, even though memo create,
+  projection, review, report-package, AI-commentary, lineage, and replay-evidence contracts are a
+  coherent proposal-memo API surface with separate supportability and client-ready-publication
+  boundaries.
+- Evidence:
+  - Extracted memo request/response DTOs and memo-specific literal vocabulary into
+    `src/core/proposals/memo_response_models.py`.
+  - Kept `src/core/proposals/response_models.py` as a backwards-compatible facade for existing
+    API route and service imports.
+  - Added a module-boundary contract assertion proving `models.ProposalMemoResponse` still
+    resolves through the existing facade while the implementation lives in the memo module.
+  - Focused memo API, OpenAPI lifecycle docs, module-boundary tests, `ruff`, format check, and
+    `mypy` passed with 24 behavior tests.
+- Consequence:
+  - Memo contracts can now evolve with RFC-0024-specific review, report-package, and AI-commentary
+    semantics without increasing coupling to unrelated proposal response DTOs.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal model
+    organization for existing memo API contracts.
+- Follow-Up:
+  - Continue reviewing the remaining response facade for operational-read DTOs and consider moving
+    route imports to owning modules in a later bounded slice after compatibility is proven.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
