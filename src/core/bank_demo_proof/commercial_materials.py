@@ -97,6 +97,16 @@ class CommercialMaterial(BaseModel):
     def _claim_refs_must_be_bounded(cls, value: list[str]) -> list[str]:
         return _normalize_ref_list(value, field_name="commercial material claim refs")
 
+    @field_validator("allowed_audiences")
+    @classmethod
+    def _audiences_must_be_unique(
+        cls,
+        value: list[SupportedClaimAudience],
+    ) -> list[SupportedClaimAudience]:
+        if len(set(value)) != len(value):
+            raise ValueError("commercial material audiences must be unique")
+        return value
+
 
 class CommercialMaterialPack(BaseModel):
     contract_name: Literal["AdvisoryCommercialMaterialPack"] = Field(
@@ -153,8 +163,8 @@ class CommercialMaterialPack(BaseModel):
         for material in self.materials:
             if not set(material.mapped_claim_ids).issubset(required):
                 raise ValueError("commercial material maps to an unsupported claim id")
-            if "client_ready_publication" not in " ".join(material.excluded_claims):
-                raise ValueError("commercial material must exclude client-ready publication")
+            if not set(self.blocked_claims).issubset(material.excluded_claims):
+                raise ValueError("commercial material must exclude every blocked claim")
         return self
 
 
@@ -174,6 +184,8 @@ def _normalize_ref_list(value: list[str], *, field_name: str) -> list[str]:
         if _contains_sensitive_fragment(normalized_item):
             raise ValueError(f"{field_name} cannot contain sensitive technical detail")
         normalized.append(normalized_item)
+    if len(set(normalized)) != len(normalized):
+        raise ValueError(f"{field_name} entries must be unique")
     return normalized
 
 

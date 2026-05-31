@@ -45,7 +45,7 @@ def test_commercial_material_pack_uses_bounded_business_safe_materials() -> None
     assert pack.contract_name == "AdvisoryCommercialMaterialPack"
     assert "commercial_rfp_security_material_available" in pack.required_claim_ids
     assert all(
-        "client_ready_publication" in material.excluded_claims for material in pack.materials
+        set(pack.blocked_claims).issubset(material.excluded_claims) for material in pack.materials
     )
 
 
@@ -84,11 +84,66 @@ def test_commercial_material_rejects_unsafe_source_refs_and_technical_copy() -> 
         )
 
 
+def test_commercial_material_rejects_duplicate_claims_and_audiences() -> None:
+    with pytest.raises(ValidationError, match="entries must be unique"):
+        CommercialMaterial(
+            material_id="duplicate_claims",
+            title="Duplicate claims",
+            material_type="DEMO_SCRIPT",
+            source_ref="docs/commercial/material.md",
+            mapped_claim_ids=[
+                "commercial_rfp_security_material_available",
+                "commercial_rfp_security_material_available",
+            ],
+            allowed_audiences=["SALES"],
+            excluded_claims=["client_ready_publication"],
+        )
+
+    with pytest.raises(ValidationError, match="audiences must be unique"):
+        CommercialMaterial(
+            material_id="duplicate_audiences",
+            title="Duplicate audiences",
+            material_type="DEMO_SCRIPT",
+            source_ref="docs/commercial/material.md",
+            mapped_claim_ids=["commercial_rfp_security_material_available"],
+            allowed_audiences=["SALES", "SALES"],
+            excluded_claims=["client_ready_publication"],
+        )
+
+
 def test_commercial_material_pack_rejects_duplicate_material_ids() -> None:
     with pytest.raises(ValidationError, match="commercial material ids must be unique"):
         _commercial_material_pack(
             [
                 _commercial_material("duplicate"),
                 _commercial_material("duplicate"),
+            ]
+        )
+
+
+def test_commercial_material_pack_requires_exact_blocked_claim_coverage() -> None:
+    with pytest.raises(ValidationError, match="must exclude every blocked claim"):
+        CommercialMaterialPack(
+            scenario_id=RFC28_CANONICAL_SCENARIO_ID,
+            primary_portfolio_id=RFC28_CANONICAL_PORTFOLIO_ID,
+            proof_marker=RFC28_CANONICAL_PROOF_MARKER,
+            publication_posture="CUSTOMER_CONSUMABLE_WITH_BOUNDARIES",
+            required_claim_ids=["commercial_rfp_security_material_available"],
+            blocked_claims=["client_ready_publication", "external_client_communication"],
+            materials=[_commercial_material()],
+        )
+
+    with pytest.raises(ValidationError, match="must exclude every blocked claim"):
+        _commercial_material_pack(
+            [
+                CommercialMaterial(
+                    material_id="substring_claim",
+                    title="Substring claim",
+                    material_type="DEMO_SCRIPT",
+                    source_ref="docs/commercial/material.md",
+                    mapped_claim_ids=["commercial_rfp_security_material_available"],
+                    allowed_audiences=["SALES"],
+                    excluded_claims=["not_client_ready_publication"],
+                )
             ]
         )

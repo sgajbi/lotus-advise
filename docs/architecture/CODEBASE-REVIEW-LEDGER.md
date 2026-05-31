@@ -7068,3 +7068,31 @@
 - Follow-Up:
   - Continue auditing RFC-0028 report/export contracts and any remaining canonical automation
     evidence gaps before claiming RFC closure.
+
+## LA-REV-270
+
+- Scope: RFC-0028 commercial material governance
+- Pattern: exact blocked-claim coverage and duplicate-proof prevention
+- Status: Hardened
+- Finding Class: client-facing material governance and wording-drift risk
+- Summary: The commercial material pack declared blocked claims that must remain excluded from
+  every product, demo, RFP, security, architecture, ROI, and operator asset, but validation only
+  checked for a loose client-ready substring. A material could therefore omit other blocked claims
+  or pass a misleading substring while still appearing governed.
+- Evidence:
+  - `src/core/bank_demo_proof/commercial_materials.py` now requires every material to exclude the
+    exact blocked-claim set declared by the pack and rejects duplicate claim references and
+    audiences.
+  - Commercial material tests prove the generated pack excludes all blocked claims in every
+    material, rejects duplicate references/audiences, and fails substring-only or incomplete
+    blocked-claim coverage.
+- Consequence:
+  - RFC-0028 commercial/RFP material governance now prevents accidental overclaiming across
+    client-ready publication, external communication, approval/sign-off, legal advice, bank-specific
+    attestation, and OMS/order/fill/settlement boundaries.
+- Documentation:
+  - No wiki source change is required. This tightens validation for the existing RFC-0028
+    commercial material contract without changing supported feature truth.
+- Follow-Up:
+  - Continue auditing proof-pack writer artifacts, manifest shape, and local output references for
+    any remaining repeatability or disclosure gaps.
