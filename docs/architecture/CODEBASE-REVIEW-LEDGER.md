@@ -7012,3 +7012,30 @@
 - Follow-Up:
   - Continue auditing RFC-0027 source-projection helpers and then move to RFC-0028 route/report
     proof contracts.
+
+## LA-REV-268
+
+- Scope: RFC-0028 bank-demo proof runtime posture contract
+- Pattern: bounded runtime endpoint and base-url evidence
+- Status: Hardened
+- Finding Class: API contract, proof-pack safety, and generated-schema risk
+- Summary: Runtime posture evidence sanitized endpoint summaries, but the model did not publish
+  explicit endpoint path, base URL, or endpoint-inventory bounds. Gateway, Workbench, and generated
+  clients therefore could not rely on the schema to reject oversized runtime-proof metadata before
+  proof-pack construction.
+- Evidence:
+  - `src/core/bank_demo_proof/runtime_posture.py` now bounds endpoint paths, runtime base URLs,
+    and endpoint inventories while preserving existing summary redaction/truncation behavior.
+  - RFC-0028 backend proof tests prove sensitive runtime summary fields are redacted and oversized
+    endpoint paths, base URLs, and endpoint inventories are rejected.
+  - Bank-demo proof API OpenAPI tests prove the new runtime posture bounds are published in the
+    schema used by Gateway and Workbench.
+- Consequence:
+  - RFC-0028 proof-pack capture now has a clearer machine-readable runtime evidence envelope and
+    fails malformed runtime posture before material-field review or proof-pack assembly.
+- Documentation:
+  - No wiki source change is required. This is schema-level hardening for existing RFC-0028
+    runtime-proof semantics.
+- Follow-Up:
+  - Continue auditing RFC-0028 proof-capture request payload bounds, metadata normalization, and
+    proof bundle list/dictionary limits.

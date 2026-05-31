@@ -433,6 +433,33 @@ def test_backend_proof_capture_rejects_sensitive_artifact_reference_prefixes() -
         )
 
 
+def test_runtime_posture_bounds_endpoint_inventory_and_urls() -> None:
+    endpoint = RuntimeEndpointEvidence(
+        endpoint="/health/ready",
+        http_status=200,
+        posture="READY",
+        summary={"status": "ready", "token": "should-not-leak"},
+    )
+    assert endpoint.summary["token"] == "[REDACTED]"
+
+    with pytest.raises(ValidationError):
+        RuntimeEndpointEvidence(endpoint=f"/{'x' * 161}", posture="READY")
+
+    with pytest.raises(ValidationError):
+        BackendRuntimePosture(
+            base_url=f"http://advise.dev.lotus/{'x' * 520}",
+            environment="local",
+            endpoints=[endpoint],
+        )
+
+    with pytest.raises(ValidationError):
+        BackendRuntimePosture(
+            base_url="http://advise.dev.lotus",
+            environment="local",
+            endpoints=[endpoint for _ in range(33)],
+        )
+
+
 def test_backend_proof_metadata_rejects_sensitive_live_suite_references() -> None:
     with pytest.raises(ValidationError, match="live_suite_result_ref must not include URL"):
         default_capture_metadata(

@@ -174,5 +174,9 @@ def test_bank_demo_proof_openapi_documents_gateway_contract_and_error_model() ->
     assert "422" in operation["responses"]
     runtime_endpoint_schema = app.openapi()["components"]["schemas"]["RuntimeEndpointEvidence"]
     assert "latency_ms" in runtime_endpoint_schema["properties"]
+    assert runtime_endpoint_schema["properties"]["endpoint"]["maxLength"] == 160
+    runtime_posture_schema = app.openapi()["components"]["schemas"]["BackendRuntimePosture"]
+    assert runtime_posture_schema["properties"]["base_url"]["maxLength"] == 512
+    assert runtime_posture_schema["properties"]["endpoints"]["maxItems"] == 32
     request_schema = app.openapi()["components"]["schemas"]["BankDemoProofCaptureRequest"]
     assert "query strings" in request_schema["properties"]["output_ref_prefix"]["description"]

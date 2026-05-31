@@ -26,6 +26,9 @@ _SENSITIVE_KEY_FRAGMENTS = (
 _MAX_SUMMARY_KEYS = 32
 _MAX_SUMMARY_LIST_ITEMS = 50
 _MAX_SUMMARY_STRING_LENGTH = 512
+_MAX_BASE_URL_LENGTH = 512
+_MAX_ENDPOINT_PATH_LENGTH = 160
+_MAX_RUNTIME_ENDPOINTS = 32
 _URL_PATTERN = re.compile(r"https?://[^\s]+")
 
 
@@ -33,6 +36,8 @@ class RuntimeEndpointEvidence(BaseModel):
     endpoint: str = Field(
         description="Runtime endpoint that was probed.",
         examples=["/health/ready"],
+        min_length=1,
+        max_length=_MAX_ENDPOINT_PATH_LENGTH,
     )
     http_status: int | None = Field(
         default=None,
@@ -80,10 +85,13 @@ class BackendRuntimePosture(BaseModel):
     base_url: str = Field(
         description="Runtime base URL used for endpoint probes.",
         examples=["https://advise.dev.lotus"],
+        min_length=1,
+        max_length=_MAX_BASE_URL_LENGTH,
     )
     environment: str = Field(description="Runtime environment label.", examples=["local"])
     endpoints: list[RuntimeEndpointEvidence] = Field(
         min_length=1,
+        max_length=_MAX_RUNTIME_ENDPOINTS,
         description="Sanitized health, readiness, capability, and runtime evidence.",
     )
 
