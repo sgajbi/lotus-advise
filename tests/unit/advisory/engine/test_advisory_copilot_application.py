@@ -255,3 +255,76 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
     assert first.run.request_summary_json["user_instruction_hash"].startswith("sha256:")
     assert "user_instruction" not in first.run.request_summary_json
     assert "Summarize the advisory evidence" not in str(first.run.model_dump(mode="json"))
+
+
+def test_application_service_refreshes_retryable_unavailable_copilot_run() -> None:
+    copilot_repository = InMemoryAdvisoryCopilotRepository()
+    draft_calls: list[dict[str, Any]] = []
+    drafts = iter(
+        [
+            AdvisoryCopilotAiDraft(
+                status="UNAVAILABLE",
+                sections=(),
+                lineage={
+                    "workflow_pack_id": "advisory_copilot_proposal_explanation.pack",
+                    "workflow_pack_version": "v1",
+                    "workflow_run_id": None,
+                    "model_version": None,
+                    "proposal_version_id": "version_sg_001",
+                    "fallback_reason": "LOTUS_AI_ADVISORY_COPILOT_UNAVAILABLE",
+                },
+                review_guidance=("Retry after lotus-ai availability is restored.",),
+                guardrail_reasons=(),
+            ),
+            _draft_generator(),
+        ]
+    )
+
+    def _sequenced_draft_generator(**kwargs: Any) -> AdvisoryCopilotAiDraft:
+        draft_calls.append(dict(kwargs))
+        return next(drafts)
+
+    service = AdvisoryCopilotApplicationService(
+        repository=copilot_repository,
+        draft_generator=_sequenced_draft_generator,
+        policy_evaluation_loader=lambda **_: (),
+    )
+    service.create_evidence_packet(
+        payload=_evidence_packet_request(),
+        correlation_id="corr_packet_001",
+    )
+    request = AdvisoryCopilotActionRequest(
+        evidence_packet_id="copilot_packet_pb_sg_001",
+        audience="ADVISOR",
+        requested_outputs=("advisor_review_summary",),
+        requested_by="advisor_123",
+        reason={"business_reason": "Prepare advisor review."},
+        requested_intents=("explain_policy_posture",),
+        user_instruction="Summarize the advisory evidence for internal review.",
+    )
+
+    unavailable = service.run_action(
+        payload=request,
+        idempotency_key="copilot-action-idem-refresh",
+        correlation_id="corr_action_001",
+    )
+    refreshed = service.run_action(
+        payload=request,
+        idempotency_key="copilot-action-idem-refresh",
+        correlation_id="corr_action_002",
+    )
+    replay = service.run_action(
+        payload=request,
+        idempotency_key="copilot-action-idem-refresh",
+        correlation_id="corr_action_003",
+    )
+
+    assert unavailable.run.review_posture == "UNAVAILABLE"
+    assert refreshed.replayed is False
+    assert refreshed.run.run_id == unavailable.run.run_id
+    assert refreshed.run.created_at == unavailable.run.created_at
+    assert refreshed.run.review_posture == "REVIEW_REQUIRED"
+    assert refreshed.run.output_sections_json[0]["section_key"] == "SUMMARY"
+    assert replay.replayed is True
+    assert replay.run.review_posture == "REVIEW_REQUIRED"
+    assert len(draft_calls) == 2

@@ -20,6 +20,7 @@ from src.core.advisory_copilot.repository import AdvisoryCopilotRepository
 from src.core.advisory_copilot.review import CopilotReviewAction
 from src.core.advisory_copilot.service import (
     build_advisory_copilot_run_request_hash,
+    can_attempt_advisory_copilot_run_refresh,
     list_advisory_copilot_reviews,
     load_advisory_copilot_evidence_packet,
     persist_advisory_copilot_run,
@@ -181,7 +182,8 @@ class AdvisoryCopilotApplicationService:
                 existing_run = self._repository.get_run(run_id=existing_idempotency.run_id)
                 if existing_run is None:
                     raise ValueError("COPILOT_RUN_IDEMPOTENCY_RECORD_ORPHANED")
-                return AdvisoryCopilotRunResponse(run=existing_run, replayed=True)
+                if not can_attempt_advisory_copilot_run_refresh(existing_run):
+                    return AdvisoryCopilotRunResponse(run=existing_run, replayed=True)
         draft = self._draft_generator(
             evidence_packet=evidence_packet,
             audience=payload.audience,

@@ -4829,3 +4829,35 @@
 - Follow-Up:
   - Keep future keyset pagination helpers covered by direct decoder tests and at least one API-level
     malformed-cursor contract test.
+
+## LA-REV-183
+
+- Scope: Advisory copilot application idempotency refresh path
+- Pattern: idempotency correctness / retryable dependency recovery
+- Status: Hardened
+- Finding Class: correctness and duplication gap
+- Summary: The application-service replay fast path duplicated part of the persistence idempotency
+  logic and returned an existing idempotent run before the persistence layer could apply its
+  retryable-run refresh rule. That left dependency-unavailable or false-positive guardrail copilot
+  runs at risk of being replayed as stale results even after the underlying lotus-ai dependency or
+  guardrail condition recovered.
+- Evidence:
+  - `src/core/advisory_copilot/service.py` now exposes
+    `can_attempt_advisory_copilot_run_refresh` as the shared retryability predicate used by the
+    application layer and the persistence refresh rule.
+  - `src/core/advisory_copilot/application.py` keeps normal idempotent replay efficient, but allows
+    retryable existing runs to proceed through draft generation and persistence refresh.
+  - `tests/unit/advisory/engine/test_advisory_copilot_application.py` now proves an unavailable
+    copilot run refreshes on the same idempotency key, preserves the stable run identity and
+    creation timestamp, and then reverts to efficient replay after the refreshed run is no longer
+    retryable.
+- Consequence:
+  - RFC-0027 advisory copilot recovery behavior now matches its persistence contract at the API
+    application boundary without forcing normal idempotent replays to call lotus-ai again.
+- Documentation:
+  - No wiki source change is required. This slice hardens internal idempotency and recovery
+    semantics without changing supported product behavior, operator workflow, or business-facing
+    feature posture.
+- Follow-Up:
+  - Keep application-layer replay shortcuts tied to shared domain predicates when persistence owns
+    the authoritative recovery or idempotency rule.
