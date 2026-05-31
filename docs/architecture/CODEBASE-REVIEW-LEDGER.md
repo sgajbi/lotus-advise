@@ -8865,6 +8865,8 @@
   - Confirmed no remaining `detail=str(exc)` mappings under `src/api`.
   - Focused `ruff`, format check, lifecycle report-route tests, memo API tests, and policy
     evaluation API tests passed with 21 tests.
+  - Full repository `make check` passed with 1,568 unit tests after the API boundary hardening
+    sequence.
 - Consequence:
   - Report integration routes keep stable service-unavailable semantics while preventing upstream
     report/render/archive details from leaking through Advise API responses.
