@@ -8846,6 +8846,30 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-341
+
+- Scope: RFC-0028 bank-demo proof API sensitive-detail detector
+- Pattern: API routes should share one sensitive-error detector instead of maintaining duplicate
+  fragment lists per route family
+- Status: Hardened
+- Finding Class: Duplication reduction and security posture
+- Summary: The bank-demo proof router carried its own sensitive-error fragment list even though the
+  API layer now has a shared detector used by proposal, workspace, report, and copilot routes.
+- Evidence:
+  - Replaced the route-local fragment list in `src/api/routers/bank_demo_proof.py` with the shared
+    `src/api/sensitive_error_details.py` detector.
+  - Existing RFC-0028 proof-pack API tests continued to cover sensitive source-evidence redaction.
+  - Focused `ruff`, format check, and bank-demo proof API tests passed with 8 tests.
+- Consequence:
+  - RFC-0028 proof-pack route behavior stays unchanged while the API layer has less duplicated
+    security-sensitive matching logic.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is internal
+    defensive code consolidation.
+- Follow-Up:
+  - Keep domain-specific proof-field validators separate when they validate business payloads, but
+    use the shared API detector for route error-detail redaction.
+
 ## LA-REV-340
 
 - Scope: Legacy proposal simulation idempotency cache export
