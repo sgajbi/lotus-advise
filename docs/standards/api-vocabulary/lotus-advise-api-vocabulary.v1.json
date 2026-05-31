@@ -8,7 +8,7 @@
       "openApiVersion": "3.1.0"
     }
   ],
-  "generatedAt": "2026-05-31T22:21:44.169610+00:00",
+  "generatedAt": "2026-05-31T22:31:11.595024+00:00",
   "attributeCatalog": [
     {
       "semanticId": "lotus.access_class",
@@ -7413,7 +7413,7 @@
       "semanticId": "lotus.prompt_template_version",
       "canonicalTerm": "prompt_template_version",
       "preferredName": "prompt_template_version",
-      "description": "Approved prompt-template lineage reference; no raw prompt is stored.",
+      "description": "Approved prompt-template lineage reference; no unredacted AI input is stored.",
       "example": "example_prompt_template_version",
       "type": "string",
       "locations": [
@@ -8622,7 +8622,7 @@
       "semanticId": "lotus.request_summary_json",
       "canonicalTerm": "request_summary_json",
       "preferredName": "request_summary_json",
-      "description": "Safe request summary with hashes and requested outputs; raw prompts omitted.",
+      "description": "Safe request summary with hashes and requested outputs; unredacted AI inputs omitted.",
       "example": {
         "key": "sample_text"
       },
