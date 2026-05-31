@@ -2,6 +2,7 @@ import inspect
 
 import pytest
 
+import src.api.main as api_main
 from src.api.proposals.errors import raise_proposal_http_exception
 from src.api.routers.advisory_simulation import (
     build_proposal_artifact_endpoint,
@@ -51,3 +52,10 @@ def test_lotus_core_simulation_does_not_use_query_base_url(monkeypatch):
 def test_advisory_simulation_routes_do_not_depend_on_legacy_db_session():
     for endpoint in (simulate_proposal, build_proposal_artifact_endpoint):
         assert "db" not in inspect.signature(endpoint).parameters
+
+
+def test_api_main_does_not_export_legacy_proposal_idempotency_cache():
+    assert not hasattr(api_main, "PROPOSAL_IDEMPOTENCY_CACHE")
+    assert not hasattr(api_main, "MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE")
+    assert "PROPOSAL_IDEMPOTENCY_CACHE" not in api_main.__all__
+    assert "MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE" not in api_main.__all__

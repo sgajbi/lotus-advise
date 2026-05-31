@@ -37,10 +37,6 @@ from src.api.routers.integration_capabilities import (
 from src.api.routers.tactical_house_view import router as tactical_house_view_router
 from src.api.runtime_persistence import validate_advisory_runtime_persistence
 from src.api.services.advisory_simulation_service import (
-    MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE,
-    PROPOSAL_IDEMPOTENCY_CACHE,
-)
-from src.api.services.advisory_simulation_service import (
     simulate_proposal_response as _simulate_proposal_response,
 )
 from src.api.workspaces.router import router as workspace_router
@@ -312,8 +308,6 @@ async def lotus_core_simulation_unavailable_to_problem_details(
 
 
 __all__ = [
-    "MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE",
-    "PROPOSAL_IDEMPOTENCY_CACHE",
     "_simulate_proposal_response",
     "app",
     "build_proposal_artifact_endpoint",

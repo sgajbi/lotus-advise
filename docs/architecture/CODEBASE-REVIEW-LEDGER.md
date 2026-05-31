@@ -8846,6 +8846,33 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-340
+
+- Scope: Legacy proposal simulation idempotency cache export
+- Pattern: Repository-backed runtime should not retain unused in-memory idempotency cache exports or
+  tests that reset dead state
+- Status: Hardened
+- Finding Class: Dead code and test reliability
+- Summary: `src/api/services/advisory_simulation_service.py` still declared
+  `PROPOSAL_IDEMPOTENCY_CACHE` and `MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE`, and `src/api/main.py`
+  re-exported them. The simulation path now persists idempotency through the proposal repository;
+  the cache was only being cleared by tests and no longer influenced behavior.
+- Evidence:
+  - Removed the unused cache and max-size constant from the simulation service and main exports.
+  - Updated unit and integration test setup to reset the actual proposal repository/service boundary
+    instead of clearing dead state.
+  - Added an internal guard test preventing `src.api.main` from re-exporting the legacy cache.
+  - Focused `ruff`, format check, lifecycle API tests, memo API tests, and internal guard tests
+    passed with 102 tests.
+- Consequence:
+  - Proposal idempotency ownership is clearer: persistence is repository-backed, and tests no
+    longer imply a non-production in-memory cache is authoritative.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this removes stale
+    internal implementation residue.
+- Follow-Up:
+  - Continue removing test-only compatibility exports when they no longer match runtime ownership.
+
 ## LA-REV-339
 
 - Scope: Proposal memo report-package OpenAPI description

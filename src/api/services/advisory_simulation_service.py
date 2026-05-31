@@ -1,6 +1,5 @@
-from collections import OrderedDict
 from datetime import datetime, timezone
-from typing import Dict, Optional, cast
+from typing import Optional, cast
 
 from fastapi import HTTPException, status
 
@@ -31,9 +30,6 @@ from src.core.proposals.simulation_gate import (
     ProposalSimulationGateError,
     validate_proposal_simulation_enabled,
 )
-
-PROPOSAL_IDEMPOTENCY_CACHE: "OrderedDict[str, Dict[str, object]]" = OrderedDict()
-MAX_PROPOSAL_IDEMPOTENCY_CACHE_SIZE = 1000
 
 
 def _safe_simulation_validation_detail(error_detail: str) -> str:

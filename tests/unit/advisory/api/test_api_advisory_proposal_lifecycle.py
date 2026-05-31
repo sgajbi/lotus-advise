@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 import src.api.proposals.router as proposals_router
-from src.api.main import PROPOSAL_IDEMPOTENCY_CACHE, app
+from src.api.main import app
 from src.api.proposals.router import reset_proposal_workflow_service_for_tests
 from src.core.proposals import ProposalAsyncAcceptedResponse, ProposalIdempotencyConflictError
 from src.integrations.lotus_core.stateful_context import (
@@ -208,7 +208,6 @@ def _resolved_stateful_context(
 
 
 def setup_function() -> None:
-    PROPOSAL_IDEMPOTENCY_CACHE.clear()
     reset_proposal_workflow_service_for_tests()
     reset_stateful_context_cache_for_tests()
 
