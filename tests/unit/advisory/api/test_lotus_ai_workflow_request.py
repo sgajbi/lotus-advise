@@ -1,0 +1,76 @@
+from __future__ import annotations
+
+import pytest
+
+from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
+
+
+def test_build_workflow_pack_execute_request_applies_governed_caller_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", "UAT")
+    monkeypatch.setenv("LOTUS_ADVISE_TENANT_ID", "tenant-private-bank-001")
+
+    request = build_workflow_pack_execute_request(
+        pack_id="advisory_copilot_proposal_explanation.pack",
+        version="v1",
+        workflow_surface="advisory-copilot-proposal-explanation",
+        task_id="explain.v1",
+        correlation_id="correlation-001",
+        requested_by="advisor_001",
+        context_summary="Draft advisor-use explanation from governed evidence.",
+        context_payload={"evidence_packet_id": "copilot_packet_pb_sg_001"},
+        source_refs=["lotus-advise:proposal:proposal_001"],
+        expected_output_label="EXPLANATION_ONLY",
+    )
+
+    task_request = request["task_request"]
+    assert isinstance(task_request, dict)
+    caller = task_request["caller"]
+    assert isinstance(caller, dict)
+    context = task_request["context"]
+    assert isinstance(context, dict)
+
+    assert request["environment"] == "UAT"
+    assert request["caller_identity_class"] == "INTERNAL_SERVICE"
+    assert task_request["input_mode"] == "STRUCTURED_CONTEXT"
+    assert caller == {
+        "caller_app": "lotus-advise",
+        "correlation_id": "correlation-001",
+        "requested_by": "advisor_001",
+        "tenant_id": "tenant-private-bank-001",
+    }
+    assert context == {
+        "summary": "Draft advisor-use explanation from governed evidence.",
+        "payload": {"evidence_packet_id": "copilot_packet_pb_sg_001"},
+        "source_refs": ["lotus-advise:proposal:proposal_001"],
+    }
+
+
+def test_build_workflow_pack_execute_request_uses_default_environment_and_tenant(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", raising=False)
+    monkeypatch.delenv("LOTUS_ADVISE_TENANT_ID", raising=False)
+
+    request = build_workflow_pack_execute_request(
+        pack_id="proposal_narrative_draft.pack",
+        version="v1",
+        workflow_surface="advisory-proposal-narrative",
+        task_id="proposal_narrative_draft.v1",
+        correlation_id="proposal-narrative-pgp_001",
+        requested_by=None,
+        context_summary="Draft advisor-review proposal narrative.",
+        context_payload={"packet_id": "pgp_001"},
+        source_refs=[],
+        expected_output_label="ADVISOR_REVIEW_DRAFT_SECTIONS",
+    )
+
+    task_request = request["task_request"]
+    assert isinstance(task_request, dict)
+    caller = task_request["caller"]
+    assert isinstance(caller, dict)
+
+    assert request["environment"] == "DEVELOPMENT"
+    assert caller["requested_by"] is None
+    assert caller["tenant_id"] == "tenant-sg-001"

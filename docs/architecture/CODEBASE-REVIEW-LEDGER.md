@@ -7479,3 +7479,31 @@
 - Follow-Up:
   - Continue separating Lotus AI workflow-pack request construction from adapter transport where
     future slices identify material duplication or test gaps.
+
+## LA-REV-285
+
+- Scope: Lotus AI workflow-pack execute request envelope
+- Pattern: shared governed request envelope separated from domain payload construction
+- Status: Hardened
+- Finding Class: duplication, tenant/caller consistency, and contract drift risk
+- Summary: The Lotus AI execute adapters duplicated the same pack id/version/environment,
+  caller-identity, task-request, tenant, context, source-reference, and expected-output envelope
+  construction. Domain payloads were different, but the shared wrapper was platform contract
+  plumbing that could drift across advisory copilot, proposal narrative, memo commentary, policy
+  evidence, and workspace rationale integrations.
+- Evidence:
+  - `src/integrations/lotus_ai/workflow_request.py` now owns the governed workflow-pack execute
+    envelope for Lotus Advise callers.
+  - Lotus AI adapters now retain domain-specific payload and source-reference construction while
+    delegating common caller/environment/tenant/context wrapping to the shared helper.
+  - `tests/unit/advisory/api/test_lotus_ai_workflow_request.py` proves the governed caller
+    envelope, configured environment and tenant propagation, and default local development posture.
+- Consequence:
+  - Lotus AI execute requests now use one consistent Advise-owned envelope, reducing drift risk in
+    caller identity, tenant routing, source context, and expected-output metadata.
+- Documentation:
+  - No README or wiki source change is required. This is internal integration-boundary hardening
+    with unchanged public API semantics.
+- Follow-Up:
+  - Continue auditing Lotus AI workflow-pack run review-action mapping separately because it uses a
+    different endpoint contract than execute requests.

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -26,10 +25,8 @@ from src.integrations.lotus_ai.output_safety import (
     map_bounded_string_list,
     map_review_required_sections,
 )
-from src.integrations.lotus_ai.runtime_config import (
-    resolve_lotus_ai_base_url,
-    resolve_lotus_ai_tenant_id,
-)
+from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
 from src.integrations.lotus_ai.workflow_response import (
     extract_error_detail,
     extract_model_version,
@@ -263,61 +260,48 @@ def _build_workflow_pack_request(
     reason: dict[str, Any],
 ) -> dict[str, object]:
     action_family = evidence_packet.action_family
-    return {
-        "pack_id": workflow_pack_id_for_action(action_family),
-        "version": workflow_pack_version_for_action(action_family),
-        "environment": os.getenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", "DEVELOPMENT"),
-        "caller_identity_class": "INTERNAL_SERVICE",
-        "workflow_surface": _workflow_surface(action_family),
-        "task_request": {
-            "task_id": "explain.v1",
-            "input_mode": "STRUCTURED_CONTEXT",
-            "caller": {
-                "caller_app": "lotus-advise",
-                "correlation_id": _caller_correlation_id(evidence_packet),
-                "requested_by": _bounded_text(
-                    requested_by,
-                    max_length=MAX_COPILOT_REQUESTED_BY_LENGTH,
-                ),
-                "tenant_id": resolve_lotus_ai_tenant_id(),
+    bounded_requested_by = _bounded_text(
+        requested_by,
+        max_length=MAX_COPILOT_REQUESTED_BY_LENGTH,
+    )
+    return build_workflow_pack_execute_request(
+        pack_id=workflow_pack_id_for_action(action_family),
+        version=workflow_pack_version_for_action(action_family),
+        workflow_surface=_workflow_surface(action_family),
+        task_id="explain.v1",
+        correlation_id=_caller_correlation_id(evidence_packet),
+        requested_by=bounded_requested_by,
+        context_summary="Draft review-gated advisory copilot output from bounded evidence.",
+        context_payload={
+            "copilot_evidence_packet": evidence_packet.model_dump(mode="json"),
+            "copilot_request": {
+                "action_family": action_family,
+                "audience": audience,
+                "requested_outputs": _requested_outputs(requested_outputs),
+                "requested_by": bounded_requested_by,
+                "reason": _safe_reason(reason),
             },
-            "context": {
-                "summary": "Draft review-gated advisory copilot output from bounded evidence.",
-                "payload": {
-                    "copilot_evidence_packet": evidence_packet.model_dump(mode="json"),
-                    "copilot_request": {
-                        "action_family": action_family,
-                        "audience": audience,
-                        "requested_outputs": _requested_outputs(requested_outputs),
-                        "requested_by": _bounded_text(
-                            requested_by,
-                            max_length=MAX_COPILOT_REQUESTED_BY_LENGTH,
-                        ),
-                        "reason": _safe_reason(reason),
-                    },
-                    "model_risk_controls": {
-                        "adapter_version": ADAPTER_VERSION,
-                        "approved_instruction_set": APPROVED_INSTRUCTION_SET,
-                        "prompt_template_version": PROMPT_TEMPLATE_VERSION,
-                        "output_schema_version": OUTPUT_SCHEMA_VERSION,
-                        "evaluation_pack_ref": EVALUATION_PACK_REF,
-                    },
-                    "supportability": {
-                        "human_review_required": True,
-                        "client_ready_publication": "BLOCKED",
-                        "unsupported_claims": [
-                            "client_ready_publication",
-                            "policy_approval",
-                            "trade_or_order_action",
-                            "missing_evidence_inference",
-                        ],
-                    },
-                },
-                "source_refs": _source_refs(evidence_packet),
+            "model_risk_controls": {
+                "adapter_version": ADAPTER_VERSION,
+                "approved_instruction_set": APPROVED_INSTRUCTION_SET,
+                "prompt_template_version": PROMPT_TEMPLATE_VERSION,
+                "output_schema_version": OUTPUT_SCHEMA_VERSION,
+                "evaluation_pack_ref": EVALUATION_PACK_REF,
             },
-            "expected_output_label": "EXPLANATION_ONLY",
+            "supportability": {
+                "human_review_required": True,
+                "client_ready_publication": "BLOCKED",
+                "unsupported_claims": [
+                    "client_ready_publication",
+                    "policy_approval",
+                    "trade_or_order_action",
+                    "missing_evidence_inference",
+                ],
+            },
         },
-    }
+        source_refs=_source_refs(evidence_packet),
+        expected_output_label="EXPLANATION_ONLY",
+    )
 
 
 def _resolve_base_url() -> str:

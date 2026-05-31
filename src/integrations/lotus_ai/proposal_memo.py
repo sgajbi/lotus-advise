@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -16,10 +15,8 @@ from src.integrations.lotus_ai.output_safety import (
     map_bounded_string_list,
     map_review_required_sections,
 )
-from src.integrations.lotus_ai.runtime_config import (
-    resolve_lotus_ai_base_url,
-    resolve_lotus_ai_tenant_id,
-)
+from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
 from src.integrations.lotus_ai.workflow_response import (
     extract_error_detail,
     extract_model_version,
@@ -132,46 +129,35 @@ def _build_workflow_pack_request(
     requested_by: str,
     reason: dict[str, Any],
 ) -> dict[str, object]:
-    return {
-        "pack_id": WORKFLOW_PACK_ID,
-        "version": WORKFLOW_PACK_VERSION,
-        "environment": os.getenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", "DEVELOPMENT"),
-        "caller_identity_class": "INTERNAL_SERVICE",
-        "workflow_surface": WORKFLOW_SURFACE,
-        "task_request": {
-            "task_id": "explain.v1",
-            "input_mode": "STRUCTURED_CONTEXT",
-            "caller": {
-                "caller_app": "lotus-advise",
-                "correlation_id": f"proposal-memo-commentary-{memo_evidence.get('memo_id')}",
+    return build_workflow_pack_execute_request(
+        pack_id=WORKFLOW_PACK_ID,
+        version=WORKFLOW_PACK_VERSION,
+        workflow_surface=WORKFLOW_SURFACE,
+        task_id="explain.v1",
+        correlation_id=f"proposal-memo-commentary-{memo_evidence.get('memo_id')}",
+        requested_by=requested_by,
+        context_summary="Draft review-gated advisor-use proposal memo commentary.",
+        context_payload={
+            "memo_evidence": memo_evidence,
+            "commentary_request": {
+                "requested_sections": requested_sections,
                 "requested_by": requested_by,
-                "tenant_id": resolve_lotus_ai_tenant_id(),
+                "reason": reason,
             },
-            "context": {
-                "summary": "Draft review-gated advisor-use proposal memo commentary.",
-                "payload": {
-                    "memo_evidence": memo_evidence,
-                    "commentary_request": {
-                        "requested_sections": requested_sections,
-                        "requested_by": requested_by,
-                        "reason": reason,
-                    },
-                    "supportability": {
-                        "scope": "advisor_use_only",
-                        "review_required": True,
-                        "client_ready_publication": "BLOCKED",
-                        "unsupported_claims": [
-                            "client_ready_memo_publication",
-                            "suitability_or_approval_mutation",
-                            "missing_evidence_inference",
-                        ],
-                    },
-                },
-                "source_refs": _source_refs(memo_evidence),
+            "supportability": {
+                "scope": "advisor_use_only",
+                "review_required": True,
+                "client_ready_publication": "BLOCKED",
+                "unsupported_claims": [
+                    "client_ready_memo_publication",
+                    "suitability_or_approval_mutation",
+                    "missing_evidence_inference",
+                ],
             },
-            "expected_output_label": "EXPLANATION_ONLY",
         },
-    }
+        source_refs=_source_refs(memo_evidence),
+        expected_output_label="EXPLANATION_ONLY",
+    )
 
 
 def _resolve_base_url() -> str:

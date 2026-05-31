@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -16,10 +15,8 @@ from src.integrations.lotus_ai.output_safety import (
     map_bounded_string_list,
     map_review_required_sections,
 )
-from src.integrations.lotus_ai.runtime_config import (
-    resolve_lotus_ai_base_url,
-    resolve_lotus_ai_tenant_id,
-)
+from src.integrations.lotus_ai.runtime_config import resolve_lotus_ai_base_url
+from src.integrations.lotus_ai.workflow_request import build_workflow_pack_execute_request
 from src.integrations.lotus_ai.workflow_response import (
     extract_error_detail,
     extract_model_version,
@@ -132,50 +129,39 @@ def _build_workflow_pack_request(
     requested_by: str,
     reason: dict[str, Any],
 ) -> dict[str, object]:
-    return {
-        "pack_id": WORKFLOW_PACK_ID,
-        "version": WORKFLOW_PACK_VERSION,
-        "environment": os.getenv("LOTUS_AI_WORKFLOW_PACK_ENVIRONMENT", "DEVELOPMENT"),
-        "caller_identity_class": "INTERNAL_SERVICE",
-        "workflow_surface": WORKFLOW_SURFACE,
-        "task_request": {
-            "task_id": "explain_policy_evidence.v1",
-            "input_mode": "STRUCTURED_CONTEXT",
-            "caller": {
-                "caller_app": "lotus-advise",
-                "correlation_id": (f"policy-evidence-{policy_evidence.get('evaluation_id')}"),
+    return build_workflow_pack_execute_request(
+        pack_id=WORKFLOW_PACK_ID,
+        version=WORKFLOW_PACK_VERSION,
+        workflow_surface=WORKFLOW_SURFACE,
+        task_id="explain_policy_evidence.v1",
+        correlation_id=f"policy-evidence-{policy_evidence.get('evaluation_id')}",
+        requested_by=requested_by,
+        context_summary="Draft review-gated policy evidence explanation.",
+        context_payload={
+            "policy_evidence": policy_evidence,
+            "policy_evidence_request": {
+                "requested_actions": requested_actions,
                 "requested_by": requested_by,
-                "tenant_id": resolve_lotus_ai_tenant_id(),
+                "reason": reason,
             },
-            "context": {
-                "summary": "Draft review-gated policy evidence explanation.",
-                "payload": {
-                    "policy_evidence": policy_evidence,
-                    "policy_evidence_request": {
-                        "requested_actions": requested_actions,
-                        "requested_by": requested_by,
-                        "reason": reason,
-                    },
-                    "supportability": {
-                        "scope": "advisor_and_compliance_use_only",
-                        "human_review_required": True,
-                        "client_ready_publication": "BLOCKED",
-                        "authoritative_for_policy_status": False,
-                        "unsupported_claims": [
-                            "client_ready_policy_publication",
-                            "policy_status_mutation",
-                            "rule_result_mutation",
-                            "approval_or_waiver_creation",
-                            "disclosure_or_consent_mutation",
-                            "missing_evidence_inference",
-                        ],
-                    },
-                },
-                "source_refs": _source_refs(policy_evidence),
+            "supportability": {
+                "scope": "advisor_and_compliance_use_only",
+                "human_review_required": True,
+                "client_ready_publication": "BLOCKED",
+                "authoritative_for_policy_status": False,
+                "unsupported_claims": [
+                    "client_ready_policy_publication",
+                    "policy_status_mutation",
+                    "rule_result_mutation",
+                    "approval_or_waiver_creation",
+                    "disclosure_or_consent_mutation",
+                    "missing_evidence_inference",
+                ],
             },
-            "expected_output_label": "EXPLANATION_ONLY",
         },
-    }
+        source_refs=_source_refs(policy_evidence),
+        expected_output_label="EXPLANATION_ONLY",
+    )
 
 
 def _resolve_base_url() -> str:
