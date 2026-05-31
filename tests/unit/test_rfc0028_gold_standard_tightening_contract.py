@@ -27,7 +27,7 @@ def test_rfc0028_locks_slice_zero_decisions_before_implementation() -> None:
     rfc = _read(RFC28_PATH)
     flat = _flat(RFC28_PATH)
 
-    assert "Last Tightened** | 2026-05-28" in rfc
+    assert "Last Tightened** | 2026-05-31" in rfc
     assert "rfc0028-gold-standard-implementation" in rfc
     assert "## 22. Slice 0 Pre-Implementation Decisions" in rfc
     assert "## 22. Open Questions" not in rfc
@@ -543,3 +543,28 @@ def test_rfc0028_records_final_closure_artifact_hardening_and_communication() ->
         assert "PR #369" in source
         assert "26d74e65e231ac3d62457187c6eb7f787a4d9f88" in source
         assert "26574820026" in source
+
+
+def test_rfc0028_supported_features_ledger_reflects_implemented_closure_truth() -> None:
+    rfc = _read(RFC28_PATH)
+    ledger = rfc.split("## 17. Supported-Features Ledger", maxsplit=1)[1].split(
+        "Current implementation note:", maxsplit=1
+    )[0]
+    flat_ledger = " ".join(ledger.split())
+
+    assert "Current support posture" in ledger
+    assert "Initial RFC state" not in ledger
+    assert "| Canonical advisory demo scenario | Supported |" in ledger
+    assert "| Advisory bank demo proof pack | Supported |" in ledger
+    assert "| Supported-claim register | Supported |" in ledger
+    assert "| Gateway demo/proof integration | Supported |" in ledger
+    assert (
+        "| Workbench end-to-end demo journey | Supported for the governed canonical proof surface |"
+    ) in ledger
+    assert "| RFP/security pack | Supported for implementation-backed responses |" in ledger
+    assert "| LinkedIn post-completion draft | Supported |" in ledger
+    assert "client-ready publication, external communication, OMS/order/fill/settlement" in (
+        flat_ledger
+    )
+    assert "bank-specific attestations remain blocked" in flat_ledger
+    assert "| Proposed |" not in ledger

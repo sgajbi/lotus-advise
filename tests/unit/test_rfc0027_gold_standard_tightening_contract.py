@@ -22,7 +22,7 @@ def test_rfc0027_closure_preserves_slice_zero_decisions_and_no_open_questions() 
     flat_rfc = _flat(RFC27_PATH)
 
     assert "IMPLEMENTED for governed internal advisor/reviewer copilot interactions" in rfc
-    assert "Last Tightened** | 2026-05-28" in rfc
+    assert "Last Tightened** | 2026-05-31" in rfc
     assert "rfc0027-governed-advisory-ai-copilot" in rfc
     assert "## 26. Slice 0 Pre-Implementation Decisions" in rfc
     assert "## 26. Open Questions" not in rfc
@@ -154,3 +154,25 @@ def test_rfc0027_indexes_and_supported_features_promote_only_proven_internal_cop
     assert "- `RFC-0026`" not in not_yet_implemented
     assert "- `RFC-0027`" not in not_yet_implemented
     assert "- `RFC-0028`" not in not_yet_implemented
+
+
+def test_rfc0027_supported_features_ledger_reflects_implemented_closure_truth() -> None:
+    rfc = _read(RFC27_PATH)
+    ledger = rfc.split("## 20. Supported-Features Ledger", maxsplit=1)[1].split(
+        "## 21. Implementation Closure", maxsplit=1
+    )[0]
+    flat_ledger = " ".join(ledger.split())
+
+    assert "Current support posture" in ledger
+    assert "Initial RFC state" not in ledger
+    assert (
+        "| Governed advisory copilot action catalog | Supported for first-wave internal "
+        "advisor/reviewer actions |"
+    ) in ledger
+    assert "| Copilot evidence packet | Supported |" in ledger
+    assert "| Gateway/Workbench copilot experience | Supported |" in ledger
+    assert "No free-form prompt endpoint is supported" in flat_ledger
+    assert "Raw prompts, unrestricted source payloads, and provider responses remain outside" in (
+        flat_ledger
+    )
+    assert "| Proposed |" not in ledger

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Status** | IMPLEMENTED - BANK-DEMO PROOF AND CLAIM-CONTROLLED COMMERCIAL MATERIAL COMPLETE |
 | **Created** | 2026-05-22 |
-| **Last Tightened** | 2026-05-28 |
+| **Last Tightened** | 2026-05-31 |
 | **Owner** | `lotus-advise` for advisory journey proof, supported-claim authority, and demo evidence truth; `lotus-platform` for reusable scenario/proof automation and scaffolding where applicable |
 | **Business Sponsor Persona** | sales, pre-sales, client demo lead, advisory desk head, relationship manager, compliance reviewer, model-risk reviewer, operations, security/RFP reviewer, engineering, product marketing |
 | **Primary Business Outcome** | make `lotus-advise` demonstrably bank-buyable by delivering a repeatable, truthful, implementation-backed advisory demo journey, proof pack, supported-claim register, and enterprise sales/RFP package across the required Lotus repositories |
@@ -1478,24 +1478,24 @@ Slice 16 post-completion communication decision and evidence:
 
 ## 17. Supported-Features Ledger
 
-| Capability | Initial RFC state | Promotion rule |
+| Capability | Current support posture | Closure evidence and boundary |
 | --- | --- | --- |
-| Canonical advisory demo scenario | Proposed | Promote only after scenario contract, source prerequisites, proof expectations, and canonical/degraded evidence are implemented and validated. |
-| Advisory bank demo proof pack | Proposed | Promote only after proof manifest captures backend, Gateway, Workbench, platform, report, AI, security, and commercial evidence as applicable. |
-| Supported-claim register | Proposed | Promote only after README, wiki, supported-features, demo scripts, and commercial assets use the taxonomy consistently. |
-| Demo proof capture automation | Proposed | Promote only after a non-author can run the documented commands and interpret the output. |
-| Demo scenario APIs | Optional | Promote only if implemented with certified OpenAPI, tests, idempotency, errors, and Gateway/Workbench consumers where needed. |
-| Gateway demo/proof integration | Proposed | Promote only after Gateway consumes canonical Advise contracts and preserves supportability and correlation evidence. |
-| Workbench end-to-end demo journey | Proposed | Promote only after browser validation through Gateway/BFF and screenshot privacy/supported-claim review. |
-| Client-ready proposal pack proof | Gated | Promote only after RFC-0024/report/render/archive evidence is implemented and reviewed. |
-| Enterprise policy-pack demo proof | Gated | Promote only after RFC-0025 evidence is implemented, reviewed, and framed as configurable policy support rather than legal advice. |
-| Advisor cockpit demo proof | Gated | Promote only after RFC-0026 Gateway/Workbench evidence is implemented and browser validated. |
-| Governed AI copilot demo proof | Gated | Promote only after RFC-0027 guardrails, lineage, review posture, unavailable behavior, and model-risk evidence are implemented. |
-| RFP/security pack | Proposed | Promote only after security, dependency, config, tenant/legal-entity, supportability, vulnerability treatment, and implementation evidence are reviewed. |
-| Architecture deck or deck-ready outline | Proposed | Promote only after diagrams align to actual source authority, APIs, and proof evidence. |
-| Product one-pager | Proposed | Promote only after supported claims are client-ready approved or clearly marked planned. |
-| ROI story | Proposed | Promote only after wording is grounded in implemented workflow value and avoids unsupported numeric claims. |
-| LinkedIn post-completion draft | Proposed | Promote only after implementation is complete and the draft follows the thought-leadership workflow. |
+| Canonical advisory demo scenario | Supported | Scenario contract, source prerequisites, proof expectations, canonical/degraded evidence, and Platform/Workbench scenario registration are implemented and validated. |
+| Advisory bank demo proof pack | Supported | Proof manifest captures backend, Gateway, Workbench, Platform, document, AI/model-risk, security/runtime, and commercial evidence where implemented; unsupported claims remain blocked. |
+| Supported-claim register | Supported | README, wiki, supported-features, demo scripts, and commercial assets use the governed taxonomy consistently. |
+| Demo proof capture automation | Supported | `scripts/capture_rfc0028_backend_proof.py` and the proof-pack API produce interpretable sanitized artifacts under `output/` and reject material drift. |
+| Demo scenario APIs | Supported | Advise-owned scenario, supported-claim, and proof-pack endpoints are implemented with certified OpenAPI, tests, idempotency-safe error posture, Gateway/Workbench consumers, and sanitized output. |
+| Gateway demo/proof integration | Supported | Gateway consumes canonical Advise contracts and preserves supportability, correlation evidence, and Advise-owned error semantics. |
+| Workbench end-to-end demo journey | Supported for the governed canonical proof surface | Browser validation through Gateway/BFF and screenshot privacy/supported-claim review are complete for `advisory.bank_demo_proof`. |
+| Client-ready proposal pack proof | Supported only for advisor-use/internal proof boundaries | Advisor-use document proof is captured. Client-ready document publication, external client communication, and client delivery remain blocked. |
+| Enterprise policy-pack demo proof | Supported as configurable policy-evidence proof | RFC-0025 evidence is integrated and framed as configurable policy support, not legal advice or completed policy sign-off authority. |
+| Advisor cockpit demo proof | Supported | RFC-0026 Gateway/Workbench cockpit evidence is implemented, browser validated, and integrated into `journey-integration-proof-summary.json`. |
+| Governed AI copilot demo proof | Supported for RFC-0027 first-wave internal copilot scope | Guardrails, lineage, review posture, unavailable behavior, and model-risk evidence are implemented; AI never becomes advice, policy, approval, client-ready publication, or execution authority. |
+| RFP/security pack | Supported for implementation-backed responses | Security, dependency, config, supportability, sensitive-artifact, HTTP 409/422, and implementation evidence are reviewed; bank-specific attestations remain blocked unless separately proven. |
+| Architecture deck or deck-ready outline | Supported | Diagrams and deck-ready outline align to actual source authority, APIs, and proof evidence. |
+| Product one-pager | Supported as claim-controlled material | Supported claims are mapped to evidence; client-ready publication, external communication, OMS/order/fill/settlement, and bank-specific certifications remain blocked. |
+| ROI story | Supported as qualitative workflow-value material | Wording is grounded in implemented workflow value and avoids unsupported numeric claims. |
+| LinkedIn post-completion draft | Supported | The implementation-backed draft follows the thought-leadership workflow and avoids unsupported Lotus capability claims. |
 
 Current implementation note:
 
@@ -1509,18 +1509,18 @@ Current implementation note:
    `BANK_DEMO_PROOF_PACK_CREATED` for scenario
    `RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL`.
 3. Slice 9 adds `journey-integration-proof-summary.json` and
-   `ai_policy_cockpit_proof_integrated` for backend proof material only. Client-ready publication,
-   external client communication, OMS/order/fill/settlement, approval authority, product one-pager,
-   ROI story, RFP/security pack, and LinkedIn post-completion output are not promoted by this
-   evidence unless their owner-repo implementation and review gates are complete.
+   `ai_policy_cockpit_proof_integrated` for backend proof material. This evidence supports the
+   claim-controlled commercial pack only when combined with the later commercial, security/runtime,
+   artifact-reference, closure, and post-completion review gates. Client-ready publication,
+   external client communication, OMS/order/fill/settlement, approval authority, and
+   bank-specific attestations remain blocked.
 4. Slice 10 adds `commercial-material-pack.json`,
    `commercial_rfp_security_material_available`, and
    `docs/commercial/RFC-0028-bank-demo-client-proof-materials.md` for claim-controlled product,
    RFP, security, architecture, ROI, demo, proof-guide, feature-matrix, client-boundary, and
    operator material. Client-ready publication, external client communication,
    OMS/order/fill/settlement, approval authority, legal/regulatory advice, bank-specific
-   certifications, and LinkedIn post-completion output remain blocked unless separately
-   implementation-backed and reviewed.
+   certifications remain blocked unless separately implementation-backed and reviewed.
 5. Slice 11 adds `runtime-posture.json`, bounded `latency_ms`, runtime base-URL hygiene, sensitive
    summary redaction, and `RFC0028_RUNTIME_SECURITY_POSTURE_HARDENED`.
 6. Slice 12 updates README and wiki product truth for the source-owned proof APIs, runtime posture

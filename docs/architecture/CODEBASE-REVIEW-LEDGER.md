@@ -4654,3 +4654,35 @@
 - Follow-Up:
   - Keep future idempotency hashes focused on business request identity and store trace/correlation
     fields as audit lineage unless a contract explicitly requires them in the replay fingerprint.
+
+## LA-REV-178
+
+- Scope: RFC-0026 through RFC-0028 supported-features ledger closure truth
+- Pattern: documentation product truth / RFC closure governance
+- Status: Hardened
+- Finding Class: documentation quality gap
+- Summary: RFC-0026 and RFC-0028 were marked implemented, and RFC-0027 carried implemented closure
+  evidence, but the RFC-local supported-features ledgers still used pre-implementation
+  `Proposed`/`Gated` wording for capabilities that had already passed implementation proof. That
+  made the RFCs harder to use as product-truth artifacts for business, sales/pre-sales,
+  operations, and engineering audiences.
+- Evidence:
+  - `docs/rfcs/RFC-0026-advisor-cockpit-operating-workflow.md`,
+    `docs/rfcs/RFC-0027-governed-advisory-ai-copilot.md`, and
+    `docs/rfcs/RFC-0028-bank-demo-journey-and-client-ready-proof.md` now use current support
+    posture plus closure-evidence/boundary wording in their supported-features ledgers.
+  - `tests/unit/test_rfc0026_implementation_readiness_contract.py`,
+    `tests/unit/test_rfc0027_gold_standard_tightening_contract.py`, and
+    `tests/unit/test_rfc0028_gold_standard_tightening_contract.py` prevent those ledgers from
+    drifting back to stale `Proposed` rows for implemented capabilities.
+- Consequence:
+  - RFC-local product truth now matches README/wiki/supported-features posture: implemented
+    capabilities are described as supported with explicit blocked boundaries for client-ready
+    publication, external client communication, bank-specific attestations, and OMS execution.
+- Documentation:
+  - No wiki source change is required in this slice because `wiki/Supported-Features.md` and
+    `wiki/RFC-Index.md` already carry the implemented RFC-0026 through RFC-0028 closure posture;
+    this slice corrects the RFC-local ledgers and pins them with documentation-contract tests.
+- Follow-Up:
+  - When an implementation RFC reaches final closure, update the RFC-local supported-features
+    ledger from promotion criteria to current support posture in the same closure PR.
