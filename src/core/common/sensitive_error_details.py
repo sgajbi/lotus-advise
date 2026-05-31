@@ -14,6 +14,9 @@ SENSITIVE_ERROR_DETAIL_FRAGMENTS = (
     "raw payload",
     "raw source",
     "provider response",
+    "provider output",
+    "trace id",
+    "correlation id",
 )
 
 

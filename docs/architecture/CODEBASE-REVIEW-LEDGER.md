@@ -8944,6 +8944,34 @@
   - Keep RFC-0028 proof-material guards split between public/business copy and internal proof
     metadata so exclusion evidence can be recorded without becoming client-facing material.
 
+## LA-REV-372
+
+- Scope: Shared API sensitive-error detail detector
+- Pattern: Route-level error mappers should share one conservative detector for provider,
+  observability, and secret-bearing details
+- Status: Hardened
+- Finding Class: API error handling and sensitive-data posture
+- Summary: Proposal, workspace, copilot, health/readiness, and bank-demo API boundaries already
+  used the shared sensitive-error detector, but the detector did not classify provider-output,
+  trace-id, or correlation-id fragments as sensitive. Those details are support/observability
+  material, not client-facing API error detail.
+- Evidence:
+  - Added `provider output`, `trace id`, and `correlation id` to
+    `src/core/common/sensitive_error_details.py`.
+  - Extended proposal API error regression coverage to prove provider-output, trace-id, and
+    correlation-id details are redacted while status-code mapping remains intact.
+  - Focused proposal/workspace/copilot/bank-demo API tests passed with 79 tests; focused `ruff`
+    and format checks passed.
+- Consequence:
+  - Existing route-level mappers inherit stronger fail-closed behavior without duplicating
+    route-local sensitive-fragment lists.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is shared
+    defensive API error-boundary hardening for existing contracts.
+- Follow-Up:
+  - Keep new API route error mapping wired to the shared detector instead of adding local sensitive
+    term lists.
+
 ## LA-REV-368
 
 - Scope: RFC-0026 slice-4 documentation contract after action-family modularization
