@@ -15,6 +15,7 @@ from src.integrations.lotus_core.stateful_context import (
     get_stateful_context_fetch_stats_for_tests,
     reset_stateful_context_cache_for_tests,
 )
+from src.integrations.lotus_report import LotusReportUnavailableError
 from src.integrations.lotus_risk import LotusRiskEnrichmentUnavailableError
 from tests.shared.lotus_core_query_fakes import (
     CountingLotusCoreQueryClient,
@@ -2580,6 +2581,30 @@ def test_report_request_returns_503_when_lotus_report_is_unavailable(monkeypatch
 
     with TestClient(app) as client:
         created = _create(client, "lifecycle-report-unavailable")
+        proposal_id = created["proposal"]["proposal_id"]
+        response = client.post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            json={
+                "report_type": "PORTFOLIO_REVIEW",
+                "requested_by": "advisor_1",
+            },
+        )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "LOTUS_REPORT_REQUEST_UNAVAILABLE"
+
+
+def test_report_request_redacts_sensitive_lotus_report_unavailable_detail(monkeypatch):
+    def _raise_sensitive_lotus_report_error(**_: Any):
+        raise LotusReportUnavailableError("provider response included bearer token detail")
+
+    monkeypatch.setattr(
+        "src.api.proposals.routes_delivery.request_proposal_report",
+        _raise_sensitive_lotus_report_error,
+    )
+
+    with TestClient(app) as client:
+        created = _create(client, "lifecycle-report-sensitive-unavailable")
         proposal_id = created["proposal"]["proposal_id"]
         response = client.post(
             f"/advisory/proposals/{proposal_id}/report-requests",

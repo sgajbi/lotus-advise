@@ -1,9 +1,10 @@
 from typing import Annotated, Optional
 
-from fastapi import Depends, Header, HTTPException, Path, status
+from fastapi import Depends, Header, Path, status
 
 import src.api.proposals.router as shared
 from src.api.proposals.errors import raise_proposal_http_exception
+from src.api.proposals.report_errors import raise_lotus_report_unavailable_http_exception
 from src.api.services.proposal_reporting_service import request_proposal_report
 from src.core.proposals import (
     ProposalDeliveryHistoryResponse,
@@ -54,10 +55,7 @@ def create_proposal_report_request(
     except (ProposalNotFoundError, ProposalValidationError) as exc:
         raise_proposal_http_exception(exc)
     except LotusReportUnavailableError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
+        raise_lotus_report_unavailable_http_exception(exc)
 
 
 @shared.router.post(

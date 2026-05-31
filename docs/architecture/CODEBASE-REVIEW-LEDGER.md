@@ -8846,6 +8846,34 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-338
+
+- Scope: Lotus Report integration API error boundaries
+- Pattern: Report materialization routes should return a stable unavailable posture without
+  exposing upstream report/render/archive error detail
+- Status: Hardened
+- Finding Class: Security posture and API error handling
+- Summary: Delivery report requests, memo report packages, and policy evaluation report packages
+  each mapped `LotusReportUnavailableError` directly to `detail=str(exc)`. The current adapter uses
+  a controlled `LOTUS_REPORT_REQUEST_UNAVAILABLE` code, but a future integration error could carry
+  provider response, bearer token, credential, or raw payload detail.
+- Evidence:
+  - Added shared Lotus Report unavailable HTTP mapping in
+    `src/api/proposals/report_errors.py`.
+  - Delivery, memo, and policy evaluation report routes now use the shared mapper.
+  - Added a route test that proves sensitive Lotus Report unavailable detail is redacted.
+  - Confirmed no remaining `detail=str(exc)` mappings under `src/api`.
+  - Focused `ruff`, format check, lifecycle report-route tests, memo API tests, and policy
+    evaluation API tests passed with 21 tests.
+- Consequence:
+  - Report integration routes keep stable service-unavailable semantics while preventing upstream
+    report/render/archive details from leaking through Advise API responses.
+- Documentation:
+  - Review ledger updated. No README/wiki source change is required because this is defensive API
+    boundary hardening for existing report behavior.
+- Follow-Up:
+  - Keep future integration-unavailable mappings behind bounded-detail helpers.
+
 ## LA-REV-337
 
 - Scope: Advisory copilot repository startup boundary
