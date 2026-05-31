@@ -1271,7 +1271,7 @@ def test_transition_idempotency_replay_and_conflict():
     first = service.transition_state(
         proposal_id=proposal_id,
         payload=payload,
-        idempotency_key="idem-transition-1",
+        idempotency_key="  idem-transition-1  ",
     )
     replay = service.transition_state(
         proposal_id=proposal_id,
@@ -1280,6 +1280,7 @@ def test_transition_idempotency_replay_and_conflict():
     )
     assert replay.latest_workflow_event.event_id == first.latest_workflow_event.event_id
     assert replay.current_state == "RISK_REVIEW"
+    assert first.latest_workflow_event.reason["idempotency_key"] == "idem-transition-1"
 
     try:
         service.transition_state(
@@ -1325,7 +1326,7 @@ def test_approval_idempotency_replay_and_conflict():
     first = service.record_approval(
         proposal_id=proposal_id,
         payload=approval_payload,
-        idempotency_key="idem-approval-1",
+        idempotency_key="  idem-approval-1  ",
     )
     replay = service.record_approval(
         proposal_id=proposal_id,
@@ -1336,6 +1337,7 @@ def test_approval_idempotency_replay_and_conflict():
     assert replay.approval is not None
     assert first.approval is not None
     assert replay.approval.approval_id == first.approval.approval_id
+    assert first.approval.details["idempotency_key"] == "idem-approval-1"
 
     try:
         service.record_approval(
@@ -1371,7 +1373,7 @@ def test_narrative_review_records_version_scoped_replayable_event() -> None:
             reviewed_by="compliance_001",
             reason="Evidence-grounded advisor-review narrative.",
         ),
-        idempotency_key="idem-narrative-review-approve",
+        idempotency_key="  idem-narrative-review-approve  ",
     )
     replayed = service.record_narrative_review(
         proposal_id=created.proposal.proposal_id,
@@ -1393,6 +1395,9 @@ def test_narrative_review_records_version_scoped_replayable_event() -> None:
     assert first.narrative_review.client_ready_status == "NOT_REQUESTED"
     assert replayed.narrative_review.replayed is True
     assert replayed.narrative_review.review_id == first.narrative_review.review_id
+    assert first.latest_workflow_event.reason["idempotency_key"] == (
+        "idem-narrative-review-approve"
+    )
     assert replay.evidence["proposal_narrative"]["narrative_id"] == (
         first.narrative_review.narrative_id
     )

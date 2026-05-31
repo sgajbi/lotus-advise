@@ -5230,5 +5230,34 @@
     without changing supported product behavior, operator workflow, or business-facing feature
     posture.
 - Follow-Up:
-  - Extend the same idempotency-key normalization to optional transition, approval, memo, and
-    cockpit idempotency scopes where those commands accept caller-supplied keys.
+  - Completed by LA-REV-198 for lifecycle, memo, cockpit, and copilot idempotency scopes.
+
+## LA-REV-198
+
+- Scope: Advisory command idempotency-key normalization
+- Pattern: idempotency and audit lineage hardening
+- Status: Hardened
+- Finding Class: validation, replay determinism, and API evidence gap
+- Summary: Several advisory write commands accepted caller-supplied idempotency keys without
+  normalizing whitespace. Padded keys could create separate replay identities from the same client
+  retry, while whitespace-only optional keys could be persisted as misleading audit metadata.
+- Evidence:
+  - `src/core/common/idempotency.py` centralizes required and optional idempotency-key
+    normalization for reuse across advisory domains.
+  - Proposal lifecycle transitions, approval decisions, narrative reviews, memo creation and memo
+    events, report-package requests, AI commentary requests, advisory copilot runs/reviews, and
+    advisor cockpit acknowledgements normalize idempotency keys before replay lookup or
+    persistence.
+  - Advisor cockpit acknowledgement responses now return the normalized idempotency key in audit
+    context, matching the documented response model and giving callers replay evidence without
+    inspecting storage.
+  - Focused tests cover padded-key replay and normalized persisted/audit evidence across proposal
+    lifecycle, memo API, advisor cockpit, and advisory copilot paths.
+- Consequence:
+  - Advisory command replay identity is deterministic across HTTP and service callers, and optional
+    whitespace-only keys no longer become persisted audit identity.
+- Documentation:
+  - No wiki source change is required. This is command-boundary hardening and response evidence
+    alignment; supported product behavior and operator workflow are unchanged.
+- Follow-Up:
+  - None.

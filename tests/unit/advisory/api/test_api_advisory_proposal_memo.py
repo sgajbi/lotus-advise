@@ -72,7 +72,7 @@ def _create_memo(client: TestClient, proposal_id: str) -> dict:
     response = client.post(
         f"/advisory/proposals/{proposal_id}/versions/1/memo",
         json={"created_by": "advisor_1", "reason": {"purpose": "advisor review"}},
-        headers={"Idempotency-Key": "memo-api-create"},
+        headers={"Idempotency-Key": "  memo-api-create  "},
     )
     assert response.status_code == 200
     return response.json()
@@ -99,6 +99,8 @@ def test_proposal_memo_api_create_read_project_lineage_and_replay() -> None:
         assert memo["read_posture"]["gateway_supported"] is False
         assert memo["event_count"] == 1
         assert memo["audit_events"][0]["event_type"] == "MEMO_DRAFT_CREATED"
+        assert memo["audit_events"][0]["reason"]["idempotency_key"] == "memo-api-create"
+        assert memo["replay_metadata"]["idempotency_key"] == "memo-api-create"
         assert memo["audit_events"][0]["reason"]["creation_reason"] == {"purpose": "advisor review"}
         assert memo["replay_metadata"]["creation_reason"] == {"purpose": "advisor review"}
         assert memo["replay_metadata"]["proposal_artifact_hash"].startswith("sha256:")
@@ -168,12 +170,13 @@ def test_proposal_memo_review_and_report_package_events_are_idempotent_and_hash_
         review = client.post(
             f"/advisory/proposals/{proposal_id}/versions/1/memo/review",
             json=review_payload,
-            headers={"Idempotency-Key": "memo-review-1"},
+            headers={"Idempotency-Key": "  memo-review-1  "},
         )
         assert review.status_code == 200
         review_body = review.json()
         assert review_body["replayed"] is False
         assert review_body["review_event"]["event_type"] == "MEMO_REVIEW_RECORDED"
+        assert review_body["review_event"]["reason"]["idempotency_key"] == "memo-review-1"
         assert review_body["memo"]["review_posture"]["review_action"] == "APPROVE_FOR_ADVISOR_USE"
 
         replayed_review = client.post(

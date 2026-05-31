@@ -435,7 +435,7 @@ def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_postu
     response = service.acknowledge_action(
         action_item_id=action.action_item_id,
         payload=payload,
-        idempotency_key="ack-policy-001",
+        idempotency_key="  ack-policy-001  ",
         correlation_id="corr-ack-001",
         caller_context=_caller(),
         portfolio_id="PB_SG_GLOBAL_BAL_001",
@@ -452,6 +452,7 @@ def test_cockpit_acknowledgement_is_idempotent_and_does_not_clear_blocking_postu
     assert response.replayed is False
     assert replay.replayed is True
     assert response.audit["correlation_id"] == "corr-ack-001"
+    assert response.audit["idempotency_key"] == "ack-policy-001"
     assert replay.audit["correlation_id"] == "corr-ack-001"
     assert replay.action_item.correlation_id == "corr-ack-retry-002"
     assert replay.action_item.status == "PENDING_REVIEW"

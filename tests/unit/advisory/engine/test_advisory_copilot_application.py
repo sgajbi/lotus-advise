@@ -212,7 +212,7 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
             requested_intents=("explain_policy_posture",),
             user_instruction="Summarize the advisory evidence for internal review.",
         ),
-        idempotency_key="copilot-action-idem-001",
+        idempotency_key="  copilot-action-idem-001  ",
         correlation_id="corr_action_001",
     )
     replay = service.run_action(
@@ -251,6 +251,7 @@ def test_application_service_run_action_keeps_raw_instruction_out_of_persistence
     assert replay.replayed is True
     assert len(draft_calls) == 1
     assert first.run.run_id == replay.run.run_id
+    assert first.run.idempotency_key == "copilot-action-idem-001"
     assert first.run.correlation_id == "corr_action_001"
     assert first.run.request_summary_json["user_instruction_hash"].startswith("sha256:")
     assert "user_instruction" not in first.run.request_summary_json

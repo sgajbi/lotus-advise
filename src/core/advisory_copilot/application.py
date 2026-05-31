@@ -30,6 +30,10 @@ from src.core.advisory_copilot.service import (
 from src.core.advisory_copilot.source_projection import (
     build_proposal_version_copilot_evidence_packet,
 )
+from src.core.common.idempotency import (
+    normalize_optional_idempotency_key,
+    normalize_required_idempotency_key,
+)
 from src.core.policy_packs.models import PolicyEvaluationRecord
 from src.core.proposals.repository import ProposalRepository
 
@@ -159,6 +163,7 @@ class AdvisoryCopilotApplicationService:
         idempotency_key: str | None,
         correlation_id: str | None,
     ) -> AdvisoryCopilotRunResponse:
+        idempotency_key = normalize_optional_idempotency_key(idempotency_key)
         evidence_packet = load_advisory_copilot_evidence_packet(
             repository=self._repository,
             evidence_packet_id=payload.evidence_packet_id,
@@ -227,6 +232,7 @@ class AdvisoryCopilotApplicationService:
         idempotency_key: str,
         correlation_id: str | None,
     ) -> AdvisoryCopilotReviewResponse:
+        idempotency_key = normalize_required_idempotency_key(idempotency_key)
         result = record_advisory_copilot_review(
             repository=self._repository,
             run_id=run_id,

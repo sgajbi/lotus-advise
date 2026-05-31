@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional, cast
 
 from src.core.advisory.narrative_models import ProposalNarrativeReviewRequest
+from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.proposals.activity_read_model import load_proposal_activity_read_model
 from src.core.proposals.approval_read_model import load_proposal_approval_read_model
 from src.core.proposals.async_operation_persistence import persist_async_operation_failed
@@ -66,7 +67,6 @@ from src.core.proposals.exceptions import (
 from src.core.proposals.execution_handoff_command import request_proposal_execution_handoff
 from src.core.proposals.execution_status import build_execution_status_response
 from src.core.proposals.execution_update_command import record_proposal_execution_update
-from src.core.proposals.idempotency import normalize_required_idempotency_key
 from src.core.proposals.idempotency_read_model import load_proposal_idempotency_read_model
 from src.core.proposals.identifiers import (
     new_async_operation_id,

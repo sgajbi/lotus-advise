@@ -2,13 +2,16 @@ from datetime import datetime, timezone
 
 import pytest
 
+from src.core.common.idempotency import (
+    normalize_optional_idempotency_key,
+    normalize_required_idempotency_key,
+)
 from src.core.proposals.idempotency import (
     ProposalReplayHashConflictError,
     find_replayed_approval,
     find_replayed_event,
     load_replayed_approval,
     load_replayed_event,
-    normalize_required_idempotency_key,
 )
 from src.core.proposals.models import ProposalApprovalRecordData, ProposalWorkflowEventRecord
 from src.infrastructure.proposals.in_memory import InMemoryProposalRepository
@@ -78,6 +81,8 @@ def test_find_replayed_event_returns_latest_matching_event():
 
 def test_normalize_required_idempotency_key_trims_and_rejects_blank_values():
     assert normalize_required_idempotency_key("  idem_target  ") == "idem_target"
+    assert normalize_optional_idempotency_key("  idem_optional  ") == "idem_optional"
+    assert normalize_optional_idempotency_key("   ") is None
 
     with pytest.raises(ValueError, match="IDEMPOTENCY_KEY_REQUIRED"):
         normalize_required_idempotency_key(None)

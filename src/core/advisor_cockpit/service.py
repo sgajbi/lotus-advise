@@ -41,6 +41,7 @@ from src.core.advisor_cockpit.source_read_model import (
     build_advisor_cockpit_source_read_model,
 )
 from src.core.common.canonical import hash_canonical_payload
+from src.core.common.idempotency import normalize_required_idempotency_key
 from src.core.policy_packs.persistence import list_policy_evaluation_records
 from src.core.proposals.exceptions import (
     ProposalIdempotencyConflictError,
@@ -224,6 +225,10 @@ class AdvisorCockpitService:
         caller_context: CockpitCallerContext,
         portfolio_id: str | None,
     ) -> AdvisorCockpitAcknowledgeResponse:
+        try:
+            idempotency_key = normalize_required_idempotency_key(idempotency_key)
+        except ValueError as exc:
+            raise ProposalValidationError(str(exc)) from exc
         action = self.get_action(
             action_item_id=action_item_id,
             caller_context=caller_context,
@@ -524,6 +529,7 @@ def _acknowledgement_response(
             "acknowledgement_id": record.acknowledgement_id,
             "correlation_id": record.correlation_id,
             "contract_version": COCKPIT_CONTRACT_VERSION,
+            "idempotency_key": record.reason_json.get("idempotency_key"),
         },
     )
 
