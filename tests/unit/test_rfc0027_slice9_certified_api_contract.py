@@ -31,7 +31,7 @@ def test_rfc0027_slice9_evidence_is_indexed_and_non_promoting() -> None:
     assert "No free-form prompt endpoint exists" in slice9
     assert "certified Advise APIs/OpenAPI" in supported
     assert "Gateway publication, Workbench Gateway-first product surface" in supported
-    assert "full RFC-0028 bank-demo/RFP claims remain gated" in supported
+    assert "RFC-0028 governs bank-demo/RFP proof through supported claims" in supported
 
 
 def test_rfc0027_slice9_documents_selected_api_surface_and_boundaries() -> None:

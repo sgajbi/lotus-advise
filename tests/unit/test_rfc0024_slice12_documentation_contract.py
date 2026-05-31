@@ -49,7 +49,7 @@ def test_rfc0024_slice12_supported_features_do_not_overclaim() -> None:
     )
 
     assert "Slice 12 is complete for memo-specific commercial" in supported_features
-    assert "full bank-demo/RFP claims" in supported_features
+    assert "RFC-0028 governs bank-demo/RFP proof through supported claims" in supported_features
     assert "client-ready memo publication remains gated" in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_features
     assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_features

@@ -183,7 +183,7 @@ def test_rfc0024_memo_trust_telemetry_promotes_only_advisor_use_memo() -> None:
     assert "AdvisoryProposalMemoEvidencePack:v1` is active" in supported_text
     assert "Gateway, Workbench, report/render/archive realization" in supported_text
     assert "client-ready memo publication remains gated" in supported_text
-    assert "full bank-demo/RFP claims" in supported_text
+    assert "RFC-0028 governs bank-demo/RFP proof through supported claims" in supported_text
     assert "AdvisoryProposalMemoEvidencePack:v1 | Supported" in supported_text
     assert "advisory.proposals.memo_evidence_pack" in capability_text
 

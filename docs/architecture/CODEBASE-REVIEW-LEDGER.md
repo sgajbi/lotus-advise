@@ -8544,3 +8544,33 @@
 - Follow-Up:
   - Keep any future copilot projection fields wired through the shared business-copy guard before
     they are exposed through Gateway, Workbench, or persisted replay evidence.
+
+## LA-REV-322
+
+- Scope: RFC-0027/RFC-0028 current-state documentation boundary
+- Pattern: Current feature truth must distinguish owner-RFC runtime authority from RFC-0028
+  supported-claim proof
+- Status: Hardened
+- Finding Class: Documentation drift
+- Summary: Current README, RFC index, supported-features, and wiki text still said full RFC-0028
+  demo/RFP claims were gated in RFC-0026/RFC-0027 context. RFC-0028 now owns bank-demo/RFP proof
+  through supported claims and claim-controlled commercial material, while client-ready
+  publication, external client communication, bank-specific attestations, legal advice, completed
+  sign-off/approval, and OMS/order/fill/settlement remain blocked.
+- Evidence:
+  - Updated current README wording for advisor-cockpit and bank-demo proof boundaries.
+  - Updated RFC-0027 index and RFC body wording to say RFC-0028 governs bank-demo/RFP proof through
+    supported claims rather than RFC-0027 runtime authority.
+  - Updated supported-features and wiki RFC-index current-state sections for memo, policy,
+    cockpit, and copilot boundaries.
+  - Updated documentation contract tests pinning the current supported-claim wording.
+- Consequence:
+  - Business, pre-sales, operations, and engineering readers now see RFC-0028 as the implemented
+    proof owner without interpreting RFC-0026 or RFC-0027 as granting client-ready, execution, or
+    bank-specific attestation authority.
+- Documentation:
+  - README, RFC index, RFC-0027, supported-features, and wiki RFC index changed; wiki check/publish
+    is required before/after merge.
+- Follow-Up:
+  - Keep historical slice records audit-friendly, but update current-state README/wiki/index truth
+    whenever a later RFC implements a previously gated supported-claim package.

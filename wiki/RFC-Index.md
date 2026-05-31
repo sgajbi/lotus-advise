@@ -41,12 +41,13 @@ RFC-0023 through RFC-0028 are the crown-jewel advisory roadmap. RFC-0023 is impl
 governed advisor-review proposal narrative evidence and defines the grounded narrative prerequisite
 consumed by proposal memo, policy, cockpit, copilot, and demo work. RFC-0024 is implemented for
 advisor-use proposal memo evidence and remains the bounded memo source of truth; client-ready memo
-publication, external client communication, and full bank-demo/RFP claims remain gated. RFC-0025 is
+publication and external client communication remain gated; RFC-0028 governs bank-demo/RFP proof
+through supported claims. RFC-0025 is
 implemented for advisor/compliance policy evaluation evidence and remains bounded to policy
 evidence, review posture, report-package lineage, bounded AI evidence, Gateway/Workbench exposure,
 and active `AdvisoryPolicyEvaluationRecord:v1` data-product support. Completed approval/waiver
 authority, completed sign-off authority, client-ready policy publication, external client
-communication, and full RFC-0028 bank-demo/RFP claims remain gated.
+communication remain gated; RFC-0028 governs bank-demo/RFP proof through supported claims.
 
 RFC-0026 is implemented for the source-owned advisor cockpit operating workflow. Advise
 owns action, snapshot, supportability, preparation-packet, supervisory queue, report/readiness,
@@ -64,7 +65,8 @@ workflow-pack execution, Gateway publication, Workbench Gateway-first rendering,
 `AdvisoryCopilotInteractionRecord:v1` data-product posture. Evidence packets and review events are
 audit records inside the interaction product boundary rather than standalone promoted data
 products. Client-ready publication, external client communication, policy approval/sign-off
-authority, OMS order lifecycle, fills, settlement, and full RFC-0028 demo/RFP claims remain gated.
+authority, OMS order lifecycle, fills, and settlement remain gated. RFC-0028 governs bank-demo/RFP
+proof through supported claims rather than RFC-0027 runtime authority.
 
 RFC-0028 is implemented for repeatable bank-demo proof and claim-controlled commercial material.
 Slice 0 locks the
@@ -401,7 +403,7 @@ RFC-0025 Slice 16 is implemented as final closure. Evidence lives in
 advisor/compliance policy evidence with current trust telemetry, `/platform/capabilities`, platform
 SLO/access/evidence-policy posture, Gateway/Workbench visibility, and live-suite proof. Completed
 approval/waiver authority, completed sign-off authority, client-ready policy publication, external
-client communication and full RFC-0028 bank-demo/RFP claims remain gated.
+client communication remain gated; RFC-0028 governs bank-demo/RFP proof through supported claims.
 
 RFC-0025 Slice 17 is implemented as post-completion communication. Evidence lives in
 `docs/rfcs/RFC-0025-slice-17-post-completion-communication.md`. The `lotus-platform` LinkedIn draft

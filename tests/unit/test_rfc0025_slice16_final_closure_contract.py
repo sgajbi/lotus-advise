@@ -47,7 +47,10 @@ def test_rfc0025_slice16_closes_policy_evidence_without_client_ready_claims() ->
     assert "RFC-0025 is implemented for advisor/compliance policy evidence through Slice 17" in (
         supported_features
     )
-    assert "client-ready policy publication, external client communication" in supported_features
+    assert "client-ready policy publication, and external client communication" in (
+        supported_features
+    )
+    assert "RFC-0028 governs bank-demo/RFP proof through supported claims" in supported_features
     assert "RFC-0025 enterprise policy-pack implementation is closed" in repo_context
     assert "AdvisoryPolicyEvaluationRecord:v1` is an active advisor/compliance policy evidence" in (
         readme

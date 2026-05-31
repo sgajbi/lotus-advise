@@ -79,14 +79,15 @@ Boundary rules that matter:
    source-owned RFC-0026 advisor operating workflow products. They cover Advise action items,
    snapshot, supportability, acknowledgements, Gateway/Workbench consumption, and canonical
    `PB_SG_GLOBAL_BAL_001` proof while client-ready publication, external client communication,
-   CRM system-of-record behavior, OMS lifecycle, completed policy approval authority, and full
-   RFC-0028 demo/RFP claims remain gated.
+   CRM system-of-record behavior, OMS lifecycle, and completed policy approval authority remain
+   gated. RFC-0028 bank-demo/RFP proof is governed separately through supported claims.
 8. RFC-0028 bank-demo proof is implemented through the Advise scenario contract, supported-claim
    register, sanitized proof-pack capture, Gateway publication, Platform canonical contract
    registration, and Workbench `advisory.bank_demo_proof` surface. Canonical validation for
    `PB_SG_GLOBAL_BAL_001` records `BANK_DEMO_PROOF_PACK_CREATED` and keeps client-ready
-   publication, external client communication, OMS/order/fill/settlement, and full RFP/demo
-   collateral claims blocked until separately implementation-backed. Slice 9 adds
+   publication, external client communication, OMS/order/fill/settlement, and unsupported
+   RFP/demo collateral claims blocked. Claim-controlled commercial material is governed by the
+   supported-claim register. Slice 9 adds
    `AdvisoryJourneyIntegrationProofSummary:v1` and
    `journey-integration-proof-summary.json` so the backend proof pack now carries sanitized
    AI/model-risk, policy, and advisor-cockpit boundary evidence without promoting AI authority,

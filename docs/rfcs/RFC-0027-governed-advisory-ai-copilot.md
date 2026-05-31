@@ -1146,7 +1146,7 @@ Still gated outside RFC-0027 support:
 2. external client communication delivery,
 3. completed policy approval or sign-off authority,
 4. OMS order lifecycle, fills, settlement, and execution,
-5. full RFC-0028 bank-demo/RFP package claims.
+5. bank-demo/RFP proof, which is governed separately by RFC-0028 supported claims.
 
 ## 22. Acceptance Criteria
 
@@ -1256,7 +1256,7 @@ These decisions replace the earlier open-question list and are closure gates for
    evidence, RFC-0025 policy evidence, and RFC-0026 cockpit evidence. It does not implement or
    claim client-ready narrative, client-ready memo publication, completed policy approval,
    external client communication, CRM system-of-record behavior, OMS activity, fill/settlement
-   lifecycle, or full RFC-0028 demo/RFP readiness.
+   lifecycle, or RFC-0028 bank-demo/RFP proof authority.
 3. `lotus-ai` integration uses governed workflow-pack execution and run/review posture only. Any
    missing `lotus-ai` workflow-pack registry, schema, model-risk, disabled-pack, or unavailable
    behavior required by the copilot is implemented inside RFC-0027 before promotion.
