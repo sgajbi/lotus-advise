@@ -71,7 +71,7 @@ class AdvisoryCopilotEvidencePacketCreateRequest(BaseModel):
     )
     reason: dict[str, Any] = Field(
         default_factory=dict,
-        description="Business reason for packet creation; raw prompt fields are rejected.",
+        description="Business reason for packet creation; unredacted AI-input fields are rejected.",
         examples=[{"business_reason": "Prepare advisor review."}],
     )
 
@@ -127,7 +127,7 @@ class AdvisoryCopilotProposalVersionEvidenceRequest(BaseModel):
     )
     reason: dict[str, Any] = Field(
         default_factory=dict,
-        description="Business reason for packet creation; raw prompt fields are rejected.",
+        description="Business reason for packet creation; unredacted AI-input fields are rejected.",
         examples=[{"business_reason": "Prepare advisor copilot review."}],
     )
 
@@ -180,7 +180,7 @@ class AdvisoryCopilotActionRequest(BaseModel):
     )
     reason: dict[str, Any] = Field(
         default_factory=dict,
-        description="Business reason for the action; raw prompt fields are rejected.",
+        description="Business reason for the action; unredacted AI-input fields are rejected.",
         examples=[{"business_reason": "Prepare advisor review."}],
     )
     requested_intents: tuple[str, ...] = Field(
@@ -263,7 +263,7 @@ class AdvisoryCopilotReviewRequest(BaseModel):
     )
     reason: dict[str, Any] = Field(
         default_factory=dict,
-        description="Structured review reason; raw prompt fields are rejected.",
+        description="Structured review reason; unredacted AI-input fields are rejected.",
         examples=[{"decision": "Reviewed against cited source evidence."}],
     )
 

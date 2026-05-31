@@ -565,6 +565,22 @@ def test_advisory_copilot_openapi_is_action_specific() -> None:
     assert "/advisory/copilot/prompt" not in paths
     assert "Advisory Copilot" in {tag["name"] for tag in schema["tags"]}
 
+    copilot_contract = {
+        "paths": {
+            path: path_schema
+            for path, path_schema in paths.items()
+            if path.startswith("/advisory/copilot")
+        },
+        "schemas": {
+            name: component_schema
+            for name, component_schema in schema["components"]["schemas"].items()
+            if name.startswith("AdvisoryCopilot")
+        },
+    }
+    contract_text = json.dumps(copilot_contract).lower()
+    assert "raw prompt" not in contract_text
+    assert "unredacted ai" in contract_text
+
 
 def test_advisory_copilot_http_edge_bounds_identifiers_and_headers(
     copilot_repository: InMemoryAdvisoryCopilotRepository,

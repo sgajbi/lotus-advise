@@ -92,7 +92,7 @@ def get_advisory_copilot_application_service(
     description=(
         "Builds and persists a bounded, redacted evidence packet for a governed advisory "
         "copilot action. The endpoint stores source refs, packet hash, audience projection, "
-        "unsupported-evidence posture, and audit context without accepting raw prompts."
+        "unsupported-evidence posture, and audit context without accepting unredacted AI inputs."
     ),
     responses=ADVISORY_COPILOT_RESPONSES,
 )

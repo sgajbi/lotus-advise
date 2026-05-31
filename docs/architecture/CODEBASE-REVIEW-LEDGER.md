@@ -8846,6 +8846,33 @@
   - Keep future copilot route errors constrained to bounded codes or sanitized business-safe
     messages.
 
+## LA-REV-359
+
+- Scope: RFC-0027 Advisory Copilot public API vocabulary
+- Pattern: Public OpenAPI descriptions should state AI-input controls in business-safe language
+  while runtime guardrails keep enforcing banned technical payload terms
+- Status: Hardened
+- Finding Class: API documentation quality and sensitive-data posture
+- Summary: Advisory Copilot route and schema descriptions still used raw-prompt phrasing in the
+  public OpenAPI contract. The runtime already rejects ungoverned AI/provider material, but the
+  published API vocabulary should describe that control as unredacted AI-input handling instead of
+  exposing implementation-oriented wording.
+- Evidence:
+  - Reworded copilot request, run-record, review-record, and evidence-packet route descriptions to
+    use unredacted AI-input language.
+  - Added OpenAPI regression coverage proving `/advisory/copilot` paths and `AdvisoryCopilot*`
+    schemas do not publish raw-prompt wording while still documenting unredacted-AI controls.
+  - Regenerated the API vocabulary inventory after the OpenAPI description changes.
+  - Focused `ruff`, format, and Advisory Copilot API/application tests passed with 27 tests.
+- Consequence:
+  - RFC-0027 keeps the same fail-closed guardrail behavior with cleaner external API language for
+    enterprise integrators and private-banking stakeholders.
+- Documentation:
+  - Review ledger and generated API vocabulary updated. No README/wiki source change is required
+    because the supported feature posture is unchanged.
+- Follow-Up:
+  - Keep internal guardrail fixtures explicit, but keep published Swagger vocabulary business-safe.
+
 ## LA-REV-358
 
 - Scope: RFC-0028 backend proof capture CLI error boundary
